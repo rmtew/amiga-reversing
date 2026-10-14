@@ -9490,6 +9490,7 @@ static void source_quality_hardware_base_state_apply_policy_register_seeds(Sourc
         seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) {
       continue;
     }
+    source_quality_hardware_base_state_clear(state, seed->reg_index);
     if (!platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, seed->name, &base_id))
       continue;
     source_quality_hardware_base_state_set(state, seed->reg_index, base_id);
@@ -9864,10 +9865,10 @@ static int source_quality_infer_call_hardware_base_seed_pass(const M68kDecodeIR 
       uint8_t reg_index;
       if (!source_quality_candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
-        candidate->offset);
       source_quality_hardware_base_state_apply_inferred_register_seeds(&state, seed_list->items, seed_list->count,
         section->section_index, candidate->offset);
+      source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+        candidate->offset);
       if (source_quality_instruction_has_local_call_flow(&instruction) &&
           source_quality_candidate_local_call_target(section, candidate, &target_offset)) {
         for (reg_index = 0U; reg_index < 8U; ++reg_index) {
@@ -9935,10 +9936,10 @@ static int append_hardware_base_platform_address_uses_for_section(
     uint8_t operand_index;
     if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
-      candidate->offset);
     source_quality_hardware_base_state_apply_inferred_register_seeds(&state, hardware_base_seeds,
       hardware_base_seed_count, section->section_index, candidate->offset);
+    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+      candidate->offset);
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) {
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
@@ -10023,10 +10024,10 @@ static int append_hardware_base_note_platform_semantic_uses_for_section(
     uint8_t operand_index;
     if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
-      candidate->offset);
     source_quality_hardware_base_state_apply_inferred_register_seeds(&state, hardware_base_seeds,
       hardware_base_seed_count, section->section_index, candidate->offset);
+    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+      candidate->offset);
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) {
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
@@ -10112,10 +10113,10 @@ static int append_runtime_sink_pointer_hardware_base_semantic_uses_for_section(
     uint8_t operand_index;
     if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
-      candidate->offset);
     source_quality_hardware_base_state_apply_inferred_register_seeds(&state, hardware_base_seeds,
       hardware_base_seed_count, section->section_index, candidate->offset);
+    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+      candidate->offset);
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) {
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);
@@ -10653,6 +10654,29 @@ static int append_expected_address_observation_symbol_accesses_for_section(M68kS
             observation->operand_index)) {
         continue;
       }
+      if (observation != NULL && observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY &&
+          observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND &&
+          source_quality_absolute_storage_slot_for_address(&source_analysis->policy, observation->address) == NULL) {
+        const M68kAnalysisPolicy *policy = &source_analysis->policy;
+        uint16_t representation_index;
+        int replaced_by_manual_equate = 0;
+        if (!m68k_analysis_policy_manual_representations_valid(policy)) return -1;
+        for (representation_index = 0U; representation_index < policy->manual_representation_count; ++representation_index) {
+          const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[representation_index];
+          if (representation->has_section_index && representation->section_index == section_analysis->section_index &&
+              representation->offset == observation->offset && representation->has_operand_index &&
+              representation->operand_index == observation->operand_index &&
+              representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+              representation->target_equate_index != 0U && representation->target_equate_index <= policy->target_equate_count &&
+              policy->target_equates[representation->target_equate_index - 1U].value == (int64_t)observation->address) {
+            replaced_by_manual_equate = 1;
+            break;
+          }
+        }
+        /* The manual producer independently requires the selected EQU access;
+           do not also require its displaced generated absolute-slot name. */
+        if (replaced_by_manual_equate) continue;
+      }
       memset(&access, 0, sizeof(access));
       access.symbol_name = section_storage_origin != NULL ? section_storage_origin->symbol_name :
         observation->symbol_name;
@@ -10919,8 +10943,8 @@ static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *s
   uint16_t index;
   if (source_analysis == NULL) return -1;
   policy = &source_analysis->policy;
-  for (index = 0U; index < policy->manual_representation_count &&
-       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+  if (!m68k_analysis_policy_manual_representations_valid(policy)) return -1;
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     const M68kAnalysisTargetEquate *equate;
     M68kSectionAnalysisIR *section_analysis;
@@ -12464,10 +12488,10 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
     candidate = m68k_decode_ir_find_candidate_at_offset(section, offset);
     if (candidate == NULL || candidate->byte_count == 0U) continue;
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
-      candidate->offset);
     source_quality_hardware_base_state_apply_inferred_register_seeds(&state, hardware_base_seeds,
       hardware_base_seed_count, section->section_index, candidate->offset);
+    source_quality_hardware_base_state_apply_policy_register_seeds(&state, policy, section->section_index,
+      candidate->offset);
     metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (metadata == NULL) {
       source_quality_hardware_base_state_update_after_instruction(&state, &instruction);

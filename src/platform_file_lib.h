@@ -25,6 +25,16 @@ typedef struct PlatformFileBufferResult {
 } PlatformFileBufferResult;
 
 typedef struct PlatformFileListingArtifact PlatformFileListingArtifact;
+/* Metadata comment limits and lossless parsing contract for durable writers. */
+PLATFORM_FILE_API size_t platform_file_entry_comment_text_capacity(void);
+PLATFORM_FILE_API size_t platform_file_entry_comment_count_capacity(void);
+/* Native target equate storage bound for durable-writer preflight. */
+PLATFORM_FILE_API size_t platform_file_target_equate_count_capacity(void);
+PLATFORM_FILE_API size_t platform_file_structured_data_item_count_capacity(void);
+PLATFORM_FILE_API size_t platform_file_named_label_count_capacity(void);
+PLATFORM_FILE_API size_t platform_file_manual_data_reference_count_capacity(void);
+/* 0: supported, 1: parsing/capacity failure, 2: lossy metadata string codec. */
+PLATFORM_FILE_API int platform_file_validate_entry_comment_text(const char *json_string, const char *text);
 typedef struct PlatformFileListingStream PlatformFileListingStream;
 /* R2 corpus reduction ABI.  Python supplies only normalized canonical-row
  * facts while C owns the cross-row location and direct-control state. */
@@ -160,11 +170,17 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_offset_row_
     char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc(
     PlatformFileListingArtifact *artifact, uint32_t address, char **out_text);
+/* Resolve only current materialized native views; ambiguous source identities are refused. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_runtime_source_json_alloc(
+    PlatformFileListingArtifact *artifact, uint32_t address, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_anchor_window_json_alloc(
     PlatformFileListingArtifact *artifact, const char *anchor_code, uint32_t count, char **out_text);
 /* Additive projection; never alters the canonical listing plan or analysis. */
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_package_json_alloc(
   PlatformFileListingArtifact *artifact, uint32_t minimum_asset_size, char **out_text);
+/* Internal presentation projection: canonical plan coordinates, never new facts. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_plan_json_alloc(
+  PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(
     PlatformFileListingArtifact *artifact, char **out_text, char **out_profile_json);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_summary_json_alloc(PlatformFileListingArtifact *artifact,
@@ -178,6 +194,12 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_query_json_alloc(P
     int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,
     const char *struct_name, int has_field, int32_t field_offset, const char *direction,
     uint32_t offset, uint32_t limit, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
+    PlatformFileListingArtifact *artifact, const char *region_id, uint32_t destination,
+    uint32_t memory_class, char **out_text);
+/* Stable region definitions and reference obligations from the canonical plan. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_regions_json_alloc(
+    PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void);
 PLATFORM_FILE_API void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer);

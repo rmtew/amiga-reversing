@@ -271,3 +271,17 @@ def test_owned_process_escalates_cleanup(monkeypatch):
     assert calls == [("wait", 1), "terminate", ("wait", 1), "kill", ("wait", 2)]
     owner.close()
     assert calls[-1] == ("wait", 1)
+
+
+def test_raw_key_transition_validates_and_uses_native_protocol():
+    def serve(stream):
+        for pressed in (True, False):
+            req=read(stream)
+            assert req['method']=='input.key'
+            assert req['params']=={'rawkey':11,'action':'press' if pressed else 'release'}
+            reply(stream,req,{})
+    client,thread,errors=fake_server(serve)
+    client.key(11,pressed=True); client.key(11,pressed=False)
+    for key in (-1,128,True):
+        with pytest.raises(ValueError): client.key(key,pressed=True)
+    client.close();thread.join(1);assert not errors

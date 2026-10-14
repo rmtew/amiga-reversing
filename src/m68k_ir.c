@@ -415,6 +415,8 @@ const char *m68k_data_reference_source_kind_name(uint8_t source_kind) {
   switch (source_kind) {
     case M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY:
       return "table_entry";
+    case M68K_DATA_REFERENCE_SOURCE_MANUAL:
+      return "manual";
     default:
       return NULL;
   }
@@ -1271,6 +1273,13 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   if (source_analysis == NULL || item == NULL) return -1;
   arena = source_analysis->arena;
   if (arena == NULL) return -1;
+  /* The arena vector is authoritative and may include extra synthesized facts.
+     Reserve its bounded policy mirror first when that mirror has room. */
+  if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+    int result = m68k_analysis_policy_reserve_structured_data_items(&source_analysis->policy,
+      (size_t)source_analysis->policy.structured_data_item_count + 1U);
+    if (result != 0) return result;
+  }
   copy = *item;
   m68k_analysis_structured_data_item_refresh_text_lengths(&copy);
   grown = (M68kAnalysisStructuredDataItem *)arena_grow_array(arena,
@@ -1280,10 +1289,10 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   source_analysis->structured_data_items = grown;
   source_analysis->structured_data_items[source_analysis->structured_data_item_count++] = copy;
   if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
-    if (m68k_analysis_policy_reserve_structured_data_items(&source_analysis->policy,
-        (uint16_t)(source_analysis->policy.structured_data_item_count + 1U)) != 0)
-      return -1;
     source_analysis->policy.structured_data_items[source_analysis->policy.structured_data_item_count++] = copy;
+  } else {
+    if (source_analysis->policy.storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_NONE)
+      source_analysis->policy.storage_capacity_status = M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE;
   }
   return 0;
 }
@@ -1531,6 +1540,35 @@ int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode) {
   return 0;
 }
 
+int m68k_analysis_policy_resolve_pointer_address(const M68kAnalysisPolicy *policy, uint32_t value,
+    uint32_t *out_section, uint32_t *out_offset) {
+  uint16_t index;
+  uint8_t best_provenance = 0U;
+  int found = 0, ambiguous = 0;
+  if (policy == NULL || out_section == NULL || out_offset == NULL) return 0;
+  for (index = 0U; index < policy->runtime_range_count; ++index) {
+    const M68kAnalysisRuntimeRange *range = &policy->runtime_ranges[index];
+    uint32_t delta, offset;
+    if (!range->has_section_index || range->size == 0U || value < range->runtime_address ||
+        (range->use_mask != M68K_ANALYSIS_RUNTIME_RANGE_USE_DEFAULT &&
+         (range->use_mask & M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET) == 0U)) continue;
+    delta = value - range->runtime_address;
+    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+    offset = range->offset + delta;
+    /* An explicit observation supersedes weaker load metadata; distinct
+     * mappings with equally strong provenance remain ambiguous. */
+    if (found && range->provenance < best_provenance) continue;
+    if (!found || range->provenance > best_provenance) {
+      *out_section = range->section_index;
+      *out_offset = offset;
+      best_provenance = range->provenance;
+      found = 1;
+      ambiguous = 0;
+    } else if (*out_section != range->section_index || *out_offset != offset) ambiguous = 1;
+  }
+  return ambiguous ? 2 : found;
+}
+
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   if (policy == NULL) return;
 
@@ -1540,14 +1578,19 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   policy->structured_data_item_capacity = 4U;
   policy->named_labels = policy->named_labels_inline;
   policy->named_label_capacity = 4U;
+  policy->manual_representations = policy->manual_representations_inline;
+  policy->manual_representation_capacity = 4U;
 }
 
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy == NULL) return;
+  policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NONE;
   if (policy->custom_struct_owner != 0U && policy->custom_structs != NULL) free(policy->custom_structs);
   if (policy->structured_data_items_owner != 0U && policy->structured_data_items != NULL)
     free(policy->structured_data_items);
   if (policy->named_labels_owner != 0U && policy->named_labels != NULL) free(policy->named_labels);
+  if (policy->manual_representations_owner != 0U && policy->manual_representations != NULL)
+    free(policy->manual_representations);
   policy->custom_structs = NULL;
   policy->custom_struct_count = 0U;
   policy->custom_struct_capacity = 0U;
@@ -1560,18 +1603,53 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   policy->named_labels = policy->named_labels_inline;
   policy->named_label_capacity = 4U;
   policy->named_labels_owner = 0U;
+  policy->manual_representation_count = 0U;
+  policy->manual_representations = policy->manual_representations_inline;
+  policy->manual_representation_capacity = 4U;
+  policy->manual_representations_owner = 0U;
 }
 
-int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count) {
+int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->structured_data_item_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
+      policy->structured_data_item_capacity > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
+      policy->structured_data_item_count > policy->structured_data_item_capacity) return 0;
+  if (policy->structured_data_items == NULL)
+    return policy->structured_data_item_capacity == 0U && policy->structured_data_items_owner == 0U;
+  if (policy->structured_data_items == policy->structured_data_items_inline)
+    return policy->structured_data_item_capacity <= 4U && policy->structured_data_items_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->named_label_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT ||
+      policy->named_label_capacity > M68K_ANALYSIS_NAMED_LABEL_LIMIT ||
+      policy->named_label_count > policy->named_label_capacity) return 0;
+  if (policy->named_labels == NULL)
+    return policy->named_label_capacity == 0U && policy->named_labels_owner == 0U;
+  if (policy->named_labels == policy->named_labels_inline)
+    return policy->named_label_capacity <= 4U && policy->named_labels_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, size_t required_count) {
   M68kAnalysisStructuredDataItem *grown;
   uint16_t capacity;
-  if (policy == NULL || required_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return -1;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_STRUCTURED_DATA;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_structured_data_items_valid(policy)) return -1;
+  if (policy->structured_data_items == NULL && required_count <= 4U) {
+    policy->structured_data_items = policy->structured_data_items_inline;
+    policy->structured_data_item_capacity = 4U;
+  }
   if (required_count <= policy->structured_data_item_capacity) return 0;
   capacity = policy->structured_data_item_capacity < 4U ? 4U : policy->structured_data_item_capacity;
   while (capacity < required_count) {
-    uint16_t next = (uint16_t)(capacity * 2U);
-    capacity = next > capacity && next <= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ? next :
-      M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT;
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ? next :
+      M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT);
   }
   grown = (M68kAnalysisStructuredDataItem *)calloc(capacity, sizeof(*grown));
   if (grown == NULL) return -1;
@@ -1584,15 +1662,24 @@ int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *polic
   return 0;
 }
 
-int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count) {
+int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t required_count) {
   M68kAnalysisNamedLabel *grown;
   uint16_t capacity;
-  if (policy == NULL || required_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT) return -1;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NAMED_LABELS;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_named_labels_valid(policy)) return -1;
+  if (policy->named_labels == NULL && required_count <= 4U) {
+    policy->named_labels = policy->named_labels_inline;
+    policy->named_label_capacity = 4U;
+  }
   if (required_count <= policy->named_label_capacity) return 0;
   capacity = policy->named_label_capacity < 4U ? 4U : policy->named_label_capacity;
   while (capacity < required_count) {
-    uint16_t next = (uint16_t)(capacity * 2U);
-    capacity = next > capacity && next <= M68K_ANALYSIS_NAMED_LABEL_LIMIT ? next : M68K_ANALYSIS_NAMED_LABEL_LIMIT;
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_NAMED_LABEL_LIMIT ? next : M68K_ANALYSIS_NAMED_LABEL_LIMIT);
   }
   grown = (M68kAnalysisNamedLabel *)calloc(capacity, sizeof(*grown));
   if (grown == NULL) return -1;
@@ -1605,15 +1692,58 @@ int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16
   return 0;
 }
 
+int m68k_analysis_policy_manual_representations_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->manual_representation_count > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ||
+      policy->manual_representation_capacity > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ||
+      policy->manual_representation_count > policy->manual_representation_capacity) return 0;
+  if (policy->manual_representations == NULL)
+    return policy->manual_representation_capacity == 0U && policy->manual_representations_owner == 0U;
+  if (policy->manual_representations == policy->manual_representations_inline)
+    return policy->manual_representation_capacity <= 4U && policy->manual_representations_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_reserve_manual_representations(M68kAnalysisPolicy *policy, uint16_t required_count) {
+  M68kAnalysisManualRepresentation *grown;
+  uint16_t capacity;
+  if (!m68k_analysis_policy_manual_representations_valid(policy) ||
+      required_count > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT) return -1;
+  if (policy->manual_representations == NULL && required_count <= 4U) {
+    policy->manual_representations = policy->manual_representations_inline;
+    policy->manual_representation_capacity = 4U;
+  }
+  if (required_count <= policy->manual_representation_capacity) return 0;
+  capacity = policy->manual_representation_capacity < 4U ? 4U : policy->manual_representation_capacity;
+  while (capacity < required_count) {
+    uint16_t next = (uint16_t)(capacity * 2U);
+    capacity = next > capacity && next <= M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ? next :
+      M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT;
+  }
+  grown = (M68kAnalysisManualRepresentation *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->manual_representation_count != 0U)
+    memcpy(grown, policy->manual_representations, (size_t)policy->manual_representation_count * sizeof(*grown));
+  if (policy->manual_representations_owner != 0U) free(policy->manual_representations);
+  policy->manual_representations = grown;
+  policy->manual_representation_capacity = capacity;
+  policy->manual_representations_owner = 1U;
+  return 0;
+}
+
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src) {
   uint16_t custom_struct_count;
   uint16_t structured_data_item_count;
   uint16_t named_label_count;
+  uint16_t manual_representation_count;
   uint16_t index;
   M68kAnalysisCustomStruct *custom_structs = NULL;
   M68kAnalysisStructuredDataItem *structured_data_items = NULL;
   M68kAnalysisNamedLabel *named_labels = NULL;
+  M68kAnalysisManualRepresentation *manual_representations = NULL;
   if (dest == NULL || src == NULL) return -1;
+  if (!m68k_analysis_policy_structured_data_items_valid(src) ||
+      !m68k_analysis_policy_named_labels_valid(src) ||
+      src->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return -1;
   if (dest == src) return 0;
   custom_struct_count = src->custom_struct_count;
   if (custom_struct_count != 0U) {
@@ -1639,6 +1769,15 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     named_labels = (M68kAnalysisNamedLabel *)calloc(named_label_count, sizeof(*named_labels));
     if (named_labels == NULL) goto oom;
     memcpy(named_labels, src->named_labels, (size_t)named_label_count * sizeof(*named_labels));
+  }
+  manual_representation_count = src->manual_representation_count;
+  if (!m68k_analysis_policy_manual_representations_valid(src)) goto oom;
+  if (manual_representation_count > 4U) {
+    manual_representations = (M68kAnalysisManualRepresentation *)calloc(manual_representation_count,
+      sizeof(*manual_representations));
+    if (manual_representations == NULL) goto oom;
+    memcpy(manual_representations, src->manual_representations,
+      (size_t)manual_representation_count * sizeof(*manual_representations));
   }
   *dest = *src;
   dest->custom_structs = custom_structs;
@@ -1666,6 +1805,17 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     memcpy(dest->named_labels_inline, src->named_labels,
       (size_t)named_label_count * sizeof(dest->named_labels_inline[0]));
   }
+  dest->manual_representations = dest->manual_representations_inline;
+  dest->manual_representation_capacity = 4U;
+  dest->manual_representations_owner = 0U;
+  if (manual_representation_count > 4U) {
+    dest->manual_representations = manual_representations;
+    dest->manual_representation_capacity = manual_representation_count;
+    dest->manual_representations_owner = 1U;
+  } else if (manual_representation_count != 0U) {
+    memcpy(dest->manual_representations_inline, src->manual_representations,
+      (size_t)manual_representation_count * sizeof(dest->manual_representations_inline[0]));
+  }
   for (index = 0U; index < dest->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     m68k_analysis_structured_data_item_refresh_text_lengths(&dest->structured_data_items[index]);
@@ -1675,6 +1825,7 @@ oom:
   free(custom_structs);
   free(structured_data_items);
   free(named_labels);
+  free(manual_representations);
   return -1;
 }
 
@@ -2471,9 +2622,35 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
       ref->target_status == M68K_TABLE_ENTRY_TARGET_STATUS_UNKNOWN) {
     return 0;
   }
+  if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
+      (!ref->owner_kind || !ref->owner_id || !ref->owner_layout_id || !ref->xref_generation_mode ||
+       !ref->owner_id[0] || !ref->owner_kind[0] || !ref->owner_layout_id[0] ||
+       (strcmp(ref->xref_generation_mode, "bidirectional") && strcmp(ref->xref_generation_mode, "source_only") &&
+        strcmp(ref->xref_generation_mode, "none")) || ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT ||
+       !ref->has_base || ref->raw_value_width != 2U || !ref->raw_value_signed || ref->raw_value > UINT16_MAX ||
+       ref->source_offset > UINT32_MAX - 2U ||
+       ref->base_section_index != ref->target_section_index ||
+       ref->base_section_index != section_analysis->section_index ||
+       (int64_t)ref->base_offset + (int16_t)ref->raw_value != (int64_t)ref->target_offset)) return -1;
   for (index = 0U; index < section_analysis->data_reference_count; ++index) {
     M68kDataReferenceIR *existing = &section_analysis->data_references[index];
-    if (existing->source_kind == ref->source_kind &&
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
+        existing->source_kind == ref->source_kind && existing->owner_id != NULL && ref->owner_id != NULL &&
+        strcmp(existing->owner_id, ref->owner_id) == 0) {
+      if (existing->source_offset != ref->source_offset || existing->reference_kind != ref->reference_kind ||
+          existing->raw_value != ref->raw_value || existing->raw_value_width != ref->raw_value_width ||
+          existing->raw_value_signed != ref->raw_value_signed || existing->has_base != ref->has_base ||
+          existing->base_section_index != ref->base_section_index || existing->base_offset != ref->base_offset ||
+          existing->target_section_index != ref->target_section_index || existing->target_offset != ref->target_offset ||
+          existing->owner_element_offset != ref->owner_element_offset ||
+          strcmp(existing->owner_kind, ref->owner_kind) || strcmp(existing->owner_layout_id, ref->owner_layout_id) ||
+          strcmp(existing->xref_generation_mode, ref->xref_generation_mode)) return -1;
+      return 0;
+    }
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
+        existing->source_kind == ref->source_kind && existing->source_offset < ref->source_offset + 2U &&
+        ref->source_offset < existing->source_offset + existing->raw_value_width) return -1;
+    if (ref->source_kind != M68K_DATA_REFERENCE_SOURCE_MANUAL && existing->source_kind == ref->source_kind &&
         existing->source_offset == ref->source_offset &&
         existing->table_start_offset == ref->table_start_offset &&
         existing->table_entry_index == ref->table_entry_index &&
@@ -2496,7 +2673,19 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
       section_analysis->data_references, section_analysis->data_reference_count,
       &section_analysis->data_reference_capacity, 16U, sizeof(*section_analysis->data_references));
   if (section_analysis->data_references == NULL) return -1;
-  section_analysis->data_references[section_analysis->data_reference_count++] = *ref;
+  {
+    M68kDataReferenceIR copy = *ref;
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL) {
+      if (ref->owner_kind == NULL || ref->owner_id == NULL || ref->owner_layout_id == NULL ||
+          ref->xref_generation_mode == NULL) return -1;
+      copy.owner_kind = arena_strdup(section_analysis->arena, ref->owner_kind);
+      copy.owner_id = arena_strdup(section_analysis->arena, ref->owner_id);
+      copy.owner_layout_id = arena_strdup(section_analysis->arena, ref->owner_layout_id);
+      copy.xref_generation_mode = arena_strdup(section_analysis->arena, ref->xref_generation_mode);
+      if (!copy.owner_kind || !copy.owner_id || !copy.owner_layout_id || !copy.xref_generation_mode) return -1;
+    }
+    section_analysis->data_references[section_analysis->data_reference_count++] = copy;
+  }
   return 0;
 }
 

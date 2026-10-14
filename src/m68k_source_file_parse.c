@@ -6,6 +6,7 @@
 #include "m68k_source_constant_expr.h"
 #include "m68k_source_data.h"
 #include "m68k_source_include.h"
+#include "m68k_source_macro.h"
 #include "m68k_source_text_util.h"
 #include "m68k_symbolic_parse.h"
 #include "util_arena.h"
@@ -55,17 +56,6 @@ static void source_parse_errorf(M68kDiagSink diagnostics, const char *fmt, ...) 
   va_start(args, fmt);
   vsnprintf(diag->message, sizeof(diag->message), fmt, args);
   va_end(args);
-}
-
-static int source_file_line_reader_next(M68kSourceLineReader *reader, char *buffer, size_t buffer_size) {
-  if (reader == NULL || reader->u.file == NULL || buffer == NULL || buffer_size == 0U) return 0;
-  return fgets(buffer, (int)buffer_size, reader->u.file) != NULL;
-}
-
-static void source_file_line_reader_close(M68kSourceLineReader *reader) {
-  if (reader == NULL || reader->u.file == NULL) return;
-  fclose(reader->u.file);
-  reader->u.file = NULL;
 }
 
 static int source_text_line_reader_next(M68kSourceLineReader *reader, char *buffer, size_t buffer_size) {
@@ -1104,8 +1094,10 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
 
 int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink diagnostics) {
   FILE *input;
-  M68kSourceLineReader reader;
-  memset(&reader, 0, sizeof(reader));
+  long length;
+  char *text;
+  size_t read_size;
+  int result;
   if (path == NULL) {
     source_parse_error(diagnostics, "failed opening source file");
     return 0;
@@ -1128,19 +1120,30 @@ int m68k_source_file_parse(AsmSourceFile *source, const char *path, M68kDiagSink
       source->asset_dir[length] = '\0';
     }
   }
-  input = fopen(path, "r");
+  input = fopen(path, "rb");
   if (input == NULL) {
     source_parse_error(diagnostics, "failed opening source file");
     return 0;
   }
-  reader.next = source_file_line_reader_next;
-  reader.close = source_file_line_reader_close;
-  reader.u.file = input;
-  return m68k_source_file_parse_reader(source, &reader, diagnostics);
+  if (fseek(input, 0, SEEK_END) || (length = ftell(input)) < 0 ||
+      length > 64L * 1024L * 1024L || fseek(input, 0, SEEK_SET)) {
+    fclose(input); source_parse_error(diagnostics, "source file is unreadable or exceeds 64 MiB"); return 0;
+  }
+  text = (char *)malloc((size_t)length + 1U);
+  if (!text) { fclose(input); source_parse_error(diagnostics, "out of memory"); return 0; }
+  read_size = fread(text, 1U, (size_t)length, input);
+  fclose(input);
+  if (read_size != (size_t)length) { free(text); source_parse_error(diagnostics, "failed reading source file"); return 0; }
+  text[read_size] = '\0';
+  result = m68k_source_file_parse_text(source, text, diagnostics);
+  free(text);
+  return result;
 }
 
 int m68k_source_file_parse_text(AsmSourceFile *source, const char *source_text, M68kDiagSink diagnostics) {
   M68kSourceLineReader reader;
+  char *expanded = NULL;
+  int result;
   memset(&reader, 0, sizeof(reader));
   if (source_text == NULL) {
     source_parse_error(diagnostics, "missing source text");
@@ -1148,9 +1151,12 @@ int m68k_source_file_parse_text(AsmSourceFile *source, const char *source_text, 
   }
   reader.next = source_text_line_reader_next;
   reader.close = source_text_line_reader_close;
-  reader.u.memory.text = source_text;
+  if (!m68k_source_macro_expand(source_text, &expanded, diagnostics)) return 0;
+  reader.u.memory.text = expanded;
   reader.u.memory.offset = 0U;
-  return m68k_source_file_parse_reader(source, &reader, diagnostics);
+  result = m68k_source_file_parse_reader(source, &reader, diagnostics);
+  free(expanded);
+  return result;
 }
 
 

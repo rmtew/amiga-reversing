@@ -30,6 +30,7 @@ from amiga_reversing.disasm.c_backend import (
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
     effective_metadata_hash,
+    effective_target_metadata,
 )
 from amiga_reversing.disasm.facts_v2_source_refusal import (
     FactsV2SourceRefused,
@@ -210,6 +211,7 @@ class DirectRebuildPhaseResult:
 class SourceRenderingPhaseResult:
     source_text: str
     listing_profile: dict[str, object]
+    source_package: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -356,7 +358,7 @@ def run_source_rendering_phase(
         metadata_path=metadata_path,
         project_root=project_root,
     )
-    return SourceRenderingPhaseResult(rendering.source_text, rendering.listing_profile)
+    return SourceRenderingPhaseResult(rendering.source_text, rendering.listing_profile, rendering.source_package)
 
 
 def run_source_assembly_phase(
@@ -462,6 +464,17 @@ class RoundTripVerificationWorkflow:
             backend = cast(str, input_stamp["backend"])
             assembler = cast(str, input_stamp["assembler"])
             assembler_cpu = cast(str, input_stamp["assembler_cpu"])
+            if source_text is None and pre_rendered_source_package is None:
+                metadata = effective_target_metadata(paths.target_dir)
+                if metadata is not None and metadata.source_output_policy.mode == "binary_assets":
+                    with effective_metadata_file(paths.target_dir) as metadata_path:
+                        rendering = run_source_rendering_phase(target_name=target_name,
+                            binary_source=paths.binary_source, target_dir=paths.target_dir,
+                            metadata_path=cast(Path, metadata_path), project_root=project_root)
+                    source_text = rendering.source_text
+                    source_size = len(source_text.encode("utf-8"))
+                    listing_profile = rendering.listing_profile
+                    pre_rendered_source_package = rendering.source_package
             if pre_rendered_source_package is not None:
                 package_files = validate_source_package(pre_rendered_source_package)
                 package_source = package_files[pre_rendered_source_package["manifest"]["source"]].decode("utf-8")
@@ -562,6 +575,7 @@ class RoundTripVerificationWorkflow:
                             source_assembly = run_source_assembly_phase(
                                 backend=backend,
                                 source_text=rendered_source_text,
+                                source_package=source_compare_rendering.source_package,
                                 include_dir=include_dir,
                                 target_cpu=assembler_cpu,
                                 project_root=project_root,
@@ -802,6 +816,7 @@ class RoundTripVerificationWorkflow:
                         )
                         rendered_source_text = rendering.source_text
                         listing_profile = rendering.listing_profile
+                        pre_rendered_source_package = rendering.source_package
                     except FactsV2SourceRefused as exc:
                         message = str(exc)
                         _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
@@ -842,6 +857,7 @@ class RoundTripVerificationWorkflow:
                         assembly = run_source_assembly_phase(
                             backend=backend,
                             source_text=source_text,
+                            source_package=pre_rendered_source_package,
                             include_dir=include_dir,
                             output_path=rebuilt_path,
                             target_cpu=assembler_cpu,

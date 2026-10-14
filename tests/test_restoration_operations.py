@@ -42,14 +42,15 @@ def target(tmp_path, monkeypatch):
     source = resolve_target_binary_source(directory, project_root=tmp_path)
     paths = SimpleNamespace(target_dir=directory, binary_source=source)
     calls = []
+    native_symbols = [
+        {"name": name, "section_index": 0, "source_offset": i * 2}
+        for i, name in enumerate(("start", "return"))
+    ]
 
     class Artifact:
         def query_payload(self, **query):
             calls.append(query)
-            values = [
-                {"name": name, "section_index": 0, "source_offset": i * 2}
-                for i, name in enumerate(("start", "return"))
-            ]
+            values = native_symbols
             offset, limit = query["offset"], query["limit"]
             return {
                 "items": values[offset : offset + limit],
@@ -78,7 +79,7 @@ def target(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(restoration, "_server", lambda: backend)
 
-    def add(*, interpretation=False, name="start"):
+    def add(*, interpretation=False, name="start", subject=...):
         payload = {
             "label": {
                 "label_id": name,
@@ -94,6 +95,8 @@ def target(tmp_path, monkeypatch):
                 "reason": "Native entry fact",
                 "evidence_refs": ["s0:00000000:instruction"],
             }
+            if subject is not ...:
+                payload["interpretation"]["subject"] = subject
         return append_manual_action(
             directory,
             kind=ManualActionKind.CREATE_MANUAL_LABEL,
@@ -102,7 +105,12 @@ def target(tmp_path, monkeypatch):
         )
 
     return SimpleNamespace(
-        directory=directory, source=source, backend=backend, add=add, calls=calls
+        directory=directory,
+        source=source,
+        backend=backend,
+        add=add,
+        calls=calls,
+        native_symbols=native_symbols,
     )
 
 
@@ -112,6 +120,36 @@ def invoke(operation, **body):
 
 def current():
     return invoke("state")["revision"]
+
+
+def test_typed_pointer_query_uses_revision_bound_cursor_and_rejects_ignored_filters(target, monkeypatch):
+    from amiga_reversing.disasm import effective_metadata
+    from amiga_reversing.disasm.target_metadata import (
+        SeededEntityMetadata,
+        TargetMetadata,
+        TargetMetadataReviewStatus,
+        TargetMetadataSeedOrigin,
+    )
+    fields = tuple(SeededEntityMetadata(
+        addr=addr, end=addr + 4, struct_name="Record", field_name="pointer",
+        value_kind="target_pointer", seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED, citation="test",
+    ) for addr in (0, 4))
+    metadata = TargetMetadata(target_type="raw", entry_register_seeds=(), seeded_entities=fields)
+    original_effective = effective_metadata.effective_target_metadata
+    monkeypatch.setattr(effective_metadata, "effective_target_metadata", lambda _: metadata)
+    first = invoke("query", kind="typed_pointers", struct_name="Record", limit=1)
+    assert first["total"] == 2 and first["items"][0]["source_offset"] == 0
+    second = invoke("query", kind="typed_pointers", struct_name="Record", limit=1,
+                    cursor=first["next_cursor"])
+    assert second["items"][0]["source_offset"] == 4 and not second["has_more"]
+    monkeypatch.setattr(effective_metadata, "effective_target_metadata", original_effective)
+    target.add()
+    with pytest.raises(ValueError, match="stale_cursor"):
+        invoke("query", kind="typed_pointers", struct_name="Record", limit=1,
+               cursor=first["next_cursor"])
+    with pytest.raises(ValueError, match="only struct_name"):
+        invoke("query", kind="typed_pointers", source_offset=0)
 
 
 def test_reads_preserve_legacy_annotations_and_unknown_fields(target):
@@ -378,3 +416,107 @@ def test_truncation_diagnostics_fit_page_budget():
     )
     assert result["truncated_fields"]
     assert len(json.dumps(result).encode()) <= result["response_byte_budget"]
+
+
+@pytest.mark.parametrize(
+    ("symbol_coordinates", "subject"),
+    [
+        ({}, ...),
+        ({"section_index": None, "source_offset": None}, ...),
+        ({"section_index": None, "source_offset": None}, None),
+        ({}, {}),
+        (
+            {"section_index": None, "source_offset": None},
+            {"section_index": None, "source_offset": None},
+        ),
+        ({"section_index": 0}, {"section_index": 0}),
+        ({"source_offset": 0}, {"source_offset": 0}),
+        ({"section_index": 0}, {"section_index": 0, "source_offset": None}),
+        ({"source_offset": 0}, {"section_index": None, "source_offset": 0}),
+        ({"section_index": 0, "source_offset": 0}, {}),
+        ({}, {"section_index": 0, "source_offset": 0}),
+        (
+            {"section_index": False, "source_offset": 0},
+            {"section_index": 0, "source_offset": 0},
+        ),
+        (
+            {"section_index": 0, "source_offset": 0},
+            {"section_index": 0, "source_offset": False},
+        ),
+        (
+            {"section_index": "0", "source_offset": 0},
+            {"section_index": "0", "source_offset": 0},
+        ),
+        (
+            {"section_index": 0, "source_offset": -1},
+            {"section_index": 0, "source_offset": -1},
+        ),
+        (
+            {"section_index": 0, "source_offset": 2**32},
+            {"section_index": 0, "source_offset": 2**32},
+        ),
+        (
+            {"section_index": 0, "source_offset": 0},
+            {"section_index": 1, "source_offset": 0},
+        ),
+        (
+            {"section_index": 0, "source_offset": 0},
+            {"section_index": 0, "source_offset": 2},
+        ),
+    ],
+)
+def test_symbol_evidence_does_not_match_absent_partial_or_invalid_identity(
+    target, symbol_coordinates, subject
+):
+    target.native_symbols[:] = [{"name": "constant", **symbol_coordinates}]
+    target.add(interpretation=subject is not ..., subject=subject)
+    before = (target.directory / "manual_actions.jsonl").read_bytes()
+
+    item = invoke("query", kind="symbols")["items"][0]
+
+    assert item["interpretations"] == []
+    assert item["interpretation_status"] == "unassessed"
+    assert (target.directory / "manual_actions.jsonl").read_bytes() == before
+
+
+@pytest.mark.parametrize("coordinates", [(0, 0), (0, 2), (1, 0)])
+def test_symbol_evidence_matches_concrete_source_identity_including_zero(
+    target, coordinates
+):
+    section, offset = coordinates
+    subject = {"section_index": section, "source_offset": offset}
+    target.native_symbols[:] = [{"name": "entry", **subject}]
+    target.add(name="legacy")
+    target.add(
+        interpretation=True,
+        name="unrelated",
+        subject={"section_index": section, "source_offset": offset + 2},
+    )
+    matching = target.add(interpretation=True, name="matching", subject=subject)
+
+    item = invoke("query", kind="symbols")["items"][0]
+
+    assert [entry["action_id"] for entry in item["interpretations"]] == [
+        matching["action_id"]
+    ]
+    assert item["interpretations"][0]["evidence"]["subject"] == subject
+    assert "interpretation_status" not in item
+
+
+@pytest.mark.parametrize("kind", ["references", "fields", "edges", "gaps"])
+def test_unsupported_text_query_refused_before_native_reads(target, kind):
+    with pytest.raises(ValueError, match=f"query text is unsupported for {kind}"):
+        invoke("query", kind=kind, query="65370")
+    assert target.calls == []
+
+
+def test_instruction_text_query_passed_to_native_provider(target):
+    invoke("query", kind="instructions", query="rts", limit=1)
+    assert target.calls[-1]["query"] == "rts"
+    assert target.calls[-1]["kind"] == "instructions"
+
+
+@pytest.mark.parametrize("kind", ["references", "fields", "edges"])
+def test_empty_text_query_keeps_native_query_compatibility(target, kind):
+    invoke("query", kind=kind, query="", limit=1)
+    assert target.calls[-1]["query"] == ""

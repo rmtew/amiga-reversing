@@ -59,12 +59,15 @@ def capture_scenario_state(client, capture):
     names, reads = capture.get("registers", []), capture.get("memory_reads", [])
     if (
         not isinstance(names, list)
-        or len(names) > 16
+        or len(names) > 17
         or any(
-            not isinstance(n, str) or not re.fullmatch("[ad][0-7]", n) for n in names
+            not isinstance(n, str) or not re.fullmatch("(?:[ad][0-7]|sr)", n)
+            for n in names
         )
     ):
-        raise ValueError("Capture requires at most 16 valid 68000 registers")
+        raise ValueError(
+            "Capture requires at most 17 valid 68000 registers, including sr"
+        )
     if not isinstance(reads, list) or len(reads) > 64:
         raise ValueError("Capture requires at most 64 memory reads")
     regs = client.registers()
@@ -106,7 +109,14 @@ def capture_scenario_state(client, capture):
                 "offset": offset if base is not None else None,
             }
         )
-    return {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
+    result = {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
+    custom = capture.get("custom_registers", [])
+    if (not isinstance(custom, list) or len(custom) > 16
+            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
+        raise ValueError("Capture requires at most 16 named custom registers")
+    if custom:
+        result["custom_registers"] = {name: client.request("custom.read", {"reg": name}) for name in custom}
+    return result
 
 
 def wait_for_pc(client, address, seconds):
@@ -258,6 +268,148 @@ def release_handoff(client, contract):
     }
 
 
+def prepare_materialization(client, contract, payload_path, seconds):
+    """Consume input only at the declared native copy handoff, before game code.
+
+    The versioned, payload-hash-bound contract asserts that its input copy is no
+    longer read after this boundary. Verify the *entire* copied view before any
+    initialization; ownership of input backing is retained for the process life.
+    """
+    from .direct_payload_adapter import validate_materialization
+
+    payload = payload_path.read_bytes()
+    validate_materialization(contract, len(payload))
+    m = contract.materialization
+    entry = m["runtime_address"] + m["entry_source_offset"] - m["source_offset"]
+    ident = client.add_breakpoint(entry)
+    try:
+        boundary = release_handoff(client, contract)
+        stop = client.run_until({"pc": entry}, timeout=seconds)
+        if stop.get("reason") not in {"target", "breakpoint"} or client.registers()["pc"] != entry:
+            raise CopperlineError("Materialization entry was not reached; refusing initialization")
+    finally:
+        client.remove_breakpoint(ident)
+    expected = payload[m["source_offset"]:m["source_offset"]+m["size"]]
+    digest = hashlib.sha256()
+    for offset in range(0, len(expected), 65536):
+        digest.update(client.read_memory(m["runtime_address"]+offset, min(65536, len(expected)-offset)))
+    if digest.digest() != hashlib.sha256(expected).digest():
+        raise CopperlineError("Materialized memory does not match the entire copied payload")
+    report = {"status": "verified", "entrypoint": entry, "size": len(expected),
+        "copied_sha256": digest.hexdigest(), "source_consumed_at_entry": True,
+        "input_backing_retained": True, "initialization": None}
+    if contract.initialization is not None:
+        address, data = contract.initialization
+        client.request("mem.write", {"addr": address, "data": data.hex(), "encoding": "hex"})
+        if client.read_memory(address, len(data)) != data:
+            raise CopperlineError("Relocated initialization did not persist")
+        client.request("reverse_anchor")
+        report["initialization"] = {"address": address, "bytes": data.hex(),
+            "readback_verified": True, "reverse_anchor": "after_write", "replay_across_write": False}
+    return boundary | {"materialization": report}
+
+
+def _run_scenario_phase(
+    client, phase, payload_path, symbols, function, *, depart_current=False
+):
+    address, seconds = phase.get("breakpoint_address"), phase.get("wait_seconds")
+    occurrences = phase.get("occurrences", 1)
+    capture_first = phase.get("capture_first", False)
+    if type(occurrences) is not int or not 1 <= occurrences <= 64:
+        raise ValueError("Scenario occurrences must be an integer from 1 to 64")
+    if type(capture_first) is not bool:
+        raise ValueError("Scenario capture_first must be boolean")
+    counted = "occurrences" in phase or capture_first or depart_current
+    if counted and not isinstance(phase.get("stable_key"), str):
+        raise ValueError("Occurrence capture requires a canonical source-row phase")
+    if type(seconds) not in (int, float) or not 0 < seconds <= 120:
+        raise ValueError("Scenario phase wait must be from 0 to 120 seconds")
+    deadline = time.monotonic() + seconds
+    item = {
+        "name": phase["name"],
+        "stable_key": phase.get("stable_key"),
+        "capture": None,
+        "resolved_function": None,
+        "occurrences_requested": occurrences,
+        "occurrences_observed": 0,
+        "first_visit": None,
+        "last_visit": None,
+    }
+    if capture_first:
+        item["first_capture"] = None
+    for visit in range(occurrences):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+        if (occurrences > 1 or depart_current or visit > 0) and client.registers()[
+            "pc"
+        ] == address:
+            try:
+                stop = client.request("step", {"n": 1}, timeout=remaining)
+            except CopperlineTimeout:
+                item.update(status="timeout", termination="phase_deadline")
+                break
+            regs = client.registers()
+            if stop.get("reason") != "step" or regs["pc"] == address:
+                item.update(
+                    status="not_hit",
+                    termination="pc_departure_failed",
+                    pc=f"0x{regs['pc']:08x}",
+                )
+                break
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+        item.update(wait_for_pc(client, address, remaining if counted else seconds))
+        if item["status"] != "hit":
+            break
+        detection = payload_at_pc(client, payload_path, address)
+        item["payload"] = detection
+        offset = phase.get("source_offset")
+        if detection["status"] != "pc_matched" or (
+            offset is not None and int(detection["payload_offset"], 0) != offset
+        ):
+            item.update(status="not_hit", termination="payload_identity_mismatch")
+            break
+        view = symbols.get("runtime_view", {})
+        expected_base = view.get("runtime_base")
+        if type(view.get("base_addr")) is int and type(view.get("source_start")) is int:
+            expected_base = view["base_addr"] - view["source_start"]
+        if (
+            expected_base is not None
+            and int(detection["runtime_base"], 0) != expected_base
+        ):
+            item.update(status="not_hit", termination="runtime_mapping_mismatch")
+            break
+        item["occurrences_observed"] += 1
+        summary = {
+            "pc": item["pc"],
+            "payload_offset": detection["payload_offset"],
+            "runtime_base": detection["runtime_base"],
+        }
+        if item["first_visit"] is None:
+            item["first_visit"] = summary
+        item["last_visit"] = summary
+        item["capture"] = capture_scenario_state(client, phase.get("capture", {}))
+        if capture_first and item["occurrences_observed"] == 1:
+            item["first_capture"] = item["capture"]
+        item["resolved_function"] = function
+        if counted and time.monotonic() > deadline:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+    if not counted:
+        for key in (
+            "occurrences_requested",
+            "occurrences_observed",
+            "first_visit",
+            "last_visit",
+        ):
+            item.pop(key)
+    return item
+
+
 def run_scenario(client, scenario, payload_path, release=None):
     phases, events = scenario.get("phases"), scenario.get("input_events", [])
     if (
@@ -289,12 +441,13 @@ def run_scenario(client, scenario, payload_path, release=None):
         ):
             raise ValueError("Input release must follow press")
         if not isinstance(event.get("control"), str) or not re.fullmatch(
-            r"port[01] (fire|left|right|up|down)", event["control"]
+            r"(?:port[01] (?:fire|left|right|up|down)|key (?:[0-9]|[1-9][0-9]|1[01][0-9]|12[0-7]))", event["control"]
         ):
             raise ValueError("Unsupported input control")
     symbols = scenario.get("symbols") or {}
     functions = symbols.get("functions", [])
     held, result, confirmed = {1: {}, 2: {}}, [], False
+    held_keys = set()
     reverse_boundary = None
     try:
         for index, phase in enumerate(phases):
@@ -313,41 +466,24 @@ def run_scenario(client, scenario, payload_path, release=None):
                 )
             if index == 0 and release is not None:
                 reverse_boundary = release()
-            item = wait_for_pc(client, address, phase.get("wait_seconds"))
-            item.update(
-                name=phase["name"],
-                stable_key=phase.get("stable_key"),
-                capture=None,
-                resolved_function=None,
+            previous = result[-1] if result else None
+            depart_current = (
+                previous is not None and previous.get("address") == f"0x{address:08x}"
+            )
+            item = _run_scenario_phase(
+                client,
+                phase,
+                payload_path,
+                symbols,
+                function,
+                depart_current=depart_current,
             )
             result.append(item)
             if item["status"] != "hit":
                 break
-            detection = payload_at_pc(client, payload_path, address)
-            item["payload"] = detection
-            offset = phase.get("source_offset")
-            if detection["status"] != "pc_matched" or (
-                offset is not None and int(detection["payload_offset"], 0) != offset
-            ):
-                item.update(status="not_hit", termination="payload_identity_mismatch")
-                break
-            view = symbols.get("runtime_view", {})
-            expected_base = view.get("runtime_base")
-            if (
-                type(view.get("base_addr")) is int
-                and type(view.get("source_start")) is int
-            ):
-                expected_base = view["base_addr"] - view["source_start"]
-            if (
-                expected_base is not None
-                and int(detection["runtime_base"], 0) != expected_base
-            ):
-                item.update(status="not_hit", termination="runtime_mapping_mismatch")
-                break
             confirmed = True
-            item["capture"] = capture_scenario_state(client, phase.get("capture", {}))
-            item["resolved_function"] = function
             next_held = {1: {}, 2: {}}
+            next_keys = set()
             for event in events:
                 if (
                     names.index(event["after_phase"])
@@ -355,12 +491,22 @@ def run_scenario(client, scenario, payload_path, release=None):
                     < names.index(event["release_after_phase"])
                 ):
                     port, key = event["control"].split()
+                    if port == "key":
+                        next_keys.add(int(key))
+                        continue
                     port = int(port[-1]) + 1
                     next_held[port]["red" if key == "fire" else key] = True
             for port, state in next_held.items():
                 if state != held[port]:
                     client.joystick(port=port, **state)
             held = next_held
+            for key in sorted(held_keys - next_keys):
+                client.key(key, pressed=False)
+                held_keys.remove(key)
+            for key in sorted(next_keys - held_keys):
+                # Track before sending: a lost response can still have pressed it.
+                held_keys.add(key)
+                client.key(key, pressed=True)
         return {
             "identifier": scenario.get("identifier"),
             "symbols": symbols,
@@ -368,6 +514,9 @@ def run_scenario(client, scenario, payload_path, release=None):
             "reverse_boundary": reverse_boundary,
         }
     finally:
+        for key in sorted(held_keys):
+            with suppress(CopperlineError):
+                client.key(key, pressed=False)
         for port in held:
             with suppress(CopperlineError):
                 client.joystick(port=port)
@@ -537,6 +686,13 @@ def observe(session):
         if session.direct_payload_contract
         else None
     )
+    if getattr(session,"derived_artifact_manifest",None) is not None:
+        if contract is None:
+            raise CopperlineError("Derived artifacts require a direct contract")
+        from .direct_payload_adapter import bind_derived_contract
+        contract,payload_path,manifest=bind_derived_contract(contract,session.derived_artifact_manifest)
+        if payload_path.resolve()!=session.target_payload_path.resolve():
+            raise CopperlineError("Session payload does not match its derived artifact")
     scenario = (
         json.loads(session.scenario_path.read_text()) if session.scenario_path else None
     )
@@ -590,6 +746,11 @@ def observe(session):
                     "Direct payload marker was not observed; refusing release"
                 )
             handoff = verify_handoff(client, contract, session.target_payload_path)
+        prepared = None
+        if contract and getattr(contract, "materialization", None) is not None:
+            prepared = prepare_materialization(client, contract, session.target_payload_path, session.continue_seconds)
+        def release():
+            return prepared if prepared is not None else release_handoff(client, contract)
         if scenario is not None:
             if contract is None:
                 raise ValueError(
@@ -599,7 +760,7 @@ def observe(session):
                 client,
                 scenario,
                 session.target_payload_path,
-                lambda: release_handoff(client, contract),
+                release,
             )
             reverse_boundary = scenario_result["reverse_boundary"]
             if scenario_result["phases"]:
@@ -630,7 +791,7 @@ def observe(session):
                     int(detection["runtime_base"], 0) + session.breakpoint_source_offset
                 )
             if contract:
-                reverse_boundary = release_handoff(client, contract)
+                reverse_boundary = release()
             bp = wait_for_pc(client, address, session.breakpoint_wait_seconds)
             stop_reason = bp["stop_reason"]
             if bp["status"] == "hit":
@@ -645,7 +806,7 @@ def observe(session):
                 ):
                     bp.update(status="not_hit", termination="payload_identity_mismatch")
         elif contract:
-            reverse_boundary = release_handoff(client, contract)
+            reverse_boundary = release()
             try:
                 stop = client.run_until(
                     {"seconds": 1_000_000_000}, timeout=session.continue_seconds

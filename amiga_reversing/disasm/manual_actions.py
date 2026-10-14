@@ -23,6 +23,8 @@ from amiga_reversing.disasm.target_history import atomic_append_history, target_
 from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemKind,
     TargetMetadata,
+    validate_base_displacement_owner,
+    validate_base_displacement_reference,
 )
 
 MANUAL_ACTION_LOG_FILE_NAME = "manual_actions.jsonl"
@@ -136,6 +138,7 @@ def _manual_label_scope_from_json(value: object) -> ManualLabelScope | None:
 
 
 class ManualActionKind(StrEnum):
+    SET_SOURCE_OUTPUT_POLICY = "set_source_output_policy"
     CREATE_MANUAL_SEED = "create_manual_seed"
     REMOVE_MANUAL_SEED = "remove_manual_seed"
     RENAME_DATA_SYMBOL = "rename_data_symbol"
@@ -185,6 +188,8 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW = "remove_manual_runtime_observation_view"
     CREATE_MANUAL_RUNTIME_DATA_RANGE = "create_manual_runtime_data_range"
     REMOVE_MANUAL_RUNTIME_DATA_RANGE = "remove_manual_runtime_data_range"
+    CREATE_MANUAL_MEMORY_REGION = "create_manual_memory_region"
+    REMOVE_MANUAL_MEMORY_REGION = "remove_manual_memory_region"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -249,6 +254,8 @@ class ManualActionLogProjection:
     inactive_action_ids: tuple[str, ...]
     diagnostics: tuple[dict[str, object], ...]
     review_items: tuple[dict[str, object], ...]
+    memory_regions: tuple[dict[str, object], ...] = ()
+    source_output_policy: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
         result = asdict(self)
@@ -315,6 +322,7 @@ def append_manual_actions(
             )
 
         projection = replay()
+        initial_projection = projection
         additions = []
         sequence = max((action.sequence for action in parsed), default=0)
         for kind, payload in actions:
@@ -338,9 +346,36 @@ def append_manual_actions(
             projection = replay()
             additions.append(action)
         if additions:
+            _validate_candidate_equate_capacity(target_dir, additions, binary_source=binary_source)
+            _validate_candidate_policy_capacity(target_dir, additions, binary_source=binary_source)
+            _validate_changed_native_comments(initial_projection, projection)
             suffix = additions if records else [header, *additions]
             atomic_append_history(path, "".join(json.dumps(record, sort_keys=True) + "\n" for record in suffix).encode("utf-8"))
         return additions
+
+
+def _validate_changed_native_comments(
+    before: ManualActionLogProjection, after: ManualActionLogProjection,
+) -> None:
+    # Share the effective-metadata projection so row-only notes are not mistaken
+    # for native entry comments. Lazy imports avoid the projection import cycle.
+    from amiga_reversing.disasm.c_backend import validate_entry_comments_with_c_backend
+    from amiga_reversing.disasm.effective_metadata import (
+        _manual_comment_to_entry_comment,
+    )
+
+    def entries(projection: ManualActionLogProjection) -> tuple[tuple[int | None, int, str], ...]:
+        return tuple((entry.hunk, entry.addr, entry.comment) for comment in projection.comments
+                     if (entry := _manual_comment_to_entry_comment(comment)) is not None)
+
+    previous, current = entries(before), entries(after)
+    previous_set = set(previous)
+    changed = tuple(text for hunk, addr, text in current if (hunk, addr, text) not in previous_set)
+    increased_count = len(current) > len(previous)
+    if changed or increased_count:
+        validate_entry_comments_with_c_backend(
+            changed, active_count=len(current) if increased_count else None,
+        )
 
 
 def manual_action_interpretation(record: Mapping[str, object]) -> dict[str, object]:
@@ -1340,6 +1375,7 @@ def _data_block_interpreted_ref_key(ref: dict[str, object]) -> str:
 def _validated_data_block_interpreted_ref(
     ref: dict[str, object],
     elements: dict[tuple[str, int], dict[str, object]],
+    layouts: dict[str, dict[str, object]] | None = None,
 ) -> dict[str, object]:
     element_key = _data_block_element_key(ref)
     width = _manual_seed_int(ref, "width")
@@ -1375,8 +1411,8 @@ def _validated_data_block_interpreted_ref(
     ):
         raise ValueError("data_block_interpreted_ref must fit within owning element")
     reference_kind = ref.get("reference_kind")
-    if reference_kind != "absolute":
-        raise ValueError("data_block_interpreted_ref supports only absolute references")
+    if reference_kind not in {"absolute", "base_displacement"}:
+        raise ValueError("data_block_interpreted_ref supports only absolute and base_displacement references")
     target_hunk = _manual_seed_int(ref, "target_hunk")
     target_offset = _manual_seed_int(ref, "target_offset")
     if target_hunk is None or target_hunk < 0:
@@ -1395,7 +1431,17 @@ def _validated_data_block_interpreted_ref(
         raise ValueError("data_block_interpreted_ref requires non-negative source_value")
     if width > 4 or source_value >= (1 << (width * 8)):
         raise ValueError("data_block_interpreted_ref source_value does not fit width")
-    if source_value != target_offset:
+    if reference_kind == "base_displacement":
+        validate_base_displacement_owner(ref, element, defer_struct_leaf=True)
+        layout = (layouts or {}).get(element_key[0], {})
+        source_start = _manual_seed_int(layout, "source_start")
+        source_addr = None if source_start is None else source_start + element_key[1]
+        validate_base_displacement_reference(ref, source_hunk=_manual_seed_int(layout, "hunk"), source_addr=source_addr)
+        return dict(ref)
+    runtime_address = _manual_seed_int(ref, "runtime_address")
+    if runtime_address is not None and runtime_address != source_value:
+        raise ValueError("data_block_interpreted_ref runtime_address must match source_value")
+    if source_value != target_offset and runtime_address is None:
         raise ValueError("data_block_interpreted_ref source_value must match target_offset")
     return dict(ref)
 
@@ -1804,19 +1850,27 @@ def _project_actions(
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    memory_regions: dict[str, dict[str, object]] = {}
     runtime_data_ranges: dict[int, dict[str, object]] = {}
     removed_runtime_data_ranges: dict[int, dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
     inactive_action_ids: list[str] = []
+    source_output_policy = None
 
     for action in actions:
         if action.action_id in undone_action_ids:
             inactive_action_ids.append(action.action_id)
             continue
         active_action_ids.append(action.action_id)
-        if action.kind is ManualActionKind.CREATE_MANUAL_SEED:
+        if action.kind is ManualActionKind.SET_SOURCE_OUTPUT_POLICY:
+            from amiga_reversing.disasm.target_metadata import (
+                SourceOutputPolicyMetadata,
+            )
+            source_output_policy = asdict(SourceOutputPolicyMetadata.from_dict(
+                _action_object(action, "source_output_policy")))
+        elif action.kind is ManualActionKind.CREATE_MANUAL_SEED:
             _put_by_id(seeds, _projected_manual_seed(action), "seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEED:
             _drop_by_id(seeds, action, "seed_id")
@@ -2060,7 +2114,9 @@ def _project_actions(
             removed_data_block_elements[element_key] = removed
             for ref_id in list(data_block_interpreted_refs):
                 ref = data_block_interpreted_refs[ref_id]
-                if _data_block_element_key(ref) == element_key:
+                ref_key = _data_block_element_key(ref)
+                removed_width = _manual_seed_int(removed, "width") or 0
+                if ref_key[0] == element_key[0] and element_key[1] <= ref_key[1] < element_key[1] + removed_width:
                     removed_ref = data_block_interpreted_refs.pop(ref_id)
                     removed_ref["cleanup_action_id"] = action.action_id
                     removed_data_block_interpreted_refs[ref_id] = removed_ref
@@ -2068,8 +2124,23 @@ def _project_actions(
             ref = _validated_data_block_interpreted_ref(
                 _action_object(action, "data_block_interpreted_ref"),
                 data_block_elements,
+                data_block_layouts,
             )
             ref_id = _data_block_interpreted_ref_key(ref)
+            layout = data_block_layouts[_data_block_element_key(ref)[0]]
+            source_hunk = _manual_seed_int(layout, "hunk")
+            source_start = cast(int, _manual_seed_int(layout, "source_start")) + cast(int, _manual_seed_int(ref, "offset"))
+            source_end = source_start + cast(int, _manual_seed_int(ref, "width"))
+            for existing_id, existing_ref in data_block_interpreted_refs.items():
+                if existing_id == ref_id or "base_displacement" not in {
+                    ref.get("reference_kind"), existing_ref.get("reference_kind"),
+                }:
+                    continue
+                existing_layout = data_block_layouts[_data_block_element_key(existing_ref)[0]]
+                existing_start = cast(int, _manual_seed_int(existing_layout, "source_start")) + cast(int, _manual_seed_int(existing_ref, "offset"))
+                existing_end = existing_start + cast(int, _manual_seed_int(existing_ref, "width"))
+                if source_hunk == _manual_seed_int(existing_layout, "hunk") and source_start < existing_end and existing_start < source_end:
+                    raise ValueError("base_displacement source span overlaps a different interpreted-reference owner")
             removed_data_block_interpreted_refs.pop(ref_id, None)
             data_block_interpreted_refs[ref_id] = ref
         elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF:
@@ -2130,6 +2201,22 @@ def _project_actions(
             removed = dict(existing_range or data_range)
             removed["cleanup_action_id"] = action.action_id
             removed_runtime_data_ranges[range_key] = removed
+        elif action.kind is ManualActionKind.CREATE_MANUAL_MEMORY_REGION:
+            from amiga_reversing.disasm.memory_regions import validate_region
+            region = validate_region(dict(_action_object(action, "memory_region")))
+            if region["region_id"] in memory_regions:
+                raise ValueError("memory_region identity already exists; remove before replacement")
+            if any(region["runtime_address"] < old["runtime_address"] + old["size"] and
+                   old["runtime_address"] < region["runtime_address"] + region["size"] for old in memory_regions.values()):
+                raise ValueError("memory_region overlaps another persistent region")
+            if len(memory_regions) >= 16:
+                raise ValueError("memory_region native capacity exceeded")
+            memory_regions[region["region_id"]] = region
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_MEMORY_REGION:
+            region = _action_object(action, "memory_region")
+            if set(region) != {"region_id"} or region["region_id"] not in memory_regions:
+                raise ValueError("memory_region removal requires an existing identity")
+            memory_regions.pop(region["region_id"])
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -2199,6 +2286,7 @@ def _project_actions(
         removed_execution_views=tuple(removed_execution_views.values()),
         runtime_observation_views=tuple(runtime_observation_views.values()),
         removed_runtime_observation_views=tuple(removed_runtime_observation_views.values()),
+        memory_regions=tuple(memory_regions.values()),
         runtime_data_ranges=tuple(runtime_data_ranges.values()),
         removed_runtime_data_ranges=tuple(removed_runtime_data_ranges.values()),
         review_notes=tuple(review_notes.values()),
@@ -2207,7 +2295,76 @@ def _project_actions(
         inactive_action_ids=tuple(inactive_action_ids),
         diagnostics=finalized_review_items,
         review_items=finalized_review_items,
+        source_output_policy=source_output_policy,
     )
+
+
+def _validate_candidate_equate_capacity(
+    target_dir: Path, pending_actions: Sequence[dict[str, object]], *, binary_source: BinarySource,
+) -> None:
+    # Use the renderer's canonical merge, including generated reference proxies,
+    # while the append lock still protects the candidate from concurrent writes.
+    from amiga_reversing.disasm.c_backend import (
+        validate_target_equate_count_with_c_backend,
+    )
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+
+    metadata = effective_target_metadata(target_dir, pending_actions=pending_actions, binary_source=binary_source)
+    if metadata is not None and metadata.target_equates:
+        validate_target_equate_count_with_c_backend(len(metadata.target_equates))
+    # Absolute-address presentation rules carry the current native literal.
+    # Resolve against the whole candidate so a new EQU and its use can share
+    # one atomic batch, without changing historical representation records.
+    equates = {equate.name: equate.value for equate in metadata.target_equates} if metadata is not None else {}
+    for action in pending_actions:
+        if action.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION:
+            continue
+        representation = action.get("representation")
+        if not isinstance(representation, dict) or representation.get("element_kind") != "absolute_address" or representation.get("style") != "symbol":
+            continue
+        value = representation.get("value")
+        width = representation.get("width_bytes")
+        symbol = representation.get("symbol")
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 0xFFFFFFFF or width not in {2, 4}:
+            raise ValueError("absolute symbol representation requires a decoded address and width")
+        if not isinstance(symbol, str) or equates.get(symbol) != value:
+            raise ValueError("absolute symbol representation EQU value must match the decoded address")
+
+
+# These actions can change native structured-item or named-label expansion.
+# Presentation, EQU-only, and register-contract edits do not need this codec pass.
+_POLICY_STORAGE_ACTION_KINDS = frozenset({
+    ManualActionKind.CREATE_MANUAL_MEMORY_REGION, ManualActionKind.REMOVE_MANUAL_MEMORY_REGION,
+    ManualActionKind.CREATE_MANUAL_SEED, ManualActionKind.REMOVE_MANUAL_SEED,
+    ManualActionKind.RENAME_DATA_SYMBOL, ManualActionKind.SUPPRESS_SEEDED_ITEM,
+    ManualActionKind.CREATE_MANUAL_LABEL, ManualActionKind.REMOVE_MANUAL_LABEL,
+    ManualActionKind.RENAME_MANUAL_LABEL, ManualActionKind.CHANGE_LABEL_SCOPE,
+    ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT, ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT,
+    ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT, ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT_FIELD,
+    ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT_FIELD, ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD,
+    ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
+    ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT,
+    ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT, ManualActionKind.REPRESENT_MANUAL_DATA_BLOCK_ELEMENT,
+    ManualActionKind.INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF, ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF,
+    ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW, ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW,
+    ManualActionKind.CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW, ManualActionKind.REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW,
+    ManualActionKind.CREATE_MANUAL_RUNTIME_DATA_RANGE, ManualActionKind.REMOVE_MANUAL_RUNTIME_DATA_RANGE,
+    ManualActionKind.UNDO_ACTION, ManualActionKind.REDO_ACTION,
+})
+
+
+def _validate_candidate_policy_capacity(
+    target_dir: Path, pending_actions: Sequence[dict[str, object]], *, binary_source: BinarySource,
+) -> None:
+    if not any(manual_action_kind(str(action["kind"])) in _POLICY_STORAGE_ACTION_KINDS
+               for action in pending_actions):
+        return
+    from amiga_reversing.disasm.c_backend import validate_policy_storage_with_c_backend
+    from amiga_reversing.disasm.effective_metadata import effective_metadata_text
+
+    text = effective_metadata_text(target_dir, pending_actions=pending_actions, binary_source=binary_source)
+    if text:
+        validate_policy_storage_with_c_backend(binary_source, metadata_text=text)
 
 
 def load_manual_projection(
@@ -2216,20 +2373,28 @@ def load_manual_projection(
     binary_source: BinarySource | None = None,
     stronger_metadata: TargetMetadata | None = None,
     assembler_profile: AssemblerProfile = VASM_PROFILE,
+    pending_actions: Sequence[dict[str, object]] = (),
 ) -> ManualActionLogProjection:
     path = manual_action_log_path(target_dir)
-    if not path.exists():
+    if not path.exists() and not pending_actions:
         return _empty_projection(path)
 
     records: list[dict[str, object]] = []
     try:
-        with open(path, encoding="utf-8") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                record = _object(json.loads(stripped), what=f"line {line_number}")
-                records.append(record)
+        if path.exists():
+            with open(path, encoding="utf-8") as handle:
+                for line_number, line in enumerate(handle, start=1):
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    record = _object(json.loads(stripped), what=f"line {line_number}")
+                    records.append(record)
+        elif pending_actions:
+            if binary_source is None:
+                raise ValueError("pending manual actions require a source binary")
+            records.append({"record": "manual_action_log_header", "version": MANUAL_ACTION_LOG_VERSION,
+                            "target_identity": build_target_identity(binary_source)})
+        records.extend(pending_actions)
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         return _blocked_projection(
             path,

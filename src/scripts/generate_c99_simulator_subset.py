@@ -1148,6 +1148,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             f"{int(striped_transfer.get('stride', 0))}u, "
             f"{1 if str(striped_transfer.get('byte_order', '')) == 'big_endian' else 0}u, "
             f"{int(unary.get('sign_extend_source_bits', 0))}u, ",
+            f"{int(bool(entry.get('source_sign_extend', False)))}u, ",
             "      "
             f"{SHIFT_DIRECTION_ENUM.get(shift.get('direction'), 'M68K_SIM_SHIFT_DIR_NONE')}, "
             f"{SHIFT_FILL_ENUM.get(shift.get('fill'), 'M68K_SIM_SHIFT_FILL_NONE')}, "

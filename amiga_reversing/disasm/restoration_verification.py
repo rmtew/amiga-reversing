@@ -17,6 +17,7 @@ from amiga_reversing.disasm.oracle_compatibility import run_vasm_oracle
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.reproduction import run_reproduction
 from amiga_reversing.disasm.source_rendering import (
+    publish_rendered_source,
     render_source_from_binary_source_or_raise,
 )
 from amiga_reversing.tools.copperline_control import CopperlineError, CopperlineTimeout
@@ -50,32 +51,34 @@ def _persist(target_id: str, receipt: dict) -> dict:
 def verify(target_id: str, subject_revision: str, *, artifact=None) -> dict:
     """Regenerate canonical source and run the existing C/external oracle gates."""
     paths = resolve_project_paths(target_id)
-    if artifact is not None:
-        source, profile = artifact.source_text_with_profile()
-    else:
-        with effective_metadata_file(paths.target_dir) as metadata_path:
-            rendering = render_source_from_binary_source_or_raise(
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        rendering = render_source_from_binary_source_or_raise(
                 target_id=target_id,
                 binary_source=paths.binary_source,
                 target_dir=paths.target_dir,
                 metadata_path=metadata_path,
                 project_root=PROJECT_ROOT,
                 workflow_id="restoration_verify",
+                artifact=artifact,
             )
-        source, profile = rendering.source_text, rendering.listing_profile
+    source, profile = rendering.source_text, rendering.listing_profile
     source_bytes = source.encode("utf-8")
     directory = _directory(target_id)
     source_path = directory / f"{_hash(source_bytes)}.s"
-    source_path.write_bytes(source_bytes)
+    if rendering.source_package is None:
+        source_path.write_bytes(source_bytes)
     if paths.output_path is not None:
-        paths.output_path.write_text(source, encoding="utf-8", newline="\n")
+        publish_rendered_source(rendering, paths.output_path, target_id=target_id, project_root=PROJECT_ROOT)
     report = run_reproduction(
         target_id,
         assembler="our",
         persist_report=False,
         pre_rendered_source_text=source,
         pre_rendered_source_profile=profile,
+        pre_rendered_source_package=rendering.source_package,
     )
+    if rendering.source_package is not None:
+        source_path = Path(report["source_path"])
     original = read_binary_source_bytes(paths.binary_source)
     comparison = report.get("comparison") or {}
     exact = comparison.get("full_file_exact") is True
@@ -93,6 +96,7 @@ def verify(target_id: str, subject_revision: str, *, artifact=None) -> dict:
         target_id,
         pre_rendered_source_text=source,
         pre_rendered_source_profile=profile,
+        pre_rendered_source_package=rendering.source_package,
     )
     framework_exact = exact
     exact = exact and oracle.get("comparison_level") == "oracle.full_file_match"
@@ -107,6 +111,7 @@ def verify(target_id: str, subject_revision: str, *, artifact=None) -> dict:
             "exact": exact,
             "source_sha256": _hash(source_bytes),
             "source_path": str(source_path),
+            "source_package_sha256": rendering.source_package["sha256"] if rendering.source_package else None,
             "original_sha256": _hash(original),
             "original_size": len(original),
             "output_sha256": output_hash,

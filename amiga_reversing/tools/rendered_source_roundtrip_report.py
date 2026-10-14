@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
-from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.c_backend import (
     analyze_project_source_with_render_evidence_from_c_backend,
     source_quality_explain_project_source_with_c_backend,
@@ -14,6 +13,7 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.reproduction import run_reproduction
 from amiga_reversing.disasm.source_rendering import (
+    publish_rendered_source,
     render_source_from_binary_source_or_raise,
 )
 
@@ -189,11 +189,17 @@ def _run_target(
         return row
     rendered_source_text: str | None = None
     rendered_source_profile: dict[str, object] | None = None
+    rendered_source_package = None
     try:
         if update_rendered_source:
-            rendered_source_text, rendered_source_profile = _update_rendered_source(target, source_path)
+            updated = _update_rendered_source(target, source_path)
+            rendered_source_text, rendered_source_profile = updated[:2]
+            rendered_source_package = updated[2] if len(updated) > 2 else None
         else:
             rendered_source_text = source_path.read_text(encoding="utf-8")
+            from amiga_reversing.disasm.source_package_publish import PUBLISH_MANIFEST, load_published_source_package
+            if (source_path.parent / PUBLISH_MANIFEST).exists():
+                rendered_source_package = load_published_source_package(source_path.parent)
         if rendered_source_profile is None:
             result = run_reproduction(
                 target,
@@ -201,6 +207,7 @@ def _run_target(
                 profile=True,
                 persist_report=False,
                 pre_rendered_source_text=rendered_source_text,
+                pre_rendered_source_package=rendered_source_package,
             )
         else:
             result = run_reproduction(
@@ -210,6 +217,7 @@ def _run_target(
                 persist_report=False,
                 pre_rendered_source_text=rendered_source_text,
                 pre_rendered_source_profile=rendered_source_profile,
+                pre_rendered_source_package=rendered_source_package,
             )
     except Exception as exc:
         row = {
@@ -303,7 +311,7 @@ def _safe_filename(value: str) -> str:
     return "".join(char if char.isalnum() or char in "._-" else "_" for char in value)
 
 
-def _update_rendered_source(target: str, source_path: Path) -> tuple[str, dict[str, object]]:
+def _update_rendered_source(target: str, source_path: Path) -> tuple[str, dict[str, object], dict[str, Any] | None]:
     paths = resolve_project_paths(target, project_root=PROJECT_ROOT)
     with effective_metadata_file(paths.target_dir) as metadata_path:
         rendering = render_source_from_binary_source_or_raise(
@@ -314,9 +322,8 @@ def _update_rendered_source(target: str, source_path: Path) -> tuple[str, dict[s
             project_root=PROJECT_ROOT,
             workflow_id="rendered_source_roundtrip_update",
         )
-    newline = "\n" if load_assembler_profile("vasm").render.line_ending == "lf" else "\r\n"
-    source_path.write_text(rendering.source_text, encoding="utf-8", newline=newline)
-    return rendering.source_text, rendering.listing_profile
+    publish_rendered_source(rendering, source_path, target_id=target, project_root=PROJECT_ROOT)
+    return rendering.source_text, rendering.listing_profile, rendering.source_package
 
 
 def _target_is_macos(target: str, source_path: Path) -> bool:

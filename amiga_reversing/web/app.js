@@ -3043,9 +3043,10 @@ async function exportSource(assemblerProfile) {
   if (!state.project) {
     return;
   }
-  const binaryAssets = assemblerProfile === "vasm-package";
-  const profile = binaryAssets ? "vasm" : (assemblerProfile || "vasm");
-  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}&binary_assets=${binaryAssets}`);
+  const binaryAssets = assemblerProfile === "vasm-package" || assemblerProfile === "vasm-package-macros";
+  const structureMacros = assemblerProfile === "vasm-macros" || assemblerProfile === "vasm-package-macros";
+  const profile = binaryAssets || structureMacros ? "vasm" : (assemblerProfile || "vasm");
+  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}&binary_assets=${binaryAssets}&structure_macros=${structureMacros}`);
   if (payload.status === "refused") {
     showSourceQualityDiagnosticsOverlay(payload);
     setAnalysisStatus(`Source export refused: ${payload.message || "render failed"}`, "failed", 4000);

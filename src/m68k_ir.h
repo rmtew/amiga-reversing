@@ -46,15 +46,30 @@ typedef struct M68kRenderPolicy {
 
 #define M68K_ANALYSIS_REGISTER_SEED_LIMIT 64U
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 256U
-#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 4096U
-#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 4096U
+#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 16384U
+#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 16384U
+#if M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT > UINT16_MAX || M68K_ANALYSIS_NAMED_LABEL_LIMIT > UINT16_MAX
+#error Analysis policy collection limits must fit their uint16_t counters
+#endif
+
+#define M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED (-2)
+#define M68K_ANALYSIS_STORAGE_CAPACITY_NONE 0U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_STRUCTURED_DATA 1U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_NAMED_LABELS 2U
+/* Nonfatal: authoritative source-analysis arena items exceed the policy mirror. */
+#define M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE 3U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES 4U
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
-#define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
-#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 128U
+#define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
+#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 512U
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
+#define M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT 512U
+#if M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT > UINT16_MAX
+#error Manual data reference limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
@@ -480,6 +495,12 @@ typedef struct M68kAnalysisStructuredDataItem {
   char semantic_role[65];
   char source_pattern[65];
   char comment[97];
+  uint8_t pointer_address_domain;
+  char pointer_symbol_group[64];
+  /* Exact declared label-owner extent; does not widen this leaf's data range. */
+  uint8_t has_source_owner_span;
+  uint32_t source_owner_start;
+  uint32_t source_owner_size;
 } M68kAnalysisStructuredDataItem;
 
 typedef enum M68kAnalysisStructuredDataPlatformKind {
@@ -503,7 +524,9 @@ typedef enum M68kAnalysisLabelDomain {
 typedef struct M68kAnalysisNamedLabel {
   uint8_t has_section_index;
   uint8_t domain;
-  uint8_t reserved[2];
+  /* An actual seeded source declaration, rather than an expanded field name. */
+  uint8_t is_source_declaration;
+  uint8_t reserved[1];
   uint32_t section_index;
   uint32_t offset;
   char name[64];
@@ -644,7 +667,16 @@ typedef struct M68kAnalysisTargetEquate {
   uint8_t value_style_id;
   uint8_t reserved[3];
   char value_expr[64];
+  char group[64];
+  uint32_t extent_bytes;
+  uint8_t address_domain;
 } M68kAnalysisTargetEquate;
+
+typedef enum M68kAnalysisPointerAddressDomain {
+  M68K_ANALYSIS_POINTER_DOMAIN_LEGACY = 0,
+  M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE = 1,
+  M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY = 2
+} M68kAnalysisPointerAddressDomain;
 
 /* The stored value's semantics are independent of its assembly width and
  * field name.  A typed pointer is identified by pointer_struct; a generic
@@ -665,6 +697,8 @@ typedef struct M68kAnalysisCustomStructField {
   char named_base[64];
   uint8_t value_kind;
   uint8_t reserved[3];
+  uint8_t pointer_address_domain;
+  char pointer_symbol_group[64];
 } M68kAnalysisCustomStructField;
 
 typedef struct M68kAnalysisCustomStruct {
@@ -693,6 +727,23 @@ typedef struct M68kAnalysisManualRuntimeAddressRef {
   char xref_generation_mode[32];
 } M68kAnalysisManualRuntimeAddressRef;
 
+/* Explicit encoded data relation, independent of runtime address evidence. */
+typedef struct M68kAnalysisManualDataReference {
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t size;
+  uint32_t raw_value;
+  uint32_t base_section_index;
+  uint32_t base_offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t owner_element_offset;
+  char owner_kind[32];
+  char owner_id[96];
+  char owner_layout_id[64];
+  char xref_generation_mode[32];
+} M68kAnalysisManualDataReference;
+
 /* Named source-section range used by summary abstract-region effects. */
 typedef struct M68kAnalysisAbstractRegion {
   uint32_t section_index;
@@ -701,11 +752,27 @@ typedef struct M68kAnalysisAbstractRegion {
   char region_id[96];
 } M68kAnalysisAbstractRegion;
 
+/* Runtime-only regions have no implied source-image owner or initializer.
+ * Persistent CPU storage is the deliberately narrow first relocation contract;
+ * phase overlays and DMA lifetimes remain explicit unsupported obligations. */
+#define M68K_ANALYSIS_MEMORY_REGION_LIMIT 16U
+typedef struct M68kMemoryRegionIR {
+  char region_id[96];
+  char name[64];
+  uint32_t runtime_address;
+  uint32_t size;
+  uint32_t alignment;
+  uint8_t dma_access;
+  uint8_t persistent;
+  uint8_t source_mapped;
+} M68kMemoryRegionIR;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
   uint8_t disable_implicit_entry_points;
-  uint8_t reserved0[1];
+  /* Transient storage status in the previously reserved ABI byte. */
+  uint8_t storage_capacity_status;
   uint16_t register_seed_count;
   uint16_t function_summary_count;
   uint16_t entry_point_count;
@@ -720,15 +787,18 @@ typedef struct M68kAnalysisPolicy {
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
   uint16_t manual_runtime_address_ref_count;
+  uint16_t manual_data_reference_count;
   uint16_t abstract_region_count;
+  uint16_t memory_region_count;
   uint16_t custom_struct_count;
   uint16_t custom_struct_capacity;
   uint16_t structured_data_item_capacity;
   uint16_t named_label_capacity;
+  uint16_t manual_representation_capacity;
   uint8_t custom_struct_owner;
   uint8_t structured_data_items_owner;
   uint8_t named_labels_owner;
-  uint8_t reserved1[1];
+  uint8_t manual_representations_owner;
   uint32_t entry_offset;
   char source_context_kind[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
@@ -750,10 +820,13 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
   M68kAnalysisAbsoluteStorageSlot absolute_storage_slots[M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT];
   M68kAnalysisRssetUseSiteBinding rsset_use_site_bindings[M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT];
-  M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
+  M68kAnalysisManualRepresentation manual_representations_inline[4];
+  M68kAnalysisManualRepresentation *manual_representations;
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
+  M68kAnalysisManualDataReference manual_data_references[M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT];
   M68kAnalysisAbstractRegion abstract_regions[M68K_ANALYSIS_ABSTRACT_REGION_LIMIT];
+  M68kMemoryRegionIR memory_regions[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
   M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
 
@@ -2231,7 +2304,8 @@ typedef struct M68kTableEntryIR {
 
 typedef enum M68kDataReferenceSourceKind {
   M68K_DATA_REFERENCE_SOURCE_UNKNOWN = 0,
-  M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY = 1
+  M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY = 1,
+  M68K_DATA_REFERENCE_SOURCE_MANUAL = 2
 } M68kDataReferenceSourceKind;
 
 typedef enum M68kDataReferenceEvidenceFlag {
@@ -2243,6 +2317,11 @@ typedef enum M68kDataReferenceEvidenceFlag {
   M68K_DATA_REFERENCE_EVIDENCE_TEXT_TARGET = 1U << 5,
   M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET = 1U << 6
 } M68kDataReferenceEvidenceFlag;
+
+typedef enum M68kDataReferenceKind {
+  M68K_DATA_REFERENCE_KIND_UNKNOWN = 0,
+  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT = 1
+} M68kDataReferenceKind;
 
 typedef struct M68kDataReferenceIR {
   uint32_t source_offset;
@@ -2263,6 +2342,17 @@ typedef struct M68kDataReferenceIR {
   uint32_t raw_value;
   uint32_t target_section_index;
   uint32_t target_offset;
+  uint8_t reference_kind;
+  uint8_t raw_value_width;
+  uint8_t raw_value_signed;
+  uint8_t has_base;
+  uint32_t base_section_index;
+  uint32_t base_offset;
+  uint32_t owner_element_offset;
+  char *owner_kind;
+  char *owner_id;
+  char *owner_layout_id;
+  char *xref_generation_mode;
 } M68kDataReferenceIR;
 
 typedef enum M68kImmediateTextTokenEvidenceFlag {
@@ -2735,10 +2825,22 @@ void m68k_render_policy_init_default(M68kRenderPolicy *policy);
 void m68k_render_policy_init_for_syntax(M68kRenderPolicy *policy, uint8_t syntax_mode);
 int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
+/* 0: unmapped, 1: unique, 2: ambiguous. No section-offset fallback. */
+int m68k_analysis_policy_resolve_pointer_address(const M68kAnalysisPolicy *policy, uint32_t value,
+  uint32_t *out_section, uint32_t *out_offset);
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
-int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, uint16_t required_count);
-int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, uint16_t required_count);
+int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
+/* 0: reserved, -1: invalid storage/allocation failure, -2: capacity exceeded.
+   Accept wide requests so a caller cannot implicitly narrow an oversized count. */
+int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, size_t required_count);
+int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t required_count);
+/* Initialize before indexed writes; reserve before exceeding the inline capacity.
+   Zero-initialized policies support reserve/copy/destroy. Copy destinations must
+   be fresh or destroyed, as for the other owned policy collections. */
+int m68k_analysis_policy_reserve_manual_representations(M68kAnalysisPolicy *policy, uint16_t required_count);
+int m68k_analysis_policy_manual_representations_valid(const M68kAnalysisPolicy *policy);
 int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy);
 int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *source_analysis,
   const M68kAnalysisStructuredDataItem *item);

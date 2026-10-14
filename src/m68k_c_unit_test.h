@@ -51,6 +51,7 @@ int m68k_c_test_fail_str(const char *file, int line, const char *expected, const
 int m68k_c_parse_util_tests(void);
 int m68k_c_instruction_spec_tests(void);
 int m68k_c_ir_tests(void);
+int m68k_c_policy_storage_tests(void);
 int m68k_c_simulator_tests(void);
 int m68k_c_render_plan_tests(void);
 int m68k_c_source_package_tests(void);

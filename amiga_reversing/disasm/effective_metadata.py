@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from functools import lru_cache
@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm.binary_source import (
+    BinarySource,
     DiskEntryBinarySource,
     RawAddressModel,
     RawBinarySource,
@@ -27,6 +28,7 @@ from amiga_reversing.disasm.manual_actions import (
 from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
+    AbsoluteStorageSlotMetadata,
     CustomStructFieldMetadata,
     CustomStructMetadata,
     DataBlockElementKind,
@@ -37,16 +39,17 @@ from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     ExecutionViewMetadata,
     FunctionSummaryMetadata,
+    ManualDataReferenceMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
     ManualRuntimeAddressRefMetadata,
-    AbsoluteStorageSlotMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     RssetUseSiteBindingMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
+    SourceOutputPolicyMetadata,
     SuppressedSeededItemMetadata,
     TargetEquateMetadata,
     TargetMetadata,
@@ -55,12 +58,18 @@ from amiga_reversing.disasm.target_metadata import (
     apply_suppressed_seeded_items,
     load_target_metadata,
     target_metadata_json_payload,
+    validate_base_displacement_owner,
+    validate_base_displacement_reference,
 )
 
 
-def effective_target_metadata(target_dir: Path, *, include_decision_journal: bool = True) -> TargetMetadata | None:
+def effective_target_metadata(
+    target_dir: Path, *, include_decision_journal: bool = True,
+    pending_actions: Sequence[dict[str, object]] = (),
+    binary_source: BinarySource | None = None,
+) -> TargetMetadata | None:
     metadata = load_target_metadata(target_dir)
-    metadata = _apply_manual_seed_projection(target_dir, metadata)
+    metadata = _apply_manual_seed_projection(target_dir, metadata, pending_actions=pending_actions, binary_source=binary_source)
     if include_decision_journal:
         metadata = _apply_decision_journal_projection(target_dir, metadata)
     return metadata
@@ -505,6 +514,9 @@ def _manual_target_equate_to_metadata(equate: dict[str, object]) -> TargetEquate
         comment=_manual_seed_text(equate, "comment"),
         value_representation=value_representation,
         value_expression=_manual_seed_text(equate, "value_expression"),
+        group=_manual_seed_text(equate, "group"),
+        address_domain=_manual_seed_text(equate, "address_domain"),
+        extent_bytes=_manual_seed_int(equate, "extent_bytes"),
     )
 
 
@@ -547,7 +559,8 @@ def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomS
         named_base=_manual_seed_text(field, "named_base"),
         value_kind=("struct_pointer" if _manual_seed_text(field, "pointer_struct") is not None
                     else (_manual_seed_text(field, "value_kind") or "scalar")),
-    )
+        pointer_address_domain=_manual_seed_text(field, "pointer_address_domain"),
+        pointer_symbol_group=_manual_seed_text(field, "pointer_symbol_group"),    )
 
 
 def _manual_custom_struct_to_metadata(struct: dict[str, object]) -> CustomStructMetadata | None:
@@ -948,12 +961,12 @@ def _data_block_unit_from_width(width: int) -> str:
 def _data_block_unit_for_address(addr: int, width: int) -> str:
     """Return a directive unit that is valid at the emitted source address.
 
-    Structured records need not have a stride aligned to every field width.
-    In that case preserve the typed-field metadata but render its bytes using
-    byte directives, rather than seeding an invalid word/long entity.
+    WORD and LONG directives may start at an even address. Record strides
+    need not be multiples of the field width; preserve the declared LONG unit
+    across an 18-byte record array while retaining bytes at odd addresses.
     """
     unit = _data_block_unit_from_width(width)
-    alignment = {"word": 2, "long": 4}.get(unit, 1)
+    alignment = {"word": 2, "long": 2}.get(unit, 1)
     return unit if addr % alignment == 0 else "byte"
 
 
@@ -1238,6 +1251,8 @@ def _data_block_custom_struct_field_entity(
         c_type=field.type,
         pointer_struct=field.pointer_struct,
         value_kind=field.value_kind,
+        pointer_address_domain=field.pointer_address_domain,
+        pointer_symbol_group=field.pointer_symbol_group,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
@@ -1341,6 +1356,14 @@ def _data_block_bound_struct_entities(
         if gap is None:
             return ()
         entities.append(gap)
+    # Retain the canonical bound element's public label extent on its first
+    # leaf.  Its render width remains the leaf width: no overlapping data item
+    # is introduced and no containing owner is inferred from label spelling.
+    owner_start, owner_end = _data_block_element_span(layout, element)
+    if (entities and base_label and entities[0].name == base_label
+            and entities[0].addr == owner_start and owner_end <= layout.source_end):
+        entities[0] = replace(entities[0], source_owner_start=owner_start,
+                              source_owner_size=owner_end - owner_start)
     return tuple(entities)
 
 
@@ -1416,7 +1439,10 @@ def _data_block_interpreted_ref_symbol(ref: Mapping[str, object]) -> str | None:
         return None
     if target_offset is None or target_offset < 0 or source_value is None or source_value < 0:
         return None
-    if source_value != target_offset or source_value >= (1 << (width * 8)):
+    runtime_address = _manual_seed_int(ref, "runtime_address")
+    if runtime_address is not None and runtime_address != source_value:
+        return None
+    if (source_value != target_offset and runtime_address is None) or source_value >= (1 << (width * 8)):
         return None
     if not isinstance(target_locator, Mapping):
         return None
@@ -1424,17 +1450,18 @@ def _data_block_interpreted_ref_symbol(ref: Mapping[str, object]) -> str | None:
         return None
     if _manual_seed_int(target_locator, "offset") != target_offset:
         return None
-    return f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    symbol = f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    return symbol if source_value == target_offset else f"{symbol}_runtime_{source_value:08X}"
 
 
 def _data_block_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquateMetadata | None:
     symbol = _data_block_interpreted_ref_symbol(ref)
-    target_offset = _manual_seed_int(ref, "target_offset")
-    if symbol is None or target_offset is None:
+    source_value = _manual_seed_int(ref, "source_value")
+    if symbol is None or source_value is None:
         return None
     return TargetEquateMetadata(
         name=symbol,
-        value=target_offset,
+        value=source_value,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(ref, "data_block_ref_id"),
@@ -1472,6 +1499,59 @@ def _data_block_element_interpreted_ref_representation(
     )
 
 
+def _data_block_element_interpreted_data_reference(
+    layout: DataBlockLayoutMetadata,
+    ref: Mapping[str, object],
+    custom_structs: Mapping[str, CustomStructMetadata],
+) -> ManualDataReferenceMetadata | None:
+    if not isinstance(ref, dict) or ref.get("reference_kind") != "base_displacement":
+        return None
+    validate_base_displacement_reference(ref, source_hunk=layout.hunk)
+    offset = _manual_seed_int(ref, "offset")
+    if offset is None:
+        raise ValueError("base_displacement requires source offset")
+    addr, end = layout.source_start + offset, layout.source_start + offset + 2
+    if addr < layout.source_start or end > layout.source_end:
+        raise ValueError("base_displacement must occupy one word within its layout")
+    owners = [element for element in layout.elements
+              if element.offset <= offset and offset + 2 <= element.offset + element.width]
+    if len(owners) != 1:
+        raise ValueError("base_displacement requires one unambiguous data-block owner")
+    owner = owners[0]
+    validate_base_displacement_owner(ref, {
+        "offset": owner.offset, "width": owner.width, "kind": owner.kind,
+        "array_stride": owner.array_stride, "type_binding": owner.type_binding,
+    }, defer_struct_leaf=True)
+    if _data_block_bound_struct(owner, custom_structs) is not None:
+        # Use the same merged declarations and field expansion as source
+        # generation. This includes seeded types and current field edits and
+        # rejects invalid/overlapping declarations and invalid array strides.
+        leaves = _data_block_bound_struct_entities(layout, owner, custom_structs)
+        matches = [leaf for leaf in leaves if leaf.addr == addr and leaf.end == end
+                   and leaf.unit == "word" and (leaf.field_type or "").upper() in {"WORD", "UWORD"}
+                   and leaf.value_kind == "scalar" and leaf.field_name]
+        if len(matches) != 1:
+            raise ValueError("base_displacement requires an exact declared WORD leaf in its struct owner")
+    elif owner.kind in {DataBlockElementKind.STRUCT, DataBlockElementKind.PLATFORM_STRUCT} or (
+        isinstance(owner.type_binding, dict)
+        and owner.type_binding.get("binding_kind") in {"custom_struct", "platform_struct"}
+    ):
+        raise ValueError("base_displacement struct owner requires a resolved type declaration")
+    base = cast(dict[str, int], ref["base_locator"])
+    return ManualDataReferenceMetadata(
+        addr=addr, hunk=layout.hunk, size=2,
+        source_value=cast(int, ref["source_value"]), reference_kind="base_displacement", signed=True,
+        base_hunk=base["hunk"], base_offset=base["offset"],
+        target_hunk=cast(int, ref["target_hunk"]), target_offset=cast(int, ref["target_offset"]),
+        owner_kind="data_block_interpreted_ref", owner_id=cast(str, _manual_data_block_reference_id(ref)),
+        owner_layout_id=layout.layout_id, owner_element_offset=cast(int, ref["offset"]),
+        xref_generation_mode=str(ref.get("xref_generation_mode") or "bidirectional"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "data_block_ref_id"),
+    )
+
+
 def _data_block_element_interpreted_ref_runtime_address_ref(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -1505,7 +1585,7 @@ def _data_block_element_interpreted_ref_runtime_address_ref(
         size=width,
         target_hunk=target_hunk,
         target_offset=target_offset,
-        runtime_address=target_offset,
+        runtime_address=cast(int, _manual_seed_int(ref, "source_value")),
         confidence=confidence_id,
         owner_kind="data_block_interpreted_ref",
         owner_id=ref_id,
@@ -1742,11 +1822,16 @@ def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] 
     return source_start, source_end, base_addr
 
 
-def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
+def _apply_manual_seed_projection(
+    target_dir: Path, metadata: TargetMetadata | None, *,
+    pending_actions: Sequence[dict[str, object]] = (),
+    binary_source: BinarySource | None = None,
+) -> TargetMetadata | None:
     projection = load_manual_projection(
         target_dir,
-        binary_source=resolve_target_binary_source(target_dir),
+        binary_source=binary_source or resolve_target_binary_source(target_dir),
         stronger_metadata=metadata,
+        pending_actions=pending_actions,
     )
     conflicted_seed_ids: set[str] = set()
     conflicted_label_ids: set[str] = set()
@@ -1804,6 +1889,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_execution_view_projections = projection.removed_execution_views
     if (
         not required_seeds
+        and projection.source_output_policy is None
         and not labels
         and not comments
         and not representations
@@ -1850,6 +1936,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     manual_representations = list(metadata.manual_representations)
     target_equates = list(metadata.target_equates)
     manual_runtime_address_refs = list(metadata.manual_runtime_address_refs)
+    manual_data_references = list(metadata.manual_data_references)
     custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
     rsset_use_site_bindings = list(metadata.rsset_use_site_bindings)
@@ -1950,11 +2037,23 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_runtime_address_refs = [
             ref for ref in manual_runtime_address_refs if ref.owner_layout_id not in removed_data_block_layout_ids
         ]
+        manual_data_references = [
+            ref for ref in manual_data_references if ref.owner_layout_id not in removed_data_block_layout_ids
+        ]
     removed_data_block_element_keys = {
         removed_element_key
         for element in removed_data_block_element_projections
         if (removed_element_key := _manual_data_block_element_key(element)) is not None
     }
+    removed_element_spans = [
+        (key[0], key[1], key[1] + width)
+        for element in removed_data_block_element_projections
+        if (key := _manual_data_block_element_key(element)) is not None
+        if (width := _manual_seed_int(element, "width")) is not None
+    ]
+    def removed_element_owns_reference(ref: ManualDataReferenceMetadata | ManualRuntimeAddressRefMetadata) -> bool:
+        return any(layout_id == ref.owner_layout_id and start <= ref.owner_element_offset < end
+                   for layout_id, start, end in removed_element_spans)
     if removed_data_block_element_keys:
         data_block_layouts = [
             replace(
@@ -1970,7 +2069,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_runtime_address_refs = [
             ref
             for ref in manual_runtime_address_refs
-            if (ref.owner_layout_id, ref.owner_element_offset) not in removed_data_block_element_keys
+            if not removed_element_owns_reference(ref)
+        ]
+        manual_data_references = [
+            ref for ref in manual_data_references
+            if not removed_element_owns_reference(ref)
         ]
     removed_data_block_interpreted_refs = _manual_data_block_reference_removals(
         removed_data_block_interpreted_ref_projections
@@ -1995,6 +2098,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         ]
         manual_runtime_address_refs = [
             ref for ref in manual_runtime_address_refs if ref.owner_id not in removed_ref_ids
+        ]
+        manual_data_references = [
+            ref for ref in manual_data_references if ref.owner_id not in removed_ref_ids
         ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")
@@ -2130,6 +2236,35 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     data_block_reference_interpretations = _manual_data_block_reference_interpretations(
         data_block_interpreted_ref_projections
     )
+    active_ref_owner_keys = {
+        key for ref in data_block_interpreted_ref_projections
+        if (key := _manual_data_block_element_key(ref)) is not None
+    }
+    manual_data_references = [
+        ref for ref in manual_data_references
+        if (ref.owner_layout_id, ref.owner_element_offset) not in active_ref_owner_keys
+    ]
+    replaced_ref_citations = {
+        ref.citation for ref in manual_runtime_address_refs
+        if (ref.owner_layout_id, ref.owner_element_offset) in active_ref_owner_keys
+    }
+    for layout in data_block_layouts:
+        for element in layout.elements:
+            embedded_ref = element.reference_interpretation
+            if isinstance(embedded_ref, dict) and _manual_data_block_element_key(embedded_ref) in active_ref_owner_keys:
+                replaced_ref_citations.add(_manual_action_citation(embedded_ref, "data_block_ref_id"))
+    manual_runtime_address_refs = [
+        ref for ref in manual_runtime_address_refs
+        if (ref.owner_layout_id, ref.owner_element_offset) not in active_ref_owner_keys
+    ]
+    manual_representations = [
+        representation for representation in manual_representations
+        if representation.element_kind != "data_block_interpreted_ref"
+        or representation.citation not in replaced_ref_citations
+    ]
+    target_equates = [
+        equate for equate in target_equates if equate.citation not in replaced_ref_citations
+    ]
     for layout_projection in data_block_layout_projections:
         data_block_layout = _manual_data_block_layout_to_metadata(
             layout_projection,
@@ -2156,6 +2291,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 entity = _data_block_element_entity(effective_layout, element)
                 if entity is not None:
                     seeded_entities.append(entity)
+            if isinstance(element.reference_interpretation, dict) and element.reference_interpretation.get("reference_kind") == "base_displacement":
+                continue
             interpreted_ref_equate = (
                 _data_block_interpreted_ref_equate(element.reference_interpretation)
                 if isinstance(element.reference_interpretation, dict)
@@ -2172,6 +2309,20 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 element_representation = _data_block_element_representation(effective_layout, element)
                 if element_representation is not None:
                     manual_representations.append(element_representation)
+    # Each encoded word has its own canonical ref, even inside a wider array.
+    relative_ref_interpretations = dict(data_block_reference_interpretations)
+    for effective_layout in effective_data_block_layouts:
+        for element in effective_layout.elements:
+            embedded_ref = element.reference_interpretation
+            if isinstance(embedded_ref, dict) and (key := _manual_data_block_element_key(embedded_ref)) is not None:
+                relative_ref_interpretations.setdefault(key, embedded_ref)
+        for (layout_id, _), ref in relative_ref_interpretations.items():
+            if layout_id == effective_layout.layout_id:
+                interpreted_data_reference = _data_block_element_interpreted_data_reference(
+                    effective_layout, ref, merged_custom_structs,
+                )
+                if interpreted_data_reference is not None:
+                    manual_data_references.append(interpreted_data_reference)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     merged_manual_runtime_address_refs = {
         (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr, ref.target_hunk, ref.target_offset): ref
@@ -2186,6 +2337,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     }
     result = replace(
         metadata,
+        source_output_policy=(metadata.source_output_policy if projection.source_output_policy is None
+                              else SourceOutputPolicyMetadata.from_dict(projection.source_output_policy)),
         entry_register_seeds=tuple(entry_register_seeds),
         function_summaries=tuple({
             summary.function_summary_id: summary
@@ -2199,6 +2352,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_representations=tuple(manual_representations),
         target_equates=tuple(merged_target_equates.values()),
         manual_runtime_address_refs=tuple(merged_manual_runtime_address_refs.values()),
+        manual_data_references=tuple({
+            (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr): ref
+            for ref in manual_data_references
+        }.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
         absolute_storage_slots=tuple(merged_absolute_storage_slots.values()),
@@ -2329,14 +2486,21 @@ def _a5_decision_identity_matches_ref(identity: Mapping[str, object], ref: Mappi
     return True
 
 
-def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool = True) -> str:
-    metadata = effective_target_metadata(target_dir, include_decision_journal=include_decision_journal)
+def effective_metadata_text(
+    target_dir: Path, *, include_decision_journal: bool = True,
+    pending_actions: Sequence[dict[str, object]] = (), binary_source: BinarySource | None = None,
+) -> str:
+    metadata = effective_target_metadata(
+        target_dir, include_decision_journal=include_decision_journal,
+        pending_actions=pending_actions, binary_source=binary_source,
+    )
     if metadata is None:
         return ""
     payload = target_metadata_json_payload(metadata)
     projection = load_manual_projection(
         target_dir,
-        binary_source=resolve_target_binary_source(target_dir),
+        binary_source=binary_source or resolve_target_binary_source(target_dir),
+        pending_actions=pending_actions,
     )
     if projection.runtime_observation_views:
         observations = [dict(view) for view in projection.runtime_observation_views]
@@ -2355,6 +2519,8 @@ def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool 
         )
         payload["execution_views"] = execution_views
         payload["runtime_observation_views"] = observations
+    if projection.memory_regions:
+        payload["memory_regions"] = [dict(region) for region in projection.memory_regions]
     if projection.runtime_data_ranges:
         payload["runtime_data_ranges"] = [dict(data_range) for data_range in projection.runtime_data_ranges]
     _add_source_context(target_dir, payload)

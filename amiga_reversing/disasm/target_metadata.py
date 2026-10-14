@@ -1,18 +1,40 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import cast
+from typing import TypeGuard, cast
 
 from .amiga_metadata import ResidentAutoinitMetadata
 from .binary_source import BinarySourceKind
+from .pointer_domains import validate_pointer_domain, validate_runtime_address_symbol
 
 TARGET_METADATA_FILE_NAME = "target_metadata.json"
 TARGET_SEEDED_METADATA_FILE_NAME = "target_seeded_metadata.json"
 TARGET_CORRECTIONS_FILE_NAME = "target_corrections.json"
+
+
+@dataclass(frozen=True, slots=True)
+class SourceOutputPolicyMetadata:
+    """Presentation only; native data classifications determine eligibility."""
+
+    mode: str = "inline"
+    minimum_asset_size: int = 256
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.mode, str) or self.mode not in {"inline", "binary_assets"}:
+            raise ValueError("source output mode must be inline or binary_assets")
+        if type(self.minimum_asset_size) is not int or not 1 <= self.minimum_asset_size <= 0xFFFFFFFF:
+            raise ValueError("minimum_asset_size must be 1..4294967295")
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> SourceOutputPolicyMetadata:
+        if set(payload) - {"mode", "minimum_asset_size"}:
+            raise ValueError("unsupported source output policy field")
+        return cls(mode=cast(str, payload.get("mode", "inline")),
+                   minimum_asset_size=cast(int, payload.get("minimum_asset_size", 256)))
 
 
 class TargetMetadataSeedOrigin(StrEnum):
@@ -662,8 +684,12 @@ class CustomStructFieldMetadata:
     pointer_struct: str | None = None
     named_base: str | None = None
     value_kind: str = "scalar"
+    pointer_address_domain: str | None = None
+    pointer_symbol_group: str | None = None
 
     def __post_init__(self) -> None:
+        validate_pointer_domain(value_kind=self.value_kind, size=self.size,
+            address_domain=self.pointer_address_domain, symbol_group=self.pointer_symbol_group)
         if self.value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
             raise ValueError(f"unsupported custom struct field value_kind: {self.value_kind}")
         if self.pointer_struct is not None:
@@ -700,7 +726,7 @@ class CustomStructFieldMetadata:
             value_kind = "scalar"
         if value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
             raise ValueError(f"unsupported custom struct field value_kind: {value_kind}")
-        if value_kind == "struct_pointer":
+        if value_kind == "struct_pointer" and pointer_struct is None:
             raise ValueError("struct_pointer fields require pointer_struct")
         return cls(
             name=name,
@@ -712,6 +738,8 @@ class CustomStructFieldMetadata:
             pointer_struct=pointer_struct,
             named_base=named_base,
             value_kind=value_kind,
+            pointer_address_domain=cast(str | None, payload.get("pointer_address_domain")),
+            pointer_symbol_group=cast(str | None, payload.get("pointer_symbol_group")),
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -1018,12 +1046,26 @@ class SeededEntityMetadata:
     pointer_struct: str | None = None
     value_kind: str | None = None
     value_domain: str | None = None
+    pointer_address_domain: str | None = None
+    pointer_symbol_group: str | None = None
+    source_owner_start: int | None = None
+    source_owner_size: int | None = None
     owner_action_id: str | None = None
     source_evidence_id: str | None = None
     parent_evidence_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        validate_pointer_domain(value_kind=self.value_kind, size=(self.end or self.addr) - self.addr,
+            address_domain=self.pointer_address_domain, symbol_group=self.pointer_symbol_group)
+
+        if ((self.source_owner_start is not None or self.source_owner_size is not None)
+                and (type(self.source_owner_start) is not int or type(self.source_owner_size) is not int
+                     or self.source_owner_start != self.addr or self.end is None or self.end <= self.addr
+                     or not self.name or self.source_owner_size < self.end - self.addr
+                     or self.source_owner_size <= 0 or self.addr < 0
+                     or self.addr + self.source_owner_size > 0xFFFFFFFF)):
+            raise ValueError("source owner span requires a named first leaf and valid enclosing source extent")
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededEntityMetadata:
@@ -1101,6 +1143,10 @@ class SeededEntityMetadata:
             pointer_struct=pointer_struct,
             value_kind=value_kind,
             value_domain=value_domain,
+            pointer_address_domain=cast(str | None, payload.get("pointer_address_domain")),
+            pointer_symbol_group=cast(str | None, payload.get("pointer_symbol_group")),
+            source_owner_start=cast(int | None, payload.get("source_owner_start")),
+            source_owner_size=cast(int | None, payload.get("source_owner_size")),
             owner_action_id=owner_action_id,
             source_evidence_id=source_evidence_id,
             parent_evidence_ids=tuple(parent_evidence_ids),
@@ -1368,9 +1414,15 @@ class TargetEquateMetadata:
     comment: str | None = None
     value_representation: ManualRepresentationStyle | None = None
     value_expression: str | None = None
+    group: str | None = None
+    address_domain: str | None = None
+    extent_bytes: int | None = None
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        validate_runtime_address_symbol(value=self.value, group=self.group,
+            address_domain=self.address_domain, extent_bytes=self.extent_bytes,
+            value_expression=self.value_expression)
         if self.value_representation is not None:
             assert isinstance(self.value_representation, ManualRepresentationStyle)
         if self.value_expression is not None:
@@ -1403,6 +1455,126 @@ class TargetEquateMetadata:
             if value_representation is None
             else _manual_representation_style(value_representation),
             value_expression=value_expression,
+            group=cast(str | None, payload.get("group")),
+            address_domain=cast(str | None, payload.get("address_domain")),
+            extent_bytes=cast(int | None, payload.get("extent_bytes")),
+        )
+
+
+def validate_base_displacement_reference(ref: Mapping[str, object], *, source_hunk: int | None = None, source_addr: int | None = None) -> None:
+    """Validate the bounded signed-word, unscaled, same-section reference form."""
+    def integer(value: object) -> TypeGuard[int]:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    width = ref.get("width", ref.get("size"))
+    source_value = ref.get("source_value")
+    base = ref.get("base_locator")
+    if not isinstance(base, Mapping):
+        raise ValueError("base_displacement requires explicit base_locator")
+    base_hunk, base_offset = base.get("hunk"), base.get("offset")
+    target_hunk, target_offset = ref.get("target_hunk"), ref.get("target_offset")
+    scale = ref.get("scale", 1)
+    if not integer(width) or width != 2 or ref.get("signed") is not True or not integer(scale) or scale != 1:
+        raise ValueError("base_displacement supports only signed 16-bit width 2 and scale 1")
+    if not integer(source_value) or not 0 <= source_value <= 0xFFFF:
+        raise ValueError("base_displacement source_value must be unsigned encoded 16-bit bits")
+    if any(not integer(value) or not 0 <= value <= 0xFFFFFFFF for value in (base_hunk, base_offset, target_hunk, target_offset)):
+        raise ValueError("base_displacement requires unsigned 32-bit base and target locators")
+    if source_hunk is not None and (not integer(source_hunk) or not 0 <= source_hunk <= 0xFFFFFFFF):
+        raise ValueError("base_displacement source section must be unsigned 32-bit")
+    if base_hunk != target_hunk or (source_hunk is not None and base_hunk != source_hunk):
+        raise ValueError("base_displacement requires source, base and target in the same section")
+    if source_addr is not None and (not integer(source_addr) or not 0 <= source_addr <= 0xFFFFFFFD):
+        raise ValueError("base_displacement source word must fit a 32-bit section span")
+    target_locator = ref.get("target_locator")
+    if target_locator is not None and (not isinstance(target_locator, Mapping) or not integer(target_locator.get("hunk")) or not integer(target_locator.get("offset")) or target_locator.get("hunk") != target_hunk or target_locator.get("offset") != target_offset):
+        raise ValueError("base_displacement target_locator must match target_hunk/target_offset")
+    displacement = source_value if source_value < 0x8000 else source_value - 0x10000
+    if cast(int, base_offset) + displacement != target_offset:
+        raise ValueError("base_displacement target_offset must equal base offset plus signed source_value")
+    if "runtime_address" in ref:
+        raise ValueError("base_displacement does not accept runtime_address")
+
+
+def validate_base_displacement_owner(
+    ref: Mapping[str, object], element: Mapping[str, object], *, defer_struct_leaf: bool = False,
+) -> None:
+    """Check storage bounds; typed leaves require the merged type projection.
+
+    Catalog payload preparation and history replay do not have seeded type
+    definitions. They may defer only a bound structure's leaf check. Effective
+    metadata must then prove an actual WORD field before projecting the ref.
+    """
+    offset, owner_offset, width = ref.get("offset"), element.get("offset"), element.get("width")
+    if any(not isinstance(value, int) or isinstance(value, bool) for value in (offset, owner_offset, width)):
+        raise ValueError("base_displacement requires integer owner/source spans")
+    offset, owner_offset, width = cast(int, offset), cast(int, owner_offset), cast(int, width)
+    scalar_word = element.get("kind") == "scalar" and width == 2 and offset == owner_offset
+    array_word = (element.get("kind") == "array" and element.get("array_stride") == 2
+                  and (offset - owner_offset) % 2 == 0 and width % 2 == 0)
+    binding = element.get("type_binding")
+    deferred_struct = (
+        defer_struct_leaf and element.get("kind") in {"struct", "platform_struct", "array"}
+        and isinstance(binding, Mapping)
+        and binding.get("binding_kind") in {"custom_struct", "platform_struct"}
+        and isinstance(binding.get("bound_type_id"), str) and bool(binding.get("bound_type_id"))
+    )
+    if not (scalar_word or array_word or deferred_struct) or offset < owner_offset or offset + 2 > owner_offset + width:
+        raise ValueError("base_displacement requires a scalar word or aligned word-array entry")
+
+
+@dataclass(frozen=True, slots=True)
+class ManualDataReferenceMetadata:
+    addr: int
+    hunk: int
+    size: int
+    source_value: int
+    reference_kind: str
+    signed: bool
+    base_hunk: int
+    base_offset: int
+    target_hunk: int
+    target_offset: int
+    owner_kind: str
+    owner_id: str
+    owner_layout_id: str
+    owner_element_offset: int
+    xref_generation_mode: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        if self.reference_kind != "base_displacement":
+            raise ValueError("manual_data_references supports only base_displacement")
+        validate_base_displacement_reference(
+            {**asdict(self), "base_locator": {"hunk": self.base_hunk, "offset": self.base_offset}},
+            source_hunk=self.hunk, source_addr=self.addr,
+        )
+        assert isinstance(self.owner_element_offset, int) and not isinstance(self.owner_element_offset, bool)
+        assert 0 <= self.owner_element_offset <= 0xFFFFFFFF
+        assert self.owner_kind == "data_block_interpreted_ref"
+        assert isinstance(self.owner_id, str) and self.owner_id
+        assert isinstance(self.owner_layout_id, str) and self.owner_layout_id
+        assert isinstance(self.citation, str)
+        assert self.xref_generation_mode in {"bidirectional", "source_only", "none"}
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> ManualDataReferenceMetadata:
+        return cls(
+            addr=cast(int, payload["addr"]), hunk=cast(int, payload["hunk"]),
+            size=cast(int, payload["size"]), source_value=cast(int, payload["source_value"]),
+            reference_kind=cast(str, payload["reference_kind"]), signed=cast(bool, payload["signed"]),
+            base_hunk=cast(int, payload["base_hunk"]), base_offset=cast(int, payload["base_offset"]),
+            target_hunk=cast(int, payload["target_hunk"]), target_offset=cast(int, payload["target_offset"]),
+            owner_kind=cast(str, payload["owner_kind"]), owner_id=cast(str, payload["owner_id"]),
+            owner_layout_id=cast(str, payload["owner_layout_id"]),
+            owner_element_offset=cast(int, payload["owner_element_offset"]),
+            xref_generation_mode=cast(str, payload["xref_generation_mode"]),
+            seed_origin=_target_metadata_seed_origin(payload["seed_origin"]),
+            review_status=_target_metadata_review_status(payload["review_status"]),
+            citation=cast(str, payload["citation"]),
         )
 
 
@@ -1727,9 +1899,11 @@ class TargetMetadata:
     manual_representations: tuple[ManualRepresentationMetadata, ...] = ()
     target_equates: tuple[TargetEquateMetadata, ...] = ()
     manual_runtime_address_refs: tuple[ManualRuntimeAddressRefMetadata, ...] = ()
+    manual_data_references: tuple[ManualDataReferenceMetadata, ...] = ()
     data_block_layouts: tuple[DataBlockLayoutMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
+    source_output_policy: SourceOutputPolicyMetadata = SourceOutputPolicyMetadata()
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> TargetMetadata:
@@ -1771,6 +1945,8 @@ class TargetMetadata:
                 )
         return cls(
             target_type=target_type,
+            source_output_policy=SourceOutputPolicyMetadata.from_dict(
+                _json_object(payload.get("source_output_policy", {}))),
             entry_register_seeds=tuple(
                 EntryRegisterSeedMetadata.from_dict(_json_object(seed))
                 for seed in seeds
@@ -1830,6 +2006,10 @@ class TargetMetadata:
             manual_runtime_address_refs=tuple(
                 ManualRuntimeAddressRefMetadata.from_dict(_json_object(ref_payload))
                 for ref_payload in _json_list(manual_runtime_address_refs)
+            ),
+            manual_data_references=tuple(
+                ManualDataReferenceMetadata.from_dict(_json_object(ref_payload))
+                for ref_payload in _json_list(payload.get("manual_data_references", []))
             ),
             data_block_layouts=tuple(
                 DataBlockLayoutMetadata.from_dict(_json_object(layout_payload))
@@ -1948,6 +2128,22 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    # Optional address-domain declarations do not change the legacy wire shape.
+    for entity in payload.get("seeded_entities", ()):
+        for key in ("pointer_address_domain", "pointer_symbol_group", "source_owner_start", "source_owner_size"):
+            if entity.get(key) is None:
+                entity.pop(key, None)
+    for struct in payload.get("custom_structs", ()):
+        for field in struct.get("fields", ()):
+            for key in ("pointer_address_domain", "pointer_symbol_group"):
+                if field.get(key) is None:
+                    field.pop(key, None)
+    for equate in payload.get("target_equates", ()):
+        for key in ("group", "address_domain", "extent_bytes"):
+            if equate.get(key) is None:
+                equate.pop(key, None)
+    if metadata.source_output_policy == SourceOutputPolicyMetadata():
+        payload.pop("source_output_policy", None)
     function_summaries = payload.get("function_summaries")
     if isinstance(function_summaries, list | tuple):
         for summary in function_summaries:
@@ -2150,6 +2346,7 @@ def apply_suppressed_seeded_items(
     suppressed = set(suppressed_seeded_items)
     return TargetMetadata(
         target_type=seeded.target_type,
+        source_output_policy=seeded.source_output_policy,
         entry_register_seeds=seeded.entry_register_seeds,
         function_summaries=seeded.function_summaries,
         bootblock=seeded.bootblock,
@@ -2181,6 +2378,8 @@ def apply_suppressed_seeded_items(
         entry_comments=seeded.entry_comments,
         manual_representations=seeded.manual_representations,
         target_equates=seeded.target_equates,
+        manual_runtime_address_refs=seeded.manual_runtime_address_refs,
+        manual_data_references=seeded.manual_data_references,
         data_block_layouts=seeded.data_block_layouts,
         execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
@@ -2463,6 +2662,7 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
     seeded = apply_suppressed_seeded_items(seeded, manual.suppressed_seeded_items)
     return TargetMetadata(
         target_type=manual.target_type,
+        source_output_policy=manual.source_output_policy,
         entry_register_seeds=manual.entry_register_seeds,
         function_summaries=manual.function_summaries,
         bootblock=_merge_optional_field(manual.bootblock, seeded.bootblock, what="bootblock metadata"),
@@ -2502,6 +2702,16 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             seeded.manual_representations,
         ),
         target_equates=_merge_target_equates(manual.target_equates, seeded.target_equates),
+        manual_runtime_address_refs=_merge_unique_by_key(
+            manual.manual_runtime_address_refs, seeded.manual_runtime_address_refs,
+            key=lambda ref: (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr),
+            what="manual runtime address reference",
+        ),
+        manual_data_references=_merge_unique_by_key(
+            manual.manual_data_references, seeded.manual_data_references,
+            key=lambda ref: (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr),
+            what="manual data reference",
+        ),
         data_block_layouts=_merge_data_block_layouts(
             manual.data_block_layouts,
             seeded.data_block_layouts,

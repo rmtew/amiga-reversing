@@ -18,6 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--assembler-profile", choices=SOURCE_EXPORT_ASSEMBLER_PROFILES, default="vasm")
     parser.add_argument("--output", "-o", type=Path)
     parser.add_argument("--binary-assets", action="store_true", help="Export a deterministic vasm ZIP package with evidenced opaque assets.")
+    parser.add_argument("--structure-macros", action="store_true", help="Generate eligible structure macros from the canonical type definitions; expanded fallbacks remain explicit.")
     parser.add_argument("--minimum-asset-size", type=int, default=256)
     parser.add_argument("--verify-package", action="store_true", help="Check the package with the C assembler and vasm, comparing complete originals.")
     parser.add_argument("--json", action="store_true", help="Print export metadata as JSON.")
@@ -28,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     options = {}
     if args.binary_assets:
         options = {"binary_assets": True, "minimum_asset_size": args.minimum_asset_size}
+    if args.structure_macros:
+        options["structure_macros"] = True
     try:
         payload = source_export_payload(args.target, assembler_profile=args.assembler_profile, **options)
     except ValueError as exc:

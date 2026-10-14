@@ -25,11 +25,15 @@ def main(argv: list[str] | None = None) -> int:
             "query",
             "inspect",
             "interpret",
+            "interpret_batch",
             "verify",
             "probe",
             "review",
+            "review_batch",
             "history",
             "rollback",
+            "memory_plan",
+            "memory_build",
         ),
     )
     parser.add_argument(
@@ -37,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--assembler-profile", choices=("vasm", "devpac"))
     parser.add_argument("--binary-assets", action="store_true", default=None)
+    parser.add_argument("--structure-macros", action="store_true", default=None)
     parser.add_argument("--minimum-asset-size", type=int)
     parser.add_argument("--expected-revision")
     parser.add_argument(
@@ -49,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
             "edges",
             "functions",
             "gaps",
+            "typed_pointers",
+            "memory_regions",
         ),
     )
     parser.add_argument("--query")
@@ -70,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--source-offset", type=lambda x: int(x, 0))
     parser.add_argument("--end-offset", type=lambda x: int(x, 0))
     parser.add_argument("--struct-name")
+    parser.add_argument("--exceptions-only", action="store_true", default=None)
     parser.add_argument("--field-offset", type=lambda x: int(x, 0))
     parser.add_argument("--direction", choices=("incoming", "outgoing", "both"))
     parser.add_argument("--limit", type=int)
@@ -90,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         for name in (
             "assembler_profile",
             "binary_assets",
+            "structure_macros",
             "minimum_asset_size",
             "expected_revision",
             "kind",
@@ -101,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
             "row_kind",
             "end_offset",
             "struct_name",
+            "exceptions_only",
             "field_offset",
             "direction",
             "limit",

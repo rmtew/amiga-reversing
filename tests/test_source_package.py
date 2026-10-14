@@ -12,11 +12,46 @@ import pytest
 
 from amiga_reversing.disasm.source_package import (
     build_source_package,
+    collect_package_includes,
     materialize_source_package,
     source_package_zip,
     validate_source_package,
     write_source_package,
 )
+
+
+def test_collect_includes_follows_mixed_literal_quotes_and_cycles(tmp_path: Path):
+    sdk = tmp_path / "sdk"
+    (sdk / "graphics").mkdir(parents=True)
+    (sdk / "exec").mkdir()
+    copper = b"    include 'exec/types.i' ; SDK dependency\n"
+    types = b'    INCLUDE "graphics/copper.i"\n'
+    (sdk / "graphics/copper.i").write_bytes(copper)
+    (sdk / "exec/types.i").write_bytes(types)
+
+    includes = collect_package_includes('INCLUDE "graphics/copper.i"\n', sdk)
+    assert [(entry["path"], bytes.fromhex(entry["data_hex"])) for entry in includes] == [
+        ("exec/types.i", types), ("graphics/copper.i", copper),
+    ]
+
+
+@pytest.mark.parametrize("operand", [
+    "'exec/types.i\"", '"exec/types.i\'', "exec/types.i", "'exec/types.i' extra",
+    "'../outside.i'", "'/outside.i'", "'exec/../outside.i'", "'exec/\\1.i'",
+])
+def test_collect_includes_refuses_ambiguous_or_unsafe_literals(tmp_path: Path, operand: str):
+    with pytest.raises(ValueError, match="literal quoted INCLUDE paths|package relative path"):
+        collect_package_includes(f"include {operand}\n", tmp_path)
+
+
+def test_single_quoted_include_cannot_follow_sdk_symlink_outside_root(tmp_path: Path):
+    sdk = tmp_path / "sdk"
+    sdk.mkdir()
+    outside = tmp_path / "outside.i"
+    outside.write_text("private bytes")
+    (sdk / "outside.i").symlink_to(outside)
+    with pytest.raises(ValueError, match="escapes"):
+        collect_package_includes("include 'outside.i'\n", sdk)
 
 
 def package(*, assets=True):

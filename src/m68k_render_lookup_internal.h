@@ -867,6 +867,8 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
 int lookup_structured_long_table_targets_offset(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
 int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+int lookup_structured_field_has_explicit_label(const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, size_t section_index, uint32_t offset);
 int lookup_label_statement_ref_is_semantic_runtime_data(const M68kRenderLookup *lookup,
   size_t section_index, uint32_t offset);
 int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);

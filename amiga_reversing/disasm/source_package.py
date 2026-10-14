@@ -1,8 +1,8 @@
 """Deterministic source packages; classification belongs to the native render plan.
 
-The transport contains base64 files and a content-hashed manifest. Only fresh
-directories are materialized. Public exports are single ZIP files, so regeneration
-cannot leave stale assets beside the current source.
+The transport contains base64 files and a content-hashed manifest. Materialization
+uses fresh directories; normal target publication validates and updates an owned
+inventory through source_package_publish. ZIP exports use the same package.
 """
 
 from __future__ import annotations
@@ -59,10 +59,10 @@ def collect_package_includes(source_text: str, include_root: Path) -> list[dict[
             directive = re.match(r"^\s*include\s+(.+)$", line, re.IGNORECASE)
             if directive is None:
                 continue
-            match = re.fullmatch(r'"([^"\r\n]+)"\s*(?:;.*)?', directive[1])
+            match = re.fullmatch(r'''(["'])([^"'\r\n]+)\1\s*(?:;.*)?''', directive[1])
             if match is None:
-                raise ValueError("Package requires literal double-quoted INCLUDE paths")
-            path = _path(match[1])
+                raise ValueError("Package requires literal quoted INCLUDE paths")
+            path = _path(match[2])
             if path in found:
                 continue
             resolved = (root / path).resolve()

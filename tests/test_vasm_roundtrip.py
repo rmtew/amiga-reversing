@@ -43,7 +43,7 @@ def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path, k
         lambda *args, **kwargs: type(
             "Rendering",
             (),
-            {"source_text": "    SECTION code,CODE\n    rts\n"},
+            {"source_text": "    SECTION code,CODE\n    rts\n", "source_package": None},
         )(),
     )
 

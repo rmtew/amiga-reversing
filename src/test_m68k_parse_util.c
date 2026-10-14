@@ -247,6 +247,58 @@ static int test_source_constant_expr_accepts_division(void) {
   return 0;
 }
 
+static int test_source_constant_expr_bitwise_precedence_and_width(void) {
+  static const struct {
+    const char *text;
+    uint32_t expected;
+  } cases[] = {
+    {"1|2&4", 1U},
+    {"2&3<<1", 2U},
+    {"8&3+5", 8U},
+    {"1!2&4", 1U},
+    {"~1+2", 0U},
+    {"~(1+2)&$ff", 0xfcU},
+    {"~~PMB_AWM", 1U},
+    {"~$80000000", 0x7fffffffU},
+    {"~0", 0xffffffffU},
+    {"-$80000000", 0x80000000U},
+    {"~0&($80000000|PMB_AWM<<4|$08)", 0x80000018U},
+    {"($80000000|PMB_AWM<<4|$08)&~(PMB_AWM<<4)", 0x80000008U},
+    {"1<<31", 0x80000000U},
+    {"$80000000<<1", 0U},
+  };
+  size_t i;
+  for (i = 0U; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+    M68kSourceConstantResult result =
+      m68k_source_parse_constant_expression(cases[i].text, test_constant_expr_lookup, NULL);
+    M68K_C_ASSERT(result.ok);
+    M68K_C_ASSERT_U32(cases[i].expected, result.value);
+  }
+  return 0;
+}
+
+static int test_source_constant_expr_rejects_incomplete_bitwise_forms(void) {
+  static const char *cases[] = {"~", "1&", "&1", "1&&2", "1~2", "~MISSING", "1&MISSING",
+    "1<<-1", "1<<32"};
+  size_t i;
+  for (i = 0U; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+    M68K_C_ASSERT(!m68k_source_parse_constant_expression(cases[i], test_constant_expr_lookup, NULL).ok);
+  }
+  return 0;
+}
+
+static int test_source_linear_expr_accepts_constant_bitwise(void) {
+  M68kSourceLinearExprParseResult parsed = m68k_source_parse_linear_expression(
+    "(RTF_COLDSTART|RTF_AUTOINIT|$08)&~RTF_AUTOINIT", 0, test_source_expr_lookup, NULL);
+  M68kSourceLinearExprEvalResult evaluated = m68k_source_evaluate_linear_expression(parsed.expr);
+  M68K_C_ASSERT(parsed.ok);
+  M68K_C_ASSERT(evaluated.ok);
+  M68K_C_ASSERT_U32(9U, evaluated.value);
+  M68K_C_ASSERT(!m68k_source_parse_linear_expression("RTF_COLDSTART&~MISSING", 0,
+    test_source_expr_lookup, NULL).ok);
+  return 0;
+}
+
 static int test_json_builder_escapes_string_spans(void) {
   JsonBuilder builder = {0};
   char *text = NULL;
@@ -330,6 +382,9 @@ int m68k_c_parse_util_tests(void) {
     {"normalize_pc_current_expr", test_normalize_pc_current_expr},
     {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
     {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
+    {"source_constant_expr_bitwise_precedence_and_width", test_source_constant_expr_bitwise_precedence_and_width},
+    {"source_constant_expr_rejects_incomplete_bitwise_forms", test_source_constant_expr_rejects_incomplete_bitwise_forms},
+    {"source_linear_expr_accepts_constant_bitwise", test_source_linear_expr_accepts_constant_bitwise},
     {"json_builder_escapes_string_spans", test_json_builder_escapes_string_spans},
     {"json_builder_escapes_bounded_string_spans", test_json_builder_escapes_bounded_string_spans},
     {"json_builder_appends_builder_without_building_source", test_json_builder_appends_builder_without_building_source},

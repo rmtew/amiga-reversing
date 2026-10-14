@@ -14,6 +14,12 @@ from amiga_reversing.disasm.listing_context import (
     selected_listing_element_context,
 )
 from amiga_reversing.disasm.reproduction import builtin_reproduction_profiles
+from amiga_reversing.disasm.target_metadata import (
+    FunctionSummaryMetadata,
+    SourceOutputPolicyMetadata,
+    validate_base_displacement_owner,
+    validate_base_displacement_reference,
+)
 
 _KNOWLEDGE_PATH = Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_includes_parsed.json"
 
@@ -103,6 +109,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
         _target_reproduction_profile_action(),
         _target_source_export_action(),
+        _target_source_output_action(),
         _target_equate_action(),
         _target_equate_edit_action(),
         _target_equate_represent_action(),
@@ -113,6 +120,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_remove_action(),
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
+        _target_memory_region_action(),
         _target_runtime_data_range_action(),
         _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
@@ -173,6 +181,9 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_runtime_observation_view":
         return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_memory_region":
+        from amiga_reversing.disasm.memory_regions import validate_region
+        return "create_manual_memory_region", {"memory_region": validate_region(dict(params))}
     if action.get("action") == "create_manual_runtime_data_range":
         return "create_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_payload(params)}
     if action.get("action") == "remove_manual_runtime_data_range":
@@ -208,6 +219,10 @@ def target_catalog_manual_payload(
         return "interpret_manual_data_block_element_ref", {
             "data_block_interpreted_ref": _data_block_element_ref_payload([], params)
         }
+    if action.get("action") == "set_source_output_policy":
+        from dataclasses import asdict
+        return "set_source_output_policy", {"source_output_policy": asdict(
+            SourceOutputPolicyMetadata.from_dict(dict(params)))}
     if action.get("action") == "create_manual_target_equate":
         return "create_manual_target_equate", {"target_equate": _target_equate_payload(params)}
     if action.get("action") == "rename_manual_target_equate":
@@ -231,6 +246,8 @@ def target_catalog_manual_payload(
             "custom_struct_field": _custom_struct_field_identity_payload(params)
         }
     if action.get("action") == "create_manual_rsset_layout_region":
+        if action_id == "target.rsset_region.rename" and _optional_int(params.get("size")) is None:
+            raise ValueError("RSSET rename requires the existing region size; an omitted size can hide neighboring fields")
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     if action.get("action") == "remove_manual_rsset_layout_region":
         return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
@@ -469,6 +486,13 @@ def listing_element_action_catalog(
                     _symbol_representation_parameter_schema(),
                 ),
             ]
+        )
+    if element_kind == "absolute_address" and _optional_int(context.get("value")) is not None and context.get("width_bytes") in {2, 4}:
+        actions.append(
+            _context_log_action(
+                "representation.symbol", "Use symbol", "set_representation", context,
+                {"representation": "symbol"}, _symbol_representation_parameter_schema(),
+            )
         )
     if element_kind == "immediate":
         actions.append(
@@ -1390,12 +1414,14 @@ def _data_block_element_ref_parameter_schema(defaults: Mapping[str, object] | No
                 "layout_id": {"type": "string"},
                 "offset": {"type": "integer", "minimum": 0},
                 "width": {"type": "integer", "minimum": 1},
-                "reference_kind": {"type": "string", "enum": ["absolute"]},
+                "reference_kind": {"type": "string", "enum": ["absolute", "base_displacement"]},
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
                 "source_value": {"type": "integer", "minimum": 0},
+                "runtime_address": {"type": "integer", "minimum": 0, "maximum": 4294967295},
                 "signed": {"type": "boolean"},
                 "scale": {"type": "integer", "minimum": 1},
+                "base_locator": {"type": "object", "properties": {"hunk": {"type": "integer", "minimum": 0}, "offset": {"type": "integer", "minimum": 0}}, "required": ["hunk", "offset"]},
                 "base_evidence_id": {"type": "string"},
                 "source_evidence_id": {"type": "string"},
                 "confidence": {"type": "string", "enum": ["manual", "high", "medium", "low"]},
@@ -1478,10 +1504,13 @@ def _data_block_element_ref_remove_parameter_schema(defaults: Mapping[str, objec
                 "offset": {"type": "integer", "minimum": 0},
                 "data_block_ref_id": {"type": "string"},
                 "width": {"type": "integer", "minimum": 1},
-                "reference_kind": {"type": "string", "enum": ["absolute"]},
+                "reference_kind": {"type": "string", "enum": ["absolute", "base_displacement"]},
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
                 "target_locator": {"type": "object"},
+                "base_locator": {"type": "object"},
+                "signed": {"type": "boolean"},
+                "scale": {"type": "integer", "enum": [1]},
                 "source_value": {"type": "integer", "minimum": 0},
                 "confidence": {"type": "string", "enum": ["manual", "high", "medium", "low"]},
                 "xref_generation_mode": {"type": "string", "enum": ["bidirectional", "source_only", "none"]},
@@ -1582,10 +1611,12 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
                     "target_offset",
                     "target_locator",
                     "source_value",
+                    "runtime_address",
                     "confidence",
                     "xref_generation_mode",
                     "signed",
                     "scale",
+                    "base_locator",
                     "base_evidence_id",
                     "source_evidence_id",
                 }
@@ -2494,6 +2525,13 @@ def _target_equate_payload(params: Mapping[str, object]) -> dict[str, object]:
         equate["value_expression"] = value_expression.strip()
     if equate.get("value_representation") == "symbol" and "value_expression" not in equate:
         raise ValueError("target_equate symbol value_representation requires value_expression")
+    from .pointer_domains import validate_runtime_address_symbol
+    for key in ("group", "address_domain", "extent_bytes"):
+        if key in params:
+            equate[key] = params[key]
+    validate_runtime_address_symbol(value=value, group=equate.get("group"),
+        address_domain=equate.get("address_domain"), extent_bytes=equate.get("extent_bytes"),
+        value_expression=equate.get("value_expression"))
     return equate
 
 
@@ -2537,7 +2575,7 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
         "offset": offset,
         "size": size,
     }
-    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind"):
+    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind", "pointer_address_domain", "pointer_symbol_group"):
         value = field.get(field_name)
         if isinstance(value, str) and value.strip():
             payload[field_name] = value.strip()
@@ -2549,6 +2587,9 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
         raise ValueError("custom struct field pointer_struct requires value_kind struct_pointer")
     if value_kind == "struct_pointer" and pointer_struct is None:
         raise ValueError("custom struct field value_kind struct_pointer requires pointer_struct")
+    from .pointer_domains import validate_pointer_domain
+    validate_pointer_domain(value_kind=value_kind, size=size,
+        address_domain=payload.get("pointer_address_domain"), symbol_group=payload.get("pointer_symbol_group"))
     return payload
 
 
@@ -3660,6 +3701,9 @@ def _target_equate_parameter_schema() -> dict[str, object]:
                 "enum": ["hex", "decimal", "binary", "character", "symbol"],
             },
             "value_expression": {"type": "string"},
+            "group": {"type": "string"},
+            "address_domain": {"type": "string", "enum": ["runtime"]},
+            "extent_bytes": {"type": "integer", "minimum": 1, "maximum": 4294967295},
         },
         "required": ["name", "value"],
     }
@@ -3724,6 +3768,9 @@ def _custom_struct_parameter_schema() -> dict[str, object]:
                         "struct": {"type": "string"},
                         "pointer_struct": {"type": "string"},
                         "named_base": {"type": "string"},
+                        "value_kind": {"type": "string", "enum": ["scalar", "target_pointer", "struct_pointer"]},
+                        "pointer_address_domain": {"type": "string", "enum": ["legacy", "mapped_source", "runtime_only"]},
+                        "pointer_symbol_group": {"type": "string"},
                     },
                     "required": ["name", "type", "offset", "size"],
                 },
@@ -3773,6 +3820,8 @@ def _custom_struct_field_parameter_schema() -> dict[str, object]:
                 "default": "scalar",
             },
             "named_base": {"type": "string"},
+            "pointer_address_domain": {"type": "string", "enum": ["legacy", "mapped_source", "runtime_only"]},
+            "pointer_symbol_group": {"type": "string"},
             "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["struct_name", "name", "type", "offset", "size"],
@@ -4270,10 +4319,12 @@ def _data_block_element_ref_context(row: Mapping[str, object]) -> dict[str, obje
         "target_offset",
         "target_locator",
         "source_value",
+        "runtime_address",
         "confidence",
         "xref_generation_mode",
         "signed",
         "scale",
+        "base_locator",
         "base_evidence_id",
         "source_evidence_id",
     ):
@@ -4494,8 +4545,8 @@ def _data_block_element_ref_payload(
         raise ValueError("interpret_manual_data_block_element_ref requires positive width")
     if width not in {1, 2, 4}:
         raise ValueError("interpret_manual_data_block_element_ref supports only byte, word, and long widths")
-    if reference_kind != "absolute":
-        raise ValueError("interpret_manual_data_block_element_ref supports only absolute references")
+    if reference_kind not in {"absolute", "base_displacement"}:
+        raise ValueError("interpret_manual_data_block_element_ref supports only absolute and base_displacement references")
     if target_hunk is None or target_hunk < 0:
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_hunk")
     if target_offset is None or target_offset < 0:
@@ -4506,7 +4557,10 @@ def _data_block_element_ref_payload(
         source_value = _optional_int(params.get("source_value"))
         if source_value is None or source_value < 0:
             raise ValueError("interpret_manual_data_block_element_ref requires source_value without selected source bytes")
-    if source_value != target_offset:
+    runtime_address = _optional_int(params.get("runtime_address"))
+    if runtime_address is not None and runtime_address != source_value:
+        raise ValueError("interpret_manual_data_block_element_ref runtime_address must match selected source bytes")
+    if reference_kind == "absolute" and source_value != target_offset and runtime_address is None:
         raise ValueError("interpret_manual_data_block_element_ref target_offset must match selected source bytes")
     ref_id = str(params.get("data_block_ref_id") or "").strip()
     if not ref_id:
@@ -4530,6 +4584,8 @@ def _data_block_element_ref_payload(
         "confidence": confidence,
         "xref_generation_mode": xref_generation_mode,
     }
+    if runtime_address is not None:
+        ref["runtime_address"] = runtime_address
     signed = params.get("signed")
     if isinstance(signed, bool):
         ref["signed"] = signed
@@ -4538,6 +4594,18 @@ def _data_block_element_ref_payload(
         if scale <= 0:
             raise ValueError("interpret_manual_data_block_element_ref scale must be positive")
         ref["scale"] = scale
+    if reference_kind == "base_displacement":
+        if "runtime_address" in params:
+            raise ValueError("base_displacement does not accept runtime_address")
+        ref["base_locator"] = params.get("base_locator")
+        if "scale" in params:
+            ref["scale"] = params["scale"]
+        source_hunk = _int_field(rows[0], "section_index", default=0) if rows else None
+        source_addr = _int_field(rows[0], "start_offset", fallback="addr") if rows else None
+        validate_base_displacement_reference(ref, source_hunk=source_hunk, source_addr=source_addr)
+        owner = _active_data_block_element(rows[0], context) if rows else None
+        if owner is not None:
+            validate_base_displacement_owner(ref, owner, defer_struct_leaf=True)
     for field_name in ("base_evidence_id", "source_evidence_id"):
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
@@ -4839,10 +4907,12 @@ def _data_block_element_ref_remove_payload(
         "target_offset",
         "target_locator",
         "source_value",
+        "runtime_address",
         "confidence",
         "xref_generation_mode",
         "signed",
         "scale",
+        "base_locator",
         "base_evidence_id",
         "source_evidence_id",
     ):
@@ -4865,6 +4935,8 @@ def _data_block_element_ref_remove_payload(
         raise ValueError(
             "remove_manual_data_block_element_ref requires selected reference identity: " + ", ".join(missing)
         )
+    if ref.get("reference_kind") == "base_displacement":
+        validate_base_displacement_reference(ref)
     return ref
 
 
@@ -4968,6 +5040,12 @@ def _representation_payload(
         if not isinstance(symbol, str) or not symbol.strip():
             raise ValueError("symbol representation requires parameter symbol")
         representation["symbol"] = symbol.strip()
+        if element_kind == "absolute_address":
+            element_context = selected_listing_element_context(row, element_context or {})
+            value = _optional_int((element_context or {}).get("value"))
+            width = _optional_int((element_context or {}).get("width_bytes"))
+            if value is None or not 0 <= value <= 0xFFFFFFFF or width not in {2, 4}:
+                raise ValueError("absolute symbol representation requires a decoded address and width")
     row_index = _optional_int(row.get("row_index"))
     if row_index is not None:
         representation["row_index"] = row_index
@@ -5557,8 +5635,23 @@ def _target_reproduction_profile_action() -> dict[str, object]:
     return action
 
 
+def _target_source_output_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.source_output.configure", "Configure source output", "set_source_output_policy",
+        {"type": "object", "properties": {
+            "mode": {"type": "string", "enum": ["inline", "binary_assets"], "default": "inline"},
+            "minimum_asset_size": {"type": "integer", "minimum": 1, "maximum": 4294967295, "default": 256},
+        }, "required": ["mode"]},
+    )
+
+
 def _target_source_export_action() -> dict[str, object]:
-    profile_ids = ["vasm", "devpac", "vasm-package"]
+    profile_ids = ["vasm", "devpac", "vasm-package", "vasm-macros", "vasm-package-macros"]
+    profile_labels = {
+        "vasm-package": "vasm + binary assets (ZIP)",
+        "vasm-macros": "vasm + structure macros",
+        "vasm-package-macros": "vasm + structure macros + binary assets (ZIP)",
+    }
     action = _target_transient(
         "target.source_export",
         "Export Source",
@@ -5578,7 +5671,7 @@ def _target_source_export_action() -> dict[str, object]:
         "parameter": "assembler_profile",
         "default": "vasm",
         "options": [
-            {"value": profile_id, "label": "vasm + binary assets (ZIP)" if profile_id == "vasm-package" else profile_id, "preview": {"kind": "source_export", "text": "not verification"}}
+            {"value": profile_id, "label": profile_labels.get(profile_id, profile_id), "preview": {"kind": "source_export", "text": "not verification"}}
             for profile_id in profile_ids
         ],
         "preview": {"kind": "source_export"},
@@ -5812,6 +5905,9 @@ def _target_function_summary_action() -> dict[str, object]:
                 "entry_count": {"type": "integer", "minimum": 1},
                 "inputs": {"type": "array", "minItems": 1},
                 "context_name": {"type": "string"},
+                "results": {"type": "array", "description": "Validated callable results; only identity_input is supported."},
+                "effects": {"type": "object", "description": "Validated register, memory and escape partitions. Explicit registers require all 16 general registers."},
+                "note": {"type": "string"},
             },
             "required": ["hunk", "callable_kind", "inputs"],
         },
@@ -5946,6 +6042,7 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
         "hunk": hunk,
         "callable_kind": callable_kind,
         "inputs": inputs,
+        "results": [],
         "effects": {
             "schema_version": 1,
             "registers": {"state": "unknown"},
@@ -5963,6 +6060,13 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
     context_name = params.get("context_name")
     if isinstance(context_name, str) and context_name.strip():
         summary["context_name"] = context_name.strip()
+    for name in ("results", "effects", "note"):
+        if name in params:
+            summary[name] = json.loads(json.dumps(params[name]))
+    try:
+        FunctionSummaryMetadata.from_dict(summary)
+    except (AssertionError, KeyError, TypeError, ValueError) as error:
+        raise ValueError("Invalid function summary results or effect partition") from error
     return summary
 
 
@@ -6087,11 +6191,13 @@ def _target_rsset_layout_region_edit_action() -> dict[str, object]:
 
 
 def _target_rsset_layout_region_rename_action() -> dict[str, object]:
+    schema = _rsset_layout_region_parameter_schema()
+    schema["required"] = ["offset", "symbol", "size"]
     return _target_log_action(
         "target.rsset_region.rename",
         "Rename RSSET region",
         "create_manual_rsset_layout_region",
-        _rsset_layout_region_parameter_schema(),
+        schema,
     )
 
 
@@ -6459,3 +6565,16 @@ def _object(value: object, description: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{description} is missing")
     return value
+
+
+def _target_memory_region_action() -> dict[str, object]:
+    return _context_log_action("target.memory_region.add", "Define memory region",
+        "create_manual_memory_region", {"kind": "target"}, {},
+        {"type": "object", "required": ["region_id", "name", "runtime_address", "size", "alignment",
+            "source_domain", "memory_class", "lifetime", "dma_access"], "properties": {
+            "region_id": {"type": "string"}, "name": {"type": "string"},
+            "runtime_address": {"type": "integer"}, "size": {"type": "integer"}, "alignment": {"type": "integer"},
+            "source_domain": {"type": "string", "enum": ["runtime_only", "mapped_source"]},
+            "memory_class": {"type": "string", "enum": ["cpu_ram"]},
+            "lifetime": {"type": "string", "enum": ["persistent"]},
+            "dma_access": {"type": "string", "enum": ["none", "chip"]}}})

@@ -25,7 +25,6 @@ from amiga_reversing.disasm.binary_source import (
     resolve_target_binary_source,
 )
 from amiga_reversing.disasm.c_backend import (
-    listing_artifact_source_text_with_c_backend_profile,
     render_project_source_with_c_backend,
 )
 from amiga_reversing.disasm.callback_slot_report import (
@@ -3906,14 +3905,14 @@ def _verify_a5_cascade_child(
     with TemporaryDirectory(prefix="cascade-verify-") as tmp:
         temp_root = Path(tmp)
         staged_target_dir = _stage_cascade_target(target_id, project_root=project_root, temp_root=temp_root)
-        baseline_text, baseline_profile = _cascade_render_source(target_id, project_root=temp_root)
+        baseline_text, baseline_profile, _baseline_package = _cascade_render_source(target_id, project_root=temp_root)
         baseline_contains = _a5_expected_render_token(expected) in baseline_text if _a5_expected_render_token(expected) else False
         record = _cascade_a5_decision_record(target_id, child, staged_target_dir)
         append_result = append_decision_record(staged_target_dir, record)
         if append_result.get("status") != "appended":
             return _cascade_verifier_blocked(target_id, child, "staged_decision_record_rejected", {"append_result": append_result})
         semantic = _verify_project_a5_hardware_ref(target_id, expected, project_root=temp_root)
-        effective_text, effective_profile = _cascade_render_source(target_id, project_root=temp_root)
+        effective_text, effective_profile, effective_package = _cascade_render_source(target_id, project_root=temp_root)
         delta = _cascade_render_delta_layer(
             baseline_text,
             effective_text,
@@ -3926,6 +3925,7 @@ def _verify_a5_cascade_child(
             effective_text,
             effective_profile,
             project_root=temp_root,
+            source_package=effective_package,
         )
     fixed_point = {
         "layer": "fixed_point",
@@ -4063,16 +4063,16 @@ def _application_for_verified_cascade_child(
         staged_append = append_decision_record(staged_target_dir, staged_record)
         if staged_append.get("status") != "appended":
             return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "staged_apply_record_rejected", "append_result": staged_append}
-        source_text, source_profile = _cascade_render_source(target_id, project_root=temp_root)
-        exact = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=temp_root)
+        source_text, source_profile, source_package = _cascade_render_source(target_id, project_root=temp_root)
+        exact = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=temp_root, source_package=source_package)
         if exact.get("status") != "passed":
             return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "staged_exact_round_trip_failed", "exact_round_trip": exact}
     real_record = _cascade_record_with_current_prev(target_dir, record)
     append_result = append_decision_record(target_dir, real_record)
     if append_result.get("status") != "appended":
         return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "decision_record_rejected", "append_result": append_result}
-    source_text, source_profile = _cascade_render_source(target_id, project_root=project_root)
-    exact_after = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=project_root)
+    source_text, source_profile, source_package = _cascade_render_source(target_id, project_root=project_root)
+    exact_after = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=project_root, source_package=source_package)
     return {
         "status": "applied" if exact_after.get("status") == "passed" else "blocked",
         "derived_child_fact_id": child_id,
@@ -4110,14 +4110,14 @@ def _cascade_verifier_blocked(
     }
 
 
-def _cascade_render_source(target_id: str, *, project_root: Path) -> tuple[str, dict[str, object]]:
+def _cascade_render_source(target_id: str, *, project_root: Path) -> tuple[str, dict[str, object], dict | None]:
+    from amiga_reversing.disasm.source_rendering import render_source_from_binary_source_or_raise
     paths = resolve_project_paths(target_id, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        return listing_artifact_source_text_with_c_backend_profile(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=project_root,
-        )
+        rendering = render_source_from_binary_source_or_raise(target_id=target_id,
+            binary_source=paths.binary_source, target_dir=paths.target_dir,
+            metadata_path=metadata_path, project_root=project_root)
+    return rendering.source_text, rendering.listing_profile, rendering.source_package
 
 
 def _cascade_exact_round_trip_layer(
@@ -4126,6 +4126,7 @@ def _cascade_exact_round_trip_layer(
     source_profile: Mapping[str, object],
     *,
     project_root: Path,
+    source_package: dict | None = None,
 ) -> dict[str, object]:
     try:
         report = run_reproduction(
@@ -4133,6 +4134,7 @@ def _cascade_exact_round_trip_layer(
             project_root=project_root,
             pre_rendered_source_text=source_text,
             pre_rendered_source_profile=source_profile,
+            pre_rendered_source_package=source_package,
         )
     except Exception as exc:
         return {"layer": "exact_round_trip", "status": "failed", "message": str(exc)}
@@ -12557,6 +12559,8 @@ def _data_block_interpreted_ref_missing_required_identity_fields(
     ]
     if command_id.endswith(".clear_ref"):
         fields.append("cleanup_action_id")
+    if expected.get("reference_kind") == "base_displacement":
+        fields.extend(["base_locator", "signed"])
     return [
         field
         for field in fields
@@ -12583,6 +12587,9 @@ def _verify_projected_data_block_interpreted_ref_rendered_source(
         )
         or expected
     )
+    if render_expected.get("reference_kind") == "base_displacement":
+        return _verify_base_displacement_reference(target_id, command, command_id, render_expected,
+                                                  project_root=project_root, layer="rendered_source")
     location = _data_block_render_location(target_id, command, render_expected, project_root=project_root)
     if location is None:
         return {"layer": "rendered_source", "status": "failed", "message": "interpreted ref source location missing"}
@@ -12657,6 +12664,9 @@ def _verify_projected_data_block_interpreted_ref_xrefs(
         )
         or expected
     )
+    if render_expected.get("reference_kind") == "base_displacement":
+        return _verify_base_displacement_reference(target_id, command, command_id, render_expected,
+                                                  project_root=project_root, layer="xref_projection")
     mode = render_expected.get("xref_generation_mode") or "bidirectional"
     if mode == "none":
         return {"layer": "xref_projection", "status": "passed", "message": "xref generation disabled"}
@@ -12701,6 +12711,7 @@ def _verify_projected_data_block_interpreted_ref_xrefs(
         and ref.get("owner_element_offset") == element_offset
         and ref.get("target_section_index") == target_hunk
         and ref.get("target_offset") == target_offset
+        and ref.get("runtime_address") == render_expected.get("source_value")
     ]
     removed = command_id.endswith(".clear_ref")
     return {
@@ -12713,6 +12724,76 @@ def _verify_projected_data_block_interpreted_ref_xrefs(
         "matching_runtime_address_refs": matching_refs,
         "runtime_address_refs": refs,
     }
+
+
+def _verify_base_displacement_reference(
+    target_id: str, command: dict[str, object], command_id: str, expected: dict[str, object],
+    *, project_root: Path, layer: str,
+) -> dict[str, object]:
+    """Check the canonical relation and its selected source expression/xrefs."""
+    location = _data_block_render_location(target_id, command, expected, project_root=project_root)
+    if location is None:
+        return {"layer": layer, "status": "failed", "message": "reference source location missing"}
+    section, offset = location
+    removed = command_id.endswith(".clear_ref")
+    try:
+        artifact = server._valid_c_listing_artifact(target_id)
+        base = expected["base_locator"]
+        raw = expected["source_value"]
+        relation_valid = (expected["width"] == 2 and expected["signed"] is True and
+                          expected.get("scale", 1) == 1 and base["hunk"] == section == expected["target_hunk"] and
+                          type(raw) is int and 0 <= raw <= 0xFFFF and
+                          base["offset"] + (raw - 0x10000 if raw & 0x8000 else raw) == expected["target_offset"])
+        if not relation_valid:
+            raise ValueError("inconsistent signed16 base-displacement relation")
+        owner = expected.get("data_block_ref_id") or expected.get("interpreted_ref_id")
+        def references(coordinate: int, direction: str) -> list[dict[str, object]]:
+            page = artifact.query_payload(kind="references", section_index=section,
+                                          source_offset=coordinate, direction=direction, limit=100)
+            if page.get("has_more"):
+                raise ValueError("reference verification requires a complete bounded native page")
+            return page["items"]
+        refs = references(offset, "outgoing")
+        owned = [ref for ref in refs if ref.get("owner_kind") == "data_block_interpreted_ref" and
+                 ref.get("owner_id") == owner]
+        target_refs = [ref for ref in owned if ref.get("reference_role", "target") == "target" and
+                       ref.get("target_section_index") == expected["target_hunk"] and
+                       ref.get("target_offset") == expected["target_offset"] and
+                       ref.get("base_section_index") == base["hunk"] and
+                       ref.get("base_offset") == base["offset"] and
+                       ref.get("source_value") == raw and ref.get("signed") is True and
+                       ref.get("reference_kind") == "base_displacement" and ref.get("width") == 2 and
+                       ref.get("owner_layout_id") == expected["layout_id"] and
+                       ref.get("owner_element_offset") == expected["offset"]]
+        if layer == "xref_projection":
+            mode = expected.get("xref_generation_mode", "bidirectional")
+            passed = not owned if removed or mode == "none" else bool(target_refs)
+            for coordinate, role in ((expected["target_offset"], "target"), (base["offset"], "base")):
+                outgoing_role = [ref for ref in owned if ref.get("reference_role") == role and
+                                 ref.get("target_section_index") == section and ref.get("target_offset") == coordinate]
+                if not removed and mode != "none":
+                    passed = passed and len(outgoing_role) == 1
+                incoming = references(coordinate, "incoming")
+                incoming_owned = [ref for ref in incoming if ref.get("owner_id") == owner and
+                                  ref.get("reference_role") == role]
+                passed = passed and (len(incoming_owned) == 1 if not removed and mode == "bidirectional"
+                                     else not incoming_owned)
+            return {"layer": layer, "status": "passed" if passed else "failed",
+                    "expected_owner_id": owner, "matching_native_references": target_refs}
+        names = []
+        for coordinate in (expected["target_offset"], base["offset"]):
+            symbols = artifact.query_payload(kind="symbols", section_index=section,
+                                             source_offset=coordinate, limit=100)["items"]
+            names.append([item["name"] for item in symbols if item.get("source_offset") == coordinate])
+        row = artifact.row_for_source_offset(section_index=section, offset=offset)
+        text = _data_block_rendered_source_text(row) if isinstance(row, dict) else ""
+        expressions = [f"{target}-{base_name}" for target in names[0] for base_name in names[1]]
+        matches = [expression for expression in expressions if re.search(
+            r"\bdc\.w\s+" + re.escape(expression) + r"(?=\s|,|$)", text, re.IGNORECASE)]
+        return {"layer": layer, "status": "passed" if (not matches if removed else bool(matches)) else "failed",
+                "source_offset": offset, "matching_expressions": matches, "affected_rendered_text": text}
+    except Exception as exc:
+        return {"layer": layer, "status": "failed", "message": str(exc)}
 
 
 def _verify_immediate_interpreted_ref_mutation(
@@ -13495,13 +13576,18 @@ def _data_block_interpreted_ref_symbol(expected: dict[str, object]) -> str | Non
         return None
     if not isinstance(target_offset, int) or target_offset < 0:
         return None
-    if not isinstance(source_value, int) or source_value != target_offset or source_value >= (1 << (width * 8)):
+    runtime_address = expected.get("runtime_address")
+    if runtime_address is not None and runtime_address != source_value:
+        return None
+    if (not isinstance(source_value, int) or source_value < 0 or
+        (source_value != target_offset and runtime_address is None) or source_value >= (1 << (width * 8))):
         return None
     if not isinstance(target_locator, dict):
         return None
     if target_locator.get("hunk") != target_hunk or target_locator.get("offset") != target_offset:
         return None
-    return f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    symbol = f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+    return symbol if source_value == target_offset else f"{symbol}_runtime_{source_value:08X}"
 
 
 def _verify_projected_data_block_rendered_source(

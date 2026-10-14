@@ -61,31 +61,101 @@ static const M68kSimFormMetadata *analysis_cfg_candidate_metadata(const M68kDeco
   return m68k_sim_metadata_for_instruction(instruction);
 }
 
-static int analysis_cfg_candidate_has_control_target(const M68kDecodeCandidate *candidate) {
-  size_t target_index;
-  if (candidate == NULL) return 0;
-  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-    const M68kDecodeTarget *target = &candidate->targets[target_index];
-    if (target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
-        target->kind == M68K_DECODE_TARGET_JUMP) {
-      return 1;
-    }
-  }
-  return 0;
-}
+/* CFG coordinates are source coordinates. Decode-only absolute targets are raw
+ * operand values until runtime-address facts or object relocations identify the
+ * source location. Resolve once for both block boundaries and emitted edges. */
+static const M68kFact *analysis_operand_relocation_ref(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, size_t operand_index);
 
-static uint8_t analysis_cfg_edge_kind_for_target(const M68kDecodeCandidate *candidate,
-    const M68kDecodeTarget *target) {
+static int analysis_cfg_control_target(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeCandidate *candidate, uint8_t *out_kind, uint32_t *out_offset) {
   M68kInstructionIR instruction;
-  const M68kSimFormMetadata *metadata;
-  if (target != NULL && target->kind == M68K_DECODE_TARGET_CALL) return M68K_CFG_EDGE_CALL;
-  if (target != NULL && target->kind == M68K_DECODE_TARGET_JUMP) return M68K_CFG_EDGE_JUMP;
-  metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
-  if (metadata != NULL && (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
-      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && !metadata->flow_conditional))) {
-    return M68K_CFG_EDGE_JUMP;
+  const M68kSimFormMetadata *metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
+  const M68kDecodeTarget *decoded_target = NULL;
+  const M68kFact *relocation;
+  uint32_t resolved_offset = UINT32_MAX;
+  size_t resolved_section = SIZE_MAX;
+  size_t index;
+  uint8_t operand_index;
+  int have_ref = 0;
+  int ambiguous = 0;
+  int absolute_operand;
+  *out_offset = UINT32_MAX;
+  if (metadata == NULL || (metadata->flow_kind != M68K_SIM_FLOW_CALL &&
+      metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_BRANCH)) return 0;
+  *out_kind = metadata->flow_kind == M68K_SIM_FLOW_CALL ? M68K_CFG_EDGE_CALL :
+    metadata->flow_kind == M68K_SIM_FLOW_JUMP || !metadata->flow_conditional ?
+      M68K_CFG_EDGE_JUMP : M68K_CFG_EDGE_BRANCH;
+  operand_index = metadata->target_operand_index;
+  if (operand_index >= candidate->operand_count || operand_index >= M68K_DECODE_IR_MAX_OPERANDS) return 1;
+  for (index = 0U; index < candidate->target_count; ++index) {
+    const M68kDecodeTarget *target = &candidate->targets[index];
+    if (target->kind != M68K_DECODE_TARGET_BRANCH && target->kind != M68K_DECODE_TARGET_CALL &&
+        target->kind != M68K_DECODE_TARGET_JUMP) continue;
+    if (!target->has_operand) return 1;
+    if (target->operand_index != operand_index) continue;
+    if (decoded_target != NULL && (decoded_target->has_section != target->has_section ||
+        decoded_target->section_index != target->section_index || decoded_target->offset != target->offset)) return 1;
+    decoded_target = target;
   }
-  return M68K_CFG_EDGE_BRANCH;
+  absolute_operand = candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA &&
+    candidate->operands[operand_index].ea_mode == 7U && candidate->operands[operand_index].ea_reg <= 1U;
+  /* An indirect operand's runtime reference can identify its table/base, not
+   * the eventual branch destination. Do not promote it into a direct edge. */
+  if (decoded_target == NULL && !absolute_operand) return 1;
+  for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
+    if (ref->offset != candidate->offset) continue;
+    if (ref->operand_index == UINT32_MAX) {
+      ambiguous = 1;
+      continue;
+    }
+    if (ref->operand_index != operand_index) continue;
+    if (!ref->has_target) {
+      ambiguous = 1;
+      continue;
+    }
+    if (have_ref && (resolved_section != ref->target_section_index || resolved_offset != ref->target_offset))
+      ambiguous = 1;
+    resolved_section = ref->target_section_index;
+    resolved_offset = ref->target_offset;
+    have_ref = 1;
+  }
+  if (ambiguous) return 1;
+  if (have_ref) {
+    /* Cross-section edges need an explicit section identity in the CFG schema;
+     * until then retain an unresolved transfer, never a same-offset alias. */
+    if (resolved_section == section->section_index && resolved_offset < render_section_extent(section))
+      *out_offset = resolved_offset;
+    return 1;
+  }
+  relocation = analysis_operand_relocation_ref(lookup, section->section_index, candidate, operand_index);
+  if (relocation != NULL) {
+    if (relocation->target_section_index == section->section_index &&
+        relocation->target_offset < render_section_extent(section)) *out_offset = relocation->target_offset;
+    return 1;
+  }
+  if (absolute_operand) {
+    int identity_view = 0;
+    /* Numeric in-bounds is not an address-domain proof. Only a policy view
+     * explicitly identifying these source coordinates with runtime addresses
+     * permits the legacy local-offset absolute form without a reference fact.
+     * Competing/copy views remain unresolved rather than guessing a phase. */
+    if (decoded_target == NULL) return 1;
+    for (index = 0U; index < section_analysis->runtime_view_count; ++index) {
+      const M68kRuntimeViewIR *view = &section_analysis->runtime_views[index];
+      if (view->kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY || view->runtime_address != view->storage_offset)
+        return 1;
+      if (candidate->offset >= view->storage_offset && candidate->offset - view->storage_offset < view->size &&
+          decoded_target->offset >= view->storage_offset && decoded_target->offset - view->storage_offset < view->size)
+        identity_view = 1;
+    }
+    if (!identity_view) return 1;
+  }
+  if (decoded_target != NULL && decoded_target->has_section &&
+      decoded_target->section_index == section->section_index) *out_offset = decoded_target->offset;
+  return 1;
 }
 
 static int analysis_cfg_append_edge(M68kSectionAnalysisIR *section_analysis, size_t source_block_index,
@@ -170,7 +240,9 @@ static int analysis_cfg_build_block_start_map(const M68kRenderLookup *lookup, co
   while (offset < render_extent) {
     const M68kDecodeCandidate *candidate;
     uint32_t next_offset;
-    size_t target_index;
+    uint32_t target_offset;
+    uint8_t edge_kind;
+    int has_control_target;
     if (!accepted_start_at(section, accepted_start, offset)) {
       ++offset;
       continue;
@@ -191,16 +263,11 @@ static int analysis_cfg_build_block_start_map(const M68kRenderLookup *lookup, co
       block_starts[offset] = 1U;
     }
     next_offset = offset + candidate->byte_count;
-    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-      const M68kDecodeTarget *target = &candidate->targets[target_index];
-      if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
-          target->kind == M68K_DECODE_TARGET_JUMP) && target->has_section &&
-          target->section_index == section->section_index && target->offset < render_extent &&
-          accepted_start_at(section, accepted_start, target->offset)) {
-        block_starts[target->offset] = 1U;
-      }
-    }
-    if (analysis_cfg_candidate_has_control_target(candidate) && render_cfg_candidate_has_fallthrough(candidate) &&
+    has_control_target = analysis_cfg_control_target(lookup, section, section_analysis, candidate,
+      &edge_kind, &target_offset);
+    if (has_control_target && target_offset < render_extent &&
+        accepted_start_at(section, accepted_start, target_offset)) block_starts[target_offset] = 1U;
+    if (has_control_target && render_cfg_candidate_has_fallthrough(candidate) &&
         next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset)) {
       block_starts[next_offset] = 1U;
     }
@@ -242,7 +309,8 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
     while (cursor < render_extent && accepted_start_at(section, accepted_start, cursor)) {
       const M68kDecodeCandidate *candidate = find_candidate_at_offset_local(section, cursor);
       uint32_t next_offset;
-      size_t target_index;
+      uint32_t target_offset;
+      uint8_t edge_kind;
       int has_control_target;
       int has_fallthrough;
       if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor) {
@@ -252,32 +320,11 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
         continue;
       }
       next_offset = cursor + candidate->byte_count;
-      has_control_target = analysis_cfg_candidate_has_control_target(candidate);
+      has_control_target = analysis_cfg_control_target(lookup, section, section_analysis, candidate,
+        &edge_kind, &target_offset);
       has_fallthrough = render_cfg_candidate_has_fallthrough(candidate);
-      for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-        const M68kDecodeTarget *target = &candidate->targets[target_index];
-        if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
-            target->kind == M68K_DECODE_TARGET_JUMP) && target->has_section &&
-            target->section_index == section->section_index) {
-          if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, target->offset,
-              analysis_cfg_edge_kind_for_target(candidate, target)) != 0) {
-            goto cleanup;
-          }
-        }
-      }
-      /* A decoded indirect transfer has no concrete decode target. Preserve it
-       * as an unresolved CFG edge using the generated flow semantics. Otherwise
-       * an indirect call disappears and an indirect jump looks like a return. */
-      if (!has_control_target) {
-        M68kInstructionIR flow_instruction;
-        const M68kSimFormMetadata *flow = analysis_cfg_candidate_metadata(candidate, &flow_instruction);
-        if (flow != NULL && (flow->flow_kind == M68K_SIM_FLOW_CALL || flow->flow_kind == M68K_SIM_FLOW_JUMP)) {
-          if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, UINT32_MAX,
-              flow->flow_kind == M68K_SIM_FLOW_CALL ? M68K_CFG_EDGE_CALL : M68K_CFG_EDGE_JUMP) != 0)
-            goto cleanup;
-          has_control_target = 1;
-        }
-      }
+      if (has_control_target && analysis_cfg_append_edge(section_analysis, section_analysis->block_count,
+          cursor, target_offset, edge_kind) != 0) goto cleanup;
       if (has_control_target) {
         if (has_fallthrough && next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
             analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,
@@ -399,6 +446,26 @@ static int lookup_policy_structured_item_targets_offset(const M68kRenderLookup *
   return 0;
 }
 
+int lookup_structured_field_has_explicit_label(const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, size_t section_index, uint32_t offset) {
+  char name[128];
+  uint16_t index;
+  if (item == NULL || item->offset != offset || item->field_name[0] == '\0') return 0;
+  /* Expanded fields carry an automatic instance_field label. A separately
+     named source anchor at that exact field boundary remains a declaration. */
+  if (format_lookup_asm_label_with_generation(lookup, name, sizeof(name), section_index, offset) != 0U) return 0;
+  if (strcmp(name, item->label) != 0) return 1;
+  if (lookup->policy == NULL) return 0;
+  for (index = 0U; index < lookup->policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
+    const M68kAnalysisNamedLabel *label = &lookup->policy->named_labels[index];
+    if (label->is_source_declaration && label->domain == M68K_ANALYSIS_LABEL_DOMAIN_SOURCE &&
+        label->offset == offset &&
+        (label->has_section_index ? label->section_index == section_index : section_index == 0U) &&
+        strcmp(label->name, name) == 0) return 1;
+  }
+  return 0;
+}
+
 int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, size_t section_index, uint32_t offset) {
   const M68kAnalysisStructuredDataItem *item;
@@ -406,6 +473,7 @@ int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
   item = lookup_structured_data_item_at_offset(lookup, section_index, offset);
   if (item != NULL && lookup_policy_has_custom_struct_named(lookup, item->struct_name) &&
       lookup_structured_item_has_generated_custom_field_label(item) &&
+      !lookup_structured_field_has_explicit_label(lookup, item, section_index, offset) &&
       !lookup_label_has_target_ref(lookup, section_index, offset) &&
       !lookup_label_has_statement_ref(lookup, section_index, offset) &&
       !lookup_policy_structured_item_targets_offset(lookup, section_index, offset)) {
@@ -2086,6 +2154,48 @@ static const char *lookup_policy_struct_name_by_id(const M68kAnalysisPolicy *pol
   return custom_struct != NULL && custom_struct->name[0] != '\0' ? custom_struct->name : NULL;
 }
 
+/* Field seeds describe a cell in a root object, not an object starting at the
+   cell's address. Require one declared field with the seed's complete width. */
+static int lookup_policy_static_data_field_offset(const M68kAnalysisPolicy *policy, uint16_t struct_id,
+    const M68kAnalysisStructuredDataItem *item, uint16_t struct_size, uint32_t *out_offset) {
+  const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
+  uint32_t matched_offset = 0U, matched_size = 0U;
+  unsigned matches = 0U;
+  if (custom_struct != NULL) {
+    uint16_t index;
+    for (index = 0U; index < custom_struct->field_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[index];
+      if (strcmp(field->name, item->field_name) != 0) continue;
+      if (item->field_type[0] != '\0' && strcmp(item->field_type, field->type_name) != 0) return 0;
+      matched_offset = field->offset;
+      matched_size = field->size;
+      ++matches;
+    }
+  } else {
+    uint32_t offset;
+    for (offset = 0U; offset < struct_size && offset <= INT16_MAX; ++offset) {
+      AmigaOsResolvedStructFieldInfo field;
+      const char *name;
+      const AmigaOsStructFieldInfo *declared;
+      const char *type_name;
+      if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, (int16_t)offset, 0, &field) ||
+          field.offset != (int16_t)offset) continue;
+      name = amiga_os_name(M68K_PLATFORM_NAME_FIELD, field.field_id);
+      if (name == NULL || strcmp(name, item->field_name) != 0) continue;
+      declared = amiga_os_find_struct_field_by_field_id(field.field_id);
+      type_name = declared != NULL ? amiga_os_name(M68K_PLATFORM_NAME_TYPE, declared->field_type_id) : NULL;
+      if (item->field_type[0] != '\0' && (type_name == NULL || strcmp(item->field_type, type_name) != 0)) return 0;
+      matched_offset = offset;
+      matched_size = field.size;
+      ++matches;
+    }
+  }
+  if (matches != 1U || matched_size == 0U || item->size != matched_size ||
+      matched_offset > INT32_MAX || (uint64_t)matched_offset + matched_size > struct_size) return 0;
+  *out_offset = matched_offset;
+  return 1;
+}
+
 /* A structured-data item can describe an object whose address is materialised
    at either its start or a proven interior byte.  The cursor records that
    interior position relative to the root object for later field resolution. */
@@ -2115,7 +2225,16 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysi
     if (lookup_policy_struct_name_by_id(policy, struct_id) == NULL) continue;
     struct_size = lookup_policy_struct_size_by_id(policy, struct_id);
     byte_cursor = (int32_t)(offset - item->offset);
-    if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
+    if (item->field_name[0] != '\0') {
+      uint32_t field_offset;
+      if (!lookup_policy_static_data_field_offset(policy, struct_id, item, struct_size, &field_offset)) {
+        /* An invalid field declaration must not fall back to a root at zero,
+           including when another overlapping seed supplies a trusted type. */
+        if (out_conflict_struct_id != NULL) *out_conflict_struct_id = struct_id;
+        return resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE ? resolved_struct_id : struct_id;
+      }
+      byte_cursor += (int32_t)field_offset;
+    } else if (struct_size != 0U && item->size >= struct_size && item->size % struct_size == 0U &&
         item->size / struct_size <= UINT16_MAX) {
       array_element_count = (uint16_t)(item->size / struct_size);
       array_element_index = (uint16_t)((uint32_t)byte_cursor / struct_size);
@@ -3554,6 +3673,7 @@ static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *l
     const M68kRenderTypedState *state, const M68kOperandIR *operand) {
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
+  int64_t effective_displacement;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
   if (lookup == NULL || state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
@@ -3562,7 +3682,10 @@ static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *l
   }
   struct_id = state->addr_regs[base_reg].struct_id;
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
-  return lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, displacement);
+  effective_displacement = (int64_t)state->addr_regs[base_reg].byte_cursor + displacement;
+  if (effective_displacement < INT16_MIN || effective_displacement > INT16_MAX)
+    return AMIGA_OS_STRUCT_ID_NONE;
+  return lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, (int16_t)effective_displacement);
 }
 
 static int typed_stored_value_from_field_pointer_read(M68kRenderTypedStoredValue *value,
@@ -4061,6 +4184,81 @@ static int instruction_stores_typed_reg_to_a6_slot(const M68kRenderTypedState *s
   return 1;
 }
 
+/* A single ordinary source read has an unambiguous pre-update cursor.
+ * Other forms retain the existing invalidation boundary. The decoder and
+ * generated form metadata own access kind, EA shape and transfer width. */
+static int typed_source_postincrement_cursor(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, size_t operand_index,
+    uint8_t *out_reg, uint8_t *out_width) {
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *operand;
+  const M68kRenderTypedRegValue *value;
+  uint16_t struct_size;
+  uint8_t width, reg;
+  size_t other_index;
+  if (lookup == NULL || state == NULL || instruction == NULL || operand_index >= instruction->operand_count ||
+      operand_index >= 4U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  operand = &instruction->operands[operand_index];
+  if (metadata == NULL || metadata->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER ||
+      metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE || metadata->sp_effect_count != 0U ||
+      instruction_has_call_flow_local(instruction) || metadata->source_operand_index != operand_index ||
+      metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_READ ||
+      (metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_FIXED &&
+       metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_INSTRUCTION_SIZE) ||
+      (metadata->operand_width_modes[operand_index] == M68K_SIM_WIDTH_INSTRUCTION_SIZE &&
+       instruction_size_suffix_bytes_local(instruction->size_suffix) == 0U) ||
+      operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 7U ||
+      m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+      (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
+       metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_POSTINCREMENT)) return 0;
+  reg = operand->value.ea_reg;
+  value = &state->addr_regs[reg];
+  width = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
+  struct_size = lookup_policy_struct_size_by_id(lookup->policy, value->struct_id);
+  /* A table entry contains a pointee pointer; the table cursor is not a
+   * cursor within that pointee's fields. Keep their existing transfer lane. */
+  if (state->memory_base_regs[reg].pointer_table_known) return 0;
+  if (!value->known || value->type_conflicted || (width != 1U && width != 2U && width != 4U) ||
+      struct_size == 0U || value->byte_cursor < 0 || value->byte_cursor > struct_size ||
+      width > (uint32_t)struct_size - (uint32_t)value->byte_cursor ||
+      (value->array_element_count != 0U && value->array_element_index >= value->array_element_count)) return 0;
+  for (other_index = 0U; other_index < instruction->operand_count; ++other_index) {
+    const M68kOperandIR *other = &instruction->operands[other_index];
+    uint8_t other_reg = 0U;
+    uint8_t shape;
+    if (other_index == operand_index) continue;
+    if (operand_address_register_index_local(other, &other_reg) && other_reg == reg) return 0;
+    if (other->kind != M68K_ASM_OPERAND_EA && other->kind != M68K_ASM_OPERAND_BF_EA) continue;
+    shape = m68k_instruction_operand_decoded_ea_shape(other);
+    if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || shape == M68K_SIM_EA_SHAPE_PREDECREMENT) return 0;
+    if ((shape == M68K_SIM_EA_SHAPE_INDIRECT || shape == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+         shape == M68K_SIM_EA_SHAPE_PREDECREMENT || shape == M68K_SIM_EA_SHAPE_DISPLACEMENT ||
+         shape == M68K_SIM_EA_SHAPE_INDEX) && other->value.ea_reg == reg) return 0;
+    if (shape == M68K_SIM_EA_SHAPE_INDEX && other->value.index_is_address && other->value.index_reg == reg)
+      return 0;
+  }
+  if (out_reg != NULL) *out_reg = reg;
+  if (out_width != NULL) *out_width = width;
+  return 1;
+}
+
+static int typed_access_has_unmodelled_base_update(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, size_t access_index,
+    uint8_t base_reg, uint8_t *io_access_size) {
+  size_t update_index;
+  for (update_index = 0U; update_index < instruction->operand_count; ++update_index) {
+    const M68kOperandIR *update = &instruction->operands[update_index];
+    uint8_t shape;
+    if (update->kind != M68K_ASM_OPERAND_EA || update->value.ea_reg != base_reg) continue;
+    shape = m68k_instruction_operand_decoded_ea_shape(update);
+    if (shape != M68K_SIM_EA_SHAPE_POSTINCREMENT && shape != M68K_SIM_EA_SHAPE_PREDECREMENT) continue;
+    if (update_index != access_index ||
+        !typed_source_postincrement_cursor(lookup, state, instruction, update_index, NULL, io_access_size)) return 1;
+  }
+  return 0;
+}
+
 static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, size_t section_index,
     M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset, int record_accesses,
     int *io_changed) {
@@ -4161,7 +4359,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
       }
       continue;
     }
-    if (auto_update != M68K_SIM_EA_UPDATE_NONE) {
+    if (typed_access_has_unmodelled_base_update(lookup, state, instruction, operand_index, base_reg, &access_size)) {
       if (record_accesses) {
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
         if (root_struct_name != NULL &&
@@ -7282,16 +7480,44 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   if (metadata != NULL) {
     for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
       const M68kOperandIR *operand = &instruction->operands[operand_index];
-      if (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE ||
-          operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U) {
+      uint8_t ea_shape = m68k_instruction_operand_decoded_ea_shape(operand);
+      /* Generic memory forms leave the update to the decoded EA shape, as
+         the simulator does. Only a proven bounded source read retains type. */
+      if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U ||
+          (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE &&
+           !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
+              metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+             (ea_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || ea_shape == M68K_SIM_EA_SHAPE_PREDECREMENT)))) {
         continue;
       }
       {
         M68kRenderTypedMemoryBaseValue memory_base = state->memory_base_regs[operand->value.ea_reg];
+        M68kRenderTypedRegValue previous = state->addr_regs[operand->value.ea_reg];
+        uint8_t update_width = 0U;
+        int preserve_cursor = typed_source_postincrement_cursor(lookup, state, instruction, operand_index,
+          NULL, &update_width);
         int32_t access_size = (int32_t)instruction_size_suffix_bytes_local(instruction->size_suffix);
         int32_t delta = operand->value.ea_mode == 3U ? access_size :
           (operand->value.ea_mode == 4U ? -access_size : 0);
         typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg);
+        if (preserve_cursor) {
+          uint16_t struct_size = lookup_policy_struct_size_by_id(lookup->policy, previous.struct_id);
+          int64_t next = (int64_t)previous.byte_cursor + update_width;
+          uint16_t next_index = previous.array_element_index;
+          delta = (int32_t)update_width;
+          if (previous.array_element_count != 0U && next == struct_size &&
+              (uint32_t)next_index + 1U < previous.array_element_count) {
+            next = 0;
+            ++next_index;
+          }
+          if (next >= 0 && next < struct_size) {
+            typed_state_set_reg_struct_id_array(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg,
+              previous.struct_id, previous.array_element_count, next_index, &previous.provenance);
+            state->addr_regs[operand->value.ea_reg].byte_cursor = (int32_t)next;
+            state->addr_regs[operand->value.ea_reg].origin = previous.origin;
+            state->addr_regs[operand->value.ea_reg].table_origin = previous.table_origin;
+          }
+        }
         if (delta == 0 || (!memory_base.known && !memory_base.pointer_table_known)) continue;
         if (memory_base.known) {
           if (!typed_memory_base_apply_affine_delta(&memory_base, delta)) continue;
@@ -14659,8 +14885,53 @@ cleanup:
   return result;
 }
 
+static int append_manual_data_references_for_section(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, M68kSectionAnalysisIR *section) {
+  uint16_t index;
+  if (lookup->policy == NULL) return 0;
+  if (lookup->policy->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return -1;
+  for (index = 0U; index < lookup->policy->manual_data_reference_count; ++index) {
+    const M68kAnalysisManualDataReference *manual = &lookup->policy->manual_data_references[index];
+    M68kDataReferenceIR ref;
+    const M68kDecodeSectionIR *source;
+    if (manual->section_index != section->section_index) continue;
+    if (manual->section_index >= decode->section_count) return -1;
+    source = &decode->sections[manual->section_index];
+    if (source->data == NULL || manual->size != 2U || manual->offset > source->size ||
+        2U > source->size - manual->offset || m68k_read_u16be(source->data + manual->offset) != manual->raw_value ||
+        manual->base_section_index != manual->target_section_index ||
+        manual->base_section_index != manual->section_index ||
+        manual->base_section_index >= decode->section_count ||
+        manual->base_offset >= decode->sections[manual->base_section_index].size ||
+        manual->target_offset >= decode->sections[manual->target_section_index].size ||
+        (int64_t)manual->base_offset + (int16_t)manual->raw_value != (int64_t)manual->target_offset) return -1;
+    memset(&ref, 0, sizeof(ref));
+    ref.source_kind = M68K_DATA_REFERENCE_SOURCE_MANUAL;
+    ref.source_offset = manual->offset;
+    ref.reference_kind = M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT;
+    ref.raw_value = manual->raw_value;
+    ref.raw_value_width = 2U;
+    ref.raw_value_signed = 1U;
+    ref.has_base = 1U;
+    ref.base_section_index = manual->base_section_index;
+    ref.base_offset = manual->base_offset;
+    ref.target_section_index = manual->target_section_index;
+    ref.target_offset = manual->target_offset;
+    ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+    ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
+    ref.owner_kind = (char *)manual->owner_kind;
+    ref.owner_id = (char *)manual->owner_id;
+    ref.owner_layout_id = (char *)manual->owner_layout_id;
+    ref.owner_element_offset = manual->owner_element_offset;
+    ref.xref_generation_mode = (char *)manual->xref_generation_mode;
+    if (m68k_ir_section_analysis_append_data_reference(section, &ref) != 0) return -1;
+  }
+  return 0;
+}
+
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     M68kSectionAnalysisIR *section_analysis) {
+  if (append_manual_data_references_for_section(lookup, decode, section_analysis) != 0) return -1;
   if (append_render_lookup_platform_effects_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_app_slot_refs_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_runtime_views_for_section(lookup, section_analysis) != 0) return -1;

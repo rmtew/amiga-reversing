@@ -224,12 +224,36 @@ def clean_run_target_workspace(
 
 
 def _classify_target_files(target_dir: Path) -> list[TargetFileInventoryEntry]:
+    from amiga_reversing.disasm.source_package_publish import PUBLISH_MANIFEST, load_published_source_package
+    owned_paths: set[str] = set()
+    invalid_manifests: set[str] = set()
+    for manifest_path in sorted(target_dir.rglob(PUBLISH_MANIFEST)):
+        relative_manifest = manifest_path.relative_to(target_dir).as_posix()
+        try:
+            package = load_published_source_package(manifest_path.parent)
+        except (ValueError, OSError):
+            invalid_manifests.add(relative_manifest)
+            continue
+        owned_paths.add(relative_manifest)
+        for record in package["manifest"]["files"]:
+            owned_paths.add((manifest_path.parent / record["path"]).relative_to(target_dir).as_posix())
     entries: list[TargetFileInventoryEntry] = []
     for path in sorted(target_dir.rglob("*")):
+        rel_path = path.relative_to(target_dir).as_posix()
+        if rel_path in invalid_manifests:
+            entries.append(TargetFileInventoryEntry(rel_path, TargetFileClass.UNKNOWN,
+                TargetFileAction.REVIEW_REQUIRED, "source package manifest or owned bytes failed integrity validation"))
+            continue
         if not path.is_file():
             continue
-        rel_path = path.relative_to(target_dir).as_posix()
-        entries.append(_classify_file(rel_path))
+        entry = _classify_file(rel_path)
+        if rel_path in owned_paths and entry.file_class not in {
+            TargetFileClass.SOURCE_IMPORT_FACT, TargetFileClass.LOCAL_MANUAL_STATE,
+            TargetFileClass.LOCAL_VERIFIER_STATE, TargetFileClass.AGENT_AUDIT,
+        } and path.name not in GENERATED_COORDINATION_FILES:
+            entry = TargetFileInventoryEntry(rel_path, TargetFileClass.GENERATED_OUTPUT,
+                TargetFileAction.REGENERATE_ON_CLEAN_RUN, "validated source-package-owned generated file")
+        entries.append(entry)
     return entries
 
 

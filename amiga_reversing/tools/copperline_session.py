@@ -46,6 +46,7 @@ class HeadlessCopperlineSession:
     breakpoint_expected_source_offset: int | None = None
     breakpoint_source_offset: int | None = None
     breakpoint_runtime_address: int | None = None
+    derived_artifact_manifest: Path | None = None
     scenario_path: Path | None = None
 
     def plan(self) -> dict[str, object]:
@@ -58,6 +59,9 @@ class HeadlessCopperlineSession:
             "host_directory": str(self.host_directory) if self.host_directory else None,
             "continue_seconds": self.continue_seconds,
             "breakpoint_wait_seconds": self.breakpoint_wait_seconds,
+            "derived_artifact_manifest": str(self.derived_artifact_manifest)
+            if self.derived_artifact_manifest
+            else None,
             "direct_payload_contract": self.direct_payload_contract,
         }
 
@@ -180,6 +184,7 @@ def compile_scenario(
     output_path: Path,
     *,
     symbol_directory: Path | None = None,
+    derived_manifest: Path | None = None,
 ) -> dict[str, object]:
     """Validate a target scenario and resolve only canonical source rows to PCs."""
 
@@ -209,6 +214,10 @@ def compile_scenario(
             raise ValueError("Scenario phase names must be unique non-empty strings.")
         names.add(name)
         if index == 0:
+            if "occurrences" in phase or "capture_first" in phase:
+                raise ValueError(
+                    "Occurrence capture requires a canonical source-row phase."
+                )
             if phase.get("observable") != "direct_payload_handoff":
                 raise ValueError(
                     "The first scenario phase must be the direct_payload_handoff observable."
@@ -218,6 +227,12 @@ def compile_scenario(
         wait_seconds = phase.get("wait_seconds")
         transition = phase.get("transition", "continue")
         capture = phase.get("capture", {})
+        occurrences = phase.get("occurrences", 1)
+        capture_first = phase.get("capture_first", False)
+        if type(occurrences) is not int or not 1 <= occurrences <= 64:
+            raise ValueError("Scenario occurrences must be an integer from 1 to 64.")
+        if type(capture_first) is not bool:
+            raise ValueError("Scenario capture_first must be boolean.")
         if (
             not isinstance(stable_key, str)
             or not isinstance(wait_seconds, int)
@@ -238,6 +253,10 @@ def compile_scenario(
                 "wait_seconds": wait_seconds,
                 "transition": transition,
                 "capture": capture,
+                **({"occurrences": occurrences} if "occurrences" in phase else {}),
+                **(
+                    {"capture_first": capture_first} if "capture_first" in phase else {}
+                ),
             }
         )
     phase_indexes = {
@@ -269,9 +288,12 @@ def compile_scenario(
             f"port{port} {direction}"
             for port in range(2)
             for direction in ("fire", "left", "right", "up", "down")
-        }:
+        } and (
+            not isinstance(control, str)
+            or not re.fullmatch(r"key (?:[0-9]|[1-9][0-9]|1[01][0-9]|12[0-7])", control)
+        ):
             raise ValueError(
-                "Scenario input control is not supported by the virtual joystick bridge."
+                "Scenario input requires a joystick control or key 0..127."
             )
         compiled_events.append(
             {
@@ -282,7 +304,45 @@ def compile_scenario(
         )
     _, _, artifact = build_project_listing_artifact_profile(target_id)
     try:
+        needs_regions = derived_manifest is not None or any(
+            "region_id" in r
+            for p in compiled_phases
+            for r in p["capture"].get("memory_reads", [])
+        )
+        placements = (
+            {
+                r["region_id"]: (r["runtime_address"], r["size"])
+                for r in artifact.memory_regions_payload()["items"]
+            }
+            if needs_regions
+            else {}
+        )
+        if derived_manifest is not None:
+            from amiga_reversing.disasm.derived_artifact import (
+                validate_manifest,
+                verify_native_binding,
+            )
+
+            manifest, _ = validate_manifest(derived_manifest, target_id)
+            verify_native_binding(manifest, artifact)
+            placements[manifest["region"]["region_id"]] = (
+                manifest["placement"]["runtime_address"],
+                manifest["region"]["size"],
+            )
         for phase in compiled_phases:
+            for read in phase["capture"].get("memory_reads", []):
+                if "region_id" in read:
+                    placement = placements.get(read["region_id"])
+                    if (
+                        placement is None
+                        or read.get("offset", 0) + read["size"] > placement[1]
+                    ):
+                        raise ValueError(
+                            "Capture region is unknown or read exceeds its extent"
+                        )
+                    read["address"] = placement[0] + read.get("offset", 0)
+                    del read["region_id"]
+                    read.pop("offset", None)
             row = _resolve_breakpoint_stable_key_from_artifact(
                 artifact, str(phase["stable_key"])
             )
@@ -460,22 +520,27 @@ def resolve_binary(explicit: Path | None) -> Path:
 
 
 def validate_capture(capture: object) -> None:
-    if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads"}:
-        raise ValueError("Scenario capture supports only registers and memory_reads.")
+    if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads", "custom_registers"}:
+        raise ValueError("Scenario capture supports only registers, memory_reads and custom_registers.")
+    custom = capture.get("custom_registers", [])
+    if (not isinstance(custom, list) or len(custom) > 16
+            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
+        raise ValueError("Capture requires at most 16 named custom registers")
     registers, reads = capture.get("registers", []), capture.get("memory_reads", [])
-    allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)}
+    allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)} | {"sr"}
     if (
         not isinstance(registers, list)
-        or len(registers) > 16
-        or any(r not in allowed for r in registers)
+        or len(registers) > 17
+        or any(not isinstance(r, str) or r not in allowed for r in registers)
     ):
-        raise ValueError("Capture registers must be d0..d7 or a0..a7 (maximum 16).")
+        raise ValueError("Capture registers must be d0..d7, a0..a7 or sr (maximum 17).")
     if not isinstance(reads, list) or len(reads) > 16:
         raise ValueError("Capture supports at most 16 memory reads.")
     for read in reads:
         if not isinstance(read, dict) or set(read) - {
             "address",
             "base_register",
+            "region_id",
             "offset",
             "size",
         }:
@@ -483,7 +548,19 @@ def validate_capture(capture: object) -> None:
         size = read.get("size")
         if type(size) is not int or not 1 <= size <= 64:
             raise ValueError("Capture memory size must be 1..64.")
-        if "address" in read:
+        if "region_id" in read:
+            if (
+                not isinstance(read["region_id"], str)
+                or not read["region_id"]
+                or "address" in read
+                or "base_register" in read
+                or type(read.get("offset", 0)) is not int
+                or read.get("offset", 0) < 0
+            ):
+                raise ValueError(
+                    "Capture requires a stable region identifier and nonnegative offset"
+                )
+        elif "address" in read:
             address = read["address"]
             if (
                 "base_register" in read
@@ -506,6 +583,11 @@ def validate_capture(capture: object) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--derived-artifact",
+        type=Path,
+        help="Manifest of a closed native fixed-width relocation plan",
+    )
     parser.add_argument("--target", required=True)
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--floppy0", type=Path)
@@ -604,6 +686,10 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError(
             "--scenario requires --direct-payload-contract so input cannot run before a verified handoff."
         )
+    if args.derived_artifact and not args.direct_payload_contract:
+        raise ValueError(
+            "--derived-artifact requires a verified direct-payload contract"
+        )
     paths = resolve_project_paths(args.target)
     direct_payload = None
     floppy0 = args.floppy0
@@ -614,7 +700,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.direct_payload_contract:
         contract = load_contract(args.direct_payload_contract)
         output = args.state_directory / f"direct-payload-{contract.identifier}.adf"
-        direct_payload = build_for_target(contract.identifier, args.target, output)
+        direct_payload = build_for_target(
+            contract.identifier,
+            args.target,
+            output,
+            derived_manifest=args.derived_artifact,
+        )
         floppy0 = output
         observation_memory_address = contract.handoff_marker_address
         observation_memory_equals = contract.handoff_marker_value.to_bytes(4, "big")
@@ -629,6 +720,7 @@ def main(argv: list[str] | None = None) -> int:
             args.scenario,
             scenario_output,
             symbol_directory=args.state_directory,
+            derived_manifest=args.derived_artifact,
         )
     if (
         compiled_scenario
@@ -646,7 +738,10 @@ def main(argv: list[str] | None = None) -> int:
         rom_path=args.rom,
         floppy0=floppy0,
         host_directory=args.host_directory,
-        target_payload_path=paths.binary_source.path,
+        target_payload_path=Path(direct_payload["payload"])
+        if direct_payload
+        else paths.binary_source.path,
+        derived_artifact_manifest=args.derived_artifact,
         binary_path=resolve_binary(args.copperline),
         state_directory=args.state_directory,
         continue_seconds=args.continue_seconds,

@@ -11,6 +11,8 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Mapping, Sequence
+from contextvars import ContextVar
+from copy import deepcopy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
@@ -38,7 +40,10 @@ from amiga_reversing.disasm.c_backend import (
     validate_amiga_hunk_executable_with_c_backend,
     validate_api_input_struct_with_c_backend,
 )
-from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
+from amiga_reversing.disasm.effective_metadata import (
+    effective_metadata_hash,
+    effective_metadata_text,
+)
 from amiga_reversing.disasm.listing_context import (
     listing_element_contexts,
     selected_listing_element_context,
@@ -190,6 +195,52 @@ class StaticResponse(TypedDict):
 
 _MISSING = object()
 _LISTING_PROJECTION_SERVICE = ListingProjectionService()
+_COMMAND_NAVIGATION_SNAPSHOTS: ContextVar[dict[tuple[str, str], tuple[object, object]] | None] = ContextVar(
+    "command_navigation_snapshots", default=None
+)
+_LISTING_CACHE_KEY_SNAPSHOT: ContextVar[dict[str, str] | None] = ContextVar(
+    "listing_cache_key_snapshot", default=None
+)
+_COMMAND_METADATA_SNAPSHOTS: ContextVar[dict[Path, dict[str, object]] | None] = ContextVar(
+    "command_metadata_snapshots", default=None
+)
+
+
+def _command_preparation_metadata(target_dir: Path, *, typed: bool = False):
+    """Reuse current metadata only during locked command preparation."""
+    snapshots = _COMMAND_METADATA_SNAPSHOTS.get()
+    values = {} if snapshots is None else snapshots.setdefault(target_dir, {})
+    kind = "typed" if typed else "wire"
+    if kind not in values:
+        if typed:
+            from amiga_reversing.disasm.effective_metadata import (
+                effective_target_metadata,
+            )
+            values[kind] = effective_target_metadata(target_dir)
+        else:
+            values[kind] = json.loads(effective_metadata_text(target_dir))
+    return values[kind]
+
+
+@contextlib.contextmanager
+def _listing_read_snapshot():
+    """Reuse full content hashes only within one target-locked operation."""
+    if _LISTING_CACHE_KEY_SNAPSHOT.get() is not None:
+        yield
+        return
+    token = _LISTING_CACHE_KEY_SNAPSHOT.set({})
+    try:
+        yield
+    finally:
+        _LISTING_CACHE_KEY_SNAPSHOT.reset(token)
+
+
+def _discard_listing_read_snapshot(project_name: str) -> None:
+    snapshot = _LISTING_CACHE_KEY_SNAPSHOT.get()
+    if snapshot is not None:
+        snapshot.pop(project_name, None)
+
+
 WEB_STATE_COMMAND_CONTRACT = "locator-command-v1"
 _SOURCE_EVIDENCE_CONTEXT_KEYS = (
     "source_evidence_id",
@@ -837,9 +888,14 @@ def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> di
     if binary_assets not in {"true", "false"}:
         raise ValueError("binary_assets must be true or false")
     options = {}
+    structure_macros = _first_query_value(query, "structure_macros") or "false"
+    if structure_macros not in {"true", "false"}:
+        raise ValueError("structure_macros must be true or false")
     if binary_assets == "true":
         options = {"binary_assets": True,
                    "minimum_asset_size": int(_first_query_value(query, "minimum_asset_size") or "256")}
+    if structure_macros == "true":
+        options["structure_macros"] = True
     payload = source_export_payload(
         project_name, assembler_profile=assembler_profile, project_root=PROJECT_ROOT, **options,
     )
@@ -1052,6 +1108,7 @@ def _clear_project_listing_cache(project_name: str, *, keep_stale_artifact: bool
 
 
 def _clear_project_listing_cache_locked(project_name: str, *, keep_stale_artifact: bool = False) -> None:
+    _discard_listing_read_snapshot(project_name)
     if keep_stale_artifact:
         _LISTING_PROJECTION_SERVICE.invalidate_project_keep_artifact(project_name)
     else:
@@ -1301,6 +1358,16 @@ def _is_listing_project(project: ProjectRecord) -> bool:
 
 
 def _project_listing_cache_key(project_name: str) -> str:
+    snapshot = _LISTING_CACHE_KEY_SNAPSHOT.get()
+    if snapshot is not None and project_name in snapshot:
+        return snapshot[project_name]
+    key = _compute_project_listing_cache_key(project_name)
+    if snapshot is not None:
+        snapshot[project_name] = key
+    return key
+
+
+def _compute_project_listing_cache_key(project_name: str) -> str:
     try:
         project = get_project(project_name)
     except FileNotFoundError:
@@ -1451,7 +1518,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
         )
 
 
-def _start_listing_job(project_name: str) -> AsyncJobPayload:
+def _start_listing_job(project_name: str, *, retry_failed: bool = True) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     return cast(
         AsyncJobPayload,
@@ -1468,6 +1535,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             prewarm=lambda: _prewarm_analysis_review_items(project_name),
             on_ready=lambda: None if _start_reproduction_job_if_needed(project_name) else None,
             start_worker=_start_listing_worker,
+            retry_failed=retry_failed,
         ),
     )
 
@@ -1501,6 +1569,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
         cache_key = _reproduction_cache_key(project_name)
         pre_rendered_source_profile: dict[str, object] | None = None
         pre_rendered_source_text: str | None = None
+        pre_rendered_source_package = None
         row_for_section_offset = None
         _log_event("reproduction_job start", job_id=job_id, project=project_name)
         if not _set_job_state(job_id, status="building"):
@@ -1518,7 +1587,19 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                     )
                 )
             try:
-                pre_rendered_source_text, pre_rendered_source_profile = listing_artifact.source_text_with_profile()
+                if getattr(getattr(listing_artifact, "source_output_policy", None), "mode", "inline") == "binary_assets":
+                    from amiga_reversing.disasm.source_rendering import (
+                        render_source_from_binary_source_or_raise,
+                    )
+                    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+                    rendering = render_source_from_binary_source_or_raise(target_id=project_name,
+                        binary_source=paths.binary_source, target_dir=paths.target_dir, metadata_path=None,
+                        project_root=PROJECT_ROOT, artifact=listing_artifact)
+                    pre_rendered_source_text = rendering.source_text
+                    pre_rendered_source_profile = rendering.listing_profile
+                    pre_rendered_source_package = rendering.source_package
+                else:
+                    pre_rendered_source_text, pre_rendered_source_profile = listing_artifact.source_text_with_profile()
             except Exception as exc:
                 message = f"artifact source unavailable: {exc}"
                 _log_event(
@@ -1546,6 +1627,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                         pre_rendered_source_text=pre_rendered_source_text,
                         pre_rendered_source_profile=pre_rendered_source_profile,
                         row_for_section_offset=row_for_section_offset,
+                        pre_rendered_source_package=pre_rendered_source_package,
                     )
                 except TypeError as exc:
                     if (
@@ -1557,6 +1639,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                             project_root=PROJECT_ROOT,
                             pre_rendered_source_text=pre_rendered_source_text,
                             pre_rendered_source_profile=pre_rendered_source_profile,
+                            pre_rendered_source_package=pre_rendered_source_package,
                         )
                     else:
                         raise
@@ -1566,6 +1649,7 @@ def _build_reproduction_job_locked(job_id: str, project_name: str) -> None:
                     project_root=PROJECT_ROOT,
                     pre_rendered_source_text=pre_rendered_source_text,
                     pre_rendered_source_profile=pre_rendered_source_profile,
+                    pre_rendered_source_package=pre_rendered_source_package,
                 )
         else:
             report = run_reproduction(
@@ -2384,7 +2468,18 @@ def _resolve_command_locator(
             )
             navigation_payload = getattr(artifact, "navigation_payload", None)
             if callable(navigation_payload):
-                navigation, _navigation_profile = navigation_payload()
+                snapshots = _COMMAND_NAVIGATION_SNAPSHOTS.get()
+                snapshot_key = (project_name, projection_hash)
+                cached = snapshots.get(snapshot_key) if snapshots is not None else None
+                if cached is not None and cached[0] is artifact:
+                    navigation = cached[1]
+                else:
+                    navigation, _navigation_profile = _LISTING_PROJECTION_SERVICE.cached_native_navigation_payload(
+                        project_id=project_name, artifact=artifact,
+                        current_cache_key=_project_listing_cache_key(project_name),
+                    )
+                    if snapshots is not None:
+                        snapshots[snapshot_key] = (artifact, navigation)
         finally:
             if workflow_profile is not None:
                 workflow_profile.add_span(
@@ -2400,7 +2495,7 @@ def _resolve_command_locator(
     if isinstance(navigation, Mapping):
         app_slot_analysis = navigation.get("app_slot_analysis")
         if isinstance(app_slot_analysis, Mapping):
-            row["app_slot_analysis"] = dict(app_slot_analysis)
+            row["app_slot_analysis"] = deepcopy(app_slot_analysis)
         groups = navigation.get("groups")
         if isinstance(groups, Mapping):
             for source_key, row_key in (
@@ -2411,7 +2506,7 @@ def _resolve_command_locator(
             ):
                 value = groups.get(source_key)
                 if isinstance(value, list):
-                    row[row_key] = list(value)
+                    row[row_key] = deepcopy(value)
     row["stable_key"] = row.get("row_key")
     row["stableKey"] = row.get("row_key")
     row["row_id"] = row.get("row_key")
@@ -2578,8 +2673,10 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
     return execute(project_name, {**dict(body or {}), "operation": "command"})
 
 
-def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
-    workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
+def _prepare_catalog_command(
+    project_name: str, body: Mapping[str, object] | None, workflow_profile: WorkflowProfile,
+    context_cache: dict[str, tuple[dict[str, object], list[dict[str, object]], dict[str, object]]],
+) -> dict[str, object]:
     payload_body = dict(body or {})
     command_id = payload_body.get("command_id")
     if not isinstance(command_id, str) or not command_id:
@@ -2590,36 +2687,65 @@ def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | N
     parameters = payload_body.get("parameters")
     if parameters is not None and not isinstance(parameters, dict):
         raise _command_contract_error("invalid_command_context", "parameters must be an object")
-    with workflow_profile.span("command_context", module="server"):
-        command_context, rows = _command_context_from_body(project_name, context, workflow_profile=workflow_profile)
-    with workflow_profile.span("command_catalog", module="server"):
-        catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+    context_key = json.dumps(context, sort_keys=True, separators=(",", ":"))
+    cached = context_cache.get(context_key)
+    if cached is None:
+        with workflow_profile.span("command_context", module="server"):
+            command_context, rows = _command_context_from_body(project_name, context, workflow_profile=workflow_profile)
+        with workflow_profile.span("command_catalog", module="server"):
+            catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+        context_cache[context_key] = (command_context, rows, catalog)
+    else:
+        command_context, rows, catalog = cached
+    # Payload construction stays per entry; copies protect the inspected snapshot
+    # from any command-specific normalization in a payload factory.
+    command_context, rows = deepcopy((command_context, rows))
     commands = cast(list[dict[str, object]], catalog["commands"])
     command = next((candidate for candidate in commands if candidate.get("command_id") == command_id), None)
     if command is None:
         raise _command_contract_error("invalid_command_context", f"Command is not available: {command_id}")
     if command.get("appends_to_manual_action_log") is not True:
         raise _command_contract_error("non_mutable_command", f"Command is not mutable: {command_id}")
-    result = _execute_manual_action_command(
-        project_name,
-        command_id,
-        command_context,
-        rows,
+    action_payloads = _prepare_manual_action_command(
+        project_name, command_id, command_context, rows,
         cast(dict[str, object] | None, parameters),
-        workflow_profile=workflow_profile,
         interpretation=payload_body.get("interpretation"),
     )
+    return {"command_id": command_id, "command": command,
+            "context": command_context, "action_payloads": action_payloads}
+
+
+def _execute_catalog_commands_unchecked(project_name: str, bodies: list[dict]) -> dict[str, object]:
+    """Prepare every catalog command before one atomic append and invalidation.
+
+    The caller holds the target lock and has checked its single expected revision.
+    No preparation invalidates the current native artifact.
+    """
+    workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
+    # This memo belongs only to this locked preparation stage, before any append.
+    context_cache = {}
+    navigation_token = _COMMAND_NAVIGATION_SNAPSHOTS.set({})
+    metadata_token = _COMMAND_METADATA_SNAPSHOTS.set({})
+    try:
+        prepared = [_prepare_catalog_command(project_name, body, workflow_profile, context_cache) for body in bodies]
+    finally:
+        _COMMAND_METADATA_SNAPSHOTS.reset(metadata_token)
+        _COMMAND_NAVIGATION_SNAPSHOTS.reset(navigation_token)
+    result = _apply_manual_action_commands(project_name, prepared, workflow_profile=workflow_profile)
     response_started_at = time.perf_counter()
-    response = {
-        **result,
-        "web_state_contract": WEB_STATE_COMMAND_CONTRACT,
-        "command_id": command_id,
-        "effect": command["effect"],
-        "context": _public_command_context(command_context),
-    }
+    result["commands"] = [{"command_id": entry["command_id"],
+        "effect": entry["command"]["effect"],
+        "context": _public_command_context(entry["context"])} for entry in prepared]
+    result["web_state_contract"] = WEB_STATE_COMMAND_CONTRACT
     workflow_profile.add_span("response_build", time.perf_counter() - response_started_at, module="server")
-    response["workflow_profile"] = workflow_profile.to_payload()
-    return response
+    result["workflow_profile"] = workflow_profile.to_payload()
+    return result
+
+
+def _execute_command_unchecked(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    result = _execute_catalog_commands_unchecked(project_name, [dict(body or {})])
+    command = result.pop("commands")[0]
+    return {**result, **command}
 
 
 def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list[str]]:
@@ -2680,16 +2806,15 @@ def _parameters_with_source_evidence(
     return merged
 
 
-def _execute_manual_action_command(
+def _prepare_manual_action_command(
     project_name: str,
     action_id: str,
     context: Mapping[str, object],
     rows: list[dict[str, object]],
     parameters: dict[str, object] | None,
     *,
-    workflow_profile: WorkflowProfile | None = None,
     interpretation: object = None,
-) -> dict[str, object]:
+) -> list[tuple[str, dict[str, object]]]:
     project = get_project(project_name)
     context_kind = context.get("kind")
     if project.kind is not ProjectKind.BINARY or (context_kind != "target" and not project.ready):
@@ -2717,12 +2842,160 @@ def _execute_manual_action_command(
         action_payloads = listing_range_catalog_manual_payload(rows, action_id, parameters=parameters)
     else:
         raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context_kind}")
+    for kind, payload in action_payloads:
+        if kind != "interpret_manual_data_block_element_ref":
+            continue
+        ref = cast(dict[str, object], payload["data_block_interpreted_ref"])
+        _validate_data_block_reference_owners(project, ref)
+        if ref.get("reference_kind") == "base_displacement":
+            _validate_data_block_base_displacement_ref(project, _valid_c_listing_artifact(project_name), ref)
+            continue
+        runtime_address = ref.get("runtime_address")
+        if runtime_address is None:
+            continue
+        artifact = _valid_c_listing_artifact(project_name)
+        resolver = getattr(artifact, "source_for_runtime_address", None)
+        if not callable(resolver):
+            raise ValueError("data-block runtime reference requires current native view resolution")
+        _validate_data_block_runtime_ref_source_bytes(project, artifact, ref)
+        resolved = resolver(address=runtime_address)
+        if (resolved.get("status") != "resolved" or
+            resolved.get("section_index") != ref.get("target_hunk") or
+            resolved.get("source_offset") != ref.get("target_offset")):
+            raise ValueError("data-block runtime reference requires a unique matching active native source mapping")
+    if interpretation is not None:
+        action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
+    return action_payloads
+
+
+def _validate_data_block_reference_owners(project: ProjectRecord, ref: Mapping[str, object]) -> None:
+    """A new relative interpretation cannot coexist with another span owner."""
+    state = getattr(project, "manual_state", None)
+    if not isinstance(state, Mapping):
+        return
+    layouts = {item["layout_id"]: item for item in state.get("data_block_layouts", [])}
+    layout = layouts.get(ref.get("layout_id"))
+    if layout is None:
+        return  # The regular owner validator diagnoses a missing layout.
+    start = layout["source_start"] + ref["offset"]
+    for other in state.get("data_block_interpreted_refs", []):
+        if (other.get("data_block_ref_id") == ref.get("data_block_ref_id") or
+                "base_displacement" not in {ref.get("reference_kind"), other.get("reference_kind")}):
+            continue
+        other_layout = layouts.get(other.get("layout_id"))
+        if other_layout is None or other_layout["hunk"] != layout["hunk"]:
+            continue
+        other_start = other_layout["source_start"] + other["offset"]
+        if other_start < start + ref["width"] and start < other_start + other["width"]:
+            raise ValueError("base-displacement reference conflicts with another interpretation owner")
+
+
+def _validate_data_block_base_displacement_ref(
+    project: ProjectRecord, artifact: object, ref: Mapping[str, object],
+) -> None:
+    """Validate a stored displacement without treating its bits as an address."""
+    from amiga_reversing.disasm.effective_metadata import (
+        _data_block_element_interpreted_data_reference,
+    )
+
+    _validate_data_block_runtime_ref_source_bytes(project, artifact, ref)
+    metadata = _command_preparation_metadata(Path(project.target_dir))
+    typed_metadata = _command_preparation_metadata(Path(project.target_dir), typed=True)
+    if typed_metadata is None:
+        raise ValueError("base-displacement reference requires current effective type metadata")
+    typed_layout = next(item for item in typed_metadata.data_block_layouts
+                        if item.layout_id == ref.get("layout_id"))
+    layout = next(item for item in metadata.get("data_block_layouts", [])
+                  if item.get("layout_id") == ref.get("layout_id"))
+    base = ref.get("base_locator")
+    if (not isinstance(base, Mapping) or ref.get("width") != 2 or
+            ref.get("signed") is not True or ref.get("scale", 1) != 1 or
+            "runtime_address" in ref or
+            base.get("hunk") != layout["hunk"] or ref.get("target_hunk") != layout["hunk"]):
+        raise ValueError("base-displacement reference requires signed16 scale-one same-section source coordinates")
+    raw, base_offset, target = ref.get("source_value"), base.get("offset"), ref.get("target_offset")
+    if (type(raw) is not int or not 0 <= raw <= 0xFFFF or type(base_offset) is not int or
+            not 0 <= base_offset <= 0xFFFFFFFF or type(target) is not int or
+            not 0 <= target <= 0xFFFFFFFF or
+            base_offset + (raw - 0x10000 if raw & 0x8000 else raw) != target):
+        raise ValueError("base-displacement target must equal base plus signed encoded displacement")
+    # Use the source projection's merged declarations and exact WORD-leaf
+    # validator; a typed command must retain its enclosing struct ownership.
+    _data_block_element_interpreted_data_reference(
+        typed_layout, ref, {item.name: item for item in typed_metadata.custom_structs},
+    )
+    query = getattr(artifact, "query_payload", None)
+    if not callable(query):
+        raise ValueError("base-displacement reference requires current native source labels")
+    for coordinate in {base_offset, target}:
+        result = query(kind="symbols", section_index=layout["hunk"], source_offset=coordinate,
+                       end_offset=coordinate + 1, limit=100)
+        if not any(item.get("source_offset") == coordinate and item.get("section_index") == layout["hunk"]
+                   for item in result.get("items", [])):
+            raise ValueError("base-displacement base and target require independently renderable native source labels")
+    start = layout["source_start"] + cast(int, ref["offset"])
+    for other in metadata.get("manual_data_references", []):
+        if (other.get("owner_id") != ref.get("data_block_ref_id") and other.get("hunk") == layout["hunk"] and
+                other["addr"] < start + 2 and start < other["addr"] + other["size"]):
+            raise ValueError("base-displacement reference conflicts with another owner at this source span")
+
+
+def _validate_data_block_runtime_ref_source_bytes(
+    project: ProjectRecord, artifact: object, ref: Mapping[str, object],
+) -> None:
+    """Validate the owner through the existing effective metadata projection."""
+    metadata = _command_preparation_metadata(Path(project.target_dir))
+    layouts = [layout for layout in metadata.get("data_block_layouts", [])
+               if layout.get("layout_id") == ref.get("layout_id")]
+    width, offset = ref.get("width"), ref.get("offset")
+    if len(layouts) != 1 or type(width) is not int or type(offset) is not int:
+        raise ValueError("data-block runtime reference requires a current owning layout and element")
+    layout = layouts[0]
+    owners = [element for element in layout.get("elements", [])
+              if element["offset"] <= offset and offset + width <= element["offset"] + element["width"]]
+    source_offset = layout["source_start"] + offset
+    if len(owners) != 1 or source_offset < layout["source_start"] or source_offset + width > layout["source_end"]:
+        raise ValueError("data-block runtime reference must fit its current owning element")
+    row_lookup = getattr(artifact, "row_for_source_offset", None)
+    row = row_lookup(section_index=layout["hunk"], offset=source_offset) if callable(row_lookup) else None
+    if not isinstance(row, Mapping) or type(row.get("start_offset")) is not int:
+        raise ValueError("data-block runtime reference requires current owning source bytes")
+    try:
+        data = bytes.fromhex(str(row.get("bytes") or ""))
+    except ValueError as exc:
+        raise ValueError("data-block runtime reference requires valid owning source bytes") from exc
+    row_start = cast(int, row["start_offset"])
+    relative_offset = source_offset - row_start
+    if relative_offset < 0 or relative_offset + width > len(data):
+        raise ValueError("data-block runtime reference requires complete owning source bytes")
+    source_value = int.from_bytes(data[relative_offset:relative_offset + width], "big")
+    if source_value != ref.get("source_value"):
+        raise ValueError("data-block runtime reference source_value must match current owning source bytes")
+
+
+def _execute_manual_action_command(
+    project_name: str, action_id: str, context: Mapping[str, object],
+    rows: list[dict[str, object]], parameters: dict[str, object] | None, *,
+    workflow_profile: WorkflowProfile | None = None, interpretation: object = None,
+) -> dict[str, object]:
+    action_payloads = _prepare_manual_action_command(
+        project_name, action_id, context, rows, parameters, interpretation=interpretation)
+    return _apply_manual_action_commands(project_name,
+        [{"context": context, "action_payloads": action_payloads}], workflow_profile=workflow_profile)
+
+
+def _apply_manual_action_commands(
+    project_name: str, prepared: list[dict[str, object]], *,
+    workflow_profile: WorkflowProfile | None = None,
+) -> dict[str, object]:
+    action_entries = [(kind, payload, entry["context"]) for entry in prepared
+                      for kind, payload in entry["action_payloads"]]
+    action_payloads = [(kind, payload) for kind, payload, _ in action_entries]
     paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
     binary_source = resolve_target_binary_source(paths.target_dir)
     if binary_source is None:
         raise ValueError(f"Project {project_name} has no source binary")
-    if interpretation is not None:
-        action_payloads = [(kind, {**payload, "interpretation": interpretation}) for kind, payload in action_payloads]
+    _discard_listing_read_snapshot(project_name)
     append_started_at = time.perf_counter()
     appended_actions = append_manual_actions(
         paths.target_dir,
@@ -2732,7 +3005,7 @@ def _execute_manual_action_command(
     if workflow_profile is not None:
         workflow_profile.add_span("manual_action_append", time.perf_counter() - append_started_at, module="manual_action_log")
     application_parts: list[dict[str, object]] = []
-    for kind, action_payload in action_payloads:
+    for kind, action_payload, context in action_entries:
         application_started_at = time.perf_counter()
         try:
             application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
@@ -2763,7 +3036,8 @@ def _execute_manual_action_command(
                 detail={"mode": invalidation_mode},
             )
     mark_project_updated(paths.target_dir)
-    affected_locators = _affected_command_locators(context)
+    affected_locators = [locator for entry in prepared
+                         for locator in _affected_command_locators(entry["context"])]
     return {
         "action": appended_actions[0],
         "actions": appended_actions,
@@ -2772,7 +3046,7 @@ def _execute_manual_action_command(
             paths.target_dir,
             durable_action_id=str(appended_actions[-1].get("action_id") or ""),
             affected_locators=affected_locators,
-            projection_hash=_command_projection_hash(context),
+            projection_hash=_command_projection_hash(prepared[0]["context"]),
         ),
     }
 
@@ -2916,7 +3190,9 @@ def _manual_action_application_payload(
 ) -> dict[str, object]:
     local_effects: list[dict[str, object]] = []
     pending_ranges: list[dict[str, object]] = []
-    if kind == "create_manual_label":
+    if kind == "set_source_output_policy":
+        local_effects.append({"kind": "source_output_policy", "source_output_policy": action_payload["source_output_policy"]})
+    elif kind == "create_manual_label":
         label = action_payload.get("label")
         if isinstance(label, Mapping):
             local_effects.append(
@@ -3516,7 +3792,7 @@ def route_request(
     if len(parts) >= 3 and parts[:2] == ["api", "projects"] and parts[2] != "create":
         from amiga_reversing.disasm.target_history import target_lock
         directory = Path(get_project(parts[2]).target_dir)
-        with target_lock(directory):
+        with target_lock(directory), _listing_read_snapshot():
             return _route_request_unlocked(method, path, query, body)
     return _route_request_unlocked(method, path, query, body)
 
@@ -3924,10 +4200,13 @@ def _route_request_unlocked(
                 )
             listing_artifact = _listing_read_artifact(project_name)
             if listing_artifact is not None:
-                navigation_payload, _ = listing_artifact.navigation_payload()
+                navigation_payload, _ = _LISTING_PROJECTION_SERVICE.cached_native_navigation_payload(
+                    project_id=project_name, artifact=listing_artifact,
+                    current_cache_key=_project_listing_cache_key(project_name),
+                )
                 return {
                     "ok": True,
-                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload, listing_artifact),
+                    "data": _overlay_listing_navigation_payload(project_name, deepcopy(navigation_payload), listing_artifact),
                 }
             raise ValueError(
                 f"C listing artifact not loaded for project: {project_name}"

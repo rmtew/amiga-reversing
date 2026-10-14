@@ -50,4 +50,10 @@ def prepare_test_exe(source_path: Path) -> Path:
     shutil.copy2(source_path, copied_path)
     if not copied_path.exists():
         raise AssertionError(f"Failed to copy EXE: {copied_path}")
+    # Linux programs use $ORIGIN to locate the shared backend. Moving only the
+    # executable into the isolated test directory breaks that loader contract.
+    if os.name == "posix" and source_path.read_bytes()[:4] == b"\x7fELF":
+        backend = source_path.parent / "libamiga_backend.so"
+        if backend.exists():
+            shutil.copy2(backend, TEST_EXE_DIR / backend.name)
     return copied_path

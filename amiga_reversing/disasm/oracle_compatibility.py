@@ -134,17 +134,18 @@ def run_vasm_oracle(
     try:
         source_path = temp_root / f"{target_name}.s"
         output_path = temp_root / "rebuilt.bin"
+        if pre_rendered_source_text is None and pre_rendered_source_package is None:
+            rendered = _render_vasm_source(target_name, binary_source, paths.target_dir, project_root)
+            pre_rendered_source_text, pre_rendered_source_profile = rendered[:2]
+            pre_rendered_source_package = rendered[2] if len(rendered) > 2 else None
         if pre_rendered_source_package is not None:
             source_path = materialize_source_package(pre_rendered_source_package, temp_root / "package")
             rendered_source = source_path.read_bytes().decode("utf-8")
             if pre_rendered_source_text is not None and rendered_source != pre_rendered_source_text:
                 raise ValueError("Source text differs from source package entry point")
             source_profile_payload = dict(pre_rendered_source_profile or {})
-        elif pre_rendered_source_text is None:
-            rendered_source, source_profile_payload = _render_vasm_source(
-                target_name, binary_source, paths.target_dir, project_root,
-            )
         else:
+            assert pre_rendered_source_text is not None
             rendered_source = pre_rendered_source_text
             source_profile_payload = dict(pre_rendered_source_profile or {})
         if pre_rendered_source_package is None:
@@ -306,7 +307,7 @@ def _render_vasm_source(
     binary_source: BinarySource,
     target_dir: Path,
     project_root: Path,
-) -> tuple[str, dict[str, object]]:
+) -> tuple[str, dict[str, object], dict[str, Any] | None]:
     with effective_metadata_file(target_dir) as metadata_path:
         rendering = render_source_from_binary_source_or_raise(
             target_id=target_name,
@@ -316,7 +317,7 @@ def _render_vasm_source(
             project_root=project_root,
             workflow_id="oracle_compatibility_source_rendering",
         )
-        return rendering.source_text, rendering.listing_profile
+        return rendering.source_text, rendering.listing_profile, rendering.source_package
 
 
 def _render_devpac_source(

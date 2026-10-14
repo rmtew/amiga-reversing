@@ -46,10 +46,12 @@ def create_server(client: RestorationClient):
     def restoration_export(
         project: str, assembler_profile: Literal["vasm", "devpac"] = "vasm",
         binary_assets: bool = False, minimum_asset_size: int = 256,
+        structure_macros: bool = False,
     ) -> dict[str, object]:
         """Export source or a vasm ZIP package through the shared source-export operation. Export is not verification."""
         return call(project, "export", assembler_profile=assembler_profile,
-                    binary_assets=binary_assets, minimum_asset_size=minimum_asset_size)
+                    binary_assets=binary_assets, minimum_asset_size=minimum_asset_size,
+                    structure_macros=structure_macros)
 
     @server.tool(annotations=read, structured_output=True)
     def restoration_query(
@@ -62,6 +64,8 @@ def create_server(client: RestorationClient):
             "edges",
             "functions",
             "gaps",
+            "typed_pointers",
+            "memory_regions",
         ],
         expected_revision: str,
         query: str | None = None,
@@ -80,6 +84,7 @@ def create_server(client: RestorationClient):
         end_offset: int | None = None,
         symbol: str | None = None,
         struct_name: str | None = None,
+        exceptions_only: bool | None = None,
         field_offset: int | None = None,
         direction: Literal["incoming", "outgoing", "both"] | None = None,
         limit: int = 25,
@@ -96,6 +101,7 @@ def create_server(client: RestorationClient):
             "end_offset": end_offset,
             "symbol": symbol,
             "struct_name": struct_name,
+            "exceptions_only": exceptions_only,
             "field_offset": field_offset,
             "direction": direction,
             "limit": limit,
@@ -154,9 +160,35 @@ def create_server(client: RestorationClient):
         )
 
     @server.tool(annotations=write, structured_output=True)
+    def restoration_interpret_batch(
+        project: str, expected_revision: str, entries: list[dict],
+    ) -> dict[str, object]:
+        """Atomically apply 1–100 catalog interpretations from one inspected revision.
+
+        Each entry has command_id, context, parameters and evidence, as in interpret.
+        All evidence and catalog contexts are checked before any history changes.
+        """
+        return call(project, "interpret_batch", expected_revision=expected_revision, entries=entries)
+
+    @server.tool(annotations=write, structured_output=True)
     def restoration_verify(project: str, expected_revision: str) -> dict[str, object]:
         """Regenerate source and check exact reproduction; record a revision-bound receipt."""
         return call(project, "verify", expected_revision=expected_revision)
+
+    @server.tool(annotations=read, structured_output=True)
+    def restoration_memory_plan(project: str, expected_revision: str, region_id: str,
+                                destination: int, memory_class: Literal["chip", "slow", "fast"]) -> dict[str, object]:
+        """Get a native relocation proof/refusal; a preview does not execute an artifact."""
+        return call(project, "memory_plan", expected_revision=expected_revision, region_id=region_id,
+                    destination=destination, memory_class=memory_class)
+
+    @server.tool(annotations=write, structured_output=True)
+    def restoration_memory_build(project: str, expected_revision: str, region_id: str,
+                                 destination: int, memory_class: Literal["chip", "slow", "fast"],
+                                 verification_id: str) -> dict[str, object]:
+        """Build only from a closed native plan and current exact original receipt."""
+        return call(project, "memory_build", expected_revision=expected_revision, region_id=region_id,
+                    destination=destination, memory_class=memory_class, verification_id=verification_id)
 
     @server.tool(annotations=write, structured_output=True)
     def restoration_probe(
@@ -197,6 +229,21 @@ def create_server(client: RestorationClient):
             verification_id=verification_id,
             probe_id=probe_id,
         )
+
+    @server.tool(annotations=write, structured_output=True)
+    def restoration_review_batch(
+        project: str,
+        expected_revision: str,
+        action_ids: list[str],
+        decision: Literal["accept", "defer", "reject"],
+        reason: str,
+        verification_id: str | None = None,
+        probe_id: str | None = None,
+    ) -> dict[str, object]:
+        """Atomically review 1..100 distinct actions using one current proof and reason."""
+        return call(project, "review_batch", expected_revision=expected_revision,
+                    action_ids=action_ids, decision=decision, reason=reason,
+                    verification_id=verification_id, probe_id=probe_id)
 
     @server.tool(annotations=write, structured_output=True)
     def restoration_rollback(

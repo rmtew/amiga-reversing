@@ -18,6 +18,89 @@ class _Artifact:
         self.closed = True
 
 
+class _NavigationArtifact(_Artifact):
+    def __init__(self):
+        super().__init__()
+        self.navigation_calls = 0
+        self.fail_next_navigation = False
+
+    def navigation_payload(self):
+        self.navigation_calls += 1
+        if self.fail_next_navigation:
+            self.fail_next_navigation = False
+            raise RuntimeError("native navigation serialization failed")
+        return {"groups": {"labels": [{"name": "native_label"}]}}, {"native": True}
+
+
+def test_native_navigation_reused_only_for_owned_current_artifact():
+    service = ListingProjectionService()
+    artifact = _NavigationArtifact()
+    service.set_artifact(project_id="demo", cache_key="a", artifact=artifact)
+    first = service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="a")
+    assert service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="a") == first
+    assert artifact.navigation_calls == 1
+    service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="b")
+    assert artifact.navigation_calls == 2
+    assert service.debug_state()["native_navigation_cache_projects"] == []
+    replacement = _NavigationArtifact()
+    service.set_artifact(project_id="demo", cache_key="a", artifact=replacement)
+    service.cached_native_navigation_payload(project_id="demo", artifact=replacement, current_cache_key="a")
+    assert artifact.closed and replacement.navigation_calls == 1
+
+
+@pytest.mark.parametrize("operation", ["clear", "reset", "invalidate", "dirty", "global"])
+def test_native_navigation_released_at_artifact_invalidation(operation):
+    service = ListingProjectionService()
+    artifact = _NavigationArtifact()
+    service.set_artifact(project_id="demo", cache_key="a", artifact=artifact)
+    service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="a")
+    if operation == "clear":
+        service.clear_project("demo")
+    elif operation == "reset":
+        service.reset()
+    elif operation == "invalidate":
+        service.invalidate_project_keep_artifact("demo")
+    elif operation == "dirty":
+        service.mark_presentation_dirty("demo")
+    else:
+        service.invalidate_all_lazy()
+    assert service.debug_state()["native_navigation_cache_projects"] == []
+
+
+def test_native_navigation_failure_can_retry_without_partial_cache():
+    service = ListingProjectionService()
+    artifact = _NavigationArtifact()
+    artifact.fail_next_navigation = True
+    service.set_artifact(project_id="demo", cache_key="a", artifact=artifact)
+    with pytest.raises(RuntimeError, match="serialization failed"):
+        service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="a")
+    assert service.debug_state()["native_navigation_cache_projects"] == []
+    service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="a")
+    assert artifact.navigation_calls == 2
+
+
+def test_native_navigation_shared_under_target_lease(tmp_path):
+    from amiga_reversing.disasm.target_history import target_lock
+    service = ListingProjectionService()
+    artifact = _NavigationArtifact()
+    service.set_artifact(project_id="demo", cache_key="a", artifact=artifact)
+    barrier = threading.Barrier(2)
+    results = []
+
+    def read():
+        barrier.wait()
+        with target_lock(tmp_path):
+            results.append(service.cached_native_navigation_payload(project_id="demo", artifact=artifact, current_cache_key="a"))
+
+    threads = [threading.Thread(target=read) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=5)
+    assert all(not thread.is_alive() for thread in threads)
+    assert len(results) == 2 and artifact.navigation_calls == 1
+
+
 def test_listing_projection_service_owns_artifact_cache_lifecycle() -> None:
     service = ListingProjectionService()
     old_artifact = _Artifact()
@@ -380,3 +463,34 @@ def test_listing_projection_rejects_ambiguous_stale_locator() -> None:
         )
 
     assert exc.value.code == "ambiguous_locator"
+
+
+def test_failed_listing_poll_preserves_error_until_retry_or_revision_change() -> None:
+    service = ListingProjectionService()
+    jobs: dict[str, dict[str, object]] = {}
+    started: list[tuple[str, str]] = []
+    lock = threading.Lock()
+
+    def start(cache_key: str, *, retry_failed: bool = False) -> dict[str, object]:
+        return service.start_listing_job(
+            project_id="demo", cache_key=cache_key, jobs=jobs, lock=lock,
+            job_kind="listing_artifact", phase_count=2, now=lambda: 1.0,
+            make_job_id=lambda: f"job-{len(started)}", total_rows=lambda: None,
+            prewarm=lambda: None, on_ready=lambda: None,
+            start_worker=lambda job_id, project: started.append((job_id, project)),
+            retry_failed=retry_failed,
+        )
+
+    first = start("revision-a")
+    jobs[str(first["job_id"])].update(status="failed", error="native parser rejected input")
+    for _ in range(3):
+        polled = start("revision-a")
+        assert polled["status"] == "failed"
+        assert polled["error"] == "native parser rejected input"
+    assert len(started) == 1
+    assert start("revision-a", retry_failed=True)["status"] == "queued"
+    assert len(started) == 2
+    assert start("revision-a")["status"] == "queued"
+    assert len(started) == 2
+    assert start("revision-b")["status"] == "queued"
+    assert len(started) == 3

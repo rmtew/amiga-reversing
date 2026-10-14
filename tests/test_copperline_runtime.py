@@ -122,6 +122,20 @@ def test_capture_register_relative_and_bounds():
             runtime.capture_scenario_state(c, {"memory_reads": [read]})
 
 
+def test_capture_status_register_observes_carry_without_accepting_other_controls():
+    c = Client()
+    c.regs["sr"] = 0x2001
+    assert runtime.capture_scenario_state(c, {"registers": ["a5", "sr"]})[
+        "registers"
+    ] == {
+        "a5": "0x00002000",
+        "sr": "0x00002001",
+    }
+    for name in ("pc", "ccr", "control"):
+        with pytest.raises(ValueError, match="Capture"):
+            runtime.capture_scenario_state(c, {"registers": [name]})
+
+
 def scenario():
     return {
         "identifier": "test",
@@ -399,3 +413,243 @@ def test_marker_write_only_stops_on_first_write_and_polling_avoids_watch():
     c.memory[0x5000:0x5004] = b"HAND"
     assert runtime.wait_for_marker(c, 0x5000, b"HAND", 1, write_watch=False)["matched"]
     assert not any(k == "break.add" for k, _ in c.calls)
+
+
+class OccurrenceClient(Client):
+    def __init__(self, payload, clock=None):
+        super().__init__(payload)
+        self.visits = 0
+        self.steps = 0
+        self.clock = clock
+        self.timeouts = []
+
+    def request(self, method, params=None, *, timeout=None):
+        if method == "step":
+            self.calls.append((method, params))
+            self.steps += 1
+            self.regs["pc"] += 2
+            if self.clock is not None:
+                self.clock[0] += 0.1
+            return {"reason": "step"}
+        return super().request(method, params)
+
+    def run_until(self, params, timeout):
+        self.timeouts.append(timeout)
+        # A run at the already-matching PC makes no progress, matching the real
+        # isolated Copperline transport probe. Only departed visits are counted.
+        if self.regs["pc"] != params["pc"]:
+            self.visits += 1
+            self.regs["d0"] = self.visits
+        if self.clock is not None:
+            self.clock[0] += 0.41
+        return super().run_until(params, timeout)
+
+
+def counted_scenario(count=3):
+    s = scenario()
+    s["phases"] = [s["phases"][0]]
+    s["input_events"] = []
+    s["phases"][0].update(
+        stable_key="s0:00000200:instruction",
+        occurrences=count,
+        capture_first=True,
+        capture={"registers": ["d0"]},
+    )
+    return s
+
+
+def test_occurrences_depart_and_validate_each_visit_with_first_and_last_capture(
+    tmp_path, monkeypatch
+):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    identities = []
+    original = runtime.payload_at_pc
+
+    def identify(*args):
+        identities.append(c.visits)
+        return original(*args)
+
+    monkeypatch.setattr(runtime, "payload_at_pc", identify)
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["status"] == "hit"
+    assert phase["occurrences_observed"] == phase["occurrences_requested"] == 3
+    assert identities == [1, 2, 3] and c.steps == 2
+    assert phase["first_capture"]["registers"]["d0"] == "0x00000001"
+    assert phase["capture"]["registers"]["d0"] == "0x00000003"
+    assert "visits" not in phase  # No unbounded per-visit capture list.
+
+
+def test_consecutive_matching_phases_depart_before_first_counted_visit(tmp_path):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    s = counted_scenario(1)
+    second = dict(s["phases"][0], name="next", occurrences=2)
+    s["phases"].append(second)
+    result = runtime.run_scenario(c, s, p)["phases"]
+    assert [x["occurrences_observed"] for x in result] == [1, 2]
+    assert c.visits == 3 and c.steps == 2
+
+
+def test_occurrence_budget_is_shared_and_partial_last_capture_survives(
+    tmp_path, monkeypatch
+):
+    p = payload(tmp_path)
+    clock = [0.0]
+    monkeypatch.setattr(runtime.time, "monotonic", lambda: clock[0])
+    c = OccurrenceClient(p.read_bytes(), clock)
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["status"] == "timeout" and phase["termination"] == "phase_deadline"
+    assert phase["occurrences_observed"] == 2 and len(c.timeouts) == 2
+    assert c.timeouts[1] < c.timeouts[0]
+    assert phase["capture"]["registers"]["d0"] == "0x00000002"
+    assert c.calls[-2:] == [("joy", {"port": 1}), ("joy", {"port": 2})]
+
+
+def test_occurrence_identity_failure_does_not_count_or_capture_wrong_visit(
+    tmp_path, monkeypatch
+):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    original = runtime.payload_at_pc
+
+    def identify(*args):
+        result = original(*args)
+        if c.visits == 2:
+            result["payload_offset"] = "0x202"
+        return result
+
+    monkeypatch.setattr(runtime, "payload_at_pc", identify)
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["termination"] == "payload_identity_mismatch"
+    assert phase["occurrences_observed"] == 1 and c.visits == 2
+    assert phase["capture"]["registers"]["d0"] == "0x00000001"
+
+
+def test_occurrence_unchanged_pc_fails_after_one_departure_attempt(tmp_path):
+    p = payload(tmp_path)
+
+    class Parked(OccurrenceClient):
+        def request(self, method, params=None, *, timeout=None):
+            if method == "step":
+                self.steps += 1
+                return {"reason": "step"}
+            return super().request(method, params, timeout=timeout)
+
+    c = Parked(p.read_bytes())
+    c.regs["pc"] = 0x1200
+    phase = runtime.run_scenario(c, counted_scenario(), p)["phases"][0]
+    assert phase["termination"] == "pc_departure_failed"
+    assert c.steps == 1 and c.visits == phase["occurrences_observed"] == 0
+
+
+@pytest.mark.parametrize("value", [0, 65, True, "2", 1.5])
+def test_occurrences_reject_invalid_bounds_at_runtime(tmp_path, value):
+    p = payload(tmp_path)
+    with pytest.raises(ValueError, match="occurrences"):
+        runtime.run_scenario(
+            OccurrenceClient(p.read_bytes()), counted_scenario(value), p
+        )
+
+
+def test_overlapping_keyboard_holds_release_once_and_cleanup_after_failure(tmp_path):
+    p=payload(tmp_path); c=Client(p.read_bytes())
+    def key(rawkey,*,pressed): c.calls.append(('key',(rawkey,pressed)))
+    c.key=key
+    s=scenario();s['input_events'][0]['control']='key 11'
+    s['input_events'].append(dict(s['input_events'][0]))
+    result=runtime.run_scenario(c,s,p)
+    assert all(phase['status']=='hit' for phase in result['phases'])
+    assert [v for k,v in c.calls if k=='key']==[(11,True),(11,False)]
+    c.calls=[]
+    def failing_key(rawkey,*,pressed):
+        key(rawkey,pressed=pressed)
+        if pressed: raise CopperlineError('lost press response')
+    c.key=failing_key
+    with pytest.raises(CopperlineError,match='lost press'):
+        runtime.run_scenario(c,s,p)
+    assert [v for k,v in c.calls if k=='key']==[(11,True),(11,False)]
+
+
+def materialization_contract(p):
+    from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract
+    return DirectPayloadContract('test', 'target', hashlib.sha256(p.read_bytes()).hexdigest(),
+        0x1000, 0x1000, {}, 0x5000, 0x48414E44,
+        materialization={'source_offset': 0, 'size': len(p.read_bytes()),
+            'runtime_address': 0x11000, 'entry_source_offset': 0,
+            'source_consumed_at_entry': True}, initialization=(0x18000, b'\x00\x40'))
+
+
+def test_materialization_verifies_whole_copy_then_exact_init_and_anchor(tmp_path):
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    c.memory[0x11000:0x11000+len(p.read_bytes())] = p.read_bytes()
+    report = runtime.prepare_materialization(c, materialization_contract(p), p, 2)
+    assert report['materialization']['size'] == len(p.read_bytes())
+    assert report['materialization']['initialization']['bytes'] == '0040'
+    assert c.read_memory(0x18000, 4) == b'\x00\x40\x00\x00'
+    assert c.calls[-1][0] == 'reverse_anchor'
+    assert len([x for x in c.calls if x[0] == 'run']) == 1
+
+
+@pytest.mark.parametrize('failure', ['stop', 'wrong_pc', 'copy', 'readback'])
+def test_materialization_refuses_before_resume_on_failed_phase(tmp_path, failure):
+    p = payload(tmp_path)
+    class FaultClient(Client):
+        def run_until(self, params, timeout):
+            result = super().run_until(params, timeout)
+            if failure == 'wrong_pc':
+                self.regs['pc'] += 2
+            return result
+        def request(self, method, params=None):
+            result = super().request(method, params)
+            if failure == 'readback' and method == 'mem.write' and params['addr'] == 0x18000:
+                self.memory[0x18000] ^= 1
+            return result
+    c = FaultClient(p.read_bytes())
+    c.memory[0x11000:0x11000+len(p.read_bytes())] = p.read_bytes()
+    if failure == 'stop':
+        c.stop = {'reason': 'double_fault'}
+    if failure == 'copy':
+        c.memory[0x11100] ^= 1
+    with pytest.raises(CopperlineError):
+        runtime.prepare_materialization(c, materialization_contract(p), p, 2)
+    writes = [x for x in c.calls if x[0] == 'mem.write' and x[1]['addr'] == 0x18000]
+    assert len(writes) == (1 if failure == 'readback' else 0)
+    assert len([x for x in c.calls if x[0] == 'run']) == 1
+    assert c.calls[-1][0] != 'reverse_anchor'
+
+
+@pytest.mark.parametrize('mode', ['free', 'breakpoint', 'scenario'])
+def test_observe_materializes_and_initializes_once_before_every_observation_path(tmp_path, monkeypatch, mode):
+    import json
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    c.memory[0x11000:0x11000+len(p.read_bytes())] = p.read_bytes()
+    c.memory[0x5000:0x5004] = b'HAND'
+    fake_process(monkeypatch, c)
+    monkeypatch.setattr(runtime, 'load_contract', lambda _: materialization_contract(p))
+    options = {'direct_payload_contract': 'test'}
+    if mode == 'breakpoint':
+        options['breakpoint_runtime_address'] = 0x11000
+    elif mode == 'scenario':
+        s = tmp_path/'scenario.json'
+        s.write_text(json.dumps(scenario()))
+        options['scenario_path'] = s
+    report = runtime.observe(fake_session(tmp_path, p, **options))
+    writes = [(i, v) for i, (k, v) in enumerate(c.calls) if k == 'mem.write']
+    assert [v['addr'] for _, v in writes] == [0x5000, 0x18000]
+    after_init = c.calls[writes[-1][0]+1:]
+    assert after_init[0][0] == 'reverse_anchor'
+    assert any(k == 'run' for k, _ in after_init)
+    assert report['observation']['reverse_boundary']['materialization']['initialization']['readback_verified']
+
+
+def test_named_custom_register_capture_uses_read_only_chipset_inspection():
+    c = Client()
+    result = runtime.capture_scenario_state(c, {'custom_registers': ['AUD0VOL', 'DMACON']})
+    assert list(result['custom_registers']) == ['AUD0VOL', 'DMACON']
+    assert c.calls == [('custom.read', {'reg': 'AUD0VOL'}), ('custom.read', {'reg': 'DMACON'})]
+    for custom in [['AUD0VOL']*17, ['mem.write'], [12]]:
+        with pytest.raises(ValueError, match='custom registers'):
+            runtime.capture_scenario_state(c, {'custom_registers': custom})

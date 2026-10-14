@@ -8,6 +8,9 @@
 #include <stdint.h>
 
 #define M68K_RENDER_PLAN_NO_SECTION UINT32_MAX
+#define M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY 96U
+/* Two complete symbol names, a relative/key suffix, and the terminator. */
+#define M68K_RENDER_PLANNED_EXPRESSION_TEXT_CAPACITY (2U * M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY + 8U)
 
 typedef struct Arena Arena;
 
@@ -72,9 +75,9 @@ typedef struct M68kRenderPlannedExpression {
   uint8_t has_base_addend;
   uint8_t requires_declaration;
   uint8_t has_relative_key;
-  char expression[96];
-  char target_symbol[96];
-  char base_symbol[96];
+  char expression[M68K_RENDER_PLANNED_EXPRESSION_TEXT_CAPACITY];
+  char target_symbol[M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY];
+  char base_symbol[M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY];
   char reason[96];
 } M68kRenderPlannedExpression;
 
@@ -121,7 +124,8 @@ typedef struct M68kRenderPlannedLabel {
   uint32_t runtime_address;
   uint8_t has_runtime_address;
   uint8_t has_storage_label;
-  uint8_t reserved[2];
+  uint8_t name_is_generated;
+  uint8_t reserved;
   char name[96];
   char storage_name[96];
 } M68kRenderPlannedLabel;

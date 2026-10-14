@@ -8,5 +8,12 @@
     "a1": "0x20000"
   },
   "handoff_marker_address": "0x7fff8",
-  "handoff_marker_value": "0x48414e44"
+  "handoff_marker_value": "0x48414e44",
+  "materialization": {
+    "source_offset": 0,
+    "size": 349040,
+    "runtime_address": 65536,
+    "entry_source_offset": 1130,
+    "source_consumed_at_entry": true
+  }
 }

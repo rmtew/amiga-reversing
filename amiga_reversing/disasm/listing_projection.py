@@ -66,6 +66,9 @@ class ListingProjectionService:
         self._cache_keys: dict[str, str] = {}
         self._presentation_dirty: set[str] = set()
         self._review_items_cache: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
+        self._native_navigation_cache: dict[
+            str, tuple[str, int, dict[str, object], dict[str, object]]
+        ] = {}
         self._row_indexes: dict[
             str,
             tuple[
@@ -81,6 +84,7 @@ class ListingProjectionService:
             "cache_keys": dict(sorted(self._cache_keys.items())),
             "presentation_dirty_projects": sorted(self._presentation_dirty),
             "review_item_cache_projects": sorted(self._review_items_cache),
+            "native_navigation_cache_projects": sorted(self._native_navigation_cache),
             "row_index_projects": sorted(self._row_indexes),
         }
 
@@ -92,6 +96,7 @@ class ListingProjectionService:
         for project_id in self._cache_keys:
             self._cache_keys[project_id] = "invalidated"
         self._presentation_dirty.clear()
+        self._native_navigation_cache.clear()
 
     def reset(self) -> None:
         for artifact in self._artifacts.values():
@@ -100,6 +105,7 @@ class ListingProjectionService:
         self._cache_keys.clear()
         self._presentation_dirty.clear()
         self._review_items_cache.clear()
+        self._native_navigation_cache.clear()
         self._row_indexes.clear()
 
     def clear_project(self, project_id: str) -> None:
@@ -109,6 +115,7 @@ class ListingProjectionService:
         self._cache_keys.pop(project_id, None)
         self._presentation_dirty.discard(project_id)
         self._review_items_cache.pop(project_id, None)
+        self._native_navigation_cache.pop(project_id, None)
         self._row_indexes.pop(project_id, None)
 
     def invalidate_project_keep_artifact(self, project_id: str) -> None:
@@ -119,10 +126,12 @@ class ListingProjectionService:
             self._cache_keys.pop(project_id, None)
             self._presentation_dirty.discard(project_id)
         self._review_items_cache.pop(project_id, None)
+        self._native_navigation_cache.pop(project_id, None)
         self._row_indexes.pop(project_id, None)
 
     def mark_presentation_dirty(self, project_id: str) -> None:
         self._presentation_dirty.add(project_id)
+        self._native_navigation_cache.pop(project_id, None)
 
     def is_presentation_dirty(self, project_id: str) -> bool:
         return project_id in self._presentation_dirty
@@ -139,6 +148,7 @@ class ListingProjectionService:
         self._artifacts[project_id] = artifact
         self._presentation_dirty.discard(project_id)
         self._review_items_cache.pop(project_id, None)
+        self._native_navigation_cache.pop(project_id, None)
         self._row_indexes.pop(project_id, None)
         if old_artifact is not None and old_artifact is not artifact:
             _close_artifact(old_artifact)
@@ -209,6 +219,31 @@ class ListingProjectionService:
         self._review_items_cache[project_id] = (cache_key, artifact_id, items)
         return items
 
+    def cached_native_navigation_payload(
+        self, *, project_id: str, artifact: object, current_cache_key: str,
+    ) -> tuple[dict[str, object], dict[str, object]]:
+        """Read native-only navigation under the caller's target lease.
+
+        The caller validates a fresh content-derived cache key on every operation.
+        Returned dictionaries are shared native snapshots: copy before applying
+        mutable presentation/review overlays or attaching fields to mutable rows.
+        Dirty presentation reads keep their existing behavior without caching.
+        """
+        navigation = getattr(artifact, "navigation_payload")  # noqa: B009 - dynamically supplied artifact protocol
+        if (self._artifacts.get(project_id) is not artifact
+                or self._cache_keys.get(project_id) != current_cache_key
+                or project_id in self._presentation_dirty):
+            self._native_navigation_cache.pop(project_id, None)
+            return navigation()
+        cached = self._native_navigation_cache.get(project_id)
+        if cached is not None and cached[:2] == (current_cache_key, id(artifact)):
+            return cached[2], cached[3]
+        payload, profile = navigation()
+        self._native_navigation_cache[project_id] = (
+            current_cache_key, id(artifact), payload, profile,
+        )
+        return payload, profile
+
     def projection_hash(self, *, project_id: str, current_cache_key: str) -> str:
         cached_key = self._cache_keys.get(project_id)
         return cached_key if cached_key == current_cache_key else current_cache_key
@@ -263,6 +298,7 @@ class ListingProjectionService:
         prewarm: Callable[[], None],
         on_ready: Callable[[], None],
         start_worker: Callable[[str, str], None],
+        retry_failed: bool = True,
     ) -> dict[str, object]:
         if self.cache_satisfies_listing(project_id, cache_key):
             prewarm()
@@ -293,14 +329,19 @@ class ListingProjectionService:
             return payload
 
         with lock:
+            failed_job = None
             for job in jobs.values():
                 if (
                     job.get("job_kind") == job_kind
                     and job.get("project_id") == project_id
                     and job.get("cache_key") == cache_key
-                    and job.get("status") in {"queued", "building"}
                 ):
-                    return dict(job)
+                    if job.get("status") in {"queued", "building"}:
+                        return dict(job)
+                    if job.get("status") == "failed":
+                        failed_job = job
+            if failed_job is not None and not retry_failed:
+                return dict(failed_job)
             job_id = make_job_id()
             jobs[job_id] = {
                 "job_id": job_id,

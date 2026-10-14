@@ -45,7 +45,7 @@ may surface as missing capability during 015 target work: RSSET bind-refine and
 same-flow/same-displacement cascades, API argument/return/stored-state
 propagation, propagated typed-field cleanup, data-block generated
 type-flow/review cleanup, target-side inbound interpreted-reference xrefs, and
-non-absolute interpreted-reference kinds.
+other non-absolute interpreted-reference kinds.
 
 ## Source-Converging Work
 
@@ -76,16 +76,17 @@ Current audit result:
 | Editing family | Category | Evidence source | Manual action shape | Reconciliation / cascade policy | Owner / cleanup requirement | Verifier gate | Future/deferred scope |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Comments and review notes | Presentation-only | Listing row/range locators and review item ids | `create/remove_manual_comment`, `add/edit/clear_review_note`, `resolve_review_item` | Local workflow/source annotation only. Use only when no structured fact fits. | Remove/comment or note/review id only; no analysis descendants. | Projected comment or note state; no type-flow/xref verifier. | Keep fallback-only in planner. |
+| Source output policy | Presentation-only | Current target revision and existing native data roles | `set_source_output_policy` via `target.source_output.configure` | Inline by default; binary assets use the existing native asset planner without changing classifications. Undo restores the previous active policy. | Singleton Manual Action Log owner; companion manifest owns generated files only. | Effective policy reload, protected publication, deterministic package identity, full-file C and vasm exactness. | No force-by-size or semantic inference. |
 | Literal representation | Presentation-only unless symbolic | Operand/data element locators, source range, operand index | `create/remove_manual_representation`, data-block element representation | Local rendering choice for hex/binary/char/string. Symbolic use-site representation becomes semantic only when backed by semantic hint, target EQU, or interpreted ref. | Representation id/element identity only unless symbolic projection is generated from another owner. | Rendered text plus exact round-trip. | Separate pure display from symbolic semantic owners in verifier reports. |
 | Label and entrypoint names | Source identity | Facts v2 code starts/control targets, seeded labels, source descriptors, review labels | `create/remove/rename_manual_label`, `change_label_scope` | Rename/create source identities. May be xref-aware for candidate mining but should not create type-flow. | Label id or hunk/source/runtime identity; no cascade identity unless later label action creates derived semantic facts. | Manual label state, rendered row, exact round-trip. | Broaden autonomous feeds beyond entrypoint evidence. |
 | Data/global symbols | Source identity, sometimes xref-facing | Data rows, seeded entities, runtime-address refs, data classes, internal data refs | `rename_data_symbol`, named data seeds, seeded-item suppression for removal | Render definitions and use sites; may consume xref evidence but normally does not propagate type facts. | Target hunk/range or seeded item identity; removal suppresses only selected seeded item. | Durable data-symbol payload, semantic seed replay, projected data symbol or suppression state, plus exact round-trip. | Future: broader data/global use-site workflows beyond current naming surface. |
 | Code/data classification and data roles | Classification/layout | Facts v2 decode/data spans, review items, listing row/range bytes | `create/remove_manual_seed` with code/data role/unit/encoding | Reclassifies source ranges and rendered directives. Can invalidate decode/data descendants and produce review conflicts. | Seed id/range identity; conflicting descendants must be recomputed or owned before cleanup. | Manual seed state/removal plus exact round-trip. | Broaden planner feeds only with type-specific evidence. |
 | Data-block scalar layouts | Classification/layout | Data ranges, existing data roles, source bytes, active layout context | `create/edit/remove_manual_data_block_layout`, `set/remove/represent_manual_data_block_element` | Splits opaque ranges into elements and projections. Scalar rendering is supported; type/domain binding remains separate. | Layout id plus element offset; removal restores raw/gap state. | Layout/element state, exact directive/value render checks, exact round-trip. | Future: gap-specific rendering refinements and deeper type/platform binding. |
-| Interpreted data refs | Layout plus xref-facing semantic | Data-block elements, decoded source bytes, target locators, runtime-address refs | `interpret/remove_manual_data_block_element_ref` | Converts proven byte/word/long values into symbolic refs and source-owned xrefs. | Interpreted-ref id owns symbol projection and source-owned runtime ref; cleanup must match layout/element/source value. | Ref state, symbolic render, source-owned xref cleanup, exact round-trip. | Future: target-side inbound xrefs and non-absolute references. |
+| Interpreted data refs | Layout plus xref-facing semantic | Data-block elements, decoded source bytes, target locators, runtime-address refs | `interpret/remove_manual_data_block_element_ref` | Converts proven byte/word/long values into symbolic refs and source-owned xrefs. | Interpreted-ref id owns symbolic output and canonical source-owned references; cleanup must match layout/element/source value. | Ref state, symbolic render, source-owned xref cleanup, exact round-trip. | Signed16 scale-one same-section base-displacement refs use canonical base/target identities and native symbolic differences, including owner-scoped inbound/outbound roles. Other non-absolute kinds remain future work. |
 | Target EQU/constants | Mixed display and semantic | Target-local EQU table, NDK/equate lookup, immediate operands | `create/rename/remove_manual_target_equate`, semantic equate hints | EQU definitions and symbolic use sites are semantic; EQU definition value style is presentation-only and now durable. | Equate name identity; rename/remove updates owned symbolic use-site representations; semantic hints preserve consumed evidence when selected/planner context supplies it. | Target-equate state, rendered definition value style, or semantic-hint state plus exact round-trip; provenance-backed semantic hints compare consumed evidence on semantic reload and skip checks. | Broader semantic/equate provenance remains separate. |
 | API/LVO/register semantics | Semantic/type | LVO rows, NDK library/function metadata, selected register/memory operand contexts, typed-access analysis | `create/remove_manual_semantic_hint`, `create/remove_manual_register_seed` | Consumes API/register evidence and can seed library bases, struct pointers, LVO/field symbols, typed args/returns, and stored state. | Register seed/hint id; library-base, semantic hints, and selected typed struct-pointer register seeds now preserve consumed provenance; future propagated args/returns/type-flow need owner identity and cleanup. | Semantic hint or register-seed state plus exact round-trip; provenance-backed hints/register seeds also compare consumed evidence on semantic reload; broader type-flow verifier missing. | Future: API arg/return/stored-state propagation and broader evidence-scoped lifetimes. |
 | RSSET/app-slot regions and bindings | Semantic/type plus layout | App-slot refs, app-slot analysis, RSSET regions/gaps, raw displacement operand parts, register/base evidence | `create/remove_manual_rsset_layout_region`, `create/remove_manual_rsset_use_site_binding`; refine/type actions planned | Regions render `RS.*`; binding links selected numeric uses to a proven base/layout. Flow-equivalent same-displacement candidates are planned, not automatic. | Region identity `(layout_name, base_symbol, offset)`; binding id plus `owner_action_id` and future cascade ids for same-displacement/xref/type descendants. | RSSET region/binding state, selected-use render or ref-only/raw cleanup state, and exact round-trip. | Future: flow-derived base evidence, bind-refine, type/xref descendants, owned cascades. |
-| Custom structs and typed fields | Semantic/type | Custom struct metadata, typed gaps/accesses, NDK/platform structs, unresolved typed access analysis | `create/rename/remove_manual_custom_struct(_field)` via target/typed commands | Effective metadata can store structs/fields; the C resolver now consumes register-seed-backed custom structs for rendered field paths. | Struct name and `(struct_name, offset)` field identity; selected typed-field writes carry consumed `struct_pointer` provenance, `parent_evidence_ids`, and projected custom-field owner/cleanup action ids; propagated typed accesses need descendant owner identity. | Selected typed-field commands now prove accepted provenance, complete selected-field identity replay with matching consumed evidence/owner, rendered selected access, and exact round-trip. Target-wide metadata commands and propagated cleanup remain blocked. | Future: propagated typed-access cleanup and explicit namespace selection. |
+| Custom structs and typed fields | Semantic/type | Custom struct metadata, typed gaps/accesses, NDK/platform structs, unresolved typed access analysis | `create/rename/remove_manual_custom_struct(_field)` via target/typed commands | Effective metadata can store structs/fields; the C resolver now consumes register-seed-backed custom structs for rendered field paths. Ordinary source postincrement reads use decoded transfer width and the pre-update field cursor within a known record or declared array; field names remain comments. Pointer-table cells, A7, predecrement, multiple updates, same-base reuse, unknown widths and conflicting/out-of-root cursors remain conservative. | Struct name and `(struct_name, offset)` field identity; selected typed-field writes carry consumed `struct_pointer` provenance, `parent_evidence_ids`, and projected custom-field owner/cleanup action ids; propagated typed accesses need descendant owner identity. | Selected typed-field commands now prove accepted provenance, complete selected-field identity replay with matching consumed evidence/owner, rendered selected access, and exact round-trip. Target-wide metadata commands and propagated cleanup remain blocked. | Future: propagated typed-access cleanup and explicit namespace selection. |
 | Data-block type/platform binding | Semantic/type | Data-block layouts/elements, custom/platform structs, enum/equate domains, parsed include data | Row bind/clear type commands for element-scoped bindings; custom/platform struct bindings expand into typed seeded field entities; scalar domain bindings project `value_domain` for symbolic values | Should propagate typed facts, rendered nested fields, review items, and interpreted field refs only after type shape reconciles. | Layout id + element offset + type-binding id; active bindings stamp `owner_action_id`; clear-type preserves the previous binding with `cleanup_action_id`; all derived facts owner-scoped. Consumed provenance includes `parent_evidence_ids`. Current struct/domain seeded entities carry the binding id, owner action, consumed evidence id, and parent ids; generated type-flow/review descendants still need dedicated owner fields. | Bind/clear loop path verifies complete nested binding identity, matching type-binding owner/cleanup, rendered bound-type token proof, binding-owned seeded descendants, accepted consumed provenance where present, typed field render for custom/platform structs, symbolic scalar domain render, and exact round-trip; generated type-flow/review cleanup verifier remains missing. | Future: generated type-flow/review descendants and cleanup verification. |
 | Corrections and execution views | Correction/view | Suppressible seeded metadata, target corrections, runtime/execution view evidence, reproduction mismatches | `suppress_seeded_item`, `create/remove_manual_execution_view` | Correct target-specific facts or runtime mapping. Importer/analyzer class bugs must remain upstream bugs. | Suppression `(kind,hunk,addr)` or execution-view identity plus `(source_start, source_end, base_addr)` replay key; execution views carry owner/cleanup action ids; cleanup must not remove unrelated facts. | Suppressed-item or execution-view state, including view owner/cleanup ids; seeded-item suppression also checks affected listing rows no longer expose the suppressible seeded item; exact round-trip remains required. | Future: broader reproduction/view correction commands. |
 | Planner/autonomous feeds | Candidate surface | Inspect candidates, listing pages, navigation analysis, effective metadata, command availability | No private action; must route to catalog commands | Candidate feeds may propose only supported, verifier-backed edits. Report-only feeds are valid for unsupported semantic/type families. | Already-satisfied skips must use projected/effective state; generated candidates need source evidence identity. | Action-specific verifier required before non-dry execution. | Audit every new feed against this table before widening. |
@@ -285,7 +286,7 @@ reopening the deleted 014 issue files.
 | `014-013` | Correction/view owner | Owns target-specific suppressions/views and cleanup semantics; analyzer/importer class bugs stay upstream bugs, not manual suppressions. |
 | `014-014` | Data/global symbol owner | Owns broader data/global definition and use-site workflows. These are xref-aware source identities, not type-flow unless another semantic owner is introduced. |
 | `014-016` / `014-017` | Data-block metadata and scalar render slices | Completed scalar layout/element work remains classification/layout. Type/domain binding stays separate. |
-| `014-018` | Interpreted data refs | Completed for absolute byte/word/long refs with source-owned xrefs. Target-side inbound refs and non-absolute/type-derived refs remain out of scope. |
+| `014-018` | Interpreted data refs | Completed for absolute byte/word/long refs and explicit signed16 scale-one same-section base-displacement refs. The latter preserve unsigned encoded bits, canonical base/target identities, word-array entries and owner-scoped base/target xrefs. Other non-absolute/type-derived refs remain out of scope. |
 | `014-019` | Data-block type/platform binding owner | Owns type/domain binding, nested/platform struct rendering, generated type-flow/review items, and removal verification. |
 
 Initial semantic/type reconciliation findings:
@@ -1760,6 +1761,79 @@ The historical implementation issue mapping was:
 - If work discovers a missing verifier, missing durable identity, stale smoke,
   or metadata-only path, record it in a new focused issue before continuing
   broad planner expansion.
+
+## Deferred scoped constant expressions
+
+Assessment: 2026-10-13. Typed data literals already expose exact field-local
+byte, word and long identities through canonical `ManualRepresentation`.
+`representation.symbol` resolves one existing target or platform constant;
+native policy stores its ID. A composite expression belongs to this same
+presentation fact, rather than a separate target expression registry.
+
+The coherent extension needs bounded single-line syntax and lossless Python and
+native metadata codecs, shared constant-parser lookup over policy EQU and
+platform constants, and width-aware comparison with the actual encoded bytes.
+Validation must run before history append and again before native emission.
+EQU rename/removal must update or remove dependent expressions by symbol token,
+and split data ranges must not emit a full-width expression for a shorter chunk.
+Positive tests should cover typed byte/word/long fields, known flag combinations
+with numeric residual bits, replay and rename/removal; refusal tests should
+preserve history on unknown names, value/width mismatch or injected source.
+
+The present atomic append transaction replays candidates but validates only
+changed native comments. Effective metadata application reloads persisted
+history. Candidate projection preflight therefore needs to be factored into
+that canonical transaction first; a server-only check would leave direct
+producers unvalidated. This is a deferred capability, not a small renderer-only
+addition. Existing single-constant field representations remain supported.
+Future expression fixtures must also account for the existing native/vasm
+precedence difference between arithmetic and shifts by using explicit
+parentheses; adding operators does not silently redefine the old grammar.
+
+## Deferred serialized runtime pointers in data elements
+
+Update: 2026-10-13. Canonical typed fields now support shared `mapped_source`
+and `runtime_only` pointer domains, using native view resolution and bounded
+runtime symbol namespaces. The known script-pointer family is promoted through
+its schema, so the two examples below now render symbolically without an
+individual reference action. The per-instance interpreted-ref producer and
+projection limitation described below remains deferred; the new field path
+must not be mistaken for a relaxation of that command. See
+[framework validation](../validation/typed-structure-framework-2026-10-13.md).
+
+Assessment: 2026-10-13. The current absolute data-element reference command
+requires decoded `source_value == target_offset`. Its effective projection also
+sets the native reference's `runtime_address` from `target_offset`. This
+collapses the encoded address and canonical source identity. It works for the
+currently supported flat-address cases, but cannot describe a copied runtime
+pointer whose target has a different source offset.
+
+The player movement script provides two concrete cases: stored `$195E2` targets
+accepted code at source `$95E2`; stored `$5C312` targets its own script at source
+`$4C312`. The latter's primary loader data locator reports `$6C312`, while
+inspected native copy-view and absolute-writer facts corroborate the copied
+address `$5C312`. Substituting an encoded runtime value as a source offset would
+attach the reference to the wrong source. These two reference actions were not
+applied in the original assessment; shared schema pointer semantics now resolve
+them while preserving their original encoded values.
+
+The next focused extension should use the existing canonical interpreted-ref
+owner and native view/source resolver to validate encoded runtime value and
+target source identity separately. Preserve that separation through symbolic
+projection, source-owned xrefs and cleanup; require emitted symbol values to
+match the stored bytes. Do not introduce a second mapping store or a fixed
+target-specific base subtraction. Cover flat and zero-offset cases, unique
+copied/base-shifted mappings, conflicting or inactive views, owner cleanup and
+full C/vasm output. Producer-only relaxation would leave the projection wrong.
+
+Layout roles also project into seeded-entity `subtype`, whose native codec
+accepts at most 63 bytes. A layout-only stage can therefore succeed with a long
+role and fail later when an element generates that seed. Use concise role tags;
+keep detailed contracts in interpretation evidence and documentation. A future
+producer preflight should check the complete projected native codec without
+invalidating preserved historical records. The movement restriction layout's
+91-byte role exposed this case and was corrected through normal withdrawal,
+layout replacement and array binding, preserving history.
 
 ## Non-Goals
 

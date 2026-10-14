@@ -55,6 +55,7 @@ def source_export_payload(
     project_root: Path = PROJECT_ROOT,
     binary_assets: bool = False,
     minimum_asset_size: int = 256,
+    structure_macros: bool = False,
 ) -> dict[str, object]:
     try:
         return render_source_export(
@@ -63,6 +64,7 @@ def source_export_payload(
             project_root=project_root,
             binary_assets=binary_assets,
             minimum_asset_size=minimum_asset_size,
+            structure_macros=structure_macros,
         )
     except SourceExportRefused as exc:
         return exc.payload
@@ -75,12 +77,17 @@ def render_source_export(
     project_root: Path = PROJECT_ROOT,
     binary_assets: bool = False,
     minimum_asset_size: int = 256,
+    structure_macros: bool = False,
 ) -> dict[str, object]:
     if type(binary_assets) is not bool:
         raise ValueError("binary_assets must be boolean")
+    if type(structure_macros) is not bool:
+        raise ValueError("structure_macros must be boolean")
     if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:
         raise ValueError("minimum_asset_size must be 1..4294967295")
     profile = _require_source_export_profile(assembler_profile)
+    if structure_macros and profile != "vasm":
+        raise ValueError("Structure macro exports currently require the verified vasm profile")
     if binary_assets and profile != "vasm":
         raise ValueError("Binary-asset packages currently require vasm; native Devpac INCBIN alignment is not verified")
     artifact_payload = _renderer_backed_source_export(
@@ -89,18 +96,18 @@ def render_source_export(
         project_root=project_root,
     )
     if artifact_payload is not None:
-        if binary_assets:
-            raise ValueError("Binary-asset packages require a native analysis render plan")
+        if binary_assets or structure_macros:
+            raise ValueError("Optional binary-asset or structure-macro projections require a native analysis render plan")
         return artifact_payload
     paths = resolve_project_paths(target_name, project_root=project_root)
     renderer = SOURCE_BINARY_RENDERERS.get(paths.binary_source.kind)
     if renderer is None:
         raise ValueError(f"source export does not support binary source kind: {paths.binary_source.kind}")
-    if binary_assets:
+    if binary_assets or structure_macros:
         if renderer is not _c_backend_binary_source_export:
-            raise ValueError("Binary-asset packages require the native renderer")
+            raise ValueError("Optional binary-asset or structure-macro projections require the native renderer")
         return _c_backend_binary_source_export(target_name, paths, profile, project_root,
-            minimum_asset_size=minimum_asset_size)
+            minimum_asset_size=minimum_asset_size if binary_assets else None, structure_macros=structure_macros)
     return renderer(target_name, paths, profile, project_root)
 
 
@@ -110,6 +117,7 @@ def _c_backend_binary_source_export(
     assembler_profile: str,
     project_root: Path,
     *, minimum_asset_size: int | None = None,
+    structure_macros: bool = False,
 ) -> dict[str, object]:
     binary_source = paths.binary_source
     with effective_metadata_file(paths.target_dir) as metadata_path:
@@ -120,12 +128,14 @@ def _c_backend_binary_source_export(
             metadata_path=metadata_path,
             project_root=project_root,
             workflow_id="source_export",
+            use_persisted_policy=False,
         )
         native_package = None
-        if minimum_asset_size is not None and not rendering.refused:
+        if (minimum_asset_size is not None or structure_macros) and not rendering.refused:
             native_package = listing_artifact_source_package_with_c_backend(
-                binary_source, minimum_asset_size=minimum_asset_size,
+                binary_source, minimum_asset_size=minimum_asset_size if minimum_asset_size is not None else 0xFFFFFFFF,
                 metadata_path=metadata_path, project_root=project_root,
+                structure_macros=structure_macros,
             )
             if native_package.pop("canonical_source_text") != rendering.source_text:
                 raise ValueError("Source changed during package export; retry from current state")
@@ -173,19 +183,21 @@ def _c_backend_binary_source_export(
     }
 
     if native_package is not None:
-        assert minimum_asset_size is not None
         from amiga_reversing.disasm.source_package import (
             build_source_package,
             collect_package_includes,
         )
         payload["source_text"] = _join_header_and_source(header, str(native_package["source_text"]),
             assembler_profile=assembler_profile)
+        if structure_macros:
+            payload["structure_macros"] = native_package["structure_macros"]
         include_root = project_root / "ext" / "amiga_includes" / "ndk_2.0" / "include"
         if rendering.listing_profile.get("backend") == "atari-st":
             include_root = project_root / "ext" / "atarist_includes" / "devpac_3_10" / "include"
-        includes = collect_package_includes(str(payload["source_text"]), include_root)
-        payload["package"] = build_source_package(payload, native_package["assets"], minimum_asset_size,
-            includes=includes)
+        if minimum_asset_size is not None:
+            includes = collect_package_includes(str(payload["source_text"]), include_root)
+            payload["package"] = build_source_package(payload, native_package["assets"], minimum_asset_size,
+                includes=includes)
     return payload
 
 

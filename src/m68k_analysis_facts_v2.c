@@ -374,6 +374,8 @@ typedef struct M68kFactsV2CallbackFieldTargets {
 } M68kFactsV2CallbackFieldTargets;
 
 typedef struct M68kFactsV2TraceState {
+  /* Entry lineage only: not a guarantee that copied memory remains intact. */
+  uint8_t established_entry_lineage;
   M68kFactsV2TraceValue d[8];
   M68kFactsV2TraceValue a[8];
   uint32_t d_low16_known;
@@ -799,7 +801,8 @@ static int trace_state_equal(const M68kFactsV2TraceState *lhs, const M68kFactsV2
       return 0;
     }
   }
-  if (lhs->d_low16_known != rhs->d_low16_known ||
+  if (lhs->established_entry_lineage != rhs->established_entry_lineage ||
+      lhs->d_low16_known != rhs->d_low16_known ||
       lhs->d_low16_has_origin != rhs->d_low16_has_origin ||
       memcmp(lhs->d_low16, rhs->d_low16, sizeof(lhs->d_low16)) != 0 ||
       memcmp(lhs->d_low16_origin_offset, rhs->d_low16_origin_offset,
@@ -1730,6 +1733,39 @@ static int facts_v2_fixup_target_offset(const M68kObject *object, const M68kFixu
   return 1;
 }
 
+/* Policy ranges here already exclude pointer-only observations. Source roots
+   do not acquire entry lineage from a numeric source-to-runtime fallback. */
+static int runtime_policy_entry_is_unique(const M68kRuntimeAddressSpace *space,
+    size_t section_index, uint32_t address, int runtime_domain, uint32_t *out_offset) {
+  size_t index; int found = 0, has_policy = 0; uint32_t selected = 0U;
+  for (index = 0U; index < space->count; ++index) {
+    const M68kRuntimeAddressRange *range = &space->ranges[index];
+    uint32_t base, delta, value;
+    if (range->section_index != section_index || range->kind != M68K_FACT_RUNTIME_RANGE_KIND_POLICY) continue;
+    has_policy = 1;
+    base = runtime_domain ? range->runtime_address : range->source_offset;
+    if (address < base || (delta = address - base) >= range->size) continue;
+    value = runtime_domain ? range->source_offset + delta : range->runtime_address - range->source_offset;
+    if (found && selected != value) return 0;
+    selected = value; found = 1;
+  }
+  if (!has_policy) { if (out_offset != NULL) *out_offset = address; return 1; }
+  if (found && out_offset != NULL) *out_offset = selected;
+  return found;
+}
+
+static int runtime_unphased_absolute_control(const M68kRuntimeAddressSpace *space,
+    size_t section_index, const M68kFactsV2TraceState *state) {
+  size_t index;
+  if (state != NULL && state->established_entry_lineage) return 0;
+  for (index = 0U; index < space->count; ++index) {
+    const M68kRuntimeAddressRange *range = &space->ranges[index];
+    if (range->section_index == section_index && range->kind == M68K_FACT_RUNTIME_RANGE_KIND_POLICY &&
+        range->runtime_address != range->source_offset) return 1;
+  }
+  return 0;
+}
+
 static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPolicy *policy,
     M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup, M68kFactsV2WorkQueue *queue,
     M68kRuntimeAddressSpace *runtime_addresses, M68kFactsV2Profile *profile) {
@@ -1753,8 +1789,12 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     memset(&fact, 0, sizeof(fact));
     if (section->kind == M68K_SECTION_CODE && section->data_size != 0U &&
         section_index == implicit_entry_section) {
-      if (enqueue_code_start(facts, queue, profile, section_index, 0U, M68K_FACT_CONFIDENCE_REQUIRED,
-          M68K_FACT_CODE_START_REASON_SECTION_ENTRY, section_index, 0U) != 0) return -1;
+      M68kFactsV2TraceState entry_state;
+      trace_state_init_unknown(&entry_state);
+      entry_state.established_entry_lineage = (uint8_t)runtime_policy_entry_is_unique(
+        runtime_addresses, section_index, 0U, 0, NULL);
+      if (enqueue_code_start_runtime(facts, queue, profile, section_index, 0U, M68K_FACT_CONFIDENCE_REQUIRED,
+          M68K_FACT_CODE_START_REASON_SECTION_ENTRY, section_index, 0U, 0U, 0U, &entry_state) != 0) return -1;
       if (label_lookup_create_label(label_lookup, section_index, 0U,
           M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
     } else if (section->data_size != 0U || section->size != 0U) {
@@ -1769,8 +1809,12 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     const M68kSection *section = &object->sections[0];
     uint32_t extent = section->size != 0U ? section->size : section->data_size;
     if (policy->entry_offset <= extent) {
-      if (enqueue_code_start(facts, queue, profile, 0U, policy->entry_offset, M68K_FACT_CONFIDENCE_REQUIRED,
-          M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET, 0U, policy->entry_offset) != 0) return -1;
+      M68kFactsV2TraceState entry_state;
+      trace_state_init_unknown(&entry_state);
+      entry_state.established_entry_lineage = (uint8_t)runtime_policy_entry_is_unique(
+        runtime_addresses, 0U, policy->entry_offset, 0, NULL);
+      if (enqueue_code_start_runtime(facts, queue, profile, 0U, policy->entry_offset, M68K_FACT_CONFIDENCE_REQUIRED,
+          M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET, 0U, policy->entry_offset, 0U, 0U, &entry_state) != 0) return -1;
       if (label_lookup_create_label(label_lookup, 0U, policy->entry_offset,
           M68K_FACT_CONFIDENCE_REQUIRED) != 0)
         return -1;
@@ -1796,11 +1840,12 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     uint32_t target_offset = 0U;
     if (target_section >= object->section_count) continue;
     section = &object->sections[target_section];
-    if (!resolve_runtime_or_section_target(runtime_addresses, target_section, entry->runtime_address,
-        section->size != 0U ? section->size : section->data_size, &target_offset)) {
+    if (!runtime_policy_entry_is_unique(runtime_addresses, target_section, entry->runtime_address, 1,
+        &target_offset) || target_offset >= (section->size != 0U ? section->size : section->data_size)) {
       continue;
     }
     trace_state_init_unknown(&trace_state);
+    trace_state.established_entry_lineage = 1U;
     if (enqueue_code_start_runtime(facts, queue, profile, target_section, target_offset,
         M68K_FACT_CONFIDENCE_REQUIRED, M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT,
         target_section, target_offset, 1U, entry->runtime_address, &trace_state) != 0) return -1;
@@ -5807,6 +5852,7 @@ static int enqueue_same_section_control_trace_target(M68kDecodeIR *decode, M68kF
   }
   if (target_value->kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
       target_value->kind == M68K_FACTS_V2_TRACE_CONSTANT) {
+    if (runtime_unphased_absolute_control(runtime_addresses, section_index, trace_state)) return 0;
     return enqueue_same_section_control_target(decode, facts, queue, accepted_start, accepted_bytes,
       profile, max_cpu, section_index, candidate, target_value->value, confidence, runtime_addresses,
       evidence_kind, trace_state);
@@ -6001,6 +6047,7 @@ static int enqueue_runtime_alias_absolute_control_target(M68kDecodeIR *decode, M
   if (decode == NULL || section_index >= decode->section_count || runtime_addresses == NULL) return 0;
   section = &decode->sections[section_index];
   if (!candidate_absolute_control_address(candidate, &runtime_address)) return 0;
+  if (runtime_unphased_absolute_control(runtime_addresses, section_index, trace_state)) return 0;
   if (!runtime_address_space_translate(runtime_addresses, section_index, runtime_address, section->size,
       &source_offset))
     return 0;
@@ -6535,6 +6582,17 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
       }
       continue;
     }
+    if (operand_is_control_address_register_indirect(candidate->operand_kinds[operand_index],
+        &candidate->operands[operand_index], &reg) &&
+        trace_state->a[reg].kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
+      if (enqueue_same_section_control_trace_target(decode, facts, queue, accepted_start, accepted_bytes,
+          profile, max_cpu, section_index, candidate, &trace_state->a[reg],
+          M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses,
+          M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET, trace_state) != 0) return -1;
+      enqueued = 1;
+      continue;
+    }
+    if (runtime_unphased_absolute_control(runtime_addresses, section_index, trace_state)) continue;
     if (control_target_address_starts_in_zero_padding(&decode->sections[section_index], runtime_addresses,
         section_index, target_address)) {
       continue;
@@ -10015,6 +10073,7 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         uint32_t runtime_address = 0U;
         uint32_t mapped_offset = 0U;
         if (candidate_absolute_control_address(candidate, &runtime_address)) {
+          if (runtime_unphased_absolute_control(runtime_addresses, item.section_index, &item.trace_state)) continue;
           if (!runtime_address_space_translate(runtime_addresses, item.section_index, runtime_address,
               section->size, &mapped_offset)) {
             continue;
