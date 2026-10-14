@@ -194,51 +194,49 @@ self-modification. Startup copying executable bytes is already established.
 
 ## Derived subsystem ledger
 
-Latest source checkpoint (2026-10-14): connected cursor/source-scratch lifetime.
-Cold startup consumes sixteen 16-byte rows, copying their first four WORDs into
-two 64-byte cursor pixel payloads before title code reuses the source storage.
-The shared row schema names those four sprite data WORDs and keeps the four
-initializer-skipped WORDs explicit. The existing 256-byte owner now carries its
-cursor-initializer/shared-scratch purpose; its physical bounds stay unchanged.
-Two 68-byte runtime buffers contain separate POS/CTL headers and copied pixels.
-VBL rewrites the four header WORDs and programs the selected pointers; reset,
-blank-sprite hiding and buffer binding gate pixel consumption independently.
-The paired 136-byte RAM range has a separate identity from original source bytes.
+Latest source checkpoint (2026-10-14): scratch capacity and resolved caller family.
+Proximity rendering reaches the active descriptor/attachment loop, the geometry
+clipper, and the two edge helpers. The 318 typed original headers plus two
+producer-selected 18-byte headers give a 320-header contract: heights 7..48,
+row strides 1/2/4, and horizontal storage bounds. With unchanged headers and a
+nonwrapping 320×128 view, retained height never exceeds the original height.
+The native CPU replay checks 57,564 caller cases (29,020 scratch calls) and 294
+helper-register cases against original bytes with abstract completed MMIO;
+it executes CPU/control arithmetic, not DMA bus operations or timing.
 
-Title palette operations overwrite the first 192 source bytes. Two clipped-frame
-helpers stage four two-WORD planes in 16-byte scratch rows and copy the first or
-second WORD to the display. For integer heights 1..256 their footprint is 16*H;
-this is conditional arithmetic, not a proven bound on every caller or allocation.
-Each helper waits before staging and reading; its final copy can remain active
-at return. Later reuse must respect completion. Indirect/alias writers remain open.
+Four two-WORD planes produce 16-byte scratch rows, requiring at most 768 bytes
+at runtime `$1B3A8..$1B6A8` under that contract. A shared row type, bound constants
+and render-phase capacity view record this envelope. The source cursor owner
+stays 256 bytes; later rows can retain prior contents, and the remaining initial
+backing bytes retain their unknown file meaning. Capacity/backing is established;
+exclusive allocation, aliases and arbitrary replacement headers are not.
 
-The first cold-title seeded zero blit schedules writes to `$70000..$7CD28`,
-covering the loaded input tail at `$75370..$7C000`. One fresh Copperline direct
-boot confirms both entire cursor payloads at four byte-matched checkpoints.
-At the title checkpoint the source's first 192 bytes and three sampled 64-byte
-tail windows were zero; by UI entry both headers had changed and two tail windows
-changed again. These observations establish phase reuse in that run, not full
-DMA lookahead/termination, measured whole-tail completion or the original tail's
-purpose. The preserved uncopied file tail remains unclassified.
+All 320 logical pixel/mask pairs correspond to the 59 existing producer banks
+and fit their nominal spans. Two-WORD edge reads can reach a neighbouring WORD;
+46 worst-case header envelopes exceed their producer-bank endpoint by two bytes.
+The second-word helper can also read the background WORD before the destination.
+The final selected scratch WORDs stay inside the staged span. These are programmed
+access envelopes and conditional edge cases, not observed DMA fetches or proof
+that neighbouring resources belong to the same frame.
 
-Native postincrement write-cursor tracking and runtime literal substitutions
-remain specific framework gaps. The ineffective header-store seed was removed
-through the normal catalog; the proven row/RAM schemas remain. The new WORD types
-use the established canonical scalar schema for compact output.
-Current native pointer snapshot remains 2,605 fields, 2,018 symbolic, 584 NULL and
-three boundary fragments. All 442 unaffected layouts, 273 existing interpreted
-references, 69 assets and nine SDK includes remain intact. No new ownership
-percentage or runtime lifetime closure is claimed. All 22 normal catalog actions,
-including conservative seed/type corrections, were reviewed and journal-accepted.
-Expanded C/vasm receipt `c0ca7f7d5aca80aaa12481d7e2ee5ce2471c408c023b7d5b4b62b36fcab4e496`;
-source SHA256 `3f68e2f99627acb54ae5e824af6c9e3d1f68b65bc11492aec69d127c0835f694`.
-Actual compact ZIP is full-file C/vasm exact: 27 definitions, 1,499 compact records
-and 768 expanded fallbacks. The sixteen new rows remain expanded because their
-field-label/value arguments exceed the existing nine-argument policy. Compact
-source SHA256 `905ddab24c10f9538359d0e6ff0520739ac9f503b3c3b8fc41552af61f1e9a0e`.
-Focused tests: 230 passed, two opt-in native transport cases skipped; the real
-normal-boot scenario passed separately. Machine verification and review receipts:
-`.runtime-state/pandora-analysis/resource-lifetime-followup/`.
+Both helpers wait/ack before staging and final reads, then may return with the
+final read still active. Known ordinary IRQ paths use CPU/audio operations;
+warm restart waits for blitter busy before title CPU reuse. Later callback
+replacements and trade fall-through aliases remain open. Prior boot observations
+still distinguish cursor payload survival from source/table and loaded-tail reuse;
+original uncopied file-tail purpose remains unproved.
+
+Two new headers reuse the shared geometry schema without extending interaction
+tails. All 443 old layouts, 35 old types, 273 references, 69 assets and nine SDK
+includes are preserved. Thirteen normal catalog actions were reviewed and
+journal-accepted against these proofs; 210 focused tests pass. The native pointer report now contains
+2,609 fields: 2,022 symbolic, 584 NULL and the same three boundary fragments.
+Expanded C/vasm receipt `140c4c154d25dbcc3151f93c45d594df691eceef1bf6ff471a3fb32b65d4e4c6`;
+source SHA256 `b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d`.
+Actual compact ZIP also reproduces all 376,832 original bytes with C/vasm:
+27 definitions, 1,501 compact records and 768 expanded fallbacks; compact source
+SHA256 `c2aa0d456821d21a0cff268bd212010b9494bb1ea78eab01976fe7f7c37cb8f7`.
+Machine evidence: `.runtime-state/pandora-analysis/scratch-bounds-followup/`.
 
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.

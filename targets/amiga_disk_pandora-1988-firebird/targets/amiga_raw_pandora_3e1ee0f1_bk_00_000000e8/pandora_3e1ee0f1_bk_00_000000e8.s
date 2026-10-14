@@ -589,6 +589,18 @@ cursor_sprite_dma_header_pair_sprite1_control_word RS.W 1
     RS.B 64
 cursor_sprite_dma_header_pair_SIZEOF EQU __RS
 
+; STRUCT entity_edge_blit_scratch_row
+    RSRESET
+entity_edge_blit_scratch_row_plane0_first_word RS.W 1
+entity_edge_blit_scratch_row_plane0_second_word RS.W 1
+entity_edge_blit_scratch_row_plane1_first_word RS.W 1
+entity_edge_blit_scratch_row_plane1_second_word RS.W 1
+entity_edge_blit_scratch_row_plane2_first_word RS.W 1
+entity_edge_blit_scratch_row_plane2_second_word RS.W 1
+entity_edge_blit_scratch_row_plane3_first_word RS.W 1
+entity_edge_blit_scratch_row_plane3_second_word RS.W 1
+entity_edge_blit_scratch_row_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -596,6 +608,8 @@ ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 DMAF_CLRALL	EQU	$7FFF
+ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
+ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
 GAME_EVENT_ESCAPE_CARD_OK_BIT	EQU	4
 GAME_EVENT_ESCAPE_TRIGGERED_BIT	EQU	3
 GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT	EQU	2
@@ -794,6 +808,7 @@ dblk_ref_h0_00048CDC_runtime_00058CDC	EQU	$58CDC
 dblk_ref_h0_00048CE8_runtime_00058CE8	EQU	$58CE8
 dblk_ref_h0_00048CF4_runtime_00058CF4	EQU	$58CF4
 dblk_ref_h0_0004C312_runtime_0005C312	EQU	$5C312
+entity_edge_blit_scratch_capacity	EQU	$1B3A8
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_trap_0_instruction_vector	EQU	$80
@@ -899,6 +914,7 @@ copy_image_backward_bytes:
 	dcb.b $400,$00
 abs_0_00010452:
 	dc.b $00,$00,$00,$10
+    ; Warm restart waits for blitter busy to clear before setup/title CPU reuse of shared scratch. Render helpers may return with the final scratch read active; this wait closes that transition.
 abs_0_00010456:
 	lea.l _custom+dmaconr.l,a5
     ; A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)
@@ -7863,7 +7879,7 @@ abs_0_00016B0E:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a2/a5
 	rts
-    ; Stage four two-WORD planes in shared 16-byte rows, then copy first WORDs to the display. Wait before staging/reading; final copy is asynchronous at return. Allocation bounds remain open.
+    ; Original H<=ENTITY_MAX_INITIAL_FRAME_HEIGHT bounds scratch to ENTITY_EDGE_SCRATCH_BOUND_BYTES. Two-WORD A/B reads can touch a neighbouring WORD. Wait before reuse; final copy is asynchronous.
 blit_masked_frame_first_word_via_shared_scratch:
 	movem.l a0-a3/a5,-(a7)
 	movem.w d4-d7,-(a7)
@@ -7961,7 +7977,7 @@ abs_0_00016C56:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
-    ; Stage four two-WORD planes in shared 16-byte rows, then copy second WORDs to the display. Wait before staging/reading; final copy is asynchronous at return. Allocation bounds remain open.
+    ; Same scratch bound. Two-WORD A/B reads can touch neighbours; background C starts one WORD before the destination. Wait before staging/reading; the final second-WORD copy can outlive return.
 blit_masked_frame_second_word_via_shared_scratch:
 	movem.l a0-a3/a5,-(a7)
 	movem.w d4-d7,-(a7)
@@ -8264,7 +8280,7 @@ abs_0_00016F60:
 	bra.b abs_0_00016F60
 abs_0_00016F6C:
 	rts
-    ; Draw current geometry at object XY plus animation offsets into the back bitplanes. Fully clipped geometry sets interaction bit 0.
+    ; Draw current geometry at XY plus animation offsets. Original H<=48 bounds scratch to768B after nonwrapping clipping; fully clipped geometry sets bit0. DMA input bounds remain separate.
 draw_entity_geometry:
 	movem.l a0/a5,-(a7)
 	tst.l world_position_state_record_current_geometry_ptr.w(a0)
@@ -19163,8 +19179,8 @@ item_receptacle_5_primary_state:
 item_receptacle_5_primary_interaction_data_ptr:
 	dc.l $00058A66	; item_receptacle_state_attachment_interaction_records
 item_receptacle_5_attachment_state:
-	dc.l abs_0_0005C804	; current_geometry_ptr
-	dc.l abs_0_0005C804	; previous_geometry_ptr
+	dc.l item_receptacle_5_attached_geometry	; current_geometry_ptr
+	dc.l item_receptacle_5_attached_geometry	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0004	; world_y_offset
@@ -21048,9 +21064,14 @@ world_object_priest_gap_40:
 	dc.b $20	; initial_item_state
 	dc.l priest_states_49B98_2_current_geometry_ptr_2	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-abs_0_00059B86:
-	dc.b $00,$03,$D0,$68,$00,$07,$F1,$3C,$00,$02,$00,$29,$00,$20,$00,$00
-	dc.b $00,$01
+priest_initial_attachment_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_20	; bitplane_data_ptr
+	dc.l scene_mask_bank_20	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0029	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
 priest_animation_bank:
 	dc.l scene_pixel_cells_for_mask_bank_20+$290	; bitplane_data_ptr
 	dc.l scene_mask_bank_20+$A4	; mask_data_ptr
@@ -23106,7 +23127,7 @@ initialize_player_and_fixed_animation_nodes:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 	clr.l world_position_state_record_previous_geometry_ptr(a0)
 	clr.l world_position_state_record_current_geometry_ptr.w(a0)
-	lea.l abs_0_00059B86.l,a0
+	lea.l priest_initial_attachment_geometry.l,a0
 	lea.l priest_states_49B98_2_current_geometry_ptr_1.l,a4
 	move.l a0,(a4)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a4)
 	lea.l fixed_npc_geometry_headers(pc),a0
@@ -25452,12 +25473,18 @@ player_move_negative_y_frames:
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_4	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_5	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_6	; frame_ptr
-abs_0_0005C804:
-	dc.b $00,$05,$5C,$60,$00,$06,$9B,$12,$00,$01,$00,$18,$00,$10,$00,$00
-	dc.b $00,$00,$00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10
-	dc.b $00,$00,$00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04
-	dc.b $00,$20,$00,$00,$00,$02,$00,$05,$5E,$08,$00,$06,$A8,$28,$00,$02
-	dc.b $00,$04,$00,$20,$00,$00,$00,$02
+item_receptacle_5_attached_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_51	; bitplane_data_ptr
+	dc.l scene_mask_bank_51	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0018	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.b $00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10,$00,$00
+	dc.b $00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04,$00,$20
+	dc.b $00,$00,$00,$02,$00,$05,$5E,$08,$00,$06,$A8,$28,$00,$02,$00,$04
+	dc.b $00,$20,$00,$00,$00,$02
 combat_encounter_geometry_headers:
 	dc.l scene_pixel_cells_for_mask_bank_00	; bitplane_data_ptr
 	dc.l scene_mask_bank_00	; mask_data_ptr
