@@ -331,3 +331,131 @@ def test_synthetic_stack_address_cannot_replace_real_stack(tmp_path):
         assert proof["reason"] == "unsupported_pointer_stack_replacement"
     finally:
         artifact.close()
+
+
+@pytest.mark.parametrize(
+    ("prefix", "reason", "delta", "minimum"),
+    [
+        ("2f072e1f", None, 0, -4),
+        ("48e703004cdf00c0", None, 0, -8),
+        ("2e80", "frame_prefix_return_slot_write", 0, 0),
+        ("2280", "unresolved_frame_prefix_memory_alias", 0, 0),
+        ("2e7c00900000", "frame_prefix_stack_replacement", 0, 0),
+        ("66022f07", "ambiguous_frame_prefix_delta", None, -4),
+        ("2f1f", "unsupported_frame_prefix_multiple_stack_operands", 0, 0),
+    ],
+)
+def test_native_frame_prefix_models_effects_without_absolute_sp(
+    tmp_path, prefix, reason, delta, minimum
+):
+    # F is reached by a canonical direct call; fixture root has a real owner.
+    root = "41f90000397c4a28000b41f9000040004e75"
+    code = bytes.fromhex("6100000a41f9000040004e75" + prefix + root)
+    path = tmp_path / "meta.json"
+    path.write_text(json.dumps({"memory_regions": [region()]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(
+        code, display_path="fixture", metadata_path=path
+    )
+    try:
+        context = artifact.memory_regions_payload()["items"][0]["references"][0][
+            "frame_prefix"
+        ]
+        assert context["entry_offset"] == 12
+        assert context["reason"] == reason
+        assert context["absolute_sp"] is None
+        if delta is not None:
+            assert context["stack_delta"] == delta
+        assert context["minimum_delta"] == minimum
+        assert context["status"] == ("refused" if reason else "modeled_relative_only")
+    finally:
+        artifact.close()
+
+
+def test_balanced_native_prefix_can_borrow_a_return_context(tmp_path):
+    # Entry -> F; F saves/restores D7 before producing the region pointer;
+    # caller independently overwrites A0 after F's normal return.
+    code = bytes.fromhex("6100000a41f9000040004e752f072e1f41f90000397c4a28000b4e75")
+    path = tmp_path / "meta.json"
+    path.write_text(json.dumps({"memory_regions": [region()]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(
+        code, display_path="fixture", metadata_path=path
+    )
+    try:
+        reference = artifact.memory_regions_payload()["items"][0]["references"][0]
+        assert reference["frame_prefix"]["stack_delta"] == 0
+        assert reference["frame_prefix"]["minimum_delta"] == -4
+        assert reference["root_access_proof"]["reason"] is None
+        assert (
+            artifact.memory_region_plan("key_state", 0xC7F000, "slow")["status"]
+            == "ready"
+        )
+    finally:
+        artifact.close()
+
+
+@pytest.mark.parametrize(
+    ("prefix", "suffix", "reason"),
+    [
+        ("bne.b root\naddq.l #4,a7\nrts", "", "frame_prefix_entry_stack_imbalance"),
+        (
+            "bsr.w g",
+            "g:\naddq.l #4,a7\nbsr.w h\nsubq.l #4,a7\nrts\nh:\nrts",
+            "frame_prefix_call_slot_overlap",
+        ),
+        ("adda.w #-4,a7", "", None),
+        (
+            "adda.w #-4,a7\nsuba.l #65532,a7",
+            "",
+            None,
+        ),
+        ("pea.l $4000.l", "", "unmodeled_frame_prefix_exception_or_link"),
+        ("move #$2000,sr", "", "unmodeled_frame_prefix_exception_or_link"),
+        ("move.l usp,a0", "", "frame_prefix_address_escape"),
+        ("lea.l $0(a1,a7.l),a2", "", "frame_prefix_address_escape"),
+    ],
+)
+def test_native_prefix_rejects_control_frame_corruption_with_oracle(
+    tmp_path, prefix, suffix, reason
+):
+    import subprocess
+
+    from amiga_reversing.tools.direct_payload_adapter import VASM
+
+    if not VASM.exists():
+        pytest.skip("Installed vasm required for independent fixture encoding")
+    source = tmp_path / "fixture.s"
+    binary = tmp_path / "fixture.bin"
+    source.write_text(
+        "    org 0\n    bsr.w f\n    lea.l $4000.l,a0\n    rts\nf:\n"
+        + prefix
+        + "\nroot:\n    lea.l $397c.l,a0\n    tst.b $b(a0)\n    lea.l $4000.l,a0\n    rts\n"
+        + suffix
+        + "\n"
+    )
+    source.write_text(
+        "\n".join(
+            line if line.endswith(":") else "    " + line
+            for line in source.read_text().splitlines()
+        )
+        + "\n"
+    )
+    result = subprocess.run(
+        [str(VASM), "-Fbin", "-m68000", "-no-opt", "-o", str(binary), str(source)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    path = tmp_path / "meta.json"
+    path.write_text(json.dumps({"memory_regions": [region()]}))
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(
+        binary.read_bytes(), display_path="fixture", metadata_path=path
+    )
+    try:
+        context = artifact.memory_regions_payload()["items"][0]["references"][0][
+            "frame_prefix"
+        ]
+        assert context["reason"] == reason
+        if prefix.startswith("adda.w"):
+            assert context["stack_delta"] == (-65536 if "65532" in prefix else -4)
+    finally:
+        artifact.close()

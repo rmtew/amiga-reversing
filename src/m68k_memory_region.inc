@@ -38,6 +38,12 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
             proof.source_offset,proof.access_count,proof.minimum_offset,proof.maximum_end,proof.states,
             proof.reason ? "refused" : "closed") || (proof.reason ? json_builder_append_json_string(b,proof.reason) : json_builder_append(b,"null")) ||
             json_builder_append(b,"}")) return -1;
+        MRFramePrefixResult frame=mr_frame_prefix(a,mr_owner(a,ins->source_offset),ins->source_offset);
+        if(json_builder_appendf(b,",\"frame_prefix\":{\"entry_offset\":%u,\"stack_delta\":%d,\"minimum_delta\":%d,"
+            "\"maximum_delta\":%d,\"states\":%u,\"paths\":%u,\"failure_offset\":%u,\"absolute_sp\":null,\"status\":\"%s\",\"reason\":",
+            frame.entry,frame.delta,frame.minimum_delta,frame.maximum_delta,frame.states,frame.paths,frame.failure_offset,
+            frame.reason ? "refused" : "modeled_relative_only") ||
+            (frame.reason ? json_builder_append_json_string(b,frame.reason) : json_builder_append(b,"null")) || json_builder_append(b,"}")) return -1;
         if(proof.reason) {
           const M68kRenderPlannedInstruction *failed=mr_instruction(a,proof.source_offset);
           if(failed) {

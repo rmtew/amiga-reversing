@@ -41,6 +41,8 @@ static uint32_t mr_owner(const PlatformFileListingArtifact *a,uint32_t pc) {
   uint8_t *entry=calloc(n,1),*seen=calloc(n,1);size_t *queue=calloc(n,sizeof(*queue));
   uint32_t owner=UINT32_MAX;int found=0,ambiguous=0;
   if(!entry || !seen || !queue) goto done;
+  for(i=0;i<section->code_origin_count;i++) if(section->code_origins[i].origin_class==M68K_CODE_ORIGIN_STRONG_ENTRY)
+    for(j=0;j<n;j++) if(section->blocks[j].start_offset==section->code_origins[i].offset) entry[j]=1;
   for(i=0;i<section->edge_count;i++) if(section->edges[i].kind==M68K_CFG_EDGE_CALL && section->edges[i].target_block_index<n)
     entry[section->edges[i].target_block_index]=1;
   for(i=0;i<a->source_plan.instruction_count;i++) {
@@ -95,6 +97,20 @@ static unsigned mr_access_width(const M68kInstructionIR *ins,const M68kSimFormMe
   }
   return width;
 }
+/* Derive the ordinary PC frame span from generated semantics on accepted native
+ * returns. Missing or inconsistent descriptions cannot supply a frame proof. */
+static int32_t mr_pc_frame_width(const PlatformFileListingArtifact *a) {
+  int32_t width=0;
+  for(size_t i=0;i<a->source_plan.instruction_count;i++) {
+    const M68kInstructionIR *ins=&a->source_plan.instructions[i].instruction;
+    const M68kSimFormMetadata *m=m68k_sim_metadata_for_instruction(ins);int32_t delta;
+    if(ins->target_cpu!=M68K_ASM_CPU_68000 || !m || m->flow_kind!=M68K_SIM_FLOW_RETURN ||
+        m->return_restore_kind!=M68K_SIM_RETURN_RESTORE_PC_ONLY || m->return_stack_adjust_operand_index<ins->operand_count) continue;
+    if(!m68k_sim_fixed_sp_delta(m,&delta) || delta<=0 || (width && width!=delta)) return 0;
+    width=delta;
+  }
+  return width;
+}
 /* Check all reverse-CFG paths from a callback slot load back to the actual
  * entry save. Only instructions that preserve that frame are admitted. */
 static int mr_callback_prefix(const PlatformFileListingArtifact *a,uint32_t handler,uint32_t load) {
@@ -135,23 +151,11 @@ static int mr_callback_prefix(const PlatformFileListingArtifact *a,uint32_t hand
   ok=reached;
 done:free(queue);return ok;
 }
-/* Prefix-frame check over reverse canonical control flow. Calls and writes
- * through other registers remain outside this bounded contract. */
+#include "m68k_memory_frame_prefix.inc"
+
 static int mr_root_prefix_frame(const PlatformFileListingArtifact *a,uint32_t entry,uint32_t root) {
-  if(entry==root) return 1;
-  /* Reuse the strict path check by making the entry its stopping boundary.
-   * It normally checks predecessors; inspect the entry instruction too. */
-  const M68kRenderPlannedInstruction *first=mr_instruction(a,entry);
-  const M68kSimFormMetadata *m=first ? m68k_sim_metadata_for_instruction(&first->instruction) : NULL;
-  if(!m || first->instruction.target_cpu!=M68K_ASM_CPU_68000 || m->flow_kind==M68K_SIM_FLOW_CALL || m->flow_kind==M68K_SIM_FLOW_RETURN || m->flow_kind==M68K_SIM_FLOW_TRAP) return 0;
-  for(size_t j=0;j<first->instruction.operand_count;j++) {
-    const M68kOperandIR *o=&first->instruction.operands[j];M68kAsmOperandValue v;
-    m68k_instruction_operand_to_asm_value(o,&v);uint8_t shape=mr_shape(o);
-    uint8_t ar,ri;
-    if(m->operand_access_kinds[j]==M68K_SIM_ACCESS_MEMORY_WRITE && !m68k_instruction_operand_direct_register(o,&ar,&ri)) return 0;
-    if(mr_direct_reg(o,1,7) || (shape>=M68K_SIM_EA_SHAPE_INDIRECT && shape<=M68K_SIM_EA_SHAPE_INDEX && v.ea_reg==7)) return 0;
-  }
-  return mr_callback_prefix(a,entry,root);
+  MRFramePrefixResult prefix=mr_frame_prefix(a,entry,root);
+  return !prefix.reason && prefix.delta==0;
 }
 /* A callback return is discharged only by actual slot-load/call/restore
  * consumers. Unknown consumers or a mismatched register save remain open. */
@@ -231,6 +235,7 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
     const M68kRenderPlannedInstruction *root,uint8_t operand) {
   MRProofResult result={0}; MRProofState *queue=calloc(MR_PROOF_LIMIT,sizeof(*queue));size_t count=1,head=0;
   const M68kSimFormMetadata *rm=m68k_sim_metadata_for_instruction(&root->instruction);uint8_t ar,reg;
+  int32_t pc_width=mr_pc_frame_width(a);
   result.minimum_offset=UINT32_MAX;
   if(!queue || !rm || rm->operation_class!=M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS ||
       !m68k_instruction_operand_direct_register(&root->instruction.operands[rm->dest_operand_index],&ar,&reg) || !ar || reg==7) {
@@ -282,7 +287,10 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
     const M68kSimFormMetadata *m=ins ? m68k_sim_metadata_for_instruction(&ins->instruction) : NULL;
     if(!m) MR_FAIL("unaccepted_or_unsupported_pointer_path");
     if(ins->instruction.target_cpu!=M68K_ASM_CPU_68000) MR_FAIL("unsupported_pointer_cpu_scope");
-    if(m->flow_kind==M68K_SIM_FLOW_TRAP) MR_FAIL("unmodeled_pointer_exception");
+    if(m->operation_type==M68K_SIM_OP_NONE && m->operation_class==M68K_SIM_CLASS_NONE &&
+        (m->flow_kind==M68K_SIM_FLOW_NONE || m->flow_kind==M68K_SIM_FLOW_SEQUENTIAL)) MR_FAIL("unaccepted_or_unsupported_pointer_path");
+    if(m->flow_kind==M68K_SIM_FLOW_TRAP || m->operation_type==M68K_SIM_OP_PUSH_EA ||
+        m->ccr_formula==M68K_SIM_CCR_FORMULA_WRITE_SR) MR_FAIL("unmodeled_pointer_exception");
     if((state.saved_count || state.depth) && (m->operation_type==M68K_SIM_OP_LINK || m->operation_type==M68K_SIM_OP_UNLK)) MR_FAIL("saved_pointer_frame_address_escape");
     M68kSimCpuState cpu;M68kSimStepResult step;m68k_sim_cpu_state_init_unknown(&cpu);
     if(state.live) {cpu.a[state.reg].kind=M68K_SIM_VALUE_CONSTANT;cpu.a[state.reg].value=region->runtime_address+state.offset;}
@@ -304,6 +312,7 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
 
     for(size_t j=0;j<ins->instruction.operand_count;j++) {
       const M68kOperandIR *o=&ins->instruction.operands[j];uint8_t access=m->operand_access_kinds[j];
+      if(o->kind==M68K_ASM_OPERAND_USP) MR_FAIL("unmodeled_pointer_exception");
       if(state.live && mr_direct_reg(o,1,state.reg)) {
         if((access==M68K_SIM_ACCESS_REGISTER_READ || access==M68K_SIM_ACCESS_MEMORY_READ) && m->flow_kind!=M68K_SIM_FLOW_RETURN && !stack_push) MR_FAIL("pointer_value_escape_or_comparison");
         if(access==M68K_SIM_ACCESS_REGISTER_WRITE || access==M68K_SIM_ACCESS_MEMORY_WRITE) {
@@ -322,6 +331,7 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
       m68k_instruction_operand_to_asm_value(o,&normalized);
       if(shape>=M68K_SIM_EA_SHAPE_INDIRECT && shape<=M68K_SIM_EA_SHAPE_INDEX && normalized.ea_reg==7 && m->operation_type!=M68K_SIM_OP_MOVE_MULTIPLE) {
         unsigned stack_width=m68k_sim_operand_width_bytes(&ins->instruction,(uint8_t)j);
+        if(stack_width==1) MR_FAIL("unsupported_pointer_stack_width");
         int64_t stack_start=state.sp;
         if(shape==M68K_SIM_EA_SHAPE_DISPLACEMENT) stack_start+=(int16_t)o->value.value;
         if(shape==M68K_SIM_EA_SHAPE_INDEX && (state.saved_count || state.depth)) MR_FAIL("unresolved_saved_pointer_stack_index");
@@ -329,7 +339,11 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
         if((state.saved_count || state.depth) && access==M68K_SIM_ACCESS_COMPUTE_ADDRESS) MR_FAIL("saved_pointer_frame_address_escape");
         for(size_t slot=0;slot<state.saved_count;slot++) if(stack_start < state.saved_sp[slot]+4 && state.saved_sp[slot] < stack_start+stack_width && (int)slot!=stack_restore)
           MR_FAIL("saved_pointer_stack_alias_access");
-        for(size_t slot=0;slot<state.depth;slot++) if(stack_start<state.return_sp[slot]+4 && state.return_sp[slot]<stack_start+stack_width)
+        if(access==M68K_SIM_ACCESS_MEMORY_WRITE) {
+          if(!pc_width) MR_FAIL("unknown_pointer_pc_frame_width");
+          if(stack_start<pc_width && 0<stack_start+stack_width) MR_FAIL("pointer_entry_return_slot_write");
+        }
+        for(size_t slot=0;slot<state.depth;slot++) if(stack_start<state.return_sp[slot]+pc_width && state.return_sp[slot]<stack_start+stack_width)
           MR_FAIL("pointer_return_slot_access");
         if(shape==M68K_SIM_EA_SHAPE_POSTINCREMENT) next.sp+=stack_width;
         if(shape==M68K_SIM_EA_SHAPE_PREDECREMENT) next.sp-=stack_width;
@@ -395,7 +409,11 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
       }
       if(address.ea_reg==7 && width==4) {
         int32_t start=shape==M68K_SIM_EA_SHAPE_PREDECREMENT ? state.sp-4*(int32_t)registers : state.sp;
-        for(size_t slot=0;slot<state.depth;slot++) if(start<state.return_sp[slot]+4 && state.return_sp[slot]<start+4*(int32_t)registers)
+        if(m->multi_transfer_direction==M68K_SIM_MULTI_REGISTER_TO_MEMORY) {
+          if(!pc_width) MR_FAIL("unknown_pointer_pc_frame_width");
+          if(start<pc_width && 0<start+4*(int32_t)registers) MR_FAIL("pointer_entry_return_slot_write");
+        }
+        for(size_t slot=0;slot<state.depth;slot++) if(start<state.return_sp[slot]+pc_width && state.return_sp[slot]<start+4*(int32_t)registers)
           MR_FAIL("pointer_return_slot_access");
         if(m->multi_transfer_direction==M68K_SIM_MULTI_REGISTER_TO_MEMORY && shape==M68K_SIM_EA_SHAPE_PREDECREMENT) {
           next.sp-=4*(int32_t)registers;
@@ -471,16 +489,24 @@ static MRProofResult mr_prove_root(const PlatformFileListingArtifact *a,const M6
     uint32_t target=mr_target(a,ins);
     if(m->flow_kind==M68K_SIM_FLOW_CALL) {
       if(target==UINT32_MAX || state.depth==MR_CALL_LIMIT) MR_FAIL("unresolved_pointer_call");
-      next.sp-=4;
+      int32_t delta;
+      if(!pc_width || !m68k_sim_fixed_sp_delta(m,&delta) || delta!=-pc_width) MR_FAIL("unmodeled_pointer_call_effect");
+      int32_t pushed=next.sp+delta;
+      if(pushed % 2 || (pushed<pc_width && 0<pushed+pc_width)) MR_FAIL("pointer_call_slot_overlap");
+      for(size_t slot=0;slot<state.depth;slot++) if(pushed<state.return_sp[slot]+pc_width && state.return_sp[slot]<pushed+pc_width)
+        MR_FAIL("pointer_call_slot_overlap");
+      next.sp=pushed;
       next.return_sp[next.depth]=next.sp;next.returns[next.depth]=next.pc;next.functions[next.depth]=state.function_entry;next.depth++;
       next.function_entry=target;next.pc=target;MR_ADD(next);continue;
     }
     if(m->flow_kind==M68K_SIM_FLOW_RETURN) {
       if(m->return_restore_kind!=M68K_SIM_RETURN_RESTORE_PC_ONLY || m->return_stack_adjust_operand_index<ins->instruction.operand_count)
         MR_FAIL("unmodeled_pointer_return");
+      int32_t delta;
+      if(!pc_width || !m68k_sim_fixed_sp_delta(m,&delta) || delta!=pc_width) MR_FAIL("unmodeled_pointer_return");
       if(state.depth && state.sp!=state.return_sp[state.depth-1]) MR_FAIL("pointer_return_stack_imbalance");
       if(!state.depth && state.sp!=0) MR_FAIL("pointer_return_stack_imbalance");
-      if(state.depth) {next.sp+=4;next.depth--;next.pc=state.returns[next.depth];next.function_entry=state.functions[next.depth];next.returns[next.depth]=next.functions[next.depth]=0;next.return_sp[next.depth]=0;MR_ADD(next);continue;}
+      if(state.depth) {next.sp+=delta;next.depth--;next.pc=state.returns[next.depth];next.function_entry=state.functions[next.depth];next.returns[next.depth]=next.functions[next.depth]=0;next.return_sp[next.depth]=0;MR_ADD(next);continue;}
       if(state.saved_count) MR_FAIL("saved_pointer_return_escape");
       if(state.function_entry==UINT32_MAX) MR_FAIL("unresolved_pointer_return_context");
       /* The root may start mid-function; its prefix must preserve the entry

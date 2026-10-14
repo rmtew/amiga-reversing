@@ -278,6 +278,34 @@ facts, 78 companions, 69 original asset spans and both history prefixes are pres
 `.runtime-state/pandora-analysis/keyboard-relocation/`; reproduction and the
 first raw fixed-width runtime contract are in `docs/copperline-runtime.md`.
 
+The approved continuation adds a native bounded frame-prefix interpreter. Balanced
+MOVE/MOVEM saves, direct calls and affine SP effects now support ordinary borrowed
+caller contexts; return-slot corruption, SP escape/replacement and ambiguous joins
+refuse. Queries expose relative effects with `absolute_sp: null`. CALL/RTS spans
+come from generated CPU stack effects. A discovered simulator gap is fixed through
+the existing KB `source_sign_extend` property: ADDA/SUBA WORD sources sign-extend
+in abstract/concrete simulation, and section-pointer arithmetic wraps without
+signed-overflow undefined behavior. Linux test executables now carry their shared
+backend into their isolated directory.
+
+181 focused checks pass, including independent vasm encodings, actual Copperline
+execution of nine arithmetic cases, unknown/boundary cases, positive balanced
+caller contexts and conservative frame/control regressions. Independent review
+passes this relative-frame step. Full native tests retain only the same two known
+baseline failures. Fresh service queries still refuse all five roots; stronger
+exception guarding now reports `$9C76` first at `$464` (`MOVE #$2700,SR`) instead
+of the later A6 status write. Original expanded and compact reproduction remains
+exact. Current machine evidence uses the `frame-prefix-*`, `tests-frame-final.log`
+and `independent-frame-prefix-review.json` files in the same evidence directory.
+
+This completes the relative-frame capability, not keyboard relocation. Absolute
+stack bounds, other-base address provenance and interrupt preservation remain
+unproved. [Proposal 044](../proposals/044-runtime-memory-relocation-proof.md)
+records the required native domain and optional conditional execution contract;
+conditional build/guard enforcement does not yet exist. No Pandora artifact was
+built, reserved or executed at the new placement, and no new target/history facts
+were added by this framework continuation.
+
 The next step is shared native provenance/frame analysis establishing disjoint
 application/object storage and balanced caller/callback stacks. Re-review those
 five roots, then build the seven-rewrite artifact through the normal verified

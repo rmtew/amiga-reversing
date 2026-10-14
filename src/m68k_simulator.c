@@ -597,6 +597,22 @@ uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8
   return sim_effective_operand_width(instruction, metadata, operand_index);
 }
 
+int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta) {
+  int32_t delta = 0;
+  if (metadata == NULL || out_delta == NULL || !metadata->sp_effect_count ||
+      (size_t)metadata->sp_effect_start + metadata->sp_effect_count >
+        sizeof(g_m68k_sim_sp_effects) / sizeof(g_m68k_sim_sp_effects[0])) return 0;
+  for (size_t index = 0; index < metadata->sp_effect_count; ++index) {
+    const M68kSimSpEffectDef *effect = &g_m68k_sim_sp_effects[metadata->sp_effect_start + index];
+    if (effect->bytes <= 0) return 0;
+    if (effect->action == M68K_SIM_SP_INCREMENT) delta += effect->bytes;
+    else if (effect->action == M68K_SIM_SP_DECREMENT) delta -= effect->bytes;
+    else return 0;
+  }
+  *out_delta = delta;
+  return 1;
+}
+
 static uint32_t sim_sign_extend_value(uint32_t value, uint8_t src_bits) {
   uint32_t mask;
   uint32_t sign_bit;
@@ -1295,8 +1311,7 @@ static int sim_apply_add_sub(uint8_t is_sub, const M68kSimValue *lhs, const M68k
   if (lhs == NULL || rhs == NULL || out_value == NULL) return 0;
   if (lhs->kind == M68K_SIM_VALUE_SECTION_PTR && rhs->kind == M68K_SIM_VALUE_CONSTANT) {
     *out_value = sim_value_section_ptr(lhs->section_index,
-      is_sub ? (uint32_t)((int32_t)lhs->value - (int32_t)rhs->value)
-             : (uint32_t)((int32_t)lhs->value + (int32_t)rhs->value),
+      is_sub ? lhs->value - rhs->value : lhs->value + rhs->value,
       M68K_SIM_PROV_ADDRESS_ARITH);
     return 1;
   }
@@ -1306,6 +1321,25 @@ static int sim_apply_add_sub(uint8_t is_sub, const M68kSimValue *lhs, const M68k
     return 1;
   }
   return 0;
+}
+
+/* Source extension is a KB property, independent of the destination's width.
+ * A section pointer truncated to a signed scalar cannot retain its identity. */
+static int sim_apply_add_sub_by_metadata(const M68kInstructionIR *instruction,
+    const M68kSimFormMetadata *metadata, const M68kSimValue *lhs,
+    const M68kSimValue *rhs, M68kSimValue *out_value) {
+  M68kSimValue source = *rhs;
+  uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
+  if (metadata->source_sign_extend && width < 4U) {
+    if (!width || source.kind != M68K_SIM_VALUE_CONSTANT) {
+      *out_value = g_m68k_sim_unknown_value;
+      return 1;
+    }
+    source.value = sim_sign_extend_value(source.value, (uint8_t)(width * 8U));
+  }
+  if (!sim_apply_add_sub(metadata->operation_type == M68K_SIM_OP_SUB, lhs, &source, out_value))
+    *out_value = g_m68k_sim_unknown_value;
+  return 1;
 }
 
 static int sim_apply_add_sub_extend(uint8_t is_sub, const M68kSimValue *lhs, const M68kSimValue *rhs,
@@ -3025,7 +3059,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
       sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index,
         &instruction->operands[metadata->dest_operand_index], &lhs_is_address, &lhs_reg) &&
       sim_register_value(state, lhs_is_address, lhs_reg, &dst) &&
-      sim_apply_add_sub(metadata->operation_type == M68K_SIM_OP_SUB, &dst, &src, &value)) {
+      sim_apply_add_sub_by_metadata(instruction, metadata, &dst, &src, &value)) {
     if (!lhs_is_address) {
       if (src.kind == M68K_SIM_VALUE_CONSTANT && dst.kind == M68K_SIM_VALUE_CONSTANT &&
           sim_value_is_path_stable_for_flags(&src) && sim_value_is_path_stable_for_flags(&dst) &&
@@ -3941,6 +3975,10 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         memory, memory_size, io_state->pc, &immediate_value, memory_policy) &&
       sim_direct_register_slot_by_metadata(metadata, metadata->dest_operand_index, dest, &is_address, &lhs_reg)) {
     uint32_t delta = immediate_value;
+    if (metadata->source_sign_extend) {
+      uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
+      delta = sim_sign_extend_value(delta, (uint8_t)(width * 8U));
+    }
     if (metadata->operation_type == M68K_SIM_OP_SUB) delta = (uint32_t)(0U - delta);
     if (is_address) io_state->a[lhs_reg] += delta; else io_state->d[lhs_reg] += delta;
   } else if ((metadata->operation_type == M68K_SIM_OP_ADD_EXTEND ||

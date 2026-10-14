@@ -250,3 +250,12 @@ recomputes the native proof and validates every changed byte. UI placement/build
 controls, CLI operations and MCP tools use these same operations. Pandora's first
 keyboard move currently refuses five obligations, so no relocated target artifact
 has been built or executed.
+
+Pointer references also expose `frame_prefix`: canonical entry, bounded relative
+SP effects, path/state counts and an explicit `absolute_sp: null`. Balanced native
+save/restore and direct-call prefixes can support a borrowed normal return;
+unknown aliases and other frame effects still refuse. Relative balance does not
+establish absolute stack ownership or separation from application/object writes.
+[The next proof capability](proposals/044-runtime-memory-relocation-proof.md)
+records address provenance and interrupt/context requirements. Conditional build
+or runtime guard enforcement is not implemented.

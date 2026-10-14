@@ -395,6 +395,7 @@ typedef struct M68kSimFormMetadata {
   uint8_t striped_stride;
   uint8_t striped_big_endian;
   uint8_t unary_sign_extend_source_bits;
+  uint8_t source_sign_extend;
   uint8_t shift_direction;
   uint8_t shift_fill_mode;
   uint8_t shift_count_source;
@@ -583,6 +584,7 @@ int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, siz
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction);
 /* Resolve the existing form's operand width; unknown form/operand returns zero. */
 uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8_t operand_index);
+int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);
 int m68k_simulate_step(const M68kObject *object, size_t section_index, const M68kSection *section, uint32_t offset,
