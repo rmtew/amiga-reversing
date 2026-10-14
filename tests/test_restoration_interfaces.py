@@ -152,7 +152,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             initialized = await session.initialize()
             assert initialized.server_info.name == "Amiga source restoration"
             tools = (await session.list_tools()).tools
-            assert len(tools) == 12
+            assert len(tools) == 14
             by_name = {tool.name: tool for tool in tools}
             assert by_name["restoration_query"].annotations.read_only_hint
             assert not by_name["restoration_interpret"].annotations.read_only_hint

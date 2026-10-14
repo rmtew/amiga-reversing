@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import json
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from amiga_reversing.disasm.project_paths import resolve_project_paths
@@ -37,6 +37,7 @@ class DirectPayloadContract:
     entry_registers: dict[str, int]
     handoff_marker_address: int
     handoff_marker_value: int
+    reservations: tuple[tuple[int, int], ...] = ()
 
 
 def _integer(record: dict[str, object], name: str) -> int:
@@ -138,17 +139,26 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
         "HANDOFF_RELEASE_VALUE": HANDOFF_RELEASE_VALUE,
     }
     context_path = output_path.parent / "direct_payload_entry_context.i"
-    context_path.write_text(entry_context_source(contract.entry_registers), encoding="ascii")
+    reservation_path = output_path.parent / "direct_payload_reservations.i"
+    reservation_lines=[]
+    for address,size in contract.reservations:
+        if type(address) is not int or type(size) is not int or address % 8 or size <= 0 or size % 8 or address < 0x1000 or address+size > 0x1000000:
+            raise DirectPayloadContractError("Invalid exact Exec reservation")
+        reservation_lines.extend((f"    move.l #${size:X},d0", f"    movea.l #${address:X},a1",
+            "    jsr _LVOAllocAbs(a6)", f"    cmpi.l #${address:X},d0", "    bne.w failed"))
     command = [str(VASM), "-Fbin", "-m68000", "-I", str(output_path.parent), "-I", str(NDK_INCLUDE)]
     command.extend(f"-D{name}=${value:X}" for name, value in definitions.items())
     command.extend(("-o", str(output_path), str(BOOT_SOURCE)))
     try:
+        context_path.write_text(entry_context_source(contract.entry_registers), encoding="ascii")
+        reservation_path.write_text("\n".join(reservation_lines)+"\n", encoding="ascii")
         completed = subprocess.run(command, capture_output=True, text=True, check=False)
         if completed.returncode != 0:
             raise DirectPayloadContractError(completed.stderr.strip() or completed.stdout.strip() or "vasm failed")
         return output_path.read_bytes()
     finally:
         context_path.unlink(missing_ok=True)
+        reservation_path.unlink(missing_ok=True)
 
 
 def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_path: Path) -> dict[str, object]:
@@ -190,12 +200,41 @@ def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_p
     }
 
 
-def build_for_target(contract_identifier: str, target_id: str, output_path: Path) -> dict[str, object]:
+def bind_derived_contract(contract: DirectPayloadContract, manifest_path: Path) -> tuple[DirectPayloadContract, Path, dict]:
+    from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
+    from amiga_reversing.disasm.derived_artifact import validate_manifest, verify_native_binding
+    manifest,payload_path=validate_manifest(manifest_path,contract.target_id)
+    if manifest["original_sha256"]!=contract.payload_sha256:
+        raise DirectPayloadContractError("Derived artifact base does not match the direct contract")
+    _,_,artifact=build_project_listing_artifact_profile(contract.target_id)
+    try:
+        verify_native_binding(manifest,artifact)
+    finally:
+        artifact.close()
+    placement=manifest["placement"]
+    address,size=placement["runtime_address"],manifest["region"]["size"]
+    payload_end=contract.load_address+payload_path.stat().st_size
+    if address < payload_end and contract.load_address < address+size:
+        raise DirectPayloadContractError("Runtime reservation overlaps the loaded payload")
+    if address < contract.handoff_marker_address+4 and contract.handoff_marker_address-8 < address+size:
+        raise DirectPayloadContractError("Runtime reservation overlaps the handoff markers")
+    return replace(contract,payload_sha256=manifest["artifact_sha256"],reservations=((address,size),)),payload_path,manifest
+
+
+def build_for_target(contract_identifier: str, target_id: str, output_path: Path, *, derived_manifest: Path | None = None) -> dict[str, object]:
     contract = load_contract(contract_identifier)
     if contract.target_id != target_id:
         raise DirectPayloadContractError("Direct-payload contract is not for the requested target.")
     payload_path = resolve_project_paths(target_id).binary_source.path
-    return build_boot_adf(contract, payload_path, output_path)
+    manifest=None
+    if derived_manifest is not None:
+        contract,payload_path,manifest=bind_derived_contract(contract,derived_manifest)
+    result=build_boot_adf(contract, payload_path, output_path)
+    if manifest is not None:
+        result["derived_manifest"]=str(derived_manifest.resolve())
+        result["original_sha256"]=manifest["original_sha256"]
+        result["reservation"]=manifest["placement"] | {"size":manifest["region"]["size"]}
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -752,6 +752,20 @@ typedef struct M68kAnalysisAbstractRegion {
   char region_id[96];
 } M68kAnalysisAbstractRegion;
 
+/* Runtime-only regions have no implied source-image owner or initializer.
+ * Persistent CPU storage is the deliberately narrow first relocation contract;
+ * phase overlays and DMA lifetimes remain explicit unsupported obligations. */
+#define M68K_ANALYSIS_MEMORY_REGION_LIMIT 16U
+typedef struct M68kMemoryRegionIR {
+  char region_id[96];
+  char name[64];
+  uint32_t runtime_address;
+  uint32_t size;
+  uint32_t alignment;
+  uint8_t dma_access;
+  uint8_t persistent;
+} M68kMemoryRegionIR;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
@@ -774,6 +788,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t manual_runtime_address_ref_count;
   uint16_t manual_data_reference_count;
   uint16_t abstract_region_count;
+  uint16_t memory_region_count;
   uint16_t custom_struct_count;
   uint16_t custom_struct_capacity;
   uint16_t structured_data_item_capacity;
@@ -810,6 +825,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
   M68kAnalysisManualDataReference manual_data_references[M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT];
   M68kAnalysisAbstractRegion abstract_regions[M68K_ANALYSIS_ABSTRACT_REGION_LIMIT];
+  M68kMemoryRegionIR memory_regions[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
   M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
 

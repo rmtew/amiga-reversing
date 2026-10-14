@@ -264,6 +264,12 @@ def _query(target_id, body, current):
         page.pop("next_offset", None)
         page["scope"] = "canonical bound pointer fields and native render-plan outcomes"
         page["unknowns"] = page.pop("limits")
+    elif kind == "memory_regions":
+        if set(filters) != {"kind"}:
+            raise ValueError("memory_regions currently supports only pagination")
+        native = artifact.memory_regions_payload()
+        page = _page(native["items"], offset, limit, native["scope"],
+                     ["Region definition does not establish access closure or legal placement."])
     elif kind == "gaps":
         items = _server()._cached_analysis_review_items(target_id, artifact)
         page = _page(items, offset, limit, "native analysis review items",
@@ -470,7 +476,7 @@ def execute(target_id: str, body: dict) -> dict:
     snapshot = getattr(_server(), "_listing_read_snapshot", nullcontext)
     with target_lock(directory), snapshot():
         current = revisions(target_id)
-        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "review", "review_batch", "rollback"}:
+        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "review", "review_batch", "rollback", "memory_plan", "memory_build"}:
             current = require_revision(target_id, body.get("expected_revision"), current=current)
         elif body.get("expected_revision") is not None:
             current = require_revision(target_id, body["expected_revision"], current=current)
@@ -506,6 +512,17 @@ def execute(target_id: str, body: dict) -> dict:
                     body.get("scenario"), receipt)
             if revisions(target_id)["subject_revision"] != current["subject_revision"]:
                 raise ValueError("source changed during verification; receipt is not current")
+        elif operation in {"memory_plan", "memory_build"}:
+            from amiga_reversing.disasm.memory_regions import relocation_plan, build_derived_artifact
+            artifact = _artifact(target_id)
+            plan = relocation_plan(artifact, body.get("region_id"), body.get("destination"), body.get("memory_class"))
+            if operation == "memory_plan":
+                result = {"plan": plan}
+            else:
+                from amiga_reversing.disasm import restoration_verification as verification
+                receipt = verification.load_receipt(target_id, body.get("verification_id"))
+                verification._verified_receipt(target_id, current["subject_revision"], receipt)
+                result = build_derived_artifact(target_id, artifact, plan, current["subject_revision"])
         elif operation == "review":
             result = _review(target_id, body, current)
         elif operation == "review_batch":

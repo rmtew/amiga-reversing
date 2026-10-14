@@ -188,6 +188,8 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW = "remove_manual_runtime_observation_view"
     CREATE_MANUAL_RUNTIME_DATA_RANGE = "create_manual_runtime_data_range"
     REMOVE_MANUAL_RUNTIME_DATA_RANGE = "remove_manual_runtime_data_range"
+    CREATE_MANUAL_MEMORY_REGION = "create_manual_memory_region"
+    REMOVE_MANUAL_MEMORY_REGION = "remove_manual_memory_region"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -252,6 +254,7 @@ class ManualActionLogProjection:
     inactive_action_ids: tuple[str, ...]
     diagnostics: tuple[dict[str, object], ...]
     review_items: tuple[dict[str, object], ...]
+    memory_regions: tuple[dict[str, object], ...] = ()
     source_output_policy: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
@@ -1847,6 +1850,7 @@ def _project_actions(
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    memory_regions: dict[str, dict[str, object]] = {}
     runtime_data_ranges: dict[int, dict[str, object]] = {}
     removed_runtime_data_ranges: dict[int, dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -2197,6 +2201,22 @@ def _project_actions(
             removed = dict(existing_range or data_range)
             removed["cleanup_action_id"] = action.action_id
             removed_runtime_data_ranges[range_key] = removed
+        elif action.kind is ManualActionKind.CREATE_MANUAL_MEMORY_REGION:
+            from amiga_reversing.disasm.memory_regions import validate_region
+            region = validate_region(dict(_action_object(action, "memory_region")))
+            if region["region_id"] in memory_regions:
+                raise ValueError("memory_region identity already exists; remove before replacement")
+            if any(region["runtime_address"] < old["runtime_address"] + old["size"] and
+                   old["runtime_address"] < region["runtime_address"] + region["size"] for old in memory_regions.values()):
+                raise ValueError("memory_region overlaps another persistent region")
+            if len(memory_regions) >= 16:
+                raise ValueError("memory_region native capacity exceeded")
+            memory_regions[region["region_id"]] = region
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_MEMORY_REGION:
+            region = _action_object(action, "memory_region")
+            if set(region) != {"region_id"} or region["region_id"] not in memory_regions:
+                raise ValueError("memory_region removal requires an existing identity")
+            memory_regions.pop(region["region_id"])
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -2266,6 +2286,7 @@ def _project_actions(
         removed_execution_views=tuple(removed_execution_views.values()),
         runtime_observation_views=tuple(runtime_observation_views.values()),
         removed_runtime_observation_views=tuple(removed_runtime_observation_views.values()),
+        memory_regions=tuple(memory_regions.values()),
         runtime_data_ranges=tuple(runtime_data_ranges.values()),
         removed_runtime_data_ranges=tuple(removed_runtime_data_ranges.values()),
         review_notes=tuple(review_notes.values()),
@@ -2313,6 +2334,7 @@ def _validate_candidate_equate_capacity(
 # These actions can change native structured-item or named-label expansion.
 # Presentation, EQU-only, and register-contract edits do not need this codec pass.
 _POLICY_STORAGE_ACTION_KINDS = frozenset({
+    ManualActionKind.CREATE_MANUAL_MEMORY_REGION, ManualActionKind.REMOVE_MANUAL_MEMORY_REGION,
     ManualActionKind.CREATE_MANUAL_SEED, ManualActionKind.REMOVE_MANUAL_SEED,
     ManualActionKind.RENAME_DATA_SYMBOL, ManualActionKind.SUPPRESS_SEEDED_ITEM,
     ManualActionKind.CREATE_MANUAL_LABEL, ManualActionKind.REMOVE_MANUAL_LABEL,

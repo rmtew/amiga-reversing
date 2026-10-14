@@ -28,10 +28,13 @@ read_payload:
     bra.b   failed
 
 handoff:
+    ; Reserve explicitly selected runtime storage before the OS is abandoned.
+    ; AllocAbs failure takes the same FAIL path; HAND is never published.
+    INCLUDE "direct_payload_reservations.i"
     INCLUDE "direct_payload_entry_context.i"
     move.l  #HANDOFF_VALUE,HANDOFF_MARKER
-; WinUAE exposes GDB after the boot code may otherwise have handed execution
-; to the payload.  The shared direct-payload protocol holds at this explicit
+; The control client attaches after the boot code may otherwise have handed
+; execution to the payload.  The shared direct-payload protocol holds at this explicit
 ; marker until the target-aware session has attached and armed its first
 ; bounded observation.
 await_session_release:

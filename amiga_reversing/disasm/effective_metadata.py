@@ -2519,6 +2519,8 @@ def effective_metadata_text(
         )
         payload["execution_views"] = execution_views
         payload["runtime_observation_views"] = observations
+    if projection.memory_regions:
+        payload["memory_regions"] = [dict(region) for region in projection.memory_regions]
     if projection.runtime_data_ranges:
         payload["runtime_data_ranges"] = [dict(data_range) for data_range in projection.runtime_data_ranges]
     _add_source_context(target_dir, payload)

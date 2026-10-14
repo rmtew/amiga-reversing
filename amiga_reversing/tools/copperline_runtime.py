@@ -393,12 +393,13 @@ def run_scenario(client, scenario, payload_path, release=None):
         ):
             raise ValueError("Input release must follow press")
         if not isinstance(event.get("control"), str) or not re.fullmatch(
-            r"port[01] (fire|left|right|up|down)", event["control"]
+            r"(?:port[01] (?:fire|left|right|up|down)|key (?:[0-9]|[1-9][0-9]|1[01][0-9]|12[0-7]))", event["control"]
         ):
             raise ValueError("Unsupported input control")
     symbols = scenario.get("symbols") or {}
     functions = symbols.get("functions", [])
     held, result, confirmed = {1: {}, 2: {}}, [], False
+    held_keys = set()
     reverse_boundary = None
     try:
         for index, phase in enumerate(phases):
@@ -434,6 +435,7 @@ def run_scenario(client, scenario, payload_path, release=None):
                 break
             confirmed = True
             next_held = {1: {}, 2: {}}
+            next_keys = set()
             for event in events:
                 if (
                     names.index(event["after_phase"])
@@ -441,12 +443,22 @@ def run_scenario(client, scenario, payload_path, release=None):
                     < names.index(event["release_after_phase"])
                 ):
                     port, key = event["control"].split()
+                    if port == "key":
+                        next_keys.add(int(key))
+                        continue
                     port = int(port[-1]) + 1
                     next_held[port]["red" if key == "fire" else key] = True
             for port, state in next_held.items():
                 if state != held[port]:
                     client.joystick(port=port, **state)
             held = next_held
+            for key in sorted(held_keys - next_keys):
+                client.key(key, pressed=False)
+                held_keys.remove(key)
+            for key in sorted(next_keys - held_keys):
+                # Track before sending: a lost response can still have pressed it.
+                held_keys.add(key)
+                client.key(key, pressed=True)
         return {
             "identifier": scenario.get("identifier"),
             "symbols": symbols,
@@ -454,6 +466,9 @@ def run_scenario(client, scenario, payload_path, release=None):
             "reverse_boundary": reverse_boundary,
         }
     finally:
+        for key in sorted(held_keys):
+            with suppress(CopperlineError):
+                client.key(key, pressed=False)
         for port in held:
             with suppress(CopperlineError):
                 client.joystick(port=port)
@@ -623,6 +638,13 @@ def observe(session):
         if session.direct_payload_contract
         else None
     )
+    if getattr(session,"derived_artifact_manifest",None) is not None:
+        if contract is None:
+            raise CopperlineError("Derived artifacts require a direct contract")
+        from .direct_payload_adapter import bind_derived_contract
+        contract,payload_path,manifest=bind_derived_contract(contract,session.derived_artifact_manifest)
+        if payload_path.resolve()!=session.target_payload_path.resolve():
+            raise CopperlineError("Session payload does not match its derived artifact")
     scenario = (
         json.loads(session.scenario_path.read_text()) if session.scenario_path else None
     )

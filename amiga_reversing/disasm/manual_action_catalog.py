@@ -120,6 +120,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_remove_action(),
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
+        _target_memory_region_action(),
         _target_runtime_data_range_action(),
         _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
@@ -180,6 +181,9 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_runtime_observation_view":
         return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_memory_region":
+        from amiga_reversing.disasm.memory_regions import validate_region
+        return "create_manual_memory_region", {"memory_region": validate_region(dict(params))}
     if action.get("action") == "create_manual_runtime_data_range":
         return "create_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_payload(params)}
     if action.get("action") == "remove_manual_runtime_data_range":
@@ -6561,3 +6565,16 @@ def _object(value: object, description: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{description} is missing")
     return value
+
+
+def _target_memory_region_action() -> dict[str, object]:
+    return _context_log_action("target.memory_region.add", "Define memory region",
+        "create_manual_memory_region", {"kind": "target"}, {},
+        {"type": "object", "required": ["region_id", "name", "runtime_address", "size", "alignment",
+            "source_domain", "memory_class", "lifetime", "dma_access"], "properties": {
+            "region_id": {"type": "string"}, "name": {"type": "string"},
+            "runtime_address": {"type": "integer"}, "size": {"type": "integer"}, "alignment": {"type": "integer"},
+            "source_domain": {"type": "string", "enum": ["runtime_only"]},
+            "memory_class": {"type": "string", "enum": ["cpu_ram"]},
+            "lifetime": {"type": "string", "enum": ["persistent"]},
+            "dma_access": {"type": "string", "enum": ["none", "chip"]}}})

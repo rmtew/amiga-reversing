@@ -201,6 +201,12 @@ class CopperlineClient:
     def remove_breakpoint(self, ident):
         return self.request("break.remove", {"id": ident})
 
+    def key(self, rawkey, *, pressed):
+        """One bounded Amiga raw-key transition; scenario cleanup releases holds."""
+        if type(rawkey) is not int or not 0 <= rawkey <= 127 or type(pressed) is not bool:
+            raise ValueError("Invalid raw key transition")
+        return self.request("input.key", {"rawkey": rawkey, "action": "press" if pressed else "release"})
+
     def joystick(self, *, port=2, **state):
         controls = {
             "up",

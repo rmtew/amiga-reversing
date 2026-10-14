@@ -58,10 +58,11 @@ async function openRestorationPanel() {
     <p>Select a gap, inspect evidence, preserve an interpretation, rebuild, then review.</p>
     <div id="restoration-status" role="status">Preparing analysis…</div>
     <nav><button type="button" id="restoration-refresh">Refresh state</button><button type="button" id="restoration-selected">Inspect selected source</button><button type="button" id="restoration-history">History</button><button type="button" id="restoration-pointer-exceptions">Pointer exceptions</button></nav>
-    <form id="restoration-search"><label>Explore <select name="kind">${["gaps", "symbols", "functions", "references", "fields", "edges", "instructions", "typed_pointers"].map(x => `<option value="${x}">${x === "typed_pointers" ? "pointer exceptions" : x}</option>`).join("")}</select></label><label>Name / symbol / type <input name="query" type="search"></label><button>Search</button></form>
+    <form id="restoration-search"><label>Explore <select name="kind">${["gaps", "symbols", "functions", "references", "fields", "edges", "instructions", "typed_pointers", "memory_regions"].map(x => `<option value="${x}">${x === "typed_pointers" ? "pointer exceptions" : x}</option>`).join("")}</select></label><label>Name / symbol / type <input name="query" type="search"></label><button>Search</button></form>
     <div id="restoration-results"></div><button id="restoration-next" type="button" hidden>Next page</button>
     <section id="restoration-inspection"></section>
     <section class="restoration-validation"><h3>Verify and review</h3><button id="restoration-verify" type="button">Regenerate and verify exact bytes</button><div id="restoration-verification"></div>
+    <form id="restoration-memory"><label>Memory region <input name="region_id" required></label><label>Destination <input name="destination" placeholder="0xC7F000" required></label><label>Memory <select name="memory_class"><option>slow</option><option>chip</option><option>fast</option></select></label><button name="operation" value="memory_plan">Check placement</button><button name="operation" value="memory_build">Build derived artifact</button></form><div id="restoration-memory-result"></div>
     <form id="restoration-probe"><label>Runtime question <input name="question" required></label><label>Configured scenario <input name="scenario" placeholder="pandora-gameplay-entry" required></label><button>Run bounded probe</button></form>
     <form id="restoration-review"><label>Action ID <input name="action_id" required></label><label>Decision <select name="decision"><option>defer</option><option>accept</option><option>reject</option></select></label><label>Reason <input name="reason" required></label><button>Record review</button><button type="button" id="restoration-undo">Undo action</button><button type="button" id="restoration-redo">Redo action</button></form>
     </section></section>`);
@@ -98,6 +99,14 @@ async function openRestorationPanel() {
     const result = await restorationRun("verify", {expected_revision: restorationView.revision});
     restorationView.verificationId = result.receipt_id;
     panel.querySelector("#restoration-verification").textContent = restorationValue(result);
+  });
+  panel.querySelector("#restoration-memory").onsubmit = safe(async event => {
+    event.preventDefault();
+    const fields = Object.fromEntries(new FormData(event.target));
+    const result = await restorationRun(event.submitter.value, {expected_revision: restorationView.revision,
+      region_id: fields.region_id, destination: Number(fields.destination), memory_class: fields.memory_class,
+      ...(event.submitter.value === "memory_build" ? {verification_id: restorationView.verificationId} : {})});
+    panel.querySelector("#restoration-memory-result").textContent = restorationValue(result);
   });
   panel.querySelector("#restoration-probe").onsubmit = safe(async event => {
     event.preventDefault();

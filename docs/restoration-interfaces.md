@@ -225,3 +225,28 @@ refusals surface as MCP tool errors, without automatic retries.
 The adapter uses the official `mcp>=2.3,<3` Python SDK, structured tool results and
 stdio lifecycle: [SDK documentation](https://py.sdk.modelcontextprotocol.io/) and
 [transport documentation](https://py.sdk.modelcontextprotocol.io/run/).
+
+## Runtime memory regions and derived artifacts
+
+`target.memory_region.add` records a stable runtime-only region identity, original
+address, size/alignment, CPU placement, persistent lifetime and DMA requirement
+through ordinary revision-checked interpretation/history. `query` with
+`kind: "memory_regions"` projects native instruction references and bounded
+pointer-path obligations. Definitions do not assert relocation safety.
+
+`memory_plan` takes `expected_revision`, `region_id`, integer `destination` and
+`memory_class` (`chip` or `slow` for the first A500 contract). Unsupported encoding,
+placement, alias, control/frame or access paths remain explicit refusals. The
+first proof covers accepted 68000 references and brief addressing forms only;
+unclassified bytes, synthesized pointers and future callback changes stay outside
+its scope. Lack of references never proves free storage.
+
+`memory_build` additionally requires a current exact `verification_id`. A closed
+native plan writes an immutable derived payload and exact instruction rewrite
+ledger/manifest under `.runtime-state/restoration/derived/`; original source and
+binary identity remain unchanged. The manifest binds both whole payload hashes,
+region definition, placement, analysis subject and native plan. Runtime binding
+recomputes the native proof and validates every changed byte. UI placement/build
+controls, CLI operations and MCP tools use these same operations. Pandora's first
+keyboard move currently refuses five obligations, so no relocated target artifact
+has been built or executed.

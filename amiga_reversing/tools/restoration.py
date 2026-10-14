@@ -32,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
             "review_batch",
             "history",
             "rollback",
+            "memory_plan",
+            "memory_build",
         ),
     )
     parser.add_argument(
@@ -53,6 +55,7 @@ def main(argv: list[str] | None = None) -> int:
             "functions",
             "gaps",
             "typed_pointers",
+            "memory_regions",
         ),
     )
     parser.add_argument("--query")

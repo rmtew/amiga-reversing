@@ -194,6 +194,12 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_query_json_alloc(P
     int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,
     const char *struct_name, int has_field, int32_t field_offset, const char *direction,
     uint32_t offset, uint32_t limit, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
+    PlatformFileListingArtifact *artifact, const char *region_id, uint32_t destination,
+    uint32_t memory_class, char **out_text);
+/* Stable region definitions and reference obligations from the canonical plan. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_regions_json_alloc(
+    PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void);
 PLATFORM_FILE_API void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer);

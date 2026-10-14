@@ -65,6 +65,7 @@ def create_server(client: RestorationClient):
             "functions",
             "gaps",
             "typed_pointers",
+            "memory_regions",
         ],
         expected_revision: str,
         query: str | None = None,
@@ -173,6 +174,21 @@ def create_server(client: RestorationClient):
     def restoration_verify(project: str, expected_revision: str) -> dict[str, object]:
         """Regenerate source and check exact reproduction; record a revision-bound receipt."""
         return call(project, "verify", expected_revision=expected_revision)
+
+    @server.tool(annotations=read, structured_output=True)
+    def restoration_memory_plan(project: str, expected_revision: str, region_id: str,
+                                destination: int, memory_class: Literal["chip", "slow", "fast"]) -> dict[str, object]:
+        """Get a native relocation proof/refusal; a preview does not execute an artifact."""
+        return call(project, "memory_plan", expected_revision=expected_revision, region_id=region_id,
+                    destination=destination, memory_class=memory_class)
+
+    @server.tool(annotations=write, structured_output=True)
+    def restoration_memory_build(project: str, expected_revision: str, region_id: str,
+                                 destination: int, memory_class: Literal["chip", "slow", "fast"],
+                                 verification_id: str) -> dict[str, object]:
+        """Build only from a closed native plan and current exact original receipt."""
+        return call(project, "memory_build", expected_revision=expected_revision, region_id=region_id,
+                    destination=destination, memory_class=memory_class, verification_id=verification_id)
 
     @server.tool(annotations=write, structured_output=True)
     def restoration_probe(

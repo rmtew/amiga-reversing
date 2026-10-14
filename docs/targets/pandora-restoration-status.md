@@ -238,6 +238,54 @@ Actual compact ZIP also reproduces all 376,832 original bytes with C/vasm:
 SHA256 `c2aa0d456821d21a0cff268bd212010b9494bb1ea78eab01976fe7f7c37cb8f7`.
 Machine evidence: `.runtime-state/pandora-analysis/scratch-bounds-followup/`.
 
+Keyboard relocation checkpoint (2026-10-14): **incomplete**. One normal
+interpretation/review records `keyboard_state` at original runtime
+`$397C..$39FC` (128 bytes), with stable identity, alignment, persistent CPU
+storage and no DMA requirement. Native region queries, revision-checked
+placement/build operations and an exact derived-payload identity contract now
+share the existing facts/history/service; no target-only patcher or second
+semantic store was added.
+
+The proposed `$C7F000..$C7F080` Slow RAM move is refused with five open roots.
+First failures are source `$690` at `$6AE` (A6 camera-state write), `$86A` at
+`$882` (A6 last-key write), `$2D2A` at `$2D58` (borrowed caller frame), `$9062`
+at `$90BE` (A6 modal-state write), and `$9C76` at `$9C32` (A6 status write).
+The direct `$2704` access and `$9F58` reset cursor bounds close, but are
+insufficient to build. Other-base writes are not yet proved disjoint from live
+return/saved-pointer frames, and caller prefixes need balanced-frame analysis.
+Independent review approved conservative refusal after arithmetic, MOVEM span,
+stack/callback/tail, mutable-index and CPU/EA guards. No derived Pandora artifact,
+reservation or changed-layout execution has been observed.
+
+A fresh normal Copperline boot verifies the complete original payload and hits
+all eight keyboard phases. Reset clears all 128 bytes; raw keys 11/12 each set
+only their own byte, release clears it, and normal gameplay camera-profile reads
+change 1→0→1. Region-identity captures and independent original-address reads are
+in `runtime/scenarios/pandora-keyboard-state.json`. The current Chromium UI shows
+120 listing rows, the real region facts and five-obligation placement refusal.
+The loopback service remains `http://127.0.0.1:8123/`.
+
+140 focused tests pass, with two optional tests skipped. The full native suite
+has the same two failures on clean prior commit `7896c865`: pointer-table pointee
+type propagation and unknown decompression identification. Original expanded
+C/vasm verification is exact for all 376,832 bytes, receipt
+`75f1ea4bcebee3bb8c1e712c0fe172e4cefa02ca3dbf1c028f9e6a4ded877418`;
+source SHA remains `b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d`.
+Actual compact ZIP also reproduces every original byte through C/vasm; its
+source SHA remains `c2aa0d456821d21a0cff268bd212010b9494bb1ea78eab01976fe7f7c37cb8f7`
+with 27 definitions, 1,501 records and 768 explicit fallbacks. All prior effective
+facts, 78 companions, 69 original asset spans and both history prefixes are preserved. Machine evidence is under
+`.runtime-state/pandora-analysis/keyboard-relocation/`; reproduction and the
+first raw fixed-width runtime contract are in `docs/copperline-runtime.md`.
+
+The next step is shared native provenance/frame analysis establishing disjoint
+application/object storage and balanced caller/callback stacks. Re-review those
+five roots, then build the seven-rewrite artifact through the normal verified
+operation, reserve its destination with checked Exec `AllocAbs`, and run the
+same reset/press/release/gameplay scenario against the new region and old-address
+guards. Original exactness and accepted-reference closure do not establish whole
+game relocation, unknown aliases, arbitrary mutations or other scenarios.
+
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
 

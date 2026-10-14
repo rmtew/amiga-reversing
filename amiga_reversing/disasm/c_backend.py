@@ -1784,6 +1784,10 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_navigation_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc.argtypes = [c_void_p, c_char_p, c_uint32, c_uint32, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_memory_regions_json_alloc.argtypes = [c_void_p, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_memory_regions_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_query_json_alloc.argtypes = [
         c_void_p, c_char_p, c_char_p, c_int, c_uint32, c_int, c_uint32,
         c_int, c_uint32, c_char_p, c_char_p, c_int, c_int, c_char_p,
@@ -2244,6 +2248,21 @@ class CListingArtifact:
         summary = cast(dict[str, object], combined.get("summary", {}))
         profile = cast(dict[str, object], combined.get("profile", {}))
         return summary, profile
+
+    def memory_region_plan(self, region_id: str, destination: int, memory_class: str) -> dict:
+        if not isinstance(region_id, str) or not region_id or "\0" in region_id or len(region_id)>95:
+            raise ValueError("Invalid memory region identity")
+        if type(destination) is not int or not 0<=destination<0x1000000 or memory_class not in {"chip", "slow", "fast"}:
+            raise ValueError("Invalid memory placement")
+        return json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc,
+            region_id, destination, {"chip": 1, "slow": 2, "fast": 3}[memory_class],
+        ))
+
+    def memory_regions_payload(self) -> dict[str, object]:
+        return json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_memory_regions_json_alloc,
+        ))
 
     def query_payload(
         self, kind: str, *, query: str = "", section_index: int | None = None,

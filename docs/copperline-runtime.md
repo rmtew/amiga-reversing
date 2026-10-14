@@ -171,3 +171,36 @@ the current scope. Windows execution of the replacement has not been tested here
 The [shared restoration validation](validation/restoration-framework-2026-10-12.md)
 now also proves full-target C and vasm exactness after a real evidence-bearing
 Pandora source change, with rebuilt-file gameplay checkpoints and review receipts.
+
+## Keyboard-region baseline and derived layout contract
+
+`runtime/scenarios/pandora-keyboard-state.json` observes reset, title/UI entry and
+normal gameplay reads, then holds/releases raw Amiga keys 11 and 12. Phase-bound
+`key N` controls use `input.key` with bounded press/release and cleanup. Capture
+reads can use `region_id`, nonnegative `offset` and `size` (1..64); compilation
+resolves the native original extent, or the validated derived manifest placement.
+Absolute reads remain available as independent old-address guards.
+
+In this saved cloud environment, reproduce the original-layout baseline:
+
+```sh
+cd /workspace/amiga-reversing
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --rom /workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom \
+  --copperline /workspace/copperline-assessment/squashfs-root/usr/bin/copperline \
+  --direct-payload-contract pandora \
+  --scenario runtime/scenarios/pandora-keyboard-state.json \
+  --state-directory .runtime-state/pandora-analysis/keyboard-relocation/reproduce --run
+```
+
+A future closed `memory_build` manifest can be passed as `--derived-artifact`.
+The direct adapter requires exact ledger/full payload identity and a current
+native proof, rejects payload/marker overlap, and inserts checked Exec `AllocAbs`
+reservation before HAND. Failure reaches FAIL without payload release. Source
+PC mappings remain valid only because this contract changes fixed-width address
+operands and preserves all code placement. This plumbing and reservation shim
+are tested; Pandora's five open pointer/frame obligations currently prevent a
+changed-layout build. Its alternate placement and reservation have not been
+observed in the emulator. The existing legal ROM is reused; no ROM download or
+original-disk-loader parity is implied.

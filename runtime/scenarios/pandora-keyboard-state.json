@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-keyboard-state",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "reset_done",
+      "breakpoint_stable_key": "s0:00009F66:instruction",
+      "wait_seconds": 15,
+      "capture": {
+        "registers": [
+          "a0",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 0
+          },
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 714,
+            "size": 2
+          },
+          {
+            "address": 14716,
+            "size": 64
+          },
+          {
+            "address": 14780,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "title",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 15
+    },
+    {
+      "name": "ui",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 15
+    },
+    {
+      "name": "gameplay_reads",
+      "breakpoint_stable_key": "s0:000006A2:instruction",
+      "wait_seconds": 15,
+      "capture": {
+        "registers": [
+          "a0",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 0
+          },
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 714,
+            "size": 2
+          },
+          {
+            "address": 14716,
+            "size": 64
+          },
+          {
+            "address": 14780,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "key_11_pressed",
+      "breakpoint_stable_key": "s0:000006D2:instruction",
+      "wait_seconds": 15,
+      "capture": {
+        "registers": [
+          "a0",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 0
+          },
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 714,
+            "size": 2
+          },
+          {
+            "address": 14716,
+            "size": 64
+          },
+          {
+            "address": 14780,
+            "size": 64
+          }
+        ]
+      },
+      "occurrences": 3
+    },
+    {
+      "name": "key_11_released",
+      "breakpoint_stable_key": "s0:000006D2:instruction",
+      "wait_seconds": 15,
+      "capture": {
+        "registers": [
+          "a0",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 0
+          },
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 714,
+            "size": 2
+          },
+          {
+            "address": 14716,
+            "size": 64
+          },
+          {
+            "address": 14780,
+            "size": 64
+          }
+        ]
+      },
+      "occurrences": 3
+    },
+    {
+      "name": "key_12_pressed",
+      "breakpoint_stable_key": "s0:000006D2:instruction",
+      "wait_seconds": 15,
+      "capture": {
+        "registers": [
+          "a0",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 0
+          },
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 714,
+            "size": 2
+          },
+          {
+            "address": 14716,
+            "size": 64
+          },
+          {
+            "address": 14780,
+            "size": 64
+          }
+        ]
+      },
+      "occurrences": 3
+    },
+    {
+      "name": "key_12_released",
+      "breakpoint_stable_key": "s0:000006D2:instruction",
+      "wait_seconds": 15,
+      "capture": {
+        "registers": [
+          "a0",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 0
+          },
+          {
+            "size": 64,
+            "region_id": "keyboard_state",
+            "offset": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 714,
+            "size": 2
+          },
+          {
+            "address": 14716,
+            "size": 64
+          },
+          {
+            "address": 14780,
+            "size": 64
+          }
+        ]
+      },
+      "occurrences": 3
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title",
+      "release_after_phase": "ui",
+      "control": "port1 fire"
+    },
+    {
+      "after_phase": "gameplay_reads",
+      "release_after_phase": "key_11_pressed",
+      "control": "key 11"
+    },
+    {
+      "after_phase": "key_11_released",
+      "release_after_phase": "key_12_pressed",
+      "control": "key 12"
+    }
+  ]
+}

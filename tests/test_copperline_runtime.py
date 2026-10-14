@@ -550,3 +550,22 @@ def test_occurrences_reject_invalid_bounds_at_runtime(tmp_path, value):
         runtime.run_scenario(
             OccurrenceClient(p.read_bytes()), counted_scenario(value), p
         )
+
+
+def test_overlapping_keyboard_holds_release_once_and_cleanup_after_failure(tmp_path):
+    p=payload(tmp_path); c=Client(p.read_bytes())
+    def key(rawkey,*,pressed): c.calls.append(('key',(rawkey,pressed)))
+    c.key=key
+    s=scenario();s['input_events'][0]['control']='key 11'
+    s['input_events'].append(dict(s['input_events'][0]))
+    result=runtime.run_scenario(c,s,p)
+    assert all(phase['status']=='hit' for phase in result['phases'])
+    assert [v for k,v in c.calls if k=='key']==[(11,True),(11,False)]
+    c.calls=[]
+    def failing_key(rawkey,*,pressed):
+        key(rawkey,pressed=pressed)
+        if pressed: raise CopperlineError('lost press response')
+    c.key=failing_key
+    with pytest.raises(CopperlineError,match='lost press'):
+        runtime.run_scenario(c,s,p)
+    assert [v for k,v in c.calls if k=='key']==[(11,True),(11,False)]

@@ -460,3 +460,61 @@ def test_compile_occurrences_are_not_a_boot_handoff_counter(tmp_path):
     )
     with pytest.raises(ValueError, match="source-row"):
         copperline_session.compile_scenario("pandora", path, tmp_path / "out.json")
+
+
+@pytest.mark.parametrize(
+    ("offset", "expected"), [(0, 0x397C), (127, 0x39FB), (128, None)]
+)
+def test_region_capture_resolves_native_identity_and_bounds(
+    monkeypatch, tmp_path, offset, expected
+):
+    from types import SimpleNamespace
+
+    artifact = SimpleNamespace(
+        memory_regions_payload=lambda: {
+            "items": [{"region_id": "keys", "runtime_address": 0x397C, "size": 128}]
+        },
+        close=lambda: None,
+    )
+    monkeypatch.setattr(
+        copperline_session,
+        "build_project_listing_artifact_profile",
+        lambda _: (None, None, artifact),
+    )
+    monkeypatch.setattr(
+        copperline_session,
+        "_resolve_breakpoint_stable_key_from_artifact",
+        lambda *args: {
+            "runtime_breakpoint_address": 0x10000,
+            "start_offset": 0,
+            "runtime_observation_view": {},
+        },
+    )
+    scenario = {
+        "schema_version": 1,
+        "target_id": "fixture",
+        "identifier": "region-capture",
+        "phases": [
+            {"name": "handoff", "observable": "direct_payload_handoff"},
+            {
+                "name": "read",
+                "breakpoint_stable_key": "s0:00000000:instruction",
+                "wait_seconds": 1,
+                "capture": {
+                    "memory_reads": [{"region_id": "keys", "offset": offset, "size": 1}]
+                },
+            },
+        ],
+    }
+    path = tmp_path / "scenario.json"
+    path.write_text(json.dumps(scenario))
+    output = tmp_path / "compiled.json"
+    if expected is None:
+        with pytest.raises(ValueError, match="exceeds its extent"):
+            copperline_session.compile_scenario("fixture", path, output)
+        assert not output.exists()
+    else:
+        result = copperline_session.compile_scenario("fixture", path, output)
+        assert result["phases"][0]["capture"]["memory_reads"] == [
+            {"address": expected, "size": 1}
+        ]

@@ -91,3 +91,22 @@ def test_load_contract_preserves_explicit_entry_registers(tmp_path) -> None:
     contract = adapter.load_contract("test", directory=tmp_path)
 
     assert contract.entry_registers == {"a1": 0x20000}
+
+
+@pytest.mark.parametrize('reservation', [(0xc7f001,128),(0xc7f000,127),(0xc7f000,0)])
+def test_invalid_reservation_writes_no_boot_or_temporary_includes(tmp_path,reservation):
+    from dataclasses import replace
+    contract=replace(adapter.DirectPayloadContract('test','target','0'*64,0x20000,0x20000,{},0x7fff8,0x48414e44),reservations=(reservation,))
+    with pytest.raises(adapter.DirectPayloadContractError,match='Invalid exact Exec reservation'):
+        adapter.assemble_boot_code(contract,512,output_path=tmp_path/'boot.bin')
+    assert not list(tmp_path.iterdir())
+
+
+def test_reservation_boot_shim_assembles_and_cleans_includes(tmp_path):
+    from dataclasses import replace
+    if not adapter.VASM.exists():pytest.skip('Installed vasm required')
+    contract=replace(adapter.DirectPayloadContract('test','target','0'*64,0x20000,0x20000,{},0x7fff8,0x48414e44),reservations=((0xc7f000,128),))
+    code=adapter.assemble_boot_code(contract,512,output_path=tmp_path/'boot.bin')
+    assert code and len(code)<=adapter.BOOT_BLOCK_SIZE-12
+    assert not (tmp_path/'direct_payload_entry_context.i').exists()
+    assert not (tmp_path/'direct_payload_reservations.i').exists()
