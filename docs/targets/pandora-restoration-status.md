@@ -555,10 +555,10 @@ presentation, not the semantic recovery status below.
 | Bootstrap / initialization | Fixed-base overlap-safe copy, continuation, supervisor/stack/workspace and initial buffers | Dependent resource setup and storage lifetimes | Copy-helper return lineage, temporal overwrites and alternate placement |
 | IRQ / frame / gameplay | Dispatch priority, display pointer programming, completion latch; front/back swap and shared main/modal input, text and mission-timer services | Callback effects, input phases and buffer ownership | Complete allocation/lifetime and caller coverage |
 | Title / starfield | Ten-byte record fields and five scoped A2 inputs; grounded post-reset continuation typing; ten initialized runtime samples match signed projection arithmetic | Byte 9 remains unknown; clear/render use continuation jumps; the 1000-byte runtime array is outside the absolute-storage command schema | Complete runtime ownership/lifetime, table bounds and indirect paths |
-| World commands / objects | All 33 handler identities and operand contracts; 12 shared command schemas, 20 scoped handler inputs and 31 named operand uses; 17 records in the diabetic/officer programs now use those same formats, with named active/held and post-handoff waits; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | The officer script calls the item handoff once before its long-delay loop; external cursor writes and transitive callback effects remain open. Mutable scripts, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
+| World commands / objects | All 33 handler identities and operand contracts; 12 shared command schemas, 20 scoped handler inputs and 31 named operand uses; 17 records in the diabetic/officer programs now use those same formats, with named active/held and post-handoff waits; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | The officer handoff inhibits opcode dispatch while delay continues to count down; restart can exchange active/saved states before restoring the initial cursor. External cursor writes and transitive callback effects remain open. Mutable scripts, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
 | Combat / encounter | Proximity/trade entry, equipment reload/damage tables, player/opponent charge state, health overlays, hit feedback, charge gauge and defeat cleanup; initialized callback targets and their shared item-state helper | Four non-null callbacks among 35 initialized objects; callback precedes opponent deactivation; item-state addition wraps modulo 256 and skips flag-bit-1 objects. XY-copy and saved-state swap use typed object fields; the table wrapper loads A0 but the helper inherits A5 | Mutable callback replacements, fixed-RAM pointer purpose, complete state/pointer lifetimes and indirect callers; nine initialized saved-state pointers are null |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks; mask-input/border consumers and shared 20×8 modal grid; fixed NPC and receptacle geometry/descriptor families | Receptacle deposit saves the attachment, completion/restart restores it and clears the saved pointer; restart clears the entire interaction flags byte, including proximity bit 0 | Remaining banks, complete write ownership, arbitrary attachment chains and DMA constraints |
-| Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields; the diabetic first-attachment pose controller adds two frame descriptors, one node and its held/active pointer pair (62 bytes) | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
+| Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields; the diabetic first-attachment pose controller adds two frame descriptors, one node and its held/active pointer pair (62 bytes). The shared state exchanger is reversible and restarts only the incoming node | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Later exit-delay reset/writer coverage and reachable inherited state; shared positive-X node word and held-frame/player-layout boundary |
 | Inventory / trading / NPC | Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
@@ -573,15 +573,36 @@ attachment receives the controller once; 100 interpreter-delay counts select the
 active frame and six select the held header. Primary state is unchanged. The
 handoff helper has an input-only A5 object contract: player defeat skips it;
 otherwise it transfers the selected item and clears the first inventory slot
-before the state/UI callbacks. Later controller replacement, external script
-cursor writes and transitive callee effects remain substantive gaps.
+before the state/UI callbacks. The giver becomes inactive: delay counts down
+before the flag test, but later opcode dispatch stays inhibited. The nominal
+long-delay tail alone therefore does not explain resumed behavior.
 
-Reproduce with `.venv/bin/python -m pytest -q tests/test_pandora_scripted_pose.py`.
-The combined catalog/model/type/pointer suite passes 244 tests. Canonical review
+The shared helper is now `exchange_world_object_position_states`, reflecting its
+two-way active/saved pointer exchange. It clears the incoming node hold bit and
+frame/phase clock; a second call exchanges states back. Its complete register
+partition preserves the caller's initial-flags byte in D0 on normal returns with
+valid, disjoint records/stack. Memory/escape effects stay unknown. Restart calls
+it only when current and initial inactive bits differ, then restores initial
+flags; the later suffix restores the original script cursor and clears delay.
+Four bounded CPU cases cover two exchanges in three mode/clock contexts and the
+handoff prefix, countdown/inhibition, restart parity branch/cursor suffix and
+re-entered introductory delay. Full queue/UI/audio calls and intervening restart
+callees are outside those cases. Later diabetic controller replacement, arbitrary
+script/state mutations and complete pointer/caller/lifetime closure remain open.
+
+Native analysis now renders the
+position-descriptor operand at source `0x938E` numerically across the helper's
+unknown memory effects in a pointer-table loop. Its canonical type/table facts
+are preserved; restoring that derived annotation requires a caller-visible
+alias/lifetime proof rather than an unconditional type seed.
+
+Reproduce with `.venv/bin/python -m pytest -q tests/test_pandora_scripted_pose.py tests/test_pandora_state_transitions.py`.
+The combined catalog/model/type/pointer suite passes 248 tests; the four new
+transition cases are in `tests/test_pandora_state_transitions.py`. Canonical review
 preserves every other layout/type/contract/comment, all 30 initialized absolute
 script targets, asset/include identities and both history prefixes. C and vasm
 match all 376,832 original bytes, receipt
-`95e7dbe87a8c4781f25c5245aa4919392ed14bf34b15b926c6e79f2430e22933`.
+`57b3aae0febef58802816121b99ca8aefc74f6e63b094b77e592fea63fc2ccfa`.
 This is bounded CPU validation; normal-gameplay BYTE volume coverage remains
 unobserved and clearance-route expansion remains paused.
 

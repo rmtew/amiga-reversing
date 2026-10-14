@@ -820,6 +820,7 @@ WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	EQU	25
 WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	EQU	30
 WORLD_CMD_SET_POSITION	EQU	23
 WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
+WORLD_OBJECT_INACTIVE_BIT	EQU	1
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
@@ -2176,7 +2177,7 @@ abs_0_000113E6:
 abs_0_000113F0:
 	addq.l #2,a4
 	rts
-    ; Run an object's behavior script. A5=object; A4=current command. A word opcode (0..32) selects its operand layout; handlers return the next A4, saved back to the object.
+    ; Delay counts down before the inactive-bit check. Inactive objects stop dispatch at zero; the current script pass does not recheck this guard after a callback.
 run_world_object_behavior_script:
 	move.l world_object_shared_prefix_behavior_script_ptr(a5),d0
 	beq.b abs_0_00011408
@@ -2189,7 +2190,7 @@ run_world_object_behavior_script:
 abs_0_00011408:
 	rts
 abs_0_0001140A:
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_00011408
 abs_0_00011412:
 	move.w (a4),d0
@@ -4965,7 +4966,7 @@ bank_manager_script_command_0006:
 bank_manager_script_command_000A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l bank_manager_script_command_0006	; target_pointer
-    ; Introductory motion leads to one scripted item handoff; execution then stays in the post-handoff delay loop.
+    ; The handoff marks the giver inactive. Its nominal long-delay tail can count down, but dispatch stays inhibited until another path clears that flag.
 world_object_entry_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0197	; x
@@ -9155,7 +9156,7 @@ finish_combat_encounter:
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 abs_0_00017A06:
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	bset.b #1,$0048(a5)
 	bclr.b #1,app_ui_flags(a6)
 	lea.l combat_visual_render_state.l,a0
@@ -9647,7 +9648,7 @@ abs_0_00018032:
 	clr.w $0010(a0)
 	bclr.b #0,$000A(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w world_object_shared_prefix_hit_points(a5)
 	lea.l player_health_overlay.l,a4
@@ -10181,13 +10182,14 @@ weapon_combat_charge_reload_table:
 	dc.b $04,$05,$02,$01,$04,$03,$02	; lookup_table
 weapon_combat_damage_table:
 	dc.b $23,$15,$09,$07,$19,$0E,$08	; lookup_table
+    ; Exchange active and saved states and restart the incoming node; a second call exchanges them back. Requires valid state/node pointers and a disjoint call stack.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
-restore_world_object_position_state:
+exchange_world_object_position_states:
 	move.l a0,-(a7)
 	movea.l world_object_shared_prefix_saved_position_state_ptr(a5),a0
 	move.l a0,-(a7)
 	movea.l world_position_state_record_state_node_ptr(a0),a0
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a0),world_object_shared_prefix_saved_position_state_ptr(a5)
@@ -10242,7 +10244,7 @@ abs_0_000186F4:
 	clr.w $0010(a0)
 	bclr.b #0,$000A(a0)
 	bset.b #1,$0048(a5)
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w $003C(a5)
 	lea.l player_health_overlay.l,a4
@@ -10394,7 +10396,7 @@ abs_0_000188BC:
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	jsr restore_world_object_position_state.l
+	jsr exchange_world_object_position_states.l
 	bset.b #1,$0048(a5)
 	bra.w abs_0_0001884E
 abs_0_0001890C:
@@ -10873,7 +10875,7 @@ abs_0_00019386:
 	move.l (a4)+,d4
 	beq.w abs_0_0001941E
 	movea.l d4,a5
-	cmpa.l world_object_shared_prefix_position_descriptor_ptr(a5),a1
+	cmpa.l $002C(a5),a1
 	bne.b abs_0_00019386
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #0,world_position_state_record_interaction_flags(a0)
@@ -10915,7 +10917,7 @@ abs_0_000193EC:
     ; This path does not save A5 around the call. The four known initial targets preserve A5 on normal returns. Memory/escape effects and later target mutation remain unknown.
 	jsr (a0)
 abs_0_000193F6:
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	bset.b #1,$0048(a5)
 	addq.b #1,app_defeated_object_count(a6)
 	move.w #$11B,d0
@@ -11838,6 +11840,7 @@ abs_0_0001A056:
 	bsr.w configure_camera_scroll_triggers
 	move.l #active_world_object_ptr_table,app_active_world_object_ptr_table(a6)
 	move.w #$43,active_world_object_count(a6)
+    ; Restart exchanges states only when the current/initial inactive bits differ, then restores initial flags and script state. The saved state/node must be valid when exchanged.
 	lea.l world_object_ptr_table.l,a1
 abs_0_0001A0B8:
 	move.l (a1)+,d0
@@ -11846,12 +11849,12 @@ abs_0_0001A0B8:
 	move.b world_object_shared_prefix_initial_world_object_flags(a5),d0
 	move.b world_object_shared_prefix_world_object_flags(a5),d1
 	eor.b d0,d1
-	btst #1,d1
+	btst #WORLD_OBJECT_INACTIVE_BIT,d1
 	beq.b abs_0_0001A0D2
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 abs_0_0001A0D2:
 	move.b d0,$0048(a5)
-	btst.b #1,$0048(a5)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,$0048(a5)
 	beq.b abs_0_0001A0E2
 	bsr.w copy_world_object_xy_to_position_descriptor
 abs_0_0001A0E2:
@@ -23262,7 +23265,7 @@ complete_bank_manager_interaction:
 complete_thief_interaction:
 	moveq.l #15,d0
 	jmp adjust_active_world_object_item_state.l
-    ; Hand the selected item to the player and clear the giver's first inventory slot before the state/UI callbacks. Player defeat skips the handoff.
+    ; Player defeat skips the handoff; otherwise transfer the item, empty its slot, inhibit script dispatch and exchange states. Queue/UI/audio effects remain separate.
 collect_world_object_item:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_0005B184
@@ -23271,7 +23274,7 @@ collect_world_object_item:
 	move.b $0046(a5),d0
 	clr.b $0046(a5)
 	move.b d0,player_world_object_selected_item_id.l
-	bset.b #1,$0048(a5)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,$0048(a5)
 	movea.l $0014(a5),a0
 	clr.b (a0)
 	lea.l entry_officer_nodes_4A45E_5(pc),a0
@@ -23283,7 +23286,7 @@ collect_world_object_item:
 	jsr close_inventory_panel.l
 	movem.l (a7)+,d0/a0/a5
 abs_0_0005B16C:
-	jsr restore_world_object_position_state.l
+	jsr exchange_world_object_position_states.l
 	jsr display_current_item_name.l
 	jsr refresh_selected_item_name_display.l
 	jsr abs_0_0005D31A.l
