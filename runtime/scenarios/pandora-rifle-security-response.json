@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-rifle-security-response",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "security_start",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04cc036a"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "base_register": "a6",
+            "offset": 718,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 414,
+            "size": 8
+          }
+        ]
+      }
+    },
+    {
+      "name": "security_damage_before_store",
+      "breakpoint_stable_key": "s0:0000887C:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04cc036a"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "base_register": "a6",
+            "offset": 718,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 414,
+            "size": 8
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

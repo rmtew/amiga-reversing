@@ -1642,3 +1642,51 @@ final receipt; the withdrawn failed array and its undo marker remain in history.
 The live UI remains available at `http://127.0.0.1:8123/` without a backend
 restart. Exact assembly and static consumer evidence do not establish emulator
 execution or complete gameplay recovery.
+
+## Rifle return assessment and local relocation boundary
+
+The next bounded runtime slice reused the verified rifle checkpoint without
+replaying acquisition. Decoded camera/script timing now fits seven neutral
+transitions, the prior forward flight crossing (41 calls, bound 45), and all
+45 positions of a reverse timing diagnostic (64 calls, bound 68). Horizontal
+requests use delay two; vertical/idle use one. Camera bursts are charged once
+per burst rather than at every move. This resolves the previous timing-model
+blocker, subject to fixed profile and no new encounters/modal control.
+
+It does not qualify the return. The diagnostic's final health check found HP44;
+the stronger per-visit HP95 recipe stops at `reverse_34_up`. A normal prefix
+probe stops before source `$887C` stores 44 over player HP95: the security
+response subtracts 51 after failed held-ID clearance. Current zone is zero,
+rifle18 fails, and carried Amy ID54 is outside accepted IDs48–53. Another valid
+ID/trade is required; merely selecting Amy is insufficient. The intact rifle
+checkpoint `(1228,874)` and healthy reverse staging `(1137,874)` remain reusable.
+No successful return snapshot or aim/fire/hit is claimed. Further game quest
+modeling is intentionally stopped for this two-byte relocation task.
+
+A cheaper local CPU comparison binds the manifest and canonical checkpoint
+donor, without editing guest state. The actual original/derived BYTE instruction
+at source `$552F0` agrees for all 65,536 initial words, producing
+`0x4000 | (input & 0xff)` with one byte write, equal registers/CCR/PC and preserved
+guards. This models direct writer entry, not normal reachability. Whole-routine
+comparison is refused: generated unsized bit-memory operands use longword reads
+and writes despite the KB's existing byte rule; the observed BCLR footprint is
+four bytes. No routine case is accepted. Proposal 044 records the upstream
+binding/oracle work required before retrying; the native simulator is unchanged
+and an independent machine68k oracle is unavailable.
+
+Normal game writer coverage remains **two of three**; BYTE remains unobserved
+in normal gameplay. Reproduction, expected partial-result exit2 and exact
+evidence paths are in `docs/copperline-runtime.md`. This slice changes only
+bounded tools/scenarios/evidence/docs/tests. Original binary SHA256 remains
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`,
+and current rendered-source SHA256 remains
+`b5c29658451d7a775aadc1cd574dcee25528bbe477362372b0fb47abfd1b913d`.
+No source facts, generated target output, ROMs or guest snapshots are published.
+
+Validation: **144 passed** across checkpoint/runtime/session, patrol/world/rifle
+models and the new camera/local-CPU tests. The full 65,536-word CLI was rerun and
+returned the expected exit2 with the routine-width refusal; its JSON matches the
+published receipt. `git diff --check` passes. Original/source hashes were
+rechecked; no output-affecting change requires new reassembly, so the previous
+exact C/vasm receipt remains applicable. The listing UI responds HTTP200 on
+`http://127.0.0.1:8123/`; no emulator process remains running.

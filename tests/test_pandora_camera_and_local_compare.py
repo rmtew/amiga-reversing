@@ -1,0 +1,89 @@
+from dataclasses import asdict
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from amiga_reversing.tools.pandora_camera_timing import Camera,decode,idle_tick,call_windows
+from amiga_reversing.tools.pandora_volume_local_compare import load_context,load_engine,compare_store
+
+ROOT=Path(__file__).resolve().parents[1]
+DATA=(ROOT/'targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin').read_bytes()
+CAM=json.loads((ROOT/'runtime/observations/pandora-camera-return-boundary.json').read_text())
+LOCAL=json.loads((ROOT/'runtime/observations/pandora-volume-local-comparison.json').read_text())
+CONTEXT=ROOT/'runtime/observations/pandora-volume-local-context.json'
+
+
+def test_seven_real_idle_transitions_match_countdown_scroll_and_mutable_delay():
+    phases=CAM['camera_idle']['observation']['scenario']['phases'];profiles={int(k):tuple(v) for k,v in CAM['rule_sources']['profiles'].items()}
+    states=[decode(p,profiles=profiles) for p in phases]
+    assert len(states)==8
+    assert [s.remaining for s in states]==[5,4,3,2,1,0,255,254]
+    assert [s.x for s in states]==[976,992,1008,1024,1040,1040,1040,1040]
+    assert states[0].script_delay==2 and states[-1].script_delay==1
+    assert all(idle_tick(a)==b for a,b in zip(states,states[1:]))
+
+
+def test_cumulative_bound_fits_forward_and_reverse_observations_without_qualifying_health():
+    forward=CAM['forward_crossing_validation'];c=Camera(**forward['camera_start'])
+    path=[(p['direction'],p['pose']) for p in json.loads((ROOT/'runtime/observations/pandora-rifle-composition.json').read_text())['flight_timing']['proof']['checks']]
+    result=call_windows(c,path)
+    assert result==forward['bound'] and result['max_calls_through_final_wait']==45
+    assert forward['actual_eligible_calls']==41
+    reverse=CAM['reverse_timing'];result=call_windows(Camera(**reverse['plan']['camera']),reverse['plan']['path'])
+    assert result==reverse['plan']['camera_bound'] and result['max_calls_through_final_wait']==68
+    assert reverse['actual_eligible_calls']==64
+    assert all(r['window'][0]<=r['cumulative_calls']<=r['window'][1] for r in reverse['actual_move_calls'])
+    stop=CAM['guarded_return_stop']['last_phase']
+    assert stop['name']=='reverse_34_up' and stop['termination']=='capture_expectation_mismatch'
+    assert next(r['bytes'] for r in stop['capture']['memory_reads'] if r['address']=='0x0005c35e')=='002c'
+    assert CAM['guarded_return_stop']['snapshot_saved'] is False
+
+
+def test_security_cause_is_an_observed_normal_store_not_a_synthesized_branch():
+    c=CAM['security_cause'];p=c['phase'];registers=p['capture']['registers']
+    assert p['status']=='hit' and p['payload']['payload_offset']=='0x887c'
+    assert int(registers['a5'],0)==0x5c322 and int(registers['d0'],0)&255==44
+    assert p['capture']['memory_reads'][1]['bytes']=='005f'
+    assert c['HP_before']-c['D0_pending_HP']==51 and c['zone']==0
+    start=c['clearance_table_source_offset'];assert list(DATA[start:start+6])==c['clearance_tier']
+    assert c['Amy_ID_54_accepted'] is False and not 48<=54<54
+
+
+def test_exhaustive_store_receipt_does_not_claim_whole_routine_or_gameplay_success():
+    store=LOCAL['BYTE_instruction_comparison']
+    assert store['initial_words_tested']==65536 and store['write_width']==1
+    expected=b''.join((0x4000|(v&255)).to_bytes(2,'big') for v in range(65536))
+    assert store['outputs_sha256']==hashlib.sha256(expected).hexdigest()
+    failure=LOCAL['routine_comparison']
+    assert failure['status']=='refused_generated_simulator_bit_memory_width'
+    assert failure['expected_flag_write_width']==1 and failure['observed_flag_write_width']==4
+    assert LOCAL['cases_before_refusal']==[]
+
+
+def test_actual_generated_move_executor_preserves_byte_lane_and_guards():
+    library=ROOT/'src/build/libamiga_backend.so'
+    if not library.exists():pytest.skip('native generated backend not built')
+    _,_,regs=load_context(CONTEXT,DATA);derived=bytearray(DATA);derived[0x552f0:0x552f8]=bytes.fromhex(LOCAL['BYTE_instruction_comparison']['derived_instruction'])
+    result=compare_store(load_engine(library),DATA,bytes(derived),regs,values=[0,6,0x40,0xff,0x1234,0xaa55,0xffff])
+    assert result['initial_words_tested']==7 and result['guards_unchanged']
+
+
+@pytest.mark.parametrize('damage',['identity','copy','live_code','missing_input'])
+def test_local_comparison_refuses_unverified_or_incomplete_donor(tmp_path,damage):
+    r=json.loads(CONTEXT.read_text());p=r['observation']['scenario']['phases'][0]
+    if damage=='identity':p['payload']['status']='ambiguous'
+    elif damage=='copy':r['observation']['reverse_boundary']['materialization']['copied_sha256']='0'*64
+    elif damage=='live_code':p['capture']['memory_reads'][0]['bytes']='ffff'+p['capture']['memory_reads'][0]['bytes'][4:]
+    else:p['capture']['memory_reads'].pop(7)
+    file=tmp_path/'donor.json';file.write_text(json.dumps(r))
+    with pytest.raises(ValueError):load_context(file,DATA)
+
+
+def test_partial_cli_result_is_a_nonzero_refusal(monkeypatch,tmp_path):
+    from amiga_reversing.tools import pandora_volume_local_compare as tool
+    monkeypatch.setattr(tool,'compare',lambda *a:LOCAL)
+    output=tmp_path/'result.json'
+    assert tool.main(['--target','unused','--context','unused','--manifest','unused','--output',str(output)])==2
+    assert json.loads(output.read_text())['routine_comparison']['status'].startswith('refused_')

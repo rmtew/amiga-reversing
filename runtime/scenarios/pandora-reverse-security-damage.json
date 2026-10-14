@@ -1,0 +1,3377 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-reverse-security-damage",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "reverse_stage_anchor",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0471036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4,
+            "expect_hex": "00000000"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "wait_reverse_0",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 64,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0471036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4,
+            "expect_hex": "00000000"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "wait_reverse_64",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0471036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4,
+            "expect_hex": "00000000"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_gate",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375854,
+            "size": 40,
+            "expect_hex": "00011fde00011f8200000000045002f8000000000000000000000000000000000001000000000000",
+            "expect_mask_hex": "ffffffffffffffff00000000ffffffff00000000000000000000000000000000ffff000042000000"
+          },
+          {
+            "address": 73602,
+            "size": 64,
+            "expect_hex": "0017045003c800050001001e0005c1c00005c0220015000c0001fffe00050002000600180018fff8001e0005c1ae0005c0a60015000c0001fffe000500010006"
+          },
+          {
+            "address": 73666,
+            "size": 64,
+            "expect_hex": "00480048fff8001e0005c1ae0005c0e20015000c0001fffe00050002000600180013fff8001e0005c1c00005bffa0005001e0015000c00010002000500020006"
+          },
+          {
+            "address": 73730,
+            "size": 64,
+            "expect_hex": "00180018fff8001e0005c1ae0005c0be0015000c0001000200050001000600480048fff8001e0005c1ae0005c0ee0015000c0001000200050002000600180018"
+          },
+          {
+            "address": 73794,
+            "size": 8,
+            "expect_hex": "fff8001400011f82"
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0471036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4,
+            "expect_hex": "00000000"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_01_left",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046a036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_02_left",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_03_left",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "045c036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_04_down",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_05_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630366"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_06_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630362"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_07_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463035e"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_08_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463035a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_09_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630356"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_10_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630352"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_11_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463034e"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_12_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463034a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_13_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630346"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_14_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630342"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_15_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463033e"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_16_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463033a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_17_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630336"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_18_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630332"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_19_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463032e"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_20_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463032a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_21_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630326"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_22_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630322"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_23_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463031e"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_24_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463031a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_25_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630316"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_26_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630312"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_27_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463030e"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_28_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "0463030a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_29_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630306"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_30_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04630302"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_31_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046302fe"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_32_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046302fa"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reverse_33_up",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 18,
+            "expect_hex": "000000000000000000000000000006000100",
+            "expect_mask_hex": "00000000000000000000000000ffffffff00"
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          },
+          {
+            "address": 375818,
+            "size": 48
+          },
+          {
+            "address": 375866,
+            "size": 32
+          },
+          {
+            "address": 73602,
+            "size": 64
+          },
+          {
+            "address": 73666,
+            "size": 64
+          },
+          {
+            "address": 73730,
+            "size": 64
+          },
+          {
+            "address": 73794,
+            "size": 8
+          },
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046302f6"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          }
+        ]
+      }
+    },
+    {
+      "name": "security_damage_before_store",
+      "breakpoint_stable_key": "s0:0000887C:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "046302f6"
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 377704,
+            "size": 1,
+            "expect_hex": "12"
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2,
+            "expect_hex": "0000",
+            "expect_mask_hex": "06ff"
+          },
+          {
+            "base_register": "a6",
+            "offset": 717,
+            "size": 9
+          },
+          {
+            "base_register": "a6",
+            "offset": 414,
+            "size": 8
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "reverse_gate",
+      "release_after_phase": "reverse_03_left",
+      "control": "port1 left"
+    },
+    {
+      "after_phase": "reverse_03_left",
+      "release_after_phase": "reverse_04_down",
+      "control": "port1 down"
+    },
+    {
+      "after_phase": "reverse_04_down",
+      "release_after_phase": "reverse_33_up",
+      "control": "port1 up"
+    }
+  ]
+}

@@ -132,7 +132,7 @@ def state_from_capture(phase, data, base, opcodes, *, actor_source, script_start
 
 
 def assess_crossing(data, gate, base, opcodes, path, *, script_start,
-                    max_calls_per_move, initial_input_lag=1):
+                    max_calls_per_move, initial_input_lag=1, call_windows=None):
     """Check all admitted actor times for each player pose, including pauses.
 
     The caller must establish its move/camera bound separately. This does not
@@ -142,12 +142,17 @@ def assess_crossing(data, gate, base, opcodes, path, *, script_start,
             or type(initial_input_lag) is not int or not 0 <= initial_input_lag <= 64
             or not 1 <= len(path) <= 64):
         raise ValueError('crossing requires bounded route and timing inputs')
+    windows = call_windows if call_windows is not None else [
+        [i-1,max_calls_per_move*(i+1)+initial_input_lag] for i in range(1,len(path)+1)]
+    if (len(windows)!=len(path) or any(len(w)!=2 or any(type(v) is not int for v in w)
+            or not 0<=w[0]<=w[1]<=4096 for w in windows)):
+        raise ValueError('crossing call windows must be bounded inclusive integer ranges')
     future = [gate]
-    for _ in range(max_calls_per_move*(len(path)+1)+initial_input_lag):
+    for _ in range(max(w[1] for w in windows)):
         future.append(tick(data,future[-1],base,opcodes,script_start=script_start))
     checks = []
     for i,(direction,pose) in enumerate(path,1):
-        lo,hi = i-1,max_calls_per_move*(i+1)+initial_input_lag
+        lo,hi = windows[i-1]
         unsafe = [t for t in range(lo,hi+1)
                   if abs(pose[0]-future[t].xy[0]) < 24
                   and abs(pose[1]-future[t].xy[1]) < 16]

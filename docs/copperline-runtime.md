@@ -455,7 +455,7 @@ patrol comparisons and the unexecuted return/aim assessments. Native scenario
 compilation took about 95–98 seconds per new segment here; saved-state reuse
 removes repeated gameplay prefixes, not that separate compilation cost.
 
-**Remaining BYTE gap:** the terrain model finds a conditional 382-move return to
+**Earlier BYTE gap (superseded by the camera/clearance assessment below):** the terrain model finds a conditional 382-move return to
 `(808,154)`, but it crosses both patrol corridors in reverse. For the 45-move
 reverse flight corridor, none of 377 original patrol-cycle gates is admitted by
 the conservative 1..6-call-per-move windows. This is a model limitation, not an
@@ -488,3 +488,96 @@ inspection from the rifle checkpoint; omit `--checkpoint-save` for that command.
 Focused checkpoint/runtime/session/patrol/model/transaction suite: **134 passed**.
 Original binary/source and prior WORD receipts remain unchanged. Native/control
 suites and full reassembly were not repeated because target output is unchanged.
+
+## Camera timing resolved; return blocked by ID clearance
+
+Continue from the verified rifle checkpoint above, without replaying acquisition.
+`pandora_camera_timing` models the mutable movement-script delay: horizontal
+requests write two at source `$9680`, vertical requests write one at `$96AA`,
+and idle dispatch writes one at `$999C`. Camera service `$7D48..$7DA4`
+decrements its countdown before movement; expiry clears the active bit/deltas.
+Profile 1 has reload six and margins 32/16. Its interior burst shifts 80 pixels
+and adds at most five calls. These are gameplay-loop bounds, not wall-clock rates.
+The bound requires a fixed profile, accepted axis moves and no modal encounter,
+wrapping or external script change.
+
+Seven real neutral transitions agree exactly, including scroll, countdown
+`5,4,3,2,1,0,255,254`, and delay two becoming one. The previously qualified
+forward flight crossing takes 41 eligible calls within the new cumulative bound
+45. A reverse diagnostic reaches all 45 predicted positions in 64 calls within
+bound 68, with two vertical bursts. This validates timing only: the first
+diagnostic checked health at its end and found 44 rather than 95. The stronger
+published recipe guards HP at every wait/movement visit and stops at
+`reverse_34_up`; subsequent phases and snapshot save do not run.
+
+A separate bounded prefix stops at canonical source `$887C`, before the health
+store: HP is still 95, D0 contains 44, A5 identifies the player and the nearest
+NPC is the flight controller. The decoded security response subtracts 51 when
+the held ID fails clearance. Zone is zero; accepted item IDs are 48 through 53
+with tiers `[4,3,1,3,0,2]`, requiring tier greater than zone. Selected rifle 18
+fails, and carried Amy ID 54 is outside that range. Swapping back to Amy is
+therefore insufficient. A stationary ten-second probe did not hit the response;
+that negative result applies only to its parked window.
+
+The intact rifle checkpoint remains at `(1228,874)`, HP95, rifle18, ammo `05,01`.
+A separately verified staging checkpoint is at `(1137,874)`. No successful return
+checkpoint, firing-point qualification, hit, normal BYTE execution or relocated
+weapon comparison is claimed. Acquiring another valid ID/trade would expand
+this two-byte relocation test into another game quest, so gameplay work stops
+at this explicit boundary.
+
+[Bounded camera/clearance evidence](../runtime/observations/pandora-camera-return-boundary.json)
+records successful timing observations separately from the failed health guard.
+From the existing rifle receipt, use the same public checkpoint CLI above with:
+
+| Scenario | Load checkpoint | Save checkpoint |
+|---|---|---|
+| `pandora-camera-idle-observation.json` | rifle-clean | fresh neutral receipt |
+| `pandora-reverse-flight-staging.json` | neutral receipt | fresh reverse-stage receipt |
+| `pandora-reverse-flight-crossing.json` | reverse-stage receipt | omit (expected HP refusal) |
+| `pandora-reverse-security-damage.json` | reverse-stage receipt | omit (before-store inspection) |
+| `pandora-rifle-security-response.json` | rifle-clean | omit (parked timeout) |
+| `pandora-volume-routine-context.json` | rifle-clean | omit (read-only CPU donor) |
+
+Each command still needs a fresh isolated `--state-directory`; checkpoints and
+guest snapshots remain ignored local inputs. The camera probe's neutral successor
+is the staging donor; do not silently substitute a state with different timing.
+
+## Cheaper local BYTE contract and simulator boundary
+
+The provenance-preserving CPU-only tool validates the original payload, closed
+two-byte relocation manifest and a read-only canonical `$5CA` donor. Live routine
+bytes match the original. Original/derived code and bounded captured cells are
+projected into separate local memories; unobserved cells use the original image
+or zero. Synthetic call frames and modeled guard inputs never enter Copperline.
+
+The actual manifest BYTE instruction at source `$552F0` passes **all 65,536
+initial 16-bit words**: exactly one byte write at the respective volume address,
+output `0x4000 | (input & 0xff)`, equal registers/CCR/PC, preserved low byte and
+adjacent guards. This explicitly enters at the writer, excluding its guards,
+reset helper, Paula and normal gameplay reachability.
+
+Full-routine comparison is **refused**, including the captured natural guard:
+the generated concrete simulator treats an unsized memory bit operand as a
+longword despite the KB's existing EA-category byte rule. The BCLR flag write
+spans four bytes rather than one. Equality under that defect is not a routine
+proof. No routine case is accepted; no CPU semantics or generated backend was
+changed. Proposal 044 records the required upstream binding fix and oracle
+coverage. `machine68k` is not installed, so this is not independent CPU proof.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_volume_local_compare \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --context runtime/observations/pandora-volume-local-context.json \
+  --manifest .runtime-state/restoration/derived/e449f89c0ec6e432b070bdf0809c405958be12a2119909c502f3d135561f666c/manifest.json \
+  --output /tmp/pandora-local-comparison.json
+```
+
+Expected exit **2** writes the partial result, not a successful routine verdict.
+The manifest is the existing local derived-build output, not a published guest
+snapshot. [Comparison receipt](../runtime/observations/pandora-volume-local-comparison.json)
+and [bounded donor](../runtime/observations/pandora-volume-local-context.json)
+retain hashes and explicit scope. Normal game writer coverage remains **two of
+three**. No interrupts, hardware/DMA timing, storage ownership or allocation
+claims follow from local CPU execution. Focused regression results and unchanged
+target hashes are recorded with this slice in the restoration status.

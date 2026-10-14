@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-volume-routine-context",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "routine_context",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 414430,
+            "size": 64
+          },
+          {
+            "address": 414494,
+            "size": 64
+          },
+          {
+            "address": 414558,
+            "size": 18
+          },
+          {
+            "address": 383090,
+            "size": 64
+          },
+          {
+            "address": 383154,
+            "size": 64
+          },
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 377370,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 829,
+            "size": 1
+          },
+          {
+            "address": 384256,
+            "size": 8
+          },
+          {
+            "address": 386574,
+            "size": 64
+          },
+          {
+            "address": 386638,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 64
+          },
+          {
+            "base_register": "a6",
+            "offset": 699,
+            "size": 16
+          },
+          {
+            "base_register": "a6",
+            "offset": 438,
+            "size": 4
+          },
+          {
+            "address": 377618,
+            "size": 16
+          },
+          {
+            "address": 377702,
+            "size": 2
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

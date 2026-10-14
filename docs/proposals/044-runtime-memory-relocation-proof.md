@@ -176,3 +176,48 @@ the manifest, reserve destination storage before HAND, and compare reset, keys
 11/12 press/release and gameplay against the original baseline, checking both new
 storage and old-address guards. Preserve original expanded/compact exact assembly,
 all existing facts/assets and append-only interpretation/review history.
+
+## Bounded Pandora volume CPU comparison: generated width gap
+
+The separate two-byte master-volume experiment has a closed relocation manifest
+and normal execution evidence for both WORD writers. Normal BYTE reachability
+remains unobserved. A verified rifle checkpoint and tighter camera timing remove
+repeated acquisition/model uncertainty, but its return encounters failed ID
+clearance (source `$887C`, HP95→44). Another valid ID/trade quest is deliberately
+outside this bounded relocation comparison; the gameplay path is not declared
+impossible or complete.
+
+Before expanding that route, the local CPU tool validates the manifest and a
+canonical checkpoint donor, projects original/derived code into separate local
+memories, and keeps modeled call/guard inputs separate from Copperline. Direct
+entry at the manifest BYTE store agrees for every initial 16-bit word. This is
+an instruction contract, not guard reachability, full-routine equivalence,
+allocation proof or Paula/DMA behavior. The partial result exits2 and preserves
+its refusal rather than accepting equality under a bad CPU model.
+
+The attempted full routine exposes a general tooling gap. The KB already says
+`size_by_ea_category: register=l, memory=b` for bit operations. The generated
+concrete operand binding does not carry this rule to effective-width selection:
+`sim_effective_operand_width` in `src/m68k_simulator.c` falls back to longword
+for absent IR size. BTST/BCLR concrete reads/writes consume that width, although
+bit-mask selection separately knows a memory destination has an eight-bit bit
+index. The observed shared-flag BCLR write spans four bytes instead of one.
+Original/derived equality under that behavior cannot qualify the routine.
+The checked report accepts no routine cases, including the captured natural
+case. No target predicate or native CPU implementation was edited to bypass it.
+
+The next framework slice must bind the existing KB EA-category rule upstream
+into generated operand semantics, then use one consistent effective width for
+concrete reads/writes, EA update and flag semantics. Add positive and conservative
+regressions for register versus memory, immediate versus dynamic bit index,
+postincrement/predecrement and adjacent-byte guards/CCR, checked against an
+independent CPU oracle where available. Re-extract only if an actual source/KB
+fact is missing; do not encode Pandora addresses or duplicate instruction facts
+in a handwritten runtime switch. Retry the same provenance-bound local cases
+only after this fix. A general generator/runtime change and unavailable local
+machine68k oracle are outside this bounded two-byte validation slice, so the
+missing capability remains explicit rather than hidden behind a target shim.
+
+See `runtime/observations/pandora-volume-local-comparison.json` and
+`docs/copperline-runtime.md` for the scoped result, donor and reproduction.
+No local result upgrades the two-of-three normal game writer coverage.
