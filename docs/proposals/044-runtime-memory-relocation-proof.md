@@ -192,7 +192,7 @@ canonical checkpoint donor, projects original/derived code into separate local
 memories, and keeps modeled call/guard inputs separate from Copperline. Direct
 entry at the manifest BYTE store agrees for every initial 16-bit word. This is
 an instruction contract, not guard reachability, full-routine equivalence,
-allocation proof or Paula/DMA behavior. The partial result exits2 and preserves
+allocation proof or Paula/DMA behavior. The partial result exits 2 and preserves
 its refusal rather than accepting equality under a bad CPU model.
 
 The attempted full routine exposes a general tooling gap. The KB already says
@@ -221,3 +221,79 @@ missing capability remains explicit rather than hidden behind a target shim.
 See `runtime/observations/pandora-volume-local-comparison.json` and
 `docs/copperline-runtime.md` for the scoped result, donor and reproduction.
 No local result upgrades the two-of-three normal game writer coverage.
+
+### Width repair and subsequent arithmetic refusal
+
+The width gap is repaired in the authoritative parser/binding path. An EA
+operand with a PDF-derived `size_by_ea_category` rule now uses normalized
+`width_source: ea_category`; generated form metadata carries both category
+widths. The runtime resolves the decoded category for reads, writes and EA
+updates. Bit-index/flag selection consumes the same generated widths; the old
+independent register-long/memory-byte width helper is removed. The concrete bit
+path now calls the existing predecrement preparation helper before accessing its
+operand, exposed by the new focused matrix. This adds no instruction facts or
+target-address cases to CPU semantics.
+
+The extraction facts were already correct, so only execution metadata was
+regenerated from the preserved PDF-backed KB fields. Reproduce that bounded
+stage without a fresh PDF parse (the regression checks the resulting bindings):
+
+```sh
+.venv/bin/python - <<'PY'
+import copy, json, sys
+from pathlib import Path
+sys.path.insert(0, 'src/scripts')
+from kb.m68k_parser import apply_execution_metadata
+from generate_c99_assembler_corpus import _item_forms
+path = Path('knowledge/m68k_instructions.json')
+kb = json.loads(path.read_text())
+for entry in kb['instructions']:
+    if not entry.get('size_by_ea_category'):
+        continue
+    expanded = copy.deepcopy(entry)
+    expanded['forms'] = _item_forms(kb, entry)
+    apply_execution_metadata([expanded])
+    entry['execution'] = expanded['execution']
+path.write_text(json.dumps(kb, indent=2, ensure_ascii=False))
+PY
+.venv/bin/python src/scripts/generate_c99_simulator_subset.py
+make -j4 all
+```
+
+Only eight destination bindings change (four operations, two forms), alongside
+regenerated simulator tables. Focused tests prove regeneration reproduces those
+bindings, modified category data drives emitted widths, missing category data
+refuses generation, and committed tables match fresh generation. Native tests
+cover 64 combinations of four bit operations, immediate/dynamic index,
+register/indirect/postincrement/predecrement destination and old bit value;
+all untouched neighbours and non-Z flags are preserved. Abstract tests exercise
+32 corresponding register/indirect combinations and byte access footprints.
+
+The original/derived comparison is rerun against the same donor and complete
+manifest. Eight cases satisfy bounded local contracts and normalized state,
+control-flow and write equivalence. In particular, five modeled dead/armed
+calls execute the guard, reset helper and BYTE store and return normally.
+The 65,536-word direct-store result is byte-for-byte unchanged. The old negative
+receipt is retained; the new result is
+`runtime/observations/pandora-volume-local-comparison-width-fixed.json`.
+
+A different valid form now exposes the next concrete CPU capability gap. The
+alive/near case executes source `$55310`, `subi.w #840,d0` (bytes `04400348`).
+With D0 `$00070328` and SR `$2000`, its concrete direct-register arithmetic
+branch yields `$0006ffe0` and unchanged SR instead of the word-preserving
+`$0007ffe0` and SR `$2019`. The BPL therefore skips the NEG required for absolute
+distance, producing volume 64 instead of53. The abstract arithmetic path already
+uses width-aware arithmetic and flag helpers; concrete direct-register ADD/SUB
+currently adds a full-register delta and omits data-arithmetic CCR updates.
+
+This arithmetic repair is intentionally outside the requested generated
+bit-width slice. The next general framework fix must preserve narrow Dn upper
+bits, update data-arithmetic CCR from existing generated rules, preserve An
+semantics and signed source extension, and cover immediate/register/quick and
+signed/unsigned/wrapping boundaries with an independent oracle when available.
+Do not mask the gap by choosing only coordinates that avoid negative deltas.
+The comparison reports `refused_local_routine_contract`, continues independent
+cases and exits 2 even when both layouts agree on the bad result. Whole-routine
+coverage therefore remains bounded and partial, not a general equivalence proof.
+Normal game BYTE reachability is still separate and unobserved; clearance-ID
+route expansion remains paused.

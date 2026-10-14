@@ -173,6 +173,37 @@ def _section_ptr(offset: int) -> M68kSimValue:
 
 
 class M68kSimulatorAbstractTests(unittest.TestCase):
+    def test_bit_category_width_reads_writes_and_ccr(self) -> None:
+        for operation in ("btst", "bchg", "bclr", "bset"):
+            for index in ("#49", "d0"):
+                for register in (False, True):
+                    for present in (False, True):
+                        with self.subTest(operation=operation, index=index, register=register, present=present):
+                            state = M68kSimCpuState()
+                            state.sr = 0x201F
+                            state.sr_known = 0x1F
+                            state.d[0] = _const(0x12340031)
+                            mask = 1 << (17 if register else 1)
+                            initial = (0x80000080 if register else 0x80) | (mask if present else 0)
+                            instruction = _assemble_line_hex("68000", f"{operation} {index},{'d1' if register else '(a0)'}")
+                            state.d[1] = _const(initial)
+                            state.a[0] = _section_ptr(len(instruction))
+                            result = self._simulate_bytes(instruction + bytes([initial & 255, 0xA5, 0x5A, 0x33]), state)
+                            expected = {"btst": initial, "bchg": initial ^ mask,
+                                        "bclr": initial & ~mask, "bset": initial | mask}[operation]
+                            self.assertEqual(result.next_state.sr, 0x201B if present else 0x201F)
+                            if register:
+                                self.assertEqual(result.next_state.d[1].value, expected)
+                                self.assertEqual(result.memory_write_count, 0)
+                            else:
+                                self.assertTrue(result.access_count)
+                                self.assertTrue(all(a.width == 1 for a in result.accesses[:result.access_count]))
+                                self.assertEqual(result.memory_write_count, int(operation != "btst"))
+                                if operation != "btst":
+                                    self.assertEqual(result.memory_writes[0].width, 1)
+                                    self.assertEqual(result.memory_writes[0].offset, len(instruction))
+                                    self.assertEqual(result.memory_writes[0].value.value, expected)
+
     def _simulate_bytes(self, code: bytes, state: M68kSimCpuState, cpu: str = "68000") -> M68kSimStepResult:
         buf = (ctypes.c_uint8 * len(code)).from_buffer_copy(code)
         result = _disasm_library().m68k_simulate_one_abstract_for_cpu(

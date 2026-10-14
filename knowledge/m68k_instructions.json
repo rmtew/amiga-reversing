@@ -6993,7 +6993,7 @@
             "access": {
               "kind": "memory_write",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -7049,7 +7049,7 @@
                 "access": {
                   "kind": "memory_write",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -7457,7 +7457,7 @@
             "access": {
               "kind": "memory_write",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -7513,7 +7513,7 @@
                 "access": {
                   "kind": "memory_write",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -10648,7 +10648,7 @@
             "access": {
               "kind": "memory_write",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -10704,7 +10704,7 @@
                 "access": {
                   "kind": "memory_write",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }
@@ -11341,7 +11341,7 @@
             "access": {
               "kind": "memory_read",
               "width": null,
-              "width_source": "instruction_size",
+              "width_source": "ea_category",
               "result_kind": "scalar"
             }
           }
@@ -11397,7 +11397,7 @@
                 "access": {
                   "kind": "memory_read",
                   "width": null,
-                  "width_source": "instruction_size",
+                  "width_source": "ea_category",
                   "result_kind": "scalar"
                 }
               }

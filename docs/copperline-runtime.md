@@ -581,3 +581,77 @@ retain hashes and explicit scope. Normal game writer coverage remains **two of
 three**. No interrupts, hardware/DMA timing, storage ownership or allocation
 claims follow from local CPU execution. Focused regression results and unchanged
 target hashes are recorded with this slice in the restoration status.
+
+## Generated EA-category width binding fixed
+
+The initial four-byte bit-memory refusal above is retained as historical
+negative evidence. The next framework slice fixes its source: execution metadata
+now binds an EA operand with the existing `size_by_ea_category` rule to
+`ea_category`, and generated simulator form metadata carries both byte widths.
+The native width selector uses the decoded operand category even without a size
+suffix. Reads, writes and EA updates consume that selector. Bit masks/flags use
+the same generated category widths, replacing the old separate register/memory
+width assumptions. The bit path also invokes the existing predecrement helper
+before access; the new predecrement regression exposed that missing call.
+
+Only the four affected execution bindings (BCHG/BCLR/BSET/BTST, including both
+forms) were regenerated from preserved PDF-backed KB fields through the parser's
+normal execution-metadata builder. No new instruction facts or Pandora-specific
+CPU semantics were introduced. The simulator tables were regenerated, all native
+consumers rebuilt, and the listing service restarted for the changed backend.
+
+The [new comparison receipt](../runtime/observations/pandora-volume-local-comparison-width-fixed.json)
+uses the same donor and full relocation manifest. Eight bounded local cases pass
+normalized CPU state, writes and control-flow comparison. Five explicitly
+modeled dead/armed calls enter the routine's real guard, execute the BYTE writer,
+run the reset helper and return, 26 instructions per layout, for initial words
+`0040,0006,01ff,aa55,ffff`. Outputs are `4040,4006,40ff,4055,40ff`.
+These are complete guarded local calls, not observed game calls. The unchanged
+65,536-word direct-store result is preserved exactly in both receipts.
+
+The ninth case, alive/near/armed at `(808,154)`, remains **refused** on a separate
+concrete ADD/SUB defect. At source `$55310`, `subi.w #840,d0` with D0 `$00070328`
+and SR `$2000` should produce D0 `$0007ffe0` and SR `$2019`; the concrete direct
+register branch instead produces `$0006ffe0` and leaves SR `$2000`. It operates
+on the full register and omits data-arithmetic flags, causing BPL to skip NEG.
+The local near case consequently gives volume 64 rather than 53. Even equal
+original/derived results cannot satisfy the independent routine contract. The
+runner records this as `refused_local_routine_contract`, continues independent
+cases, writes the partial report and exits 2. Fixing general arithmetic semantics
+is a separate framework slice; this width fix does not hide or bypass that gap.
+
+Repeat the local comparison command above with
+`--output /tmp/pandora-width-fixed-comparison.json`. It still exits **2**, now for
+the arithmetic contract rather than bit-memory width. Build/check commands:
+
+```sh
+.venv/bin/python src/scripts/generate_c99_simulator_subset.py
+make -j4 all
+.venv/bin/python -m pytest -q src/tests/test_generate_c99_simulator_subset.py \
+  src/tests/test_m68k_simulator_abstract.py tests/test_pandora_camera_and_local_compare.py
+src/build/m68k_c_unit_tests.exe
+```
+
+The local ignored Linux Makefile supplies `make`; tracked Linux setup instructions
+remain in `docs/linux-baseline-2026-10.md`. The metadata regeneration recipe/test
+is recorded in Proposal 044. Native simulator tests pass all 29 cases, including a
+64-combination concrete bit matrix; abstract tests add 32 bit-operation subtests.
+The broader focused run passes176 tests plus32 subtests. Full native tests retain
+the two independently documented baseline failures in pointer-table pointee
+propagation and unknown decompression identification. The changed C/header/table
+files pass style checks; the repository-wide style test still reports violations
+in 24 unchanged files. Full-image rendered-source roundtrip remains exact with no
+differing ranges. No independent machine68k CPU oracle is installed.
+
+Clearance-ID route expansion stays paused. Normal gameplay BYTE coverage remains
+unobserved, and normal game writer coverage stays two of three. The intact rifle
+checkpoint, source/binary bytes and earlier WORD evidence are unchanged. The UI
+continues on loopback `http://127.0.0.1:8123/`; no emulator is running.
+
+After restart, Pandora's native listing reload completed with 42,219 rows and a
+successful three-row listing API read (web app contract header 2). The global
+project index retains its independently documented local baseline 404:
+`Missing .project.json for project: amiga_hunk_large`. No unrelated target
+metadata was changed to repair that selector; direct Pandora project/listing
+requests succeed. See the existing server baseline classification under local
+`.runtime-state/pandora-analysis/performance-c8f6/`.

@@ -1,4 +1,3 @@
-from dataclasses import asdict
 import hashlib
 import json
 from pathlib import Path
@@ -68,6 +67,38 @@ def test_actual_generated_move_executor_preserves_byte_lane_and_guards():
     _,_,regs=load_context(CONTEXT,DATA);derived=bytearray(DATA);derived[0x552f0:0x552f8]=bytes.fromhex(LOCAL['BYTE_instruction_comparison']['derived_instruction'])
     result=compare_store(load_engine(library),DATA,bytes(derived),regs,values=[0,6,0x40,0xff,0x1234,0xaa55,0xffff])
     assert result['initial_words_tested']==7 and result['guards_unchanged']
+
+
+def test_width_fixed_routine_receipt_preserves_store_proof_and_refuses_new_contract_failure():
+    result=json.loads((ROOT/'runtime/observations/pandora-volume-local-comparison-width-fixed.json').read_text())
+    assert result['BYTE_instruction_comparison']==LOCAL['BYTE_instruction_comparison']
+    assert result['routine_comparison']['accepted_cases']==8
+    dead=[c for c in result['accepted_cases'] if c['BYTE_writer_executed_locally']]
+    assert len(dead)==5 and all(c['steps_per_layout']==26 and c['CPU_state_equal'] for c in dead)
+    assert [c['logical_output'] for c in dead]==['4040','4006','40ff','4055','40ff']
+    failure,=result['routine_comparison']['refused_cases']
+    assert failure['status']=='refused_local_routine_contract'
+    assert failure['case']=='alive_near_armed' and failure['shared_flag_write_width']==1
+    assert failure['expected_logical_word']==53 and failure['observed_logical_word']==64
+
+
+@pytest.mark.parametrize('volume',[0x40,6,0x1ff,0xaa55,0xffff])
+def test_fixed_native_guarded_dead_routine_reaches_writer_and_returns(volume):
+    from amiga_reversing.tools.pandora_volume_local_compare import execute
+    library=ROOT/'src/build/libamiga_backend.so'
+    if not library.exists():pytest.skip('native generated backend not built')
+    _,projection,regs=load_context(CONTEXT,DATA)
+    derived=bytearray(DATA)
+    # CPU regression isolates the BYTE relocation. The real report separately
+    # validates and executes the complete manifest, including all five rewrites.
+    derived[0x552f0:0x552f8]=bytes.fromhex(LOCAL['BYTE_instruction_comparison']['derived_instruction'])
+    run=load_engine(library)
+    a=execute(run,DATA,projection,regs,relocated=False,dead=True,armed=True,volume=volume)
+    b=execute(run,bytes(derived),projection,regs,relocated=True,dead=True,armed=True,volume=volume)
+    assert a['BYTE_writer_executed'] and b['BYTE_writer_executed']
+    assert a['steps']==b['steps']==26 and a['state']['pc']==0x800
+    assert a['logical_word']==b['logical_word']==(0x4000|(volume&255))
+    assert (a['state'],a['effects'],a['pcs'])==(b['state'],b['effects'],b['pcs'])
 
 
 @pytest.mark.parametrize('damage',['identity','copy','live_code','missing_input'])

@@ -6849,7 +6849,11 @@ def _operand_width_for_instruction(inst: JsonDict) -> int | None:
 
 
 def _execution_operand_width_source(inst: JsonDict, operand_index: int, operand_type: str) -> str | None:
-    del operand_type
+    # PDF-derived EA-category sizes constrain the accessed operand, regardless
+    # of whether binary decoding supplies an instruction suffix. The source
+    # bit number is not an EA-sized destination.
+    if operand_type == "ea" and inst.get("size_by_ea_category"):
+        return "ea_category"
     mnemonic = str(inst.get("mnemonic", ""))
     op_type = str(inst.get("operation_type", ""))
     flow_kind = _execution_target_kind(inst)

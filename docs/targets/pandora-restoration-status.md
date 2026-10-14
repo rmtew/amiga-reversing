@@ -1690,3 +1690,37 @@ published receipt. `git diff --check` passes. Original/source hashes were
 rechecked; no output-affecting change requires new reassembly, so the previous
 exact C/vasm receipt remains applicable. The listing UI responds HTTP200 on
 `http://127.0.0.1:8123/`; no emulator process remains running.
+
+## Generated bit-memory width binding repaired
+
+The four-byte bit-memory blocker above is now fixed generally. The parser binds
+the existing PDF-backed EA-category size rule into execution metadata; regenerated
+form tables supply register/memory widths, and native reads/writes/EA updates and
+bit flags consume that rule without requiring a decoded suffix. The obsolete
+separate hardcoded bit-width choice is removed. Concrete bit predecrement now
+uses the existing general pre-access helper. No Pandora CPU workaround or new
+instruction facts were added.
+
+The same provenance-bound full-routine comparison now accepts eight bounded
+cases. Five modeled dead/armed cases execute the guard, reset helper, BYTE store
+and return in 26 instructions per layout, with equal normalized CPU state/writes
+and outputs `4040,4006,40ff,4055,40ff`. This is guarded local routine equivalence
+under the existing generated CPU, not normal gameplay reachability or hardware
+proof. The complete 65,536-word single-store result is unchanged and preserved.
+
+One alive/near case still refuses its independent routine contract: concrete
+SUBI data-register arithmetic uses the full register and leaves CCR unchanged,
+so the BPL/NEG absolute-value path is wrong and volume 64 replaces expected 53.
+Equal results across layouts do not discharge that defect. The partial CLI still
+exits 2, now with `refused_local_routine_contract`; the historical width-refusal
+receipt is retained alongside `pandora-volume-local-comparison-width-fixed.json`.
+Proposal 044 records the new arithmetic gap and scope boundary. Clearance-ID
+route expansion remains paused; no aim/fire/hit or normal BYTE success is claimed.
+
+Validation: 176 focused tests and 32 abstract subtests pass; native simulator 29/29
+(including 64 concrete bit combinations) pass. The full native suite retains its
+two previously documented baseline failures; repository-wide style violations
+remain in 24 unchanged files while all changed C/header/table files pass. Complete
+rendered-source roundtrip is exact with zero differing ranges. Original/source
+hashes and verified rifle checkpoint hashes remain unchanged. The rebuilt backend
+is loaded by a restarted listing UI at `http://127.0.0.1:8123/`.

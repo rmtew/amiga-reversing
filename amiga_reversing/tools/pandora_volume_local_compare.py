@@ -185,7 +185,7 @@ def compare(target, context, manifest_path, library):
     specs=[('captured_guard',actual_dead,actual_armed,0x40,None),('dead_unarmed',True,False,0x40,None),
            ('alive_far_armed',False,True,0x1234,None),('alive_near_armed',False,True,0x40,(808,154))]
     specs += [('dead_armed_'+hex(v),True,True,v,None) for v in (0x40,0x6,0x1ff,0xaa55,0xffff)]
-    refusal=None
+    refusals=[]
     for name,dead,armed,volume,xy in specs:
         a=execute(run,original,projection,regs,relocated=False,dead=dead,armed=armed,volume=volume,xy=xy)
         b=execute(run,derived,projection,regs,relocated=True,dead=dead,armed=armed,volume=volume,xy=xy)
@@ -193,23 +193,36 @@ def compare(target, context, manifest_path, library):
         player=xy or (int.from_bytes(bytes(projection[0x5c352+i] for i in range(2)),'big'),
                       int.from_bytes(bytes(projection[0x5c354+i] for i in range(2)),'big'))
         distance=abs(player[0]-840)+abs(player[1]-168)
+        layouts_equal=(a['state'],a['logical_word'],a['effects'],a['pcs'])==(b['state'],b['logical_word'],b['effects'],b['pcs'])
         expected_word=(0x4000|(volume&255)) if dead and armed else volume
         if not dead:expected_word=64-(distance>>2) if distance<256 else (64 if armed else volume)
-        if len(shared_effects)!=1 or a['BYTE_writer_executed'] != bool(dead and armed) or a['logical_word']!=expected_word:
+        if len(shared_effects)!=1:
             refusal={'status':'refused_generated_simulator_bit_memory_width','case':name,
                      'expected_local_BYTE':bool(dead and armed),'observed_local_BYTE':a['BYTE_writer_executed'],
                      'shared_flag_write_effects':shared_effects,'expected_flag_write_width':1,'observed_flag_write_width':len(shared_effects),
                      'KB_rule':'size_by_ea_category: register=l, memory=b',
                      'gap':'Unsized bit-operation memory operands use instruction-size fallback=long for concrete reads/writes. The generated binding must consume the existing KB EA-category width rule.'}
+            refusals.append(refusal)
             break
-        if (a['state'],a['logical_word'],a['effects'],a['pcs'])!=(b['state'],b['logical_word'],b['effects'],b['pcs']):raise ValueError(f'local equivalence failed: {name}')
+        if a['BYTE_writer_executed'] != bool(dead and armed) or a['logical_word']!=expected_word:
+            refusals.append({'status':'refused_local_routine_contract','case':name,
+                             'expected_local_BYTE':bool(dead and armed),'observed_local_BYTE':a['BYTE_writer_executed'],
+                             'expected_logical_word':expected_word,'observed_logical_word':a['logical_word'],
+                             'derived_logical_word':b['logical_word'],'layouts_equal':layouts_equal,
+                             'shared_flag_write_width':len(shared_effects),'modeled_player_xy':player,
+                             'original_steps':a['steps'],'original_pcs':a['pcs'],
+                             'scope':'A matching original/derived result cannot override the independent routine contract.'})
+            continue
+        if not layouts_equal:raise ValueError(f'local equivalence failed: {name}')
         cases.append({'name':name,'modeled_inputs':{'Feed_defeated':dead,'shared_armed':armed,'initial_volume':volume,'player_xy_override':xy},
                       'steps_per_layout':a['steps'],'BYTE_writer_executed_locally':a['BYTE_writer_executed'],
                       'logical_output':f'{a["logical_word"]:04x}','normalized_write_effects':a['effects'],
                       'normalized_effect_sha256':sha(json.dumps(a['effects']).encode()),'CPU_state_equal':True})
-    return {'schema_version':1,'target_id':target,'status':'local_BYTE_equivalence_routine_comparison_refused' if refusal else 'bounded_local_routine_and_BYTE_equivalence','original_sha256':sha(original),'derived_sha256':sha(derived),
+    return {'schema_version':2,'target_id':target,'status':'local_BYTE_equivalence_routine_comparison_partial' if refusals else 'bounded_local_routine_and_BYTE_equivalence','original_sha256':sha(original),'derived_sha256':sha(derived),
             'manifest_sha256':sha(manifest_path.read_bytes()),'context_sha256':sha(context.read_bytes()),'backend_sha256':sha(library.read_bytes()),
-            'checkpoint_provenance':donor['observation']['checkpoint'],'cases_before_refusal':cases,'routine_comparison':refusal or {'status':'bounded_CPU_only_routine_equivalence'},
+            'checkpoint_provenance':donor['observation']['checkpoint'],'accepted_cases':cases,
+            'routine_comparison':{'status':refusals[0]['status'] if refusals else 'bounded_CPU_only_routine_equivalence',
+                                  'accepted_cases':len(cases),'refused_cases':refusals},
             'BYTE_instruction_comparison':compare_store(run,original,derived,regs),
             'local_call_context':{'entry_source_offset':'0x552fe','donor_source_offset':'0x5ca','return_pc':RETURN,'SP_adjustment':-4,'instruction_budget':128},
             'limits':['CPU-only projection, with explicit modeled call/guard/data inputs; no game snapshot or gameplay predicate was edited.',
