@@ -1,6 +1,7 @@
 """A manifest cannot authorize unlisted bytes or substitute a native proof."""
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -111,3 +112,43 @@ def test_refused_plan_build_writes_nothing(tmp_path):
             "a" * 64,
         )
     assert not list(tmp_path.iterdir())
+
+
+def test_closed_native_fixture_build_and_runtime_binding(tmp_path, monkeypatch):
+    from amiga_reversing.disasm import binary_source, project_paths
+    from amiga_reversing.disasm.c_backend import (
+        build_flat_m68k_bytes_listing_artifact_profile,
+    )
+
+    original = bytes.fromhex("41f90000397c4a28000b41f9000040004e75")
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text(json.dumps({"memory_regions": [region()]}))
+    monkeypatch.setattr(project_paths, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        project_paths,
+        "resolve_project_paths",
+        lambda _: SimpleNamespace(binary_source=None),
+    )
+    monkeypatch.setattr(binary_source, "read_binary_source_bytes", lambda _: original)
+    monkeypatch.setattr(
+        module, "resolve_project_paths", lambda _: SimpleNamespace(binary_source=None)
+    )
+    monkeypatch.setattr(module, "read_binary_source_bytes", lambda _: original)
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(
+        original, display_path="fixture", metadata_path=metadata
+    )
+    try:
+        plan = artifact.memory_region_plan("key_state", 0xC7F000, "slow")
+        assert plan["status"] == "ready"
+        result = build_derived_artifact("fixture", artifact, plan, "a" * 64)
+        manifest, payload = module.validate_manifest(
+            Path(result["manifest_path"]), "fixture"
+        )
+        module.verify_native_binding(manifest, artifact)
+        assert payload.read_bytes() == bytes.fromhex(
+            "41f900c7f0004a28000b41f9000040004e75"
+        )
+        assert manifest["original_sha256"] == module.sha256(original)
+        assert result["rewrite_count"] == 1
+    finally:
+        artifact.close()

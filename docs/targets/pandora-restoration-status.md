@@ -265,7 +265,7 @@ in `runtime/scenarios/pandora-keyboard-state.json`. The current Chromium UI show
 120 listing rows, the real region facts and five-obligation placement refusal.
 The loopback service remains `http://127.0.0.1:8123/`.
 
-140 focused tests pass, with two optional tests skipped. The full native suite
+141 focused tests pass, with two optional tests skipped. The full native suite
 has the same two failures on clean prior commit `7896c865`: pointer-table pointee
 type propagation and unknown decompression identification. Original expanded
 C/vasm verification is exact for all 376,832 bytes, receipt
