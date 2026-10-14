@@ -695,3 +695,32 @@ def test_pc_identity_boundary_with_nonzero_source_start(tmp_path):
     assert result['payload_offset'] == '0x5e'
     assert result['runtime_base'] == '0x00000fe0'
     assert result['sample_size'] == 16
+
+
+def test_memory_expectation_failure_stops_counted_route_and_releases_input(tmp_path):
+    p = payload(tmp_path)
+    c = OccurrenceClient(p.read_bytes())
+    s = counted_scenario(3)
+    first = dict(s['phases'][0], name='press', occurrences=1, capture={})
+    check = dict(s['phases'][0], name='guard', capture={'memory_reads': [
+        {'address': 0x2000, 'size': 1, 'expect_hex': '00', 'expect_mask_hex': '06'}]})
+    s['phases'] = [first, check, dict(first, name='never')]
+    s['input_events'] = [{'after_phase': 'press', 'release_after_phase': 'never', 'control': 'port1 right'}]
+    c.memory[0x2000] = 2
+    result = runtime.run_scenario(c, s, p)
+    assert len(result['phases']) == 2
+    failure = result['phases'][-1]
+    assert failure['termination'] == 'capture_expectation_mismatch'
+    assert failure['status'] == 'not_hit'
+    assert failure['occurrences_observed'] == 1
+    assert not failure['capture']['memory_reads'][0]['expectation']['matched']
+    assert [v for k,v in c.calls if k == 'joy'][-2:] == [{'port': 1}, {'port': 2}]
+
+
+def test_memory_expectations_exact_and_masked_are_read_only():
+    c = Client(); c.memory[0x2000] = 0x80
+    for read in ({'expect_hex': '80'}, {'expect_hex': '00', 'expect_mask_hex': '06'}):
+        result = runtime.capture_scenario_state(c, {'memory_reads': [dict(address=0x2000, size=1, **read)]})
+        assert result['memory_reads'][0]['expectation']['matched']
+    assert c.memory[0x2000] == 0x80
+    assert not c.calls

@@ -19,7 +19,9 @@ from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import resolve_project_paths
-from amiga_reversing.tools.copperline_runtime import MAX_SCENARIO_PHASES, observe
+from amiga_reversing.tools.copperline_runtime import (
+    MAX_SCENARIO_PHASES, observe, validate_memory_expectation,
+)
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
 
@@ -543,11 +545,14 @@ def validate_capture(capture: object) -> None:
             "region_id",
             "offset",
             "size",
+            "expect_hex",
+            "expect_mask_hex",
         }:
             raise ValueError("Invalid capture memory read.")
         size = read.get("size")
         if type(size) is not int or not 1 <= size <= 64:
             raise ValueError("Capture memory size must be 1..64.")
+        validate_memory_expectation(read)
         if "region_id" in read:
             if (
                 not isinstance(read["region_id"], str)

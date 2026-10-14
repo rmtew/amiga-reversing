@@ -299,8 +299,81 @@ if reproducing it; no repeat is needed merely to inspect the saved receipts.
 `pandora-volume-byte-route-blocker.json` preserves the earlier rejection-only
 observation. All owned emulator processes have exited after capture.
 
-Current framework gaps are explicit: alternative canonical stop outcomes and
-predicted game-state assertions are not yet scenario features. Add those small
-bounded controls before executing a longer model-derived route. Existing
+Alternative canonical stop outcomes remain a framework gap. Memory captures now
+support `expect_hex` and optional `expect_mask_hex`, each exactly `size` bytes
+encoded as hex. They are checked after canonical PC/payload verification at every
+counted visit. A mismatch records `capture_expectation_mismatch`, ends the
+scenario and releases held input. A transition that never reaches the requested
+PC still stops at the phase deadline; assertions do not provide an alternative
+early breakpoint. Existing
 `state.save/load` transport tests are not a public verified checkpoint/resume
 contract. The previous successful WORD/Paula comparison remains unchanged.
+
+
+## Pianist timing and guarded crossing
+
+The original-layout timing diagnostic reaches `(780,794)` in the predicted 95
+accepted moves. Five subsequent source `$5CA` observations validate one pianist
+script update per gameplay loop: Y=834,832,830,828,826, with matching script PC,
+delay and all six mutable repeat counters. The outer source `$253C` loop skips
+flags `&$42` before decrementing delay; source `$13F4` dispatches on the call that
+reaches zero. Delay 1 therefore advances next call, delay 2 every second call.
+The original admitted script has a 377-call cycle, including its 30-call rest.
+These are gameplay-loop calls, not assumed PAL frames or accepted player moves.
+
+Camera scrolling inserts movement pauses. Known camera profile writers select
+0/1, with reloads 4/6. The bounded crossing model checks every possible elapsed
+actor call for each pose under 1..6 calls per accepted move, including initial
+input latency and the waiting interval before the following move. It rejects the
+immediate crossing and instead waits 249 calls from `timing_loop_4` to the start
+of the rest at `(816,974)`, script `$1F2C`, delay 30. The gate's exact player/actor
+state is checked before pressing right.
+
+The model-derived corridor route is right 6, down 1 (lateral drift), up 14, right
+7. Every accepted position is asserted, rather than assuming counted movement
+remains on course. All 28 moves passed in real Copperline, ending `(864,738)` with
+UI mask 6 clear. Captured actor states match 49 eligible calls, with each
+inter-move delta within 1..6. Proximity flag bits 4/5 change separately and are
+not mistaken for interpreter timing state.
+
+The pure model is `amiga_reversing.tools.pandora_patrol_timing`; evidence is in
+`runtime/observations/pandora-pianist-{timing,crossing}.json`. Reproduce with the
+normal CLI command above, replacing `--scenario` with
+`runtime/scenarios/pandora-pianist-timing.json` or
+`runtime/scenarios/pandora-pianist-crossing.json` and using a fresh state directory.
+No verified public checkpoint/resume contract is assumed. These are original-only
+observations: the rifle pickup, direct hit, BYTE writer and relocated comparison
+remain separate gates. The next corridor contains the flight controller's patrol
+at X=1104; its live state must be admitted before that crossing.
+
+The follow-up `pandora-corridor-actors.json` scenario repeats the qualified prefix
+and stops at the same player coordinate. Its 61 canonical phases pass (62 total
+including handoff). It samples all 35 object records over three successive loop
+visits, then takes three consecutive flight-controller captures. The same
+interpreter predicts `(1104,746),delay1` → `(1104,748),delay2` →
+`(1104,748),delay1`, including all six live repeat counters. These snapshots are
+not atomic global state or bounds for every unknown callback.
+
+The next unexecuted staging candidate is right 30 to `(1074,738)`, west of the
+flight-controller interaction envelope. A reliable rifle route still needs its
+timed crossing composed with camera pauses and normal pickup prerequisites. The
+security officer at `(1234,840)` is another nearby interaction predicate; its
+original script holds XY and toggles animation, which does not by itself prove
+that interaction harmless. Empty-slot selection and a fresh proximity latch must
+be admitted before pickup. The return path, accepted aim and direct ray hit are
+subsequent model gaps. This checkpoint stops before those assumptions.
+
+Focused verification for this checkpoint:
+
+```sh
+.venv/bin/python -m pytest -q \
+  tests/test_pandora_patrol_timing.py tests/test_pandora_world_model.py \
+  tests/test_copperline_runtime.py tests/test_copperline_session.py
+```
+
+Result: **112 passed**. Native/control suites and full source round-trip were not
+repeated: no target facts or generated source changed, and the original
+binary/source hashes and prior WORD receipt are checked unchanged. No owned
+Copperline process remains running. The existing listing server remains on
+loopback port 8123. Native canonical scenario compilation remains the dominant
+probe cost (roughly a minute or two here); the timing model itself runs offline.

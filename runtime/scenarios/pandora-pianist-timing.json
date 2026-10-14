@@ -1,0 +1,1331 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-pianist-staging-and-timing",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "initial_proximity_context",
+      "breakpoint_stable_key": "s0:000083AE:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "breakpoint_stable_key": "s0:0004B13C:instruction",
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_up_08",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_up_16",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_up_18",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 2,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_08",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_16",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_24",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_32",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_40",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_48",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_56",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_64",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_72",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 8,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "stage_right_77",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 5,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "timing_loop_0",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "timing_loop_1",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "timing_loop_2",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "timing_loop_3",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "timing_loop_4",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "occurrences": 1,
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375398,
+            "size": 48
+          },
+          {
+            "address": 375446,
+            "size": 32
+          },
+          {
+            "address": 73402,
+            "size": 64
+          },
+          {
+            "address": 73466,
+            "size": 64
+          },
+          {
+            "address": 73530,
+            "size": 64
+          },
+          {
+            "address": 73594,
+            "size": 8
+          },
+          {
+            "base_register": "a6",
+            "offset": 0,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 16
+          },
+          {
+            "address": 377730,
+            "size": 2
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    },
+    {
+      "after_phase": "entry_officer_card_transferred",
+      "release_after_phase": "stage_up_18",
+      "control": "port1 up"
+    },
+    {
+      "after_phase": "stage_up_18",
+      "release_after_phase": "stage_right_77",
+      "control": "port1 right"
+    }
+  ]
+}

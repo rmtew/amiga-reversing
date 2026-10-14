@@ -544,3 +544,19 @@ def test_compiler_and_runner_share_bounded_phase_capacity(monkeypatch, tmp_path)
     path.write_text(json.dumps(scenario))
     with pytest.raises(ValueError, match='2..64'):
         copperline_session.compile_scenario('fixture', path, tmp_path/'excess.json')
+
+
+@pytest.mark.parametrize('expectation', [
+    {'expect_hex': None}, {'expect_hex': ''}, {'expect_hex': '0'},
+    {'expect_hex': 'gg'}, {'expect_hex': '0000'},
+    {'expect_mask_hex': 'ff'}, {'expect_hex': '00', 'expect_mask_hex': None},
+    {'expect_hex': '00', 'expect_mask_hex': 'f'},
+])
+def test_capture_expectations_reject_malformed_or_size_mismatched_values(expectation):
+    with pytest.raises(ValueError, match='expectation'):
+        copperline_session.validate_capture({'memory_reads': [dict(address=0x2000, size=1, **expectation)]})
+
+
+def test_capture_expectation_preserves_register_and_region_addressing():
+    for address in ({'base_register': 'a6', 'offset': 558}, {'region_id': 'test'}):
+        copperline_session.validate_capture({'memory_reads': [dict(size=1, expect_hex='00', expect_mask_hex='06', **address)]})

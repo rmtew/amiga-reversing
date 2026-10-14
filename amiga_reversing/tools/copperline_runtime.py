@@ -77,6 +77,21 @@ def payload_at_pc(client, path, pc, *, runtime_view=None):
     return detected
 
 
+def validate_memory_expectation(read):
+    """Validate an optional exact/masked assertion on a bounded memory capture."""
+    expected = read.get("expect_hex")
+    if "expect_hex" not in read:
+        if "expect_mask_hex" in read:
+            raise ValueError("Capture expectation mask requires expect_hex")
+        return
+    size = read.get("size")
+    for value in (expected, read.get("expect_mask_hex", expected)):
+        if (type(size) is not int or not 1 <= size <= 64
+                or not isinstance(value, str) or len(value) != size*2
+                or not re.fullmatch(r"[0-9a-fA-F]+", value)):
+            raise ValueError("Capture expectation must be size-matched hexadecimal bytes")
+
+
 def capture_scenario_state(client, capture):
     if not isinstance(capture, dict):
         raise ValueError("Scenario capture must be an object")
@@ -99,6 +114,7 @@ def capture_scenario_state(client, capture):
     for read in reads:
         if not isinstance(read, dict):
             raise ValueError("Memory read must be an object")
+        validate_memory_expectation(read)
         addr, base, offset, size = (
             read.get("address"),
             read.get("base_register"),
@@ -133,6 +149,14 @@ def capture_scenario_state(client, capture):
                 "offset": offset if base is not None else None,
             }
         )
+        if "expect_hex" in read:
+            actual = bytes.fromhex(output[-1]["bytes"])
+            expected = bytes.fromhex(read["expect_hex"])
+            mask = bytes.fromhex(read.get("expect_mask_hex", "ff"*size))
+            output[-1]["expectation"] = {
+                "expected_hex": expected.hex(), "mask_hex": mask.hex(),
+                "matched": len(actual) == size and all(
+                    a & m == e & m for a, e, m in zip(actual, expected, mask))}
     result = {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
     custom = capture.get("custom_registers", [])
     if (not isinstance(custom, list) or len(custom) > 16
@@ -417,6 +441,10 @@ def _run_scenario_phase(
             item["first_visit"] = summary
         item["last_visit"] = summary
         item["capture"] = capture_scenario_state(client, phase.get("capture", {}))
+        if any(not r.get("expectation", {}).get("matched", True)
+               for r in item["capture"]["memory_reads"]):
+            item.update(status="not_hit", termination="capture_expectation_mismatch")
+            break
         if capture_first and item["occurrences_observed"] == 1:
             item["first_capture"] = item["capture"]
         item["resolved_function"] = function

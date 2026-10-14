@@ -333,11 +333,11 @@ predicate from the actor's live script/countdown and position. Unknowns stop the
 plan; another guessed route is not justified.
 
 The framework already supplies native data/field/CFG queries, canonical runtime
-views, read-only captures and bounded source-PC/input phases. The smallest general
+views, read-only captures and bounded source-PC/input phases. The remaining general
 runner improvement is a bounded alternative canonical stop/outcome (for example,
 combat entry `$7792` during a movement phase) with state capture and immediate
-input cleanup, followed by explicit predicted-state checks. This is proposed,
-not silently assumed implemented. Revision-bound reuse of native compilation/PC
+input cleanup, followed by explicit predicted-state checks. Alternative stop outcomes remain proposed. Exact/masked captured-memory checks
+are now implemented and stop subsequent phases on a mismatch. Revision-bound reuse of native compilation/PC
 resolution can reduce minute-scale probe overhead; source/manifest checks must
 remain. The generated CPU simulator can check focused instruction semantics but
 is not a world/AI simulator. No large architecture or autonomous playing engine
@@ -350,6 +350,29 @@ actual pianist script's N+1 range, encounter boundaries and the recorded
 combat/movement transition. Existing runtime/native suites were not repeated.
 Original binary/source hashes and prior WORD observations remain unchanged;
 there are no new target facts, generated-source edits or forced guest states.
+
+**Timing checkpoint after `6dc51ee0`.** The read-only patrol model now counts
+eligible object-loop calls, including delay-on-zero dispatch and six mutable
+script counters. Five consecutive live loop observations match exactly. It
+rejects an immediate crossing, waits for the start of the pianist's 30-call rest
+at Y=974, and checks all admitted camera-pause timings for a 28-move corridor
+route. All 28 predicted player coordinates passed in original Copperline, ending
+`(864,738)` with UI clear; captured patrol states match 49 eligible calls.
+
+The public scenario checks exact/masked memory after canonical identity at every
+visit and releases input on mismatch. Requested-PC absence still uses a short
+phase deadline; alternative stop PCs are not implemented. This closes the
+pianist crossing gap, not the weapon/BYTE goal. The flight-controller patrol at
+X=1104 is the next actor gate. Three captures validate two consecutive updates
+with the same interpreter; the player remains `(864,738)`. A 35-record snapshot
+also locates the security officer `(1234,840)` near pickup. These observations do
+not yet compose a safe weapon-acquisition route or its empty-slot/fresh-latch
+predicates. The return/aim/ray path and original/relocated BYTE comparison remain
+unobserved. The next staging candidate `(1074,738)` is unexecuted.
+
+Focused timing/model/runtime/session tests: **112 passed**. The original
+binary/source and previous WORD receipt remain unchanged; no native facts or
+generated source were edited. See [timing and crossing reproduction](../copperline-runtime.md#pianist-timing-and-guarded-crossing).
 
 The canonical PC identity sampler now keeps its minimum 16-byte sample inside a
 copied view near its end (the final RTS is at `$6536E`, view end `$65370`), including
