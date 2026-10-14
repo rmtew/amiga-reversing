@@ -283,14 +283,73 @@ relevant Paula captures matching. No guest state was forced.
 This explains the remaining guard: combat's temporary world-X bias clears shared
 audio flag bit 0 and restores volume `0040`; after defeat that flag remains clear.
 The BYTE writer requires the defeated flag **and** shared audio bit 0 set, so its
-entry guard bypasses the write in the sampled post-defeat state. A secondary
-setter at source `$4D34C` currently has zero accepted native references; absent
-references do not prove unreachability. Next: find an ordinary game route that
-sets the flag after Feed defeat, or establish the static reachability boundary.
-This is two-of-three game-writer coverage, not full relocation completion, and
-does not resume keyboard-buffer relocation. An earlier approach without inventory
-selection timed out at combat entry with the officer ID selected; the passing
-inventory route supersedes it.
+entry guard bypasses the write in the sampled post-defeat state. This excludes
+that observed transition, **not every normal gameplay path**. Bounded whole-program
+queries find 13 named shared-flag accesses: initialization, the alive proximity
+setter, the dead/far clears, a second setter at `$4D34C`, and unrelated-bit uses.
+The second setter has no accepted incoming references/CFG edges; incomplete facts
+and aliases still preclude a universal unreachability claim.
+
+A direct weapon kill is a viable **static alternative**: main-loop source `$5F0`
+processes the weapon ray before proximity audio at `$624`. One rifle hit deals 30
+against the Feed's initial 29 HP. The callback and feedback path do not clear the
+shared flag at A6+`$33D`: feedback uses the distinct byte at A6+`$33E`. Source
+`$93FA` can mark the Feed defeated without the combat coordinate bias, leaving the
+BYTE guard's two bits set in the same frame. Required predicates remain explicit:
+normal rifle acquisition, selected item/ammo/fire edge, valid aim/live geometry,
+unblocked ray and no earlier nearby encounter. The BYTE writer and its relocated
+comparison remain unobserved; the successful WORD evidence is unchanged.
+
+**Compact world model (2026-10-15).**
+[`pandora_world_model`](../../amiga_reversing/tools/pandora_world_model.py) now
+consumes native symbols, effective record schemas, original bytes and verified
+checkpoints. It is a read-only, target-specific planning aid, not a second native
+fact store or a full game-playing engine. [Model output](../../runtime/observations/pandora-world-model.json)
+and [checkpoint input](../../runtime/observations/pandora-world-model-checkpoint.json)
+make its assumptions inspectable.
+
+| Model component | Established input / validation | Remaining boundary |
+|---|---|---|
+| Terrain | 43×30 selectors choose 3×3 records: 90×129 tiles, 16 pixels each; 512-bit collision table; six captured cells exactly match | Dynamic changes elsewhere are not inferred safe |
+| Movement | X=7, Y=4, axis-only, direction-dependent lateral drift and native edge/feet probes; 30 original directional frame entries / 17 unique bounds | Camera/UI/inhibit/event state must also permit a step |
+| Object event | Player `(808,794)`, pianist `(816,808)`, flags `$24`, selected item 9, matching nearest/interaction pointers | Other actors' live state and unresolved trade predicates remain unknown |
+| Encounter transition | Model predicts combat inside strict 24×16 bounds; next checkpoint confirms UI `$02`, player `(10808,794)` and movement rejection | This is the cause of the upper-route stall, not a demonstrated collision wall |
+| Pianist patrol | Original script and native opcode values yield X=816, Y=728…974; reload N executes N+1 moves; live script matches the admitted original cycle | A swept patrol envelope is conservative; delays are not a timing prediction |
+| BYTE dependencies | Empty-slot rifle pickup `(1244,867)` → arm audio alive → direct weapon kill → both guard bits | No rifle pickup, weapon hit or BYTE write has yet been observed |
+
+The previous terrain-only A* routes omitted the earlier nearby-combat transition.
+Their counted-PC timeout captures were the **last successful movement**, not the
+state at timeout. A focused capture identified the UI early exit; A3 had not yet
+been bound to geometry and was not interpreted as a frame header. Expanding all
+poses did not fix the missing event predicate. The first south-route stall's
+cause remains unclassified.
+
+The model now rejects the full rifle route when the pianist's entire patrol
+keepout is enforced. It instead derives a conditional staging plan: **up 18, right
+77, stop `(780,794)`**, one accepted-X-step margin west of that envelope, with
+checks no more than eight accepted moves apart. This staging plan is not a new
+runtime qualification. Before crossing, establish a short-horizon patrol/interaction
+predicate from the actor's live script/countdown and position. Unknowns stop the
+plan; another guessed route is not justified.
+
+The framework already supplies native data/field/CFG queries, canonical runtime
+views, read-only captures and bounded source-PC/input phases. The smallest general
+runner improvement is a bounded alternative canonical stop/outcome (for example,
+combat entry `$7792` during a movement phase) with state capture and immediate
+input cleanup, followed by explicit predicted-state checks. This is proposed,
+not silently assumed implemented. Revision-bound reuse of native compilation/PC
+resolution can reduce minute-scale probe overhead; source/manifest checks must
+remain. The generated CPU simulator can check focused instruction semantics but
+is not a world/AI simulator. No large architecture or autonomous playing engine
+is needed for this scenario.
+
+[Reproduction and limits](../copperline-runtime.md) and the
+[BYTE/efficiency assessment](../../runtime/observations/pandora-volume-byte-reachability.json)
+retain the counterexamples. Seventeen focused model tests pass, including the
+actual pianist script's N+1 range, encounter boundaries and the recorded
+combat/movement transition. Existing runtime/native suites were not repeated.
+Original binary/source hashes and prior WORD observations remain unchanged;
+there are no new target facts, generated-source edits or forced guest states.
 
 The canonical PC identity sampler now keeps its minimum 16-byte sample inside a
 copied view near its end (the final RTS is at `$6536E`, view end `$65370`), including

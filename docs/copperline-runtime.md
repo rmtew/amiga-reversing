@@ -256,3 +256,51 @@ whole minimum 16-byte sample stays materialized. Offset/base validation and full
 input/copied-image identity checks remain unchanged. Declarative scenarios permit
 2..64 phases including handoff, producing at most 63 executable phases within the
 runner's existing cap of 64; input-event holds remain capped at 32 in the compiler.
+
+
+## Pandora's bounded world model
+
+The remaining BYTE volume path is a static candidate: a direct rifle kill can
+preserve the armed shared flag until the same-frame proximity update. Full combat
+clears it first. Weapon acquisition/aim and nearby-event predicates remain
+unvalidated, so this is not all-writer completion.
+
+The read-only model uses native symbol coordinates/opcode values, effective
+record schemas and the exact original payload. It reconstructs terrain, movement
+poses, bounded original script patrols and the scenario dependency chain. The
+provided checkpoint predicts the pianist encounter and validates the next UI/
+movement transition. It does not treat a timeout's last successful capture as the
+state at timeout or assign a register role before the relevant binding executes.
+
+With the existing listing server running, regenerate the offline model **without
+launching Copperline**:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_world_model \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --observation runtime/observations/pandora-world-model-checkpoint.json \
+  --output /tmp/pandora-world-model.json
+```
+
+[Saved model](../runtime/observations/pandora-world-model.json) includes a compact
+excluded-tile grid, native source bindings, 35 original object identities/script profiles, the
+validated pianist encounter and explicit unknowns. Only that observed actor's
+patrol is currently enforced by the route search. Its whole swept envelope leaves
+no admitted rifle route under this model; that is not a real-game impossibility
+proof. The model derives a conditional staging goal `(780,794)` with eight-move
+checks and refuses to assume a safe crossing without timing/interaction evidence.
+
+`runtime/scenarios/pandora-world-model-transition.json` is the existing bounded
+normal-input diagnostic that captures canonical combat entry `$7792` and subsequent
+movement rejection `$9984` (ten source phases). It validates the model's specific
+counterexample, not a weapon acquisition or BYTE write. Use the normal public
+Copperline CLI, legal ROM, original direct contract and a separate state directory
+if reproducing it; no repeat is needed merely to inspect the saved receipts.
+`pandora-volume-byte-route-blocker.json` preserves the earlier rejection-only
+observation. All owned emulator processes have exited after capture.
+
+Current framework gaps are explicit: alternative canonical stop outcomes and
+predicted game-state assertions are not yet scenario features. Add those small
+bounded controls before executing a longer model-derived route. Existing
+`state.save/load` transport tests are not a public verified checkpoint/resume
+contract. The previous successful WORD/Paula comparison remains unchanged.

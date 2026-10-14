@@ -104,10 +104,21 @@ A normal-input comparison now exercises both WORD writers and a note output at v
 layouts, preserving the old-address guard. The separate high-byte writer remains
 uncovered even after a passing normal inventory/combat route defeats the Feed in
 both layouts: combat clears the shared audio bit, and the BYTE reset requires that
-bit set as well as defeat. The secondary setter currently has no accepted native
-references; this does not prove it unreachable. A normal flag-setting route or
-static reachability assessment is next. No forced state or keyboard-region proof
-expansion is implied.
+bit set as well as defeat. The secondary setter has no accepted incoming references/CFG edges; this does
+not prove it unreachable. A separate direct weapon-kill path can preserve the
+armed flag, unlike full combat: the selected-item ray runs before same-frame
+proximity audio, and its callbacks clear the adjacent audio/event bytes rather
+than the shared flag. This remains conditional until ordinary acquisition, aim
+and hit predicates are observed.
+
+The compact Pandora world model now predicts the specific pianist encounter that
+blocked the rifle route and validates its following UI/movement transition. It
+uses native symbols/schemas, original script opcode values and verified captures;
+unknown actor state and patrol timing remain explicit. Its conservative swept
+patrol envelope admits a staging goal but not a complete rifle route. The next
+step is a short-horizon actor-state predicate, not more guessed routes or a
+general game-playing engine. No forced state or keyboard-region proof expansion
+is implied. See the [target ledger](../targets/pandora-restoration-status.md).
 The twelve-byte `camera_scroll_profiles` table is another bounded CPU-only data
 family (two three-WORD records), with additional PC-indexed access, caller/index
 and pointer-lifetime obligations. The camera candidate is not a ready plan, and slicing

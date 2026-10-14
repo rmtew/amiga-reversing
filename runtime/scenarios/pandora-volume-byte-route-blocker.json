@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-byte-volume-movement-rejection",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "initial_proximity_context",
+      "breakpoint_stable_key": "s0:000083AE:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "breakpoint_stable_key": "s0:0004B13C:instruction",
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "gun_route_00_up_18",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 18,
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          },
+          {
+            "address": 377704,
+            "size": 2
+          },
+          {
+            "address": 377694,
+            "size": 2
+          },
+          {
+            "address": 377370,
+            "size": 1
+          },
+          {
+            "address": 363110,
+            "size": 6
+          },
+          {
+            "address": 15402,
+            "size": 1
+          },
+          {
+            "address": 102990,
+            "size": 2
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "gun_route_01_right_64",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 64,
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          },
+          {
+            "address": 377704,
+            "size": 2
+          },
+          {
+            "address": 377694,
+            "size": 2
+          },
+          {
+            "address": 377370,
+            "size": 1
+          },
+          {
+            "address": 363110,
+            "size": 6
+          },
+          {
+            "address": 15402,
+            "size": 1
+          },
+          {
+            "address": 102990,
+            "size": 2
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "gun_route_02_right_18",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 18,
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          },
+          {
+            "address": 377704,
+            "size": 2
+          },
+          {
+            "address": 377694,
+            "size": 2
+          },
+          {
+            "address": 377370,
+            "size": 1
+          },
+          {
+            "address": 363110,
+            "size": 6
+          },
+          {
+            "address": 15402,
+            "size": 1
+          },
+          {
+            "address": 102990,
+            "size": 2
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "gun_route_03_left_1",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 1,
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "d0",
+          "d1",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "region_id": "audio_master_volume",
+            "size": 2
+          },
+          {
+            "address": 384256,
+            "size": 2
+          },
+          {
+            "address": 15673,
+            "size": 1
+          },
+          {
+            "address": 377704,
+            "size": 2
+          },
+          {
+            "address": 377694,
+            "size": 2
+          },
+          {
+            "address": 377370,
+            "size": 1
+          },
+          {
+            "address": 363110,
+            "size": 6
+          },
+          {
+            "address": 15402,
+            "size": 1
+          },
+          {
+            "address": 102990,
+            "size": 2
+          }
+        ],
+        "custom_registers": [
+          "AUD0VOL",
+          "AUD1VOL",
+          "AUD2VOL",
+          "AUD3VOL",
+          "DMACON"
+        ]
+      }
+    },
+    {
+      "name": "gun_north_corridor_rejected_turn",
+      "breakpoint_stable_key": "s0:00009984:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 377704,
+            "size": 2
+          },
+          {
+            "address": 377694,
+            "size": 2
+          },
+          {
+            "address": 378666,
+            "size": 28
+          },
+          {
+            "base_register": "a3",
+            "offset": 0,
+            "size": 18
+          },
+          {
+            "address": 34944,
+            "size": 24
+          },
+          {
+            "base_register": "a6",
+            "offset": 728,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 24
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    },
+    {
+      "after_phase": "entry_officer_card_transferred",
+      "control": "port1 up",
+      "release_after_phase": "gun_route_00_up_18"
+    },
+    {
+      "after_phase": "gun_route_00_up_18",
+      "control": "port1 right",
+      "release_after_phase": "gun_route_01_right_64"
+    },
+    {
+      "after_phase": "gun_route_01_right_64",
+      "control": "port1 right",
+      "release_after_phase": "gun_route_02_right_18"
+    },
+    {
+      "after_phase": "gun_route_02_right_18",
+      "control": "port1 left",
+      "release_after_phase": "gun_route_03_left_1"
+    },
+    {
+      "after_phase": "gun_route_03_left_1",
+      "control": "port1 down",
+      "release_after_phase": "gun_north_corridor_rejected_turn"
+    }
+  ]
+}
