@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-cursor-and-source-scratch-lifetime",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "cursor_pixels_copied",
+      "breakpoint_stable_key": "s0:00009F18:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a0",
+          "a1",
+          "a2",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 414576,
+            "size": 4
+          },
+          {
+            "address": 414580,
+            "size": 64
+          },
+          {
+            "address": 414644,
+            "size": 4
+          },
+          {
+            "address": 414648,
+            "size": 64
+          },
+          {
+            "address": 111528,
+            "size": 64
+          },
+          {
+            "address": 111592,
+            "size": 64
+          },
+          {
+            "address": 111656,
+            "size": 64
+          },
+          {
+            "address": 480112,
+            "size": 64
+          },
+          {
+            "address": 494008,
+            "size": 64
+          },
+          {
+            "address": 507840,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "first_title_framebuffer_clear",
+      "breakpoint_stable_key": "s0:00000F90:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a0",
+          "a1",
+          "a2",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 414576,
+            "size": 4
+          },
+          {
+            "address": 414580,
+            "size": 64
+          },
+          {
+            "address": 414644,
+            "size": 4
+          },
+          {
+            "address": 414648,
+            "size": 64
+          },
+          {
+            "address": 111528,
+            "size": 64
+          },
+          {
+            "address": 111592,
+            "size": 64
+          },
+          {
+            "address": 111656,
+            "size": 64
+          },
+          {
+            "address": 480112,
+            "size": 64
+          },
+          {
+            "address": 494008,
+            "size": 64
+          },
+          {
+            "address": 507840,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a0",
+          "a1",
+          "a2",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 414576,
+            "size": 4
+          },
+          {
+            "address": 414580,
+            "size": 64
+          },
+          {
+            "address": 414644,
+            "size": 4
+          },
+          {
+            "address": 414648,
+            "size": 64
+          },
+          {
+            "address": 111528,
+            "size": 64
+          },
+          {
+            "address": 111592,
+            "size": 64
+          },
+          {
+            "address": 111656,
+            "size": 64
+          },
+          {
+            "address": 480112,
+            "size": 64
+          },
+          {
+            "address": 494008,
+            "size": 64
+          },
+          {
+            "address": 507840,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a0",
+          "a1",
+          "a2",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 414576,
+            "size": 4
+          },
+          {
+            "address": 414580,
+            "size": 64
+          },
+          {
+            "address": 414644,
+            "size": 4
+          },
+          {
+            "address": 414648,
+            "size": 64
+          },
+          {
+            "address": 111528,
+            "size": 64
+          },
+          {
+            "address": 111592,
+            "size": 64
+          },
+          {
+            "address": 111656,
+            "size": 64
+          },
+          {
+            "address": 480112,
+            "size": 64
+          },
+          {
+            "address": 494008,
+            "size": 64
+          },
+          {
+            "address": 507840,
+            "size": 64
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    }
+  ]
+}

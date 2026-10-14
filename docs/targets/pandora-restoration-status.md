@@ -194,37 +194,51 @@ self-modification. Startup copying executable bytes is already established.
 
 ## Derived subsystem ledger
 
-Latest source checkpoint (2026-10-13): nine shared audio address rules cover
-43 initialized LONG fields, all NULL; 39 gain address semantics and four retain
-the existing sample-metadata pointer type. These domains describe supported
-consumer addresses, not observed live RAM. All 58 normal catalog actions were
-independently reviewed and journal-accepted. Three cursor/start names and the
-signed LONG sample byte offset distinguish mutable traversal from payload bases.
-Twenty-nine initializer-relative WORD references connect thirteen pitch and
-sixteen primary volume selectors; the six secondary references remain intact.
-The 72-WORD pitch multiplier table stays numeric. New owners account for a
-64-byte silence payload, a 640-byte secondary waveform bank and a 26-byte selector
-table. Configured DMA windows cover five 128-byte source slices; later or
-interleaved pointer/length writes remain open. Original program/list fixed-point
-analysis covers 858 tokens and 61 states, with pitch indices 22..58 inside the
-72-WORD table; arbitrary replacements and unchecked selectors remain open.
-All 438 unaffected layouts and 77 previous companion files retain their facts
-or bytes; two existing scalar arrays change presentation/reference facts only.
-A generic native fix exposes grouped DATA rows' own canonical bytes, enabling
-ordinary reference validation without repeating parent bytes. Forward-only
-preview spans remain unsuitable as per-line byte evidence.
-Native pointer snapshot: 2,605 fields, 2,018 symbolic, 584 NULL, three fragments.
-Expanded C/vasm receipt `42e40b103f7951b9ce4849ffdab215a2509522dac968ff765607e05fcd638052`;
-expanded source SHA256 `83d4b4a00fe4fe30cc474a81d09f5d6b5eeb0632fb18ac8ea07377d7d6df4418`.
-Actual compact ZIP is full-file C/vasm exact: 27 definitions, 1,499 compact records,
-752 expanded fallbacks; source SHA256 `585027ad1861e1ab543b1a3ed682db9a0cfc99b3f7014ccff21a9e1d68acdbe9`.
-All 69 assets match their original source ranges; nine SDK includes remain intact.
-Chromium displays 120 listing rows and the actual 2,605-field report;
-289 focused tests pass. Machine receipts and the bounded batch ledger:
-`.runtime-state/pandora-analysis/audio-pointer-followup/`.
-The preceding attachment graph retains 112 prefixes, 23 nonzero links, no cycles
-and maximum chain three; optional tails and later alias writes remain qualified.
-Native custom-prefix type joins remain a framework gap; no new runtime claim.
+Latest source checkpoint (2026-10-14): connected cursor/source-scratch lifetime.
+Cold startup consumes sixteen 16-byte rows, copying their first four WORDs into
+two 64-byte cursor pixel payloads before title code reuses the source storage.
+The shared row schema names those four sprite data WORDs and keeps the four
+initializer-skipped WORDs explicit. The existing 256-byte owner now carries its
+cursor-initializer/shared-scratch purpose; its physical bounds stay unchanged.
+Two 68-byte runtime buffers contain separate POS/CTL headers and copied pixels.
+VBL rewrites the four header WORDs and programs the selected pointers; reset,
+blank-sprite hiding and buffer binding gate pixel consumption independently.
+The paired 136-byte RAM range has a separate identity from original source bytes.
+
+Title palette operations overwrite the first 192 source bytes. Two clipped-frame
+helpers stage four two-WORD planes in 16-byte scratch rows and copy the first or
+second WORD to the display. For integer heights 1..256 their footprint is 16*H;
+this is conditional arithmetic, not a proven bound on every caller or allocation.
+Each helper waits before staging and reading; its final copy can remain active
+at return. Later reuse must respect completion. Indirect/alias writers remain open.
+
+The first cold-title seeded zero blit schedules writes to `$70000..$7CD28`,
+covering the loaded input tail at `$75370..$7C000`. One fresh Copperline direct
+boot confirms both entire cursor payloads at four byte-matched checkpoints.
+At the title checkpoint the source's first 192 bytes and three sampled 64-byte
+tail windows were zero; by UI entry both headers had changed and two tail windows
+changed again. These observations establish phase reuse in that run, not full
+DMA lookahead/termination, measured whole-tail completion or the original tail's
+purpose. The preserved uncopied file tail remains unclassified.
+
+Native postincrement write-cursor tracking and runtime literal substitutions
+remain specific framework gaps. The ineffective header-store seed was removed
+through the normal catalog; the proven row/RAM schemas remain. The new WORD types
+use the established canonical scalar schema for compact output.
+Current native pointer snapshot remains 2,605 fields, 2,018 symbolic, 584 NULL and
+three boundary fragments. All 442 unaffected layouts, 273 existing interpreted
+references, 69 assets and nine SDK includes remain intact. No new ownership
+percentage or runtime lifetime closure is claimed. All 22 normal catalog actions,
+including conservative seed/type corrections, were reviewed and journal-accepted.
+Expanded C/vasm receipt `c0ca7f7d5aca80aaa12481d7e2ee5ce2471c408c023b7d5b4b62b36fcab4e496`;
+source SHA256 `3f68e2f99627acb54ae5e824af6c9e3d1f68b65bc11492aec69d127c0835f694`.
+Actual compact ZIP is full-file C/vasm exact: 27 definitions, 1,499 compact records
+and 768 expanded fallbacks. The sixteen new rows remain expanded because their
+field-label/value arguments exceed the existing nine-argument policy. Compact
+source SHA256 `905ddab24c10f9538359d0e6ff0520739ac9f503b3c3b8fc41552af61f1e9a0e`.
+Focused tests: 230 passed, two opt-in native transport cases skipped; the real
+normal-boot scenario passed separately. Machine verification and review receipts:
+`.runtime-state/pandora-analysis/resource-lifetime-followup/`.
 
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
@@ -256,9 +270,9 @@ presentation, not the semantic recovery status below.
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Later exit-delay reset/writer coverage and reachable inherited state; shared positive-X node word and held-frame/player-layout boundary |
 | Inventory / trading / NPC | Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
-| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
+| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Cursor pixels survive observed source-scratch reuse; header/pointer consumption is phase-dependent. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
-| Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; corrected descriptor literals retain runtime aliases; two sampled tail windows lose original identity by UI entry, without proving the whole tail unused | Initializer at source $4AFFA is named; no proven uncopied-tail resource consumer and remaining purpose/bounds unknown |
+| Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; the first cold-title zero blit footprint covers the loaded-input tail. Three sampled tail windows become zero at title and two change again by UI entry; original purpose stays unproved | Original file-tail purpose, complete later writer/consumer coverage, DMA lookahead and scratch allocation bounds remain unknown |
 
 The native ownership snapshot immediately before the font/lifecycle batch has
 55,391 unclaimed bytes, including the 27,792-byte uncopied tail. These are

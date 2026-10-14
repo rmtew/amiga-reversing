@@ -567,6 +567,28 @@ proportional_ui_glyph_record_bitmap_row_5 RS.W 1
 proportional_ui_glyph_record_bitmap_row_6 RS.W 1
 proportional_ui_glyph_record_SIZEOF EQU __RS
 
+; STRUCT cursor_sprite_initializer_row
+    RSRESET
+cursor_sprite_initializer_row_sprite0_data_a RS.W 1
+cursor_sprite_initializer_row_sprite0_data_b RS.W 1
+cursor_sprite_initializer_row_sprite1_data_a RS.W 1
+cursor_sprite_initializer_row_sprite1_data_b RS.W 1
+cursor_sprite_initializer_row_initializer_skipped_word_4 RS.W 1
+cursor_sprite_initializer_row_initializer_skipped_word_5 RS.W 1
+cursor_sprite_initializer_row_initializer_skipped_word_6 RS.W 1
+cursor_sprite_initializer_row_initializer_skipped_word_7 RS.W 1
+cursor_sprite_initializer_row_SIZEOF EQU __RS
+
+; STRUCT cursor_sprite_dma_header_pair
+    RSRESET
+cursor_sprite_dma_header_pair_sprite0_position_word RS.W 1
+cursor_sprite_dma_header_pair_sprite0_control_word RS.W 1
+    RS.B 64
+cursor_sprite_dma_header_pair_sprite1_position_word RS.W 1
+cursor_sprite_dma_header_pair_sprite1_control_word RS.W 1
+    RS.B 64
+cursor_sprite_dma_header_pair_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -754,6 +776,8 @@ bitmap_00075050_lo	EQU	bitmap_00075050-(bitmap_00075050_hi*$10000)
 bitmap_00075078	EQU	$75078
 bitmap_00075078_hi	EQU	bitmap_00075078/$10000
 bitmap_00075078_lo	EQU	bitmap_00075078-(bitmap_00075078_hi*$10000)
+cursor_sprite0_dma_buffer	EQU	$65370
+cursor_sprite1_dma_buffer	EQU	$653B4
 dblk_ref_h0_000095E2_runtime_000195E2	EQU	$195E2
 dblk_ref_h0_00010CC0	EQU	$10CC0
 dblk_ref_h0_00010CCC	EQU	$10CCC
@@ -1262,6 +1286,7 @@ handle_vertical_blank_frame_update:
 	bsr.w apply_current_palette
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
+    ; VBL updates the two POS/CTL pairs in cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer, then programs the selected DMA pointers. Pixel payloads were copied before source-scratch reuse.
 	lea.l $00065370.l,a0
 	move.w app_inventory_cursor_x(a6),d0
 	addi.w #128,d0
@@ -1517,7 +1542,7 @@ abs_0_00010D14:
 initialize_starfield:
 	lea.l abs_0_00010B28(pc),a0
 	lea.l abs_0_00010B68(pc),a1
-	movea.l #world_runtime_setup_records,a2
+	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #31,d7
 	jsr clear_rgb12_palette_components.l
 	moveq.l #7,d7
@@ -1692,6 +1717,7 @@ abs_0_00010F86:
 	rts
 abs_0_00010F88:
 	move.l #$70000,app_front_bitplane_base(a6)
+    ; First cold title entry starts the seeded ascending zero blit over $70000..$7CD28, including loaded-input tail $75370..$7C000. Later contents vary; original tail purpose remains unknown.
 	bsr.w start_seeded_zero_copy_blit
 	move.w #INTF_INTEN,intena(a5)
 	move.w #DMAF_MASTER,dmacon(a5)
@@ -1736,7 +1762,7 @@ abs_0_00010FEC:
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
 	bset.b #0,app_world_interaction_audio_flags(a6)
-	movea.l #world_runtime_setup_records,a0
+	movea.l #cursor_sprite_initial_rows_shared_scratch,a0
 	moveq.l #47,d7
 abs_0_00011044:
 	clr.l (a0)+
@@ -1749,7 +1775,7 @@ abs_0_00011052:
 	subq.b #1,app_palette_transition_steps_remaining(a6)
 	lea.l abs_0_00010B28(pc),a0
 	lea.l abs_0_00010B68(pc),a1
-	movea.l #world_runtime_setup_records,a2
+	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #31,d7
 	bsr.w add_rgb12_palette_components
 abs_0_00011070:
@@ -7837,7 +7863,8 @@ abs_0_00016B0E:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a2/a5
 	rts
-abs_0_00016B18:
+    ; Stage four two-WORD planes in shared 16-byte rows, then copy first WORDs to the display. Wait before staging/reading; final copy is asynchronous at return. Allocation bounds remain open.
+blit_masked_frame_first_word_via_shared_scratch:
 	movem.l a0-a3/a5,-(a7)
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
@@ -7854,7 +7881,7 @@ abs_0_00016B18:
 	swap.w d6
 	clr.w d6
 	ror.l #4,d6
-	lea.l world_runtime_setup_records.l,a3
+	lea.l cursor_sprite_initial_rows_shared_scratch.l,a3
 	move.l a2,-(a7)
 	move.l a3,-(a7)
 abs_0_00016B4C:
@@ -7934,7 +7961,8 @@ abs_0_00016C56:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
-abs_0_00016C60:
+    ; Stage four two-WORD planes in shared 16-byte rows, then copy second WORDs to the display. Wait before staging/reading; final copy is asynchronous at return. Allocation bounds remain open.
+blit_masked_frame_second_word_via_shared_scratch:
 	movem.l a0-a3/a5,-(a7)
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
@@ -7951,7 +7979,7 @@ abs_0_00016C60:
 	swap.w d6
 	clr.w d6
 	ror.l #4,d6
-	lea.l world_runtime_setup_records.l,a3
+	lea.l cursor_sprite_initial_rows_shared_scratch.l,a3
 	move.l a2,-(a7)
 	move.l a3,-(a7)
 	subq.l #2,a2
@@ -8342,7 +8370,7 @@ abs_0_00017068:
 	adda.w d1,a2
 	subq.l #8,a0
 	subq.l #2,a1
-	bsr.w abs_0_00016C60
+	bsr.w blit_masked_frame_second_word_via_shared_scratch
 	subq.w #1,d4
 	bmi.w abs_0_00017166
 	addq.l #8,a0
@@ -8399,7 +8427,7 @@ abs_0_00017102:
 abs_0_00017110:
 	tst.b d6
 	beq.w abs_0_00017166
-	bsr.w abs_0_00016B18
+	bsr.w blit_masked_frame_first_word_via_shared_scratch
 	bra.w abs_0_00017166
 abs_0_0001711E:
 	move.w $0008(a2),d4
@@ -10855,7 +10883,7 @@ hide_cursor_sprite_pointers:
 	movea.l (a7)+,a0
 abs_0_000194E0:
 	rts
-    ; Bind cursor sprite pointers to fixed RAM $65370/$653B4 and copy 16 palette words to COLOR16..31. The buffers begin at the copied image end; original tail ownership is unresolved.
+    ; Bind cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer; copy 16 palette WORDs to COLOR16..31. Pixels were copied at cold startup before their source became scratch.
 bind_cursor_sprites_and_palette:
 	movem.l a0-a1,-(a7)
 	lea.l $00065370.l,a0
@@ -11607,8 +11635,9 @@ abs_0_00019EC6:
 	move.l #$4000,app_tilemap_base(a6)
 	bsr.w build_world_tilemap_pointer_grid
 	move.w #$1,app_camera_scroll_profile_index(a6)
+    ; Cold startup copies sixteen rows' first four words into two 64-byte cursor payloads before title/scratch reuse. Last four words are skipped; later copies need current-source evidence.
 	moveq.l #15,d7
-	lea.l world_runtime_setup_records.l,a0
+	lea.l cursor_sprite_initial_rows_shared_scratch.l,a0
 	lea.l $00065374.l,a1
 	lea.l $000653B8.l,a2
 abs_0_00019F06:
@@ -13591,23 +13620,135 @@ shared_empty_inventory_trade_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
     ; Original shared offers contain only ID 0 and all 29 owners start with trade-ready bit 3 clear. Matching requires player ID >=2 before arming a trade; this does not cover later state changes.
-world_runtime_setup_records:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $01C0,$0000,$01C0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0120,$00C0,$01E0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0090,$0060,$00F0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0048,$0030,$0078,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $FFC4,$0038,$FFFC,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $8002,$7FFC,$FFFE,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $8001,$7FFE,$FFFF,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $8000,$7FFC,$FFFE,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0040,$0038,$FFFC,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0040,$0030,$0078,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0080,$0060,$00F0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0100,$00C0,$01E0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0100,$0000,$01C0,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; world_tilemap_setup_record_table
+cursor_sprite_initial_rows_shared_scratch:
+	dc.w $0000	; sprite0_data_a
+	dc.w $0000	; sprite0_data_b
+	dc.w $0000	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0000	; sprite0_data_a
+	dc.w $0000	; sprite0_data_b
+	dc.w $0000	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $01C0	; sprite0_data_a
+	dc.w $0000	; sprite0_data_b
+	dc.w $01C0	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0120	; sprite0_data_a
+	dc.w $00C0	; sprite0_data_b
+	dc.w $01E0	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0090	; sprite0_data_a
+	dc.w $0060	; sprite0_data_b
+	dc.w $00F0	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0048	; sprite0_data_a
+	dc.w $0030	; sprite0_data_b
+	dc.w $0078	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $FFC4	; sprite0_data_a
+	dc.w $0038	; sprite0_data_b
+	dc.w $FFFC	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $8002	; sprite0_data_a
+	dc.w $7FFC	; sprite0_data_b
+	dc.w $FFFE	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $8001	; sprite0_data_a
+	dc.w $7FFE	; sprite0_data_b
+	dc.w $FFFF	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $8000	; sprite0_data_a
+	dc.w $7FFC	; sprite0_data_b
+	dc.w $FFFE	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0040	; sprite0_data_a
+	dc.w $0038	; sprite0_data_b
+	dc.w $FFFC	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0040	; sprite0_data_a
+	dc.w $0030	; sprite0_data_b
+	dc.w $0078	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0080	; sprite0_data_a
+	dc.w $0060	; sprite0_data_b
+	dc.w $00F0	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0100	; sprite0_data_a
+	dc.w $00C0	; sprite0_data_b
+	dc.w $01E0	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0100	; sprite0_data_a
+	dc.w $0000	; sprite0_data_b
+	dc.w $01C0	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
+	dc.w $0000	; sprite0_data_a
+	dc.w $0000	; sprite0_data_b
+	dc.w $0000	; sprite1_data_a
+	dc.w $0000	; sprite1_data_b
+	dc.w $0000	; initializer_skipped_word_4
+	dc.w $0000	; initializer_skipped_word_5
+	dc.w $0000	; initializer_skipped_word_6
+	dc.w $0000	; initializer_skipped_word_7
 	dcb.b $21,$00
 	dc.b $1C,$00,$00,$00,$1C
 	dcb.b $B,$00
