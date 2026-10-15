@@ -33,6 +33,6 @@ recognition, copied-image bootstrap view reason, and GenAm's missing original
 input. These additional failures are retained, not weakened or folded into this
 checkpoint. The earlier complete isolated native baseline already established
 that the original eight failures predated the fresh restoration work; see
-`docs/validation/pandora-eight-backend-baseline.json` if present and the recorded
-eight-failure audit in the target status. This checkpoint is a focused repair,
+`docs/validation/backend-eight-baseline.json` and the eight-failure audit in
+`docs/validation/backend-eight-failures.md`. This checkpoint is a focused repair,
 not a claim that the entire backend integration suite passes.
