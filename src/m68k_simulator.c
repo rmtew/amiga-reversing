@@ -4072,6 +4072,8 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if ((metadata->operation_type == M68K_SIM_OP_LOGIC_AND || metadata->operation_type == M68K_SIM_OP_LOGIC_OR ||
           metadata->operation_type == M68K_SIM_OP_LOGIC_XOR) &&
       source != NULL && dest != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source, io_state) &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
         memory, memory_size, io_state->pc, &immediate_value, memory_policy) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest, io_state,
@@ -4098,6 +4100,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if ((metadata->operation_type == M68K_SIM_OP_NEGATE || metadata->operation_type == M68K_SIM_OP_NOT ||
           metadata->operation_type == M68K_SIM_OP_SIGN_EXTEND || metadata->operation_type == M68K_SIM_OP_SWAP_WORDS) &&
       dest != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest, io_state,
         memory, memory_size, io_state->pc, &resolved_value, memory_policy)) {
     M68kSimValue input_value;
@@ -4136,6 +4139,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if ((metadata->operation_type == M68K_SIM_OP_SHIFT || metadata->operation_type == M68K_SIM_OP_ROTATE ||
           metadata->operation_type == M68K_SIM_OP_ROTATE_EXTEND) &&
       dest != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest, io_state,
         memory, memory_size, io_state->pc, &resolved_value, memory_policy) &&
       (metadata->shift_count_source != M68K_SIM_SHIFT_COUNT_OPERAND ||
@@ -4176,6 +4180,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     }
   } else if ((metadata->operation_type == M68K_SIM_OP_COMPARE || metadata->operation_type == M68K_SIM_OP_TEST) &&
       source != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
         memory, memory_size, io_state->pc, &resolved_value, memory_policy)) {
     if (metadata->operation_type == M68K_SIM_OP_COMPARE && dest != NULL &&
@@ -4202,6 +4207,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     }
   } else if ((metadata->operation_type == M68K_SIM_OP_MULTIPLY || metadata->operation_type == M68K_SIM_OP_DIVIDE) &&
       source != NULL && dest != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
         memory, memory_size, io_state->pc, &resolved_value, memory_policy) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest, io_state,
@@ -4571,6 +4577,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_TEST_AND_SET && source != NULL &&
+      sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source, io_state) &&
       sim_concrete_eval_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source, io_state,
         memory, memory_size, io_state->pc, &resolved_value, memory_policy)) {
     sim_apply_abstract_nz_flags(io_state->sr, resolved_value, 1U, &io_state->sr);
@@ -4578,6 +4585,10 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->source_operand_index, source,
           io_state, memory, memory_size, io_state->pc, written_value, write_trace, memory_policy)) {
       sim_diag_error(diagnostics, "unsupported concrete tas destination");
+      return -1;
+    }
+    if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source, io_state)) {
+      sim_diag_error(diagnostics, "unsupported concrete tas operand update");
       return -1;
     }
   } else if (metadata->operation_type == M68K_SIM_OP_MOVE_PERIPHERAL && instruction->operand_count >= 2U) {
@@ -4920,7 +4931,8 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
   } else if (metadata->operation_type == M68K_SIM_OP_CLEAR && dest != NULL) {
     sim_apply_abstract_nz_flags(io_state->sr, 0U,
       sim_effective_operand_width(instruction, metadata, metadata->dest_operand_index), &io_state->sr);
-    if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest, io_state) ||
+        !sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, 0U, write_trace, memory_policy)) {
       sim_diag_error(diagnostics, "unsupported concrete clear destination");
       return -1;
@@ -4931,7 +4943,8 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
     }
   } else if (metadata->operation_type == M68K_SIM_OP_SET_COND && dest != NULL) {
     uint32_t value = sim_condition_true(metadata->condition_code, io_state->sr) ? 0xFFU : 0x00U;
-    if (!sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
+    if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->dest_operand_index, dest, io_state) ||
+        !sim_concrete_write_operand_by_metadata(instruction, metadata, metadata->dest_operand_index, dest,
           io_state, memory, memory_size, io_state->pc, value, write_trace, memory_policy)) {
       sim_diag_error(diagnostics, "unsupported concrete condition destination");
       return -1;

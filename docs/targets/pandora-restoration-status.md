@@ -2449,3 +2449,42 @@ and numeric in source. Their accepted schema bindings do not
 license a hand-subtracted target mapping. Completing native descriptor-target
 identity/label propagation is a follow-up; this checkpoint claims structured
 prefixes and three resolved references, not 96 symbolic references.
+
+## Concrete scalar EA update fix and palette trace recovery
+
+The concrete executor now invokes its existing metadata-driven predecrement
+preparation before scalar memory access, including CLR and condition stores,
+logical/unary/shift RMW, compare/test, multiply/divide and TAS paths. RMW writes
+reuse the read address; postincrement runs after the final access, including TAS.
+No Pandora special case or new instruction/width rule was introduced. The
+existing A7 byte-step rule is shared. All CLR sizes and address registers are
+covered, along with sibling operations and rejected wrapped accesses.
+
+The former strict expected failure in
+`tests/test_pandora_snapshot_guards.py` now passes. Original `4267` predecrements
+SP correctly; the complete render prefix reaches the modeled first spliced
+return with the predicted stack state. The palette control-flow conclusion is
+unchanged. The trace is now usable as bounded concrete evidence; ordinary
+entry/phase reachability, absolute caller/IRQ stack separation and the shared
+hit/palette tail still block relocation. This does not repair abstract scalar
+EA updates or same-register two-memory operand scheduling; those separately
+confirmed issues and their reproducers are in
+`docs/validation/framework-defects-2026-10-15.md`.
+
+```sh
+make -j4
+.venv/bin/python -m pytest -q src/tests/test_m68k_simulator_ea_updates.py src/tests/test_m68k_simulator_arithmetic.py src/tests/test_m68k_simulator_moveq.py src/tests/test_m68k_simulator_abstract.py src/tests/test_generate_c99_simulator_subset.py tests/test_pandora_snapshot_guards.py tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_render_order.py
+.venv/bin/python src/scripts/check_c_style.py src/m68k_simulator.c
+```
+
+The broad focused run passes 89 tests and 1175 subtests. The final EA matrix,
+including six subsequently added wrapped-access cases, passes six tests and 177
+subtests. The native simulator-only suite passes all 30 cases; the full native
+suite was not rerun merely to recount baseline failures. Nine representative
+CLR/Scc/RMW/alias-reproducer encodings agree with independent vasm. Exact C/vasm
+receipt `662843b11ba5e9ad3a359d75f1b3d2d6af442e4b1b85ddf27b6b62d1f0dd34b4`
+reproduces all 376,832 bytes. Source SHA256 remains
+`862da61d0e5cb735de20a6b44279831ed52df9a8132b07b57c4389738d081cde`.
+Original assets/includes and target histories are unchanged in this tooling fix.
+The resident service was restarted to load the rebuilt C library; UI still
+returns HTTP 200 at `http://127.0.0.1:8123/` (PID 200712).

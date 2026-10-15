@@ -57,8 +57,7 @@ def test_palette_helper_splices_return_word_instead_of_balanced_bsr_return(cpu_f
     assert not BASE <= bus_target < BASE+0x55370
 
 
-@pytest.mark.parametrize('render_prefix', [False, pytest.param(True, marks=pytest.mark.xfail(
-    strict=True, reason='Original CLR.W -(A7) currently writes at SP without applying predecrement; do not trust this complete prefix trace.'))])
+@pytest.mark.parametrize('render_prefix', [False, True])
 def test_palette_wrapper_prefix_before_first_spliced_return(cpu_fixture, render_prefix):
     cpu, memory, schemas, read, write, run = cpu_fixture
     advance = sequencer(cpu, memory, write)
