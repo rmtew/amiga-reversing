@@ -38,18 +38,18 @@ def cpu_fixture():
     def write(address, value, size=4):
         memory[address:address+size] = value.to_bytes(size, 'big')
 
-    def run(source, *, stop=None):
+    def run(source, *, stop=None, budget=512):
         cpu.a[7] = 0x9000
         write(0x9000, RETURN)
         cpu.pc = BASE + source
         stop_pc = BASE + stop if stop is not None else RETURN
         trace = Trace()
-        rc = engine()(0, buffer, len(memory), C.byref(cpu), 512,
+        rc = engine()(0, buffer, len(memory), C.byref(cpu), budget,
                       stop_pc, stop_pc+2, None, C.byref(trace))
         messages = [bytes(d.message).split(b'\0')[0].decode()
                     for d in trace.diagnostics.items[:trace.diagnostics.count]]
         assert rc == 0 and trace.stop_reason == 1, messages
-        assert 0 < trace.steps < 512 and not trace.overflow
+        assert 0 < trace.steps < budget and not trace.overflow
         assert not any(d.severity >= 3 for d in trace.diagnostics.items[:trace.diagnostics.count]), messages
         return trace.steps
 

@@ -5334,6 +5334,7 @@ set_copper_interrupt_callback_atomic:
 	move.l a0,app_copper_interrupt_callback(a6)
 	move (a7)+,sr
 	rts
+    ; Carry is set for |dx|<24 and |dy|<16 after WORD arithmetic. The diabetic hint path clears it on return; it is not a treatment-success result.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 is_player_within_world_object_interaction_range:
 	lea.l player_world_object.l,a4
@@ -11829,6 +11830,7 @@ abs_0_0001A056:
 	clr.b app_status_flags(a6)
 	clr.b app_02A6(a6)
 	clr.b app_game_event_flags(a6)
+    ; Reset all interaction latches, including diabetic advice; this can rearm its hint independently of the installed pose controller.
 	clr.b app_world_interaction_flags(a6)
 	clr.b app_world_interaction_audio_flags(a6)
 	lea.l app_scrolling_message_queue_head(a6),a0
@@ -21626,7 +21628,7 @@ icelord_sequence_49DCE_6:
 	dc.l icelord_animation_bank	; frame_ptr
 world_object_hooligan:
 	dc.l $00000000	; item_name_ptr
-	dc.l interact_with_hooligan_or_robomechanic	; interaction_callback
+	dc.l request_world_object_context_message	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D1F9	; context_message_ptr
 	dc.l abs_0_0005D220	; interaction_message_ptr
@@ -23248,6 +23250,7 @@ decrease_active_world_object_item_state:
 	jsr enqueue_status_message.l
 	moveq.l #-15,d0
 	jmp adjust_active_world_object_item_state.l
+    ; This initialized pose node has no chain/hold-at-end mode. The diabetic hint callback leaves it installed; other mutations can break that invariant.
 start_diabetic_attachment_animation:
 	lea.l diabetic_states_4B7A0_1_state_node_ptr_1(pc),a0
 	lea.l diabetic_script_pose_controller(pc),a1
@@ -23520,7 +23523,7 @@ technician_sequence_4B1DA_7:
 	dc.l technician_animation_bank_bitplane_data_ptr_15	; frame_ptr
 world_object_robomechanic:
 	dc.l $00000000	; item_name_ptr
-	dc.l interact_with_hooligan_or_robomechanic	; interaction_callback
+	dc.l request_world_object_context_message	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CDC4	; context_message_ptr
 	dc.l abs_0_0005CDEA	; interaction_message_ptr
@@ -25914,21 +25917,14 @@ abs_0_0005CF4C:
 abs_0_0005CF72:
 	dc.b $22,$48,$65,$6C,$70,$20,$6D,$65,$2C,$20,$49,$20,$6E,$65,$65,$64
 	dc.b $20,$61,$20,$73,$79,$72,$69,$6E,$67,$65,$22,$00
-abs_0_0005CF8E:
-	dc.b $22,$47,$65,$74,$20,$6D,$65,$20,$73,$6F,$6D,$65,$20,$69,$6E,$73
-	dc.b $75,$6C,$69,$6E,$2C,$20,$49,$20,$63,$61,$6E,$20,$68,$65,$6C,$70
-	dc.b $20,$79,$6F,$75,$22,$00
-abs_0_0005CFB4:
-	dc.b $22,$49,$20,$77,$61,$6E,$74,$20,$69,$6E,$73,$75,$6C,$69,$6E,$2C
-	dc.b $20,$62,$75,$74,$20,$49,$20,$6E,$65,$65,$64,$20,$61,$20,$6E,$65
-	dc.b $65,$64,$6C,$65,$20,$66,$69,$72,$73,$74,$22,$00
-abs_0_0005CFE0:
-	dc.b $22,$55,$73,$65,$20,$74,$68,$65,$20,$63,$61,$70,$74,$61,$69,$6E
-	dc.b $22
-	dc.b "s self destruct initiation disc",$00
-abs_0_0005D011:
-	dc.b " and the right code cards to destroy Pandora."
-	dc.b $22,$00
+diabetic_insulin_request_response:
+	dc.b $22,"Get me some insulin, I can help you",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+diabetic_missing_needle_response:
+	dc.b $22,"I want insulin, but I need a needle first",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+diabetic_self_destruct_hint_part_1:
+	dc.b $22,"Use the captain",$22,"s self destruct initiation disc",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+diabetic_self_destruct_hint_part_2:
+	dc.b " and the right code cards to destroy Pandora.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 abs_0_0005D040:
 	dc.b $22,$42,$7A,$7A,$7A,$7A,$20,$7A,$7A,$7A,$20,$7A,$7A,$20,$44,$49
 	dc.b $45,$20,$48,$55,$4D,$41,$4E,$20,$7A,$7A,$20,$7A,$7A,$20,$7A,$7A
@@ -26058,9 +26054,9 @@ interact_with_musician:
 abs_0_0005D39E:
 	move.w d0,d0
 	rts
-    ; Set the WORD cooldown to 250 and return carry set. This requests the +$10 message when nonzero; it does not report queue acceptance.
+    ; Request the current object context message with carry set and a 250-count cooldown. This shared tail changes neither inventory nor animation state.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
-interact_with_hooligan_or_robomechanic:
+request_world_object_context_message:
 	move.w #$FA,world_object_shared_prefix_context_prompt_cooldown(a5)
 	move #$1,ccr
 	rts
@@ -26069,7 +26065,7 @@ interact_with_hooligan_or_robomechanic:
 interact_with_sec_officer:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_LASER_RIFLE,d0
-	beq.b interact_with_hooligan_or_robomechanic
+	beq.b request_world_object_context_message
 	move.w d0,d0
 	rts
     ; Bible can set the one-time latch; Shakespeare on this object selects a PRNG response. Rewrite +$10 and use the cooldown/carry-set path; other paths clear carry.
@@ -26081,7 +26077,7 @@ interact_with_chemist:
 	bset.b #INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
 	move.l #abs_0_0005CF4C,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.b interact_with_hooligan_or_robomechanic
+	bra.b request_world_object_context_message
 abs_0_0005D3DC:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SHAKESPEARE,d0
@@ -26089,7 +26085,7 @@ abs_0_0005D3DC:
 	jsr advance_pseudorandom_state.l
 	andi.w #12,d0
 	move.l abs_0_0005D416(pc,d0.w),world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.b interact_with_hooligan_or_robomechanic
+	bra.b request_world_object_context_message
 abs_0_0005D3F8:
 	move.w d0,d0
 	rts
@@ -26103,7 +26099,7 @@ interact_with_bank_manager:
 	lea.l bank_manager_default_response(pc),a0
 abs_0_0005D410:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.b interact_with_hooligan_or_robomechanic
+	bra.b request_world_object_context_message
 abs_0_0005D416:
 	dc.l abs_0_0005CEB3	; mode=required, data_role=pointer_table, unit=pointer
 	dc.l abs_0_0005CEDC
@@ -26113,7 +26109,7 @@ abs_0_0005D416:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_priest:
 	tst.b app_defeated_object_count(a6)
-	bne.w interact_with_hooligan_or_robomechanic
+	bne.w request_world_object_context_message
 	move.w d0,d0
 	rts
     ; This object must hold the globe and the technician latch must be clear. Set the latch and use the shared cooldown/carry-set path; otherwise clear carry.
@@ -26123,7 +26119,7 @@ interact_with_technician:
 	cmp.b #ITEM_ID_GLOBE,d0
 	bne.b abs_0_0005D446
 	bset.b #INTERACTION_FLAG_TECHNICIAN_COMPLETED,app_world_interaction_flags(a6)
-	beq.w interact_with_hooligan_or_robomechanic
+	beq.w request_world_object_context_message
 abs_0_0005D446:
 	move.w d0,d0
 	rts
@@ -26209,7 +26205,7 @@ interact_with_squash_player:
 	cmp.b #ITEM_ID_SQUASH_BALL,d0
 	bne.b abs_0_0005D534
 	bset.b #INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED,app_world_interaction_flags(a6)
-	beq.w interact_with_hooligan_or_robomechanic
+	beq.w request_world_object_context_message
 abs_0_0005D534:
 	move.w d0,d0
 	rts
@@ -26230,46 +26226,46 @@ interact_with_driffid:
 	rts
 abs_0_0005D560:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.w interact_with_hooligan_or_robomechanic
-    ; Response branches rewrite +$10 and set carry. Treatment checks range, sets the latch and attempts two queue calls, then clears carry; queue acceptance is ignored.
+	bra.w request_world_object_context_message
+    ; Insulin with the needle and strict range triggers one self-destruct hint; selected items and pose stay unchanged here. Queue refusal still leaves the advice latch set.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_diabetic:
 	btst.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
-	bne.b abs_0_0005D592
+	bne.b diabetic_return_without_context_prompt
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_HYPODERMIC,d0
-	beq.b abs_0_0005D596
-	lea.l abs_0_0005CFB4(pc),a0
+	beq.b diabetic_check_selected_insulin
+	lea.l diabetic_missing_needle_response(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_INSULIN,d0
-	bne.b abs_0_0005D592
+	bne.b diabetic_return_without_context_prompt
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.w interact_with_hooligan_or_robomechanic
-abs_0_0005D592:
+	bra.w request_world_object_context_message
+diabetic_return_without_context_prompt:
 	move.w d0,d0
 	rts
-abs_0_0005D596:
+diabetic_check_selected_insulin:
 	moveq.l #ITEM_ID_INSULIN,d0
 	cmp.b player_world_object_selected_item_id.l,d0
-	beq.b abs_0_0005D5BA
+	beq.b diabetic_try_self_destruct_hint
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
-abs_0_0005D5A6:
+diabetic_scan_carried_insulin:
 	cmp.b (a0)+,d0
-	beq.b abs_0_0005D592
-	dbf.w d7,abs_0_0005D5A6
-	lea.l abs_0_0005CF8E(pc),a0
+	beq.b diabetic_return_without_context_prompt
+	dbf.w d7,diabetic_scan_carried_insulin
+	lea.l diabetic_insulin_request_response(pc),a0
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.w interact_with_hooligan_or_robomechanic
-abs_0_0005D5BA:
+	bra.w request_world_object_context_message
+diabetic_try_self_destruct_hint:
 	jsr is_player_within_world_object_interaction_range.l
-	bcc.b abs_0_0005D592
+	bcc.b diabetic_return_without_context_prompt
 	bset.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
-	lea.l abs_0_0005CFE0(pc),a0
+	lea.l diabetic_self_destruct_hint_part_1(pc),a0
 	jsr enqueue_status_message.l
-	lea.l abs_0_0005D011(pc),a0
+	lea.l diabetic_self_destruct_hint_part_2(pc),a0
 	jsr enqueue_status_message.l
-	bra.b abs_0_0005D592
+	bra.b diabetic_return_without_context_prompt
 blank_sprite_data:
 	dcb.b $200,$00
 initialize_audio_player:
