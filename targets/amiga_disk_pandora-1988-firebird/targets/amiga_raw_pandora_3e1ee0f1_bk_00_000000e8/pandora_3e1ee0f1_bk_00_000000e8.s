@@ -11272,6 +11272,7 @@ abs_0_0001926E:
 	asl.w #1,d3
 	add.w d2,d0
 	add.w d3,d1
+    ; Hardcoded 90-column grid; byte offset wraps at 64KiB. No range counter or map clamp: NULL hit scans resume sampling. A zero step repeats the point unless another condition changes.
 advance_ranged_effect_ray_point:
 	add.w d2,d0
 	add.w d3,d1

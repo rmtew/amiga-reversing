@@ -1,0 +1,126 @@
+{
+  "tail-symbol": {
+    "has_more": false,
+    "items": [
+      {
+        "declaration_kind": 1,
+        "expression": "",
+        "interpretation_status": "unassessed",
+        "interpretations": [],
+        "name": "abs_0_0006AFFA",
+        "origin_count": 0,
+        "provenance": "typed_render_declaration",
+        "section_index": 0,
+        "source_offset": 372730
+      }
+    ],
+    "limit": 30,
+    "next_cursor": null,
+    "offset": 0,
+    "response_byte_budget": 65536,
+    "revision": "e864d92ff3279a86caff04785fcd1793c8944f3a1764a32a768a3fe8bd17b326",
+    "scope": "native_artifact",
+    "subject_revision": "55e5dfd6b13311a3cc6fabcca9a3e264ae78d7d4b53cb1a981a683c5853a071d",
+    "total": 1,
+    "unknowns": [
+      "Static facts are incomplete; absent references do not prove unreachability.",
+      "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+      "Function ownership is not inferred by this query."
+    ]
+  },
+  "tail-refs": {
+    "has_more": false,
+    "items": [],
+    "limit": 30,
+    "next_cursor": null,
+    "offset": 0,
+    "response_byte_budget": 65536,
+    "revision": "e864d92ff3279a86caff04785fcd1793c8944f3a1764a32a768a3fe8bd17b326",
+    "scope": "native_artifact",
+    "subject_revision": "55e5dfd6b13311a3cc6fabcca9a3e264ae78d7d4b53cb1a981a683c5853a071d",
+    "total": 0,
+    "unknowns": [
+      "Static facts are incomplete; absent references do not prove unreachability.",
+      "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+      "Function ownership is not inferred by this query."
+    ]
+  },
+  "call-edge": {
+    "has_more": false,
+    "items": [
+      {
+        "kind": "fallthrough",
+        "provenance": "native_cfg",
+        "section_index": 0,
+        "source_offset": 1394,
+        "status": "resolved",
+        "target_offset": 1398,
+        "target_section_index": 0
+      },
+      {
+        "kind": "call",
+        "provenance": "native_cfg",
+        "section_index": 0,
+        "source_offset": 1398,
+        "status": "resolved",
+        "target_offset": 307194,
+        "target_section_index": 0
+      },
+      {
+        "kind": "fallthrough",
+        "provenance": "native_cfg",
+        "section_index": 0,
+        "source_offset": 1398,
+        "status": "resolved",
+        "target_offset": 1404,
+        "target_section_index": 0
+      }
+    ],
+    "limit": 30,
+    "next_cursor": null,
+    "offset": 0,
+    "response_byte_budget": 65536,
+    "revision": "e864d92ff3279a86caff04785fcd1793c8944f3a1764a32a768a3fe8bd17b326",
+    "scope": "native_artifact",
+    "subject_revision": "55e5dfd6b13311a3cc6fabcca9a3e264ae78d7d4b53cb1a981a683c5853a071d",
+    "total": 3,
+    "unknowns": [
+      "Static facts are incomplete; absent references do not prove unreachability.",
+      "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+      "Function ownership is not inferred by this query."
+    ]
+  },
+  "current-call": {
+    "has_more": false,
+    "items": [
+      {
+        "annotation": "",
+        "bytes": "4eb90005affa",
+        "mnemonic": "jsr",
+        "provenance": "accepted_instruction",
+        "section_index": 0,
+        "size": 6,
+        "source_offset": 1398,
+        "text": "jsr initialize_player_and_fixed_animation_nodes.l"
+      }
+    ],
+    "limit": 30,
+    "next_cursor": null,
+    "offset": 0,
+    "response_byte_budget": 65536,
+    "revision": "e864d92ff3279a86caff04785fcd1793c8944f3a1764a32a768a3fe8bd17b326",
+    "scope": "native_artifact",
+    "subject_revision": "55e5dfd6b13311a3cc6fabcca9a3e264ae78d7d4b53cb1a981a683c5853a071d",
+    "total": 1,
+    "unknowns": [
+      "Static facts are incomplete; absent references do not prove unreachability.",
+      "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+      "Function ownership is not inferred by this query."
+    ]
+  },
+  "limits": [
+    "No complete indirect/disk/load-path closure",
+    "Exact initial producer of zero-origin orphan declaration remains untraced",
+    "Tail bytes remain unchanged and unclassified"
+  ]
+}

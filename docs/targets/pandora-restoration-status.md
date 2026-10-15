@@ -2642,3 +2642,51 @@ histories retain their published byte prefixes. This batch appends 30 actions
 Target metadata is unchanged. Changed C lines have no new style findings.
 The resident service is PID 205091 at http://127.0.0.1:8123/. No runtime route
 exploration or relocation was performed in this batch.
+
+## Whole-file continuation: ranged ray tile sampling
+
+From checkpoint `358a085b`, the connected follow-up examines `$92DE..$9322`,
+before the restored per-point hit scan. Its source comment records an algorithm limitation rather than paraphrasing
+individual instructions, through the inspected revision-bound command catalog.
+An attempted symbolic tile-bank subtraction exposed a framework gap: the
+catalog accepts a source label, but the native manual-representation reader
+recognizes only platform symbols and target equates. The representation was
+undone through the normal history API; the numeric operand remains. No
+generated source is hand-edited. Supporting arbitrary canonical source symbols
+needs a general native representation change and conservative regression tests;
+adding a duplicate equate would only disguise that gap.
+
+Coordinates advance with WORD arithmetic. Unsigned coordinate words are divided
+by 16, the row is multiplied by hardcoded 90, and the column is added before two
+WORD doublings. Clearing the upper word leaves a byte offset modulo 65,536.
+This differs from assuming an unbounded linear array index or consulting the
+current app tilemap width. The loaded tile pointer is converted to a 128-byte
+bank index and tested in the existing MSB-first movement-block bitset. Set bits
+select the blocked-tile visual path; clear bits restore the sampled coordinates
+for descriptor collision testing.
+
+A NULL descriptor-table entry resumes ray sampling. This loop has no range
+counter or map clamp; zero step leaves the point unchanged on that back edge.
+The bounded witnesses establish this recurrence, not whole-ray termination,
+arbitrary tile-pointer validity or gameplay reachability of zero step. There
+is no new permission to relocate the shared hit/palette tail, and no new
+Copperline route exploration.
+
+Twelve new original-CPU cases cover positive/negative/zero steps, coordinate
+WORD wrap, grid-byte wrap, first/byte-boundary/last-known bit selectors, blocked
+and clear branches, and NULL-scan resumption. The combined ray and prior impact
+suite passes **37 tests**. Existing broad green baseline results are reused.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_ranged_ray.py tests/test_pandora_ranged_hit_visual.py
+```
+
+C and independent vasm reproduce all 376,832 original bytes. Receipt:
+`8b5ec5eb334efc61c50564f4152a07b6d52ed3df2dca11f2ea5d595fb13079d6`;
+source SHA256 `3d58d217b7bd4e75108cb717dbc6e15509c0abca8fd47e530cc083497d8818e0`.
+The surviving semantic comment is journal-accepted; the attempted representation
+and its undo remain in append-only history. Original binary, target metadata,
+asset/include contents and historical prefixes are preserved. The companion
+[tail investigation](../validation/pandora-preserved-tail.md) distinguishes the
+original unpack destination, fixed-copy extent and generated orphan label.
+PR 5 remains open, unmerged and in its existing ready review state.
