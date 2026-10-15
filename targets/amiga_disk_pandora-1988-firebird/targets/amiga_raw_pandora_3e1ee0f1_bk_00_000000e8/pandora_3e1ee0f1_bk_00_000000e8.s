@@ -9572,11 +9572,11 @@ handle_combat_player_defeat:
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
-	lea.l abs_0_0005C5B6.l,a0
+	lea.l player_static_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a4)
-	lea.l abs_0_0005C592.l,a1
-	move.l a1,$0000(a0)
-	move.l a1,$0004(a0)
+	lea.l player_final_pose_geometry_frames.l,a1
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a0)
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
@@ -10080,13 +10080,13 @@ abs_0_0001800A:
 	rts
 abs_0_00018032:
 	movea.l a4,a5
-	lea.l abs_0_0005C6BA.l,a0
+	lea.l player_animated_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
 	lea.l entry_officer_animation_bank_2.l,a1
-	move.l a1,$0000(a0)
-	movea.l $0008(a0),a0
-	clr.w $0010(a0)
-	bclr.b #0,$000A(a0)
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
@@ -10654,7 +10654,7 @@ abs_0_000186B0:
 abs_0_000186C4:
 	movem.l (a7)+,d1/a0/a5
 	rts
-    ; Entry ID possession accepts IDs 48..55 in selected item, four carried or four pocket slots. It preserves D0-D7/A0-A5 and consumes the pending recheck bit; failure stages player defeat.
+    ; Movement recheck accepts IDs 48..55 in selected item, four carried or four pocket slots. Preserve D0-D7/A0-A5 and consume the pending bit; failure stages player defeat.
     ; KNOWN: type A4=Target code-entry register seed:world_object_shared_prefix
 enforce_id_card_requirement:
 	movem.l d0-d7/a0-a5,-(a7)
@@ -10663,14 +10663,14 @@ enforce_id_card_requirement:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b finish_entry_id_possession_check
+	bcs.b finish_id_possession_recheck
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
 abs_0_000186E2:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b finish_entry_id_possession_check
+	bcs.b finish_id_possession_recheck
 	dbf.w d7,abs_0_000186E2
 	moveq.l #3,d7
 	lea.l app_pocket_item_ids(a6),a0
@@ -10678,16 +10678,16 @@ abs_0_000186F4:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b finish_entry_id_possession_check
+	bcs.b finish_id_possession_recheck
 	dbf.w d7,abs_0_000186F4
 	movea.l a4,a5
-	lea.l abs_0_0005C6BA.l,a0
+	lea.l player_animated_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
 	lea.l entry_officer_animation_bank_2.l,a1
-	move.l a1,$0000(a0)
-	movea.l $0008(a0),a0
-	clr.w $0010(a0)
-	bclr.b #0,$000A(a0)
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
@@ -10696,7 +10696,7 @@ abs_0_000186F4:
 	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
 	jsr abs_0_0005D31A.l
-finish_entry_id_possession_check:
+finish_id_possession_recheck:
 	bclr.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
@@ -10838,17 +10838,19 @@ finish_security_checkpoint_player_death:
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	jsr enqueue_game_outcome_and_rank_messages.l
-	lea.l abs_0_0005C5B6.l,a0
+	lea.l player_static_defeat_state.l,a0
 	move.l a0,$004E(a4)
-	lea.l abs_0_0005C592.l,a1
-	move.l a1,$0000(a0)
-	move.l a1,$0004(a0)
+	lea.l player_final_pose_geometry_frames.l,a1
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a0)
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
+    ; With the initialized static defeat state (NULL node), exchange clears bit 0 at absolute $A and WORD at $10. No NULL guard exists; these original low-memory writes are not owned-node accesses.
 	jsr exchange_world_object_position_states.l
 	bset.b #1,$0048(a5)
 	bra.w return_from_security_checkpoint_service
+    ; A normal flash reload of 31 uses palette indices 1..30, then restores the saved color. All 32 WORDs remain physical data; the endpoints are not normal flash outputs.
 select_security_flash_palette_color:
 	moveq.l #SECURITY_DAMAGE_FLASH_SERVICE_STEPS,d0
 	sub.b app_security_damage_flash_ticks_remaining(a6),d0
@@ -11712,7 +11714,7 @@ abs_0_00019770:
 	cmp.w #$EC,d0
 	bne.b abs_0_000197D0
 	bset.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	move.l #$5C5A4,player_position_state.l
+	move.l #player_escape_geometry,player_position_state.l
 	clr.l player_position_state_state_node_ptr.l
 	lea.l initialize_audio_player.l,a0
 	clr.b $0EBD(a0)
@@ -21908,14 +21910,32 @@ player_move_negative_y_geometry_frames_bitplane_data_ptr_6:
 	dc.w $0018	; frame_width
 	dc.w $0004	; x_offset
 	dc.w $0000	; y_offset
-abs_0_0005C592:
-	dc.b $00,$04,$76,$38,$00,$06,$5E,$98,$00,$04,$00,$20,$00,$40,$00,$00
-	dc.b $00,$00,$00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00
-abs_0_0005C5B6:
-	dc.b $00,$05,$C5,$92,$00,$05,$C5,$92
-	dcb.b $9,$00
-	dc.b $05,$C7,$1E,$00,$00,$00,$00,$00,$42
+player_final_pose_geometry_frames:
+	dc.l scene_pixel_cells_for_mask_bank_28	; bitplane_data_ptr
+	dc.l scene_mask_bank_28	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+player_escape_geometry:
+	dc.l blank_sprite_data	; bitplane_data_ptr
+	dc.l $0005D5DE	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+player_static_defeat_state:
+	dc.l player_final_pose_geometry_frames	; current_geometry_ptr
+	dc.l player_final_pose_geometry_frames	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
 entry_officer_animation_bank_2:
 	dc.l scene_pixel_cells_for_mask_bank_30	; bitplane_data_ptr
 	dc.l scene_mask_bank_30	; mask_data_ptr
@@ -21948,26 +21968,113 @@ entry_officer_animation_bank_2_bitplane_data_ptr_3:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-	dc.b $00,$04,$91,$38,$00,$00,$34,$FC,$00,$02,$00,$20,$00,$20,$00,$00
-	dc.b $00,$00,$00,$04,$93,$38,$00,$00,$35,$7C,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00,$00,$04,$95,$38,$00,$00,$35,$FC,$00,$02,$00,$1F
-	dc.b $00,$20,$00,$00,$00,$01,$00,$04,$97,$28,$00,$00,$36,$78,$00,$02
-	dc.b $00,$1B,$00,$20,$00,$00,$00,$04,$00,$04,$98,$D8,$00,$00,$36,$E4
-	dc.b $00,$02,$00,$15,$00,$20,$00,$00,$00,$0A,$00,$04,$9A,$28,$00,$00
-	dc.b $37,$38,$00,$02,$00,$12,$00,$20,$00,$00,$00,$0E,$00,$04,$9B,$48
-	dc.b $00,$00,$37,$80,$00,$02,$00,$0F,$00,$20,$00,$00,$00,$11,$00,$04
-	dc.b $9C,$38,$00,$00,$37,$BC,$00,$02,$00,$0D,$00,$20,$00,$00,$00,$13
-	dc.b $00,$04,$9D,$08,$00,$00,$37,$F0,$00,$02,$00,$0C,$00,$20,$00,$00
-	dc.b $00,$14
-abs_0_0005C6BA:
-	dc.b $00,$05,$C5,$D0,$00,$05,$C5,$D0,$00,$05,$C6,$D4,$00,$00,$00,$00
-	dc.b $00,$05,$C7,$1E,$00,$00,$00,$00,$00,$42,$00,$05,$C7,$1E,$0D,$28
-	dc.b $00,$05,$C6,$E6,$04
-	dcb.b $8,$00
-	dc.b $05,$C6,$A8,$00,$05,$C5,$D0,$00,$05,$C5,$E2,$00,$05,$C5,$F4,$00
-	dc.b $05,$C6,$06,$00,$05,$C6,$18,$00,$05,$C6,$2A,$00,$05,$C6,$3C,$00
-	dc.b $05,$C6,$4E,$00,$05,$C6,$60,$00,$05,$C6,$72,$00,$05,$C6,$84,$00
-	dc.b $05,$C6,$96,$00,$05,$C6,$A8
+shared_defeat_animation_extended_geometry_frames:
+	dc.l scene_pixel_cells_for_mask_bank_30+$800	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$200	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C62A:
+	dc.l scene_pixel_cells_for_mask_bank_30+$A00	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$280	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C63C:
+	dc.l scene_pixel_cells_for_mask_bank_30+$C00	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$300	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001F	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+abs_0_0005C64E:
+	dc.l scene_pixel_cells_for_mask_bank_30+$DF0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$37C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0004	; y_offset
+abs_0_0005C660:
+	dc.l scene_pixel_cells_for_mask_bank_30+$FA0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$3E8	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0015	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $000A	; y_offset
+abs_0_0005C672:
+	dc.l scene_pixel_cells_for_mask_bank_30+$10F0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$43C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0012	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $000E	; y_offset
+abs_0_0005C684:
+	dc.l scene_pixel_cells_for_mask_bank_30+$1210	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$484	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $000F	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0011	; y_offset
+abs_0_0005C696:
+	dc.l scene_pixel_cells_for_mask_bank_30+$1300	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$4C0	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $000D	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0013	; y_offset
+abs_0_0005C6A8:
+	dc.l scene_pixel_cells_for_mask_bank_30+$13D0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$4F4	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $000C	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0014	; y_offset
+player_animated_defeat_state:
+	dc.l entry_officer_animation_bank_2	; current_geometry_ptr
+	dc.l entry_officer_animation_bank_2	; previous_geometry_ptr
+	dc.l player_animated_defeat_node	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $42	; world_object_flags
+player_animated_defeat_node:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $0D	; frame_count
+	dc.b $28	; phase_step
+	dc.l player_animated_defeat_frame_refs	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+player_animated_defeat_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+player_animated_defeat_frame_refs:
+	dc.l abs_0_0005C6A8	; frame_ptr
+	dc.l entry_officer_animation_bank_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_3	; frame_ptr
+	dc.l shared_defeat_animation_extended_geometry_frames	; frame_ptr
+	dc.l abs_0_0005C62A	; frame_ptr
+	dc.l abs_0_0005C63C	; frame_ptr
+	dc.l abs_0_0005C64E	; frame_ptr
+	dc.l abs_0_0005C660	; frame_ptr
+	dc.l abs_0_0005C672	; frame_ptr
+	dc.l abs_0_0005C684	; frame_ptr
+	dc.l abs_0_0005C696	; frame_ptr
+	dc.l abs_0_0005C6A8	; frame_ptr
 player_position_descriptor:
 	dc.l player_position_state	; position_state_ptr
 	dc.w $0000	; world_x

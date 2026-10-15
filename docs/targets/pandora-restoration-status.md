@@ -2973,3 +2973,31 @@ C and independent vasm reproduce all 376,832 original bytes exactly, receipt
 The next connected gap is the anonymous shared defeat-state/animation family
 used by ID failure, checkpoint damage and combat; shared-tail relocation stays
 separate and unresolved.
+
+## Shared player failure states and final-pose data
+
+Twenty-six accepted actions restore six layouts covering 324 source bytes and
+116 field instances: two final-pose geometries, two render-state prefixes, nine
+additional shared animation frames, an 18-byte controller and 14 frame pointers.
+The prior four-frame owner is unchanged. Defeat and escape share the final-pose
+family; the escape store and all 14 frame fields resolve through the native
+model automatically. One unknown header byte remains raw. Direct original-CPU
+execution covers all 13 animation frames and the hold after 84 services.
+
+The general catalog now supports sparse layout role descriptions, preserving
+identity, extent, elements and references. Typed-pointer queries support bounded
+source intervals, filtering before native lookup with scoped counts and bound
+cursors. These remove metadata replacement and whole-family scan workarounds.
+106 focused framework checks pass; 16 original-CPU cases pass collectively.
+All 99 immutable tracked target files and prior history prefixes are preserved.
+
+The initialized static state's NULL animation node makes the original exchange
+helper clear bit 0 at absolute `$A` and WORD `$10`. So far this specific effect is
+verified through an isolated original-code continuation, not a normal play-session
+observation. Richard's follow-up asks whether genuine gameplay reaches it; that
+focused investigation continues separately without altering canonical bytes.
+
+C and vasm remain exact for all 376,832 original bytes, receipt
+`65a94e792c8a308779fe30cc222b6e57038a4d954a58d275758f886669668b4a`. Native field/reference and preservation evidence is in
+`docs/validation/pandora-security-defeat.json`. The local service is PID 4652,
+target ready and UI HTTP 200. PR5 remains unmerged; relocation is unchanged.

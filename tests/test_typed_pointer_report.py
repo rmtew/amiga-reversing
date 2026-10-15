@@ -82,3 +82,41 @@ def test_exception_filter_requires_boolean():
     with pytest.raises(ValueError, match="exceptions_only must be boolean"):
         typed_pointer_report(TargetMetadata(target_type="raw", entry_register_seeds=()),
                              lambda **_: None, exceptions_only=1)
+
+
+def test_source_interval_filters_before_native_lookup_and_scopes_counts():
+    fields = (_field(0), _field(4), _field(8), _field(12), replace(_field(4), hunk=1))
+    metadata = TargetMetadata(target_type="raw", entry_register_seeds=(), seeded_entities=fields)
+    calls = []
+    def lookup(*, section_index, offset):
+        calls.append((section_index, offset))
+        return {"start_offset": offset, "end_offset": offset+4, "pointer_resolution": {
+            "outcome": "symbolic" if offset == 4 else "unresolved", "reason": "native_fixture",
+        }}
+    filters = dict(section_index=0, source_offset=4, end_offset=12)
+    result = typed_pointer_report(metadata, lookup, **filters, limit=1)
+    assert calls == [(0, 4), (0, 8)]
+    assert result["total"] == result["population_total"] == 2
+    assert result["outcomes"] == {"symbolic": 1, "unresolved": 1}
+    assert result["items"][0]["source_offset"] == 4 and result["has_more"]
+    exceptions = typed_pointer_report(metadata, lookup, **filters, exceptions_only=True)
+    assert exceptions["population_total"] == 2 and exceptions["total"] == 1
+    assert exceptions["items"][0]["source_offset"] == 8
+    # Bounds select starts, not a truncated native field or a storage extent.
+    narrow = typed_pointer_report(metadata, lookup, section_index=0, source_offset=4, end_offset=5)
+    assert narrow["total"] == 1 and narrow["items"][0]["end_offset"] == 8
+    other = typed_pointer_report(metadata, lookup, section_index=1)
+    assert other["total"] == 1 and other["items"][0]["section_index"] == 1
+
+
+@pytest.mark.parametrize('filters', [
+    {'source_offset': 0}, {'end_offset': 8}, {'section_index': True},
+    {'section_index': -1}, {'section_index': 0, 'source_offset': True},
+    {'section_index': 0, 'source_offset': 8, 'end_offset': 4},
+    {'section_index': 0, 'source_offset': 8, 'end_offset': 8},
+])
+def test_invalid_source_selection_refuses_without_lookup(filters):
+    def lookup(**_):
+        pytest.fail('invalid selection must not read native rows')
+    with pytest.raises(ValueError):
+        typed_pointer_report(TargetMetadata(target_type='raw', entry_register_seeds=()), lookup, **filters)

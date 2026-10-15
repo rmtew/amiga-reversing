@@ -58,8 +58,14 @@ start a new build. Responses include `revision`,
 and `next_cursor`; send that cursor with the same query and revision to continue.
 The server rejects stale cursors rather than joining different snapshots.
 
-`typed_pointers` selects canonical bound fields with explicit pointer semantics,
-and supports only the optional `struct_name` filter. Its total and outcome/reason
+`typed_pointers` selects canonical bound fields with explicit pointer semantics.
+Use `struct_name` and/or `section_index`, with optional `source_offset` (inclusive)
+and `end_offset` (exclusive), to inspect a source family. Interval bounds require
+the section and select **field starts**; returned fields retain their complete
+native extent even if an upper bound cuts through one. Selection happens before
+native row lookup, so unselected families do not inflate work or counts. Cursors
+bind the complete filter set and refuse reuse with another interval.
+Its total and outcome/reason
 counts cover the entire selected population, while field details are paged.
 With `exceptions_only: true`, `total` counts unresolved/invalid fields and
 `population_total` retains the full denominator. The UI's **Pointer exceptions**
@@ -95,6 +101,12 @@ manual IDs are refused before append. This does not rename source symbols;
 use inspected `label.rename` actions for those identities as a separate part
 of the same swath. Seeded-only layouts must first have a supported manual
 layout identity rather than relying on implicit range/default reconstruction.
+
+`target.data_block.layout.describe` takes an active manual `layout_id` and a
+nonempty `role`. It uses the same sparse edit/history path as layout rename,
+preserving name, extent, unit, elements, type bindings and reference identities.
+Use it to refine a resource's discovered uses without replacing its owner or
+rewriting history. Unknown identities and stale revisions refuse the edit.
 
 A row `label.rename` explicitly supersedes its predecessor name at the same
 section/address within its address domain, including an older manual label

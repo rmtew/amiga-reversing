@@ -250,15 +250,18 @@ def _query(target_id, body, current):
     elif kind == "typed_pointers":
         from amiga_reversing.disasm.effective_metadata import effective_target_metadata
         from amiga_reversing.disasm.typed_pointer_report import typed_pointer_report
-        unsupported = set(filters) - {"kind", "struct_name", "exceptions_only"}
+        unsupported = set(filters) - {"kind", "struct_name", "exceptions_only",
+                                      "section_index", "source_offset", "end_offset"}
         if unsupported:
-            raise ValueError("typed_pointers supports only struct_name and exceptions_only filtering")
+            raise ValueError("typed_pointers supports only source interval, struct_name and exceptions_only filtering")
         metadata = effective_target_metadata(_paths(target_id).target_dir)
         if metadata is None:
             raise ValueError("Target metadata is required")
         page = typed_pointer_report(
             metadata, artifact.row_for_source_offset,
             offset=offset, limit=limit, struct_name=filters.get("struct_name"),
+            section_index=filters.get("section_index"), source_offset=filters.get("source_offset"),
+            end_offset=filters.get("end_offset"),
             exceptions_only=filters.get("exceptions_only", False),
         )
         page.pop("next_offset", None)

@@ -227,3 +227,15 @@ def test_static_defeat_state_null_node_retains_original_low_memory_writes(securi
     assert read(0xA, 1) == 0xA4 and read(0x10, 2) == 0
     # No null-node guard exists in the original exchange helper. Preserve this
     # behavior rather than claiming the static pose has a valid animation node.
+
+
+def test_escape_prefix_binds_second_final_pose_record_and_unbinds_animation(security):
+    cpu, memory, schemas, read, write, run, slots = security
+    state = schemas['world_position_state_record']
+    player_state = BASE+0x4C72A
+    write(player_state+state['state_node_ptr'], BASE+0x4C6D4)
+    run(0x9792, stop=0x97A2)
+    assert read(player_state+state['current_geometry_ptr']) == BASE+0x4C5A4
+    assert read(player_state+state['state_node_ptr']) == 0
+    # This is the original guarded path's MOVE/CLR continuation, not proof of
+    # ordinary escape reachability or a second defeat geometry's exclusive use.
