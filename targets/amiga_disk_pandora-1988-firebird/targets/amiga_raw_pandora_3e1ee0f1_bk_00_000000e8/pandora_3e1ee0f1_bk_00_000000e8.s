@@ -726,6 +726,7 @@ ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
 ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
+CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 DMAF_CLRALL	EQU	$7FFF
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
@@ -742,6 +743,7 @@ GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT	EQU	0
 GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
+ID_POSSESSION_VARIANT_COUNT	EQU	8
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
@@ -845,6 +847,19 @@ ITEM_ID_WRENCH	EQU	$2
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
+SECURITY_CHECKPOINT_HEALTH_DAMAGE	EQU	51
+SECURITY_CLEARANCE_VARIANT_COUNT	EQU	6
+SECURITY_DAMAGE_FLASH_SERVICE_STEPS	EQU	31
+SECURITY_DAMAGE_PERIOD_SERVICE_STEPS	EQU	50
+SECURITY_MACROCELL_PIXELS	EQU	48
+SECURITY_ZONE_0_END_SELECTOR	EQU	81
+SECURITY_ZONE_0_FIRST_SELECTOR	EQU	69
+SECURITY_ZONE_1_END_SELECTOR	EQU	169
+SECURITY_ZONE_1_FIRST_SELECTOR	EQU	156
+SECURITY_ZONE_2_END_SELECTOR	EQU	183
+SECURITY_ZONE_2_FIRST_SELECTOR	EQU	176
+SECURITY_ZONE_3_END_SELECTOR	EQU	314
+SECURITY_ZONE_3_FIRST_SELECTOR	EQU	307
 SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
 SELF_DESTRUCT_STATE_ARMED	EQU	$FF
 SELF_DESTRUCT_STATE_AWAIT_DISK	EQU	$0
@@ -5747,7 +5762,7 @@ handle_inventory_panel_selection:
 	subi.w #0,d2
 	cmp.w #$C0,d2
 	bne.b transfer_selected_item_to_carried_inventory
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
     ; With valid cursor rows and zero index high byte, nearby selection swaps only the record item ID, retaining value. ANDI.B masks low bits; invalid cursor states are not bounded here.
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	move.b $0(a0,d1.w),d2
@@ -6117,7 +6132,7 @@ abs_0_00012F18:
 	movea.l world_object_shared_prefix_interaction_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	bsr.w refresh_selected_item_name_display
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	bra.b abs_0_00012F16
 abs_0_00012F44:
 	btst.b #3,world_object_shared_prefix_world_object_flags(a5)
@@ -10639,21 +10654,23 @@ abs_0_000186B0:
 abs_0_000186C4:
 	movem.l (a7)+,d1/a0/a5
 	rts
+    ; Entry ID possession accepts IDs 48..55 in selected item, four carried or four pocket slots. It preserves D0-D7/A0-A5 and consumes the pending recheck bit; failure stages player defeat.
+    ; KNOWN: type A4=Target code-entry register seed:world_object_shared_prefix
 enforce_id_card_requirement:
 	movem.l d0-d7/a0-a5,-(a7)
-	moveq.l #48,d1
-	moveq.l #8,d2
-	move.b $0046(a4),d0
+	moveq.l #ITEM_ID_ID_COMMANDER,d1
+	moveq.l #ID_POSSESSION_VARIANT_COUNT,d2
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b abs_0_0001874E
+	bcs.b finish_entry_id_possession_check
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
 abs_0_000186E2:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b abs_0_0001874E
+	bcs.b finish_entry_id_possession_check
 	dbf.w d7,abs_0_000186E2
 	moveq.l #3,d7
 	lea.l app_pocket_item_ids(a6),a0
@@ -10661,28 +10678,29 @@ abs_0_000186F4:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b abs_0_0001874E
+	bcs.b finish_entry_id_possession_check
 	dbf.w d7,abs_0_000186F4
 	movea.l a4,a5
 	lea.l abs_0_0005C6BA.l,a0
-	move.l a0,$004E(a5)
+	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
 	lea.l entry_officer_animation_bank_2.l,a1
 	move.l a1,$0000(a0)
 	movea.l $0008(a0),a0
 	clr.w $0010(a0)
 	bclr.b #0,$000A(a0)
-	bset.b #1,$0048(a5)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
-	clr.w $003C(a5)
+	clr.w world_object_shared_prefix_hit_points(a5)
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
 	jsr abs_0_0005D31A.l
-abs_0_0001874E:
-	bclr.b #4,app_02A6(a6)
+finish_entry_id_possession_check:
+	bclr.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
+    ; Use (X+12)/48 and (Y+24)/48 to index 30 macrocell columns. Four selector intervals map to tiers 0..3; FF means unrestricted. Original map only: no coordinate or selector-table bounds guard.
 update_player_security_zone:
 	lea.l row_selector_ids(pc),a0
 	lea.l player_world_object.l,a4
@@ -10693,8 +10711,8 @@ update_player_security_zone:
 	move.w world_object_shared_prefix_world_y(a4),d1
 	addi.w #12,d0
 	addi.w #24,d1
-	divu.w #$30,d1
-	divu.w #$30,d0
+	divu.w #SECURITY_MACROCELL_PIXELS,d1
+	divu.w #SECURITY_MACROCELL_PIXELS,d0
 	add.w d1,d1
 	move.w d1,d2
 	lsl.w #4,d1
@@ -10703,53 +10721,54 @@ update_player_security_zone:
 	add.w d0,d0
 	move.w $0(a0,d0.w),d0
 	move.w d0,d1
-	cmp.w #$45,d0
-	bcs.b abs_0_000187D4
-	cmp.w #$13A,d0
-	bcc.b abs_0_000187D4
-	cmp.w #$51,d0
+	cmp.w #SECURITY_ZONE_0_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_3_END_SELECTOR,d0
+	bcc.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_0_END_SELECTOR,d0
 	bcc.b abs_0_000187AA
 	moveq.l #0,d0
-	bra.b abs_0_000187D6
+	bra.b store_player_security_zone_tier
 abs_0_000187AA:
-	cmp.w #$9C,d0
-	bcs.b abs_0_000187D4
-	cmp.w #$A9,d0
+	cmp.w #SECURITY_ZONE_1_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_1_END_SELECTOR,d0
 	bcc.b abs_0_000187BA
 	moveq.l #1,d0
-	bra.b abs_0_000187D6
+	bra.b store_player_security_zone_tier
 abs_0_000187BA:
-	cmp.w #$B0,d0
-	bcs.b abs_0_000187D4
-	cmp.w #$B7,d0
+	cmp.w #SECURITY_ZONE_2_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_2_END_SELECTOR,d0
 	bcc.b abs_0_000187CA
 	moveq.l #2,d0
-	bra.b abs_0_000187D6
+	bra.b store_player_security_zone_tier
 abs_0_000187CA:
-	cmp.w #$133,d0
-	bcs.b abs_0_000187D4
+	cmp.w #SECURITY_ZONE_3_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
 	moveq.l #3,d0
-	bra.b abs_0_000187D6
-abs_0_000187D4:
+	bra.b store_player_security_zone_tier
+select_unrestricted_security_zone:
 	moveq.l #-1,d0
-abs_0_000187D6:
+store_player_security_zone_tier:
 	move.b d0,app_player_security_zone_tier(a6)
 	rts
 selected_id_card_clearance_tiers:
 	dc.b $04	; lookup_table
 	dc.b $03,$01,$03,$00,$02
+    ; Only selected IDs 48..53 index the six clearance bytes. Admit strictly greater than zone tier, not equal. Carry set rejects; the wider eight-ID possession/display domains do not authorize.
 check_selected_id_card_security_clearance:
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
-	subi.b #48,d0
-	cmp.b #$6,d0
-	bcc.b abs_0_00018802
+	subi.b #ITEM_ID_ID_COMMANDER,d0
+	cmp.b #SECURITY_CLEARANCE_VARIANT_COUNT,d0
+	bcc.b reject_selected_id_clearance
 	move.b selected_id_card_clearance_tiers(pc,d0.w),d0
 	cmp.b app_player_security_zone_tier(a6),d0
-	bls.b abs_0_00018802
+	bls.b reject_selected_id_clearance
 	move.w d0,d0
 	bra.b abs_0_00018806
-abs_0_00018802:
+reject_selected_id_clearance:
 	move #$1,ccr
 abs_0_00018806:
 	rts
@@ -10757,60 +10776,63 @@ clear_security_checkpoint_state:
 	clr.b app_security_checkpoint_response_active(a6)
 	jsr clear_security_checkpoint_audio_state.l
 	rts
+    ; Inactive player freezes service. An existing flash bypasses combat/checkpoint tests. Missing checkpoint clears response; unrestricted zone or valid selected ID pauses it without clearing.
 process_security_checkpoint_response:
 	lea.l player_world_object.l,a4
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
-	bne.b abs_0_0001884E
+	bne.b return_from_security_checkpoint_service
 	tst.b app_security_damage_flash_ticks_remaining(a6)
-	bne.b abs_0_00018896
+	bne.b service_security_damage_palette_flash
 	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_0001884E
+	bne.b return_from_security_checkpoint_service
 	move.l app_nearest_object_ptr(a6),d0
-	beq.b abs_0_00018848
+	beq.b clear_security_response_if_checkpoint_missing
 	movea.l d0,a5
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 	btst.b #7,world_position_state_record_world_object_flags(a0)
 	bne.b abs_0_00018850
-abs_0_00018848:
+clear_security_response_if_checkpoint_missing:
 	tst.b app_security_checkpoint_response_active(a6)
 	bne.b clear_security_checkpoint_state
-abs_0_0001884E:
+return_from_security_checkpoint_service:
 	rts
 abs_0_00018850:
 	bsr.w update_player_security_zone
-	bmi.b abs_0_0001884E
+	bmi.b return_from_security_checkpoint_service
 	bsr.b check_selected_id_card_security_clearance
-	bcc.b abs_0_0001884E
+	bcc.b return_from_security_checkpoint_service
 	tst.b app_security_checkpoint_response_active(a6)
-	bne.b abs_0_00018864
+	bne.b tick_security_checkpoint_damage
 	bsr.w begin_security_checkpoint_response
-abs_0_00018864:
+    ; Only decrement-to-zero damages: subtract 51 from the HP low byte, clamp signed-negative result, then reload 50 service steps and 31 flash steps. Zero input counter wraps instead of expiring.
+tick_security_checkpoint_damage:
 	subq.w #1,app_security_damage_service_countdown(a6)
-	bne.b abs_0_00018896
+	bne.b service_security_damage_palette_flash
 	lea.l player_world_object.l,a5
 	move.b world_object_shared_prefix_hit_points+1(a5),d0
-	subi.b #51,d0
-	bpl.b abs_0_0001887C
+	subi.b #SECURITY_CHECKPOINT_HEALTH_DAMAGE,d0
+	bpl.b store_security_damage_health_byte
 	clr.b d0
-abs_0_0001887C:
+store_security_damage_health_byte:
 	move.b d0,world_object_shared_prefix_hit_points+1(a5)
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	move.b #$1F,app_security_damage_flash_ticks_remaining(a6)
-	move.w #$32,app_security_damage_service_countdown(a6)
-abs_0_00018896:
+	move.b #SECURITY_DAMAGE_FLASH_SERVICE_STEPS,app_security_damage_flash_ticks_remaining(a6)
+	move.w #SECURITY_DAMAGE_PERIOD_SERVICE_STEPS,app_security_damage_service_countdown(a6)
+    ; Flash advances without rechecking clearance. Its last step restores the saved palette color and tests the HP low byte for death; logical response and damage countdown are separate state.
+service_security_damage_palette_flash:
 	lea.l player_world_object.l,a5
 	move.w app_security_saved_palette_color(a6),d0
 	tst.b app_security_damage_flash_ticks_remaining(a6)
-	beq.b abs_0_00018918
+	beq.b store_security_flash_palette_color
 	subq.b #1,app_security_damage_flash_ticks_remaining(a6)
-	bne.b abs_0_0001890C
+	bne.b select_security_flash_palette_color
 	move.w app_security_saved_palette_color(a6),abs_0_00010772.l
 	tst.b world_object_shared_prefix_hit_points+1(a5)
-	bmi.b abs_0_000188BC
-	bne.b abs_0_0001884E
-abs_0_000188BC:
+	bmi.b finish_security_checkpoint_player_death
+	bne.b return_from_security_checkpoint_service
+finish_security_checkpoint_player_death:
 	lea.l player_world_object.l,a4
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
@@ -10826,28 +10848,31 @@ abs_0_000188BC:
 	bsr.w draw_object_health_status
 	jsr exchange_world_object_position_states.l
 	bset.b #1,$0048(a5)
-	bra.w abs_0_0001884E
-abs_0_0001890C:
-	moveq.l #31,d0
+	bra.w return_from_security_checkpoint_service
+select_security_flash_palette_color:
+	moveq.l #SECURITY_DAMAGE_FLASH_SERVICE_STEPS,d0
 	sub.b app_security_damage_flash_ticks_remaining(a6),d0
 	add.w d0,d0
-	move.w rgb12_color(pc,d0.w),d0
-abs_0_00018918:
+	move.w security_checkpoint_damage_flash_rgb12_colors(pc,d0.w),d0
+store_security_flash_palette_color:
 	move.w d0,abs_0_00010772.l
 	rts
-rgb12_color:
+security_checkpoint_damage_flash_rgb12_colors:
 	dc.w $0000,$0EEE,$0000,$0EEE,$0000,$0EEE,$0000,$0EEE	; security_checkpoint_alert_palette
 	dc.w $0000,$0666,$0AAA,$0EEE,$0000,$0666,$0AAA,$0EEE	; security_checkpoint_alert_palette
 	dc.w $0000,$0222,$0444,$0666,$0888,$0AAA,$0CCC,$0EEE	; security_checkpoint_alert_palette
 	dc.w $0EEE,$0CCC,$0AAA,$0888,$0666,$0444,$0222,$0000	; security_checkpoint_alert_palette
+    ; Save the current palette color, start paired feedback, increment response-active, and reselect the checkpoint actor first live inventory byte. The inventory slot itself is not consumed.
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 begin_security_checkpoint_response:
 	move.l a5,d0
 	beq.b abs_0_00018982
 	move.w abs_0_00010772.l,app_security_saved_palette_color(a6)
 	jsr start_paired_feedback_audio_sequences.l
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 	addq.b #1,app_security_checkpoint_response_active(a6)
-	movea.l $0014(a5),a0
-	move.b (a0),$0046(a5)
+	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
+	move.b (a0),world_object_shared_prefix_selected_item_id(a5)	; operand 1: inventory_item_slot_item_id at (a0)
 	bsr.w display_current_item_name
 abs_0_00018982:
 	rts
@@ -10883,7 +10908,7 @@ abs_0_000189DA:
 	bne.b abs_0_000189DA
 	move.b d0,-(a0)
 	clr.b world_object_shared_prefix_selected_item_id(a4)
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	lea.l salvage_item_eligibility_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
 	beq.b abs_0_000189FA
@@ -11574,7 +11599,7 @@ abs_0_0001962A:
 	or.w d0,d2
 	beq.w hold_player_movement_animation
 	lea.l player_world_object.l,a4
-	btst.b #4,app_02A6(a6)
+	btst.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	beq.b abs_0_00019644
 	bsr.w enforce_id_card_requirement
     ; Probe candidate frame bounds: X motion samples its chosen X edge at maxY-4; Y motion samples left+3, midpoint and right-4 at maxY-3 for negative Y, or maxY for positive Y.
@@ -12283,7 +12308,7 @@ abs_0_00019FC4:
 	clr.b app_player_movement_commit_inhibited(a6)
 	clr.b app_security_damage_flash_ticks_remaining(a6)
 	clr.b app_security_checkpoint_response_active(a6)
-	move.w #$32,app_security_damage_service_countdown(a6)
+	move.w #SECURITY_DAMAGE_PERIOD_SERVICE_STEPS,app_security_damage_service_countdown(a6)
 	clr.b app_020A(a6)
 	move.l #abs_0_0001A7E2,app_font_glyph_bitmap_table_ptr(a6)
 	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)
@@ -12377,7 +12402,7 @@ abs_0_0001A10A:
 abs_0_0001A12E:
 	move.l #player_position_state,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	movea.l (a7)+,a5
 	rts
 camera_scroll_profiles:

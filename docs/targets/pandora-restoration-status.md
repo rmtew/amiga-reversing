@@ -2947,3 +2947,29 @@ C and independent vasm reproduce all 376,832 original bytes exactly: receipt
 source SHA256 `a0d7e192b08cdbe494344ef37e238c93067ed10310693034cf890ba76814efc8`.
 The resident loopback service was restarted for the native backend change as
 PID 1822 at http://127.0.0.1:8123/. PR5 remains unmerged, without metadata edits.
+
+## Gameplay checkpoint policy and response state machine
+
+Sixty-four accepted actions connect the eight-ID possession recheck, six-ID
+selected clearance policy, 30x43 macrocell lookup and security damage/flash
+service. Fifteen constants propagate to 25 actual operand sites, including all
+known pending-recheck producers and initialization. Typed actor fields and
+branch names replace numeric accesses; the existing palette owner retains its
+shape. Original map cells distribute as 22/23/15/16 restricted cells at tiers
+0/1/2/3, with 1214 unrestricted cells. No arbitrary-coordinate bounds are added.
+
+A selected card must strictly exceed the zone tier. Valid clearance pauses the
+response without clearing it; an active flash bypasses checkpoint/combat gates.
+Damage changes only the HP low byte with a signed-result clamp. A normal flash
+reload of 31 uses palette entries 1..30, then restores the saved color. The first live
+inventory byte is reselected on response start, without consuming that slot.
+These are original behaviors, not new game rules. The focused original-CPU suite
+passes 15 checks, including 10 new cases covering all 1290 initialized cells and
+all 256 selected item IDs at five zone values. No normal UI/audio route or
+IRQ/ownership closure is inferred.
+
+C and independent vasm reproduce all 376,832 original bytes exactly, receipt
+`66b810b6db004709bbce4dd3c7a5a720c2efa497ae7955600842361340f7848e`. See `docs/validation/pandora-security-policy.json`.
+The next connected gap is the anonymous shared defeat-state/animation family
+used by ID failure, checkpoint damage and combat; shared-tail relocation stays
+separate and unresolved.
