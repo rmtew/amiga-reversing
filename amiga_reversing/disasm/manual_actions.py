@@ -176,6 +176,7 @@ class ManualActionKind(StrEnum):
     EDIT_MANUAL_DATA_BLOCK_LAYOUT = "edit_manual_data_block_layout"
     REMOVE_MANUAL_DATA_BLOCK_LAYOUT = "remove_manual_data_block_layout"
     SET_MANUAL_DATA_BLOCK_ELEMENT = "set_manual_data_block_element"
+    RENAME_MANUAL_DATA_BLOCK_ELEMENTS = "rename_manual_data_block_elements"
     REMOVE_MANUAL_DATA_BLOCK_ELEMENT = "remove_manual_data_block_element"
     REPRESENT_MANUAL_DATA_BLOCK_ELEMENT = "represent_manual_data_block_element"
     INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF = "interpret_manual_data_block_element_ref"
@@ -1290,6 +1291,28 @@ def _data_block_element_key(element: dict[str, object]) -> tuple[str, int]:
     return layout_id, offset
 
 
+def normalize_data_block_element_renames(value: object) -> list[dict[str, object]]:
+    """Bound explicit name-only edits to existing owner/offset identities."""
+    if not isinstance(value, list) or not 1 <= len(value) <= 1000:
+        raise ValueError("element renames require 1..1000 entries")
+    result: list[dict[str, object]] = []
+    identities: set[tuple[str, int]] = set()
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {"layout_id", "offset", "name"}:
+            raise ValueError("element rename requires layout_id, offset and name only")
+        if type(item["offset"]) is not int:
+            raise ValueError("element rename offset must be an integer")
+        layout_id, offset = _data_block_element_key(item)
+        name = item["name"]
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("element rename requires a nonempty name")
+        if (layout_id, offset) in identities:
+            raise ValueError("element rename contains duplicate owner/offset identity")
+        identities.add((layout_id, offset))
+        result.append({"layout_id": layout_id, "offset": offset, "name": name.strip()})
+    return result
+
+
 def _validated_data_block_element(element: dict[str, object], layouts: dict[str, dict[str, object]]) -> dict[str, object]:
     layout_id, offset = _data_block_element_key(element)
     width = _manual_seed_int(element, "width")
@@ -2072,6 +2095,13 @@ def _project_actions(
                     removed_ref = data_block_interpreted_refs.pop(ref_id)
                     removed_ref["cleanup_action_id"] = action.action_id
                     removed_data_block_interpreted_refs[ref_id] = removed_ref
+        elif action.kind is ManualActionKind.RENAME_MANUAL_DATA_BLOCK_ELEMENTS:
+            renames = normalize_data_block_element_renames(action.payload.get("data_block_element_renames"))
+            if any(_data_block_element_key(item) not in data_block_elements for item in renames):
+                raise ValueError("element rename references unknown active owner/offset")
+            for item in renames:
+                key = _data_block_element_key(item)
+                data_block_elements[key] = {**data_block_elements[key], "name": item["name"]}
         elif action.kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
             try:
                 element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
@@ -2391,6 +2421,7 @@ _POLICY_STORAGE_ACTION_KINDS = frozenset({
     ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
     ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT,
     ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT, ManualActionKind.REPRESENT_MANUAL_DATA_BLOCK_ELEMENT,
+    ManualActionKind.RENAME_MANUAL_DATA_BLOCK_ELEMENTS,
     ManualActionKind.INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF, ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF,
     ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW, ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW,
     ManualActionKind.CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW, ManualActionKind.REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW,

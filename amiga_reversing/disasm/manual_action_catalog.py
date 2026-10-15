@@ -133,6 +133,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_function_summary_remove_action(),
         _target_data_block_layout_action(),
         _target_data_block_layout_rename_action(),
+        _target_data_block_element_renames_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
         _target_data_block_element_ref_action(),
@@ -218,6 +219,11 @@ def target_catalog_manual_payload(
         }
     if action.get("action") == "remove_manual_data_block_layout":
         return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
+    if action.get("action") == "rename_manual_data_block_elements":
+        from amiga_reversing.disasm.manual_actions import normalize_data_block_element_renames
+        return "rename_manual_data_block_elements", {
+            "data_block_element_renames": normalize_data_block_element_renames(params.get("renames"))
+        }
     if action.get("action") == "set_manual_data_block_element":
         payload = (
             _data_block_element_type_binding_payload([], params)
@@ -5816,6 +5822,21 @@ def _target_data_block_layout_rename_action() -> dict[str, object]:
             "properties": {"layout_id": {"type": "string"}, "name": {"type": "string"}},
             "required": ["layout_id", "name"],
         },
+    )
+
+
+def _target_data_block_element_renames_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.elements.rename",
+        "Rename manual data-block elements",
+        "rename_manual_data_block_elements",
+        {"type": "object", "properties": {"renames": {
+            "type": "array", "minItems": 1, "maxItems": 1000,
+            "items": {"type": "object", "properties": {
+                "layout_id": {"type": "string"}, "offset": {"type": "integer", "minimum": 0},
+                "name": {"type": "string"}}, "required": ["layout_id", "offset", "name"],
+                "additionalProperties": False},
+        }}, "required": ["renames"]},
     )
 
 

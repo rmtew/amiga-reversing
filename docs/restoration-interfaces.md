@@ -95,6 +95,13 @@ manual IDs are refused before append. This does not rename source symbols;
 use inspected `label.rename` actions for those identities as a separate part
 of the same swath. Seeded-only layouts must first have a supported manual
 layout identity rather than relying on implicit range/default reconstruction.
+
+`target.data_block.elements.rename` accepts 1..1000 explicit `{layout_id,
+offset, name}` selectors. It changes only names of active manual elements,
+preserving their widths, types, binding IDs, binding provenance and reference
+owners. Duplicate identities, unknown elements and non-name edits refuse the
+whole append. Normal undo/redo applies to the single bulk action. This is useful
+for propagating a reviewed owner identity without recreating every typed element.
 RSSET aggregate extents support 1..32767 bytes through the catalog, metadata
 projection and native policy; absolute-storage slots retain their separate limit.
 The file is an object of operation parameters, without `operation`. For example:
