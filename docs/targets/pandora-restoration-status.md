@@ -562,7 +562,7 @@ presentation, not the semantic recovery status below.
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Later exit-delay reset/writer coverage and reachable inherited state; shared positive-X node word and held-frame/player-layout boundary |
 | Inventory / trading / NPC | Diabetic selected/carried insulin and needle responses, self-destruct advice latch and read-only range predicate; four named ASCII responses (178 bytes). Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
-| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Cursor pixels survive observed source-scratch reuse; header/pointer consumption is phase-dependent. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
+| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; renderer/cursor/shift state; all ten fixed 44-byte overlay descriptors; background capture/restore/clear register contracts and persistent 16-slot callback scan | Snapshot transfers preserve original rounding, inherited blitter state and restore byte-height wrap. Registration deduplicates only the non-NULL prefix; all ten initialized callbacks are NULL. Font bounds remain unchecked and straddle DMA can read a neighboring WORD. Header/pointer consumption is phase-dependent | Queue-processing gameplay reachability; 128-byte clear versus 64-byte queue and adjacent storage ownership; framebuffer producers, DMA completion, snapshot allocation/lifetime and arbitrary inputs |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; the first cold-title zero blit footprint covers the loaded-input tail. Three sampled tail windows become zero at title and two change again by UI entry; original purpose stays unproved | Original file-tail purpose, complete later writer/consumer coverage, DMA lookahead and scratch allocation bounds remain unknown |
 | Alternate execution layout | Two-byte volume relocation: both normal game WORD writers agree | Nine bounded local CPU calls and all 65,536 direct BYTE-store words agree; normal-gameplay BYTE execution remains unobserved | Whole-game changed code/data/DMA placement, temporal/late lineage and unrestricted contexts remain unproven |
@@ -629,6 +629,54 @@ match all 376,832 original bytes, receipt
 `48630088a3214fabb773fd0f442ff361846a27b95fbf64cb5c600ce38ec1d146`.
 This is bounded CPU validation; normal-gameplay BYTE volume coverage remains
 unobserved and clearance-route expansion remains paused.
+
+Shared overlay pipeline checkpoint (2026-10-15): eight additional 44-byte
+owners supply 136 typed fields, completing all ten initialized descriptors in one
+shared format. Holding, health, nearby-character/carrying/distance, hit feedback,
+body, backpack and pocket roles now name caller operands and field accesses.
+These names describe initial roles; the distance descriptor is also reused by
+the Earth-orbit countdown. All ten initialized callbacks remain NULL. The only
+non-NULL initialized snapshot addresses, `$7F0` and `$77D00`, remain unresolved
+runtime storage rather than asserted static assets. Shared bitmap and callback
+fields now explicitly distinguish runtime-only storage from mapped code.
+
+The named save/restore/clear primitives have complete general-register partitions
+with memory/escape effects still unknown. Capture and restore round width upward;
+clear rounds downward. Restore retains the original byte-sized height shift and
+clears saved/ready bits after starting the transfer. Capture/restore inherit the
+first-word mask and BLTCON1; clear resets BLTCON1. The callback scan visits exactly
+16 slots, skips holes and inactive descriptors, preserves registrations, and
+invokes a non-NULL callback with A5. Admission scans to the first NULL or matching
+pointer without that 16-slot bound. The modeled full-prefix case can reach the
+following slot; this does not establish its ownership or ordinary reachability.
+The existing 128-byte clear still exceeds the known 64-byte queue owner; the
+adjacent 64 bytes remain unclaimed. No ordinary invocation of the callback scan
+has yet been recovered.
+
+Sixteen bounded original-CPU cases cover every initialized geometry class,
+odd-width and byte-height-wrap edges, inherited control state, register
+preservation, callback scan/registration persistence and admission prefixes.
+The MMIO shadow checks programmed blitter packets and CPU control only: it does
+not emulate DMA, pixels, interrupts or completion timing. The combined focused
+suite passes **290 tests**. Native checks pass **807**, with the same two baseline
+failures (`facts_v2_render_asm_source_propagates_pointer_table_pointee_type` and
+`decompression_identify_reports_unknown_payload_without_failure`). The generic
+entry-comment capacity is now checked at 512 instead of 128; 129 distinct
+comments render and rebuild, and overflow leaves both histories unchanged.
+Rebuilding that backend alone preserved the baseline source byte-for-byte.
+
+Canonical review preserves all prior facts except the three explicitly refined
+primitive contracts and two shared pointer domains, every original byte,
+asset/include identities and history prefixes. The 49 appended actions include
+those contract refinements; they are not 49 independent new semantic facts.
+C and independent vasm reproduce all 376,832 bytes, receipt
+`e3bc3f211125c4698b4c6242faeb9dc1d72c21b9d229ec1da9d5892605550d13`.
+Reproduce the focused additions with
+`.venv/bin/python -m pytest -q tests/test_pandora_overlay_pipeline.py tests/test_comment_write_contract.py`.
+The next material gap is shared framebuffer row/address production and buffer
+swap/allocation lifetime, including the snapshot destinations and DMA consumers.
+The numeric `0x938E` operand, normal-gameplay BYTE writer gap and stopped
+clearance-route expansion above are unchanged.
 
 The native ownership snapshot immediately before the font/lifecycle batch has
 55,391 unclaimed bytes, including the 27,792-byte uncopied tail. These are

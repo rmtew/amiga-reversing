@@ -17,7 +17,7 @@ RETURN = 0x800
 
 
 @pytest.fixture
-def cpu_fixture():
+def cpu_fixture(request):
     if not (Path(__file__).resolve().parents[1] / 'src/build/libamiga_backend.so').exists():
         pytest.skip('native backend not built')
     paths = resolve_project_paths(TARGET)
@@ -25,7 +25,7 @@ def cpu_fixture():
     assert hashlib.sha256(data).hexdigest() == '70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f'
     schemas = {s.name: {f.name: f.offset for f in s.fields}
                for s in effective_target_metadata(paths.target_dir).custom_structs}
-    memory = bytearray(0x100000)
+    memory = bytearray(getattr(request, 'param', 0x100000))
     memory[BASE:BASE+349040] = data[:349040]
     buffer = (C.c_uint8 * len(memory)).from_buffer(memory)
     cpu = State()

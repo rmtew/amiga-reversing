@@ -808,6 +808,12 @@ TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
+UI_OVERLAY_BLIT_ROW_BYTES	EQU	40
+UI_OVERLAY_CALLBACK_READY_BIT	EQU	7
+UI_OVERLAY_SAVED_BACKGROUND_BIT	EQU	5
+UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
+UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
+UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
 WORLD_CMD_ADD_X	EQU	0
 WORLD_CMD_ADD_Y	EQU	1
 WORLD_CMD_CALL_FUNCTION	EQU	7
@@ -1181,10 +1187,10 @@ handle_self_destruct_countdown_expiry:
 	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
 	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
-	lea.l abs_0_0001332E.l,a5
+	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001335A.l,a5
-	bsr.w abs_0_0001639A
+	lea.l hit_feedback_overlay.l,a5
+	bsr.w restore_ui_overlay_background
 abs_0_00010724:
 	move.w #$1,app_earth_orbit_countdown_bcd(a6)
 	lea.l blank_sprite_data.l,a0
@@ -1225,19 +1231,19 @@ abs_0_00010794:
 	move.l (a7)+,d0
 	rts
 abs_0_0001079E:
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	bsr.b abs_0_000107C6
 	lea.l player_health_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_0001332E(pc),a5
+	lea.l nearby_distance_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_00013386(pc),a5
+	lea.l nearby_character_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_000133B2(pc),a5
+	lea.l nearby_carrying_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_000132AA(pc),a5
+	lea.l player_holding_overlay(pc),a5
 abs_0_000107C6:
 	bsr.w enqueue_ui_overlay_update
 	rts
@@ -5415,9 +5421,9 @@ toggle_inventory_panel:
 abs_0_00012754:
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
@@ -5444,12 +5450,12 @@ abs_0_000127AE:
 	bclr.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	beq.b abs_0_000127C4
-	lea.l abs_0_000133DE(pc),a5
-	bsr.w abs_0_0001639A
+	lea.l body_inventory_overlay(pc),a5
+	bsr.w restore_ui_overlay_background
 abs_0_000127C4:
-	lea.l abs_0_00013386(pc),a5
+	lea.l nearby_character_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_000133B2(pc),a5
+	lea.l nearby_carrying_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	bsr.w finalize_inventory_selection
 	cmp.b #ITEM_ID_BENT_COIN,d0
@@ -5467,11 +5473,11 @@ open_nearby_object_inventory_panel:
 	bsr.w build_carried_item_name_list
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
-	lea.l abs_0_000133DE(pc),a5
+	lea.l body_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	move.w #$C0,app_inventory_cursor_x(a6)
 	bsr.w abs_0_000194AC
@@ -5479,7 +5485,7 @@ open_nearby_object_inventory_panel:
 	rts
 build_carried_item_name_list:
 	movem.l d0/d7/a0-a2,-(a7)
-	lea.l abs_0_000133EA(pc),a1
+	lea.l body_inventory_overlay_line_0_ptr(pc),a1
 	lea.l app_inventory_display_item_ids(a6),a2
 	clr.w d0
 	move.b (a2)+,d0
@@ -5612,8 +5618,8 @@ refresh_selected_item_name_display:
 	moveq.l #ITEM_ID_NOTHING,d0
 abs_0_000129D6:
 	bsr.w resolve_item_name
-	lea.l abs_0_000132AA(pc),a5
-	move.l d0,$000C(a5)
+	lea.l player_holding_overlay(pc),a5
+	move.l d0,ui_overlay_descriptor_line_0_ptr(a5)
 	bsr.w enqueue_ui_overlay_update
 	movea.l (a7)+,a5
 abs_0_000129E8:
@@ -5623,8 +5629,8 @@ refresh_inventory_panel:
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
-	lea.l abs_0_00013416(pc),a2
-	lea.l abs_0_00013442(pc),a3
+	lea.l backpack_inventory_overlay_line_0_ptr(pc),a2
+	lea.l pocket_inventory_overlay_line_0_ptr(pc),a3
 	lea.l item_name_offset_table.l,a4
 	lea.l item_name_string_table.l,a5
 abs_0_00012A0C:
@@ -5670,12 +5676,12 @@ handle_inventory_panel_selection:
 	cmp.b world_object_shared_prefix_selected_item_id(a5),d2
 	bne.b abs_0_00012A9E
 	clr.b world_object_shared_prefix_selected_item_id(a5)
-	move.l #abs_0_0001A25D,abs_0_000133BE.l
+	move.l #abs_0_0001A25D,nearby_carrying_overlay_line_0_ptr.l
 abs_0_00012A9E:
 	move.l d0,-(a7)
 	bsr.w build_carried_item_name_list
 	move.l (a7)+,d0
-	lea.l abs_0_000133DE(pc),a5
+	lea.l body_inventory_overlay(pc),a5
 	move.l #$70000,$01E0(a6)
 	bsr.w abs_0_00016632
 abs_0_00012AB6:
@@ -5690,7 +5696,7 @@ transfer_selected_item_to_carried_inventory:
 	move.w d0,-(a7)
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
 handle_item_too_large_for_pockets:
@@ -5723,7 +5729,7 @@ transfer_selected_item_to_pocket_inventory:
 	move.w d0,-(a7)
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
 item_too_large_for_pockets_message:
@@ -5923,14 +5929,14 @@ update_earth_orbit_countdown_display:
 	move.b d0,app_earth_orbit_countdown_bcd(a6)
 	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_00012DF8
-	lea.l abs_0_0001332E(pc),a0
-	move.b $0005(a0),app_text_plane_mask(a6)
+	lea.l nearby_distance_overlay(pc),a0
+	move.b ui_overlay_descriptor_text_color(a0),app_text_plane_mask(a6)
 	tst.b app_earth_orbit_countdown_bcd_low_byte(a6)
 	bne.b abs_0_00012DAE
 	move.b app_frame_counter+3(a6),app_text_plane_mask(a6)
 abs_0_00012DAE:
-	move.b $0000(a0),d0
-	move.b $0001(a0),d1
+	move.b ui_overlay_descriptor_x.w(a0),d0
+	move.b ui_overlay_descriptor_y(a0),d1
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -6163,10 +6169,26 @@ abs_0_000131AA:
 	dcb.b $80,$00
 abs_0_0001322A:
 	dcb.b $80,$00
-abs_0_000132AA:
-	dc.b $02,$12,$13,$03,$06,$03,$00,$00,$00,$01,$AA,$ED
-abs_0_000132B6:
-	dcb.b $20,$00
+player_holding_overlay:
+	dc.b $02	; x
+player_holding_overlay_y:
+	dc.b $12	; y
+	dc.b $13	; width
+	dc.b $03	; height
+	dc.b $06	; title_x_offset
+	dc.b $03	; text_color
+	dc.b $00	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AAED	; title_ptr
+player_holding_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
 player_health_overlay:
 	dc.b $22	; x
 player_health_overlay_y:
@@ -6205,33 +6227,143 @@ opponent_health_overlay_y:
 	dc.l $00000000	; line_5_ptr
 	dc.l $00000000	; bitmap_ptr
 	dc.l $00000000	; update_callback
-abs_0_0001332E:
-	dc.b $22,$14,$06,$03,$01,$09,$00,$00,$00,$01,$AA,$BF,$00,$01,$AA,$E3
-	dcb.b $1C,$00
-abs_0_0001335A:
-	dc.b $04,$13,$07,$03,$02,$0D,$40,$00,$00,$01,$AA,$F5
-	dcb.b $19,$00
-	dc.b $07,$7D,$00,$00,$00,$00,$00
-abs_0_00013386:
-	dc.b $16,$11,$0C,$03,$04,$0C,$00,$01,$00,$01,$AA,$C4
-	dcb.b $20,$00
-abs_0_000133B2:
-	dc.b $16,$14,$0C,$03,$02,$0C,$00,$01,$00,$01,$AA,$C9
-abs_0_000133BE:
-	dcb.b $20,$00
-abs_0_000133DE:
-	dc.b $18,$11,$0C,$06,$04,$0A,$40,$0F,$00,$01,$AA,$E8
-abs_0_000133EA:
-	dcb.b $1A,$00
-	dc.b $07,$F0,$00,$00,$00,$00
-abs_0_0001340A:
-	dc.b $00,$11,$0C,$06,$02,$08,$00,$0F,$00,$01,$AA,$D2
-abs_0_00013416:
-	dcb.b $20,$00
-abs_0_00013436:
-	dc.b $0C,$11,$0C,$06,$02,$07,$00,$0F,$00,$01,$AA,$DB
-abs_0_00013442:
-	dcb.b $20,$00
+nearby_distance_overlay:
+	dc.b $22	; x
+nearby_distance_overlay_y:
+	dc.b $14	; y
+	dc.b $06	; width
+	dc.b $03	; height
+	dc.b $01	; title_x_offset
+	dc.b $09	; text_color
+	dc.b $00	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AABF	; title_ptr
+	dc.l abs_0_0001AAE3	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+hit_feedback_overlay:
+	dc.b $04	; x
+hit_feedback_overlay_y:
+	dc.b $13	; y
+	dc.b $07	; width
+	dc.b $03	; height
+	dc.b $02	; title_x_offset
+	dc.b $0D	; text_color
+	dc.b UI_OVERLAY_SAVE_BACKGROUND_MASK	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AAF5	; title_ptr
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00077D00	; bitmap_ptr
+	dc.l $00000000	; update_callback
+nearby_character_overlay:
+	dc.b $16	; x
+nearby_character_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $03	; height
+	dc.b $04	; title_x_offset
+	dc.b $0C	; text_color
+	dc.b $00	; state_flags
+	dc.b $01	; line_style_flags
+	dc.l abs_0_0001AAC4	; title_ptr
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+nearby_carrying_overlay:
+	dc.b $16	; x
+nearby_carrying_overlay_y:
+	dc.b $14	; y
+	dc.b $0C	; width
+	dc.b $03	; height
+	dc.b $02	; title_x_offset
+	dc.b $0C	; text_color
+	dc.b $00	; state_flags
+	dc.b $01	; line_style_flags
+	dc.l abs_0_0001AAC9	; title_ptr
+nearby_carrying_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+body_inventory_overlay:
+	dc.b $18	; x
+body_inventory_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $06	; height
+	dc.b $04	; title_x_offset
+	dc.b $0A	; text_color
+	dc.b UI_OVERLAY_SAVE_BACKGROUND_MASK	; state_flags
+	dc.b $0F	; line_style_flags
+	dc.l abs_0_0001AAE8	; title_ptr
+body_inventory_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $000007F0	; bitmap_ptr
+	dc.l $00000000	; update_callback
+backpack_inventory_overlay:
+	dc.b $00	; x
+backpack_inventory_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $06	; height
+	dc.b $02	; title_x_offset
+	dc.b $08	; text_color
+	dc.b $00	; state_flags
+	dc.b $0F	; line_style_flags
+	dc.l abs_0_0001AAD2	; title_ptr
+backpack_inventory_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+pocket_inventory_overlay:
+	dc.b $0C	; x
+pocket_inventory_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $06	; height
+	dc.b $02	; title_x_offset
+	dc.b $07	; text_color
+	dc.b $00	; state_flags
+	dc.b $0F	; line_style_flags
+	dc.l abs_0_0001AADB	; title_ptr
+pocket_inventory_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
 abs_0_00013462:
 	dcb.b $60,$00
 abs_0_000134C2:
@@ -7285,7 +7417,8 @@ abs_0_000162B0:
 abs_0_0001632C:
 	move.l a1,app_text_cursor_ptr(a6)
 	rts
-abs_0_00016332:
+    ; Snapshot overlay pixels into bitmap_ptr: packed rows=height*32, words=ceil(width/2), display stride 40. Wait for the blitter request; return does not wait for the new DMA.
+save_ui_overlay_background:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -7297,7 +7430,7 @@ abs_0_00016332:
 	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
-	moveq.l #40,d2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
 	sub.w d1,d2
 	sub.w d1,d2
 	move.l a5,-(a7)
@@ -7318,7 +7451,8 @@ abs_0_00016366:
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
 	rts
-abs_0_0001639A:
+    ; Restore saved pixels and clear saved-background/callback-ready bits. Height*32 uses a byte here, unlike capture; height>=8 wraps before packing.
+restore_ui_overlay_background:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -7330,7 +7464,7 @@ abs_0_0001639A:
 	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
-	moveq.l #40,d2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
 	sub.w d1,d2
 	sub.w d1,d2
 	move.l a5,-(a7)
@@ -7350,8 +7484,8 @@ abs_0_000163CE:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
-	bclr.b #5,ui_overlay_descriptor_state_flags(a5)
-	bclr.b #7,ui_overlay_descriptor_state_flags(a5)
+	bclr.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
+	bclr.b #UI_OVERLAY_CALLBACK_READY_BIT,ui_overlay_descriptor_state_flags(a5)
 	rts
 abs_0_0001640E:
 	movem.l d0/d7/a0-a2,-(a7)
@@ -7373,7 +7507,8 @@ abs_0_00016432:
 	dbf.w d7,abs_0_00016432
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
-abs_0_00016444:
+    ; Clear the rectangle using the zero sprite datum. Width uses floor(width/2); capture and restore use ceil. Original rounding and height arithmetic are retained.
+clear_ui_overlay_rectangle:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -7384,7 +7519,7 @@ abs_0_00016444:
 	lsl.w #6,d0
 	move.b ui_overlay_descriptor_width(a5),d1
 	lsr.w #1,d1
-	moveq.l #40,d2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
 	moveq.l #0,d3
 	sub.w d1,d3
 	sub.w d1,d3
@@ -7550,8 +7685,9 @@ abs_0_0001666E:
 	clr.l (a0)+
 	dbf.w d7,abs_0_0001666E
 	rts
+    ; Visit all 16 slots, including past NULL holes. Ready descriptors call a nonnull target with A5=descriptor; registrations persist. A0/D7 are saved around callbacks.
 process_ui_overlay_update_queue:
-	moveq.l #15,d7
+	moveq.l #UI_OVERLAY_UPDATE_LAST_SLOT,d7
 	lea.l ui_overlay_update_queue(pc),a0
 abs_0_0001667C:
 	move.l (a0)+,d0
@@ -7568,6 +7704,7 @@ abs_0_0001667C:
 abs_0_0001669A:
 	dbf.w d7,abs_0_0001667C
 	rts
+    ; Reuse a match in the nonnull prefix or fill its first gap, optionally snapshot, clear/draw and mark callback-ready. Admission has no bound for the 16-slot update pass.
 enqueue_ui_overlay_update:
 	lea.l ui_overlay_update_queue(pc),a0
 abs_0_000166A4:
@@ -7579,15 +7716,15 @@ abs_0_000166A4:
 abs_0_000166AE:
 	move.l a5,-(a0)
 abs_0_000166B0:
-	btst.b #6,ui_overlay_descriptor_state_flags(a5)
+	btst.b #UI_OVERLAY_SAVE_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
 	beq.b abs_0_000166C2
-	bset.b #5,ui_overlay_descriptor_state_flags(a5)
-	bsr.w abs_0_00016332
+	bset.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
+	bsr.w save_ui_overlay_background
 abs_0_000166C2:
-	bsr.w abs_0_00016444
+	bsr.w clear_ui_overlay_rectangle
 	bsr.w draw_ui_overlay_border_and_title
 	bsr.w abs_0_000165E0
-	bset.b #7,$0006(a5)
+	bset.b #UI_OVERLAY_CALLBACK_READY_BIT,$0006(a5)
 	rts
     ; Wait/ack BLIT completion; seed 40 zero bytes at $70000, then start A-to-D copy $70000->$70028, 656 rows x 40 words, zero modulo. BLTCON1 is inherited; full allocation bounds remain open.
 start_seeded_zero_copy_blit:
@@ -8984,7 +9121,7 @@ abs_0_0001779E:
 	bset.b #1,app_ui_flags(a6)
 	lea.l opponent_health_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001335A.l,a5
+	lea.l hit_feedback_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_player_attack_charge(a6)
 	clr.w app_opponent_attack_charge(a6)
@@ -9184,10 +9321,10 @@ abs_0_00017A4E:
 	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
 	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
-	lea.l abs_0_0001332E.l,a5
+	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001335A.l,a5
-	bsr.w abs_0_0001639A
+	lea.l hit_feedback_overlay.l,a5
+	bsr.w restore_ui_overlay_background
 	rts
 show_player_combat_hit_feedback:
 	movem.l d0/a0-a5,-(a7)
@@ -9258,8 +9395,8 @@ display_current_item_name:
 	moveq.l #0,d0
 	move.b $0046(a5),d0
 	bsr.w resolve_item_name
-	lea.l abs_0_000133B2.l,a5
-	move.l a0,$000C(a5)
+	lea.l nearby_carrying_overlay.l,a5
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
 	moveq.l #0,d0
 	bsr.w abs_0_00016632
 	movea.l (a7)+,a5
@@ -9731,8 +9868,8 @@ incorrect_receptacle_item_message:
 	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
 advance_and_draw_player_attack_charge:
-	lea.l abs_0_0001335A.l,a5
-	tst.w $0006(a5)
+	lea.l hit_feedback_overlay.l,a5
+	tst.w ui_overlay_descriptor_state_flags(a5)
 	bpl.w abs_0_000182D2
 	subq.b #1,app_player_attack_charge_countdown(a6)
 	bne.w abs_0_000181B2
@@ -9748,8 +9885,8 @@ abs_0_000181A2:
 	bcc.b abs_0_000181B2
 	clr.w app_player_attack_charge(a6)
 abs_0_000181B2:
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -9984,14 +10121,14 @@ abs_0_0001840E:
 clear_nearby_object_context_prompt:
 	bset.b #3,app_02A6(a6)
 	bne.b abs_0_00018492
-	lea.l abs_0_00013386.l,a5
+	lea.l nearby_character_overlay.l,a5
 	moveq.l #0,d0
 	bsr.w resolve_item_name
-	move.l a0,$000C(a5)
-	lea.l abs_0_000133B2.l,a5
-	move.l a0,$000C(a5)
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
+	lea.l nearby_carrying_overlay.l,a5
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
 	bsr.b render_context_prompt
-	lea.l abs_0_00013386.l,a5
+	lea.l nearby_character_overlay.l,a5
 	bsr.b render_context_prompt
 	clr.l app_nearest_object_ptr(a6)
 	clr.b app_nearby_object_prompt_countdown(a6)
@@ -10002,17 +10139,17 @@ show_nearby_object_context_prompt:
 	move.b #$3C,app_nearby_object_prompt_countdown(a6)
 	moveq.l #-11,d0
 	and.b d0,app_02A6(a6)
-	lea.l abs_0_00013386.l,a0
+	lea.l nearby_character_overlay.l,a0
 	movea.l app_nearest_object_ptr(a6),a5
-	move.l world_object_shared_prefix_item_name_ptr.w(a5),$000C(a0)
-	lea.l abs_0_000133B2.l,a1
+	move.l world_object_shared_prefix_item_name_ptr.w(a5),ui_overlay_descriptor_line_0_ptr(a0)
+	lea.l nearby_carrying_overlay.l,a1
 	moveq.l #0,d0
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	bsr.w resolve_item_name
-	move.l a0,$000C(a1)
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a1)
 	movea.l a1,a5
 	bsr.b render_context_prompt
-	lea.l abs_0_00013386.l,a5
+	lea.l nearby_character_overlay.l,a5
 	bsr.b render_context_prompt
 abs_0_0001848E:
 	subq.b #1,app_nearby_object_prompt_countdown(a6)
@@ -11816,15 +11953,15 @@ abs_0_00019FC4:
 	move.l d0,app_carried_item_ids(a6)
 	move.l d0,app_pocket_item_ids(a6)
 	clr.b player_world_object_selected_item_id.l
-	lea.l abs_0_00013416.l,a0
-	lea.l abs_0_00013442.l,a1
+	lea.l backpack_inventory_overlay_line_0_ptr.l,a0
+	lea.l pocket_inventory_overlay_line_0_ptr.l,a1
 	moveq.l #3,d7
 abs_0_0001A056:
 	move.l d0,(a0)+
 	move.l d0,(a1)+
 	dbf.w d7,abs_0_0001A056
-	lea.l abs_0_000132B6.l,a0
-	move.l d0,(a0)
+	lea.l player_holding_overlay_line_0_ptr.l,a0
+	move.l d0,(a0)	; operand 2: ui_overlay_descriptor_line_0_ptr at (a0)
 	move.w #$EEE,app_0230(a6)
 	clr.b app_ui_flags(a6)
 	clr.b app_status_flags(a6)
@@ -12386,14 +12523,23 @@ eight_row_glyph_records:
 	dc.b $00,$7E,$0E,$1C,$38,$7E,$7E,$00
 abs_0_0001AABA:
 	dc.b "LIFE",$00
+abs_0_0001AABF:
 	dc.b "DIST",$00
+abs_0_0001AAC4:
 	dc.b "CHAR",$00
+abs_0_0001AAC9:
 	dc.b "CARRYING",$00
+abs_0_0001AAD2:
 	dc.b "BACKPACK",$00
+abs_0_0001AADB:
 	dc.b "POCKETS",$00
+abs_0_0001AAE3:
 	dc.b "9999",$00
+abs_0_0001AAE8:
 	dc.b "BODY",$00
+abs_0_0001AAED:
 	dc.b "HOLDING",$00
+abs_0_0001AAF5:
 	dc.b $48,$49,$54,$00
 abs_0_0001AAF9:
 	dc.b $45,$4E,$4D,$59,$00

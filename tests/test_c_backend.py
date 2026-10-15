@@ -1545,7 +1545,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("structured_data_items", ctypes.POINTER(_M68kAnalysisStructuredDataItem)),
         ("named_labels_inline", _M68kAnalysisNamedLabel * 4),
         ("named_labels", ctypes.POINTER(_M68kAnalysisNamedLabel)),
-        ("entry_comments", _M68kAnalysisEntryComment * 128),
+        ("entry_comments", _M68kAnalysisEntryComment * 512),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),

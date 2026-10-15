@@ -62,7 +62,13 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
-#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
+/* Source restoration retains annotations across many subsystems. Keep this
+ * checked policy mirror large enough for them; the exported capacity API is
+ * authoritative for clients, and overflow still refuses the entire append. */
+#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 512U
+#if M68K_ANALYSIS_ENTRY_COMMENT_LIMIT > UINT16_MAX
+#error Entry comment limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 512U
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
