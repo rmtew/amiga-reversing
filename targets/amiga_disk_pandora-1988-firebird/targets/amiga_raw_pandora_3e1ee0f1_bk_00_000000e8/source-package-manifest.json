@@ -14,7 +14,7 @@
         "size": 5102,
         "source_offset": 322270,
         "source_row_count": 319,
-        "source_row_id": 38370,
+        "source_row_id": 38395,
         "source_section_index": 0
       },
       {
@@ -29,7 +29,7 @@
         "size": 4634,
         "source_offset": 330532,
         "source_row_count": 290,
-        "source_row_id": 38896,
+        "source_row_id": 38921,
         "source_section_index": 0
       },
       {
@@ -44,7 +44,7 @@
         "size": 5500,
         "source_offset": 335172,
         "source_row_count": 347,
-        "source_row_id": 39191,
+        "source_row_id": 39216,
         "source_section_index": 0
       },
       {
@@ -59,7 +59,7 @@
         "size": 5300,
         "source_offset": 340678,
         "source_row_count": 332,
-        "source_row_id": 39543,
+        "source_row_id": 39568,
         "source_section_index": 0
       },
       {
@@ -74,7 +74,7 @@
         "size": 2000,
         "source_offset": 345984,
         "source_row_count": 125,
-        "source_row_id": 39880,
+        "source_row_id": 39905,
         "source_section_index": 0
       },
       {
@@ -764,7 +764,7 @@
         "size": 640,
         "source_offset": 348234,
         "source_row_count": 56,
-        "source_row_id": 40050,
+        "source_row_id": 40075,
         "source_section_index": 0
       },
       {
@@ -1103,11 +1103,11 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "7ae6d083566977a5c57acc5ff9da07ac56b8b2c74d8f3ffad2785efb44c33930",
-        "size": 1306646
+        "sha256": "e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b",
+        "size": 1307998
       }
     ],
-    "metadata_hash": "0041d4b874c024d76d28965ca71a7bd7d1c0c4cdd27878c164755d20b7d10194",
+    "metadata_hash": "55ae9d8a8ab3597d9b11eff39e4e94feca8aa2cf3e6321bd734ec486ff5ec59b",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 256
@@ -1117,5 +1117,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "1fbe78f6ab7856f84f8a484b14ac2560e1c2050abcd4322b1a6bcd83e97299a4"
+  "sha256": "d4218f5fbac0690bd9002b3f578c873d7e0f4f03f83b2f6f607b357a95e45a81"
 }

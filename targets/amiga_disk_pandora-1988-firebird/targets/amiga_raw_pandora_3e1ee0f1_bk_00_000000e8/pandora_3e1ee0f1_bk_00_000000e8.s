@@ -687,6 +687,13 @@ rgb12_accumulator_green_q4 RS.W 1
 rgb12_accumulator_blue_q4 RS.W 1
 rgb12_accumulator_SIZEOF EQU __RS
 
+; STRUCT audio_note_offset_command
+    RSRESET
+audio_note_offset_command_command_opcode RS.B 1
+audio_note_offset_command_note_offset_byte RS.B 1
+audio_note_offset_command_advance_opcode RS.B 1
+audio_note_offset_command_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -11864,7 +11871,7 @@ abs_0_00019D60:
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
 	st.b app_self_destruct_state(a6)
-	bra.w abs_0_00019DAA
+	bra.w validate_self_destruct_qualifying_card_count
 abs_0_00019D76:
 	cmp.b #ITEM_ID_SDI_DISK,d0
 	bne.b abs_0_00019DA8
@@ -11881,7 +11888,7 @@ abs_0_00019DA4:
 abs_0_00019DA8:
 	rts
     ; Validate three submissions by qualifying count==3 (blue/scarlet/ochre), without order or duplicate checks. Provisional FF becomes rejected (2) on failure.
-abs_0_00019DAA:
+validate_self_destruct_qualifying_card_count:
 	move.b app_self_destruct_qualifying_card_count(a6),d0
 	cmp.b #$3,d0
 	bne.b abs_0_00019DBA
@@ -26888,7 +26895,7 @@ abs_0_0005DBFE:
 	bra.w abs_0_0005DA1A
 abs_0_0005DC20:
 	add.b d0,d0
-	lea.l opcode_80_through_8A_relative_words(pc),a2
+	lea.l audio_control_opcode_handler_offsets(pc),a2
 	movea.w $0(a2,d0.w),a2
 	jmp $0(a3,a2.w)
 advance_audio_sequence_program:
@@ -26951,9 +26958,18 @@ set_audio_duration_multiplier_from_signed_byte:
 	ext.w d0
 	move.w d0,$0520(a3)
 	bra.w abs_0_0005DA1A
-opcode_80_through_8A_relative_words:
-	dc.w $0450,$0476,$048C,$04B8,$04BC,$04C0,$04C8,$04DC	; data
-	dc.w $04E4,$04EC,$04FE	; data
+audio_control_opcode_handler_offsets:
+	dc.w advance_audio_sequence_program-initialize_audio_player	; data
+	dc.w enable_audio_pitch_delta-initialize_audio_player
+	dc.w start_audio_silence_sample-initialize_audio_player
+	dc.w enable_audio_channel_dma_and_reload_duration-initialize_audio_player
+	dc.w reset_audio_channels_command-initialize_audio_player
+	dc.w set_audio_global_note_offset-initialize_audio_player
+	dc.w enable_audio_pitch_modulation-initialize_audio_player
+	dc.w disable_audio_pitch_modulation-initialize_audio_player
+	dc.w set_audio_channel_note_offset-initialize_audio_player
+	dc.w set_audio_channel_program_configuration-initialize_audio_player
+	dc.w set_audio_duration_multiplier_from_signed_byte-initialize_audio_player
 audio_duration_multiplier:
 	dc.w $0000	; lookup_table
 audio_master_volume:
@@ -27327,22 +27343,38 @@ tokens_and_operands_with_advance_token_17:
 tokens_and_operands_with_advance_token_18:
 	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18	; data
 	dc.b $A0,$80
-tokens_and_operands_with_advance_token_19:
-	dc.b $85,$FF,$80	; data
-tokens_and_operands_with_advance_token_20:
-	dc.b $85,$00,$80	; data
-tokens_and_operands_with_advance_token_21:
-	dc.b $85,$01,$80	; data
-tokens_and_operands_with_advance_token_22:
-	dc.b $85,$02,$80	; data
-tokens_and_operands_with_advance_token_23:
-	dc.b $85,$03,$80	; data
-tokens_and_operands_with_advance_token_24:
-	dc.b $88,$FF,$80	; data
-tokens_and_operands_with_advance_token_25:
-	dc.b $88,$FE,$80	; data
-tokens_and_operands_with_advance_token_26:
-	dc.b $88,$FD,$80	; data
+audio_global_transpose_minus1:
+	dc.b $85	; command_opcode
+	dc.b $FF	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_zero:
+	dc.b $85	; command_opcode
+	dc.b $00	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_plus1:
+	dc.b $85	; command_opcode
+	dc.b $01	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_plus2:
+	dc.b $85	; command_opcode
+	dc.b $02	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_plus3:
+	dc.b $85	; command_opcode
+	dc.b $03	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_channel_transpose_minus1:
+	dc.b $88	; command_opcode
+	dc.b $FF	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_channel_transpose_minus2:
+	dc.b $88	; command_opcode
+	dc.b $FE	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_channel_transpose_minus3:
+	dc.b $88	; command_opcode
+	dc.b $FD	; note_offset_byte
+	dc.b $80	; advance_opcode
 	dc.b $BF,$C0,$FF
 	dcb.b $10,$82
 	dc.b $80
@@ -27393,7 +27425,7 @@ start_audio_sequence:
 	move.w d0,$0EB0(a3)
 	moveq.l #0,d7
 	lea.l audio_channel_dma_configurations(pc),a4
-	move.b voice_selector_byte(pc),d7
+	move.b audio_effect_channel_index(pc),d7
 	mulu.w #$C,d7
 	st.b $B(a4,d7.w)
 	ext.w d0
@@ -27401,7 +27433,7 @@ start_audio_sequence:
 	lea.l audio_channel_playback_states(pc),a1
 	moveq.l #1,d2
 	lea.l _custom+aud0+ac_len.l,a0
-	move.b voice_selector_byte(pc),d1
+	move.b audio_effect_channel_index(pc),d1
 abs_0_0005E430:
 	subq.b #1,d1
 	bmi.b abs_0_0005E440
@@ -27434,19 +27466,19 @@ abs_0_0005E484:
 	dbf.w d0,abs_0_0005E484
 	st.b audio_channel_playback_state_active(a2)
 	rts
-abs_0_0005E48E:
+advance_audio_shift_state:
 	lea.l initialize_audio_player(pc),a3
-	move.b abs_0_0005E4AA(pc),d0
+	move.b audio_shift_state_words(pc),d0
 	andi.b #72,d0
 	addi.b #56,d0
 	lsl.b #2,d0
 	roxl $0CCE(a3)
 	roxl $0CCC(a3)
 	rts
-abs_0_0005E4AA:
-	dc.b $6F,$80,$1B,$34	; lookup_table
+audio_shift_state_words:
+	dc.w $6F80,$1B34	; mutable_audio_shift_state
 dispatch_audio_channel_updates:
-	bsr.b abs_0_0005E48E
+	bsr.b advance_audio_shift_state
 	lea.l audio_channel_playback_states(pc),a1
 	tst.b audio_channel_playback_state_active(a1)
 	beq.b abs_0_0005E4C8
@@ -27639,9 +27671,9 @@ audio_channel_playback_states_period_delta_3:
 	dc.l $00000000	; volume_sequence_cursor
 audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
-voice_selector_byte:
+audio_effect_channel_index:
 	dc.b $00	; lookup_table
-parameter_selector_byte:
+audio_effect_configuration_index:
 	dc.b $00	; data
 audio_channel_dma_configurations:
 	dc.l $00000000	; sample_ptr

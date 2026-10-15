@@ -64,6 +64,25 @@
       "original_size": 376832,
       "C_and_vasm_exact": true,
       "accepted_revision": "bdb2419de723c59bf3fc55397f1bc47d839c66e5c7a1adad6a74aebe7527ce58"
+    },
+    "audio": {
+      "proposals": [
+        "P30",
+        "P31",
+        "P32",
+        "P33",
+        "P27",
+        "P29",
+        "P28",
+        "P34"
+      ],
+      "actions": 38,
+      "tests_passed": 8,
+      "receipt": "8468e10602be39da44d6c5e5e8f1d5aadbad892da268de81768da64dd7082f40",
+      "source_sha256": "e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b",
+      "original_size": 376832,
+      "C_and_vasm_exact": true,
+      "accepted_revision": "b295d7fbd8cd67a87e325fe62dbc3d5df7ddb670247392ba58c9db2b1b882548"
     }
   },
   "proposals": {
@@ -223,28 +242,67 @@
       "unapplied_components": "1280-byte clear ends at hit snapshot; no new exclusive bitmap allocation/lifetime region."
     },
     "P27": {
-      "status": "pending"
+      "status": "accepted_formalization",
+      "changes": [
+        "validate_self_destruct_qualifying_card_count"
+      ],
+      "change_kind": "already_documented_behavior_not_new_discovery",
+      "unapplied_components": "No card order, duplicate rejection or new validation behavior inferred."
     },
     "P28": {
-      "status": "pending"
+      "status": "already_known",
+      "reason": "Shared longword and positive-X overlay behavior already documented. Preserve both identities; no destructive field rename or unsupported overlapping layout added.",
+      "unapplied_components": "A separate non-destructive extended-node/alias view still needs supported representation and lifetime evidence; no new semantic discovery."
     },
     "P29": {
-      "status": "pending"
+      "status": "rejected",
+      "reason": "Literal-selector wrapper restyling adds no independently established sound/behavior meaning. Existing wrapper bodies already expose exact packed selectors; avoid mechanical hex-name churn."
     },
     "P30": {
-      "status": "pending"
+      "status": "accepted",
+      "changes": [
+        "audio_control_opcode_handler_offsets"
+      ],
+      "change_kind": "new_relative_handler_references",
+      "unapplied_components": "No total decoder bound beyond11 entries; no unused opcode equates added.",
+      "mechanism": "Eleven explicit per-member signed reference actions; array typing alone does not propagate reference intent."
     },
     "P31": {
-      "status": "pending"
+      "status": "accepted",
+      "changes": [
+        "audio_global_transpose_minus1",
+        "audio_global_transpose_zero",
+        "audio_global_transpose_plus1",
+        "audio_global_transpose_plus2",
+        "audio_global_transpose_plus3",
+        "audio_channel_transpose_minus1",
+        "audio_channel_transpose_minus2",
+        "audio_channel_transpose_minus3"
+      ],
+      "change_kind": "new_shared_command_schema_and_validated_signed_offset_roles",
+      "unapplied_components": "Raw opcode bytes remain exact; no broad program decoder or arbitrary replacement-stream bounds."
     },
     "P32": {
-      "status": "pending"
+      "status": "accepted",
+      "changes": [
+        "audio_effect_channel_index",
+        "audio_effect_configuration_index"
+      ],
+      "change_kind": "corrected_packed_selector_field_roles",
+      "unapplied_components": "Configuration byte is signed by EXT.W; channel/configuration domains are intended original selections, not runtime guards."
     },
     "P33": {
-      "status": "pending"
+      "status": "accepted_refined",
+      "changes": [
+        "advance_audio_shift_state",
+        "audio_shift_state_words"
+      ],
+      "change_kind": "mutable_WORD_shift_state",
+      "rejected_component": "Noise/PRNG/polynomial purpose unproved: no independent downstream consumer established."
     },
     "P34": {
-      "status": "pending"
+      "status": "already_known",
+      "reason": "Canonical source already has six explicit signed envelope-base expressions, named targets,29 selector-domain coverage and a bounds warning. Repeating that evidence or renaming only the table is not new restoration."
     },
     "A01": {
       "status": "accepted",
@@ -348,7 +406,33 @@
   },
   "counts": {
     "accepted_supported_name": 20,
-    "pending": 8,
-    "accepted": 14
-  }
+    "accepted_formalization": 1,
+    "already_known": 2,
+    "rejected": 1,
+    "accepted": 17,
+    "accepted_refined": 1
+  },
+  "remaining_queue_outcome": {
+    "reviewed": 42,
+    "accepted_wholly_or_partly": 39,
+    "rejected": 1,
+    "already_known_no_change": 2,
+    "pending": 0
+  },
+  "overall_proposal_outcome": {
+    "reviewed": 48,
+    "accepted_wholly_or_partly": 45,
+    "rejected": 1,
+    "already_known_no_change": 2
+  },
+  "total_queue_actions": 78,
+  "formalization_note": "Accepted names often formalize previously visible/documented behavior. P27 is explicitly formalization, not discovery; P28/P34 remain known with no change. Counts measure proposal disposition, not new discoveries.",
+  "remaining_genuine_gaps": [
+    "Non-destructive typed positive-X node/field overlay and its alias lifetimes remain unmaterialized; preserve both identities.",
+    "Full blitter register contracts and asynchronous DMA/callback/framebuffer/snapshot phase ownership remain unproved.",
+    "Original empty-deferred, terminal first-zero scan, and audio out-of-domain selector paths have no general local bound; known storage extents are not safety proofs.",
+    "Noise/PRNG purpose for the two shift words lacks independent consumer evidence.",
+    "Native simulator MOVEQ negative-immediate sign extension disagrees with existing PDF-backed KB; no full affected-routine CPU proof is claimed."
+  ],
+  "recommended_next_restoration_step": "Resume reachable render/snapshot capture-consume-reuse caller sequencing using the preserved render-order work; resolve general KB-driven MOVEQ sign extension before relying on affected CPU traces. Keep unknown memory effects, DMA completion and the source938E numeric access conservative."
 }

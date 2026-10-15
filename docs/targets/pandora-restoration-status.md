@@ -1967,8 +1967,8 @@ Clearance gameplay remains paused; normal game writer coverage stays two of thre
 ## Whole-file reader review: palette, depth-sort scratch and ranged ammunition
 
 Reviewed **P08–P11 and P20/P21: six accepted, zero rejected, zero deferred**.
-The other 42 reader proposals remain unapplied. P27/P28 mostly restate already
-documented behavior and are not counted as new discoveries. The reader's report
+The subsequent disposition of the other 42 reader proposals is recorded below.
+P27/P28 mostly restate already documented behavior and are not counted as new discoveries. The reader's report
 is a hypothesis source; current native locators, complete named xrefs, original
 accesses and exact bytes were checked before the normal catalog actions.
 
@@ -2028,3 +2028,22 @@ behavior is counted separately from newly recovered durable roles/types.
 |---|---|---|---|
 | Frame/render | P01–P07, P12–P18, A01–A04 | 15 function symbols, four exact-width ticker/tile-grid app roles, two entry-only A5 overlay-descriptor types; no full blitter register/DMA contract or unused flag equates | 31 overlay/framebuffer tests; all 376,832 bytes exact with C/vasm; receipt `eb91ecd72b044faceceae766874e033a98b4aeca03e55bf73110d461987e5dbb` |
 | Security/status | P19, P22–P26, A05–A14 | Six function symbols, three damage/clearance table names, ten app roles; deposit reset spans 64 bytes but insertion can reach adjacent +$31A; status duration counts space runs plus one nonspace presence, not characters/ordinary words | 12 new status/deposit tests; earlier fire-edge evidence reused; C/vasm exact; receipt `74f57913663fe635ffaaa39f5cdf90acaa2ebc9755f0ada9c6e6ad5b5dd6d28a` |
+| Audio/closeout | P27–P34 | Eleven explicit signed handler references; eight shared three-byte offset commands; corrected packed-selector bytes; two mutable shift WORDs. P27 is naming formalization; P28/P34 already known; P29 selector-only restyling rejected; P33 noise/PRNG purpose not asserted | Eight original command/add-byte cases; all11 rendered references checked; C/vasm exact; receipt `8468e10602be39da44d6c5e5e8f1d5aadbad892da268de81768da64dd7082f40` |
+
+All **42 remaining entries are dispositioned: 39 accepted wholly/partly, one
+rejected, two already known with no change; no pending entries**. Together with
+the initial six, this is 45 accepted proposals, not 45 new discoveries. The
+three checkpoints append 78 accepted actions. Applicable runs pass 31 frame/UI,
+12 status/deposit and eight audio cases; prior palette/ammunition evidence is
+reused. Original binary/assets/SDK and unrelated facts/history remain intact.
+Final rendered-source SHA256:
+`e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b`.
+
+Genuine gaps remain the overlapping node view, unchecked array/selector paths,
+full blitter/register/callback contracts, and asynchronous snapshot/framebuffer
+lifetimes; shift-state noise purpose is unproved. Recommended next restoration
+step: resume reachable capture/consume/reuse caller sequencing with the preserved
+render-order investigation, resolving general KB-driven MOVEQ sign extension
+before relying on affected CPU traces. Source `$938E` remains numeric across
+unknown memory effects. No framework implementation or original instruction
+bytes changed, and publication stays on draft PR 5 without merging.
