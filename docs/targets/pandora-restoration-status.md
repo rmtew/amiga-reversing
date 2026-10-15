@@ -1963,3 +1963,57 @@ Changed C/header/table files pass style; no independent machine68k oracle is
 available. Original/source, verified rifle snapshot and prior relocation evidence
 remain intact. The service is restarted/reloaded for the new native backend.
 Clearance gameplay remains paused; normal game writer coverage stays two of three.
+
+## Whole-file reader review: palette, depth-sort scratch and ranged ammunition
+
+Reviewed **P08–P11 and P20/P21: six accepted, zero rejected, zero deferred**.
+The other 42 reader proposals remain unapplied. P27/P28 mostly restate already
+documented behavior and are not counted as new discoveries. The reader's report
+is a hypothesis source; current native locators, complete named xrefs, original
+accesses and exact bytes were checked before the normal catalog actions.
+
+Coordinates below are section-0 source offsets; the copied prefix's runtime
+view adds `$10000`. No universal mapping or relocation safety is inferred.
+
+| Source span | Accepted fact | Producers/consumers and limits |
+|---|---|---|
+| `$31AA..$322A` | `world_depth_sort_copy_scratch`, 32 descriptor pointers | `$849A` copies all 32 pointers before partitioning; a later call refreshes the scratch. This is mutable storage, not an immutable object inventory. |
+| `$322A..$32AA` | `world_depth_sort_deferred_scratch`, capacity 32 descriptor pointers | `$84E0` appends the middle partition; `$84EA` consumes it backwards before sorting by descriptor WORD +6. The zero-middle case has no guard before predecrement, so the declared storage extent does not prove all-input bounds. |
+| `$3462..$34C2` | `gameplay_palette_fractional_components`, 16 `rgb12_accumulator` records | Each six-byte record has red/green/blue WORD accumulators with four fractional bits. `$2614` unpacks nibbles shifted by four; add/subtract advance six bytes per color. |
+| `$34C2..$34E2` | `gameplay_current_rgb12_palette`, 16 WORDs | Reset/fade helpers write it; Copper, cursor binding, health and inventory consume or modify it. It is not exclusively a world-only palette. |
+| `$34E2..$3502` | `gameplay_palette_increment_rgb12`, 16 WORDs | `$7DD6` and `$A020` pass it as A1 with D7=15. Clear/add leave the input array unchanged in bounded tests; arbitrary later writers remain outside that claim. |
+| `$924C..$9250` | `initial_ranged_weapon_ammunition` and `ranged_weapon_ammunition_remaining`, two bytes each | `$9F28` copies initial `5,1`; `$92AA/$92B6` selects and consumes one byte for item 18/19. These are consumable counts, not elapsed-tick cooldowns. The two obsolete cooldown layout owners were replaced through catalog remove/create/set actions. |
+| `$9250` | `service_selected_ranged_weapon_fire` | Replaces the misleading `update_active_world_object_positions` source name. Fire-edge/held-fire, UI/object guards, zero ammunition, ray collision and damage uses establish the service role. No arbitrary ray-termination guarantee is added. |
+
+The palette's prepared A1 input at `$77FE0..$78000` still aliases the final
+32 bytes of hit-snapshot storage. These typed source regions do not establish
+exclusive contents, phase separation, interrupt atomicity, allocation or DMA
+lifetimes. The normal source now expresses the storage and references; no
+new runtime memory-region/relocation ownership claims were added.
+
+Validation: **44 focused tests pass**, including 12 new bounded original-CPU
+cases for palette clear/add/unpack extents and values, scratch refresh and
+partition behavior, empty-middle entry state, ammunition initialization,
+new/held/released fire, empty counts and unsupported selected items. The sort
+checks explicitly split at `$84BC/$84BE`: the existing simulator produces D5
+`$000000FF` for original bytes `7AFF` (`MOVEQ #-1,D5`), whereas the PDF-backed
+MOVEQ description in `knowledge/m68k_instructions.json` (page 238) specifies
+sign extension to `$FFFFFFFF`. The suffix therefore takes that architectural
+D5 value as an explicit modeled entry condition. This is not complete
+whole-routine execution or a fix to the simulator. The general follow-up is to
+consume the existing signed-immediate KB semantics in execution; do not patch
+the target or special-case Pandora. No independent CPU oracle was installed.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_framebuffer_lifetime.py tests/test_pandora_world_model.py
+```
+
+The 23 catalog actions are accepted in the Decision Journal using exact receipt
+`5763b6810d0d7f55808d6e50dbd85d6d633ca498711ea5a18fa670278ceea8ff`.
+C and independent vasm reproduce all 376,832 bytes with original SHA256
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`;
+rendered-source SHA256 is
+`60597d4fd583a59cc247fdd6cd5c4dc7ab5979894c566795aa357fe00c626af7`.
+Original assets/SDK files, previous unrelated facts and history prefixes remain
+unchanged. The canonical `.s` was regenerated, never hand-edited. No framework
+implementation changed, no broad migration was attempted, and PR 5 remains draft.

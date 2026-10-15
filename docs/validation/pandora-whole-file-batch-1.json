@@ -1,0 +1,48 @@
+{
+  "reviewed_proposals": [
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P20",
+    "P21"
+  ],
+  "accepted": 6,
+  "rejected": 0,
+  "deferred": 0,
+  "other_proposals_unapplied": 42,
+  "already_documented_excluded": [
+    "P27",
+    "P28"
+  ],
+  "actions": 23,
+  "changed_keys": [
+    "absolute_code_labels",
+    "custom_structs",
+    "data_block_layouts",
+    "manual_representations",
+    "seeded_code_labels",
+    "seeded_entities"
+  ],
+  "original_assets_and_includes_unchanged": true,
+  "history_prefixes_intact": true,
+  "source_sha256": "60597d4fd583a59cc247fdd6cd5c4dc7ab5979894c566795aa357fe00c626af7",
+  "receipt": "5763b6810d0d7f55808d6e50dbd85d6d633ca498711ea5a18fa670278ceea8ff",
+  "simulator_limitation": "MOVEQ #$FF zero-extends; sort suffix checks require explicit architectural D5 input; no full-routine CPU claim",
+  "baseline_commit": "6a7283f4dd76d9153191450e4e8c320d00b8ace2",
+  "verification": {
+    "framework_exact": true,
+    "vasm": "oracle.full_file_match",
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "60597d4fd583a59cc247fdd6cd5c4dc7ab5979894c566795aa357fe00c626af7",
+    "receipt_id": "5763b6810d0d7f55808d6e50dbd85d6d633ca498711ea5a18fa670278ceea8ff"
+  },
+  "accepted_revision": "7f277a03aa80d8ccab965f3c00159ccd005a51509b20f5abb62bb8d4e16a6400",
+  "tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_framebuffer_lifetime.py tests/test_pandora_world_model.py",
+    "passed": 44
+  },
+  "source_changes": "Catalog actions and regenerated source only; original binary/assets/SDK unchanged.",
+  "unapplied_reader_proposals_preserved": true
+}

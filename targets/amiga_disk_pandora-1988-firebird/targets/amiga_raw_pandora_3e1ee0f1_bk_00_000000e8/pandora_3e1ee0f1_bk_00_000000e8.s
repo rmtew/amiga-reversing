@@ -681,6 +681,13 @@ cmd_node_sequence_state_node_ptr RS.L 1
 cmd_node_sequence_frame_sequence_ptr RS.L 1
 cmd_node_sequence_SIZEOF EQU __RS
 
+; STRUCT rgb12_accumulator
+    RSRESET
+rgb12_accumulator_red_q4 RS.W 1
+rgb12_accumulator_green_q4 RS.W 1
+rgb12_accumulator_blue_q4 RS.W 1
+rgb12_accumulator_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -1118,7 +1125,7 @@ wait_for_completed_frame:
 	bsr.w abs_0_0001253C
 	bsr.w update_nearby_object_detection
 	jsr process_security_checkpoint_response.l
-	jsr update_active_world_object_positions.l
+	jsr service_selected_ranged_weapon_fire.l
 	bsr.w update_world_object_interactions
 	jsr process_terminal_item_deposit.l
 	bsr.w service_keyboard_pause_gate
@@ -1463,7 +1470,7 @@ gameplay_split_display_copper_list:
 	dc.w color,$0000
 	dc.w $FFFF,$FFFE
 abs_0_00010A72:
-	lea.l abs_0_000134C2.l,a0
+	lea.l gameplay_current_rgb12_palette.l,a0
 	move.l (a0)+,color(a5)	; palette colors 0-1
 	move.l (a0)+,color+$04(a5)	; palette colors 2-3
 	move.l (a0)+,color+$08(a5)	; palette colors 4-5
@@ -5523,7 +5530,7 @@ reset_inventory_panel_state:
 	move.b #$1,app_inventory_selection_latched(a6)
 update_inventory_panel_player_palette:
 	move.l a0,-(a7)
-	lea.l abs_0_000134C2(pc),a0
+	lea.l gameplay_current_rgb12_palette(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_000128BC
@@ -6173,10 +6180,72 @@ abs_0_0001318E:
 	dc.l world_position_descriptors_position_state_ptr_20	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_21	; pointer_table
 	dc.b $00,$00,$00,$00
-abs_0_000131AA:
-	dcb.b $80,$00
-abs_0_0001322A:
-	dcb.b $80,$00
+world_depth_sort_copy_scratch:
+	dc.l $00000000	; mutable_descriptor_pointer_scratch
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+world_depth_sort_deferred_scratch:
+	dc.l $00000000	; mutable_descriptor_pointer_scratch
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
 player_holding_overlay:
 	dc.b $02	; x
 player_holding_overlay_y:
@@ -6372,13 +6441,61 @@ pocket_inventory_overlay_line_0_ptr:
 	dc.l $00000000	; line_5_ptr
 	dc.l $00000000	; bitmap_ptr
 	dc.l $00000000	; update_callback
-abs_0_00013462:
-	dcb.b $60,$00
-abs_0_000134C2:
-	dcb.b $20,$00
-abs_0_000134E2:
-	dc.b $00,$00,$06,$66,$0A,$AA,$0E,$EE,$06,$00,$0A,$00,$0E,$00,$0F,$33
-	dc.b $00,$EE,$0F,$D0,$0E,$E0,$0E,$C0,$02,$F2,$00,$A2,$0E,$EE,$0E,$EE
+gameplay_palette_fractional_components:
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+gameplay_current_rgb12_palette:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+gameplay_palette_increment_rgb12:
+	dc.w $0000,$0666,$0AAA,$0EEE,$0600,$0A00,$0E00,$0F33	; rgb12_palette_increments
+	dc.w $00EE,$0FD0,$0EE0,$0EC0,$02F2,$00A2,$0EEE,$0EEE	; rgb12_palette_increments
 row_selector_ids:
 	dc.w $006A,$0073,$0073,$0073,$0073,$0073,$0073,$0080	; world_tilemap_row_selector_array
 	dc.w $0081,$0082,$0083,$0084,$0084,$0085,$0080,$0081	; world_tilemap_row_selector_array
@@ -8708,13 +8825,13 @@ abs_0_00017182:
 	dc.b $00
     ; A1 selects 16 WORD palette inputs in the last 32 bytes of hit snapshot storage. Palette helpers read them; caller reachability and phase exclusivity remain unproved.
 prepare_work_buffer_arguments:
-	lea.l abs_0_000134C2(pc),a0
-	lea.l abs_0_00013462(pc),a2
+	lea.l gameplay_current_rgb12_palette(pc),a0
+	lea.l gameplay_palette_fractional_components(pc),a2
 	lea.l WORK_BUFFER_PALETTE_INPUT_BASE.l,a1
 	moveq.l #15,d7
 	rts
 return_work_buffer_argument:
-	move.l #abs_0_000134C2,-(a7)
+	move.l #gameplay_current_rgb12_palette,-(a7)
 	addq.l #6,a7
 	rts
 render_work_buffer_overlay:
@@ -9597,9 +9714,9 @@ service_gameplay_palette_transition:
 	lea.l player_world_object.l,a5
 	bsr.w draw_object_health_status
 abs_0_00017DD6:
-	lea.l abs_0_000134C2.l,a0
-	lea.l abs_0_000134E2.l,a1
-	lea.l abs_0_00013462.l,a2
+	lea.l gameplay_current_rgb12_palette.l,a0
+	lea.l gameplay_palette_increment_rgb12.l,a1
+	lea.l gameplay_palette_fractional_components.l,a2
 	moveq.l #15,d7
 	bsr.w add_rgb12_palette_components
 abs_0_00017DEE:
@@ -10175,25 +10292,25 @@ partition_world_object_update_ptrs:
 	lea.l abs_0_0001318E(pc),a1
 	moveq.l #31,d7
 	move.l d7,d6
-	lea.l abs_0_000131AA(pc),a3
+	lea.l world_depth_sort_copy_scratch(pc),a3
 	movea.l a3,a4
 abs_0_000184AE:
 	move.l (a2)+,(a3)+
 	dbf.w d7,abs_0_000184AE
-	lea.l abs_0_0001322A(pc),a5
+	lea.l world_depth_sort_deferred_scratch(pc),a5
 	move.l d6,d7
 	addq.w #1,d7
 	moveq.l #-1,d5
 abs_0_000184BE:
 	movea.l (a4)+,a3
 	movea.l $0000(a3),a2
-	btst.b #6,$0019(a2)
+	btst.b #6,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_000184D2
 	move.l a3,(a0)+
 	subq.w #1,d7
 	bra.b abs_0_000184E4
 abs_0_000184D2:
-	btst.b #7,$0019(a2)
+	btst.b #7,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_000184E0
 	move.l a3,-(a1)
 	subq.w #1,d7
@@ -10271,7 +10388,7 @@ abs_0_00018572:
 	move.b health_grade_index_table(pc,d0.w),d5
 	move.w d5,d4
 	add.w d4,d4
-	lea.l abs_0_000134C2.l,a0
+	lea.l gameplay_current_rgb12_palette.l,a0
 	move.w health_grade_rgb12_table(pc,d4.w),$0(a0,d6.w)
 	lsr.w #2,d5
 	move.w d5,d3
@@ -10920,11 +11037,11 @@ swap_tilemap_context:
 	move.w d1,-(a0)
 	move.w d0,-(a0)
 	rts
-initial_cooldown_ticks:
-	dc.b $05,$01	; selected_item_effect_cooldown_initial_values
-cooldown_ticks:
-	dc.b $00,$00	; selected_item_effect_cooldown_array
-update_active_world_object_positions:
+initial_ranged_weapon_ammunition:
+	dc.b $05,$01	; ranged_weapon_initial_ammunition
+ranged_weapon_ammunition_remaining:
+	dc.b $00,$00	; ranged_weapon_ammunition
+service_selected_ranged_weapon_fire:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.w abs_0_000193D8
 	tst.w app_0320(a6)
@@ -10948,7 +11065,7 @@ abs_0_0001926E:
 	cmp.b #$2,d0
 	bcc.w abs_0_000193D8
 	move.w d0,app_0322(a6)
-	lea.l cooldown_ticks(pc),a0
+	lea.l ranged_weapon_ammunition_remaining(pc),a0
 	tst.b $0(a0,d0.w)
 	beq.w abs_0_000193D8
 	subq.b #1,$0(a0,d0.w)
@@ -11128,7 +11245,7 @@ bind_cursor_sprites_and_palette:
 	move.l a0,app_cursor_sprite0_dma_ptr(a6)
 	lea.l $0044(a0),a0
 	move.l a0,app_cursor_sprite1_dma_ptr(a6)
-	lea.l abs_0_000134C2.l,a0
+	lea.l gameplay_current_rgb12_palette.l,a0
 	lea.l _custom+color+$20.l,a1
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
@@ -11892,7 +12009,7 @@ abs_0_00019F06:
 	rts
 initialize_world_state:
 	move.l a5,-(a7)
-	move.w initial_cooldown_ticks.l,cooldown_ticks.l
+	move.w initial_ranged_weapon_ammunition.l,ranged_weapon_ammunition_remaining.l
 	move.w #$BB8,app_self_destruct_service_ticks_remaining(a6)
 	move.l #$24C28,$64C0.w
 	move.w #$2710,d0
@@ -11956,9 +12073,9 @@ abs_0_00019FC4:
 	move.w d0,world_object_shared_prefix_world_y(a4)
 	move.w #$F1,world_object_shared_prefix_world_x(a4)
 	bsr.w clear_overlay_pointer_storage
-	lea.l abs_0_000134C2.l,a0
-	lea.l abs_0_000134E2.l,a1
-	lea.l abs_0_00013462.l,a2
+	lea.l gameplay_current_rgb12_palette.l,a0
+	lea.l gameplay_palette_increment_rgb12.l,a1
+	lea.l gameplay_palette_fractional_components.l,a2
 	moveq.l #15,d7
 	bsr.w clear_rgb12_palette_components
 	moveq.l #0,d0
