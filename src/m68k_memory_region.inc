@@ -17,7 +17,22 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
   if(mapped==1) {
     if(json_builder_appendf(b,"{\"section_index\":%u,\"source_offset\":%u}",source_section,source_offset)) return -1;
   } else if(json_builder_append(b,"null")) return -1;
-  if(json_builder_append(b,",\"references\":[")) return -1;
+  if(json_builder_append(b,",\"overlapping_regions\":[")) return -1;
+  size_t overlaps=0;
+  for(i=0;i<a->policy.memory_region_count;i++) {
+    const M68kMemoryRegionIR *other=&a->policy.memory_regions[i];
+    if(other==r || !mr_overlaps(r->runtime_address,r->size,other->runtime_address,other->size)) continue;
+    uint32_t start=r->runtime_address>other->runtime_address ? r->runtime_address : other->runtime_address;
+    uint32_t end=r->runtime_address+r->size<other->runtime_address+other->size ?
+      r->runtime_address+r->size : other->runtime_address+other->size;
+    open++;
+    if((overlaps++ && json_builder_append(b,",")) || json_builder_append(b,"{\"region_id\":") ||
+        json_builder_append_json_string(b,other->region_id) ||
+        json_builder_appendf(b,",\"runtime_address\":%u,\"size\":%u,\"region_offset\":%u,"
+          "\"other_region_offset\":%u,\"obligation\":\"coordinated_source_placement\"}",
+          start,end-start,start-r->runtime_address,start-other->runtime_address)) return -1;
+  }
+  if(json_builder_append(b,"],\"references\":[")) return -1;
   for(i=0;i<p->instruction_count;i++) {
     const M68kRenderPlannedInstruction *ins=&p->instructions[i];
     const M68kSimFormMetadata *m=m68k_sim_metadata_for_instruction(&ins->instruction);
@@ -125,6 +140,9 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
   for(i=0;i<a->policy.memory_region_count;i++) {
     const M68kMemoryRegionIR *other=&a->policy.memory_regions[i];
     if(destination < other->runtime_address+other->size && other->runtime_address < destination+reservation_size) refusal="persistent_region_overlap";
+    /* The single-region builder cannot preserve a shared source identity by
+     * moving just one owner, even when all its direct references are closed. */
+    if(other!=r && mr_overlaps(r->runtime_address,r->size,other->runtime_address,other->size)) open++;
   }
   for(i=0;i<a->policy.target_equate_count;i++) {
     const M68kAnalysisTargetEquate *owner=&a->policy.target_equates[i];
@@ -207,6 +225,12 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
     for(i=0;i<r->size;i++) if(json_builder_appendf(&b,"%02x",a->object.sections[source_section].data[source_offset+i])) goto fail;
     if(json_builder_append(&b,"\"}")) goto fail;
   } else if(json_builder_append(&b,"null")) goto fail;
+  if(!refusal) for(i=0;i<a->policy.memory_region_count;i++) {
+    const M68kMemoryRegionIR *other=&a->policy.memory_regions[i];
+    if(other!=r && mr_overlaps(r->runtime_address,r->size,other->runtime_address,other->size)) {
+      refusal="overlapping_source_regions";break;
+    }
+  }
   if(open && !refusal) refusal="unresolved_reference_or_access_closure";
   if(!rewrites && !refusal) refusal="no_supported_references";
   if(json_builder_appendf(&b,",\"rewrite_count\":%zu,\"unresolved_obligations\":%zu,\"status\":\"%s\",\"refusal\":",rewrites,open,refusal ? "refused" : "ready") ||

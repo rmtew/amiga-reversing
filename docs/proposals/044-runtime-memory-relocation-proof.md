@@ -124,6 +124,24 @@ family (two three-WORD records), with additional PC-indexed access, caller/index
 and pointer-lifetime obligations. The camera candidate is not a ready plan, and slicing
 the keyboard buffer does not remove its indexed writers or inherited aliases.
 
+## Shared storage identities
+
+Region definitions can now retain intersecting semantic identities. The previous
+parser/action rejection could not express an input buffer that is also part of
+another subsystem's snapshot. Native facts enumerate each exact intersection,
+its offsets in both identities, and an open `coordinated_source_placement`
+obligation. Both directions remain open even if one identity has no direct
+instruction reference. Adjacent intervals retain their previous independence.
+
+The single-region planner refuses `overlapping_source_regions`; this is no
+joint-move implementation and no assertion of phase exclusion. Pandora records
+the 32-byte work-buffer palette input at `$77FE0` inside the 768-byte hit snapshot
+at `$77D00`. Preserving the alias requires a common placement/offset relationship,
+or a separately established semantic split with all producers and consumers
+retargeted. CPU-only use of one identity does not remove the other identity's
+chip-DMA requirement. Persistent identifies fixed storage, not immutable bytes,
+exclusive allocation or an established caller lifetime.
+
 ## Address and frame provenance
 
 The next step needs tagged values: unknown, absolute runtime address with native

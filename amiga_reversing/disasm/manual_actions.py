@@ -2245,9 +2245,8 @@ def _project_actions(
             region = validate_region(dict(_action_object(action, "memory_region")))
             if region["region_id"] in memory_regions:
                 raise ValueError("memory_region identity already exists; remove before replacement")
-            if any(region["runtime_address"] < old["runtime_address"] + old["size"] and
-                   old["runtime_address"] < region["runtime_address"] + region["size"] for old in memory_regions.values()):
-                raise ValueError("memory_region overlaps another persistent region")
+            # Shared storage identities remain distinct. Native facts expose
+            # their overlap and refuse independent single-region relocation.
             if len(memory_regions) >= 16:
                 raise ValueError("memory_region native capacity exceeded")
             memory_regions[region["region_id"]] = region

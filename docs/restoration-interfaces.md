@@ -260,6 +260,11 @@ address, size/alignment, CPU placement, persistent lifetime and DMA requirement
 through ordinary revision-checked interpretation/history. `query` with
 `kind: "memory_regions"` projects native instruction references and bounded
 pointer-path obligations. Definitions do not assert relocation safety.
+Distinct region identities may overlap: the native projection reports their
+exact shared interval and offsets in `overlapping_regions`, with a
+`coordinated_source_placement` obligation. A single-region plan refuses with
+`overlapping_source_regions`; no joint-move or phase-based split is implemented.
+Persistent storage does not mean immutable contents or exclusive ownership.
 `source_domain: "mapped_source"` additionally requires a unique contiguous native
 materialization for the initial bytes. Plans retain PC-displacement encoding when
 the new signed displacement fits; indexed and PC-relative pointer producers remain

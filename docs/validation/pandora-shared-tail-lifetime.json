@@ -1,0 +1,505 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33",
+  "scope": "Known native identities, original-code CPU fixtures and prior bounded Copperline observations; no all-path ownership, new runtime route or relocated image.",
+  "canonical_actions": [
+    "manual-569249ac43284fe196d6890325c9d414",
+    "manual-6d431e0e1d4a4897bd4da47c59d1b75e"
+  ],
+  "native_regions": {
+    "hit": {
+      "alignment": 2,
+      "dma_access": "chip",
+      "lifetime": "persistent",
+      "memory_class": "cpu_ram",
+      "name": "ui_snapshot_hit",
+      "overlapping_regions": [
+        {
+          "obligation": "coordinated_source_placement",
+          "other_region_offset": 0,
+          "region_id": "pandora_work_buffer_palette_input",
+          "region_offset": 736,
+          "runtime_address": 491488,
+          "size": 32
+        }
+      ],
+      "proof_status": "obligations_open",
+      "reference_count": 3,
+      "references": [
+        {
+          "access_kind": 3,
+          "address": 490752,
+          "encoding": "immediate",
+          "obligation": "ambiguous_scalar_or_pointer",
+          "operand_index": 0,
+          "region_offset": 0,
+          "section_index": 0,
+          "source_offset": 1996,
+          "width": 4
+        },
+        {
+          "access_kind": 5,
+          "address": 491488,
+          "encoding": "absolute_long",
+          "failure_instruction": "rts",
+          "frame_prefix": {
+            "absolute_sp": null,
+            "entry_offset": 29072,
+            "failure_offset": 0,
+            "maximum_delta": 0,
+            "minimum_delta": 0,
+            "paths": 1,
+            "reason": null,
+            "stack_delta": 0,
+            "states": 3,
+            "status": "modeled_relative_only"
+          },
+          "obligation": "derived_pointer_accesses",
+          "operand_index": 0,
+          "region_offset": 736,
+          "root_access_proof": {
+            "access_count": 0,
+            "maximum_end": 0,
+            "minimum_offset": 4294967295,
+            "reason": "unmodeled_pointer_caller_frame",
+            "source_offset": 29088,
+            "states": 2,
+            "status": "refused"
+          },
+          "section_index": 0,
+          "source_offset": 29080,
+          "width": 4
+        },
+        {
+          "access_kind": 5,
+          "address": 491486,
+          "encoding": "absolute_long",
+          "failure_instruction": "clr.w (a0)+",
+          "frame_prefix": {
+            "absolute_sp": null,
+            "entry_offset": 4294967295,
+            "failure_offset": 0,
+            "maximum_delta": 0,
+            "minimum_delta": 0,
+            "paths": 0,
+            "reason": "unknown_frame_entry",
+            "stack_delta": 0,
+            "states": 0,
+            "status": "refused"
+          },
+          "obligation": "derived_pointer_accesses",
+          "operand_index": 0,
+          "region_offset": 734,
+          "root_access_proof": {
+            "access_count": 0,
+            "maximum_end": 0,
+            "minimum_offset": 4294967295,
+            "reason": "unresolved_pointer_frame_alias",
+            "source_offset": 9796,
+            "states": 10,
+            "status": "refused"
+          },
+          "section_index": 0,
+          "source_offset": 29132,
+          "width": 4
+        }
+      ],
+      "region_id": "pandora_ui_snapshot_hit",
+      "runtime_address": 490752,
+      "size": 768,
+      "source_domain": "runtime_only",
+      "source_placement": null,
+      "unknowns": [
+        "Closure covers accepted native references and bounded pointer paths only.",
+        "Unclassified bytes, synthesized addresses and future callback changes remain outside this proof.",
+        "Absent references do not establish free memory; runtime allocation is required."
+      ],
+      "unresolved_obligations": 4
+    },
+    "palette_input_alias": {
+      "alignment": 2,
+      "dma_access": "none",
+      "lifetime": "persistent",
+      "memory_class": "cpu_ram",
+      "name": "work_buffer_palette_input_alias",
+      "overlapping_regions": [
+        {
+          "obligation": "coordinated_source_placement",
+          "other_region_offset": 736,
+          "region_id": "pandora_ui_snapshot_hit",
+          "region_offset": 0,
+          "runtime_address": 491488,
+          "size": 32
+        }
+      ],
+      "proof_status": "obligations_open",
+      "reference_count": 2,
+      "references": [
+        {
+          "access_kind": 5,
+          "address": 491488,
+          "encoding": "absolute_long",
+          "failure_instruction": "rts",
+          "frame_prefix": {
+            "absolute_sp": null,
+            "entry_offset": 29072,
+            "failure_offset": 0,
+            "maximum_delta": 0,
+            "minimum_delta": 0,
+            "paths": 1,
+            "reason": null,
+            "stack_delta": 0,
+            "states": 3,
+            "status": "modeled_relative_only"
+          },
+          "obligation": "derived_pointer_accesses",
+          "operand_index": 0,
+          "region_offset": 0,
+          "root_access_proof": {
+            "access_count": 0,
+            "maximum_end": 0,
+            "minimum_offset": 4294967295,
+            "reason": "unmodeled_pointer_caller_frame",
+            "source_offset": 29088,
+            "states": 2,
+            "status": "refused"
+          },
+          "section_index": 0,
+          "source_offset": 29080,
+          "width": 4
+        },
+        {
+          "access_kind": 5,
+          "address": 491486,
+          "encoding": "absolute_long",
+          "failure_instruction": "clr.w (a0)+",
+          "frame_prefix": {
+            "absolute_sp": null,
+            "entry_offset": 4294967295,
+            "failure_offset": 0,
+            "maximum_delta": 0,
+            "minimum_delta": 0,
+            "paths": 0,
+            "reason": "unknown_frame_entry",
+            "stack_delta": 0,
+            "states": 0,
+            "status": "refused"
+          },
+          "obligation": "derived_pointer_accesses",
+          "operand_index": 0,
+          "region_offset": 4294967294,
+          "root_access_proof": {
+            "access_count": 0,
+            "maximum_end": 0,
+            "minimum_offset": 4294967295,
+            "reason": "unresolved_pointer_frame_alias",
+            "source_offset": 9796,
+            "states": 10,
+            "status": "refused"
+          },
+          "section_index": 0,
+          "source_offset": 29132,
+          "width": 4
+        }
+      ],
+      "region_id": "pandora_work_buffer_palette_input",
+      "runtime_address": 491488,
+      "size": 32,
+      "source_domain": "runtime_only",
+      "source_placement": null,
+      "unknowns": [
+        "Closure covers accepted native references and bounded pointer paths only.",
+        "Unclassified bytes, synthesized addresses and future callback changes remain outside this proof.",
+        "Absent references do not establish free memory; runtime allocation is required."
+      ],
+      "unresolved_obligations": 4
+    }
+  },
+  "current_native_plans": {
+    "hit": {
+      "plan": {
+        "destination": 414720,
+        "initialization": null,
+        "memory_class": "chip",
+        "refusal": "existing_destination_reference",
+        "region_id": "pandora_ui_snapshot_hit",
+        "reservation": "exec_allocabs",
+        "reservation_size": 768,
+        "rewrite_count": 0,
+        "rewrite_ledger": [],
+        "runtime_evidence": null,
+        "scenario_coverage": null,
+        "scope": "accepted native references and bounded pointer paths only; fixed instruction extents; original code placement",
+        "status": "refused",
+        "unresolved_obligations": 4
+      },
+      "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33"
+    },
+    "palette": {
+      "plan": {
+        "destination": 414720,
+        "initialization": null,
+        "memory_class": "chip",
+        "refusal": "overlapping_source_regions",
+        "region_id": "pandora_work_buffer_palette_input",
+        "reservation": "exec_allocabs",
+        "reservation_size": 32,
+        "rewrite_count": 0,
+        "rewrite_ledger": [],
+        "runtime_evidence": null,
+        "scenario_coverage": null,
+        "scope": "accepted native references and bounded pointer paths only; fixed instruction extents; original code placement",
+        "status": "refused",
+        "unresolved_obligations": 3
+      },
+      "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33"
+    },
+    "volume": {
+      "plan": {
+        "destination": 414720,
+        "initialization": {
+          "bytes": "0040",
+          "section_index": 0,
+          "source_offset": 318720
+        },
+        "memory_class": "chip",
+        "refusal": null,
+        "region_id": "audio_master_volume",
+        "reservation": "exec_allocabs",
+        "reservation_size": 8,
+        "rewrite_count": 5,
+        "rewrite_ledger": [
+          {
+            "after": "343a79b2",
+            "before": "343a02b2",
+            "operand_index": 0,
+            "region_offset": 0,
+            "section_index": 0,
+            "source_offset": 318028
+          },
+          {
+            "after": "343a7870",
+            "before": "343a0170",
+            "operand_index": 0,
+            "region_offset": 0,
+            "section_index": 0,
+            "source_offset": 318350
+          },
+          {
+            "after": "13fc004000065400",
+            "before": "13fc00400005dd00",
+            "operand_index": 1,
+            "region_offset": 0,
+            "section_index": 0,
+            "source_offset": 348912
+          },
+          {
+            "after": "33fc004000065400",
+            "before": "33fc00400005dd00",
+            "operand_index": 1,
+            "region_offset": 0,
+            "section_index": 0,
+            "source_offset": 348988
+          },
+          {
+            "after": "33c000065400",
+            "before": "33c00005dd00",
+            "operand_index": 1,
+            "region_offset": 0,
+            "section_index": 0,
+            "source_offset": 349032
+          }
+        ],
+        "runtime_evidence": null,
+        "scenario_coverage": null,
+        "scope": "accepted native references and bounded pointer paths only; fixed instruction extents; original code placement",
+        "status": "ready",
+        "unresolved_obligations": 0
+      },
+      "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33"
+    }
+  },
+  "native_limit_notes": [
+    "The A4 producer at source71CC has address77FDE, two bytes below the palette input. Native reference enumeration conservatively intersects its four-byte operand width with that region and exports wrapped region_offset4294967294. This is a refused pointer/frame candidate, not a two-byte palette access or an asserted in-bounds offset. Original prefix evidence still shows no A4 dereference. No relocation gate is relaxed.",
+    "Coordinated source placement is an extra open obligation. The hit example also refuses existing destination references in its768-byte proposed span at65400; the32-byte palette plan at the same proposed base reaches the overlap-specific refusal. Neither request allocates memory or builds a payload."
+  ],
+  "stack_contract": {
+    "setup_source_offsets": [
+      1146,
+      1210
+    ],
+    "top_runtime_address": 66642,
+    "canonical_symbol": "runtime_supervisor_stack_top",
+    "allocated_extent": null,
+    "whole_program_sp_invariant": false,
+    "irq_dispatcher_register_save_bytes": 20,
+    "callback_jsr_bytes": 4,
+    "interrupted_A0_offset_at_callback": 8,
+    "hardware_frame_offset_at_callback": 24,
+    "interrupted_A0_offset_at_gameplay_audio_callee": 60,
+    "new_cpu_cases": 5,
+    "hardware_frame": "Explicit modeled six-byte68000 SR/PC frame; RTE and asynchronous admission are not executed by the new tests."
+  },
+  "phase_dependencies": [
+    {
+      "producer": "initialized hit capture",
+      "mode": "chip blitter write",
+      "range": [
+        490752,
+        491520
+      ]
+    },
+    {
+      "consumer": "hit restore",
+      "mode": "chip blitter read",
+      "range": [
+        490752,
+        491520
+      ]
+    },
+    {
+      "producer": "seeded reset in ascending area mode",
+      "mode": "chip blitter copy",
+      "source": [
+        458752,
+        511232
+      ],
+      "destination": [
+        458792,
+        511272
+      ]
+    },
+    {
+      "consumer": "palette unpack prefix / conditional interior add/subtract",
+      "mode": "CPU read",
+      "range": [
+        491488,
+        491520
+      ]
+    }
+  ],
+  "callers": {
+    "palette-incoming": {
+      "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33",
+      "total": 0,
+      "scope": "native_artifact",
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "render-incoming": {
+      "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33",
+      "total": 0,
+      "scope": "native_artifact",
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    }
+  },
+  "interrupt_slot_instruction_count": 20,
+  "remaining_obligations": [
+    "Concrete original palette caller/producer, including unclassified/indirect/external-return paths and any later instruction changes.",
+    "Palette versus capture/reset phase exclusion; loader parity and initialization ownership.",
+    "Absolute stack extent, caller ancestry, saved-frame aliases and complete callback continuations; native audio jump4DC2A remains unresolved.",
+    "All descriptor/mode/geometry mutations, synthesized aliases and DMA completion before switching addresses.",
+    "Second hit-family recapture and full-buffer exclusive lifetime remain unproved.",
+    "Joint alias-preserving move, chip reservation and runtime before-use enforcement are not implemented."
+  ],
+  "validation": {
+    "framework": "124 passed,1 skipped",
+    "skip": "Optional standalone Copperline arithmetic oracle requires COPPERLINE_BINARY; not a missing input for the original-CPU tests.",
+    "native": "812 passed across14 groups",
+    "pandora": "43 passed, including5 new stack/IRQ cases",
+    "backend_cleanup": "9 passed,3 specific original-input skips;16 related regressions pass",
+    "broader_backend_limits": "3 additional failures reproduce with pre-cleanup HEAD test bodies; retained, see backend-test-cleanup-2026-10-15.md.",
+    "verification": {
+      "exact": true,
+      "failure_kinds": [],
+      "framework_exact": true,
+      "framework_status": "exact",
+      "kind": "verification",
+      "message": "",
+      "oracle": {
+        "assembler_status": "accepted",
+        "comparison_level": "oracle.full_file_match",
+        "message": "oracle output matched original bytes",
+        "oracle_id": "vasm",
+        "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+      },
+      "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "original_size": 376832,
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+      "receipt_id": "2824c4c9b75108e48467e32a6840549b4d27a6c4fc97879253c74cc3dcf4ddf4",
+      "revision": "e210eae567f4143d1f8d18b4bfc29a7918bbc1270e8f7839a97dc543fba6cd29",
+      "source_package_sha256": "b4959519ac82fed8c0571df0e8cd13c8a8e277f87cd70cf5542944d805aae63c",
+      "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/b4959519ac82fed8c0571df0e8cd13c8a8e277f87cd70cf5542944d805aae63c/pandora_3e1ee0f1_bk_00_000000e8.s",
+      "source_sha256": "a0d7e192b08cdbe494344ef37e238c93067ed10310693034cf890ba76814efc8",
+      "status": "exact",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33",
+      "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+    },
+    "review": {
+      "decisions": [
+        {
+          "action": "accept_fact",
+          "action_id": "manual-569249ac43284fe196d6890325c9d414",
+          "decision_id": "restoration-ffe0b7b700b6471cb9735f5836874cfe"
+        },
+        {
+          "action": "accept_fact",
+          "action_id": "manual-6d431e0e1d4a4897bd4da47c59d1b75e",
+          "decision_id": "restoration-56027a27d53f42f09c25126d2b794733"
+        }
+      ],
+      "probe": null,
+      "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c",
+      "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33",
+      "verification": {
+        "exact": true,
+        "kind": "verification",
+        "receipt_id": "2824c4c9b75108e48467e32a6840549b4d27a6c4fc97879253c74cc3dcf4ddf4",
+        "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33"
+      }
+    },
+    "preservation": {
+      "immutable_target_files_unchanged": 99,
+      "prior_histories_preserved": {
+        "manual_actions.jsonl": {
+          "prior_bytes": 9671087,
+          "appended_records": 2
+        },
+        "decision_journal.jsonl": {
+          "prior_bytes": 9927212,
+          "appended_records": 2
+        }
+      },
+      "generated_source_matches_receipt": true,
+      "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "new_copperline_runs": 0,
+    "new_relocated_artifacts": 0
+  },
+  "prior_runtime_evidence": [
+    "runtime/observations/pandora-snapshot-lifecycle.json",
+    "runtime/observations/pandora-snapshot-body-guards.json"
+  ],
+  "resident_service": {
+    "pid": 1822,
+    "listen": "127.0.0.1:8123",
+    "ready": true,
+    "target_ui_http_status": 200,
+    "subject_revision": "b81d5f0a4683af8ee97e88e5ca9dbe88df9560bc03b0bc02e4578d8370db8b33",
+    "revision": "57ec09526ee0f2c7e8e171411713b21a1ad5c9afa0755d0f273728252f575d3c"
+  }
+}

@@ -56,6 +56,86 @@ def test_invalid_or_unproved_contract_refused(changes):
         validate_region(region(**changes))
 
 
+@pytest.mark.parametrize(
+    ("other_start", "other_size", "overlap"),
+    [(0x397C, 128, (0x397C, 128)),  # Coincident identities.
+     (0x39DC, 32, (0x39DC, 32)),    # Contained tail.
+     (0x3940, 64, (0x397C, 4)),     # Partial overlap from below.
+     (0x3970, 160, (0x397C, 128)),  # Enclosing identity.
+     (0x39FC, 32, None),           # Adjacent storage is independent.
+     (0x3900, 16, None)],
+)
+def test_overlapping_source_identities_refuse_independent_relocation(
+    tmp_path, other_start, other_size, overlap
+):
+    path = tmp_path / "metadata.json"
+    path.write_text(json.dumps({"memory_regions": [region(), region(
+        region_id="other", name="other", runtime_address=other_start, size=other_size
+    )]}))
+    # A direct CPU read is otherwise a closed, same-width relocation. The
+    # second region need not have a reference of its own to retain its identity.
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(
+        bytes.fromhex("4a390000397c4e75"), display_path="fixture", metadata_path=path
+    )
+    try:
+        facts = artifact.memory_regions_payload()["items"]
+        plan = artifact.memory_region_plan("key_state", 0xC7F000, "slow")
+        if overlap is None:
+            assert facts[0]["overlapping_regions"] == []
+            assert facts[0]["proof_status"] == "accepted_references_closed"
+            assert plan["status"] == "ready" and plan["refusal"] is None
+        else:
+            start, size = overlap
+            for current, other in [(facts[0], facts[1]), (facts[1], facts[0])]:
+                assert current["overlapping_regions"] == [{
+                    "region_id": other["region_id"], "runtime_address": start,
+                    "size": size, "region_offset": start-current["runtime_address"],
+                    "other_region_offset": start-other["runtime_address"],
+                    "obligation": "coordinated_source_placement",
+                }]
+                assert current["proof_status"] == "obligations_open"
+            assert plan["status"] == "refused"
+            assert plan["refusal"] == "overlapping_source_regions"
+            assert plan["unresolved_obligations"] >= 1
+            assert artifact.memory_region_plan("other", 0xC7F000, "slow")["refusal"] == "overlapping_source_regions"
+    finally:
+        artifact.close()
+
+
+def test_overlapping_region_actions_preserve_identity_and_undo(tmp_path):
+    source_path = tmp_path / "fixture.bin"
+    source_path.write_bytes(bytes.fromhex("4a390000397c4e75"))
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY, path=source_path,
+        address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+        code_start_offset=0, display_path=str(source_path),
+        analysis_cache_path=tmp_path / "analysis",
+    )
+    definitions = [region(), region(
+        region_id="tail", name="tail", runtime_address=0x39DC, size=32
+    )]
+    actions = []
+    for definition in definitions:
+        kind, payload = target_catalog_manual_payload(
+            "target.memory_region.add", parameters=definition
+        )
+        actions.extend(append_manual_actions(
+            tmp_path, binary_source=source, actions=[(ManualActionKind(kind), payload)]
+        ))
+    assert load_manual_projection(tmp_path).memory_regions == tuple(definitions)
+    before = (tmp_path / "manual_actions.jsonl").read_bytes()
+    append_manual_actions(tmp_path, binary_source=source, actions=[(
+        ManualActionKind.UNDO_ACTION, {"undoes_action_id": actions[1]["action_id"]}
+    )])
+    assert load_manual_projection(tmp_path).memory_regions == (definitions[0],)
+    assert (tmp_path / "manual_actions.jsonl").read_bytes().startswith(before)
+    append_manual_actions(tmp_path, binary_source=source, actions=[(
+        ManualActionKind.REDO_ACTION, {"redoes_action_id": actions[1]["action_id"]}
+    )])
+    assert load_manual_projection(tmp_path).memory_regions == tuple(definitions)
+    assert (tmp_path / "manual_actions.jsonl").read_bytes().startswith(before)
+
+
 def test_identity_history_projection_and_native_interior_reference(tmp_path):
     code = bytes.fromhex("41f90000397c4a39000039bc43f9000039cc4e75")
     binary = tmp_path / "fixture.bin"

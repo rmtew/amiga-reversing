@@ -2901,3 +2901,49 @@ The deferred eight-test maintenance patch remains byte-identical and uncommitted
 PR5 stays unmerged without routine metadata edits. Shared-tail relocation and
 its allocation/caller/interrupt-lifetime obligations remain open; no exclusive
 ownership, whole-file semantic completion or general index bounds are asserted.
+
+## Shared-tail ownership and lifetime follow-up
+
+The deferred eight-backend-test cleanup is published in `f5315cc4`, with paired
+execution/data fixtures and independent C/vasm raw reconstruction. The configured
+host vasm capability replaces its Linux-only helper path. Affected checks pass
+9 cases and skip only the three recorded absent original inputs; 16 related
+checks pass. Three failures exposed by a wider copied-code selection reproduce
+with the pre-cleanup test bodies and remain separate. See
+`docs/validation/backend-test-cleanup-2026-10-15.md`.
+
+Canonical analysis now retains `pandora_work_buffer_palette_input`, the 32 bytes
+at `$77FE0`, as an explicit alias within `pandora_ui_snapshot_hit`. The general
+framework permits overlapping semantic region identities, projects their exact
+intersection and offsets, and refuses independent single-region relocation.
+Coincident, contained, enclosing, partial, adjacent and disjoint cases are tested,
+along with history/undo/redo. No joint-move or phase-based split is implemented.
+The original two setup LEAs now name `runtime_supervisor_stack_top` at `$10452`;
+no allocation extent or all-path stack bound is invented.
+
+The new original-code IRQ fixtures establish the dispatcher save/return layout
+with explicit modeled hardware frames and the original no-op callback. They
+confirm five LONG saves (20 bytes), the extra four-byte callback return slot,
+interrupted A0 at callback SP+8, and intact saved registers/frame at RTE entry.
+This is not arbitrary-callback or asynchronous hardware validation. The already
+fixed CLR prefix passes; its older simulator-limit ledger paragraph is historical.
+
+The defensible placement assessment is in
+`docs/validation/pandora-shared-tail-lifetime.md`, with native proofs/refusals in
+`pandora-shared-tail-lifetime.json`. Preserve the hit/palette alias relationship;
+the covering reset blit is an additional cross-buffer writer. Palette caller,
+producer and phase, absolute stack ownership, audio/other callback continuations,
+changed DMA geometry and complete alias lifetimes remain open. The body snapshot
+and palette output arrays are separate candidates, not newly certified moves.
+The current independent volume plan still closes its five accepted references.
+No new Copperline route, allocation, relocated artifact or whole-file reading ran.
+
+Validation passes **124 framework checks** (one optional Copperline arithmetic
+oracle skipped), **812 native checks** and **43 Pandora checks**, including five
+new stack/IRQ cases. All 99 immutable tracked target files and prior history
+prefixes remain unchanged. Two new actions and two review decisions append.
+C and independent vasm reproduce all 376,832 original bytes exactly: receipt
+`2824c4c9b75108e48467e32a6840549b4d27a6c4fc97879253c74cc3dcf4ddf4`,
+source SHA256 `a0d7e192b08cdbe494344ef37e238c93067ed10310693034cf890ba76814efc8`.
+The resident loopback service was restarted for the native backend change as
+PID 1822 at http://127.0.0.1:8123/. PR5 remains unmerged, without metadata edits.

@@ -1051,7 +1051,7 @@ copy_image_backward_bytes:
 	bne.b copy_image_backward_bytes
 	jmp (a3)
 	dcb.b $400,$00
-abs_0_00010452:
+runtime_supervisor_stack_top:
 	dc.b $00,$00,$00,$10
     ; Warm restart waits for blitter busy to clear before setup/title CPU reuse of shared scratch. Render helpers may return with the final scratch read active; this wait closes that transition.
 abs_0_00010456:
@@ -1070,7 +1070,7 @@ initialize_runtime_workspace:
 clear_runtime_workspace_bytes:
 	clr.b (a0)+
 	dbf.w d0,clear_runtime_workspace_bytes
-	lea.l abs_0_00010452(pc),a7
+	lea.l runtime_supervisor_stack_top(pc),a7
 	lea.l supervisor_runtime_entry(pc),a0
 	move.l a0,m68k_vector_trap_0_instruction_vector.w
 	trap #0
@@ -1089,7 +1089,7 @@ abs_0_00010498:
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l a0,$0190(a6)
     ; Reset the active stack to source $452 (runtime $10452 here) after supervisor entry. The temporary TRAP0 frame is not returned through.
-	lea.l abs_0_00010452(pc),a7
+	lea.l runtime_supervisor_stack_top(pc),a7
 	moveq.l #-1,d0
 	move.w d0,bltafwm(a5)
 	move.w d0,bltalwm(a5)

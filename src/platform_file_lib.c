@@ -8837,8 +8837,9 @@ static int append_metadata_memory_region_local(const char *start, const char *en
   r.persistent = 1U; r.dma_access = !strcmp(dma,"chip");r.source_mapped=!strcmp(source,"mapped_source");
   for (i=0;i<policy->memory_region_count;i++) {
     const M68kMemoryRegionIR *old=&policy->memory_regions[i];
-    if (!strcmp(old->region_id,r.region_id) || (r.runtime_address < old->runtime_address+old->size &&
-        old->runtime_address < r.runtime_address+r.size)) return 0;
+    /* Shared storage may have more than one semantic identity. Native region
+     * projection retains the overlap and single-region relocation refuses it. */
+    if (!strcmp(old->region_id,r.region_id)) return 0;
   }
   policy->memory_regions[policy->memory_region_count++]=r;
   return 1;
