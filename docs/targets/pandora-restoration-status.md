@@ -2027,3 +2027,4 @@ behavior is counted separately from newly recovered durable roles/types.
 | Checkpoint | Reviewed proposals | Concrete result | Applicable verification |
 |---|---|---|---|
 | Frame/render | P01–P07, P12–P18, A01–A04 | 15 function symbols, four exact-width ticker/tile-grid app roles, two entry-only A5 overlay-descriptor types; no full blitter register/DMA contract or unused flag equates | 31 overlay/framebuffer tests; all 376,832 bytes exact with C/vasm; receipt `eb91ecd72b044faceceae766874e033a98b4aeca03e55bf73110d461987e5dbb` |
+| Security/status | P19, P22–P26, A05–A14 | Six function symbols, three damage/clearance table names, ten app roles; deposit reset spans 64 bytes but insertion can reach adjacent +$31A; status duration counts space runs plus one nonspace presence, not characters/ordinary words | 12 new status/deposit tests; earlier fire-edge evidence reused; C/vasm exact; receipt `74f57913663fe635ffaaa39f5cdf90acaa2ebc9755f0ada9c6e6ad5b5dd6d28a` |

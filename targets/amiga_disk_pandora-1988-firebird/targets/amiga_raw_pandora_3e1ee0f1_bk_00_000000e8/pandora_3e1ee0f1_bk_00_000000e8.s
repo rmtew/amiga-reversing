@@ -157,23 +157,22 @@ app_02C2 RS.B 1
 app_camera_scroll_countdown_reload_word RS.W 1
 app_camera_scroll_profile_index RS.W 1
 app_game_exit_service_ticks_remaining RS.B 1
-app_02CD RS.B 1
-app_02CE RS.B 1
-app_02CF RS.B 1
-app_02D0 RS.W 1
-app_02D2 RS.W 1
+app_player_security_zone_tier RS.B 1
+app_security_damage_flash_ticks_remaining RS.B 1
+app_security_checkpoint_response_active RS.B 1
+app_security_damage_service_countdown RS.W 1
+app_security_saved_palette_color RS.W 1
 app_02D4 RS.L 1
 app_player_movement_commit_inhibited RS.B 1
 app_salvage_item_count RS.B 1
-app_02DA RS.L 1
-    RS.B 60
+app_terminal_deposited_item_ids RS.B 64
 app_modal_last_selected_item_id RS.B 1
-app_031B RS.B 1
+app_ranged_weapon_fire_latched RS.B 1
 app_last_accepted_move_request_x_step RS.W 1
 app_last_accepted_move_request_y_step RS.W 1
-app_0320 RS.W 1
-app_0322 RS.W 1
-app_0324 RS.W 1
+app_ranged_hit_visual_ticks_remaining RS.W 1
+app_ranged_weapon_variant_index RS.W 1
+app_status_message_service_ticks_remaining RS.W 1
 app_self_destruct_qualifying_card_count RS.B 1
 app_defeated_object_count RS.B 1
 app_self_destruct_service_ticks_remaining RS.W 1
@@ -1131,7 +1130,7 @@ wait_for_completed_frame:
 	bsr.w service_keyboard_pause_gate
 	lea.l _custom.l,a5
 	jsr poll_joystick1_directions_and_fire.l
-	jsr abs_0_00019A48.l
+	jsr service_status_message_duration.l
 	bsr.w service_gameplay_palette_transition
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
@@ -5441,7 +5440,7 @@ abs_0_00012754:
 	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_inventory_cursor_x(a6)
-	bsr.w abs_0_000194AC
+	bsr.w snapshot_inventory_cursor_and_clear_hidden_latch
 	bra.w bind_cursor_sprites_and_palette
 close_inventory_panel:
 	bsr.w reset_inventory_panel_state
@@ -5495,7 +5494,7 @@ open_nearby_object_inventory_panel:
 	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	move.w #$C0,app_inventory_cursor_x(a6)
-	bsr.w abs_0_000194AC
+	bsr.w snapshot_inventory_cursor_and_clear_hidden_latch
 	bsr.w bind_cursor_sprites_and_palette
 	rts
 build_carried_item_name_list:
@@ -10573,9 +10572,9 @@ abs_0_000187CA:
 abs_0_000187D4:
 	moveq.l #-1,d0
 abs_0_000187D6:
-	move.b d0,app_02CD(a6)
+	move.b d0,app_player_security_zone_tier(a6)
 	rts
-clearance_tier:
+selected_id_card_clearance_tiers:
 	dc.b $04	; lookup_table
 	dc.b $03,$01,$03,$00,$02
 check_selected_id_card_security_clearance:
@@ -10584,8 +10583,8 @@ check_selected_id_card_security_clearance:
 	subi.b #48,d0
 	cmp.b #$6,d0
 	bcc.b abs_0_00018802
-	move.b clearance_tier(pc,d0.w),d0
-	cmp.b app_02CD(a6),d0
+	move.b selected_id_card_clearance_tiers(pc,d0.w),d0
+	cmp.b app_player_security_zone_tier(a6),d0
 	bls.b abs_0_00018802
 	move.w d0,d0
 	bra.b abs_0_00018806
@@ -10594,14 +10593,14 @@ abs_0_00018802:
 abs_0_00018806:
 	rts
 clear_security_checkpoint_state:
-	clr.b app_02CF(a6)
+	clr.b app_security_checkpoint_response_active(a6)
 	jsr clear_security_checkpoint_audio_state.l
 	rts
 process_security_checkpoint_response:
 	lea.l player_world_object.l,a4
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
 	bne.b abs_0_0001884E
-	tst.b app_02CE(a6)
+	tst.b app_security_damage_flash_ticks_remaining(a6)
 	bne.b abs_0_00018896
 	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_0001884E
@@ -10613,7 +10612,7 @@ process_security_checkpoint_response:
 	btst.b #7,world_position_state_record_world_object_flags(a0)
 	bne.b abs_0_00018850
 abs_0_00018848:
-	tst.b app_02CF(a6)
+	tst.b app_security_checkpoint_response_active(a6)
 	bne.b clear_security_checkpoint_state
 abs_0_0001884E:
 	rts
@@ -10622,11 +10621,11 @@ abs_0_00018850:
 	bmi.b abs_0_0001884E
 	bsr.b check_selected_id_card_security_clearance
 	bcc.b abs_0_0001884E
-	tst.b app_02CF(a6)
+	tst.b app_security_checkpoint_response_active(a6)
 	bne.b abs_0_00018864
 	bsr.w begin_security_checkpoint_response
 abs_0_00018864:
-	subq.w #1,app_02D0(a6)
+	subq.w #1,app_security_damage_service_countdown(a6)
 	bne.b abs_0_00018896
 	lea.l player_world_object.l,a5
 	move.b world_object_shared_prefix_hit_points+1(a5),d0
@@ -10637,16 +10636,16 @@ abs_0_0001887C:
 	move.b d0,world_object_shared_prefix_hit_points+1(a5)
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	move.b #$1F,app_02CE(a6)
-	move.w #$32,app_02D0(a6)
+	move.b #$1F,app_security_damage_flash_ticks_remaining(a6)
+	move.w #$32,app_security_damage_service_countdown(a6)
 abs_0_00018896:
 	lea.l player_world_object.l,a5
-	move.w app_02D2(a6),d0
-	tst.b app_02CE(a6)
+	move.w app_security_saved_palette_color(a6),d0
+	tst.b app_security_damage_flash_ticks_remaining(a6)
 	beq.b abs_0_00018918
-	subq.b #1,app_02CE(a6)
+	subq.b #1,app_security_damage_flash_ticks_remaining(a6)
 	bne.b abs_0_0001890C
-	move.w app_02D2(a6),abs_0_00010772.l
+	move.w app_security_saved_palette_color(a6),abs_0_00010772.l
 	tst.b world_object_shared_prefix_hit_points+1(a5)
 	bmi.b abs_0_000188BC
 	bne.b abs_0_0001884E
@@ -10669,7 +10668,7 @@ abs_0_000188BC:
 	bra.w abs_0_0001884E
 abs_0_0001890C:
 	moveq.l #31,d0
-	sub.b app_02CE(a6),d0
+	sub.b app_security_damage_flash_ticks_remaining(a6),d0
 	add.w d0,d0
 	move.w rgb12_color(pc,d0.w),d0
 abs_0_00018918:
@@ -10683,9 +10682,9 @@ rgb12_color:
 begin_security_checkpoint_response:
 	move.l a5,d0
 	beq.b abs_0_00018982
-	move.w abs_0_00010772.l,app_02D2(a6)
+	move.w abs_0_00010772.l,app_security_saved_palette_color(a6)
 	jsr start_paired_feedback_audio_sequences.l
-	addq.b #1,app_02CF(a6)
+	addq.b #1,app_security_checkpoint_response_active(a6)
 	movea.l $0014(a5),a0
 	move.b (a0),$0046(a5)
 	bsr.w display_current_item_name
@@ -10717,7 +10716,7 @@ abs_0_000189C4:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcs.b abs_0_00018A16
-	lea.l app_02DA(a6),a0
+	lea.l app_terminal_deposited_item_ids(a6),a0
 abs_0_000189DA:
 	tst.b (a0)+
 	bne.b abs_0_000189DA
@@ -10875,7 +10874,7 @@ abs_0_00019024:
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
-	bsr.w abs_0_00019A48
+	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
@@ -11046,9 +11045,9 @@ ranged_weapon_ammunition_remaining:
 service_selected_ranged_weapon_fire:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.w abs_0_000193D8
-	tst.w app_0320(a6)
+	tst.w app_ranged_hit_visual_ticks_remaining(a6)
 	beq.b abs_0_0001926E
-	subq.w #1,app_0320(a6)
+	subq.w #1,app_ranged_hit_visual_ticks_remaining(a6)
 	bne.b abs_0_0001926E
 	clr.l abs_0_000585BA.l
 abs_0_0001926E:
@@ -11057,16 +11056,16 @@ abs_0_0001926E:
 	bne.w abs_0_000193D8
 	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_000193D4
-	tst.b app_031B(a6)
+	tst.b app_ranged_weapon_fire_latched(a6)
 	bne.w abs_0_000193D8
-	addq.b #1,app_031B(a6)
+	addq.b #1,app_ranged_weapon_fire_latched(a6)
 	lea.l player_world_object.l,a4
 	clr.w d0
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	subi.b #18,d0
 	cmp.b #$2,d0
 	bcc.w abs_0_000193D8
-	move.w d0,app_0322(a6)
+	move.w d0,app_ranged_weapon_variant_index(a6)
 	lea.l ranged_weapon_ammunition_remaining(pc),a0
 	tst.b $0(a0,d0.w)
 	beq.w abs_0_000193D8
@@ -11152,21 +11151,21 @@ abs_0_00019386:
 abs_0_000193A4:
 	move.w d0,$0004(a1)
 	move.w d1,$0006(a1)
-	move.w app_0322(a6),d0
+	move.w app_ranged_weapon_variant_index(a6),d0
 	move.b $004C(a5),d1
-	sub.b abs_0_000193EA(pc,d0.w),d1
+	sub.b ranged_weapon_item_state_damage(pc,d0.w),d1
 	bpl.b abs_0_000193BC
 	clr.b d1
 abs_0_000193BC:
 	move.b d1,$004C(a5)
 	move.b $003D(a5),d1
-	sub.b abs_0_000193E8(pc,d0.w),d1
+	sub.b ranged_weapon_health_damage(pc,d0.w),d1
 	bmi.b abs_0_000193EC
 	beq.b abs_0_000193EC
 	move.b d1,$003D(a5)
-	move.b app_031B(a6),d0
+	move.b app_ranged_weapon_fire_latched(a6),d0
 abs_0_000193D4:
-	move.b d0,app_031B(a6)
+	move.b d0,app_ranged_weapon_fire_latched(a6)
 abs_0_000193D8:
 	rts
 abs_0_000193DA:
@@ -11174,9 +11173,9 @@ abs_0_000193DA:
 	beq.w abs_0_00019320
 	movea.l d4,a2
 	bra.w abs_0_0001933A
-abs_0_000193E8:
+ranged_weapon_health_damage:
 	dc.b $1E,$5A	; lookup_table
-abs_0_000193EA:
+ranged_weapon_item_state_damage:
 	dc.b $32,$64	; lookup_table
 abs_0_000193EC:
 	move.l $0008(a5),d0
@@ -11221,9 +11220,9 @@ abs_0_00019486:
 	bclr.b #0,$000A(a1)
 	clr.w $0010(a1)
 	movea.l $0010(a0),a1
-	move.w #$19,app_0320(a6)
+	move.w #$19,app_ranged_hit_visual_ticks_remaining(a6)
 	rts
-abs_0_000194AC:
+snapshot_inventory_cursor_and_clear_hidden_latch:
 	bclr.b #0,app_020A(a6)
 	move.w app_inventory_cursor_x(a6),app_0218(a6)
 	move.w app_inventory_cursor_y(a6),app_021A(a6)
@@ -11626,7 +11625,7 @@ hold_player_movement_animation:
 	bclr.b #6,app_status_flags(a6)
 abs_0_000199AA:
 	rts
-abs_0_000199AC:
+measure_status_message_spacing_units:
 	move.l a0,-(a7)
 	moveq.l #0,d0
 	clr.w d3
@@ -11657,15 +11656,15 @@ enqueue_status_message:
 	beq.b abs_0_000199F2
 	lea.l app_scrolling_message_queue_head(a6),a1
 	move.l a1,app_scrolling_message_queue_tail(a6)
-	bsr.w abs_0_00019AB2
+	bsr.w clear_status_message_band
 abs_0_000199F2:
-	bsr.b abs_0_000199AC
+	bsr.b measure_status_message_spacing_units
 	add.w d0,d0
 	movea.w d0,a2
 	add.w d0,d0
 	add.w d0,d0
 	add.w a2,d0
-	move.w d0,app_0324(a6)
+	move.w d0,app_status_message_service_ticks_remaining(a6)
 	movea.l app_scrolling_message_queue_tail(a6),a1
 	lea.l app_0272(a6),a2
 	cmpa.l a2,a1
@@ -11676,7 +11675,7 @@ abs_0_000199F2:
 	bset.b #5,app_02A6(a6)
 	bne.b abs_0_00019A24
 	movea.l a0,a3
-	bsr.w abs_0_00019A96
+	bsr.w draw_status_message_line
 abs_0_00019A24:
 	move.w d0,d0
 	bra.b abs_0_00019A2C
@@ -11684,7 +11683,7 @@ abs_0_00019A28:
 	move #$1,ccr
 abs_0_00019A2C:
 	rts
-abs_0_00019A2E:
+dequeue_status_message:
 	lea.l app_scrolling_message_queue_head(a6),a0
 	lea.l app_0272(a6),a1
 abs_0_00019A36:
@@ -11694,35 +11693,35 @@ abs_0_00019A36:
 	subq.l #4,app_scrolling_message_queue_tail(a6)
 	tst.l app_scrolling_message_queue_head(a6)
 	rts
-abs_0_00019A48:
+service_status_message_duration:
 	movem.l d0-d1/a0-a3,-(a7)
 	btst.b #5,app_02A6(a6)
 	beq.b abs_0_00019A90
-	subq.w #1,app_0324(a6)
+	subq.w #1,app_status_message_service_ticks_remaining(a6)
 	bne.b abs_0_00019A90
-	bsr.b abs_0_00019A2E
+	bsr.b dequeue_status_message
 	beq.b abs_0_00019A82
-	bsr.w abs_0_00019AB2
+	bsr.w clear_status_message_band
 	movea.l app_scrolling_message_queue_head(a6),a0
-	bsr.w abs_0_000199AC
+	bsr.w measure_status_message_spacing_units
 	add.w d0,d0
 	movea.w d0,a2
 	add.w d0,d0
 	add.w d0,d0
 	add.w a2,d0
-	move.w d0,app_0324(a6)
+	move.w d0,app_status_message_service_ticks_remaining(a6)
 	movea.l a0,a3
-	bsr.w abs_0_00019A96
+	bsr.w draw_status_message_line
 	move.w d0,d0
 	bra.b abs_0_00019A90
 abs_0_00019A82:
-	bsr.w abs_0_00019AB2
+	bsr.w clear_status_message_band
 	bclr.b #5,app_02A6(a6)
 	move #$1,ccr
 abs_0_00019A90:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
-abs_0_00019A96:
+draw_status_message_line:
 	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #0,d0
 	moveq.l #24,d1
@@ -11731,7 +11730,7 @@ abs_0_00019A96:
 	clr.b app_proportional_text_pixel_shift(a6)
 	bsr.w draw_proportional_ui_text_string
 	rts
-abs_0_00019AB2:
+clear_status_message_band:
 	movea.l #$77800,a2
 	moveq.l #0,d0
 	move.w #$3F,d7
@@ -11787,7 +11786,7 @@ abs_0_00019C38:
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
-	bsr.w abs_0_00019A48
+	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
@@ -12046,20 +12045,20 @@ abs_0_00019F82:
 	clr.b app_self_destruct_state(a6)
 	clr.b app_defeated_object_count(a6)
 	clr.b app_salvage_item_count(a6)
-	clr.b app_031B(a6)
+	clr.b app_ranged_weapon_fire_latched(a6)
 	clr.l app_nearest_object_ptr(a6)
 	clr.l app_02D4(a6)
 	clr.l app_cursor_sprite0_dma_ptr(a6)
 	clr.l app_cursor_sprite1_dma_ptr(a6)
 	moveq.l #15,d7
-	lea.l app_02DA(a6),a0
+	lea.l app_terminal_deposited_item_ids(a6),a0
 abs_0_00019FC4:
 	clr.l (a0)+
 	dbf.w d7,abs_0_00019FC4
 	clr.b app_player_movement_commit_inhibited(a6)
-	clr.b app_02CE(a6)
-	clr.b app_02CF(a6)
-	move.w #$32,app_02D0(a6)
+	clr.b app_security_damage_flash_ticks_remaining(a6)
+	clr.b app_security_checkpoint_response_active(a6)
+	move.w #$32,app_security_damage_service_countdown(a6)
 	clr.b app_020A(a6)
 	move.l #abs_0_0001A7E2,app_font_glyph_bitmap_table_ptr(a6)
 	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)

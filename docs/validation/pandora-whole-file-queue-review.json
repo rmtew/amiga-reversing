@@ -37,6 +37,33 @@
       "original_size": 376832,
       "C_and_vasm_exact": true,
       "accepted_revision": "930667fbff78b4216a174f4f6d155209bf6a17e1cb5dced83235d5f1bc7829a7"
+    },
+    "security-status": {
+      "proposals": [
+        "P19",
+        "P22",
+        "P23",
+        "P24",
+        "P25",
+        "P26",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14"
+      ],
+      "actions": 19,
+      "tests_passed": 12,
+      "receipt": "74f57913663fe635ffaaa39f5cdf90acaa2ebc9755f0ada9c6e6ad5b5dd6d28a",
+      "source_sha256": "7ae6d083566977a5c57acc5ff9da07ac56b8b2c74d8f3ffad2785efb44c33930",
+      "original_size": 376832,
+      "C_and_vasm_exact": true,
+      "accepted_revision": "bdb2419de723c59bf3fc55397f1bc47d839c66e5c7a1adad6a74aebe7527ce58"
     }
   },
   "proposals": {
@@ -147,22 +174,53 @@
       ]
     },
     "P19": {
-      "status": "pending"
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "selected_id_card_clearance_tiers"
+      ],
+      "unapplied_components": "Existing six-byte security table remains six entries, distinct from eight-card terminal display domain."
     },
     "P22": {
-      "status": "pending"
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "ranged_weapon_health_damage",
+        "ranged_weapon_item_state_damage"
+      ]
     },
     "P23": {
-      "status": "pending"
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "snapshot_inventory_cursor_and_clear_hidden_latch"
+      ]
     },
     "P24": {
-      "status": "pending"
+      "status": "accepted_supported_name",
+      "change_kind": "validated_spacing_measure_semantics",
+      "changes": [
+        "measure_status_message_spacing_units"
+      ],
+      "evidence": "12 bounded status/deposit cases: D0 counts space runs plus one if any nonspace precedes NUL/CR; not character count or ordinary word count.",
+      "unapplied_components": "No complete register contract or arbitrary-length/no-wrap guarantee."
     },
     "P25": {
-      "status": "pending"
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "dequeue_status_message",
+        "service_status_message_duration"
+      ]
     },
     "P26": {
-      "status": "pending"
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "draw_status_message_line",
+        "clear_status_message_band"
+      ],
+      "unapplied_components": "1280-byte clear ends at hit snapshot; no new exclusive bitmap allocation/lifetime region."
     },
     "P27": {
       "status": "pending"
@@ -217,39 +275,80 @@
       ]
     },
     "A05": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_player_security_zone_tier"
+      ]
     },
     "A06": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_damage_flash_ticks_remaining"
+      ]
     },
     "A07": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_checkpoint_response_active"
+      ]
     },
     "A08": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_damage_service_countdown"
+      ]
     },
     "A09": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_saved_palette_color"
+      ]
     },
     "A10": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_terminal_deposited_item_ids"
+      ],
+      "limits": "64-byte reset extent is established; insertion scans until zero without a local bound and can write app+$31A. Existing adjacent modal-selection byte is preserved in the layout."
     },
     "A11": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ranged_weapon_fire_latched"
+      ]
     },
     "A12": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ranged_hit_visual_ticks_remaining"
+      ]
     },
     "A13": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ranged_weapon_variant_index"
+      ]
     },
     "A14": {
-      "status": "pending"
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_status_message_service_ticks_remaining"
+      ]
     }
   },
   "counts": {
-    "accepted_supported_name": 14,
-    "pending": 24,
-    "accepted": 4
+    "accepted_supported_name": 20,
+    "pending": 8,
+    "accepted": 14
   }
 }
