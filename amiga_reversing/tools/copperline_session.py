@@ -20,7 +20,7 @@ from pathlib import Path
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.copperline_runtime import (
-    MAX_SCENARIO_PHASES, observe, validate_memory_expectation,
+    MAX_SCENARIO_PHASES, observe, validate_memory_expectation, validate_custom_registers,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
@@ -530,9 +530,7 @@ def validate_capture(capture: object) -> None:
     if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads", "custom_registers"}:
         raise ValueError("Scenario capture supports only registers, memory_reads and custom_registers.")
     custom = capture.get("custom_registers", [])
-    if (not isinstance(custom, list) or len(custom) > 16
-            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
-        raise ValueError("Capture requires at most 16 named custom registers")
+    validate_custom_registers(custom)
     registers, reads = capture.get("registers", []), capture.get("memory_reads", [])
     allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)} | {"sr"}
     if (

@@ -1,0 +1,698 @@
+{
+  "scope": "Observed original-byte execution in pinned Copperline; breakpoint timing and sampled bytes are not all-path hardware guarantees. No guest snapshot is included.",
+  "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+  "initial_clear": {
+    "status": "ok",
+    "payload_identity": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "active_execution": {
+      "status": "target_payload_executing",
+      "process": null,
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x5ca"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x5ca",
+        "runtime_base": "0x00010000"
+      }
+    },
+    "phases": [
+      {
+        "name": "title_menu_loop",
+        "status": "hit",
+        "pc": "0x00010ba8"
+      },
+      {
+        "name": "ui_overlay_initialization",
+        "status": "hit",
+        "pc": "0x0001079e"
+      },
+      {
+        "name": "clear_before_start",
+        "status": "hit",
+        "pc": "0x000164a6",
+        "custom_registers": {
+          "DMACON": 1730,
+          "0x002": 1730,
+          "0x01c": 16432,
+          "0x01e": 256
+        },
+        "blitter_busy": false,
+        "blit_completion_request": false,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {}
+      },
+      {
+        "name": "clear_after_start",
+        "status": "hit",
+        "pc": "0x000164aa",
+        "custom_registers": {
+          "DMACON": 1730,
+          "0x002": 9922,
+          "0x01c": 16432,
+          "0x01e": 320
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {}
+      },
+      {
+        "name": "cpu_border_entry",
+        "status": "hit",
+        "pc": "0x000164ae",
+        "custom_registers": {
+          "DMACON": 1730,
+          "0x002": 9922,
+          "0x01c": 16432,
+          "0x01e": 320
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00013436",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {}
+      },
+      {
+        "name": "cpu_border_finished",
+        "status": "hit",
+        "pc": "0x000166ca",
+        "custom_registers": {
+          "DMACON": 1730,
+          "0x002": 9922,
+          "0x01c": 16432,
+          "0x01e": 320
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00013436",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {}
+      },
+      {
+        "name": "enqueue_ready",
+        "status": "hit",
+        "pc": "0x000166d4",
+        "custom_registers": {
+          "DMACON": 1730,
+          "0x002": 9922,
+          "0x01c": 16432,
+          "0x01e": 320
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00013436",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {}
+      },
+      {
+        "name": "gameplay_loop",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "custom_registers": {
+          "DMACON": 2018,
+          "0x002": 2018,
+          "0x01c": 16432,
+          "0x01e": 320
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {}
+      }
+    ]
+  },
+  "discarded_status_probes": "Named DMACONR custom.read was refused; debugger memory reads at custom-register addresses returned FFFF and were discarded as status evidence. Numeric-offset custom.read succeeds.",
+  "gameplay": {
+    "status": "incomplete",
+    "payload_identity": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified"
+    },
+    "active_execution": {
+      "status": "target_payload_executing",
+      "process": null,
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x830c"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x830c",
+        "runtime_base": "0x00010000"
+      }
+    },
+    "phases": [
+      {
+        "name": "hit_capture_entry",
+        "status": "hit",
+        "pc": "0x00016332",
+        "custom_registers": {
+          "DMACON": 2031,
+          "0x002": 10223,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x0001335a",
+        "descriptor_flags": {
+          "0x1335a": 96,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_capture_started",
+        "status": "hit",
+        "pc": "0x00016396",
+        "custom_registers": {
+          "DMACON": 2031,
+          "0x002": 2031,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 96,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_clear_started",
+        "status": "hit",
+        "pc": "0x000164aa",
+        "custom_registers": {
+          "DMACON": 2031,
+          "0x002": 10223,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 96,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_overlay_ready",
+        "status": "hit",
+        "pc": "0x000177b8",
+        "custom_registers": {
+          "DMACON": 2031,
+          "0x002": 10223,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x0001335a",
+        "descriptor_flags": {
+          "0x1335a": 224,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_restore_call",
+        "status": "hit",
+        "pc": "0x00017a8e",
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 10208,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x0001335a",
+        "descriptor_flags": {
+          "0x1335a": 224,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_restore_start",
+        "status": "hit",
+        "pc": "0x000163fa",
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 10208,
+          "0x01c": 16432,
+          "0x01e": 1928
+        },
+        "blitter_busy": false,
+        "blit_completion_request": false,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 224,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_restore_flags_clear",
+        "status": "hit",
+        "pc": "0x0001640c",
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x0001335a",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "hit_restore_return",
+        "status": "hit",
+        "pc": "0x00017a92",
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x0001335a",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "post_combat_idle",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "a5": "0x00dff000",
+        "descriptor_flags": {
+          "0x1335a": 64,
+          "0x133de": 64
+        },
+        "samples": {
+          "0x77d00": {
+            "size": 64,
+            "sha256": "ec59334ac90122a1a918b892358688cd8fe855052646b432f04c74d940f81a9a"
+          },
+          "0x77fe0": {
+            "size": 32,
+            "sha256": "1b09b440ac609d933111d51729e3046270e6ec523f5a177d1a6cde5684ef67b8"
+          },
+          "0x7f0": {
+            "size": 64,
+            "sha256": "f5a5fd42d16a20302798ef6ed309979b43003d2320d9f0e8ea9831a92759fb4b"
+          },
+          "0x10b0": {
+            "size": 64,
+            "sha256": "52032f39f27c6736c2ede652810bbf02b58fe9b68969b8d48d36f90d0fddcc23"
+          }
+        }
+      },
+      {
+        "name": "body_open_entry",
+        "status": "timeout",
+        "pc": "0x0001830c"
+      }
+    ],
+    "completed_prefix": "Original cold direct-payload boot through normal Feed encounter, hit capture, six hits, combat-exit direct restore and return to gameplay.",
+    "limit": "Body open entry source27E0 not observed in the following 15-second key64 attempt; no body capture/restore or second combat capture observed.",
+    "route_phase_outcomes": [
+      {
+        "name": "title_menu_loop",
+        "status": "hit"
+      },
+      {
+        "name": "ui_overlay_initialization",
+        "status": "hit"
+      },
+      {
+        "name": "initial_proximity_context",
+        "status": "hit"
+      },
+      {
+        "name": "entry_officer_card_transferred",
+        "status": "hit"
+      },
+      {
+        "name": "route_00_up_18",
+        "status": "hit"
+      },
+      {
+        "name": "route_01_right_44",
+        "status": "hit"
+      },
+      {
+        "name": "route_02_down_1",
+        "status": "hit"
+      },
+      {
+        "name": "route_03_up_36",
+        "status": "hit"
+      },
+      {
+        "name": "route_04_left_6",
+        "status": "hit"
+      },
+      {
+        "name": "route_05_right_1",
+        "status": "hit"
+      },
+      {
+        "name": "route_06_down_1",
+        "status": "hit"
+      },
+      {
+        "name": "route_07_up_64",
+        "status": "hit"
+      },
+      {
+        "name": "route_08_up_20",
+        "status": "hit"
+      },
+      {
+        "name": "route_09_right_36",
+        "status": "hit"
+      },
+      {
+        "name": "volume_word_before",
+        "status": "hit"
+      },
+      {
+        "name": "volume_word_after",
+        "status": "hit"
+      },
+      {
+        "name": "proximity_note_read",
+        "status": "hit"
+      },
+      {
+        "name": "proximity_note_output",
+        "status": "hit"
+      },
+      {
+        "name": "leave_band_four_left",
+        "status": "hit"
+      },
+      {
+        "name": "volume_reset_before",
+        "status": "hit"
+      },
+      {
+        "name": "volume_reset_after",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_00_left_5",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_01_right_1",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_02_down_1",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_03_up_46",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_04_right_19",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_05_down_15",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_06_right_3",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_07_down_1",
+        "status": "hit"
+      },
+      {
+        "name": "feed_approach_08_up_1",
+        "status": "hit"
+      },
+      {
+        "name": "feed_inventory_opened",
+        "status": "hit"
+      },
+      {
+        "name": "feed_inventory_ready",
+        "status": "hit"
+      },
+      {
+        "name": "feed_combat_entry",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_1_charged",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_1_hit",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_2_charged",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_2_hit",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_3_charged",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_3_hit",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_4_charged",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_4_hit",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_5_charged",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_5_hit",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_6_charged",
+        "status": "hit"
+      },
+      {
+        "name": "feed_attack_6_hit",
+        "status": "hit"
+      },
+      {
+        "name": "feed_after_combat_audio_entry",
+        "status": "hit"
+      }
+    ]
+  }
+}

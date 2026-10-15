@@ -218,8 +218,8 @@ Pandora declares its native `$55370`-byte copy to `$10000`, ending before entry
 The volume's logical two bytes use an eight-byte lease. Accepted native owner
 regions, runtime equates and materialized views reject conflicting destinations.
 Keyboard's five pointer/frame obligations remain open. No original-disk-loader
-parity is implied. `capture.custom_registers` accepts at most sixteen names and
-uses Copperline's read-only `custom.read`, including the stored values of
+parity is implied. `capture.custom_registers` accepts at most sixteen names or even numeric offsets
+below `$200` and uses Copperline's read-only `custom.read`, including the stored values of
 write-only Paula registers; CPU memory reads of those addresses are insufficient.
 
 For the volume comparison, use the command above with
@@ -723,3 +723,44 @@ Final reload check: 42,219 Pandora rows, successful three-row listing API read.
 All 121 preserved-KB execution entries reproduce through the normal builder;
 only the seven documented access kinds differ from the previous commit. The
 previous global-project-index orphan-metadata error remains unrelated.
+
+### Snapshot lifecycle observation
+
+`runtime/scenarios/pandora-overlay-clear-order.json` stops around the initial
+panel clear and CPU border/text work. `custom_registers` numeric offsets `$002`,
+`$01C` and `$01E` obtain live DMACONR/INTENAR/INTREQR through `custom.read`.
+The pinned runtime refused the named DMACONR query, while debugger `memory_reads`
+of custom-register addresses returned `FFFF`; those memory values were discarded
+as hardware-status evidence. The narrow adapter addition accepts only names or
+even offsets below `$200`, with the existing sixteen-register limit.
+
+The initial clear run reaches every canonical stop and then gameplay with the
+original payload identity verified. BBUSY is clear and BLIT request set at the
+first stop after BLTSIZE, border entry/exit and READY marking. BLITHOG remains
+set. This observes completion in this initial panel case; it does not establish
+all geometry, gameplay-display contention or arbitrary CPU/DMA ordering.
+See `runtime/observations/pandora-snapshot-lifecycle.json` for the compact receipt
+and `docs/validation/pandora-snapshot-lifecycle.json` for conditional contracts.
+
+The connected gameplay probe composes snapshot stops into the existing successful
+Feed input route, without duplicating its full scenario or editing guest state:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario /tmp/pandora-snapshot.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --rom /workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom \
+  --copperline /workspace/copperline-assessment/squashfs-root/usr/bin/copperline \
+  --direct-payload-contract pandora \
+  --state-directory .runtime-state/pandora-snapshot-reproduction \
+  --scenario /tmp/pandora-snapshot.json --run > /tmp/pandora-snapshot-result.json
+```
+
+Use a fresh state directory. The recorded run is **partial**, not an all-phases
+success: hit capture, six Feed hits, combat-exit restore and return to gameplay
+are observed; the subsequent body-open entry `$27E0` times out after 15 seconds.
+Later body phases do not run. Next capture nearest-object pointer, collision
+carry and object bit1 at inventory guards `$2736/$2748/$274A`; a timeout does not
+identify which guard failed. Second combat recapture and hit-tail palette reuse
+remain unobserved. Snapshot sample hashes and hardware values in the compact
+receipt are observations, not complete lifetime/alias guarantees.

@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-snapshot-lifecycle-initial-clear",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "clear_before_start",
+      "breakpoint_stable_key": "s0:000064A6:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "custom_registers": [
+          "DMACON",
+          2,
+          28,
+          30
+        ],
+        "memory_reads": [
+          {
+            "address": 78682,
+            "size": 44
+          },
+          {
+            "address": 78814,
+            "size": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "clear_after_start",
+      "breakpoint_stable_key": "s0:000064AA:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "custom_registers": [
+          "DMACON",
+          2,
+          28,
+          30
+        ],
+        "memory_reads": [
+          {
+            "address": 78682,
+            "size": 44
+          },
+          {
+            "address": 78814,
+            "size": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "cpu_border_entry",
+      "breakpoint_stable_key": "s0:000064AE:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "custom_registers": [
+          "DMACON",
+          2,
+          28,
+          30
+        ],
+        "memory_reads": [
+          {
+            "address": 78682,
+            "size": 44
+          },
+          {
+            "address": 78814,
+            "size": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "cpu_border_finished",
+      "breakpoint_stable_key": "s0:000066CA:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "custom_registers": [
+          "DMACON",
+          2,
+          28,
+          30
+        ],
+        "memory_reads": [
+          {
+            "address": 78682,
+            "size": 44
+          },
+          {
+            "address": 78814,
+            "size": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "enqueue_ready",
+      "breakpoint_stable_key": "s0:000066D4:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "custom_registers": [
+          "DMACON",
+          2,
+          28,
+          30
+        ],
+        "memory_reads": [
+          {
+            "address": 78682,
+            "size": 44
+          },
+          {
+            "address": 78814,
+            "size": 44
+          }
+        ]
+      }
+    },
+    {
+      "name": "gameplay_loop",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "custom_registers": [
+          "DMACON",
+          2,
+          28,
+          30
+        ],
+        "memory_reads": [
+          {
+            "address": 78682,
+            "size": 44
+          },
+          {
+            "address": 78814,
+            "size": 44
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    }
+  ]
+}

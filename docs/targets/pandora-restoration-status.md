@@ -2101,3 +2101,74 @@ files pass the repository style check. Exact C/vasm receipt
 reproduces all 376,832 original bytes. Source SHA256 remains
 `e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b`.
 No target facts or generated assembly changed in this follow-up.
+
+## Conditional snapshot lifecycle contracts
+
+The connected caller/packet model is recorded in
+`docs/validation/pandora-snapshot-lifecycle.json`. Four accepted catalog comments
+at `$27C0`, `$6400`, `$66C2` and `$7A8E` now carry the timing semantics into the
+normal source. They supplement existing field types and extents; no new memory
+ownership or relocation declarations were created.
+
+| Phase | Required ordering and meaning |
+| --- | --- |
+| Capture pending | Enqueue sets SAVED before calling capture. That flag does not certify completed pixels. Capture waits/acks the previous BLIT request, then starts its snapshot write. |
+| Capture completed, overlay drawn | The immediately following clear waits/acks capture completion before starting its own DMA. CPU border/text and READY follow without a post-clear software poll. |
+| Restore pending | Restore waits/acks the preceding packet, starts snapshot-to-screen DMA, then clears SAVED/READY and returns. The snapshot may still be a DMA source. |
+| Next packet reuse | Another capture/clear/restore waits before starting its DMA, fencing the preceding packet under the normal serialized completion-request protocol. This is not an arbitrary CPU-write fence. |
+| Warm restart | `$456/$45C` explicitly waits for DMACONR.BBUSY to clear before setup/title reuse. |
+
+For body inventory, opening requires a nearby object, the collision-bounds guard
+and its dead/object flag before `$2750` enters the body panel. Body capture is
+queued first, followed by backpack and pocket panels. Close uses the nearby-object
+inventory UI flag to select direct restore at `$27C0`; it does not test SAVED or
+queue membership. The next nearby-character clear waits for restore completion.
+
+For hit feedback, `$2F52` enters combat after the player/nearby-object/range/trade
+guards. Entry closes an active inventory, queues the opponent panel, then captures
+the hit background. Normal combat exit redraws nearby distance then restores the
+hit snapshot at `$7A8E`; self-destruct expiry has another guarded restore at
+`$0720`. A subsequent combat entry recaptures through bit 6 even if the descriptor
+was already registered. The content lifetime therefore follows capture calls,
+not registration lifetime or an immutable initial background.
+
+These fences assume an enabled, single serialized blitter and a completion token
+that has not been synthesized, consumed or made stale by another path. Setup
+clears interrupt enables then enables master/VERTB/COPER, leaving BLIT disabled;
+the level-3 handler nevertheless samples raw requests. The frame-completion latch
+is not a blitter fence. Static caller edges and CPU prefixes alone do not prove gameplay reachability;
+the runtime observation below now witnesses the hit capture/restore portion.
+
+Remaining gaps are explicit: the hit-tail palette reader's indirect/stack entry
+and phase exclusion, all alias writers, low body-storage allocation, and actual
+CPU-versus-DMA ordering at the unfenced border/text boundary. No relocation
+safety is inferred. The smallest remaining gameplay step is to capture the inventory-toggle guard
+inputs at `$2736/$2748/$274A`, rather than assuming the post-combat body is still
+the nearest object and within collision bounds.
+
+
+The bounded original Copperline replay now witnesses hit capture, six Feed hits,
+combat-exit direct restore and return to gameplay. Flags progress `$60` at capture,
+`$E0` when the overlay is ready, and `$40` after restore. Numeric-offset
+`custom.read` reports BBUSY clear and BLIT request set at the sampled post-capture,
+post-clear and post-restore stops, with BLITHOG enabled and BLIT interrupt disabled.
+This is observed completion by those stops, not an all-path bus-timing guarantee.
+The first 64 and final 32 snapshot bytes change at capture and retain identical
+hashes through overlay readiness, restore call and return; this samples 96 of
+768 bytes and does not prove full-buffer exclusivity.
+The next key64 attempt does not reach body-open entry `$27E0` within 15 seconds;
+its downstream body phases never run. Second combat recapture and palette-tail
+phase exclusion remain unobserved. The compact receipt preserves this partial
+outcome without publishing guest snapshots or retaining a full instruction trace.
+
+The only support change lets scenario captures use Copperline's documented even
+custom-register offsets below `$200`, retaining the sixteen-register bound.
+Named DMACONR queries were refused, and debugger memory reads returned `FFFF`;
+neither was used as hardware-status evidence. The combined focused suite passes
+**103 tests**. C and vasm reproduce all **376,832 original bytes**, receipt
+`9857609c4a334a758748c7c7c610ac05cae8001392542f0eb7ccddb724e5cdfa`;
+source SHA256 is
+`50610e260dbfc17f60c8f4f8a4f216b20543e8221de4924bf3e43f0ab6678ddb`.
+All 78 packaged asset/include identities and previous history prefixes remain
+intact. Four comments were added through catalog actions and accepted after
+verification; the generated source was never hand-edited.

@@ -1,0 +1,120 @@
+{
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "scope": "Conditional original-code lifecycle contracts; no exclusive allocation or relocation-safety proof.",
+  "coordinates": "Section-0 source offsets; runtime +0x10000 applies only to the verified copied prefix.",
+  "snapshot_states": [
+    {
+      "state": "capture_pending",
+      "entry": "enqueue bit6 sets bit5, then save starts BLTSIZE at source6392",
+      "ownership": "Blitter destination writer; bit5 can already be set before bytes are captured.",
+      "exit_fence": "clear wait at source6478 observes BLIT and ack at6482 before clear BLTSIZE at64A6."
+    },
+    {
+      "state": "captured_background",
+      "entry": "capture completion observed by following clear",
+      "ownership": "Stored pixels belong to this capture invocation, not necessarily first/original contents.",
+      "exit": "Direct restore, another bit6 enqueue, reset/title reuse, or another alias writer; exclusivity not established."
+    },
+    {
+      "state": "restore_pending",
+      "entry": "restore waits at63CE and acks at63D8, then starts source-to-screen packet at63FA",
+      "ownership": "Blitter snapshot reader; bits5/7 clear at6400/6406 without a final wait.",
+      "exit_fence": "Next serialized packet wait; a new capture cannot overwrite via its DMA until its own wait passes. This does not fence arbitrary CPU writes."
+    },
+    {
+      "state": "reusable_for_next_packet",
+      "entry": "Next packet observes and acks preceding completion",
+      "ownership": "Packet ordering established under normal single-blitter completion-token discipline, not a whole-program allocation contract."
+    }
+  ],
+  "caller_paths": [
+    {
+      "family": "body_inventory",
+      "storage": [
+        2032,
+        4336
+      ],
+      "descriptor_source": 13278,
+      "capture_path": [
+        "main inventory availability/toggle",
+        "player inventory opens, nearest object present, collision bounds carry and object flags bit1",
+        "source2750 -> open_nearby_object_inventory_panel",
+        "source281A enqueue body, then backpack and pocket"
+      ],
+      "consume_path": [
+        "inventory close tests nearby-object inventory UI flag",
+        "source27C0 direct restore",
+        "source27C8 nearby-character enqueue -> clear wait fences restore"
+      ],
+      "limits": "No queue-membership/SAVED test on restore. Subsequent normal body-open attempt timed out before entry27E0, so body runtime acquisition/consumption remains unobserved."
+    },
+    {
+      "family": "hit_feedback",
+      "storage": [
+        490752,
+        491520
+      ],
+      "descriptor_source": 13146,
+      "capture_path": [
+        "main source5CA -> service_nearby_trade_or_combat",
+        "alive player, not already in combat, valid nearby object, flags mask0x12 clear, interaction range, non-trading outcome",
+        "source2F52 -> initialize_combat_encounter",
+        "optional inventory close, opponent enqueue77AA, hit enqueue77B4"
+      ],
+      "consume_path": [
+        "finish_combat_encounter -> nearby-distance enqueue7A84 -> direct restore7A8E",
+        "self-destruct expiry combat branch -> nearby-distance enqueue716 -> direct restore720"
+      ],
+      "reuse": "Next combat entry enqueues hit again: bit6 recaptures despite existing registration/SAVED/READY. All-input capture uniqueness is not guaranteed.",
+      "limits": "Original normal Feed route now witnesses hit capture and direct exit restore. Second combat recapture remains a static conditional path, not an observed reentry."
+    }
+  ],
+  "completion_dependencies": {
+    "software": "INTREQR.BLIT waits/acknowledgements precede each packet; return and UI flags are not final waits.",
+    "interrupts": "Setup clears enables then sets master+VERTB+COPER, not BLIT. Level3 samples raw requests and prefers COPER/VERTB before BLIT. Do not treat the frame-completion latch as a blitter fence.",
+    "bus": "Setup enables BLITHOG. CPU border/text follows clear without software polling; hardware arbitration must be assessed separately.",
+    "warm_restart": "Source456/45C polls DMACONR bit14 until not busy before supervisor setup/title reuse; this is an explicit transition fence.",
+    "token_assumptions": "A completion request represents the preceding serialized packet; no intervening software synthesizes/stales/consumes the token, DMA remains enabled, and descriptor addresses/geometry retain the inspected values."
+  },
+  "remaining_blockers": [
+    "Hit capture/restore is now observed on the original normal Feed route. Body-open entry27E0 was not observed within the following 15-second key64 attempt; capture guard inputs at2736/2748/274A (nearest pointer, collision carry, object bit1) next. Second combat entry/recapture remains unobserved.",
+    "The palette work-buffer leaf reads hit snapshot tail 0x77FE0..0x78000. Its wrapper has no named direct reference; stack-trampoline/indirect entry and phase exclusion remain open, not disproved by absent references.",
+    "CPU border/text versus clear DMA ordering needs hardware-capable observation; packet wait fences alone do not guarantee arbitrary CPU alias reuse.",
+    "No complete inventory of indirect/interrupt alias writers or ownership of low body storage; no allocation/relocation claim."
+  ],
+  "canonical_annotation_offsets": [
+    26306,
+    25600,
+    10176,
+    31374
+  ],
+  "evidence_files": [
+    "tests/test_pandora_render_order.py",
+    "tests/test_pandora_framebuffer_lifetime.py"
+  ],
+  "runtime": {
+    "receipt": "runtime/observations/pandora-snapshot-lifecycle.json",
+    "initial_clear": "All canonical stops and gameplay hit; BBUSY clear and BLIT completion set after clear start through READY.",
+    "normal_gameplay": "Original Feed input route reaches hit capture, six attacks, direct combat-exit restore, return to gameplay. Snapshot flags transition 0x60 -> 0xE0 -> 0x40. BBUSY clear and BLIT completion set at sampled post-start/return points.",
+    "body_limit": "Guarded open entry27E0 not observed within 15 seconds of the subsequent key64 attempt; body phases did not execute.",
+    "guarantee_limit": "Debugger stops are discrete observations; no all-path arbitration, exclusive ownership, second capture or relocation safety guarantee.",
+    "sample_lifetime": "First64 and final32 hit snapshot bytes change at capture and retain identical hashes at overlay ready, restore call and restore return. This samples96 of768 bytes and does not prove full-buffer exclusivity."
+  },
+  "verification": {
+    "exact": true,
+    "receipt_id": "9857609c4a334a758748c7c7c610ac05cae8001392542f0eb7ccddb724e5cdfa",
+    "source_sha256": "50610e260dbfc17f60c8f4f8a4f216b20543e8221de4924bf3e43f0ab6678ddb",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832
+  },
+  "canonical_actions": [
+    "manual-0f239852b3d2459eb6323916c5e5e167",
+    "manual-4e29249d1e484b2983938bf532ab524d",
+    "manual-d8780a5d9bbc4e8c83ce3d6d347a49e9",
+    "manual-c08ab0edbc4d46a29d59bce8531aaca5"
+  ],
+  "tests": {
+    "combined_focused": "103 passed in 30.65s",
+    "components": "84 adapter/session and 19 snapshot/framebuffer cases; no new generic simulator tests in this slice."
+  }
+}

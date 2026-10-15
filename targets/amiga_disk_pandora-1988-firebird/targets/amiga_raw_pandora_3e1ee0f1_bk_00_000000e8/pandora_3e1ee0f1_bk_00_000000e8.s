@@ -5472,6 +5472,7 @@ abs_0_000127AE:
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	beq.b abs_0_000127C4
 	lea.l body_inventory_overlay(pc),a5
+    ; Nearby-object inventory flag selects direct body restore; queue membership and SAVED are not tested. The next nearby-character enqueue waits for restore completion before clearing.
 	bsr.w restore_ui_overlay_background
 abs_0_000127C4:
 	lea.l nearby_character_overlay(pc),a5
@@ -7617,6 +7618,7 @@ abs_0_000163CE:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
+    ; SAVED/READY clear after restore DMA starts, with no final wait. These logical UI flags do not certify that the snapshot DMA read has completed.
 	bclr.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
 	bclr.b #UI_OVERLAY_CALLBACK_READY_BIT,ui_overlay_descriptor_state_flags(a5)
 	rts
@@ -7855,6 +7857,7 @@ abs_0_000166B0:
 	beq.b abs_0_000166C2
 	bset.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
 	bsr.w save_ui_overlay_background
+    ; After optional capture, this clear waits/acks its completion before starting DMA. CPU border/text and ready marking follow without a post-clear software wait.
 abs_0_000166C2:
 	bsr.w clear_ui_overlay_rectangle
 	bsr.w draw_ui_overlay_border_and_title
@@ -9460,6 +9463,7 @@ abs_0_00017A4E:
 	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l hit_feedback_overlay.l,a5
+    ; Direct hit-snapshot restore follows nearby-distance redraw and waits for its prior packet. Return is asynchronous; a later combat entry recaptures via bit6.
 	bsr.w restore_ui_overlay_background
 	rts
 show_player_combat_hit_feedback:

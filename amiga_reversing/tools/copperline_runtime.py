@@ -92,6 +92,14 @@ def validate_memory_expectation(read):
             raise ValueError("Capture expectation must be size-matched hexadecimal bytes")
 
 
+def validate_custom_registers(custom):
+    # Copperline accepts named registers or even offsets in the custom block.
+    if (not isinstance(custom, list) or len(custom) > 16
+            or any(not ((isinstance(n, str) and re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n))
+                        or (type(n) is int and 0 <= n < 0x200 and n % 2 == 0)) for n in custom)):
+        raise ValueError("Capture requires at most 16 custom registers by name or even offset below 0x200")
+
+
 def capture_scenario_state(client, capture):
     if not isinstance(capture, dict):
         raise ValueError("Scenario capture must be an object")
@@ -159,11 +167,11 @@ def capture_scenario_state(client, capture):
                     a & m == e & m for a, e, m in zip(actual, expected, mask))}
     result = {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
     custom = capture.get("custom_registers", [])
-    if (not isinstance(custom, list) or len(custom) > 16
-            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
-        raise ValueError("Capture requires at most 16 named custom registers")
+    validate_custom_registers(custom)
     if custom:
-        result["custom_registers"] = {name: client.request("custom.read", {"reg": name}) for name in custom}
+        result["custom_registers"] = {
+            name if isinstance(name, str) else f"0x{name:03x}": client.request("custom.read", {"reg": name})
+            for name in custom}
     return result
 
 
