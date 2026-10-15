@@ -5903,7 +5903,7 @@ def _target_function_summary_action() -> dict[str, object]:
                 "entry_offset": {"type": "integer", "minimum": 0},
                 "table_offset": {"type": "integer", "minimum": 0},
                 "entry_count": {"type": "integer", "minimum": 1},
-                "inputs": {"type": "array", "minItems": 1},
+                "inputs": {"type": "array", "minItems": 0},
                 "context_name": {"type": "string"},
                 "results": {"type": "array", "description": "Validated callable results; only identity_input is supported."},
                 "effects": {"type": "object", "description": "Validated register, memory and escape partitions. Explicit registers require all 16 general registers."},
@@ -6023,7 +6023,7 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
             "value_kind": "struct_ptr",
             "struct_name": struct_name.strip(),
         })
-    if not inputs or len({str(item["location"]) for item in inputs}) != len(inputs):
+    if len({str(item["location"]) for item in inputs}) != len(inputs):
         raise ValueError("target.function_summary.add inputs must have distinct locations")
     if callable_kind == "direct":
         if entry_offset is None:

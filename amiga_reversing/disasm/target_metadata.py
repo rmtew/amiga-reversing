@@ -541,7 +541,6 @@ class FunctionSummaryMetadata:
             FunctionSummaryInputMetadata.from_dict(_json_object(item))
             for item in _json_list(inputs)
         )
-        assert parsed_inputs
         assert len({item.location for item in parsed_inputs}) == len(parsed_inputs)
         parsed_results = tuple(
             FunctionSummaryResultMetadata.from_dict(_json_object(item), parsed_inputs)

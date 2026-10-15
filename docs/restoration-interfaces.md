@@ -133,7 +133,10 @@ as fresh catalog state, so dependent commands require a new inspection.
 `target.function_summary.add` also accepts the canonical optional `results`,
 `effects` and `note` fields. Explicit register effects must partition all sixteen
 general registers; omitted effects remain unknown. The command validates the
-complete summary before appending it. Native metadata reading accepts compact
+complete summary before appending it. `inputs: []` is valid for an effect-only
+leaf with no typed pointer arguments; an identity result or input-relative effect
+still requires an existing input index. Empty and malformed input arrays remain
+distinct. Native metadata reading accepts compact
 and indented JSON for these arrays without changing the contract or ABI.
 
 Native policy storage accepts up to 16,384 structured data items and 16,384 named

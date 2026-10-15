@@ -1,0 +1,632 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "revision": "595fca2914a78eb507acb0936b5857e39260995d6bec23ccfd32cc9d3ec57849",
+  "subject_revision": "772b2b4149f8306658f8c4e2a399891088bcd3641389763ad16d12919fe154e5",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "layouts": [
+    {
+      "name": "ranged_hit_visual_descriptor",
+      "start": 296346,
+      "end": 296358,
+      "layout_id": "catalog-6acd7f0670fe498c95479108b55447cc"
+    },
+    {
+      "name": "ranged_hit_visual_state",
+      "start": 296370,
+      "end": 296396,
+      "layout_id": "catalog-5a14a60d4eeb42278e9d1ca7d513061a"
+    },
+    {
+      "name": "ranged_hit_visual_geometry_frames",
+      "start": 296458,
+      "end": 296584,
+      "layout_id": "catalog-e493d69de3be4f86aa00429d716caa55"
+    },
+    {
+      "name": "ranged_hit_visual_animation",
+      "start": 296584,
+      "end": 296602,
+      "layout_id": "catalog-b18d3daa443c43939736f10c09b0d542"
+    },
+    {
+      "name": "ranged_hit_visual_frame_ptrs",
+      "start": 296602,
+      "end": 296634,
+      "layout_id": "catalog-ac4bc294147341b2b9429ee20818d18e"
+    }
+  ],
+  "pointers": {
+    "total": 31,
+    "population_total": 31,
+    "exceptions_only": false,
+    "outcomes": {
+      "null": 5,
+      "symbolic": 25,
+      "unresolved": 1
+    },
+    "reasons": {
+      "field_boundary": 1,
+      "null_pointer": 5,
+      "resolved_runtime_symbol": 6,
+      "resolved_source": 19
+    },
+    "offset": 0,
+    "limit": 100,
+    "items": [
+      {
+        "section_index": 0,
+        "source_offset": 296346,
+        "end_offset": 296350,
+        "struct_name": "world_position_descriptor_prefix",
+        "field_name": "position_state_ptr",
+        "name": "ranged_hit_visual_descriptor",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 361906,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_state",
+          "symbol_group": "",
+          "target_offset": 296370,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296370,
+        "end_offset": 296374,
+        "struct_name": "world_position_render_state_prefix",
+        "field_name": "current_geometry_ptr",
+        "name": "ranged_hit_visual_state",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296374,
+        "end_offset": 296378,
+        "struct_name": "world_position_render_state_prefix",
+        "field_name": "previous_geometry_ptr",
+        "name": "ranged_hit_visual_state_previous_geometry_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296378,
+        "end_offset": 296382,
+        "struct_name": "world_position_render_state_prefix",
+        "field_name": "state_node_ptr",
+        "name": "ranged_hit_visual_state_state_node_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296386,
+        "end_offset": 296390,
+        "struct_name": "world_position_render_state_prefix",
+        "field_name": "position_descriptor_ptr",
+        "name": "ranged_hit_visual_state_position_descriptor_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 361882,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_descriptor",
+          "symbol_group": "",
+          "target_offset": 296346,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296390,
+        "end_offset": 296394,
+        "struct_name": "world_position_render_state_prefix",
+        "field_name": "attachment_state_ptr",
+        "name": "ranged_hit_visual_state_attachment_state_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296458,
+        "end_offset": 296462,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 350432,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 284896,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296462,
+        "end_offset": 296466,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_0",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "runtime_only",
+          "encoded_value": 432690,
+          "outcome": "symbolic",
+          "reason": "resolved_runtime_symbol",
+          "symbol": "scene_mask_bank_50",
+          "symbol_group": "scene_generated_masks"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296476,
+        "end_offset": 296480,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_1",
+        "resolution": {
+          "addend": 128,
+          "address_domain": "mapped_source",
+          "encoded_value": 350560,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 285024,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296480,
+        "end_offset": 296484,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_1",
+        "resolution": {
+          "addend": 32,
+          "address_domain": "runtime_only",
+          "encoded_value": 432722,
+          "outcome": "symbolic",
+          "reason": "resolved_runtime_symbol",
+          "symbol": "scene_mask_bank_50",
+          "symbol_group": "scene_generated_masks"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296494,
+        "end_offset": 296498,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_2",
+        "resolution": {
+          "addend": 256,
+          "address_domain": "mapped_source",
+          "encoded_value": 350688,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 285152,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296498,
+        "end_offset": 296502,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_2",
+        "resolution": {
+          "addend": 64,
+          "address_domain": "runtime_only",
+          "encoded_value": 432754,
+          "outcome": "symbolic",
+          "reason": "resolved_runtime_symbol",
+          "symbol": "scene_mask_bank_50",
+          "symbol_group": "scene_generated_masks"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296512,
+        "end_offset": 296516,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_3",
+        "resolution": {
+          "addend": 384,
+          "address_domain": "mapped_source",
+          "encoded_value": 350816,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 285280,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296516,
+        "end_offset": 296520,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_3",
+        "resolution": {
+          "addend": 96,
+          "address_domain": "runtime_only",
+          "encoded_value": 432786,
+          "outcome": "symbolic",
+          "reason": "resolved_runtime_symbol",
+          "symbol": "scene_mask_bank_50",
+          "symbol_group": "scene_generated_masks"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296530,
+        "end_offset": 296534,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_4",
+        "resolution": {
+          "addend": 512,
+          "address_domain": "mapped_source",
+          "encoded_value": 350944,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 285408,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296534,
+        "end_offset": 296538,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_4",
+        "resolution": {
+          "addend": 128,
+          "address_domain": "runtime_only",
+          "encoded_value": 432818,
+          "outcome": "symbolic",
+          "reason": "resolved_runtime_symbol",
+          "symbol": "scene_mask_bank_50",
+          "symbol_group": "scene_generated_masks"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296548,
+        "end_offset": 296552,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_5",
+        "resolution": {
+          "addend": 640,
+          "address_domain": "mapped_source",
+          "encoded_value": 351072,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 285536,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296552,
+        "end_offset": 296556,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_5",
+        "resolution": {
+          "addend": 160,
+          "address_domain": "runtime_only",
+          "encoded_value": 432850,
+          "outcome": "symbolic",
+          "reason": "resolved_runtime_symbol",
+          "symbol": "scene_mask_bank_50",
+          "symbol_group": "scene_generated_masks"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296566,
+        "end_offset": 296570,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "bitplane_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_6",
+        "resolution": {
+          "addend": 768,
+          "address_domain": "mapped_source",
+          "encoded_value": 351200,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "scene_pixel_cells_for_mask_bank_50",
+          "symbol_group": "",
+          "target_offset": 285664,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296570,
+        "end_offset": 296574,
+        "struct_name": "WorldPositionAnimationFrame",
+        "field_name": "mask_data_ptr",
+        "name": "ranged_hit_visual_geometry_frames_mask_data_ptr_6",
+        "resolution": {
+          "outcome": "unresolved",
+          "reason": "field_boundary"
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296584,
+        "end_offset": 296588,
+        "struct_name": "WorldPositionStateNode",
+        "field_name": "position_descriptor_ptr",
+        "name": "ranged_hit_visual_animation",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 361882,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_descriptor",
+          "symbol_group": "",
+          "target_offset": 296346,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296590,
+        "end_offset": 296594,
+        "struct_name": "WorldPositionStateNode",
+        "field_name": "frame_sequence_ptr",
+        "name": "ranged_hit_visual_animation_frame_sequence_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 362138,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_frame_ptrs",
+          "symbol_group": "",
+          "target_offset": 296602,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296596,
+        "end_offset": 296600,
+        "struct_name": "WorldPositionStateNode",
+        "field_name": "xy_sequence_ptr",
+        "name": "ranged_hit_visual_animation_xy_sequence_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296602,
+        "end_offset": 296606,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362102,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_6",
+          "symbol_group": "",
+          "target_offset": 296566,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296606,
+        "end_offset": 296610,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 361994,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames",
+          "symbol_group": "",
+          "target_offset": 296458,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296610,
+        "end_offset": 296614,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_2",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362012,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_1",
+          "symbol_group": "",
+          "target_offset": 296476,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296614,
+        "end_offset": 296618,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_3",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362030,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_2",
+          "symbol_group": "",
+          "target_offset": 296494,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296618,
+        "end_offset": 296622,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_4",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362048,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_3",
+          "symbol_group": "",
+          "target_offset": 296512,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296622,
+        "end_offset": 296626,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_5",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362066,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_4",
+          "symbol_group": "",
+          "target_offset": 296530,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296626,
+        "end_offset": 296630,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_6",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362084,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_5",
+          "symbol_group": "",
+          "target_offset": 296548,
+          "target_section_index": 0
+        }
+      },
+      {
+        "section_index": 0,
+        "source_offset": 296630,
+        "end_offset": 296634,
+        "struct_name": "WorldPositionDescriptorPointer",
+        "field_name": "frame_ptr",
+        "name": "ranged_hit_visual_frame_ptrs_frame_ptr_7",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 362102,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "ranged_hit_visual_geometry_frames_bitplane_data_ptr_6",
+          "symbol_group": "",
+          "target_offset": 296566,
+          "target_section_index": 0
+        }
+      }
+    ],
+    "has_more": false,
+    "next_offset": null,
+    "selection": "Canonical bound fields with explicit pointer semantics; scalar candidates excluded.",
+    "limits": [
+      "Static encoded fields; no claim about runtime mutations, pointee extent, or lifetime.",
+      "Native symbolic resolution establishes an expression, not semantic evidence for the type."
+    ]
+  },
+  "limits": [
+    "Initial encoded fields, not immutable runtime values or allocation/lifetime proof.",
+    "The adjacent second visual state and earlier frame sequence remain outside this family.",
+    "A1 return facts cover the three known consumers; arbitrary future callers are not inferred.",
+    "Ray termination and callback/IRQ/DMA exclusion remain open."
+  ]
+}

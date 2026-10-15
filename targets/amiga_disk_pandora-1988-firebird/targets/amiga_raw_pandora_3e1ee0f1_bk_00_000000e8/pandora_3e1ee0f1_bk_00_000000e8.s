@@ -6294,7 +6294,7 @@ world_object_sort_source_ptrs:
 	dc.l bank_manager_positions_4B954_2	; descriptor_ptr
 	dc.l technician_positions_4B1DA_2	; descriptor_ptr
 abs_0_0001318E:
-	dc.l abs_0_0005859A	; pointer_table
+	dc.l ranged_hit_visual_descriptor	; pointer_table
 	dc.l abs_0_000585A6	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_18	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_19	; pointer_table
@@ -9594,15 +9594,15 @@ show_player_combat_hit_feedback:
 	andi.b #28,d0
 	lea.l abs_0_000585E6.l,a0
 	movea.l $0(a0,d0.w),a1
-	lea.l abs_0_000585B2.l,a2
-	movea.l $0010(a2),a3
-	move.l a1,$0000(a2)
-	move.l a1,$0004(a2)
+	lea.l ranged_hit_visual_state.l,a2
+	movea.l world_position_render_state_prefix_position_descriptor_ptr(a2),a3
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a2)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a2)
 	lea.l player_world_object.l,a5
 	move.w world_object_shared_prefix_world_x(a5),d0
 	subi.w #10000,d0
-	move.w d0,$0004(a3)
-	move.w world_object_shared_prefix_world_y(a5),$0006(a3)
+	move.w d0,world_position_descriptor_prefix_world_x(a3)
+	move.w world_object_shared_prefix_world_y(a5),world_position_descriptor_prefix_world_y(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
 show_opponent_combat_hit_feedback:
@@ -9631,8 +9631,8 @@ service_combat_hit_feedback_timers:
 	beq.b abs_0_00017B54
 	subq.b #1,app_player_hit_feedback_ticks_remaining(a6)
 	bne.b abs_0_00017B54
-	lea.l abs_0_000585B2.l,a0
-	move.l #abs_0_00058588,(a0)
+	lea.l ranged_hit_visual_state.l,a0
+	move.l #abs_0_00058588,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
 abs_0_00017B54:
 	tst.b app_opponent_hit_feedback_ticks_remaining(a6)
 	beq.b abs_0_00017B6C
@@ -9643,10 +9643,10 @@ abs_0_00017B54:
 abs_0_00017B6C:
 	rts
 clear_combat_hit_feedback:
-	lea.l abs_0_000585B2.l,a0
+	lea.l ranged_hit_visual_state.l,a0
 	lea.l abs_0_000585CC.l,a1
 	lea.l abs_0_00058588.l,a2
-	move.l a2,(a0)
+	move.l a2,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
 	move.l a2,(a1)
 	rts
 display_current_item_name:
@@ -11233,13 +11233,13 @@ initial_ranged_weapon_ammunition:
 ranged_weapon_ammunition_remaining:
 	dc.b $00,$00	; ranged_weapon_ammunition
 service_selected_ranged_weapon_fire:
-	btst.b #1,player_world_object_world_object_flags.l
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	bne.w abs_0_000193D8
 	tst.w app_ranged_hit_visual_ticks_remaining(a6)
 	beq.b abs_0_0001926E
 	subq.w #1,app_ranged_hit_visual_ticks_remaining(a6)
 	bne.b abs_0_0001926E
-	clr.l abs_0_000585BA.l
+	clr.l ranged_hit_visual_state_state_node_ptr.l
 abs_0_0001926E:
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
@@ -11272,7 +11272,7 @@ abs_0_0001926E:
 	asl.w #1,d3
 	add.w d2,d0
 	add.w d3,d1
-abs_0_000192DE:
+advance_ranged_effect_ray_point:
 	add.w d2,d0
 	add.w d3,d1
 	move.w d0,d5
@@ -11292,24 +11292,25 @@ abs_0_000192DE:
 	lsr.l #7,d0
 	lea.l tile_movement_block_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
-	bne.w abs_0_00019410
+	bne.w handle_ranged_effect_blocked_tile
 	move.w d5,d0
 	move.w d6,d1
 	movea.l app_active_world_object_ptr_table(a6),a0
-abs_0_00019320:
+    ; Descriptor order then attachments; flag 6 skips the descriptor, flag 3 skips a state. Half-open bounds use WORD arithmetic. NULL resumes ray stepping; active count does not bound this scan.
+scan_ranged_effect_position_descriptors:
 	move.l (a0)+,d4
-	beq.b abs_0_000192DE
+	beq.b advance_ranged_effect_ray_point
 	movea.l d4,a1
 	cmpa.l #player_position_descriptor,a1
-	beq.b abs_0_00019320
-	cmpa.l #$5859A,a1
-	beq.b abs_0_00019320
+	beq.b scan_ranged_effect_position_descriptors
+	cmpa.l #ranged_hit_visual_descriptor,a1
+	beq.b scan_ranged_effect_position_descriptors
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a2
-abs_0_0001933A:
+test_ranged_effect_state_chain:
 	btst.b #6,world_position_state_record_world_object_flags(a2)
-	bne.b abs_0_00019320
+	bne.b scan_ranged_effect_position_descriptors
 	btst.b #3,world_position_state_record_world_object_flags(a2)
-	bne.w abs_0_000193DA
+	bne.w next_ranged_effect_attachment_state
 	move.w world_position_descriptor_prefix_world_x(a1),d4
 	move.w world_position_descriptor_prefix_world_y(a1),d5
 	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
@@ -11320,55 +11321,57 @@ abs_0_0001933A:
 	move.w d0,d6
 	move.w d1,d7
 	sub.w d4,d6
-	bmi.b abs_0_000193DA
+	bmi.b next_ranged_effect_attachment_state
 	sub.w d5,d7
-	bmi.b abs_0_000193DA
+	bmi.b next_ranged_effect_attachment_state
 	cmp.w world_position_collision_bounds_world_x_extent(a3),d6
-	bcc.b abs_0_000193DA
+	bcc.b next_ranged_effect_attachment_state
 	cmp.w world_position_collision_bounds_world_y_extent(a3),d7
-	bcc.b abs_0_000193DA
+	bcc.b next_ranged_effect_attachment_state
 	lea.l world_object_ptr_table_object_ptr_1.l,a4
-abs_0_00019386:
+match_ranged_hit_descriptor_to_world_object:
 	move.l (a4)+,d4
-	beq.w abs_0_0001941E
+	beq.w handle_ranged_hit_without_world_object
 	movea.l d4,a5
-	cmpa.l $002C(a5),a1
-	bne.b abs_0_00019386
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
+	cmpa.l world_object_shared_prefix_position_descriptor_ptr(a5),a1
+	bne.b match_ranged_hit_descriptor_to_world_object
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #0,world_position_state_record_interaction_flags(a0)
 	bne.b abs_0_000193A4
-	bsr.w abs_0_00019486
+	bsr.w activate_ranged_hit_visual_and_return_descriptor
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
 abs_0_000193A4:
-	move.w d0,$0004(a1)
-	move.w d1,$0006(a1)
+	move.w d0,world_position_descriptor_prefix_world_x(a1)
+	move.w d1,world_position_descriptor_prefix_world_y(a1)
 	move.w app_ranged_weapon_variant_index(a6),d0
-	move.b $004C(a5),d1
+	move.b world_object_shared_prefix_item_state(a5),d1
 	sub.b ranged_weapon_item_state_damage(pc,d0.w),d1
 	bpl.b abs_0_000193BC
 	clr.b d1
 abs_0_000193BC:
-	move.b d1,$004C(a5)
-	move.b $003D(a5),d1
+	move.b d1,world_object_shared_prefix_item_state(a5)
+	move.b world_object_shared_prefix_hit_points+1(a5),d1
 	sub.b ranged_weapon_health_damage(pc,d0.w),d1
-	bmi.b abs_0_000193EC
-	beq.b abs_0_000193EC
-	move.b d1,$003D(a5)
+	bmi.b finish_ranged_hit_object_defeat
+	beq.b finish_ranged_hit_object_defeat
+	move.b d1,world_object_shared_prefix_hit_points+1(a5)
 	move.b app_ranged_weapon_fire_latched(a6),d0
 abs_0_000193D4:
 	move.b d0,app_ranged_weapon_fire_latched(a6)
 abs_0_000193D8:
 	rts
-abs_0_000193DA:
+next_ranged_effect_attachment_state:
 	move.l world_position_state_record_attachment_state_ptr(a2),d4
-	beq.w abs_0_00019320
+	beq.w scan_ranged_effect_position_descriptors
 	movea.l d4,a2
-	bra.w abs_0_0001933A
+	bra.w test_ranged_effect_state_chain
 ranged_weapon_health_damage:
 	dc.b $1E,$5A	; lookup_table
 ranged_weapon_item_state_damage:
 	dc.b $32,$64	; lookup_table
-abs_0_000193EC:
-	move.l $0008(a5),d0
+finish_ranged_hit_object_defeat:
+	move.l world_object_shared_prefix_interaction_completion_callback(a5),d0
 	beq.b abs_0_000193F6
 	movea.l d0,a0
     ; This path does not save A5 around the call. The four known initial targets preserve A5 on normal returns. Memory/escape effects and later target mutation remain unknown.
@@ -11380,36 +11383,39 @@ abs_0_000193F6:
 	move.w #$11B,d0
 	jsr start_feedback_audio_sequence.l
 	rts
-abs_0_00019410:
-	bsr.w abs_0_00019486
-	move.w d5,$0004(a1)
-	move.w d6,$0006(a1)
+handle_ranged_effect_blocked_tile:
+	bsr.w activate_ranged_hit_visual_and_return_descriptor
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
+	move.w d5,world_position_descriptor_prefix_world_x(a1)
+	move.w d6,world_position_descriptor_prefix_world_y(a1)
 	rts
-abs_0_0001941E:
+handle_ranged_hit_without_world_object:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #0,world_position_state_record_interaction_flags(a0)
 	bne.b abs_0_0001942E
-	bsr.w abs_0_00019486
+	bsr.w activate_ranged_hit_visual_and_return_descriptor
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
 abs_0_0001942E:
-	move.w d0,$0004(a1)
-	move.w d1,$0006(a1)
+	move.w d0,world_position_descriptor_prefix_world_x(a1)
+	move.w d1,world_position_descriptor_prefix_world_y(a1)
 	btst.b #4,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_0001944A
-	lea.l abs_0_0001944C(pc),a0
+	lea.l ranged_force_field_resistance_message(pc),a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 abs_0_0001944A:
 	rts
-abs_0_0001944C:
+ranged_force_field_resistance_message:
 	dc.b "P.S.I. say 'nice try, but force fields are impregnable.'",$00
 	dc.b $00
-abs_0_00019486:
-	lea.l abs_0_000585B2.l,a0
-	lea.l abs_0_00058688.l,a1
-	move.l a1,$0008(a0)
-	bclr.b #0,$000A(a1)
-	clr.w $0010(a1)
-	movea.l $0010(a0),a1
+    ; When activated, all three callers write through the visual's loaded descriptor. Its 25 eligible service visits expire independently of animation, unbinding the node while preserving geometry.
+activate_ranged_hit_visual_and_return_descriptor:
+	lea.l ranged_hit_visual_state.l,a0
+	lea.l ranged_hit_visual_animation.l,a1
+	move.l a1,world_position_render_state_prefix_state_node_ptr(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	movea.l world_position_render_state_prefix_position_descriptor_ptr(a0),a1
 	move.w #$19,app_ranged_hit_visual_ticks_remaining(a6)
 	rts
 snapshot_inventory_cursor_and_clear_hidden_latch:
@@ -12204,7 +12210,7 @@ initialize_world_state:
 	move.w #$BB8,app_self_destruct_service_ticks_remaining(a6)
 	move.l #$24C28,$64C0.w
 	move.w #$2710,d0
-	move.w d0,abs_0_0005859E.l
+	move.w d0,ranged_hit_visual_descriptor_world_x.l
 	move.w d0,abs_0_000585AA.l
 	move.w #$AAA,abs_0_00010772.l
 	lea.l absolute_slot_0000397C.l,a0
@@ -19301,39 +19307,118 @@ scene_pixel_cells_for_mask_bank_55:
 abs_0_00058588:
 	dc.b $00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$10,$00,$20,$00,$00
 	dc.b $00,$00
-abs_0_0005859A:
-	dc.b $00,$05,$85,$B2
-abs_0_0005859E:
-	dcb.b $8,$00
+ranged_hit_visual_descriptor:
+	dc.l ranged_hit_visual_state	; position_state_ptr
+ranged_hit_visual_descriptor_world_x:
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
 abs_0_000585A6:
 	dc.b $00,$05,$85,$CC
 abs_0_000585AA:
 	dcb.b $8,$00
-abs_0_000585B2:
-	dcb.b $8,$00
-abs_0_000585BA:
-	dcb.b $9,$00
-	dc.b $05,$85,$9A,$00,$00,$00,$00,$00,$00
+ranged_hit_visual_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+ranged_hit_visual_state_state_node_ptr:
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l ranged_hit_visual_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
 abs_0_000585CC:
 	dcb.b $11,$00
 	dc.b $05,$85,$A6,$00,$00,$00,$00,$00,$00
 abs_0_000585E6:
 	dc.b $00,$05,$84,$F8,$00,$05,$85,$0A,$00,$05,$85,$1C,$00,$05,$85,$2E
 	dc.b $00,$05,$85,$40,$00,$05
-	dc.b $85,$52,$00,$05,$85,$64,$00,$05,$85,$76,$00,$05,$85,$88,$00,$05
-	dc.b $58,$E0,$00,$06,$9A,$32,$00,$01,$00,$10,$00,$10,$00,$00,$00,$00
-	dc.b $00,$05,$59,$60,$00,$06,$9A,$52,$00,$01,$00,$10,$00,$10,$00,$00
-	dc.b $00,$00,$00,$05,$59,$E0,$00,$06,$9A,$72,$00,$01,$00,$10,$00,$10
-	dc.b $00,$00,$00,$00,$00,$05,$5A,$60,$00,$06,$9A,$92,$00,$01,$00,$10
-	dc.b $00,$10,$00,$00,$00,$00,$00,$05,$5A,$E0,$00,$06,$9A,$B2,$00,$01
-	dc.b $00,$10,$00,$10,$00,$00,$00,$00,$00,$05,$5B,$60,$00,$06,$9A,$D2
-	dc.b $00,$01,$00,$10,$00,$10,$00,$00,$00,$00,$00,$05,$5B,$E0,$00,$06
-	dc.b $9A,$F2,$00,$01,$00,$10,$00,$10,$00,$00,$00,$00
-abs_0_00058688:
-	dc.b $00,$05,$85,$9A,$07,$80,$00,$05,$86,$9A,$04
-	dcb.b $8,$00
-	dc.b $05,$86,$76,$00,$05,$86,$0A,$00,$05,$86,$1C,$00,$05,$86,$2E,$00
-	dc.b $05,$86,$40,$00,$05,$86,$52,$00,$05,$86,$64,$00,$05,$86,$76
+	dc.b $85,$52,$00,$05,$85,$64,$00,$05,$85,$76,$00,$05,$85,$88
+ranged_hit_visual_geometry_frames:
+	dc.l scene_pixel_cells_for_mask_bank_50	; bitplane_data_ptr
+	dc.l scene_mask_bank_50	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_1:
+	dc.l scene_pixel_cells_for_mask_bank_50+$80	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$20	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_2:
+	dc.l scene_pixel_cells_for_mask_bank_50+$100	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$40	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_3:
+	dc.l scene_pixel_cells_for_mask_bank_50+$180	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$60	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_4:
+	dc.l scene_pixel_cells_for_mask_bank_50+$200	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$80	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_5:
+	dc.l scene_pixel_cells_for_mask_bank_50+$280	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$A0	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_6:
+	dc.l scene_pixel_cells_for_mask_bank_50+$300	; bitplane_data_ptr
+	dc.b $00,$06	; mask_data_ptr (first 2 of 4 bytes)
+	dc.b $9A,$F2
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_animation:
+	dc.l ranged_hit_visual_descriptor	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $80	; phase_step
+	dc.l ranged_hit_visual_frame_ptrs	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+ranged_hit_visual_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+ranged_hit_visual_frame_ptrs:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_1:
+	dc.l ranged_hit_visual_geometry_frames	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_2:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_1	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_3:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_2	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_4:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_3	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_5:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_4	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_6:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_5	; frame_ptr
+ranged_hit_visual_frame_ptrs_frame_ptr_7:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 world_object_musician:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_musician	; interaction_callback

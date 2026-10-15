@@ -3130,14 +3130,14 @@ static int append_metadata_function_summary_local(const char *object_start, cons
   if (!copy_policy_text(summary->function_summary_id, sizeof(summary->function_summary_id), function_summary_id) ||
       !copy_policy_text(summary->context_name, sizeof(summary->context_name), context_name)) return 0;
   cursor = json_array_field_local(object_start, object_end, "inputs", &inputs_end);
-  while (cursor != NULL && cursor < inputs_end) {
+  if (cursor == NULL) return 0;
+  cursor = json_skip_ws_local(cursor, inputs_end);
+  while (cursor < inputs_end) {
     const char *input_end;
     const char *input_start = json_next_object_local(cursor, inputs_end, &input_end);
-    if (input_start == NULL) break;
-    if (!append_metadata_function_summary_input_local(input_start, input_end, summary)) return 0;
-    cursor = input_end;
+    if (input_start == NULL || !append_metadata_function_summary_input_local(input_start, input_end, summary)) return 0;
+    cursor = json_skip_ws_local(input_end, inputs_end);
   }
-  if (summary->input_count == 0U) return 0;
   cursor = json_array_field_local(object_start, object_end, "results", &results_end);
   if (cursor == NULL) return 0;
   cursor = json_skip_ws_local(cursor, results_end);
@@ -9358,7 +9358,7 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
        index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
     const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[index];
     uint8_t input_index;
-    if (!summary->has_section_index || summary->input_count == 0U ||
+    if (!summary->has_section_index ||
         summary->input_count > M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
         (summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
          !validate_policy_offset_local(diagnostics, object, 1U, summary->section_index, summary->entry_offset,

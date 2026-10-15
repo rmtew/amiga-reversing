@@ -2546,3 +2546,99 @@ bounded Pandora scan/palette/render witnesses. The shared hit/palette tail,
 callback/IRQ/DMA lifetimes, unknown helper effects and unchecked game paths remain
 separate restoration/relocation obligations. No PR merge, review-state change,
 new gameplay route, ROM download or private-input copy was performed.
+
+## Whole-file continuation: ranged-impact visual and point scan
+
+The next connected batch restores five disjoint existing-format ranges, **214
+bytes** in total: descriptor `$4859A..$485A6`, 26-byte render prefix
+`$485B2..$485CC`, seven 18-byte geometry records `$4860A..$48688`, animation
+header `$48688..$4869A`, and eight physical frame pointers `$4869A..$486BA`.
+Addresses here are source offsets, established by native source mappings.
+The adjacent second descriptor/state, earlier combat frame sequence, and gaps
+between these ranges remain outside this classification. Combat feedback also
+uses the newly typed render prefix; the ranged names identify this activation
+path, not exclusive ownership of the storage.
+
+Ten semantic code/text names connect the point scan, object-owner search,
+blocked-tile and unmatched-hit paths, defeat path, force-field message and visual
+activation helper. Existing record types now propagate through direct LEAs,
+field loads and the helper's register-preservation contract. Four scoped register
+facts cover the object candidate and three known coordinate-store consumers;
+two immediate operands use existing domain bit names. All mutations use the
+revision-checked catalog, not hand edits to generated assembly.
+
+The original helper at `$9486` preserves D0-D7 and A2-A7 on a normal return with
+valid fixed records/app base and disjoint stack. It loads A1 from the visual
+state's descriptor field. All three direct call sites then store impact
+coordinates through that returned descriptor. A changed descriptor-field test
+confirms this is a load, not an immutable-address return guarantee. Two callers
+can bypass activation when the hit state's interaction bit 0 is set: those paths
+retain and update the incoming hit descriptor. Both bypasses are exercised.
+The three A1 facts are valid descriptor types on both arms; they do not force a
+particular address or automatically type hypothetical future callers. Memory
+and escape effects remain unknown.
+
+The initialized animation increments before selecting a cycling frame. Resetting
+its clock to zero therefore selects physical sequence slots 2 through 7, then
+held slot 0, which repeats the final geometry; this is not proof that slot 1 is
+shown. Its independent timer starts at 25 **eligible service visits**. An
+inactive-player guard skips timer service, and only the transition from 1 to 0
+unbinds the animation node. Geometry is retained. These bounded CPU witnesses do
+not establish drawing completion, seconds/frame timing or lifetime ownership.
+
+The per-point scan traverses a NULL-terminated descriptor table, without using
+the adjacent active-count slot. It excludes the player and visual descriptors,
+then visits attachment states in order. Flag bit 6 skips the descriptor; bit 3
+skips only that state. Descriptor coordinates, state offsets and geometry origins
+compose in WORD arithmetic. For ordinary nonwrapping coordinates the signed
+negative/unsigned extent tests implement half-open bounds. First matching table
+entry wins. NULL resumes ray stepping; overall ray termination remains unproved.
+
+The normal callable-summary path previously required a typed pointer input even
+for a leaf whose useful contract is register preservation. The general catalog,
+metadata model and native reader now accept `inputs: []`, preserving strict
+member validation and rejection of references to nonexistent inputs. No dummy
+input or target-specific native exception was added. Nineteen focused summary
+checks pass, including catalog/history/native projection and exact assembly.
+The combined applicable run passed **54 tests**; three additional original CPU
+checks for both bypasses and the mutable descriptor passed separately. Together
+these are **57 distinct focused cases**, including 25 ranged-visual/scan cases.
+The previously green 811-native/318-Python baseline was reused, not rerun or
+claimed as fresh validation of this small extension.
+
+The read-only `pandora_ranged_visual_inventory` tool collects canonical bound
+fields and authoritative native listing resolutions without parsing generated
+source or translating encoded addresses itself. Its checked-in report is
+`docs/validation/pandora-ranged-hit-visual.json`: **31 pointer fields, 25 symbolic,
+five NULL, one unresolved `field_boundary`** at the final geometry mask field
+(source `$4867A`). The six resolved mask references name existing generated
+runtime mask storage. The boundary exception remains explicit; a symbolic
+expression alone would not prove its extent or lifetime.
+
+Reproduction from the repository root, with the resident localhost:8123 service
+and built native backend:
+
+```sh
+make -j4
+.venv/bin/python -m pytest -q tests/test_pandora_ranged_hit_visual.py tests/test_pandora_scripted_pose.py tests/test_pandora_palette_sort_ammunition.py tests/test_function_summary_catalog_effects.py -m 'not real_integration'
+.venv/bin/python -m amiga_reversing.tools.pandora_ranged_visual_inventory /tmp/pandora-ranged-hit-visual.json
+.venv/bin/python -m amiga_reversing.tools.rendered_source_roundtrip_report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --update-rendered-source --no-write-report --json
+```
+
+The prebatch animation inventory found 85 NULL XY pointers and one field-boundary
+exception among 86 headers; this batch does not invent an XY sequence to fill
+that gap. The icelord boundary, positive-X player-tail overlap, adjacent visual
+records, arbitrary callback effects and IRQ/DMA lifetimes remain open. The shared
+`$77FE0..$78000` tail remains blocked for relocation. This is connected source
+restoration, not a claim of whole-file completion or a relocated executable.
+
+Final C and independent vasm verification reproduces all 376,832 bytes exactly.
+Receipt: `070a1b7cd1fa0afbe096c318d79722f7672e98700b6baac7b9a9634b939caa32`;
+rendered-source SHA256:
+`36b0703b44bf05c6554563a836dda28d8d37f1cd1f4c31f51da0274a846179ce`.
+The original image and all 78 asset/include identities remain unchanged; both
+histories retain their published byte prefixes. This batch appends 30 actions
+(including the final purpose-comment refinement) with matching accepted decisions.
+Target metadata is unchanged. Changed C lines have no new style findings.
+The resident service is PID 205091 at http://127.0.0.1:8123/. No runtime route
+exploration or relocation was performed in this batch.

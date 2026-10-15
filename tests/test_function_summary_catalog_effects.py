@@ -100,7 +100,7 @@ def test_normal_command_contract_replays_through_metadata_and_native_reader(tmp_
 
 
 @pytest.mark.c_backend
-@pytest.mark.parametrize("array", ["registers", "memory", "escapes", "results"])
+@pytest.mark.parametrize("array", ["registers", "memory", "escapes", "results", "inputs"])
 def test_native_contract_arrays_reject_a_final_nonobject_member(tmp_path, array):
     _requires_c_backend_dlls()
     binary = tmp_path / "fixture.bin"
@@ -117,8 +117,8 @@ def test_native_contract_arrays_reject_a_final_nonobject_member(tmp_path, array)
     path.write_text(json.dumps(metadata, indent=2))
     valid = c_backend.analyze_project_source_with_c_backend(source, metadata_path=path)
     assert sum(len(section["function_summaries"]) for section in valid["sections"]) == 1
-    if array == "results":
-        summary["results"].append(None)
+    if array in {"results", "inputs"}:
+        summary[array].append(None)
     elif array == "registers":
         summary["effects"]["registers"]["locations"].append(None)
     else:
@@ -154,3 +154,36 @@ def test_native_contract_arrays_accept_whitespace_without_losing_members(tmp_pat
     assert len(summaries) == 1
     assert summaries[0]["effects"] == p["effects"]
     assert summaries[0]["results"] == p["results"]
+
+
+def test_zero_input_effect_summary_rejects_a_nonexistent_identity_result():
+    p = parameters()
+    p['inputs'] = []
+    with pytest.raises(ValueError, match='results|input'):
+        target_catalog_manual_payload('target.function_summary.add', p)
+
+
+@pytest.mark.c_backend
+def test_zero_input_effect_summary_survives_catalog_history_and_native_projection(tmp_path):
+    _requires_c_backend_dlls()
+    binary = tmp_path/'effect_leaf.bin'
+    binary.write_bytes(bytes.fromhex('4e754e75'))
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+        address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+        code_start_offset=0, display_path=str(binary), analysis_cache_path=tmp_path/'cache')
+    write_target_metadata(tmp_path, TargetMetadata(target_type='program', entry_register_seeds=()))
+    p = parameters()
+    p['inputs'], p['results'] = [], []
+    kind, payload = target_catalog_manual_payload('target.function_summary.add', p)
+    append_manual_actions(tmp_path, actions=[(ManualActionKind(kind), payload)], binary_source=source)
+    metadata = json.loads(effective_metadata_text(tmp_path))
+    assert metadata['function_summaries'][0]['inputs'] == []
+    with effective_metadata_file(tmp_path) as path:
+        analysis = c_backend.analyze_project_source_with_c_backend(source, metadata_path=path)
+        rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=path)
+    summaries = [item for section in analysis['sections'] for item in section['function_summaries']]
+    assert len(summaries) == 1
+    assert summaries[0]['inputs'] == [] and summaries[0]['results'] == []
+    assert summaries[0]['effects'] == p['effects']
+    rebuilt, _ = c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', rendered)
+    assert rebuilt == binary.read_bytes()
