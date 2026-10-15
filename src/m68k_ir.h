@@ -548,10 +548,11 @@ typedef struct M68kAnalysisEntryComment {
 
 typedef struct M68kAnalysisRssetLayoutRegion {
   uint32_t offset;
-  uint8_t size;
+  /* Aggregate app storage may exceed 255 bytes (for example row lookups).
+   * Keep the eight-byte prefix; signed listing extents cap size at INT16_MAX. */
+  uint16_t size;
   uint8_t flags;
   uint8_t storage_kind_id;
-  uint8_t reserved[1];
   char layout_name[32];
   char base_symbol[64];
   char sizeof_symbol[64];

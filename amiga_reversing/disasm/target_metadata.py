@@ -840,7 +840,7 @@ class RssetLayoutRegionMetadata:
         seed_origin = _target_metadata_seed_origin(seed_origin)
         review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
-        assert size is None or (isinstance(size, int) and 0 < size <= 255)
+        assert size is None or (isinstance(size, int) and 0 < size <= 32767)
         assert layout_name is None or isinstance(layout_name, str)
         assert base_symbol is None or isinstance(base_symbol, str)
         assert sizeof_symbol is None or isinstance(sizeof_symbol, str)

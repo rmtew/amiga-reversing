@@ -1718,7 +1718,7 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
 static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
   uint8_t has_entry_offset, const char *register_name, uint8_t seed_kind, const char *name, const char *type_name,
   const char *context_name);
-static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint16_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
@@ -2898,7 +2898,7 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
     return 0;
   }
   if (!has_offset) return 1;
-  if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
+  if (has_size && (explicit_size == 0U || explicit_size > INT16_MAX)) return 0;
   if (has_flags && (flags & ~((uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT |
       (uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE)) != 0U) {
     return 0;
@@ -2906,7 +2906,7 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   {
     uint8_t storage_kind_id = rsset_layout_region_storage_kind_id_from_text_local(storage_kind);
     return policy_add_rsset_layout_region_local(policy, offset,
-      has_size ? (uint8_t)explicit_size : rsset_layout_region_size_from_storage_kind_id_local(storage_kind_id),
+      has_size ? (uint16_t)explicit_size : rsset_layout_region_size_from_storage_kind_id_local(storage_kind_id),
       layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, has_flags ? (uint8_t)flags : 0U,
       storage_kind_id, storage_kind, semantic_type);
   }
@@ -3284,7 +3284,7 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   return 1;
 }
 
-static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint16_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type) {
@@ -3292,7 +3292,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   uint16_t index;
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
   const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : AMIGA_APP_BASE_TAG;
-  if (policy == NULL || offset > 0x7FFFU || size == 0U ||
+  if (policy == NULL || offset > 0x7FFFU || size == 0U || size > INT16_MAX ||
       policy->rsset_layout_region_count >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) {
     return 0;
   }

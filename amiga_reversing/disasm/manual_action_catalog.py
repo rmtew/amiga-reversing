@@ -2682,8 +2682,8 @@ def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, obje
     symbol = params.get("symbol")
     if offset is None or offset < 0 or offset > 0x7FFF:
         raise ValueError("create_manual_rsset_layout_region requires offset in range")
-    if size is not None and (size <= 0 or size > 255):
-        raise ValueError("create_manual_rsset_layout_region size must be 1..255")
+    if size is not None and (size <= 0 or size > 32767):
+        raise ValueError("create_manual_rsset_layout_region size must be 1..32767")
     if not isinstance(symbol, str) or not symbol.strip():
         raise ValueError("create_manual_rsset_layout_region requires parameter symbol")
     layout_name = str(params.get("layout_name") or "app").strip() or "app"
@@ -3402,8 +3402,8 @@ def _app_slot_region_payload(context: Mapping[str, object], params: Mapping[str,
     symbol = params.get("symbol") or params.get("name")
     if offset is None or offset < 0 or offset > 0x7FFF:
         raise ValueError("app_slot.rename requires app-slot displacement")
-    if size is None or size <= 0 or size > 255:
-        raise ValueError("app_slot.rename requires size 1..255")
+    if size is None or size <= 0 or size > 32767:
+        raise ValueError("app_slot.rename requires size 1..32767")
     if not isinstance(symbol, str) or not symbol.strip():
         raise ValueError("app_slot.rename requires parameter symbol")
     region: dict[str, object] = {
@@ -3547,7 +3547,7 @@ def _app_slot_rename_parameter_schema() -> dict[str, object]:
         "type": "object",
         "properties": {
             "symbol": {"type": "string"},
-            "size": {"type": "integer", "minimum": 1, "maximum": 255},
+            "size": {"type": "integer", "minimum": 1, "maximum": 32767},
             "storage_kind": {
                 "type": "string",
                   "enum": ["scalar", "pointer", "pointer_table", "struct_instance", "struct_pointer", "byte_array"],
@@ -3857,7 +3857,7 @@ def _rsset_layout_region_parameter_schema() -> dict[str, object]:
         "type": "object",
         "properties": {
             "offset": {"type": "integer", "minimum": 0},
-            "size": {"type": "integer", "minimum": 1, "maximum": 255},
+            "size": {"type": "integer", "minimum": 1, "maximum": 32767},
             "symbol": {"type": "string"},
             "layout_name": {"type": "string", "default": "app"},
             "base_symbol": {"type": "string"},

@@ -645,7 +645,7 @@ def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetL
     if symbol is None:
         return None
     size = _manual_seed_int(region, "size")
-    if size is not None and (size <= 0 or size > 255):
+    if size is not None and (size <= 0 or size > 32767):
         return None
     storage_kind_text = _manual_seed_text(region, "storage_kind")
     try:

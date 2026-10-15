@@ -1392,10 +1392,9 @@ class _M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
 class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     _fields_ = [
         ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint8),
+        ("size", ctypes.c_uint16),
         ("flags", ctypes.c_uint8),
         ("storage_kind_id", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 1),
         ("layout_name", ctypes.c_char * 32),
         ("base_symbol", ctypes.c_char * 64),
         ("sizeof_symbol", ctypes.c_char * 64),

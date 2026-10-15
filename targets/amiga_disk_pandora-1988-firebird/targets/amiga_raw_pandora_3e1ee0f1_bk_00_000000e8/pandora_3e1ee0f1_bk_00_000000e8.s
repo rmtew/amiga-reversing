@@ -58,7 +58,8 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-    RS.B 405
+app_raster_row_byte_offsets RS.B 400
+    RS.B 5
 app_palette_effect_countdown RS.B 1
 app_carried_item_ids RS.B 4
 app_pocket_item_ids RS.B 4
@@ -689,6 +690,10 @@ BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 DMAF_CLRALL	EQU	$7FFF
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
+FRAMEBUFFER_BANK0_BASE	EQU	$70000
+FRAMEBUFFER_BANK1_BASE	EQU	$78000
+FRAMEBUFFER_LAST_RASTER_ROW	EQU	199
+FRAMEBUFFER_RASTER_ROW_BYTES	EQU	160
 GAME_EVENT_ESCAPE_CARD_OK_BIT	EQU	4
 GAME_EVENT_ESCAPE_TRIGGERED_BIT	EQU	3
 GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT	EQU	2
@@ -806,14 +811,17 @@ TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
+UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
+UI_HIT_BACKGROUND_STORAGE	EQU	$77D00
 UI_OVERLAY_BLIT_ROW_BYTES	EQU	40
 UI_OVERLAY_CALLBACK_READY_BIT	EQU	7
 UI_OVERLAY_SAVED_BACKGROUND_BIT	EQU	5
 UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
 UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
 UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
+WORK_BUFFER_PALETTE_INPUT_BASE	EQU	UI_HIT_BACKGROUND_STORAGE+$2E0
 WORLD_CMD_ADD_X	EQU	0
 WORLD_CMD_ADD_Y	EQU	1
 WORLD_CMD_CALL_FUNCTION	EQU	7
@@ -1065,18 +1073,18 @@ abs_0_00010498:
 	move.l a0,app_vertical_blank_callback(a6)
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
-	lea.l abs_0_000109EA(pc),a0
+	lea.l gameplay_split_display_copper_list(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_0001076E(pc),a0
 	move.l a0,app_current_palette(a6)
 	bsr.w start_seeded_zero_copy_blit
     ; Render both fixed buffer banks ($78000, then $70000). Initial front/display is $78000 and back is $70000; these chip-visible placements are not arbitrary-base relocation.
-	move.l #$78000,app_display_bitplane_base(a6)
-	move.l #$78000,app_back_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK1_BASE,app_display_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK1_BASE,app_back_bitplane_base(a6)
 	bsr.w render_tilemap_view_to_back_buffer
-	move.l #$70000,app_back_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_back_bitplane_base(a6)
 	bsr.w render_tilemap_view_to_back_buffer
-	move.l #$78000,app_front_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK1_BASE,app_front_bitplane_base(a6)
 	bsr.w abs_0_0001079E
 	jsr initialize_player_and_fixed_animation_nodes.l
 	bsr.w abs_0_0001253C
@@ -1249,7 +1257,7 @@ abs_0_000107C6:
 	rts
     ; Start a one-row, one-word A-to-D copy with source and destination both $77D00. No local wait; the later seeded-copy routine waits for the BLIT completion request.
 prime_blitter_completion_request:
-	movea.l #$77D00,a0
+	movea.l #UI_HIT_BACKGROUND_STORAGE,a0
 	move.l a0,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	clr.w bltamod(a5)
@@ -1418,7 +1426,7 @@ abs_0_000109CC:
     ; Signal frame-callback completion after keyboard polling. Main-loop waits use this latch; it is not an input-event flag.
 	bset.b #5,app_status_flags(a6)
 	rts
-abs_0_000109EA:
+gameplay_split_display_copper_list:
     ; display layout 4 bitmap planes $00075000..$00075078 step $28
 	dc.w sprpt+$1C,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
 	dc.w sprpt+$1E,sprite_0005D5DE_lo
@@ -1818,7 +1826,7 @@ abs_0_00010F7E:
 abs_0_00010F86:
 	rts
 abs_0_00010F88:
-	move.l #$70000,app_front_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_front_bitplane_base(a6)
     ; First cold title entry starts the seeded ascending zero blit over $70000..$7CD28, including loaded-input tail $75370..$7C000. Later contents vary; original tail purpose remains unknown.
 	bsr.w start_seeded_zero_copy_blit
 	move.w #INTF_INTEN,intena(a5)
@@ -1847,13 +1855,13 @@ abs_0_00010FEC:
 	move.l d5,-(a7)
 	moveq.l #6,d0
 	moveq.l #1,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_0001A7D0.l,a3
 	bsr.w abs_0_00017748
 	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #20,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l string_0002109E(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$20,app_palette_effect_countdown(a6)
@@ -5682,7 +5690,7 @@ abs_0_00012A9E:
 	bsr.w build_carried_item_name_list
 	move.l (a7)+,d0
 	lea.l body_inventory_overlay(pc),a5
-	move.l #$70000,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	bsr.w abs_0_00016632
 abs_0_00012AB6:
 	rts
@@ -5697,7 +5705,7 @@ transfer_selected_item_to_carried_inventory:
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
 	lea.l backpack_inventory_overlay(pc),a5
-	move.l #$70000,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	bra.w abs_0_00016632
 handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
@@ -5730,7 +5738,7 @@ transfer_selected_item_to_pocket_inventory:
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
 	lea.l pocket_inventory_overlay(pc),a5
-	move.l #$70000,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	bra.w abs_0_00016632
 item_too_large_for_pockets_message:
 	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
@@ -5818,7 +5826,7 @@ abs_0_00012C74:
 	add.l app_font_glyph_bitmap_table_ptr(a6),d0
 	movea.l d0,a2
 	addq.l #1,a2
-	movea.l #$70000,a1	; bitmap memory plane 4 base $00070000
+	movea.l #FRAMEBUFFER_BANK0_BASE,a1	; bitmap memory plane 4 base $00070000
 	move.b (a2)+,$78C7(a1)
 	move.b (a2)+,$7967(a1)
 	move.b (a2)+,$7A07(a1)
@@ -6263,7 +6271,7 @@ hit_feedback_overlay_y:
 	dc.l $00000000	; line_3_ptr
 	dc.l $00000000	; line_4_ptr
 	dc.l $00000000	; line_5_ptr
-	dc.l $00077D00	; bitmap_ptr
+	dc.l UI_HIT_BACKGROUND_STORAGE	; bitmap_ptr
 	dc.l $00000000	; update_callback
 nearby_character_overlay:
 	dc.b $16	; x
@@ -6322,7 +6330,7 @@ body_inventory_overlay_line_0_ptr:
 	dc.l $00000000	; line_3_ptr
 	dc.l $00000000	; line_4_ptr
 	dc.l $00000000	; line_5_ptr
-	dc.l $000007F0	; bitmap_ptr
+	dc.l UI_BODY_BACKGROUND_STORAGE	; bitmap_ptr
 	dc.l $00000000	; update_callback
 backpack_inventory_overlay:
 	dc.b $00	; x
@@ -7180,7 +7188,8 @@ abs_0_000160F8:
 	dbf.w d2,abs_0_000160B4
 	movem.l (a7)+,a1-a3
 	rts
-abs_0_00016108:
+    ; Text origin uses the current front bank; the overlay helper instead uses fixed bank0. X is masked to 63 and Y to 31, not clipped to the 40-byte/25-cell image.
+set_text_cursor_in_front_buffer:
 	andi.w #63,d0
 	andi.w #31,d1
 	lsl.w #4,d1
@@ -7191,6 +7200,7 @@ abs_0_00016108:
 	move.l d0,app_text_cursor_ptr(a6)
 	movea.l d0,a0
 	rts
+    ; Overlay origin stays in bank0 across world-bank swaps. Read row[(y&31)*8], add x&63 as WORD, sign-extend, then add $70000; the row table has only 200 entries.
 set_text_cursor_in_overlay_plane:
 	andi.w #63,d0
 	andi.w #31,d1
@@ -7704,7 +7714,7 @@ abs_0_0001667C:
 abs_0_0001669A:
 	dbf.w d7,abs_0_0001667C
 	rts
-    ; Reuse a match in the nonnull prefix or fill its first gap, optionally snapshot, clear/draw and mark callback-ready. Admission has no bound for the 16-slot update pass.
+    ; Reuse a nonnull-prefix match/first gap; no 16-slot admission bound. Bit6 recaptures even if saved/ready, then clear/draw/set ready. Registration dedup does not preserve a snapshot.
 enqueue_ui_overlay_update:
 	lea.l ui_overlay_update_queue(pc),a0
 abs_0_000166A4:
@@ -7726,9 +7736,9 @@ abs_0_000166C2:
 	bsr.w abs_0_000165E0
 	bset.b #UI_OVERLAY_CALLBACK_READY_BIT,$0006(a5)
 	rts
-    ; Wait/ack BLIT completion; seed 40 zero bytes at $70000, then start A-to-D copy $70000->$70028, 656 rows x 40 words, zero modulo. BLTCON1 is inherited; full allocation bounds remain open.
+    ; Wait/ack BLIT; zero 40 bytes, then start 656x80 A-to-D $70000->$70028 (end $7CD28). Reuses hit snapshot/bank1; zero modulos, inherited BLTCON1, no final wait. Allocation bounds remain open.
 start_seeded_zero_copy_blit:
-	movea.l #$70000,a0	; bitmap memory plane 4 base $00070000
+	movea.l #FRAMEBUFFER_BANK0_BASE,a0	; bitmap memory plane 4 base $00070000
 	move.l a0,app_front_bitplane_base(a6)
 	lea.l _custom.l,a5
 abs_0_000166E6:
@@ -8696,10 +8706,11 @@ abs_0_00017174:
 abs_0_00017182:
 	dc.b "pandora1.pi1",$00
 	dc.b $00
+    ; A1 selects 16 WORD palette inputs in the last 32 bytes of hit snapshot storage. Palette helpers read them; caller reachability and phase exclusivity remain unproved.
 prepare_work_buffer_arguments:
 	lea.l abs_0_000134C2(pc),a0
 	lea.l abs_0_00013462(pc),a2
-	lea.l $00077FE0.l,a1
+	lea.l WORK_BUFFER_PALETTE_INPUT_BASE.l,a1
 	moveq.l #15,d7
 	rts
 return_work_buffer_argument:
@@ -10785,7 +10796,7 @@ abs_0_000190C6:
 redraw_terminal_selected_item:
 	moveq.l #2,d0
 	move.w d0,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.w #$17F,d7
 	moveq.l #0,d0
 abs_0_000190D6:
@@ -10810,17 +10821,17 @@ abs_0_000190D6:
 	move.b #$E,app_text_plane_mask(a6)
 	moveq.l #3,d0
 	move.w d0,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CCC(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #5,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CD7(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #7,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CE2(pc),a3
 	bsr.w draw_compact_text_string
 	lea.l terminal_proximity_object_ptrs(pc),a0
@@ -10854,7 +10865,7 @@ abs_0_00019176:
 abs_0_0001917A:
 	moveq.l #3,d0
 	moveq.l #9,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b #$A,app_text_plane_mask(a6)
 	movea.l a2,a3
 	bsr.w draw_compact_text_string
@@ -10863,12 +10874,12 @@ abs_0_0001917A:
 	movea.l abs_0_000191CC(pc,d0.w),a3
 	moveq.l #14,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b #$7,app_text_plane_mask(a6)
 	bsr.w draw_compact_text_string
 	moveq.l #14,d0
 	moveq.l #5,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b player_world_object_selected_item_id.l,d0
 	bsr.w resolve_item_name
 	movea.l a0,a3
@@ -10882,13 +10893,13 @@ abs_0_000191CC:
 abs_0_000191EC:
 	moveq.l #10,d0
 	moveq.l #5,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b #$5,app_text_plane_mask(a6)
 	lea.l abs_0_00018D36(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #10,d0
 	moveq.l #7,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	bsr.w draw_compact_text_string
 	move.w #$216,d0
 	jsr start_feedback_audio_sequence.l
@@ -11764,7 +11775,7 @@ abs_0_00019DBA:
 render_self_destruct_card_sequence:
 	moveq.l #2,d0
 	move.w d0,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.w #$17F,d7
 	moveq.l #0,d0
 abs_0_00019DD0:
@@ -11786,7 +11797,7 @@ abs_0_00019DD0:
 	move.b #$F,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_insert_disk_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
@@ -11797,7 +11808,7 @@ abs_0_00019E18:
 	move.b #$E,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_insert_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$D,app_text_plane_mask(a6)
@@ -11813,7 +11824,7 @@ abs_0_00019E18:
 abs_0_00019E52:
 	move.w d6,d1
 	moveq.l #5,d0
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	movea.l (a4)+,a3
 	bsr.w draw_compact_text_string
 	addq.w #1,d6
@@ -11823,7 +11834,7 @@ abs_0_00019E52:
 	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #10,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 abs_0_00019E82:
@@ -11834,7 +11845,7 @@ abs_0_00019E84:
 	move.b #$5,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #6,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_rejected_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
@@ -11842,7 +11853,7 @@ abs_0_00019EA2:
 	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 abs_0_00019EB8:
@@ -11851,12 +11862,13 @@ initialize_world_tilemap_state:
 	bsr.w seed_pseudorandom_state_from_beam_position
 	moveq.l #0,d0
 	moveq.l #0,d1
-	move.w #$C7,d7
-abs_0_00019EC6:
+	move.w #FRAMEBUFFER_LAST_RASTER_ROW,d7
+    ; Populate 200 WORD raster offsets, 160*y, at the workspace prefix. Text helpers select every eighth row; masked y>=25 can read beyond this 400-byte table.
+fill_raster_row_byte_offsets:
 	move.w d0,$0(a6,d1.l)
-	addi.w #160,d0
+	addi.w #FRAMEBUFFER_RASTER_ROW_BYTES,d0
 	addq.l #2,d1
-	dbf.w d7,abs_0_00019EC6
+	dbf.w d7,fill_raster_row_byte_offsets
 	move.w #$5A,app_tilemap_width(a6)
 	move.w #$81,app_tilemap_height(a6)
 	move.l #$4000,app_tilemap_base(a6)
@@ -11876,7 +11888,7 @@ abs_0_00019F06:
 	addq.l #8,a0
 	dbf.w d7,abs_0_00019F06
 	bsr.w abs_0_00017244
-	move.l #$70000,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	rts
 initialize_world_state:
 	move.l a5,-(a7)

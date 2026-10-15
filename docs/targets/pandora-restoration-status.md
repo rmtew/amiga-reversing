@@ -562,7 +562,7 @@ presentation, not the semantic recovery status below.
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Later exit-delay reset/writer coverage and reachable inherited state; shared positive-X node word and held-frame/player-layout boundary |
 | Inventory / trading / NPC | Diabetic selected/carried insulin and needle responses, self-destruct advice latch and read-only range predicate; four named ASCII responses (178 bytes). Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
-| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; renderer/cursor/shift state; all ten fixed 44-byte overlay descriptors; background capture/restore/clear register contracts and persistent 16-slot callback scan | Snapshot transfers preserve original rounding, inherited blitter state and restore byte-height wrap. Registration deduplicates only the non-NULL prefix; all ten initialized callbacks are NULL. Font bounds remain unchecked and straddle DMA can read a neighboring WORD. Header/pointer consumption is phase-dependent | Queue-processing gameplay reachability; 128-byte clear versus 64-byte queue and adjacent storage ownership; framebuffer producers, DMA completion, snapshot allocation/lifetime and arbitrary inputs |
+| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; renderer/cursor/shift state; all ten fixed 44-byte overlay descriptors; background capture/restore/clear register contracts, persistent 16-slot callback scan, 200-WORD raster lookup and split world/UI framebuffer addressing | Snapshot transfers preserve original rounding, inherited blitter state and restore byte-height wrap. Fixed snapshot extents and reset/palette-input overlaps are explicit; queue deduplication still permits recapture. Registration deduplicates only the non-NULL prefix; all ten initialized callbacks are NULL. Font bounds remain unchecked and straddle DMA can read a neighboring WORD. Header/pointer consumption is phase-dependent | Queue-processing gameplay reachability; 128-byte clear versus 64-byte queue and adjacent storage ownership; complete framebuffer/snapshot aliases and phase ordering, DMA completion, exclusive allocation/lifetime and arbitrary inputs |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; the first cold-title zero blit footprint covers the loaded-input tail. Three sampled tail windows become zero at title and two change again by UI entry; original purpose stays unproved | Original file-tail purpose, complete later writer/consumer coverage, DMA lookahead and scratch allocation bounds remain unknown |
 | Alternate execution layout | Two-byte volume relocation: both normal game WORD writers agree | Nine bounded local CPU calls and all 65,536 direct BYTE-store words agree; normal-gameplay BYTE execution remains unobserved | Whole-game changed code/data/DMA placement, temporal/late lineage and unrestricted contexts remain unproven |
@@ -677,6 +677,89 @@ The next material gap is shared framebuffer row/address production and buffer
 swap/allocation lifetime, including the snapshot destinations and DMA consumers.
 The numeric `0x938E` operand, normal-gameplay BYTE writer gap and stopped
 clearance-route expansion above are unchanged.
+
+Framebuffer/snapshot reuse checkpoint (2026-10-15, after the overlay descriptor
+milestone): the row producer writes exactly 200 WORDs, `160*y`, into workspace
+`$39FC..$3B8C`. Each raster row interleaves four 40-byte plane rows. The two text
+origin helpers mask X to 63 and Y to 31, select row index `(Y&31)*8`, add X as a
+WORD and sign-extend before adding the bank. This is not clipping: Y>=25 can read
+adjacent workspace. Front-buffer text follows `app_front_bitplane_base`; overlay
+text always uses bank0 at `$70000`. The named gameplay Copper list waits at
+vertical `$AC` (128 rows after display start `$2C`) and installs `$75000+40*i`.
+VBL installs the selected world-bank pointers first. Thus the world view swaps,
+while the lower 72 UI rows remain fixed in bank0.
+
+The normal memory-region and typed-reference facilities now record these fixed
+physical access extents. `persistent` records the address identity, not persistent
+contents, exclusive allocation, a DMA lease or a closed relocation proof.
+
+| Runtime extent (end exclusive) | Demonstrated role |
+| --- | --- |
+| `$39FC..$3B8C` (400 bytes) | 200-WORD raster offsets, CPU only |
+| `$70000..$77D00` (32,000 bytes) | Bank0: title/framebuffer reuse and fixed lower gameplay UI; chip DMA |
+| `$78000..$7D000` (20,480 bytes) | Bank1's 128-row world display/render prefix; no claim about the remaining bank capacity |
+| `$77D00..$78000` (768 bytes) | Initialized hit snapshot: 96 packed rows of four WORDs |
+| `$7F0..$10F0` (2,304 bytes) | Initialized body snapshot: 192 packed rows of six WORDs |
+
+The existing runtime-only snapshot field group resolves both non-NULL initialized
+bitmap pointers to these bounded address symbols; all ten callbacks remain NULL.
+The overlay pointer report has 77 NULL and 13 symbolic fields, with no unresolved
+field in this family. That is address-resolution coverage, not allocation or
+lifetime closure. Instruction-region reference discovery and typed data-field
+resolution remain complementary. Native region references include explicit
+`ambiguous_scalar_or_pointer` candidates (for example blitter-control and color
+immediates numerically within the low body-snapshot range); those are not
+confirmed pointer uses. Absence of a qualified instruction reference cannot
+prove that snapshot storage is unused.
+
+Priming uses one WORD at the hit snapshot address. The seeded copy's programmed
+destination `$70028..$7CD28` crosses that snapshot and bank1's prefix; its zero
+modulos, inherited BLTCON1 and lack of a final completion wait are preserved.
+An existing queue match still requests a new capture when bit 6 is set, even if
+saved/ready bits were already set. The saved bit does not guard the restore leaf.
+Captures therefore do not establish immutable original-background contents.
+Separately, `prepare_work_buffer_arguments` supplies A1=`$77FE0`, the last 32 hit
+snapshot bytes, to the 16-WORD palette readers. The source now expresses that
+physical alias through `WORK_BUFFER_PALETTE_INPUT_BASE`, whose EQU expression is
+`UI_HIT_BACKGROUND_STORAGE+$2E0`. The preparation/unpack leaf is
+checked; stack-trampoline caller reachability and phase exclusivity are unproved.
+The discarded `$78000` stack arguments and unexplained app `+$1E0` role stay
+uninterpreted.
+
+Fifteen bounded original-CPU cases cover the row producer, valid and out-of-table
+cursor calculations, reversible world-bank exchange, VBL's four plane-pointer
+writes, both initialized snapshot packet extents, reset reuse, repeated capture
+and the palette input alias. The MMIO shadow performs no DMA, pixel, IRQ or bus
+arbitration simulation. Original WORD arithmetic, geometry rounding, restore
+height wrap and asynchronous return behavior remain intact.
+
+The reusable setup fix widens checked RSSET aggregate extents from 255 to 32,767
+bytes through catalog validation, metadata projection and native policy, allowing
+the full 400-byte row table to replace a partial/absent declaration. Extents 255,
+256, 400 and 32,767 retain an adjacent declaration and reproduce exact bytes with
+C and vasm; 32,768 is refused without changing history. The native structure keeps
+its overall size and eight-byte prefix, but flags move within that prefix; native
+objects and the ctypes mirror were rebuilt together for the widened field.
+The rebuilt backend alone preserved the previous canonical source byte-for-byte.
+
+The final combined applicable suite passes **414 tests**, with one skipped
+independent Copperline arithmetic oracle because `COPPERLINE_BINARY` was unset.
+Native checks pass **807**, with the same two baseline failures recorded above.
+C and independent vasm reproduce all 376,832 original bytes, receipt
+`163c58a36b2f3b4178a0df62fca7c31e7117a81c78b115cfa57e618f7bd09f0c`.
+Reproduce the focused additions with
+`.venv/bin/python -m pytest -q tests/test_pandora_framebuffer_lifetime.py tests/test_rsset_aggregate_extent.py`.
+All previous layouts, schemas, call contracts, initialized script/callback
+values, original binary, asset/include identities and history prefixes are
+preserved; only the six scoped comments refine earlier/new rendering explanations.
+No alternate-layout payload or new gameplay route was created. Native pointer,
+alias/control-flow and asynchronous DMA obligations remain explicit. The next
+material rendering gap is the phase/caller ordering that makes snapshot reuse
+safe, including the work-buffer palette readers and completion before consuming
+or replacing snapshots. This requires a bounded reachable-path question before
+any hardware probe; a frame-completion latch alone is not a blitter fence.
+The numeric `0x938E` operand and unobserved normal-gameplay BYTE volume writer
+remain unchanged, and clearance-route expansion stays paused.
 
 The native ownership snapshot immediately before the font/lifecycle batch has
 55,391 unclaimed bytes, including the 27,792-byte uncopied tail. These are
