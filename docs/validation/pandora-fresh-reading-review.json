@@ -1,0 +1,37 @@
+{
+  "source_input_sha256": "838ca60c821fd56a04fe39852d12af9aa1fcc9f4c75870028f5d7594456639fc",
+  "source_input_head": "14bbb400fa11216f6e7da053daa0d61c65dd0b61",
+  "fresh_input_delivery": {
+    "bytes": 582092,
+    "lines": 18065,
+    "chunks": 27,
+    "simultaneous_retention_proven": false
+  },
+  "swaths": {
+    "salvage_bitset": {
+      "status": "accepted",
+      "source_start": 43027,
+      "source_end_exclusive": 43042,
+      "actions": 3,
+      "tests": "22 passed; all120 bits plus terminal and four-slot outcome cases",
+      "verification_id": "74d949eb160c9ecceb3c08498455cb7d6d985bc175c46d950d961afc993fb884",
+      "source_sha256": "05e1c0121f682bcbb1f7156a995c42da3d95ab70f1221345a5c0cdbce8b410da"
+    },
+    "actor_identity": {
+      "status": "pending native family/xref review"
+    },
+    "overlay_prefix": {
+      "status": "pending visible contract and bounded tests; prior MAL rationale already recognized nonnull-only A4 advance"
+    },
+    "title_palette": {
+      "status": "pending consumer/type verification"
+    },
+    "title_glyphs": {
+      "status": "pending indexed-consumer verification"
+    }
+  },
+  "original_bytes_preserved": 376832,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "deferred_test_maintenance": "Separate uncommitted tests/test_c_backend.py patch; excluded from these checkpoints",
+  "relocation": "No shared-tail ownership/lifetime conclusion or new runtime route probe"
+}

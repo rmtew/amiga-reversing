@@ -10856,7 +10856,7 @@ abs_0_000189DA:
 	move.b d0,-(a0)
 	clr.b world_object_shared_prefix_selected_item_id(a4)
 	bset.b #4,app_02A6(a6)
-	lea.l abs_0_0001A813.l,a0
+	lea.l salvage_item_eligibility_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
 	beq.b abs_0_000189FA
 	addq.b #1,app_salvage_item_count(a6)
@@ -12787,10 +12787,8 @@ abs_0_0001A7EA:
 	dc.b $2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
 item_pocket_restriction_bits_bytes:
 	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80	; data
-abs_0_0001A813:
-	dc.b $00,$00,$01,$D8
-	dcb.b $9,$00
-	dc.b $DD,$80
+salvage_item_eligibility_bits:
+	dc.b %00000000,%00000000,%00000001,%11011000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%11011101,%10000000	; msb_first_item_eligibility_bitset
 tile_movement_block_bits:
 	dc.b %11111111,%11111111,%11111111,%11111111,%11111111,%11110000,%00001100,%00000000,%11000010,%00001100,%00001001,%00010010,%00000110,%11000000,%00000000,%00000000
 	dc.b $00,$00,$1C,$0F,$C5,$03,$F0,$3F,$03,$F7,$C7,$FF,$FF,$07,$FF,$FF
@@ -22198,7 +22196,7 @@ abs_0_0005C9DC:
 	lea.l app_carried_item_ids(a6),a1
 	moveq.l #3,d7
 	moveq.l #0,d0
-	lea.l abs_0_0001A813.l,a0
+	lea.l salvage_item_eligibility_bits.l,a0
 abs_0_0005C9F0:
 	move.b (a1)+,d0
 	jsr test_msb_first_bitset_bit.l

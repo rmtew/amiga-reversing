@@ -2753,3 +2753,35 @@ See [the failure-by-failure audit](../validation/backend-eight-failures.md) and
 `docs/validation/backend-eight-baseline.json`; the former mixed-object renderer
 comparison is no longer the sole basis for calling these pre-change failures.
 No production code, target facts or PR metadata changed in this audit.
+
+
+## Fresh whole-file pass: salvage eligibility
+
+A new independent reading of the current restored source at `14bbb400` delivered
+all582,092 presentation bytes /18,065 lines in27 ordered chunks. Its new
+proposal set is separate from the earlier48-proposal queue. Ordered delivery
+does not prove simultaneous retention. The first accepted swath is the previously
+unclaimed15-byte MSB-first bitset at source`$A813..$A822` (end exclusive), now
+`salvage_item_eligibility_bits` with an explicit15-byte binary array.
+
+Native xrefs identify terminal deposit`$89EA` and four-carried-slot outcome
+ranking`$4C9EA`; both test via`$5FFE` and increment `app_salvage_item_count`.
+Original bytes`000001d8000000000000000000dd80` select12 initialized item IDs.
+The helper has no arbitrary-ID bounds check;120 stored bits are not a256-ID
+guarantee. Ranking counts eligible occupied slots, including duplicates.
+
+Three canonical actions are journal-accepted. **22 focused tests pass**, including
+all120 valid bit indices, six bounded terminal cases and three outcome cases,
+plus the existing12 status/deposit checks. C and independent vasm reproduce
+all376,832 original bytes exactly; receipt`74d949eb160c9ecceb3c08498455cb7d6d985bc175c46d950d961afc993fb884`;
+source SHA256`05e1c0121f682bcbb1f7156a995c42da3d95ab70f1221345a5c0cdbce8b410da`. Original binary/assets/SDK,
+prior history prefixes and unrelated facts remain intact. The shared-tail
+relocation blocker is unchanged and no runtime route was explored.
+
+The other four fresh swaths remain under review: actor display/owner identity,
+overlay NULL-prefix behavior, title palette state and indexed glyph aliases.
+The overlay's nonnull-only pointer advance was already recorded in an earlier
+MAL rationale; any visible contract is a tested formalization, not a new discovery.
+The per-swath ledger is `docs/validation/pandora-fresh-reading-review.json`.
+Deferred backend test maintenance remains separate; PR5 remains unmerged, with
+no routine title/body/review-state edits.
