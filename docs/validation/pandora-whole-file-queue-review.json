@@ -433,12 +433,18 @@
     "Original empty-deferred, terminal first-zero scan, and audio out-of-domain selector paths have no general local bound; known storage extents are not safety proofs.",
     "Noise/PRNG purpose for the two shift words lacks independent consumer evidence."
   ],
-  "recommended_next_restoration_step": "Extend the now-tested combat-entry and direct inventory-restore prefixes to snapshot reuse and phase transitions; establish DMA completion and bus arbitration with a hardware-capable trace before assigning asynchronous ownership. Preserve unknown memory effects and the source938E numeric access.",
+  "recommended_next_restoration_step": "Resume broad object-state/animation and selector/scan semantics through native ownership gaps. Preserve positive-X overlapping identities and source938E numeric effects. Shared-tail alias remains a relocation blocker; return when a concrete loader/indirect caller/callback reaches its palette prefix, rather than extending gameplay-route probes. Fix CLR predecrement separately before affected stack traces.",
   "moveq_render_followup": {
     "moveq": "Fixed general signed immediate normalization from existing KB metadata in abstract and concrete execution; no target byte changes.",
     "cpu_tests": "49 passed, 1004 subtests; exhaustive MOVEQ loop covers 4096 register/byte/CCR combinations. Final combined Pandora suite 47 passed, including four rendering-order cases.",
     "verification_receipt": "427ef725d9a438c6d4c8824cd6f97034b5e30491df15dc533ea35e6eb0241561",
     "source_sha256": "e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b",
     "limits": "Explicit MMIO inputs, no DMA execution or cold-start reachability proof. Direct restore has three static callers; queue processor has no named direct references, which does not prove unreachability."
+  },
+  "shared_tail_followup": {
+    "contract": "docs/validation/pandora-shared-tail-contract.json",
+    "native_inventory": "docs/validation/pandora-shared-tail-native.json",
+    "scope": "2690 typed pointer fields and all10 named palette calls enumerated; three native pointer/frame obligations remain open. No new runtime probe or allocation proof.",
+    "validation": "49 focused passed,1 strict expected CLR-predecrement failure; C/vasm exact receipt2b9309586da1e127a81e515c9892e7b33bb4fddaa4ffea8aab42d7fea78c7b1a."
   }
 }

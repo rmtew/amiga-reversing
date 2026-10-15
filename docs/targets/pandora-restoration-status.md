@@ -2246,3 +2246,71 @@ stack behavior. Evidence and reproduction are in
 `runtime/observations/pandora-snapshot-body-guards.json` and
 `docs/copperline-runtime.md`. Original bytes, asset/include identities and prior
 history prefixes remain preserved; publication stays on draft PR 5.
+
+## Shared-tail access map and priority checkpoint
+
+The current native inventory is reproducible with
+`.venv/bin/python -m amiga_reversing.tools.pandora_shared_tail_inventory /tmp/pandora-shared-tail-native.json`
+against the ready resident server. It enumerates **2,690 typed pointer fields**;
+only the initialized hit descriptor's bitmap field targets the hit region.
+There are 90 overlay pointer fields, ten bitmap fields (eight NULL, hit and body),
+and two resolved bitmap consumers at `$633E/$63A6`. The native instruction-region
+report has three roots and **three open obligations**. These roots include an
+unused A4 setup and return/frame refusals; they are not three confirmed data
+accesses. No obligation was cleared by adding comments.
+
+`docs/validation/pandora-shared-tail-contract.json` records the known accesses,
+conditions and phase edges; `pandora-shared-tail-native.json` preserves the native
+snapshot. All intervals below are runtime, end exclusive.
+
+| Producer/consumer | Shared-tail relationship | Required scope/ordering |
+| --- | --- | --- |
+| Direct-payload bootstrap load `$20000..$7C000` | Writes the tail as original input bytes | Earlier full handoff verification; original disk-loader parity remains unproved. Native prefix copy ends at `$75370` and excludes the tail. |
+| Hit capture / restore `$77D00..$78000` | Capture writes and restore reads the entire tail | Initialized descriptor and ascending area mode. Known packet waits/acknowledgements order DMA; UI flags do not establish ownership. |
+| Seeded reset copy | A reads `$70000..$7CD00`; D writes `$70028..$7CD28`, covering the tail in both | Ascending area mode, inherited BLTCON1; calls at `$F90/$546`; no final software wait. |
+| Add `$71E8`, unpack `$721A`, subtract `$722A` | Each can read exactly `$77FE0..$78000` | Prepare binds A1 and D7=15. Unpack precedes the first escaped transfer; add/subtract require entry beyond an earlier spliced return. |
+| Clear `$71DA` | No A1 input read | Writes 32 palette and 96 accumulator bytes at separate constant outputs, plus its stack spill. |
+| Prime completion copy | Only `$77D00..$77D02` | Does not touch the tail. |
+| Initialized display / UI rectangles | Their known bounded extents exclude the tail | This does not close unchecked/changed geometry or synthesized-address writes. |
+
+The ten named palette-helper call sites are fully enumerated. Three potential
+shared-input read sites remain; the other add bindings use `$10AE8`, `$10B68` or
+`$134E2`, and clear never reads A1. In the render wrapper's ordinary prefix,
+`D7=$7D22` is overwritten with 15 before use, A4=`$77FDE` is not dereferenced, and
+stack arguments are discarded without an I/O call. The filename/count/pointer
+combination therefore does not establish an executed loader or a 32,034-byte
+allocation. The first palette call is clear, then the splicing helper leaves the
+verified copied view before ordinary add-loop fallthrough.
+
+Fade-out is different: its first unpack reads all 32 shared bytes and writes the
+palette/accumulators before the spliced return. A bounded original-CPU prefix test
+confirms that sequence. The modeled cases at all four direct helper sites, together with the original
+stack operations, bound return targets independently of the following stack WORD. No escaped target is fetched;
+no crash or wrapper unreachability is inferred.
+
+Absolute caller SP remains unknown on the unconnected palette entry. Ordinary
+palette spills occupy 16 bytes below clear's entry SP, 20 below unpack's, and up
+to 52 below add/subtract's including the nested color helper, before caller/IRQ
+frames. These possible aliases must be separated from the tail before claiming a
+complete non-write contract. This is one reason the native frame obligations stay
+open; unchanged snapshot samples cannot exclude reads or unknown frame aliases.
+
+Validation passes **49 focused tests with one strict expected failure**. The new
+rendering-prefix case exposes original `4267` (`CLR.W -(A7)`) writing at SP without
+predecrement in the concrete simulator: SP `$9000` stays unchanged and WORD `$9000`
+is cleared instead of WORD `$8FFE`. Its whole-prefix trace is excluded as proof;
+the fade-out prefix and direct helper cases do not execute that instruction.
+The general CLR defect is recorded for a separate tooling slice, not patched here.
+Five catalog annotations are accepted. C and vasm reproduce all 376,832 bytes,
+receipt `2b9309586da1e127a81e515c9892e7b33bb4fddaa4ffea8aab42d7fea78c7b1a`;
+source SHA256 is
+`1e46cd360d01afedb36021a834196206150d5d5ebe70aa720d502a99b02dc5cd`.
+No new Copperline probe, memory allocation or relocation change was made.
+
+Recommendation: return to broader object-state/animation and selector/scan
+semantic restoration through native gaps. Keep this alias as a relocation
+blocker. Further gameplay-route probing is low value until a concrete loader,
+indirect caller or callback connects the palette prefix to a known phase. That
+edge, absolute stack separation, all alias/interrupt consumers and general DMA
+arbitration remain unresolved; second hit-family capture is also unobserved.
+Fix CLR predecrement separately before relying on affected full-stack traces.

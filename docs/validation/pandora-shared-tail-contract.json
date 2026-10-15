@@ -1,0 +1,312 @@
+{
+  "scope": "Complete known access inventory within accepted native instructions and typed fields, not a whole-program ownership proof. No new Copperline run in this slice.",
+  "native_inventory": "docs/validation/pandora-shared-tail-native.json",
+  "intervals": {
+    "hit_snapshot": [
+      "0x77D00",
+      "0x78000"
+    ],
+    "shared_tail": [
+      "0x77FE0",
+      "0x78000"
+    ],
+    "tail_offset_in_snapshot": "0x2E0",
+    "A4_setup_only": "0x77FDE",
+    "palette_output": [
+      "0x134C2",
+      "0x134E2"
+    ],
+    "fractional_output": [
+      "0x13462",
+      "0x134C2"
+    ]
+  },
+  "known_accesses": [
+    {
+      "actor": "Direct-payload bootstrap load",
+      "mode": "write",
+      "extent": [
+        "0x20000",
+        "0x7C000"
+      ],
+      "tail": "included, source file offsets 0x57FE0..0x58000",
+      "phase": "before native prefix copy and cold title",
+      "evidence": "Declared direct contract and earlier full-payload handoff verification; this is harness loading, not original-disk-loader parity."
+    },
+    {
+      "actor": "Initialized hit descriptor / save leaf",
+      "mode": "blitter write",
+      "extent": [
+        "0x77D00",
+        "0x78000"
+      ],
+      "tail": "all 32 bytes included",
+      "source_evidence": [
+        "typed bitmap field hit_feedback_overlay_bitmap_ptr at section0 offset0x337E",
+        "s0:00006332:instruction",
+        "s0:000066BE:instruction"
+      ],
+      "conditions": "Bitmap 77D00, width7,height3; ceil(width/2)=4WORDs, height*32=96packed rows; ascending area mode. Descriptor mutation/arbitrary modes are not closed.",
+      "phase": "Original Feed entry observed; another bit6 enqueue recaptures by code contract, not an immutable background."
+    },
+    {
+      "actor": "Hit descriptor / restore leaf",
+      "mode": "blitter read",
+      "extent": [
+        "0x77D00",
+        "0x78000"
+      ],
+      "tail": "all 32 bytes included",
+      "source_evidence": [
+        "s0:0000639A:instruction"
+      ],
+      "known_calls": [
+        "0x720 hit expiry branch",
+        "0x27C0 body descriptor, disjoint storage",
+        "0x7A8E hit combat exit"
+      ],
+      "phase": "Original Feed exit observed. Wait/ack precedes start; logical flags clear without final wait. Next packet fences its transfer under serialized BLIT discipline."
+    },
+    {
+      "actor": "Seeded zero-copy packet",
+      "mode": "blitter read and write",
+      "source_extent": [
+        "0x70000",
+        "0x7CD00"
+      ],
+      "destination_extent": [
+        "0x70028",
+        "0x7CD28"
+      ],
+      "tail": "included in both ranges",
+      "source_evidence": [
+        "s0:00006720:instruction"
+      ],
+      "known_calls": [
+        "0xF90 cold/title entry",
+        "0x546 post-title gameplay setup"
+      ],
+      "conditions": "Extents require ascending area mode; BLTCON1 is inherited. Zero A/D modulos; no final software wait.",
+      "phase": "Reset/setup reuse invalidates snapshot contents when this covering transfer executes; no separate allocation is implied."
+    },
+    {
+      "actor": "Palette add at71E8",
+      "mode": "CPU read",
+      "extent": [
+        "0x77FE0",
+        "0x78000"
+      ],
+      "binding": "prepare71E6 sets A1 and D7=15",
+      "phase": "Read occurs if this interior path is entered; ordinary render entry encounters spliced return71E0 first."
+    },
+    {
+      "actor": "Palette unpack at721A",
+      "mode": "CPU read",
+      "extent": [
+        "0x77FE0",
+        "0x78000"
+      ],
+      "binding": "prepare7216 sets A1 and D7=15",
+      "phase": "Reads32bytes before spliced return7220; wrapper entry chain is unresolved."
+    },
+    {
+      "actor": "Palette subtract at722A",
+      "mode": "CPU read",
+      "extent": [
+        "0x77FE0",
+        "0x78000"
+      ],
+      "binding": "prepare7226 sets A1 and D7=15",
+      "phase": "Read occurs if this interior path is entered; ordinary fade-out prefix encounters spliced return7220 first."
+    }
+  ],
+  "excluded_or_unconsumed_roots": [
+    {
+      "actor": "Prime completion copy at7CC",
+      "extent": [
+        "0x77D00",
+        "0x77D02"
+      ],
+      "reason": "One WORD at snapshot start; does not touch tail."
+    },
+    {
+      "actor": "Native prefix copy",
+      "read_extent": [
+        "0x20000",
+        "0x75370"
+      ],
+      "write_extent": [
+        "0x10000",
+        "0x65370"
+      ],
+      "reason": "Neither interval includes shared tail; trailing loaded input is not copied by this prefix."
+    },
+    {
+      "actor": "Clear palette at71DA",
+      "reason": "A1 is prepared to tail but never dereferenced. It clears 32 A0 bytes and 96 A2 bytes, then encounters spliced helper71E0 before the add loop."
+    },
+    {
+      "actor": "A4=77FDE and D7=7D22 at71CC/71D2",
+      "reason": "A4 is not dereferenced before first escaped transfer; D7 is overwritten by prepare719E. Filename and discarded stack arguments establish no executed loader or 32034-byte transfer."
+    },
+    {
+      "actor": "Known display and initialized UI rectangle bounds",
+      "reason": "Initialized bank0 display stops at77D00, bank1 world starts78000; initialized overlay rectangles stop below tail. Generic unclipped/changed geometry and synthesized addresses remain open."
+    }
+  ],
+  "palette_call_bindings": [
+    {
+      "site": "0xD30",
+      "helper": "clear",
+      "D7": 31,
+      "A1": "0x10B68",
+      "tail_read": false
+    },
+    {
+      "site": "0xD44",
+      "helper": "clear",
+      "D7": 7,
+      "A1": "0x10AE8",
+      "tail_read": false
+    },
+    {
+      "site": "0x71DA",
+      "helper": "clear",
+      "D7": 15,
+      "A1": "0x77FE0",
+      "tail_read": false
+    },
+    {
+      "site": "0xA034",
+      "helper": "clear",
+      "D7": 15,
+      "A1": "0x134E2",
+      "tail_read": false
+    },
+    {
+      "site": "0xDCC",
+      "helper": "add",
+      "D7": 7,
+      "A1": "0x10AE8",
+      "tail_read": false
+    },
+    {
+      "site": "0x106C",
+      "helper": "add",
+      "D7": 31,
+      "A1": "0x10B68",
+      "tail_read": false
+    },
+    {
+      "site": "0x71E8",
+      "helper": "add",
+      "D7": 15,
+      "A1": "0x77FE0",
+      "tail_read": true
+    },
+    {
+      "site": "0x7DEA",
+      "helper": "add",
+      "D7": 15,
+      "A1": "0x134E2",
+      "tail_read": false
+    },
+    {
+      "site": "0x722A",
+      "helper": "subtract",
+      "D7": 15,
+      "A1": "0x77FE0",
+      "tail_read": true
+    },
+    {
+      "site": "0x721A",
+      "helper": "unpack",
+      "D7": 15,
+      "A1": "0x77FE0",
+      "tail_read": true
+    }
+  ],
+  "calling_context": {
+    "verified_copied_payload": [
+      "0x10000",
+      "0x65370"
+    ],
+    "helper": "At entry SP=T, push4/add6/RTS consumes atT+2 and leaves SP=T+6. With ordinary pre-BSR SP=S, PC=(return_low_WORD<<16)|WORD(S) and final SP=S+2.",
+    "caller_targets": {
+      "0x71E0": "24-bit 0xE2xxxx",
+      "0x71EE": "24-bit 0xF0xxxx",
+      "0x7220": "24-bit 0x22xxxx",
+      "0x7230": "24-bit 0x34xxxx"
+    },
+    "render_prefix": "Architectural stack arithmetic gives entry SP+10 at71E0, then entry SP+12 after helper; first palette clear has no A1 input read. No ordinary fallthrough into add loop before external control.",
+    "fadeout_prefix": "Balanced prepare/unpack leave original entry SP;16shared WORDs are read before first helper. This prefix passes the focused original-CPU test.",
+    "external_limit": "No instruction at the escaped targets was executed by these tests. A transfer outside the copied payload is not proof of a crash, wrapper unreachability, or no external return."
+  },
+  "phase_contract": [
+    "Cold load may populate tail as original input; prefix copy excludes it. Prime supplies initial completion token, without touching tail.",
+    "Title entry and post-title setup call the covering seeded packet; initialized display/UI use separate bounded extents.",
+    "Known combat entry captures hit snapshot; exit consumes through direct restore. Packet completion dependencies, not logical flags, order DMA.",
+    "Warm restart explicitly waits for BBUSY before setup/title reuse.",
+    "The palette component is disconnected from known direct caller edges. Fade-out first read and interior add/sub reads cannot yet be ordered against capture/reset. No exclusivity contract is closed."
+  ],
+  "simulator_limit": {
+    "instruction": "4267 at source71B4, CLR.W -(A7)",
+    "modeled_input": "SP 9000, WORD(8FFE)=CCDD, WORD(9000)=1122",
+    "observed": "SP remains9000; WORD(9000) becomes0; WORD(8FFE) remainsCCDD",
+    "architectural_requirement": "Predecrement SP by 2, then clear WORD at8FFE.",
+    "effect": "Rendering-prefix C trace is not proof of its architectural stack delta. Strict expected-failure regression retains this boundary; no simulator implementation changed. Fade-out prefix and four direct helper-site contracts do not execute this CLR."
+  },
+  "native_obligations": "Three pointer/frame obligations remain open. They are pointer roots/refusals, not three confirmed data accesses; accepted comments do not discharge them.",
+  "remaining_edges": [
+    "Unclassified/constructed or indirect entries into 7216/71E6/7226 or external transfers returning to those paths.",
+    "Unknown loader/write context beyond the known prefixes; dead count setup is not a producer.",
+    "Unbounded absolute caller SP and IRQ/external frames; palette spill writes could alias shared storage without an independent stack-separation contract.",
+    "All indirect/interrupt aliases, changed descriptor/mode/geometry inputs and original-disk-loader parity.",
+    "Second hit-family capture remains unobserved; body-family recapture is separately observed."
+  ],
+  "priority_reassessment": {
+    "recommendation": "Resume broader semantic restoration; retain this alias as a relocation blocker.",
+    "basis": "Known accepted access families and the first external control edges are now bounded. More gameplay input routes or negative probes cannot close an unconnected caller/producer edge.",
+    "return_trigger": "A concrete original loader/indirect caller, callback assignment or phase path reaches the palette prefix; then run a bounded discriminating probe.",
+    "separate_tooling_gap": "Fix general CLR predecrement before relying on affected full-stack traces; do not expand this alias slice into unrelated simulator cleanup."
+  },
+  "validation": {
+    "focused_tests": "49 passed, 1 strict expected failure (CLR predecrement rendering prefix)",
+    "verification": {
+      "exact": true,
+      "receipt_id": "2b9309586da1e127a81e515c9892e7b33bb4fddaa4ffea8aab42d7fea78c7b1a",
+      "source_sha256": "1e46cd360d01afedb36021a834196206150d5d5ebe70aa720d502a99b02dc5cd",
+      "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "original_size": 376832
+    },
+    "accepted_actions": [
+      "manual-ef15e5be68534d54a939d32c7b2a84e6",
+      "manual-4180a399d8c94616b9e5541e94b202c2",
+      "manual-8415461d4b8f4f5cbe3acaebdc426806",
+      "manual-1542b7dd491e46e6a674e932409b766b",
+      "manual-d05884cfde5f4d7d8dafe417157e37ef"
+    ],
+    "new_runtime_probes": 0
+  },
+  "native_enumeration": {
+    "typed_pointer_fields": 2690,
+    "typed_fields_in_hit_region": 1,
+    "overlay_pointer_fields": 90,
+    "bitmap_fields": 10,
+    "resolved_bitmap_uses": 2,
+    "unresolved_overlay_field_uses": 1,
+    "native_hit_region_roots": 3,
+    "native_obligations_open": 3,
+    "palette_named_call_sites": 10
+  },
+  "unresolved_frame_aliases": {
+    "reason": "Native A1 proof refuses unmodeled_pointer_caller_frame: absolute SP is unknown for the unconnected palette entry. Syntactically unused A4 is not a concrete tail access, but does not discharge possible stack/output aliasing.",
+    "relative_stack_writes_below_callee_entry_SP": {
+      "clear_palette_bytes": 16,
+      "unpack_palette_bytes": 20,
+      "add_or_sub_palette_including_nested_color_helper_bytes": 52,
+      "return_helper_bytes": 4
+    },
+    "conditions": "These are ordinary non-interrupt relative footprints. Caller BSR/JSR adds 4 bytes; IRQ nesting and arbitrary/external caller frames are not bounded here. A disjoint absolute stack is required before treating constant data-output intervals as a complete tail non-write proof."
+  }
+}

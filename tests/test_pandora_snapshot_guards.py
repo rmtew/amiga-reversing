@@ -55,3 +55,33 @@ def test_palette_helper_splices_return_word_instead_of_balanced_bsr_return(cpu_f
     assert read(0x8FF8) == BASE+0x34C2  # Pointer push remains below the consumed return.
     bus_target = cpu.pc & 0xFFFFFF
     assert not BASE <= bus_target < BASE+0x55370
+
+
+@pytest.mark.parametrize('render_prefix', [False, pytest.param(True, marks=pytest.mark.xfail(
+    strict=True, reason='Original CLR.W -(A7) currently writes at SP without applying predecrement; do not trust this complete prefix trace.'))])
+def test_palette_wrapper_prefix_before_first_spliced_return(cpu_fixture, render_prefix):
+    cpu, memory, schemas, read, write, run = cpu_fixture
+    advance = sequencer(cpu, memory, write)
+    colors = [(i*0x123) & 0xFFFF for i in range(16)]
+    tail = b''.join(v.to_bytes(2, 'big') for v in colors)
+    memory[0x77FE0:0x78000] = tail
+    memory[BASE+0x3462:BASE+0x34E2] = b'\xA5'*128
+    offset = 10 if render_prefix else 0
+    write(0x9000+offset, 0xC0DE, 2)
+    start, call = (0x71AC, 0x71E0) if render_prefix else (0x7216, 0x7220)
+    assert advance(start, stop=call).stop_reason == 1
+    assert cpu.a[7] == 0x9000+offset
+    assert cpu.a[1] == 0x77FE0 and cpu.d[7] == 15
+    assert bytes(memory[0x77FE0:0x78000]) == tail
+    if render_prefix:
+        assert cpu.a[4] == 0x77FDE
+        assert bytes(memory[BASE+0x3462:BASE+0x34E2]) == bytes(128)
+    else:
+        assert bytes(memory[BASE+0x34C2:BASE+0x34E2]) == tail
+        expected = [part for word in colors for part in
+                    [((word >> 8) & 15) << 4, ((word >> 4) & 15) << 4, (word & 15) << 4]]
+        assert [read(BASE+0x3462+2*i, 2) for i in range(48)] == expected
+    # Execute only the BSR + three helper instructions, not the escaped target.
+    assert advance(budget=4).stop_reason == 3
+    assert cpu.pc == (((BASE+call+2) & 0xFFFF) << 16) | 0xC0DE
+    assert cpu.a[7] == 0x9002+offset

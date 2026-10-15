@@ -7890,6 +7890,7 @@ abs_0_000166E6:
 	clr.w bltamod(a5)
 	clr.w bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
+    ; Ascending A reads $70000..$7CD00; D writes $70028..$7CD28. Both cover the hit tail. These extents depend on inherited BLTCON1, not a separate buffer allocation.
 	move.w #(656<<6)|40,bltsize(a5)	; blitter size 656 rows x 40 words (80 bytes/row)
 	rts
 render_tilemap_view_to_back_buffer:
@@ -8835,7 +8836,7 @@ abs_0_00017174:
 abs_0_00017182:
 	dc.b "pandora1.pi1",$00
 	dc.b $00
-    ; A1 selects 16 WORD palette inputs in the last 32 bytes of hit snapshot storage. Palette helpers read them; caller reachability and phase exclusivity remain unproved.
+    ; A1 selects the final 32 hit-snapshot bytes. Add/subtract/unpack read 16 WORDs; clear ignores A1. A0/A2 address separate palette outputs. Entry/phase exclusion remains unproved.
 prepare_work_buffer_arguments:
 	lea.l gameplay_current_rgb12_palette(pc),a0
 	lea.l gameplay_palette_fractional_components(pc),a2
@@ -8857,8 +8858,10 @@ render_work_buffer_overlay:
 	addq.l #6,a7
 	lea.l abs_0_00017182(pc),a5
 	lea.l $00077FDE.l,a4
+    ; Prepare overwrites D7=$7D22 with 15 before use. A4=$77FDE is not dereferenced in this prefix; the filename and discarded arguments do not establish an executed load or buffer extent.
 	move.l #$7D22,d7
 	bsr.b prepare_work_buffer_arguments
+    ; This clear writes 32 palette and 96 accumulator bytes without reading A1. The following helper leaves the copied view, so the later shared-input add loop is not ordinary fallthrough.
 	jsr clear_rgb12_palette_components.l
 	bsr.b return_work_buffer_argument
 	moveq.l #15,d7
@@ -8884,7 +8887,7 @@ abs_0_00017206:
 	andi.b #254,d0
 	movea.l d0,a0
 	bra.b abs_0_00017202
-    ; Unpack reads the hit snapshot tail before the stack-splicing return helper. The later subtract loop is not reached by an ordinary balanced return from that helper.
+    ; Unpack reads 32 shared-tail bytes and writes 32 palette/96 accumulator bytes before the stack-splicing helper. The later subtract loop is not reached by an ordinary balanced return.
 fade_out_work_buffer_palette:
 	bsr.w prepare_work_buffer_arguments
 	jsr unpack_rgb12_palette_components.l
