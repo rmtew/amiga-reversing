@@ -83,12 +83,8 @@ def test_partition_scratch_is_refreshed_and_deferred_prefix_consumed(original, m
         memory[copy:copy+128] = b'\xA5'*128
         memory[deferred:deferred+128] = b'\x5A'*128
         before_high = bytes(memory[deferred+128:deferred+136])
-        run(0x849A, stop=0x84BC, budget=1024)
-        # The current simulator zero-extends MOVEQ #$FF, unlike the manual's
-        # signed byte transfer. Start this bounded suffix with its specified
-        # architectural D5 input; do not claim whole-routine simulation.
-        cpu.d[5] = 0xFFFFFFFF
-        run(0x84BE, stop=0x84E8, budget=1024)
+        # Include the original signed MOVEQ initialization; no injected D5.
+        run(0x849A, stop=0x84E8, budget=1024)
         assert [read(copy+4*i) for i in range(32)] == pointers
         assert [read(deferred+4*i) for i in range(middle_count)] == middle
         assert bytes(memory[deferred+4*middle_count:deferred+128]) == b'\x5A'*(128-4*middle_count)
@@ -113,9 +109,7 @@ def test_empty_deferred_partition_has_no_guard_before_first_predecrement(origina
         write(source_start+4*i, descriptor)
         write(descriptor, descriptor+0x20)
         write(descriptor+0x20+0x19, 0x40, 1)
-    run(0x849A, stop=0x84BC, budget=1024)
-    cpu.d[5] = 0xFFFFFFFF  # Explicit entry condition; see MOVEQ limitation above.
-    run(0x84BE, stop=0x84EA, budget=1024)
+    run(0x849A, stop=0x84EA, budget=1024)
     assert cpu.a[5] == BASE+0x322A and cpu.d[5] & 0xFFFF == 0xFFFF
     assert read(BASE+0x84EA, 2) == 0x22E5  # move.l -(a5),(a1)+
     # Stop before that underflowing read/write. No claim of an all-input safe bound.

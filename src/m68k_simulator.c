@@ -628,6 +628,15 @@ static uint32_t sim_sign_extend_value(uint32_t value, uint8_t src_bits) {
   return value;
 }
 
+/* Normalize a signed encoded immediate to its fixed logical operand value.
+ * Width/signedness come from generated KB metadata, never a mnemonic switch. */
+static int sim_immediate_by_metadata(const M68kSimFormMetadata *metadata, uint8_t operand_index,
+    const M68kOperandIR *operand, uint32_t *out_value) {
+  if (!sim_operand_is_immediate_value(operand, out_value)) return 0;
+  *out_value = sim_sign_extend_value(*out_value, metadata->operand_immediate_signed_bits[operand_index]);
+  return 1;
+}
+
 static int sim_apply_unary(uint8_t op, const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     const M68kSimValue *input, M68kSimValue *out_value) {
   uint8_t width;
@@ -1272,7 +1281,7 @@ static int sim_eval_operand_by_metadata(const M68kObject *object, size_t section
   if (metadata == NULL || operand == NULL || out_value == NULL || operand_index >= 4U) return 0;
   access_kind = metadata->operand_access_kinds[operand_index];
   m68k_sim_value_init_unknown(out_value);
-  if (access_kind == M68K_SIM_ACCESS_IMMEDIATE) return sim_operand_is_immediate_value(operand, &out_value->value) ?
+  if (access_kind == M68K_SIM_ACCESS_IMMEDIATE) return sim_immediate_by_metadata(metadata, operand_index, operand, &out_value->value) ?
       (*out_value = sim_value_constant(out_value->value, M68K_SIM_PROV_IMMEDIATE), 1) : 0;
   if (access_kind == M68K_SIM_ACCESS_REGISTER_READ || access_kind == M68K_SIM_ACCESS_REGISTER_WRITE) {
     if (sim_special_register_value(state, operand, out_value)) return 1;
@@ -2558,7 +2567,7 @@ static int sim_concrete_eval_value_operand_by_metadata(const M68kInstructionIR *
   if (metadata == NULL || operand == NULL || state == NULL || out_value == NULL || operand_index >= 4U) return 0;
   access_kind = metadata->operand_access_kinds[operand_index];
   width = sim_effective_operand_width(instruction, metadata, operand_index);
-  if (access_kind == M68K_SIM_ACCESS_IMMEDIATE) return sim_operand_is_immediate_value(operand, out_value);
+  if (access_kind == M68K_SIM_ACCESS_IMMEDIATE) return sim_immediate_by_metadata(metadata, operand_index, operand, out_value);
   if (access_kind == M68K_SIM_ACCESS_REGISTER_READ || access_kind == M68K_SIM_ACCESS_REGISTER_WRITE) {
     uint8_t is_address;
     uint8_t reg;
