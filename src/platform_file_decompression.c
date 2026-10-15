@@ -1,5 +1,6 @@
 #include "platform_file_decompression.h"
 #include "json_builder.h"
+#include "platform_common.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -16,8 +17,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include <bcrypt.h>
-#pragma comment(lib, "bcrypt.lib")
 #define PLATFORM_POPEN _popen
 #define PLATFORM_PCLOSE _pclose
 #else
@@ -151,50 +150,7 @@ static int make_temp_path_local(char *out, size_t out_size) {
 }
 
 static int file_sha256_hex_local(const char *path, uint32_t *out_size, char out_hex[65]) {
-#ifdef _WIN32
-  BCRYPT_ALG_HANDLE algorithm = NULL;
-  BCRYPT_HASH_HANDLE hash = NULL;
-  FILE *file = NULL;
-  unsigned char buffer[8192];
-  unsigned char digest[32];
-  static const char hex[] = "0123456789abcdef";
-  uint32_t total = 0U;
-  size_t read_count;
-  size_t i;
-  if (path == NULL || out_hex == NULL) return -1;
-  out_hex[0] = '\0';
-  if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, NULL, 0) != 0) goto fail;
-  if (BCryptCreateHash(algorithm, &hash, NULL, 0, NULL, 0, 0) != 0) goto fail;
-  file = fopen(path, "rb");
-  if (file == NULL) goto fail;
-  while ((read_count = fread(buffer, 1U, sizeof(buffer), file)) != 0U) {
-    if (total > UINT32_MAX - (uint32_t)read_count) goto fail;
-    total += (uint32_t)read_count;
-    if (BCryptHashData(hash, (PUCHAR)buffer, (ULONG)read_count, 0) != 0) goto fail;
-  }
-  if (ferror(file)) goto fail;
-  if (BCryptFinishHash(hash, digest, sizeof(digest), 0) != 0) goto fail;
-  for (i = 0U; i < sizeof(digest); ++i) {
-    out_hex[i * 2U] = hex[digest[i] >> 4U];
-    out_hex[i * 2U + 1U] = hex[digest[i] & 0x0FU];
-  }
-  out_hex[64] = '\0';
-  if (out_size != NULL) *out_size = total;
-  fclose(file);
-  BCryptDestroyHash(hash);
-  BCryptCloseAlgorithmProvider(algorithm, 0);
-  return 0;
-fail:
-  if (file != NULL) fclose(file);
-  if (hash != NULL) BCryptDestroyHash(hash);
-  if (algorithm != NULL) BCryptCloseAlgorithmProvider(algorithm, 0);
-  return -1;
-#else
-  (void)path;
-  (void)out_size;
-  if (out_hex != NULL) out_hex[0] = '\0';
-  return -1;
-#endif
+  return m68k_platform_file_sha256_hex(path, out_size, out_hex);
 }
 
 static void fill_provider_metadata_local(PlatformDecompressionIdentifyResult *result, const char *provider_path) {

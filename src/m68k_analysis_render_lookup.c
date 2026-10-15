@@ -2852,10 +2852,11 @@ static void typed_state_set_memory_base(M68kRenderTypedState *state, uint8_t reg
 static int typed_memory_base_apply_affine_delta(M68kRenderTypedMemoryBaseValue *value, int32_t delta) {
   uint32_t next_offset;
   int64_t next_addend;
-  if (value == NULL || !value->known || !value->affine_known ||
-      !typed_memory_base_offset_add(value->offset, delta, &next_offset)) {
-    return 0;
-  }
+  if (value == NULL) return 0;
+  /* Cursor widening can lose a concrete offset without losing the table's
+   * homogeneous pointee contract. This retains a type, never a target/bound. */
+  if (!value->known) return value->pointer_table_known != 0U;
+  if (!value->affine_known || !typed_memory_base_offset_add(value->offset, delta, &next_offset)) return 0;
   next_addend = (int64_t)value->affine_signed_addend + (int64_t)delta;
   if (next_addend < INT32_MIN || next_addend > INT32_MAX) return 0;
   value->offset = next_offset;
@@ -3041,7 +3042,7 @@ static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTy
    * entry type remains valid as the cursor advances. */
   if (value == NULL || !value->pointer_table_known || !value->known) return;
   if (value->offset < value->pointer_table_offset || value->pointer_table_size < 4U ||
-      value->offset - value->pointer_table_offset > value->pointer_table_size - 4U ||
+      value->offset - value->pointer_table_offset > value->pointer_table_size ||
       ((value->offset - value->pointer_table_offset) & 3U) != 0U) {
     value->pointer_table_known = 0U;
     value->pointer_table_struct_id = AMIGA_OS_STRUCT_ID_NONE;
@@ -5514,6 +5515,11 @@ static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue
       break;
     }
   }
+  /* One-past is a valid cursor value, not a dereferenceable table entry. */
+  if (item != NULL && memory_base.known &&
+      (memory_base.section_index != item->section_index || memory_base.offset < item->offset ||
+       memory_base.offset - item->offset > item->size ||
+       4U > item->size - (memory_base.offset - item->offset))) return 0;
   struct_id = memory_base.pointer_table_struct_id != AMIGA_OS_STRUCT_ID_NONE ?
     memory_base.pointer_table_struct_id : (item != NULL && item->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE ?
       item->pointer_struct_id : lookup_policy_struct_id_by_name(lookup->policy, item != NULL ? item->pointer_struct : NULL));

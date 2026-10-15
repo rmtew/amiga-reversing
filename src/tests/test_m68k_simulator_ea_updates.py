@@ -100,3 +100,78 @@ class ConcreteEAUpdateTests(unittest.TestCase):
                     self.assertEqual(memory, before)
                     self.assertEqual(trace.writes, 0)
                     self.assertTrue(any(d.severity >= 3 for d in trace.diagnostics.items[:trace.diagnostics.count]))
+
+
+class ConcreteOperandOrderTests(unittest.TestCase):
+    run_one = arithmetic.ConcreteArithmeticTests.run_one
+
+    def test_compare_memory_operands_advance_in_source_order(self):
+        for suffix, width in [('b', 1), ('w', 2), ('l', 4)]:
+            for reg in range(8):
+                for shared in [False, True]:
+                    with self.subTest(suffix=suffix, reg=reg, shared=shared):
+                        other = reg if shared else (reg+1)%8
+                        delta = 2 if width == 1 and reg == 7 else width
+                        other_delta = 2 if width == 1 and other == 7 else width
+                        target = 64+delta if shared else 96
+                        state = State()
+                        state.sr, state.a[reg] = 0xA710, 64
+                        if not shared:
+                            state.a[other] = target
+                        memory, before, trace = self.run_one(f'cmpm.{suffix} (a{reg})+,(a{other})+', state,
+                            [(64, (1).to_bytes(width, 'big')), (target, (2).to_bytes(width, 'big'))], memory_size=128)
+                        self.assertEqual(state.a[reg], 64+delta+(other_delta if shared else 0))
+                        self.assertEqual(state.a[other], target+other_delta)
+                        self.assertEqual(state.sr, 0xA710)
+                        self.assertEqual(memory, before)
+                        self.assertEqual(trace.writes, 0)
+
+    def test_extend_arithmetic_prepares_source_before_destination(self):
+        for suffix, width in [('b', 1), ('w', 2), ('l', 4)]:
+            for reg in range(8):
+                for shared in [False, True]:
+                    for op in ['addx', 'subx']:
+                        for extend in [0, 1]:
+                            with self.subTest(suffix=suffix, reg=reg, shared=shared, op=op, extend=extend):
+                                other = reg if shared else (reg+1)%8
+                                delta = 2 if width == 1 and reg == 7 else width
+                                other_delta = 2 if width == 1 and other == 7 else width
+                                source = 64+other_delta if shared else 96
+                                state = State()
+                                state.a[reg] = source+delta
+                                if not shared:
+                                    state.a[other] = 64+other_delta
+                                state.sr = 0xA704 | (extend << 4)
+                                memory, before, trace = self.run_one(f'{op}.{suffix} -(a{reg}),-(a{other})', state,
+                                    [(source, (1).to_bytes(width, 'big')), (64, (3).to_bytes(width, 'big'))], memory_size=128)
+                                expected = bytearray(before)
+                                result = 4+extend if op == 'addx' else 2-extend
+                                expected[64:64+width] = result.to_bytes(width, 'big')
+                                self.assertEqual(memory, expected)
+                                self.assertEqual(state.a[reg], 64 if shared else source)
+                                self.assertEqual(state.a[other], 64)
+                                self.assertEqual(state.sr, 0xA700)
+                                self.assertEqual(trace.writes, 1)
+                                self.assertEqual((trace.ranges[0].start, trace.ranges[0].end), (64, 64+width))
+
+    def test_move_source_update_precedes_destination_address_and_write(self):
+        for suffix, width in [('b', 1), ('w', 2), ('l', 4)]:
+            for reg in range(8):
+                for pre_dest in [False, True]:
+                    with self.subTest(suffix=suffix, reg=reg, pre_dest=pre_dest):
+                        delta = 2 if width == 1 and reg == 7 else width
+                        state = State()
+                        state.a[reg] = 64
+                        dest = f'-(a{reg})' if pre_dest else f'(a{reg})+'
+                        memory, before, trace = self.run_one(f'move.{suffix} (a{reg})+,{dest}', state,
+                            [(64, (1).to_bytes(width, 'big'))], memory_size=128)
+                        address = 64 if pre_dest else 64+delta
+                        expected = bytearray(before)
+                        expected[address:address+width] = (1).to_bytes(width, 'big')
+                        self.assertEqual(memory, expected)
+                        self.assertEqual(state.a[reg], 64 if pre_dest else 64+2*delta)
+                        self.assertEqual(trace.writes, 1)
+        state = State()
+        state.a[0] = 32
+        self.run_one('movea.l (a0)+,a0', state, [(32, (48).to_bytes(4, 'big'))])
+        self.assertEqual(state.a[0], 48)

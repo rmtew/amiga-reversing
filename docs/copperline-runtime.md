@@ -828,7 +828,9 @@ evidence that a particular observed behavior is fixed; no upgrade was performed.
 The MOVEQ sign-extension defect was in this project's generated simulator and
 is fixed there. The CLR.W predecrement defect was also in that simulator; concrete execution
 is now fixed and the strict expected failure is a passing regression. Neither
-test executes Copperline. Abstract scalar EA updates remain a separate gap. The earlier
+test executes Copperline. The subsequent five-defect follow-up also fixes
+abstract scalar EA updates and shared-register operand scheduling; see
+`docs/validation/framework-defects-2026-10-15.md`. The earlier
 negative body-open inference used the wrong source entry (`$27E0`); the corrected
 `$27EA` route completed body capture/restore/recapture in Copperline. The palette
 return issue is currently supported by modeled original-game stack/control-flow

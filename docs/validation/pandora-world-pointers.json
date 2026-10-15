@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
-  "revision": "3497938d7ea5800a0a5a6c97081aaa0dc7e33d322d5aa68f7192e9eaddd6070b",
-  "subject_revision": "d013ec101ef28aed35b0e21346959aab8926b0092f754b87d413ce4e4e078490",
+  "revision": "5a5b8c3a8cebd1041cc9c6c980b382c4808ace9f08d2733d2f4383d619bd2bfc",
+  "subject_revision": "1db5b01cf24f09650e8713fb22b54f592dea8757a7b7f92f3d192d6fe48729a7",
   "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
   "families": {
     "world_object_source_reference": [
@@ -27,571 +27,571 @@
       {
         "source_offset": 12306,
         "encoded_pointer": 377298,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 311762,
+        "symbol": "world_object_megabio_feed"
       },
       {
         "source_offset": 12310,
         "encoded_pointer": 375482,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309946,
+        "symbol": "world_object_defence_controller"
       },
       {
         "source_offset": 12314,
         "encoded_pointer": 375566,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 310030,
+        "symbol": "world_object_wackobrain"
       },
       {
         "source_offset": 12318,
         "encoded_pointer": 365076,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 299540,
+        "symbol": "world_object_squash_player"
       },
       {
         "source_offset": 12322,
         "encoded_pointer": 365630,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 300094,
+        "symbol": "world_object_kriptonite"
       },
       {
         "source_offset": 12326,
         "encoded_pointer": 375650,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 310114,
+        "symbol": "world_object_glass"
       },
       {
         "source_offset": 12330,
         "encoded_pointer": 375734,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 310198,
+        "symbol": "world_object_kwik_kleen"
       },
       {
         "source_offset": 12334,
         "encoded_pointer": 375818,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 310282,
+        "symbol": "world_object_flight_controller"
       },
       {
         "source_offset": 12338,
         "encoded_pointer": 366856,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 301320,
+        "symbol": "world_object_thief"
       },
       {
         "source_offset": 12342,
         "encoded_pointer": 367410,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 301874,
+        "symbol": "world_object_priest"
       },
       {
         "source_offset": 12346,
         "encoded_pointer": 368680,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 303144,
+        "symbol": "world_object_hooligan"
       },
       {
         "source_offset": 12350,
         "encoded_pointer": 370644,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305108,
+        "symbol": "world_object_captain"
       },
       {
         "source_offset": 12354,
         "encoded_pointer": 370784,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305248,
+        "symbol": "world_object_resource_officer"
       },
       {
         "source_offset": 12358,
         "encoded_pointer": 370924,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305388,
+        "symbol": "world_object_engineer"
       },
       {
         "source_offset": 12362,
         "encoded_pointer": 371064,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305528,
+        "symbol": "world_object_science_officer"
       },
       {
         "source_offset": 12366,
         "encoded_pointer": 371204,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305668,
+        "symbol": "world_object_medic"
       },
       {
         "source_offset": 12370,
         "encoded_pointer": 371326,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305790,
+        "symbol": "world_object_awol_officer"
       },
       {
         "source_offset": 12374,
         "encoded_pointer": 369674,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 304138,
+        "symbol": "world_object_entry_officer"
       },
       {
         "source_offset": 12378,
         "encoded_pointer": 367994,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 302458,
+        "symbol": "world_object_icelord"
       },
       {
         "source_offset": 12382,
         "encoded_pointer": 370092,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 304556,
+        "symbol": "world_object_death_fly"
       },
       {
         "source_offset": 12386,
         "encoded_pointer": 371466,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305930,
+        "symbol": "world_object_lieutenant_commander"
       },
       {
         "source_offset": 12390,
         "encoded_pointer": 371686,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 306150,
+        "symbol": "world_object_commander"
       },
       {
         "source_offset": 12394,
         "encoded_pointer": 370324,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 304788,
+        "symbol": "world_object_driffid"
       },
       {
         "source_offset": 12398,
         "encoded_pointer": 362170,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 296634,
+        "symbol": "world_object_musician"
       },
       {
         "source_offset": 12402,
         "encoded_pointer": 371834,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 306298,
+        "symbol": "world_object_menial_droid"
       },
       {
         "source_offset": 12406,
         "encoded_pointer": 372388,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 306852,
+        "symbol": "world_object_gardener"
       },
       {
         "source_offset": 12410,
         "encoded_pointer": 373662,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 308126,
+        "symbol": "world_object_robomechanic"
       },
       {
         "source_offset": 12414,
         "encoded_pointer": 374014,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 308478,
+        "symbol": "world_object_doctor"
       },
       {
         "source_offset": 12418,
         "encoded_pointer": 374568,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309032,
+        "symbol": "world_object_diabetic"
       },
       {
         "source_offset": 12422,
         "encoded_pointer": 375224,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309688,
+        "symbol": "world_object_chemist"
       },
       {
         "source_offset": 12426,
         "encoded_pointer": 373126,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 307590,
+        "symbol": "world_object_technician"
       },
       {
         "source_offset": 12430,
         "encoded_pointer": 375040,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309504,
+        "symbol": "world_object_bank_manager"
       },
       {
         "source_offset": 12434,
         "encoded_pointer": 374830,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309294,
+        "symbol": "world_object_security_officer"
       },
       {
         "source_offset": 12438,
         "encoded_pointer": 0,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
+        "resolution": "null",
+        "reason": "null_pointer",
         "target_section_index": null,
         "native_target_offset": null,
-        "symbol": null
+        "symbol": ""
       }
     ],
     "world_position_descriptor_source_reference": [
       {
         "source_offset": 12442,
         "encoded_pointer": 363536,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298000,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12446,
         "encoded_pointer": 363560,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298024,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12450,
         "encoded_pointer": 363584,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298048,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12454,
         "encoded_pointer": 363596,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298060,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12458,
         "encoded_pointer": 363620,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298084,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12462,
         "encoded_pointer": 363644,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298108,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12466,
         "encoded_pointer": 363656,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298120,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12470,
         "encoded_pointer": 363680,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298144,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12474,
         "encoded_pointer": 363692,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298156,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12478,
         "encoded_pointer": 363704,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298168,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12482,
         "encoded_pointer": 363716,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298180,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12486,
         "encoded_pointer": 370728,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305192,
+        "symbol": "captain_animation_bank"
       },
       {
         "source_offset": 12490,
         "encoded_pointer": 370868,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305332,
+        "symbol": "resource_officer_animation_bank"
       },
       {
         "source_offset": 12494,
         "encoded_pointer": 371008,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305472,
+        "symbol": "engineer_animation_bank"
       },
       {
         "source_offset": 12498,
         "encoded_pointer": 371148,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305612,
+        "symbol": "science_officer_animation_bank"
       },
       {
         "source_offset": 12502,
         "encoded_pointer": 371288,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305752,
+        "symbol": "medic_animation_bank"
       },
       {
         "source_offset": 12506,
         "encoded_pointer": 371410,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 305874,
+        "symbol": "awol_officer_animation_bank"
       },
       {
         "source_offset": 12510,
         "encoded_pointer": 369920,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 304384,
+        "symbol": "entry_officer_positions_4A45E_1"
       },
       {
         "source_offset": 12514,
         "encoded_pointer": 371550,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 306014,
+        "symbol": "lieutenant_commander_animation_bank"
       },
       {
         "source_offset": 12518,
         "encoded_pointer": 371770,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 306234,
+        "symbol": "commander_animation_bank"
       },
       {
         "source_offset": 12522,
         "encoded_pointer": 362594,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297058,
+        "symbol": "item_receptacle_position_descriptors"
       },
       {
         "source_offset": 12526,
         "encoded_pointer": 362606,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297070,
+        "symbol": "item_receptacle_position_descriptors"
       },
       {
         "source_offset": 12530,
         "encoded_pointer": 362618,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297082,
+        "symbol": "item_receptacle_position_descriptors"
       },
       {
         "source_offset": 12534,
         "encoded_pointer": 362630,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297094,
+        "symbol": "item_receptacle_position_descriptors"
       },
       {
         "source_offset": 12538,
         "encoded_pointer": 362642,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297106,
+        "symbol": "item_receptacle_position_descriptors"
       },
       {
         "source_offset": 12542,
         "encoded_pointer": 362654,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297118,
+        "symbol": "item_receptacle_position_descriptors"
       },
       {
         "source_offset": 12546,
         "encoded_pointer": 365038,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 299502,
+        "symbol": "abs_0_000591EE"
       },
       {
         "source_offset": 12550,
         "encoded_pointer": 372624,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 307088,
+        "symbol": "gardener_positions_4AF7E_1"
       },
       {
         "source_offset": 12554,
         "encoded_pointer": 373916,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 308380,
+        "symbol": "robomechanic_positions_4B454_1"
       },
       {
         "source_offset": 12558,
@@ -605,286 +605,286 @@
       {
         "source_offset": 12562,
         "encoded_pointer": 363668,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298132,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12566,
         "encoded_pointer": 369340,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 303804,
+        "symbol": "hooligan_positions_4A07C_1"
       },
       {
         "source_offset": 12570,
         "encoded_pointer": 376442,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 310906,
+        "symbol": "fixed_npc_position_states"
       },
       {
         "source_offset": 12574,
         "encoded_pointer": 376506,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 310970,
+        "symbol": "defence_controller_position_descriptor"
       },
       {
         "source_offset": 12578,
         "encoded_pointer": 376570,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 311034,
+        "symbol": "wackobrain_position_descriptor"
       },
       {
         "source_offset": 12582,
         "encoded_pointer": 376634,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 311098,
+        "symbol": "glass_position_descriptor"
       },
       {
         "source_offset": 12586,
         "encoded_pointer": 376698,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 311162,
+        "symbol": "kwik_kleen_position_descriptor"
       },
       {
         "source_offset": 12590,
         "encoded_pointer": 376762,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 311226,
+        "symbol": "flight_controller_position_descriptor"
       },
       {
         "source_offset": 12594,
         "encoded_pointer": 377534,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 311998,
+        "symbol": "megabio_feed_positions_4C226_2"
       },
       {
         "source_offset": 12598,
         "encoded_pointer": 365492,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 299956,
+        "symbol": "squash_player_positions_49268_3"
       },
       {
         "source_offset": 12602,
         "encoded_pointer": 366514,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 300978,
+        "symbol": "kriptonite_positions_49492_2"
       },
       {
         "source_offset": 12606,
         "encoded_pointer": 374976,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309440,
+        "symbol": "security_officer_positions_4B882_2"
       },
       {
         "source_offset": 12610,
         "encoded_pointer": 379246,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 313710,
+        "symbol": "combat_visual_position_descriptor"
       },
       {
         "source_offset": 12614,
         "encoded_pointer": 367272,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 301736,
+        "symbol": "thief_positions_4995C_2"
       },
       {
         "source_offset": 12618,
         "encoded_pointer": 367800,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 302264,
+        "symbol": "priest_positions_49B98_1"
       },
       {
         "source_offset": 12622,
         "encoded_pointer": 378654,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 313118,
+        "symbol": "player_position_descriptor"
       },
       {
         "source_offset": 12626,
         "encoded_pointer": 363512,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297976,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12630,
         "encoded_pointer": 368420,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 302884,
+        "symbol": "icelord_positions_49DCE_1"
       },
       {
         "source_offset": 12634,
         "encoded_pointer": 370230,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 304694,
+        "symbol": "death_fly_positions_4A600_1"
       },
       {
         "source_offset": 12638,
         "encoded_pointer": 363524,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 297988,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12642,
         "encoded_pointer": 363548,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298012,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12646,
         "encoded_pointer": 363572,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298036,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12650,
         "encoded_pointer": 363608,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298072,
+        "symbol": "world_position_descriptors"
       },
       {
         "source_offset": 12654,
         "encoded_pointer": 370516,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 304980,
+        "symbol": "driffid_positions_4A6E8_1"
       },
       {
         "source_offset": 12658,
         "encoded_pointer": 362388,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 296852,
+        "symbol": "musician_positions_4870E_2"
       },
       {
         "source_offset": 12662,
         "encoded_pointer": 372160,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 306624,
+        "symbol": "menial_droid_positions_4AD66_1"
       },
       {
         "source_offset": 12666,
         "encoded_pointer": 374386,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 308850,
+        "symbol": "doctor_positions_4B552_1"
       },
       {
         "source_offset": 12670,
         "encoded_pointer": 374688,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309152,
+        "symbol": "diabetic_animation_bank"
       },
       {
         "source_offset": 12674,
         "encoded_pointer": 375308,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309772,
+        "symbol": "chemist_animation_bank"
       },
       {
         "source_offset": 12678,
         "encoded_pointer": 375186,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309650,
+        "symbol": "bank_manager_positions_4B954_2"
       },
       {
         "source_offset": 12682,
         "encoded_pointer": 373524,
-        "resolution": "unresolved",
-        "reason": "missing_native_resolution",
-        "target_section_index": null,
-        "native_target_offset": null,
-        "symbol": null
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 307988,
+        "symbol": "technician_positions_4B1DA_2"
       }
     ]
   },
-  "symbolic_nonzero_reference_count": 3,
-  "unresolved_nonzero_reference_count": 93,
+  "symbolic_nonzero_reference_count": 96,
+  "unresolved_nonzero_reference_count": 0,
   "physical_prefixes": [
     {
       "start": 12298,

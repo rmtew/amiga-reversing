@@ -1,9 +1,24 @@
 # Framework defect review, 2026-10-15
 
-This is a bounded review of existing failure evidence, current source and small
-isolated reproductions. It is not a new whole-suite run or a count of every
-unimplemented instruction. Pandora's relocation and hardware contracts are
-separate from framework bugs.
+This records the original bounded review and the subsequently authorized five-fix
+follow-up. Pandora's relocation and hardware contracts remain separate from
+framework bugs.
+
+Current status: **all five defects below are fixed** in the general framework.
+The diagnosis/reproducers are retained as pre-fix evidence. Concrete operand
+ordering, abstract scalar EA updates, structured pointer planning/export,
+static-table pointee propagation and portable file hashing now have targeted
+regressions. Combined validation passes **811 native tests** with zero failures
+and **318 Python tests plus 1581 subtests**, with one explicitly opt-in Copperline
+execution-oracle test skipped. Both longstanding native baseline failures pass.
+
+The fresh Pandora inventory reports 96 symbolic nonzero references and one NULL,
+with no unresolved nonzero entries. Full-image C/vasm reproduction is exact,
+receipt `f7bd711ebfba35b769cfd7af280bf4a94592a20acdd9c92d6723c066a460916e`.
+The source-restoration receipt and reproduction details are recorded in
+`docs/targets/pandora-restoration-status.md`. No Pandora workaround, rendered-text
+parsing, external provider install, PR merge or review-state change is involved.
+
 
 ## Fixed in the current concrete-executor slice
 
@@ -35,7 +50,7 @@ update changes evidence validity, not the palette control-flow conclusion.
 Neither ordinary palette-entry reachability nor exclusive shared-tail ownership
 is established. Concrete prefix evidence is distinct from abstract propagation.
 
-## Confirmed remaining defects, in recommended order
+## Original confirmed defects (resolved by the follow-up)
 
 1. **Two-memory-operand scheduling with the same address register.** The concrete
    executor reads both CMPM operands before applying their individual updates;
@@ -121,3 +136,47 @@ The installed Copperline is the checksum-verified official 1.0.0 stable release,
 not an obsolete pre-1.0 build. Current main commits do not, by themselves, explain
 these simulator defects. Exact executable/version/hash evidence and the release
 link are in `docs/copperline-runtime.md`.
+
+
+## General fixes and regression locations
+
+- **Concrete scheduling:** `src/m68k_simulator.c` completes the source access/update
+  before evaluating the destination for CMPM, ADDX/SUBX and MOVE. The source value
+  is captured before a second predecrement; MOVEA can overwrite its source address
+  register after the source increment. `ConcreteOperandOrderTests` in
+  `src/tests/test_m68k_simulator_ea_updates.py` covers all B/W/L widths, all eight
+  registers, shared/distinct registers, extend inputs, memory values, flags and
+  write ranges.
+- **Abstract updates:** a private instruction-local operand address cache in the
+  scalar evaluator/writer resolves updating EAs once. Later operands observe
+  earlier updates, while RMW writeback reuses the read address. The public ABI is
+  unchanged; PACK/UNPK and MOVEM retain their existing multi-access executors.
+  Unknown/wrapped addresses produce no fabricated memory facts. The ctypes test
+  state now explicitly exposes the existing `sr_known`/reserved ABI bytes instead
+  of attaching a Python-only attribute. Regression file:
+  `src/tests/test_m68k_simulator_abstract_ea_updates.py`.
+- **Pointer planning/export:** exact canonical pointer fields are planned even
+  beneath covering anchors/ranges; their explicit domains override generic table
+  decisions. JSON chooses the most specific structured item and prefers explicit
+  policy on equal spans. It exports the render-plan decision, not a textual guess.
+  `tests/test_pointer_resolution_specificity.py` checks reordered overlapping
+  ranges, all fields, NULL, domain/value/target identities, query totals and exact
+  source reassembly. Existing pointer-domain tests retain conservative failures.
+- **Static pointees:** table cursor widening retains the homogeneous pointee type
+  separately from concrete position. A one-past cursor may be retained as a value,
+  but a known one-past load is rejected as a typed entry. No target or runtime bound
+  follows from the widened type. The original native baseline and new
+  `facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load` both pass.
+- **Hashing:** `m68k_platform_file_sha256_hex` in `src/platform_common.c` streams
+  files with the existing BCrypt/OpenSSL host dependencies and reports errors
+  without stale hashes/sizes. Decompression delegates to it. Native tests cover
+  empty/abc known SHA256 vectors, multiple chunks, length and missing-file errors;
+  Python tests compare provider and exact source-range hashes with `hashlib`.
+  The Linux unknown-input fixture uses the existing harmless system `false`
+  executable for identity metadata; it does not claim Ancient codec validation.
+  Production Ancient configuration remains an explicit external-tool prerequisite.
+
+One combined native run and one applicable broader Python run were performed
+following implementation, rather than rerunning broad suites per small edit.
+No new Copperline gameplay route was attempted, and the shared hit/palette tail
+remains a relocation blocker.

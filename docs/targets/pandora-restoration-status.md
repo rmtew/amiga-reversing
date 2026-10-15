@@ -2489,3 +2489,60 @@ reproduces all 376,832 bytes. Source SHA256 remains
 Original assets/includes and target histories are unchanged in this tooling fix.
 The resident service was restarted to load the rebuilt C library; UI still
 returns HTTP 200 at `http://127.0.0.1:8123/` (PID 200712).
+
+## Five general framework defects resolved
+
+The follow-up fixes all five confirmed defects from the 2026-10-15 ledger in
+normal framework layers. Concrete source accesses and their updates complete
+before destination evaluation for shared-register CMPM, ADDX/SUBX and MOVE.
+Abstract scalar execution captures each updating operand address once, makes
+its update visible to later operands, and reuses the captured address for RMW
+writeback. Unknown/wrapped addresses do not produce invented memory facts;
+existing PACK/UNPK and MOVEM multi-access executors are preserved. The test
+ctypes state now declares the existing `sr_known`/reserved bytes explicitly.
+
+Explicit pointer fields are planned independently of covering anchors/ranges,
+and the listing JSON selects the most specific canonical field. It exports the
+same native render-plan decision used by source rendering. Static table cursor
+widening retains a homogeneous pointee type without inventing a concrete target
+or bound; a known one-past load remains rejected. The original native pointee
+baseline and its new one-past negative regression both pass. Eighteen Pandora
+operand accesses now recover their existing object/descriptor field names,
+including the proximity scan's position pointer, XY, flags, distance, cooldown
+and context-message fields. No target-specific field seeds were added.
+
+The fresh `pandora-world-pointers.json` now reports **96 symbolic nonzero
+references, zero unresolved nonzero references, and one NULL**, agreeing with
+all 97 rendered LONG rows. The previous 3/93 query/export gap is resolved by
+native planning/JSON changes, without parsing source text or hand-mapping values.
+All original object/descriptor layout identities and physical bounds remain.
+
+Native file hashing now streams through the common host SHA256 helper, using
+the existing BCrypt/OpenSSL dependencies. Decompression uses the same helper
+for provider, source range and output identities. The Linux unknown-input fixture
+uses the existing harmless `false` executable for metadata testing; no Ancient
+provider was installed and codec interoperability is not claimed by that test.
+Known vectors, chunk boundaries, errors and Python `hashlib` comparisons pass.
+
+Validation after the combined changes: **811 native tests pass with no failures**,
+including both longstanding baseline failures; **318 Python tests and 1581
+subtests pass**, with one explicit opt-in Copperline execution oracle skipped.
+C style has no new issues on changed lines. The broader applicable runs were
+performed once after implementation. Full C and independent vasm reproduce all
+376,832 bytes, receipt
+`f7bd711ebfba35b769cfd7af280bf4a94592a20acdd9c92d6723c066a460916e`;
+rendered-source SHA256:
+`491f9194975382e9dbbfb3ade4a84f3eb8a391a0c895a3e6666fa3682fd86421`.
+Original image SHA256 remains
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+All 78 packaged asset/include identities, target metadata and both histories
+remain byte-identical. Generated source and package manifest were regenerated
+normally. The restarted service (PID 204195) returns HTTP 200 on localhost:8123.
+
+The reproduction commands and prior failure vectors are retained in
+`docs/validation/framework-defects-2026-10-15.md`; the combined Python run covers
+simulator/generator, pointer domains/reporting, restoration operations and the
+bounded Pandora scan/palette/render witnesses. The shared hit/palette tail,
+callback/IRQ/DMA lifetimes, unknown helper effects and unchecked game paths remain
+separate restoration/relocation obligations. No PR merge, review-state change,
+new gameplay route, ROM download or private-input copy was performed.

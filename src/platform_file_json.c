@@ -6424,45 +6424,41 @@ static int append_listing_source_context(JsonBuilder *builder, const char *kind,
   return json_builder_append(builder, "{\"section\":\"c-backend\"}");
 }
 
+static int listing_structured_data_item_covers(const M68kAnalysisStructuredDataItem *item,
+    int section_index, uint32_t offset) {
+  if (item == NULL || item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset)
+    return 0;
+  if (item->has_section_index ? item->section_index != (uint32_t)section_index : section_index != 0) return 0;
+  return offset - item->offset < item->size;
+}
+
 static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_offset(
     const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy, int section_index,
     uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *best = NULL;
+  int best_is_policy = 0;
   size_t index;
-  size_t item_count;
+  size_t count;
   if (section_index < 0) return NULL;
-  item_count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
-  if (item_count != 0U) {
-    for (index = 0U; index < item_count; ++index) {
-      const M68kAnalysisStructuredDataItem *item =
-        m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
-      uint32_t end_offset;
-      if (item == NULL) continue;
-      if (item->has_section_index) {
-        if (item->section_index != (uint32_t)section_index) continue;
-      } else if (section_index != 0) {
-        continue;
+  count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
+  for (index = 0U; index < count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+    if (listing_structured_data_item_covers(item, section_index, offset) && (best == NULL || item->size < best->size))
+      best = item;
+  }
+  /* A covering inferred table must not hide an exact canonical field. On equal
+   * spans the explicit policy carries the user's domain/type contract. */
+  if (policy != NULL) {
+    for (index = 0U; index < policy->structured_data_item_count && index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+      if (listing_structured_data_item_covers(item, section_index, offset) &&
+          (best == NULL || item->size < best->size || (item->size == best->size && !best_is_policy))) {
+        best = item;
+        best_is_policy = 1;
       }
-      if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
-      end_offset = item->offset + item->size;
-      if (offset < end_offset) return item;
     }
-    return NULL;
   }
-  if (policy == NULL) return NULL;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    uint32_t end_offset;
-    if (item->has_section_index) {
-      if (item->section_index != (uint32_t)section_index) continue;
-    } else if (section_index != 0) {
-      continue;
-    }
-    if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
-    end_offset = item->offset + item->size;
-    if (offset < end_offset) return item;
-  }
-  return NULL;
+  return best;
 }
 
 static int append_listing_structured_data_json(JsonBuilder *builder, const M68kAnalysisStructuredDataItem *item) {

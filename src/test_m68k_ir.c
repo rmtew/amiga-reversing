@@ -30986,7 +30986,7 @@ static int test_facts_v2_render_asm_source_honors_explicit_typed_field_labels(vo
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
+static int pointer_table_pointee_loop_fixture(int known_one_past) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -31007,6 +31007,12 @@ static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type
     0x60u, 0xf4u, 0x4eu, 0x75u,
     [32] = 0x00u, [33] = 0x01u, [34] = 0x00u, [35] = 0x30u
   };
+  if (known_one_past) {
+    const uint8_t prefix[] = {0x58u, 0x88u, 0x24u, 0x18u, 0x67u, 0x08u, 0x2au, 0x42u,
+      0x30u, 0x2du, 0x00u, 0x02u, 0x4eu, 0x75u, 0x4eu, 0x75u};
+    memcpy(bytes + 4U, prefix, sizeof(prefix));
+    bytes[36] = 0x00u; bytes[37] = 0x01u; bytes[38] = 0x00u; bytes[39] = 0x34u;
+  }
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
@@ -31054,24 +31060,35 @@ static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type
   analysis_section = &analysis.sections[0];
   for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *candidate = &analysis_section->recovered_platform_typed_accesses[index];
-    if (candidate->offset == 10U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
+    if (candidate->offset == (known_one_past ? 12U : 10U) && candidate->operand_index == 0U && candidate->base_reg == 5U &&
         candidate->displacement == 2) {
       typed = candidate;
       break;
     }
   }
-  M68K_C_ASSERT(typed != NULL);
-  M68K_C_ASSERT(strcmp(typed->field_name, "world_y") == 0);
+  if (known_one_past) M68K_C_ASSERT(typed == NULL);
+  else {
+    M68K_C_ASSERT(typed != NULL);
+    M68K_C_ASSERT(strcmp(typed->field_name, "world_y") == 0);
+  }
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y") != NULL);
+  if (!known_one_past) M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
+}
+
+static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
+  return pointer_table_pointee_loop_fixture(0);
+}
+
+static int test_facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load(void) {
+  return pointer_table_pointee_loop_fixture(1);
 }
 
 static int test_facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin(void) {
@@ -39926,6 +39943,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_honors_explicit_typed_field_labels},
     {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",
       test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type},
+    {"facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load",
+      test_facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load},
     {"facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin",
       test_facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin},
     {"facts_v2_render_asm_source_propagates_pointer_table_chain",

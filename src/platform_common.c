@@ -12,6 +12,7 @@
 #pragma comment(lib, "bcrypt.lib")
 #else
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 #endif
 
 char *m68k_platform_dup_string(const char *text) {
@@ -83,6 +84,72 @@ fail:
   for (i = 0; i < sizeof(digest); ++i) snprintf(out_hex + i * 2U, 3U, "%02x", digest[i]);
   return 0;
 #endif
+}
+
+int m68k_platform_file_sha256_hex(const char *path, uint32_t *out_size, char out_hex[65]) {
+#ifdef _WIN32
+  BCRYPT_ALG_HANDLE algorithm = NULL;
+  BCRYPT_HASH_HANDLE hash = NULL;
+#else
+  EVP_MD_CTX *hash = NULL;
+  unsigned int digest_size = 0U;
+#endif
+  FILE *file = NULL;
+  unsigned char buffer[8192], digest[32];
+  static const char hex[] = "0123456789abcdef";
+  uint32_t total = 0U;
+  size_t read_count, index;
+  if (out_size != NULL) *out_size = 0U;
+  if (out_hex == NULL) return -1;
+  out_hex[0] = '\0';
+  if (path == NULL) return -1;
+  file = fopen(path, "rb");
+  if (file == NULL) return -1;
+#ifdef _WIN32
+  if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, NULL, 0) != 0 ||
+      BCryptCreateHash(algorithm, &hash, NULL, 0, NULL, 0, 0) != 0) goto fail;
+#else
+  hash = EVP_MD_CTX_new();
+  if (hash == NULL || EVP_DigestInit_ex(hash, EVP_sha256(), NULL) != 1) goto fail;
+#endif
+  while ((read_count = fread(buffer, 1U, sizeof(buffer), file)) != 0U) {
+    if (total > UINT32_MAX - (uint32_t)read_count) goto fail;
+    total += (uint32_t)read_count;
+#ifdef _WIN32
+    if (BCryptHashData(hash, (PUCHAR)buffer, (ULONG)read_count, 0) != 0) goto fail;
+#else
+    if (EVP_DigestUpdate(hash, buffer, read_count) != 1) goto fail;
+#endif
+  }
+  if (ferror(file)) goto fail;
+#ifdef _WIN32
+  if (BCryptFinishHash(hash, digest, sizeof(digest), 0) != 0) goto fail;
+#else
+  if (EVP_DigestFinal_ex(hash, digest, &digest_size) != 1 || digest_size != sizeof(digest)) goto fail;
+#endif
+  for (index = 0U; index < sizeof(digest); ++index) {
+    out_hex[index * 2U] = hex[digest[index] >> 4U];
+    out_hex[index * 2U + 1U] = hex[digest[index] & 0x0FU];
+  }
+  out_hex[64] = '\0';
+  if (out_size != NULL) *out_size = total;
+  fclose(file);
+#ifdef _WIN32
+  BCryptDestroyHash(hash);
+  BCryptCloseAlgorithmProvider(algorithm, 0);
+#else
+  EVP_MD_CTX_free(hash);
+#endif
+  return 0;
+fail:
+  fclose(file);
+#ifdef _WIN32
+  if (hash != NULL) BCryptDestroyHash(hash);
+  if (algorithm != NULL) BCryptCloseAlgorithmProvider(algorithm, 0);
+#else
+  EVP_MD_CTX_free(hash);
+#endif
+  return -1;
 }
 
 int platform_instruction_has_normal_fallthrough(const M68kInstructionIR *instruction) {

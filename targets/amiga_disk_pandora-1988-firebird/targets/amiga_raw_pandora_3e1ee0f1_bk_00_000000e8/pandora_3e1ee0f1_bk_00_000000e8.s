@@ -9666,7 +9666,7 @@ abs_0_00017BAA:
 	move.l (a0)+,d0
 	beq.b abs_0_00017BB8
 	movea.l d0,a1
-	bclr.b #3,$0048(a1)
+	bclr.b #3,world_object_shared_prefix_world_object_flags(a1)
 	bra.b abs_0_00017BAA
 abs_0_00017BB8:
 	rts
@@ -10297,11 +10297,11 @@ scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
 	movea.l d2,a5
-	movea.l $002C(a5),a0
-	move.w $0030(a5),d2
-	move.w $0032(a5),d3
-	move.w d2,$0004(a0)
-	move.w d3,$0006(a0)
+	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
+	move.w world_object_shared_prefix_world_x(a5),d2
+	move.w world_object_shared_prefix_world_y(a5),d3
+	move.w d2,world_position_descriptor_prefix_world_x(a0)
+	move.w d3,world_position_descriptor_prefix_world_y(a0)
 	cmpa.l a5,a4
 	beq.w next_world_object_proximity_candidate
 	sub.w d4,d2
@@ -10313,35 +10313,35 @@ abs_0_00018334:
 	neg.w d3
 abs_0_0001833A:
 	add.w d2,d3
-	move.w d3,$0042(a5)
-	bclr.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,$0048(a5)
+	move.w d3,world_object_shared_prefix_proximity_distance(a5)
+	bclr.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,world_object_shared_prefix_world_object_flags(a5)
 	cmp.w d0,d3
 	bcc.b next_world_object_proximity_candidate
 	bclr.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
-	bset.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,$0048(a5)
+	bset.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,world_object_shared_prefix_world_object_flags(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
 	beq.b next_world_object_proximity_candidate
 	move.l a5,app_nearest_object_ptr(a6)
 	move.l a5,app_02D4(a6)
     ; Changed candidate replaces D0 threshold with cooldown (decrement nonzero). Without a queued message later tests use this value; enqueue_status_message can overwrite it again.
-	move.w $0052(a5),d0
+	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
 	beq.b latch_changed_nearby_object_context
 	subq.w #1,d0
-	move.w d0,$0052(a5)
+	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
 latch_changed_nearby_object_context:
 	bset.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
     ; Latch first context visit before inactive and NULL-message guards. Bit 2 does not prove a prompt was queued; bit 5 can remain set on multiple admitted objects.
-	bset.b #WORLD_OBJECT_CONTEXT_VISITED_BIT,$0048(a5)
+	bset.b #WORLD_OBJECT_CONTEXT_VISITED_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bne.b next_world_object_proximity_candidate
-	btst.b #1,$0048(a5)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bne.b next_world_object_proximity_candidate
-	tst.l $000C(a5)
+	tst.l world_object_shared_prefix_context_message_ptr(a5)
 	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
-	move.w #$3C,$0052(a5)
-	movea.l $000C(a5),a0
+	move.w #$3C,world_object_shared_prefix_context_prompt_cooldown(a5)
+	movea.l world_object_shared_prefix_context_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
 next_world_object_proximity_candidate:
@@ -10604,9 +10604,9 @@ abs_0_000186B0:
 	move.l (a0)+,d1
 	beq.b abs_0_000186C4
 	movea.l d1,a5
-	btst.b #1,$0048(a5)
+	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_000186B0
-	add.b d0,$004C(a5)
+	add.b d0,world_object_shared_prefix_item_state(a5)
 	bra.b abs_0_000186B0
 abs_0_000186C4:
 	movem.l (a7)+,d1/a0/a5

@@ -5003,6 +5003,40 @@ static int plan_rendered_structured_pointer_expressions(M68kRenderLookup *lookup
       ++offset;
     }
   }
+  /* Plan explicit scalar pointer contracts independently of covering ranges.
+   * Anchors and inferred tables may advance the ownership walk past these
+   * fields, but must not erase their domain-aware resolution decisions. */
+  if (lookup->policy != NULL) {
+    size_t item_index;
+    for (item_index = 0U; item_index < lookup->policy->structured_data_item_count; ++item_index) {
+      const M68kAnalysisStructuredDataItem *field = &lookup->policy->structured_data_items[item_index];
+      const M68kDecodeSectionIR *section;
+      const M68kRenderPlannedExpression *existing;
+      M68kRenderPlannedExpression expression;
+      uint32_t field_section = field->has_section_index ? field->section_index : 0U;
+      uint32_t byte_index;
+      int code_overlap = 0;
+      if (!field->is_pointer || field->size != 4U || field_section >= decode->section_count) continue;
+      section = &decode->sections[field_section];
+      if (field->offset > section->size || section->size - field->offset < 4U ||
+          lookup_relocation_at(lookup, field_section, field->offset) != NULL) continue;
+      for (byte_index = 0U; byte_index < 4U; ++byte_index) {
+        if (accepted_byte_at(section, accepted_bytes[field_section], field->offset + byte_index)) code_overlap = 1;
+      }
+      if (code_overlap) continue;
+      if (resolve_rendered_data_pointer_expression(lookup, section, field, field->offset, 0U,
+          decode, accepted_start, &expression) == M68K_RENDER_PLANNED_EXPRESSION_INVALID) return -1;
+      existing = m68k_render_plan_find_expression(plan, field_section, field->offset, UINT32_MAX,
+        M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY);
+      if (existing == NULL) existing = m68k_render_plan_find_expression(plan, field_section, field->offset,
+        UINT32_MAX, M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER);
+      if (existing != NULL) {
+        size_t expression_index = (size_t)(existing - plan->expressions);
+        expression.kind = existing->kind;
+        plan->expressions[expression_index] = expression;
+      } else if (m68k_render_plan_append_expression(plan, &expression) != 0) return -1;
+    }
+  }
   return 0;
 }
 
