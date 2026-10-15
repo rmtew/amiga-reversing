@@ -67,6 +67,7 @@ from amiga_reversing.disasm.target_metadata import (
     write_target_metadata,
     write_target_seeded_metadata,
 )
+from amiga_reversing.disasm.tool_graph import resolve_capability
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
     make_synthetic_atari_prg,
@@ -81,6 +82,32 @@ from tests.c_backend_listing_rows import (
     build_project_listing_rows_window_with_c_artifact,
     build_project_listing_rows_with_c_artifact,
 )
+
+
+def _require_game_fixture(relative_path: str) -> None:
+    if not (PROJECT_ROOT / relative_path).is_file():
+        pytest.skip(
+            f"Missing optional game fixture: {relative_path}. Restore your authorized "
+            "original input at that recorded path; no substitute bytes are generated."
+        )
+
+
+def _assert_raw_fixture_exact(tmp_path: Path, text: str, original: bytes) -> None:
+    rebuilt, _ = assemble_platform_source_text_with_c_backend("amiga-raw", text, project_root=PROJECT_ROOT)
+    assert rebuilt == original
+    assembly, output = tmp_path / "verified.s", tmp_path / "verified.bin"
+    assembly.write_text(text)
+    capability = resolve_capability("assemble_vasm_source", project_root=PROJECT_ROOT)
+    assert capability["available"], capability
+    selected = capability["selected"]
+    assert selected["runtime_tool_id"] == "host", selected
+    result = subprocess.run(
+        [selected["functional_resolved_path"], "-quiet", "-Fbin", "-m68000",
+         "-no-opt", "-o", str(output), str(assembly)],
+        capture_output=True, text=True, timeout=20,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert output.read_bytes() == original
 
 
 def _requires_c_backend_dlls() -> None:
@@ -1766,7 +1793,8 @@ def test_full_listing_move_source_immediate_exposes_operand_part(tmp_path: Path)
     assert move["operand_parts"][0]["width_bits"] == 32
 
 
-def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path) -> None:
+@pytest.mark.parametrize("established", [False, True])
+def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path, established: bool) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
     metadata_path = tmp_path / "target_metadata.json"
@@ -1787,6 +1815,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
                 "execution_views": [
                     {"source_start": 0x10, "source_end": 0x20, "base_addr": 0x80},
                     {"source_start": 0x20, "source_end": 0x24, "base_addr": 0x100},
+                    *([{"source_start": 0, "source_end": 0x10, "base_addr": 0}] if established else []),
                 ]
             }
         ),
@@ -1809,6 +1838,13 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         project_root=PROJECT_ROOT,
     )
     combined = analyze_source_with_c_artifact(binary_source, metadata_text=str(metadata_path), project_root=PROJECT_ROOT)
+    _assert_raw_fixture_exact(tmp_path, source_text, path.read_bytes())
+    if not established:
+        assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
+        assert "\tjmp $00000080.l\n" in source_text
+        assert "    ORG $80\n" not in source_text and "    ORG $100\n" not in source_text
+        assert all(not v["materialized"] for v in combined["analysis"]["sections"][0]["runtime_views"])
+        return
     assert "\tlea.l loc_0_00000020-(*+2)(pc),a0\n" in source_text
     assert "\tjmp $00000080.l\n" in source_text
     assert "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n" in source_text
@@ -1868,27 +1904,19 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert runtime_row["runtime_view_id"] == 1
 
 
-def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: Path) -> None:
+@pytest.mark.parametrize("established", [False, True])
+def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: Path, established: bool) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
     metadata_path = tmp_path / "target_metadata.json"
-    path.write_bytes(bytes.fromhex("4ef9000000804ef900000084000000004e714e754e714e75"))
+    path.write_bytes(bytes.fromhex("4eb9000000804ef900000084000000004e714e754e714e75"))
     metadata_path.write_text(
         json.dumps(
             {
-                "seeded_code_entrypoints": [
-                    {
-                        "hunk": 0,
-                        "addr": 6,
-                        "name": "second_runtime_ref",
-                        "source_id": "test",
-                        "source_path": "test",
-                        "source_locator": "test",
-                    }
-                ],
                 "execution_views": [
                     {"source_start": 0x10, "source_end": 0x18, "base_addr": 0x80},
                     {"source_start": 0x14, "source_end": 0x18, "base_addr": 0x84},
+                    *([{"source_start": 0, "source_end": 0x10, "base_addr": 0}] if established else []),
                 ],
             }
         ),
@@ -1911,11 +1939,16 @@ def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: 
         project_root=PROJECT_ROOT,
     )
 
+    _assert_raw_fixture_exact(tmp_path, source_text, path.read_bytes())
     assert source_profile["facts_v2"]["asm_source_refused"] is False
+    if not established:
+        assert "\tnop\n" not in source_text
+        assert source_text.count("\tdc.b $4E,$71,$4E,$75\n") == 2
+        return
     assert source_text.count("    ORG $80\n") == 1
     assert "    ORG $84\n" not in source_text
     assert "    ORG $14\n" not in source_text
-    assert "\tjmp abs_0_00000080.l\n" in source_text
+    assert "\tjsr abs_0_00000080.l\n" in source_text
     assert "\tjmp abs_0_00000084.l\n" in source_text
     assert "abs_0_00000084:\n\tnop\n\trts\n" in source_text
 
@@ -3180,7 +3213,8 @@ def test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range(tm
 
     policy = effective_policy_project_source_with_c_backend(source, project_root=PROJECT_ROOT)["analysis_policy"]
     assert policy["runtime_ranges"] == [
-        {"section_index": 0, "offset": 0, "size": len(original), "runtime_address": 0x4000, "name": "raw_load"}
+        {"section_index": 0, "offset": 0, "size": len(original), "runtime_address": 0x4000,
+         "provenance": 0, "use_mask": 0, "name": "raw_load"}
     ]
     assert policy["runtime_entry_points"] == [{"section_index": 0, "runtime_address": 0x4000}]
     analysis = analyze_project_source_with_c_backend(source, project_root=PROJECT_ROOT)
@@ -7861,7 +7895,7 @@ def test_listing_artifact_runtime_observation_view_maps_pc_without_source_view(t
     finally:
         artifact.close()
     assert row is not None
-    assert row["stable_key"] == "s0:00000000:instruction:0"
+    assert row["stable_key"] == "s0:00000000:instruction"
     assert row["runtime_address"] == 0x10000
     assert row["runtime_observation_view"] == {
         "execution_view_id": "observed-stage",
@@ -7923,6 +7957,7 @@ def test_runtime_data_range_shadows_overlapping_runtime_observation_view(tmp_pat
 
 def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> None:
     _requires_c_backend_dlls()
+    _require_game_fixture('targets/amiga_disk_epic-1992-ocean-disk-1/targets/amiga_raw_bootloader_stage_1/binary.bin')
     paths = resolve_project_paths(
         "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootloader_stage_1",
         project_root=PROJECT_ROOT,
@@ -8223,6 +8258,7 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
 
 def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend() -> None:
     _requires_c_backend_dlls()
+    _require_game_fixture('targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootloader_stage_1/binary.bin')
     paths = resolve_project_paths(
         "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootloader_stage_1",
         project_root=PROJECT_ROOT,
@@ -8244,18 +8280,19 @@ def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_b
     assert "abs_0_00040046-" not in source
 
 
-def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_path: Path) -> None:
+@pytest.mark.parametrize("executes", [False, True])
+def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_path: Path, executes: bool) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "runtime_ref_copied_entry.bin"
-    code = bytes.fromhex(
-        "41fa000e"      # lea.l payload(pc),a0
-        "43f900000400"  # lea.l $400.l,a1
-        "7000"          # moveq.l #0,d0
-        "32d8"          # move.w (a0)+,(a1)+
-        "4e75"          # rts
-        "4e75"          # payload: rts
-        "0000"
-    )
+    # Both fixtures copy the same four bytes. Only the positive arm transfers
+    # control to its destination; a destination LEA is not execution evidence.
+    payload_offset = 0x20 if executes else 0x10
+    code = (bytes.fromhex("41fa") + (payload_offset-2).to_bytes(2,"big")
+        + bytes.fromhex("43f900000400700022d8")
+        + (bytes.fromhex("4ef900000400") if executes else bytes.fromhex("4e75")))
+    # Separate the positive payload, and copy through its section end, so this
+    # tests ORG entry rather than suppression of uncopied storage continuation.
+    code = code.ljust(payload_offset, b"\0") + bytes.fromhex("4e750000")
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
     source = HunkFileBinarySource(
         kind=BinarySourceKind.HUNK_FILE,
@@ -8271,15 +8308,18 @@ def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_pat
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert "loc_0_00000010:\n\trts\n" in source_text
-    assert any(
-        ref.get("reason_name") == "runtime_view_entry" and ref.get("offset") == 0x10
-        for ref in analyze_project_source_with_c_backend(
-            source,
-            metadata_path=None,
-            project_root=PROJECT_ROOT,
-        )["sections"][0]["code_start_refs"]
-    )
+    analysis = analyze_project_source_with_c_backend(source, project_root=PROJECT_ROOT)["sections"][0]
+    if not executes:
+        # Mapping may materialize an ORG; it must not promote the bytes to code.
+        assert "abs_0_00000400:\n\tdc.b $4E,$75,$00,$00\n" in source_text
+        assert not any(ref.get("evidence_kind")=="runtime_control_target" and ref.get("offset")==0x10
+                       for ref in analysis["code_start_refs"])
+        return
+    assert "    ORG $400\nabs_0_00000400:\n\trts\n" in source_text
+    assert "\tjmp abs_0_00000400.l\n" in source_text
+    assert any(ref.get("evidence_kind")=="runtime_control_target" and ref.get("offset")==payload_offset
+                   and ref.get("source_offset")==14 and ref.get("runtime_address")==0x400
+               for ref in analysis["code_start_refs"])
     assert "\tdc.b $4E,$75" not in source_text
 
 
@@ -8443,6 +8483,7 @@ def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> No
 
 def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:
     _requires_c_backend_dlls()
+    _require_game_fixture('resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip')
     paths = resolve_project_paths(
         "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
         project_root=PROJECT_ROOT,
