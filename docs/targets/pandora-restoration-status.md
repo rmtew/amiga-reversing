@@ -2377,3 +2377,75 @@ identifies both postincrement reads as header `world_x` and `world_y`. The
 read-only inventory is `docs/validation/pandora-terminal-messages.json`.
 Original binary and all 78 packaged asset/include identities remain unchanged;
 previous manual-action and decision-journal bytes remain intact as prefixes.
+
+## World proximity scan and initialized pointer propagation
+
+This connected follow-up distinguishes the scan's observed selection behavior
+from a mathematical nearest-object reduction. At `$836A`, a newly selected
+object overwrites D0 (the distance threshold) with its context cooldown and then
+decrements nonzero values. If the optional message path is skipped, later objects
+compare their WORD distance with that value. A zero cooldown then freezes selection;
+a larger one can admit a farther object. An unchanged stored pointer bypasses
+that overwrite and retains the distance threshold. Equal-distance ordering is
+therefore conditional, unlike the terminal message scan's first-tie rule.
+The optional enqueue saves only A0-A3; its spacing/duration computation overwrites
+D0 again, so the cooldown-derived threshold is not a full-callback invariant.
+Original instruction bytes and game behavior are unchanged.
+
+The scan sets the per-object improvement bit on each admitted object and does
+not clear earlier admissions retroactively. A separate first-context-visit bit
+is set before inactive-object and NULL-message guards; it does not mean a
+message was queued. Shared app bits distinguish changed-context refresh,
+no-candidate admission and an empty-prompt display latch. These roles now have
+symbolic bit indices at their original consumers. The no-candidate prefix
+leaves the cached pointer/distance untouched; its downstream prompt service is
+separate. Player descriptor XY synchronization happens before self-exclusion.
+Subtraction, absolute value and addition retain WORD wrap, including a modeled
+zero-distance wrap case. The pointer walk still uses NULL, without a physical
+prefix count guard.
+
+Two mapped-source reference schemas replace the address-domain ambiguity in
+existing object/descriptor prefixes. This reuses their durable layout identities
+and bounds: `$300A..$309A` has 35 object pointers and a NULL (the interior static
+suffix starts at `$300E`); `$309A..$310E` has 29 descriptor pointers; and
+`$310E..$318E` has 32 sort-source descriptor pointers. The latter two are distinct
+physical prefixes inside the existing owner. Pointer counts are initialized
+reference populations, not new object discoveries, runtime admission guarantees,
+unique-object counts or ownership/lifetime proofs. Adjacent scratch and scalar
+facts remain intact. The read-only native collector is
+`amiga_reversing.tools.pandora_world_pointer_inventory`.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_proximity_scan.py tests/test_pandora_terminal_messages.py tests/test_pandora_state_transitions.py tests/test_pandora_status_roles.py
+.venv/bin/python -m amiga_reversing.tools.pandora_world_pointer_inventory docs/validation/pandora-world-pointers.json
+```
+
+The combined run passes **43 tests**, including twelve new bounded scan cases.
+The tests use explicitly modeled table contents for candidate-order cases and
+stop at `$83AE` before sorting, active-chain processing, interaction callbacks
+or prompt rendering. They do not execute the known CLR predecrement defect.
+The original input hash is checked by the fixture. No new Copperline probe,
+framework implementation change or shared-tail relocation claim is involved.
+The simulator/Copperline distinction and installed release provenance are also
+recorded in `docs/copperline-runtime.md`.
+
+The three stages append **28 accepted actions** (including two final comment
+qualifications for the optional queue's D0 clobber). Final C/vasm exact receipt:
+`934aeef23757132a548ba6503edf9768684e0170027e2f18d6e26c9927cd53a6`;
+rendered-source SHA256:
+`862da61d0e5cb735de20a6b44279831ed52df9a8132b07b57c4389738d081cde`.
+All 376,832 bytes reassemble exactly. The native inventory in
+`docs/validation/pandora-world-pointers.json` preserves encoded values and native
+source identities; the original NULL is retained as an unresolved non-reference.
+All 78 packaged asset/include identities and previous history prefixes remain
+unchanged. Shared-tail relocation obligations and unknown callback/IRQ/DMA
+lifetimes remain open. The next authorized tooling slice is the general CLR
+predecrement fix, followed by rerunning the previously excluded palette prefix.
+
+The descriptor audit exposes a remaining propagation gap: all 35 nonzero object
+references resolve symbolically, but only one of the 61 descriptor references
+has a native symbolic resolution. The other 60 remain explicitly unresolved in
+the inventory and numeric in source. Their accepted schema bindings do not
+license a hand-subtracted target mapping. Completing native descriptor-target
+identity/label propagation is a follow-up; this checkpoint claims structured
+prefixes and the actual resolved references, not 96 symbolic references.

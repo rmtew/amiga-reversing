@@ -1,0 +1,914 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "revision": "1cb53d6aab8e709c55a7d0d7f42e5401b273fbe07d1fe4913a9c3804bdb5d0bc",
+  "subject_revision": "4914b5a078bc553fc62d16289674cd92a6f10b8d5a25d20402ffc22a29b30202",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "families": {
+    "world_object_source_reference": [
+      {
+        "source_offset": 12298,
+        "encoded_pointer": 377634,
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 312098,
+        "symbol": "player_world_object"
+      },
+      {
+        "source_offset": 12302,
+        "encoded_pointer": 375398,
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 309862,
+        "symbol": "world_object_pianist"
+      },
+      {
+        "source_offset": 12306,
+        "encoded_pointer": 377298,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12310,
+        "encoded_pointer": 375482,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12314,
+        "encoded_pointer": 375566,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12318,
+        "encoded_pointer": 365076,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12322,
+        "encoded_pointer": 365630,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12326,
+        "encoded_pointer": 375650,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12330,
+        "encoded_pointer": 375734,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12334,
+        "encoded_pointer": 375818,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12338,
+        "encoded_pointer": 366856,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12342,
+        "encoded_pointer": 367410,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12346,
+        "encoded_pointer": 368680,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12350,
+        "encoded_pointer": 370644,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12354,
+        "encoded_pointer": 370784,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12358,
+        "encoded_pointer": 370924,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12362,
+        "encoded_pointer": 371064,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12366,
+        "encoded_pointer": 371204,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12370,
+        "encoded_pointer": 371326,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12374,
+        "encoded_pointer": 369674,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12378,
+        "encoded_pointer": 367994,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12382,
+        "encoded_pointer": 370092,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12386,
+        "encoded_pointer": 371466,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12390,
+        "encoded_pointer": 371686,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12394,
+        "encoded_pointer": 370324,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12398,
+        "encoded_pointer": 362170,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12402,
+        "encoded_pointer": 371834,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12406,
+        "encoded_pointer": 372388,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12410,
+        "encoded_pointer": 373662,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12414,
+        "encoded_pointer": 374014,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12418,
+        "encoded_pointer": 374568,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12422,
+        "encoded_pointer": 375224,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12426,
+        "encoded_pointer": 373126,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12430,
+        "encoded_pointer": 375040,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12434,
+        "encoded_pointer": 374830,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12438,
+        "encoded_pointer": 0,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      }
+    ],
+    "world_position_descriptor_source_reference": [
+      {
+        "source_offset": 12442,
+        "encoded_pointer": 363536,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12446,
+        "encoded_pointer": 363560,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12450,
+        "encoded_pointer": 363584,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12454,
+        "encoded_pointer": 363596,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12458,
+        "encoded_pointer": 363620,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12462,
+        "encoded_pointer": 363644,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12466,
+        "encoded_pointer": 363656,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12470,
+        "encoded_pointer": 363680,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12474,
+        "encoded_pointer": 363692,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12478,
+        "encoded_pointer": 363704,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12482,
+        "encoded_pointer": 363716,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12486,
+        "encoded_pointer": 370728,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12490,
+        "encoded_pointer": 370868,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12494,
+        "encoded_pointer": 371008,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12498,
+        "encoded_pointer": 371148,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12502,
+        "encoded_pointer": 371288,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12506,
+        "encoded_pointer": 371410,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12510,
+        "encoded_pointer": 369920,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12514,
+        "encoded_pointer": 371550,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12518,
+        "encoded_pointer": 371770,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12522,
+        "encoded_pointer": 362594,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12526,
+        "encoded_pointer": 362606,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12530,
+        "encoded_pointer": 362618,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12534,
+        "encoded_pointer": 362630,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12538,
+        "encoded_pointer": 362642,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12542,
+        "encoded_pointer": 362654,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12546,
+        "encoded_pointer": 365038,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12550,
+        "encoded_pointer": 372624,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12554,
+        "encoded_pointer": 373916,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12558,
+        "encoded_pointer": 363632,
+        "resolution": "symbolic",
+        "reason": "resolved_source",
+        "target_section_index": 0,
+        "native_target_offset": 298096,
+        "symbol": "world_position_descriptors"
+      },
+      {
+        "source_offset": 12562,
+        "encoded_pointer": 363668,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12566,
+        "encoded_pointer": 369340,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12570,
+        "encoded_pointer": 376442,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12574,
+        "encoded_pointer": 376506,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12578,
+        "encoded_pointer": 376570,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12582,
+        "encoded_pointer": 376634,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12586,
+        "encoded_pointer": 376698,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12590,
+        "encoded_pointer": 376762,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12594,
+        "encoded_pointer": 377534,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12598,
+        "encoded_pointer": 365492,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12602,
+        "encoded_pointer": 366514,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12606,
+        "encoded_pointer": 374976,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12610,
+        "encoded_pointer": 379246,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12614,
+        "encoded_pointer": 367272,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12618,
+        "encoded_pointer": 367800,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12622,
+        "encoded_pointer": 378654,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12626,
+        "encoded_pointer": 363512,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12630,
+        "encoded_pointer": 368420,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12634,
+        "encoded_pointer": 370230,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12638,
+        "encoded_pointer": 363524,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12642,
+        "encoded_pointer": 363548,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12646,
+        "encoded_pointer": 363572,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12650,
+        "encoded_pointer": 363608,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12654,
+        "encoded_pointer": 370516,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12658,
+        "encoded_pointer": 362388,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12662,
+        "encoded_pointer": 372160,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12666,
+        "encoded_pointer": 374386,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12670,
+        "encoded_pointer": 374688,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12674,
+        "encoded_pointer": 375308,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12678,
+        "encoded_pointer": 375186,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      },
+      {
+        "source_offset": 12682,
+        "encoded_pointer": 373524,
+        "resolution": "unresolved",
+        "reason": "missing_native_resolution",
+        "target_section_index": null,
+        "native_target_offset": null,
+        "symbol": null
+      }
+    ]
+  },
+  "symbolic_nonzero_reference_count": 3,
+  "unresolved_nonzero_reference_count": 93,
+  "physical_prefixes": [
+    {
+      "start": 12298,
+      "end": 12442,
+      "entries": 36,
+      "role": "35 objects then NULL"
+    },
+    {
+      "start": 12442,
+      "end": 12558,
+      "entries": 29,
+      "role": "active descriptors"
+    },
+    {
+      "start": 12558,
+      "end": 12686,
+      "entries": 32,
+      "role": "sort descriptor source"
+    }
+  ],
+  "limits": [
+    "Initial source references, not immutable runtime values or unique objects.",
+    "The object scan uses NULL; physical prefixes are not all-input bounds.",
+    "Changed candidate cooldown overwrites the distance threshold register.",
+    "Callback, storage ownership and asynchronous lifetimes remain open."
+  ]
+}

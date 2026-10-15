@@ -811,3 +811,27 @@ BBUSY. Six sampled body chunks retain identical hashes through restore and
 second capture (384 of 2,304 bytes). These are bounded observations, not all-path
 allocation, alias exclusion or bus arbitration guarantees. Hit-family second
 capture and palette-tail entry/exclusion remain unresolved.
+
+### Version check, 2026-10-15
+
+The selected executable remains
+`/workspace/copperline-assessment/squashfs-root/usr/bin/copperline`.
+`--version` reports `copperline 1.0.0`; executable SHA256 is
+`e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c`.
+The retained official AppImage still hashes to
+`9ab3e2ecc89beb25344bd1b0d8aa3dcf9370ade8f3b08fdec2fb37e59461f55d`,
+matching the release checksum recorded above. The official
+[latest stable release](https://github.com/CopperlineHQ/Copperline/releases/tag/v1.0.0)
+is v1.0.0, published October 10 at commit `1a284cd`. Newer main commits are not
+evidence that a particular observed behavior is fixed; no upgrade was performed.
+
+The MOVEQ sign-extension defect was in this project's generated simulator and
+is fixed there. The CLR.W predecrement defect is also in that simulator and
+remains a strict expected failure. Neither test executes Copperline. The earlier
+negative body-open inference used the wrong source entry (`$27E0`); the corrected
+`$27EA` route completed body capture/restore/recapture in Copperline. The palette
+return issue is currently supported by modeled original-game stack/control-flow
+witnesses, separately from those runtime observations. It is not an observed
+Copperline CPU failure, nor is ordinary gameplay reachability of that spliced
+palette path established. Do not attribute it to emulator version without an
+isolated architectural discrepancy or a relevant upstream fix.

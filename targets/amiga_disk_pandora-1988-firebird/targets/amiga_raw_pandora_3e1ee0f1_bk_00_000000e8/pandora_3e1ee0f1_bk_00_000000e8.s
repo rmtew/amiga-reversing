@@ -710,6 +710,16 @@ terminal_location_message_reference_SIZEOF EQU __RS
 terminal_clearance_label_reference_label_ptr RS.L 1
 terminal_clearance_label_reference_SIZEOF EQU __RS
 
+; STRUCT world_object_source_reference
+    RSRESET
+world_object_source_reference_object_ptr RS.L 1
+world_object_source_reference_SIZEOF EQU __RS
+
+; STRUCT world_position_descriptor_source_reference
+    RSRESET
+world_position_descriptor_source_reference_descriptor_ptr RS.L 1
+world_position_descriptor_source_reference_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -832,6 +842,9 @@ ITEM_ID_THIEF	EQU	$44
 ITEM_ID_WACKOBRAIN	EQU	$62
 ITEM_ID_WOOKEY_WIG	EQU	$1C
 ITEM_ID_WRENCH	EQU	$2
+NEARBY_CONTEXT_CHANGED_BIT	EQU	1
+NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
+NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
 SELF_DESTRUCT_STATE_ARMED	EQU	$FF
 SELF_DESTRUCT_STATE_AWAIT_DISK	EQU	$0
@@ -863,7 +876,10 @@ WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	EQU	25
 WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	EQU	30
 WORLD_CMD_SET_POSITION	EQU	23
 WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
+WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
+WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
+WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
@@ -5250,7 +5266,7 @@ abs_0_00012540:
 	move.l (a0)+,d0
 	beq.b abs_0_0001255C
 	movea.l d0,a5
-	move.b world_object_shared_prefix_world_object_flags(a5),d0
+	move.b $0048(a5),d0
 	andi.b #66,d0
 	bne.b abs_0_00012540
 	move.l a0,-(a7)
@@ -6143,59 +6159,140 @@ abs_0_00012FE8:
 	movem.l (a7)+,d2-d3
 	rts
 world_object_ptr_table:
-	dc.l player_world_object	; mode=required, data_role=pointer_table, unit=pointer
-active_world_object_static_ptr_table:
-	dc.b $00,$05,$BA,$66,$00,$05,$C1,$D2,$00,$05,$BA,$BA,$00,$05,$BB,$0E
-	dc.b $00,$05,$92,$14,$00,$05,$94,$3E,$00,$05,$BB,$62,$00,$05,$BB,$B6
-	dc.b $00,$05,$BC,$0A,$00,$05,$99,$08,$00,$05,$9B,$32,$00,$05,$A0,$28
-	dc.b $00,$05,$A7,$D4,$00,$05,$A8,$60,$00,$05,$A8,$EC,$00,$05,$A9,$78
-	dc.b $00,$05,$AA,$04,$00,$05,$AA,$7E,$00,$05,$A4,$0A,$00,$05,$9D,$7A
-	dc.b $00,$05,$A5,$AC,$00,$05,$AB,$0A,$00,$05,$AB,$E6,$00,$05,$A6,$94
-	dc.b $00,$05,$86,$BA,$00,$05,$AC,$7A,$00,$05,$AE,$A4,$00,$05,$B3,$9E
-	dc.b $00,$05,$B4,$FE,$00,$05,$B7,$28,$00,$05,$B9,$B8,$00,$05,$B1,$86
-	dc.b $00,$05,$B9,$00,$00,$05,$B8,$2E,$00,$00,$00,$00
+	dc.l player_world_object	; object_ptr
+world_object_ptr_table_object_ptr_1:
+	dc.l world_object_pianist	; object_ptr
+world_object_ptr_table_object_ptr_2:
+	dc.l world_object_megabio_feed	; object_ptr
+world_object_ptr_table_object_ptr_3:
+	dc.l world_object_defence_controller	; object_ptr
+world_object_ptr_table_object_ptr_4:
+	dc.l world_object_wackobrain	; object_ptr
+world_object_ptr_table_object_ptr_5:
+	dc.l world_object_squash_player	; object_ptr
+world_object_ptr_table_object_ptr_6:
+	dc.l world_object_kriptonite	; object_ptr
+world_object_ptr_table_object_ptr_7:
+	dc.l world_object_glass	; object_ptr
+world_object_ptr_table_object_ptr_8:
+	dc.l world_object_kwik_kleen	; object_ptr
+world_object_ptr_table_object_ptr_9:
+	dc.l world_object_flight_controller	; object_ptr
+world_object_ptr_table_object_ptr_10:
+	dc.l world_object_thief	; object_ptr
+world_object_ptr_table_object_ptr_11:
+	dc.l world_object_priest	; object_ptr
+world_object_ptr_table_object_ptr_12:
+	dc.l world_object_hooligan	; object_ptr
+world_object_ptr_table_object_ptr_13:
+	dc.l world_object_captain	; object_ptr
+world_object_ptr_table_object_ptr_14:
+	dc.l world_object_resource_officer	; object_ptr
+world_object_ptr_table_object_ptr_15:
+	dc.l world_object_engineer	; object_ptr
+world_object_ptr_table_object_ptr_16:
+	dc.l world_object_science_officer	; object_ptr
+world_object_ptr_table_object_ptr_17:
+	dc.l world_object_medic	; object_ptr
+world_object_ptr_table_object_ptr_18:
+	dc.l world_object_awol_officer	; object_ptr
+world_object_ptr_table_object_ptr_19:
+	dc.l world_object_entry_officer	; object_ptr
+world_object_ptr_table_object_ptr_20:
+	dc.l world_object_icelord	; object_ptr
+world_object_ptr_table_object_ptr_21:
+	dc.l world_object_death_fly	; object_ptr
+world_object_ptr_table_object_ptr_22:
+	dc.l world_object_lieutenant_commander	; object_ptr
+world_object_ptr_table_object_ptr_23:
+	dc.l world_object_commander	; object_ptr
+world_object_ptr_table_object_ptr_24:
+	dc.l world_object_driffid	; object_ptr
+world_object_ptr_table_object_ptr_25:
+	dc.l world_object_musician	; object_ptr
+world_object_ptr_table_object_ptr_26:
+	dc.l world_object_menial_droid	; object_ptr
+world_object_ptr_table_object_ptr_27:
+	dc.l world_object_gardener	; object_ptr
+world_object_ptr_table_object_ptr_28:
+	dc.l world_object_robomechanic	; object_ptr
+world_object_ptr_table_object_ptr_29:
+	dc.l world_object_doctor	; object_ptr
+world_object_ptr_table_object_ptr_30:
+	dc.l world_object_diabetic	; object_ptr
+world_object_ptr_table_object_ptr_31:
+	dc.l world_object_chemist	; object_ptr
+world_object_ptr_table_object_ptr_32:
+	dc.l world_object_technician	; object_ptr
+world_object_ptr_table_object_ptr_33:
+	dc.l world_object_bank_manager	; object_ptr
+world_object_ptr_table_object_ptr_34:
+	dc.l world_object_security_officer	; object_ptr
+world_object_ptr_table_object_ptr_35:
+	dc.l $00000000	; object_ptr
 active_world_object_ptr_table:
-	dc.b $00,$05,$8C,$10,$00,$05,$8C,$28,$00,$05,$8C,$40,$00,$05,$8C,$4C
-	dc.b $00,$05,$8C,$64,$00,$05,$8C,$7C,$00,$05,$8C,$88,$00,$05,$8C,$A0
-	dc.b $00,$05,$8C,$AC,$00,$05,$8C,$B8,$00,$05,$8C,$C4,$00,$05,$A8,$28
-	dc.b $00,$05,$A8,$B4,$00,$05,$A9,$40,$00,$05,$A9,$CC,$00,$05,$AA,$58
-	dc.b $00,$05,$AA,$D2,$00,$05,$A5,$00,$00,$05,$AB,$5E,$00,$05,$AC,$3A
-	dc.b $00,$05,$88,$62,$00,$05,$88,$6E,$00,$05,$88,$7A,$00,$05,$88,$86
-	dc.b $00,$05,$88,$92,$00,$05,$88,$9E,$00,$05,$91,$EE,$00,$05,$AF,$90
-	dc.b $00,$05,$B4,$9C
+	dc.l world_position_descriptors+$18	; descriptor_ptr
+	dc.l world_position_descriptors+$30	; descriptor_ptr
+	dc.l world_position_descriptors+$48	; descriptor_ptr
+	dc.l world_position_descriptors+$54	; descriptor_ptr
+	dc.l world_position_descriptors+$6C	; descriptor_ptr
+	dc.l world_position_descriptors+$84	; descriptor_ptr
+	dc.l world_position_descriptors+$90	; descriptor_ptr
+	dc.l world_position_descriptors+$A8	; descriptor_ptr
+	dc.l world_position_descriptors+$B4	; descriptor_ptr
+	dc.l world_position_descriptors+$C0	; descriptor_ptr
+	dc.l world_position_descriptors+$CC	; descriptor_ptr
+	dc.l captain_animation_bank	; descriptor_ptr
+	dc.l resource_officer_animation_bank	; descriptor_ptr
+	dc.l engineer_animation_bank	; descriptor_ptr
+	dc.l science_officer_animation_bank	; descriptor_ptr
+	dc.l medic_animation_bank	; descriptor_ptr
+	dc.l awol_officer_animation_bank	; descriptor_ptr
+	dc.l entry_officer_positions_4A45E_1	; descriptor_ptr
+	dc.l lieutenant_commander_animation_bank	; descriptor_ptr
+	dc.l commander_animation_bank	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$C	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$18	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$24	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$30	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$3C	; descriptor_ptr
+	dc.l abs_0_000591EE	; descriptor_ptr
+	dc.l gardener_positions_4AF7E_1	; descriptor_ptr
+	dc.l robomechanic_positions_4B454_1	; descriptor_ptr
 world_object_sort_source_ptrs:
-	dc.l world_position_descriptors_position_state_ptr_10	; pointer_table
-	dc.l world_position_descriptors_position_state_ptr_13
-	dc.l hooligan_positions_4A07C_1
-	dc.l fixed_npc_position_states
-	dc.l defence_controller_position_descriptor
-	dc.l wackobrain_position_descriptor
-	dc.l glass_position_descriptor
-	dc.l kwik_kleen_position_descriptor
-	dc.l flight_controller_position_descriptor
-	dc.l megabio_feed_positions_4C226_2
-	dc.l squash_player_positions_49268_3
-	dc.l kriptonite_positions_49492_2
-	dc.l security_officer_positions_4B882_2
-	dc.l combat_visual_position_descriptor
-	dc.l thief_positions_4995C_2
-	dc.l priest_positions_49B98_1
-	dc.l player_position_descriptor
-	dc.l world_position_descriptors
-	dc.l icelord_positions_49DCE_1
-	dc.l death_fly_positions_4A600_1
-	dc.l world_position_descriptors_position_state_ptr_1
-	dc.l world_position_descriptors_position_state_ptr_3
-	dc.l world_position_descriptors_position_state_ptr_5
-	dc.l world_position_descriptors_position_state_ptr_8
-	dc.l driffid_positions_4A6E8_1
-	dc.l musician_positions_4870E_2
-	dc.l menial_droid_positions_4AD66_1
-	dc.l doctor_positions_4B552_1
-	dc.l diabetic_animation_bank
-	dc.l chemist_animation_bank
-	dc.l bank_manager_positions_4B954_2
-	dc.l technician_positions_4B1DA_2
+	dc.l world_position_descriptors+$78	; descriptor_ptr
+	dc.l world_position_descriptors+$9C	; descriptor_ptr
+	dc.l hooligan_positions_4A07C_1	; descriptor_ptr
+	dc.l fixed_npc_position_states	; descriptor_ptr
+	dc.l defence_controller_position_descriptor	; descriptor_ptr
+	dc.l wackobrain_position_descriptor	; descriptor_ptr
+	dc.l glass_position_descriptor	; descriptor_ptr
+	dc.l kwik_kleen_position_descriptor	; descriptor_ptr
+	dc.l flight_controller_position_descriptor	; descriptor_ptr
+	dc.l megabio_feed_positions_4C226_2	; descriptor_ptr
+	dc.l squash_player_positions_49268_3	; descriptor_ptr
+	dc.l kriptonite_positions_49492_2	; descriptor_ptr
+	dc.l security_officer_positions_4B882_2	; descriptor_ptr
+	dc.l combat_visual_position_descriptor	; descriptor_ptr
+	dc.l thief_positions_4995C_2	; descriptor_ptr
+	dc.l priest_positions_49B98_1	; descriptor_ptr
+	dc.l player_position_descriptor	; descriptor_ptr
+	dc.l world_position_descriptors	; descriptor_ptr
+	dc.l icelord_positions_49DCE_1	; descriptor_ptr
+	dc.l death_fly_positions_4A600_1	; descriptor_ptr
+	dc.l world_position_descriptors+$C	; descriptor_ptr
+	dc.l world_position_descriptors+$24	; descriptor_ptr
+	dc.l world_position_descriptors+$3C	; descriptor_ptr
+	dc.l world_position_descriptors+$60	; descriptor_ptr
+	dc.l driffid_positions_4A6E8_1	; descriptor_ptr
+	dc.l musician_positions_4870E_2	; descriptor_ptr
+	dc.l menial_droid_positions_4AD66_1	; descriptor_ptr
+	dc.l doctor_positions_4B552_1	; descriptor_ptr
+	dc.l diabetic_animation_bank	; descriptor_ptr
+	dc.l chemist_animation_bank	; descriptor_ptr
+	dc.l bank_manager_positions_4B954_2	; descriptor_ptr
+	dc.l technician_positions_4B1DA_2	; descriptor_ptr
 abs_0_0001318E:
 	dc.l abs_0_0005859A	; pointer_table
 	dc.l abs_0_000585A6	; pointer_table
@@ -9569,7 +9666,7 @@ abs_0_00017BAA:
 	move.l (a0)+,d0
 	beq.b abs_0_00017BB8
 	movea.l d0,a1
-	bclr.b #3,world_object_shared_prefix_world_object_flags(a1)
+	bclr.b #3,$0048(a1)
 	bra.b abs_0_00017BAA
 abs_0_00017BB8:
 	rts
@@ -10188,24 +10285,25 @@ combat_charge_full_cell_patterns:
 	dc.l $00FEFE00	; lookup_table
 combat_charge_partial_cell_masks:
 	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF	; lookup_table
+    ; Scan NULL-terminated objects; sync descriptor XY, including player. WORD distance wraps. Changed candidates and queued messages overwrite D0; this is not a stable nearest-object reduction.
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1
 	lea.l player_world_object.l,a4
 	move.w world_object_shared_prefix_world_x(a4),d4
 	move.w world_object_shared_prefix_world_y(a4),d5
-	move.w #$5A,d0
-	bset.b #2,app_02A6(a6)
+	move.w #WORLD_PROXIMITY_INITIAL_THRESHOLD,d0
+	bset.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
 	movea.l d2,a5
-	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
-	move.w world_object_shared_prefix_world_x(a5),d2
-	move.w world_object_shared_prefix_world_y(a5),d3
-	move.w d2,world_position_descriptor_prefix_world_x(a0)
-	move.w d3,world_position_descriptor_prefix_world_y(a0)
+	movea.l $002C(a5),a0
+	move.w $0030(a5),d2
+	move.w $0032(a5),d3
+	move.w d2,$0004(a0)
+	move.w d3,$0006(a0)
 	cmpa.l a5,a4
-	beq.w abs_0_000183AA
+	beq.w next_world_object_proximity_candidate
 	sub.w d4,d2
 	bpl.b abs_0_00018334
 	neg.w d2
@@ -10215,45 +10313,47 @@ abs_0_00018334:
 	neg.w d3
 abs_0_0001833A:
 	add.w d2,d3
-	move.w d3,world_object_shared_prefix_proximity_distance(a5)
-	bclr.b #5,world_object_shared_prefix_world_object_flags(a5)
+	move.w d3,$0042(a5)
+	bclr.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,$0048(a5)
 	cmp.w d0,d3
-	bcc.b abs_0_000183AA
-	bclr.b #2,app_02A6(a6)
+	bcc.b next_world_object_proximity_candidate
+	bclr.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
-	bset.b #5,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,$0048(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
-	beq.b abs_0_000183AA
+	beq.b next_world_object_proximity_candidate
 	move.l a5,app_nearest_object_ptr(a6)
 	move.l a5,app_02D4(a6)
-	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
-	beq.b abs_0_00018376
+    ; Changed candidate replaces D0 threshold with cooldown (decrement nonzero). Without a queued message later tests use this value; enqueue_status_message can overwrite it again.
+	move.w $0052(a5),d0
+	beq.b latch_changed_nearby_object_context
 	subq.w #1,d0
-	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
-abs_0_00018376:
-	bset.b #1,app_02A6(a6)
-	bset.b #2,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_000183AA
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_000183AA
-	tst.l world_object_shared_prefix_context_message_ptr(a5)
+	move.w d0,$0052(a5)
+latch_changed_nearby_object_context:
+	bset.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
+    ; Latch first context visit before inactive and NULL-message guards. Bit 2 does not prove a prompt was queued; bit 5 can remain set on multiple admitted objects.
+	bset.b #WORLD_OBJECT_CONTEXT_VISITED_BIT,$0048(a5)
+	bne.b next_world_object_proximity_candidate
+	btst.b #1,$0048(a5)
+	bne.b next_world_object_proximity_candidate
+	tst.l $000C(a5)
 	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
-	move.w #$3C,world_object_shared_prefix_context_prompt_cooldown(a5)
-	movea.l world_object_shared_prefix_context_message_ptr(a5),a0
+	move.w #$3C,$0052(a5)
+	movea.l $000C(a5),a0
 	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
-abs_0_000183AA:
+next_world_object_proximity_candidate:
 	bra.w scan_world_objects_for_proximity
 update_nearby_object_context:
 	bsr.w partition_world_object_update_ptrs
 	bsr.w process_active_world_object_chains
 	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00018492
-	btst.b #1,app_02A6(a6)
+	btst.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
 	bne.w show_nearby_object_context_prompt
-	btst.b #2,app_02A6(a6)
+	btst.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 	bne.b clear_nearby_object_context_prompt
 	movea.l app_nearest_object_ptr(a6),a5
 	btst.b #1,player_world_object_world_object_flags.l
@@ -10281,7 +10381,7 @@ abs_0_0001840E:
 	bne.b abs_0_0001848E
 	bra.b abs_0_00018492
 clear_nearby_object_context_prompt:
-	bset.b #3,app_02A6(a6)
+	bset.b #NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT,app_02A6(a6)
 	bne.b abs_0_00018492
 	lea.l nearby_character_overlay.l,a5
 	moveq.l #0,d0
@@ -10504,9 +10604,9 @@ abs_0_000186B0:
 	move.l (a0)+,d1
 	beq.b abs_0_000186C4
 	movea.l d1,a5
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
+	btst.b #1,$0048(a5)
 	bne.b abs_0_000186B0
-	add.b d0,world_object_shared_prefix_item_state(a5)
+	add.b d0,$004C(a5)
 	bra.b abs_0_000186B0
 abs_0_000186C4:
 	movem.l (a7)+,d1/a0/a5
@@ -11227,7 +11327,7 @@ abs_0_0001933A:
 	bcc.b abs_0_000193DA
 	cmp.w world_position_collision_bounds_world_y_extent(a3),d7
 	bcc.b abs_0_000193DA
-	lea.l active_world_object_static_ptr_table.l,a4
+	lea.l world_object_ptr_table_object_ptr_1.l,a4
 abs_0_00019386:
 	move.l (a4)+,d4
 	beq.w abs_0_0001941E
@@ -12205,8 +12305,8 @@ abs_0_0001A0B8:
 	move.l (a1)+,d0
 	beq.b abs_0_0001A12E
 	movea.l d0,a5
-	move.b world_object_shared_prefix_initial_world_object_flags(a5),d0
-	move.b world_object_shared_prefix_world_object_flags(a5),d1
+	move.b $0049(a5),d0
+	move.b $0048(a5),d1
 	eor.b d0,d1
 	btst #WORLD_OBJECT_INACTIVE_BIT,d1
 	beq.b abs_0_0001A0D2
@@ -12222,22 +12322,22 @@ abs_0_0001A0E2:
 	bsr.w resolve_item_name
 	move.l d0,$0000(a5)
 	movea.l $001C(a5),a2
-	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a3
+	movea.l $0014(a5),a3
 	moveq.l #7,d7
 abs_0_0001A0FA:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A0FA
-	movea.l world_object_shared_prefix_initial_trade_offer_table_ptr(a5),a2
-	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a3
+	movea.l $0020(a5),a2
+	movea.l $0018(a5),a3
 	moveq.l #7,d7
 abs_0_0001A10A:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A10A
-	move.b world_object_shared_prefix_initial_selected_item_id(a5),world_object_shared_prefix_selected_item_id(a5)
-	move.b world_object_shared_prefix_initial_item_state(a5),world_object_shared_prefix_item_state(a5)
-	move.w world_object_shared_prefix_initial_hit_points(a5),world_object_shared_prefix_hit_points(a5)
-	move.l world_object_shared_prefix_initial_behavior_script_ptr(a5),world_object_shared_prefix_behavior_script_ptr(a5)
-	clr.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
+	move.b $0047(a5),$0046(a5)
+	move.b $004D(a5),$004C(a5)
+	move.w $003E(a5),$003C(a5)
+	move.l $0028(a5),$0024(a5)
+	clr.w $0044(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
 	move.l #player_position_state,player_position_descriptor.l
