@@ -2690,3 +2690,55 @@ asset/include contents and historical prefixes are preserved. The companion
 [tail investigation](../validation/pandora-preserved-tail.md) distinguishes the
 original unpack destination, fixed-copy extent and generated orphan label.
 PR 5 remains open, unmerged and in its existing ready review state.
+
+## Canonical address identities and preserved payload tail
+
+The copied-call projection and operand source-symbol paths are repaired in
+`1be7a2a9` and the following tail checkpoint. A call's attached canonical
+section/offset now takes precedence over its original decode target when planning
+source declarations. The orphan `$6AFFA` is gone; original decode facts and all
+manual history remain. Source-symbol representations carry native coordinates,
+rendered address view and value, validate the actual native operand/width before
+append, pass the native codec, and follow renames without duplicating equates.
+The subtraction at `$9302` now names `world_tile_pixels_000_through_011`.
+
+Runtime-only scratch EQU references retain their names without asserting file
+byte targets. Three retained analysis-only labels at source `$57D00`, `$57FDE`
+and `$57FE0` no longer act as hidden rendering boundaries when absent from the
+final source plan. The legacy unbounded blitter-source rename remains unchanged.
+Actual emitted labels, code, relocations and structured ownership still guard
+asset extraction. The normal `opaque_data` layout/raw-element commands preserve
+all **27,792 bytes** at source `$55370..$5C000` as
+`assets/preserved_uncopied_payload_tail.bin`. Its 144-byte prefix precedes the
+27,648-byte patterned body; no purpose is invented for either.
+
+The native boundary corrections also permit sixteen already-classified media
+ranges to export as named assets, in addition to the opaque tail. No new media
+format was inferred. The original 78 asset/include files remain byte-identical
+and retained. Generated assembly shrinks from **1,322,155 bytes / 30,540 lines**
+at `ffae9904` to **927,999 bytes / 24,497 lines**: **394,156 bytes (29.8%) and
+6,043 lines fewer**. This moves bytes into faithful assets; it does not shrink
+the game image or establish whole-file semantic completion.
+
+Final validation passes **311 focused Python checks** and **812 native checks**,
+including retained-analysis-label and full-tail-size asset cases. A broader
+runtime/backend selection still has the same eight previous-renderer failures
+(16 passes, two skips); their exact identities and comparison evidence are in
+[the framework report](../validation/canonical-source-symbols.md).
+C and independent vasm reproduce all **376,832** original bytes exactly.
+Receipt: `0c11b57ba11fc0b92b6f84e360120cd3463aac16b314fef724d9b3b832bdd0b2`;
+source SHA256 `63c2c28022bab20c5328ddaccabd2ae91da75774440c22bb09a794189a957d4b`.
+The three new canonical actions are accepted against this final receipt; prior
+history prefixes and the original binary remain intact.
+
+[The tail report](../validation/pandora-preserved-tail.md) distinguishes original
+unpack storage `$75370..$7C000` from the generated `$65370..$6C000` view and the
+inspected fixed-copy bound. Runtime scratch overlaps the original unpacked
+window; initial-content consumption, other indirect/load paths and fill purpose
+remain unproved. The shared hit/palette tail remains blocked for relocation.
+No additional Copperline route was explored. The resident service is PID 211346
+at http://127.0.0.1:8123/; its target is ready and the UI returns HTTP 200.
+PR 5 stays unmerged with its metadata and review state unchanged.
+
+Detailed native identities, preservation checks, source-size measurements and
+final proof are recorded in `docs/validation/pandora-tail-asset.json`.

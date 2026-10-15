@@ -14,7 +14,22 @@
         "size": 5102,
         "source_offset": 322270,
         "source_row_count": 319,
-        "source_row_id": 38624,
+        "source_row_id": 38447,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0004fed2-size-00000c4c",
+        "classification": "sound_sample",
+        "data_class_flags": 64,
+        "kind": "asset",
+        "name": "audio_sample_01_payload",
+        "name_is_generated": false,
+        "path": "assets/audio_sample_01_payload.bin",
+        "sha256": "5179acf84db2dab707f5b4a6947160c8da12db5236034fe4613d04f42251f385",
+        "size": 3148,
+        "source_offset": 327378,
+        "source_row_count": 197,
+        "source_row_id": 38771,
         "source_section_index": 0
       },
       {
@@ -29,7 +44,7 @@
         "size": 4634,
         "source_offset": 330532,
         "source_row_count": 290,
-        "source_row_id": 39150,
+        "source_row_id": 38973,
         "source_section_index": 0
       },
       {
@@ -44,7 +59,7 @@
         "size": 5500,
         "source_offset": 335172,
         "source_row_count": 347,
-        "source_row_id": 39445,
+        "source_row_id": 39268,
         "source_section_index": 0
       },
       {
@@ -59,7 +74,7 @@
         "size": 5300,
         "source_offset": 340678,
         "source_row_count": 332,
-        "source_row_id": 39797,
+        "source_row_id": 39620,
         "source_section_index": 0
       },
       {
@@ -74,7 +89,7 @@
         "size": 2000,
         "source_offset": 345984,
         "source_row_count": 125,
-        "source_row_id": 40134,
+        "source_row_id": 39957,
         "source_section_index": 0
       },
       {
@@ -90,6 +105,21 @@
         "source_offset": 118440,
         "source_row_count": 264,
         "source_row_id": 18087,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00055370-size-00006c90",
+        "classification": "opaque_data",
+        "data_class_flags": 32768,
+        "kind": "asset",
+        "name": "preserved_uncopied_payload_tail",
+        "name_is_generated": false,
+        "path": "assets/preserved_uncopied_payload_tail.bin",
+        "sha256": "3fb12746fa5b4e89048231415d5173d571633dffcc89d15d926ce7a3dc0eb1ba",
+        "size": 27792,
+        "source_offset": 349040,
+        "source_row_count": 1737,
+        "source_row_id": 40233,
         "source_section_index": 0
       },
       {
@@ -753,6 +783,126 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00043af0-size-00001c40",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_47",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_47.bin",
+        "sha256": "f4f9bf6dab49cf678f5335b5652868e1407a36e61ac85b2d6748346f75da1fbd",
+        "size": 7232,
+        "source_offset": 277232,
+        "source_row_count": 452,
+        "source_row_id": 28095,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-000457e0-size-00000100",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_49",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_49.bin",
+        "sha256": "d78b7a08fb706490b0d281a0564f90c8399f2d00a241a87e32f139115d2d15d7",
+        "size": 256,
+        "source_offset": 284640,
+        "source_row_count": 16,
+        "source_row_id": 28560,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-000458e0-size-00000380",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_50",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_50.bin",
+        "sha256": "3b014efe1624d47d77a4a5b8c6667b26c0b8fb3f0d0d0722f3cfc243b4dbb99b",
+        "size": 896,
+        "source_offset": 284896,
+        "source_row_count": 56,
+        "source_row_id": 28577,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00045c60-size-00000168",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_51",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_51.bin",
+        "sha256": "f16605bd3cefd6490a5e60748fad012066d1d2ec4558113c904a6042c29fcbfe",
+        "size": 360,
+        "source_offset": 285792,
+        "source_row_count": 23,
+        "source_row_id": 28634,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00045e48-size-000001e0",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_53",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_53.bin",
+        "sha256": "ba58ef7f54e5bbfe4e5cae2aa0a4d1f87b61f2fb7395a8af7987d53a22be909d",
+        "size": 480,
+        "source_offset": 286280,
+        "source_row_count": 30,
+        "source_row_id": 28667,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-000480f8-size-00000400",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_55",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_55.bin",
+        "sha256": "2976744ea2427679162370b153ce0587e07924a0f2da6abc92f0adf81258f664",
+        "size": 1024,
+        "source_offset": 295160,
+        "source_row_count": 64,
+        "source_row_id": 29226,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00047cf8-size-00000400",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_56",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_56.bin",
+        "sha256": "19347c5d832d7666a23819b0bafe9f713d74b9b020d7240878d87606c3eea894",
+        "size": 1024,
+        "source_offset": 294136,
+        "source_row_count": 64,
+        "source_row_id": 29161,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00046118-size-00001be0",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_57",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_57.bin",
+        "sha256": "247c06048267e376ec1ec805396e3b03b713881a077f5a4fd25a8e985ad87952",
+        "size": 7136,
+        "source_offset": 287000,
+        "source_row_count": 446,
+        "source_row_id": 28714,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0005504a-size-00000280",
         "classification": "sound_sample",
         "data_class_flags": 64,
@@ -764,7 +914,7 @@
         "size": 640,
         "source_offset": 348234,
         "source_row_count": 56,
-        "source_row_id": 40304,
+        "source_row_id": 40127,
         "source_section_index": 0
       },
       {
@@ -1208,11 +1358,11 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "a1f139cd5c237514d5dc116155a108c21cac8bb4e808779d288b0a725a19be48",
-        "size": 1135045
+        "sha256": "63c2c28022bab20c5328ddaccabd2ae91da75774440c22bb09a794189a957d4b",
+        "size": 927999
       }
     ],
-    "metadata_hash": "1d735c937b914b720a8cc57a8de2dc99aa37a377dd533ef78a1f1fe9e9266908",
+    "metadata_hash": "2d4f49366a8a361e15a9e7d6c9f4d875ab6473cb9fd01c23eaad71691265eb6b",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 256
@@ -1222,5 +1372,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "71f6d0a69f6e42b930d735414a3dcbbdc8a5ac293f389bc9780ebe93ab1920f9"
+  "sha256": "a650f27932398458a5c2b9528fd0ce95859481efd01fdc30c22976583e172a5b"
 }

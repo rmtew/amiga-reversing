@@ -2403,6 +2403,9 @@ def _validate_candidate_policy_capacity(
     target_dir: Path, pending_actions: Sequence[dict[str, object]], *, binary_source: BinarySource,
 ) -> None:
     if not any(manual_action_kind(str(action["kind"])) in _POLICY_STORAGE_ACTION_KINDS
+               or (action.get("kind") == ManualActionKind.CREATE_MANUAL_REPRESENTATION
+                   and isinstance(action.get("representation"), dict)
+                   and action["representation"].get("style") == "symbol")
                for action in pending_actions):
         return
     from amiga_reversing.disasm.c_backend import validate_policy_storage_with_c_backend
@@ -2410,7 +2413,12 @@ def _validate_candidate_policy_capacity(
 
     text = effective_metadata_text(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if text:
-        validate_policy_storage_with_c_backend(binary_source, metadata_text=text)
+        try:
+            validate_policy_storage_with_c_backend(binary_source, metadata_text=text)
+        except RuntimeError as exc:
+            if "manual representation" in str(exc):
+                raise ValueError("unsupported or invalid native symbol representation") from exc
+            raise
 
 
 def load_manual_projection(

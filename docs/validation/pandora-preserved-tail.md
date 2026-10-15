@@ -1,7 +1,8 @@
 # Pandora preserved unpacked tail
 
-Investigation starts from published `358a085b`; no tail bytes or classifications
-were changed in this pass.
+The initial investigation started from published `358a085b` and was recorded
+at `ffae9904`, without changing tail bytes or classifications. The subsequent
+canonical correction and asset restoration are described below.
 
 The parent `pandora` hunk's original ByteKiller header at section offset `$E8`
 contains `$0002E23C,$0005C000,$23F12ECD`: packed stream extent, declared unpacked
@@ -57,3 +58,44 @@ extent, and verify exact C/vasm reconstruction. First correct or explicitly
 retain the orphan boundary through the normal native reference/label pipeline;
 do not hand-delete the label or edit generated assembly. Do not call the bytes
 unused, free RAM, disk padding or relocatable storage on current evidence.
+
+## Canonical correction and preservation
+
+The producer is now traced: the render-plan symbol-access stage attached the
+raw decode candidate's target after the instruction operand had already resolved
+the copied execution view. It now uses that resolved coordinate for the call,
+xref and required declaration. No manual tail label or unexplained original
+bytes were deleted. The old renderer fails the new copied-bootstrap regression;
+the corrected renderer removes the phantom declaration and remains byte-exact.
+
+The new general source-symbol representation identity carries native section,
+source offset, rendered address view and encoded value. Its locked preflight
+checks the native literal and width before append; rendering resolves the name
+by identity. Pandora's tile-bank subtraction at `$9302` exercises this path
+without introducing a duplicate equate.
+
+The incoming-source-reference query initially also exposed two runtime EQU
+values at `$77D00` and `$77FE0`. Their references remain named, but are no longer
+misreported as source-byte targets solely through numeric coincidence. These
+workspace addresses overlap the original unpacked tail window, so later reuse
+of the same RAM must remain distinct from reading its initial payload contents.
+The now-empty direct source-reference query still does not prove absence of
+indirect consumers or alternate routes.
+
+The tail is preserved through a normal `opaque_data` layout and raw element as
+`preserved_uncopied_payload_tail`: one asset for source `$55370..$5C000`, retaining
+the 144-byte prefix and the separately documented patterned body. The new opaque
+asset capability keeps the existing native boundary/expression/fixup guards;
+unclassified bytes do not become assets automatically. This provisional name
+means excluded from the inspected fixed-copy path. It is not a claim of unused
+storage, original fill purpose, exclusive ownership or relocation safety.
+
+The final native-boundary fix preserves the retained analysis labels while using
+only planned declarations as source rendering boundaries. The old unbounded
+blitter rename was inspected and left unchanged; it was not the asset blocker.
+Final asset SHA256:
+`3fb12746fa5b4e89048231415d5173d571633dffcc89d15d926ce7a3dc0eb1ba`.
+Full C/vasm receipt:
+`0c11b57ba11fc0b92b6f84e360120cd3463aac16b314fef724d9b3b832bdd0b2`.
+See `pandora-tail-asset.json` for the canonical range, native queries and
+preservation/source-size audit. The original image remains unchanged.

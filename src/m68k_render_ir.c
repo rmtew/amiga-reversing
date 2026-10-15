@@ -2774,7 +2774,7 @@ static int lookup_any_runtime_address_source_offset(const M68kRenderLookup *look
 static int lookup_exact_pointer_value_label_offset(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t section_size, uint32_t value, uint8_t allow_in_section_source_offset, uint32_t *out_source_offset);
 static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLookup *lookup,
-    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe);
+    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe, int include_labels);
 static int accepted_byte_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset);
 
 static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *preview,
@@ -4596,9 +4596,12 @@ static int structured_data_item_is_render_candidate(const M68kRenderLookup *look
       ownership.structured_item != item) {
     return 0;
   }
+  /* Once labels are planned, only emitted declarations split presentation.
+   * Keep non-emitting analysis labels as evidence without making them hidden
+   * source boundaries. Relocations, code and structured owners still block. */
   for (probe = offset + 1U; probe < offset + item->size; ++probe) {
     if (accepted_byte_at(section, accepted_bytes, probe) ||
-        lookup_structured_item_probe_has_blocking_boundary(lookup, item, section->section_index, probe)) {
+        lookup_structured_item_probe_has_blocking_boundary(lookup, item, section->section_index, probe, plan == NULL)) {
       return 0;
     }
     if (plan != NULL && m68k_render_plan_find_label(plan, (uint32_t)section->section_index, probe) != NULL) {
@@ -7844,14 +7847,14 @@ static int lookup_has_render_walk_data_split_boundary(const M68kRenderLookup *lo
 }
 
 static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLookup *lookup,
-    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe) {
+    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe, int include_labels) {
   uint16_t boundary_flags = render_lookup_boundary_flags(lookup, section_index, probe);
   if ((boundary_flags & (M68K_RENDER_BOUNDARY_RELOCATION | M68K_RENDER_BOUNDARY_ANCHOR |
         (structured_data_item_is_multiline_text(structured_item) ? 0U : M68K_RENDER_BOUNDARY_STRING_SPAN))) != 0U)
     return 1;
   if (lookup_has_structured_data_start_boundary(lookup, section_index, probe, boundary_flags))
     return 1;
-  if ((boundary_flags & M68K_RENDER_BOUNDARY_LABEL) != 0U &&
+  if (include_labels && (boundary_flags & M68K_RENDER_BOUNDARY_LABEL) != 0U &&
       lookup_has_renderable_label(lookup, section_index, probe)) {
     int internal_copper_label =
       structured_data_item_is_copper_list(structured_item) &&
@@ -10984,49 +10987,55 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
         representation->target_equate_index != 0U) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     }
-    relocation = candidate_relocation_for_operand(lookup, section_index, candidate, operand_index);
-    control_target = candidate_control_target_for_operand(candidate, operand_index);
-    if (control_target != NULL) {
-      access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
-      /* The attached operand has already resolved the execution view. Decode
-       * targets retain their original coordinates and must not re-project an
-       * encoded absolute address as a source offset in copied images. */
-      if (operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
+    /* An EQU is a value identity, not a source-address assertion. In
+     * particular, runtime-only scratch aliases must not inherit the decoder's
+     * coincident numeric file offset from a suppressed load view. */
+    relocation = NULL;
+    if (access.access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE) {
+      relocation = candidate_relocation_for_operand(lookup, section_index, candidate, operand_index);
+      control_target = candidate_control_target_for_operand(candidate, operand_index);
+      if (control_target != NULL) {
+        access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
+        /* The attached operand has already resolved the execution view. Decode
+         * targets retain their original coordinates and must not re-project an
+         * encoded absolute address as a source offset in copied images. */
+        if (operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
+            operand->symbol_ref.section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
+          access.target_offset = operand->symbol_ref.section_offset;
+        } else if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)relocation->target_section_index;
+          access.target_offset = relocation->target_offset;
+        } else {
+          access.target_section_index = (uint32_t)control_target->section_index;
+          access.target_offset = control_target->offset;
+        }
+        access.has_target = 1U;
+      } else {
+        data_target = candidate_data_target_for_operand(candidate, operand_index);
+        if (data_target != NULL && data_target->section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)data_target->section_index;
+          access.target_offset = data_target->offset;
+          access.has_target = 1U;
+        }
+        if (!access.has_target && relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)relocation->target_section_index;
+          access.target_offset = relocation->target_offset;
+          access.has_target = 1U;
+        }
+      }
+      if (!access.has_target && operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
           operand->symbol_ref.section_index <= UINT32_MAX) {
         access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
         access.target_offset = operand->symbol_ref.section_offset;
-      } else if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
-        access.target_section_index = (uint32_t)relocation->target_section_index;
-        access.target_offset = relocation->target_offset;
-      } else {
-        access.target_section_index = (uint32_t)control_target->section_index;
-        access.target_offset = control_target->offset;
-      }
-      access.has_target = 1U;
-    } else {
-      data_target = candidate_data_target_for_operand(candidate, operand_index);
-      if (data_target != NULL && data_target->section_index <= UINT32_MAX) {
-        access.target_section_index = (uint32_t)data_target->section_index;
-        access.target_offset = data_target->offset;
         access.has_target = 1U;
       }
-      if (!access.has_target && relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
-        access.target_section_index = (uint32_t)relocation->target_section_index;
-        access.target_offset = relocation->target_offset;
+      runtime_ref = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
+      if (!access.has_target && runtime_ref != NULL && runtime_ref->target_section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)runtime_ref->target_section_index;
+        access.target_offset = runtime_ref->target_offset;
         access.has_target = 1U;
       }
-    }
-    if (!access.has_target && operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
-        operand->symbol_ref.section_index <= UINT32_MAX) {
-      access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
-      access.target_offset = operand->symbol_ref.section_offset;
-      access.has_target = 1U;
-    }
-    runtime_ref = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
-    if (!access.has_target && runtime_ref != NULL && runtime_ref->target_section_index <= UINT32_MAX) {
-      access.target_section_index = (uint32_t)runtime_ref->target_section_index;
-      access.target_offset = runtime_ref->target_offset;
-      access.has_target = 1U;
     }
     if (append_rendered_instruction_expression(preview, section_index, candidate, source_analysis,
         &access, relocation != NULL) != 0)

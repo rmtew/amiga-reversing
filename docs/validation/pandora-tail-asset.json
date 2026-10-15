@@ -1,0 +1,181 @@
+{
+  "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "asset": {
+    "asset_id": "section-0000-offset-00055370-size-00006c90",
+    "classification": "opaque_data",
+    "data_class_flags": 32768,
+    "kind": "asset",
+    "name": "preserved_uncopied_payload_tail",
+    "name_is_generated": false,
+    "path": "assets/preserved_uncopied_payload_tail.bin",
+    "sha256": "3fb12746fa5b4e89048231415d5173d571633dffcc89d15d926ce7a3dc0eb1ba",
+    "size": 27792,
+    "source_offset": 349040,
+    "source_row_count": 1737,
+    "source_row_id": 40233,
+    "source_section_index": 0
+  },
+  "layout": {
+    "source_start": 349040,
+    "source_end": 376832,
+    "role": "opaque_data"
+  },
+  "prefix_bytes": 144,
+  "patterned_body_source_start": 349184,
+  "patterned_body_bytes": 27648,
+  "source_symbol": {
+    "encoded_value": 118952,
+    "runtime_view": 1,
+    "section_index": 0,
+    "source_offset": 53416
+  },
+  "source_size": {
+    "baseline_ffae9904": {
+      "bytes": 1322155,
+      "lines": 30540
+    },
+    "core_1be7a2a9": {
+      "bytes": 1135045,
+      "lines": 27739
+    },
+    "final": {
+      "bytes": 927999,
+      "lines": 24497
+    }
+  },
+  "retained_prior_asset_include_files": 78,
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "0c11b57ba11fc0b92b6f84e360120cd3463aac16b314fef724d9b3b832bdd0b2",
+    "revision": "b870f7d4594df6817a91697630bd9aa5d92f8f3506b60c5757de517aacef4ecf",
+    "source_package_sha256": "a650f27932398458a5c2b9528fd0ce95859481efd01fdc30c22976583e172a5b",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/a650f27932398458a5c2b9528fd0ce95859481efd01fdc30c22976583e172a5b/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "63c2c28022bab20c5328ddaccabd2ae91da75774440c22bb09a794189a957d4b",
+    "status": "exact",
+    "subject_revision": "4fbdb800d34550f81ab925a9021ed8679b685e97673b399e6767f05af8b49cc6",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "native_queries": {
+    "orphan": {
+      "has_more": false,
+      "items": [],
+      "limit": 100,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "858940c320f0ff71b93914d3562134fac10a11d7176c8aa9d78b419c405dd175",
+      "scope": "native_artifact",
+      "subject_revision": "4fbdb800d34550f81ab925a9021ed8679b685e97673b399e6767f05af8b49cc6",
+      "total": 0,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "tile_bank_uses": {
+      "has_more": false,
+      "items": [
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 37634,
+          "symbol": "world_tile_pixels_000_through_011",
+          "target_offset": 53416,
+          "target_section_index": 0
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 41386,
+          "symbol": "world_tile_pixels_000_through_011",
+          "target_offset": 53416,
+          "target_section_index": 0
+        }
+      ],
+      "limit": 100,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "858940c320f0ff71b93914d3562134fac10a11d7176c8aa9d78b419c405dd175",
+      "scope": "native_artifact",
+      "subject_revision": "4fbdb800d34550f81ab925a9021ed8679b685e97673b399e6767f05af8b49cc6",
+      "total": 2,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "tail": {
+      "has_more": false,
+      "items": [
+        {
+          "declaration_kind": 1,
+          "expression": "",
+          "interpretation_status": "unassessed",
+          "interpretations": [],
+          "name": "preserved_uncopied_payload_tail",
+          "origin": {
+            "confidence": 3,
+            "kind": 7,
+            "section_index": 0,
+            "source_offset": 349040
+          },
+          "origin_count": 3,
+          "provenance": "typed_render_declaration",
+          "section_index": 0,
+          "source_offset": 349040,
+          "source_symbol": {
+            "encoded_value": 414576,
+            "runtime_view": 1,
+            "section_index": 0,
+            "source_offset": 349040
+          }
+        }
+      ],
+      "limit": 100,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "858940c320f0ff71b93914d3562134fac10a11d7176c8aa9d78b419c405dd175",
+      "scope": "native_artifact",
+      "subject_revision": "4fbdb800d34550f81ab925a9021ed8679b685e97673b399e6767f05af8b49cc6",
+      "total": 1,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    }
+  },
+  "limits": [
+    "Declared ByteKiller output, not proof of original fill purpose",
+    "Excluded from inspected fixed-copy path, not all-route consumer closure",
+    "Rendered10000 view differs from original unpack20000 storage",
+    "No relocation or lifetime safety claim"
+  ]
+}

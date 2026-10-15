@@ -13964,7 +13964,9 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       if (d->kind == M68K_RENDER_PLANNED_DECLARATION_LABEL && d->has_source_target) {
         const M68kRenderPlannedLabel *label = m68k_render_plan_find_label(plan, d->section_index, d->offset);
         if (label != NULL && strcmp(label->name, d->name) == 0) {
-          Q(json_builder_appendf(&b, ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,\"runtime_view\":%u,\"encoded_value\":%u}",
+          Q(json_builder_appendf(&b,
+            ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,"
+            "\"runtime_view\":%u,\"encoded_value\":%u}",
             (unsigned)d->section_index, (unsigned)d->offset, (unsigned)label->has_runtime_address,
             (unsigned)(label->has_runtime_address ? label->runtime_address : label->source_offset)));
         }
