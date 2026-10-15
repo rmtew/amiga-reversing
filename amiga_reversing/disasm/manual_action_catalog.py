@@ -132,6 +132,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_function_summary_action(),
         _target_function_summary_remove_action(),
         _target_data_block_layout_action(),
+        _target_data_block_layout_rename_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
         _target_data_block_element_ref_action(),
@@ -206,6 +207,15 @@ def target_catalog_manual_payload(
         return "remove_manual_function_summary", {"function_summary_id": str(params["function_summary_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
+    if action.get("action") == "edit_manual_data_block_layout":
+        layout_id, name = params.get("layout_id"), params.get("name")
+        if not isinstance(layout_id, str) or not layout_id.strip():
+            raise ValueError("rename data-block layout requires a nonempty layout_id")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("rename data-block layout requires a nonempty name")
+        return "edit_manual_data_block_layout", {
+            "data_block_layout": {"layout_id": layout_id.strip(), "name": name.strip()}
+        }
     if action.get("action") == "remove_manual_data_block_layout":
         return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
     if action.get("action") == "set_manual_data_block_element":
@@ -5793,6 +5803,19 @@ def _target_data_block_layout_action() -> dict[str, object]:
         "Create data-block layout at source range",
         "create_manual_data_block_layout",
         _target_data_block_layout_parameter_schema(),
+    )
+
+
+def _target_data_block_layout_rename_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.layout.rename",
+        "Rename manual data-block layout",
+        "edit_manual_data_block_layout",
+        {
+            "type": "object",
+            "properties": {"layout_id": {"type": "string"}, "name": {"type": "string"}},
+            "required": ["layout_id", "name"],
+        },
     )
 
 

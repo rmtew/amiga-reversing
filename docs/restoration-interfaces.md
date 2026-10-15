@@ -87,6 +87,14 @@ For mutation parameters use `--request request.json` (or `--request -` for stdin
 RSSET region renaming requires an explicit `size` from the current declaration.
 An omitted extent can otherwise become four bytes and cover neighboring fields.
 Existing add/edit defaults and historical records remain supported.
+
+`target.data_block.layout.rename` takes an active manual `layout_id` and `name`.
+It reuses the existing sparse layout-edit action, preserving the ID, range,
+role, elements, type bindings and interpreted references. Unknown or removed
+manual IDs are refused before append. This does not rename source symbols;
+use inspected `label.rename` actions for those identities as a separate part
+of the same swath. Seeded-only layouts must first have a supported manual
+layout identity rather than relying on implicit range/default reconstruction.
 RSSET aggregate extents support 1..32767 bytes through the catalog, metadata
 projection and native policy; absolute-storage slots retain their separate limit.
 The file is an object of operation parameters, without `operation`. For example:
