@@ -1,0 +1,255 @@
+{
+  "baseline_commit": "0f7c34b24c6f315e0db60ade2fa23071ce4f2070",
+  "prequeue_accepted": [
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P20",
+    "P21"
+  ],
+  "checkpoints": {
+    "frame-render": {
+      "proposals": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "A01",
+        "A02",
+        "A03",
+        "A04"
+      ],
+      "actions": 21,
+      "tests_passed": 31,
+      "receipt": "eb91ecd72b044faceceae766874e033a98b4aeca03e55bf73110d461987e5dbb",
+      "source_sha256": "66e6b10e4c697ab551ffbf50ddca9121ba83087d29e6ee0ad628992d156f8b21",
+      "original_size": 376832,
+      "C_and_vasm_exact": true,
+      "accepted_revision": "930667fbff78b4216a174f4f6d155209bf6a17e1cb5dced83235d5f1bc7829a7"
+    }
+  },
+  "proposals": {
+    "P01": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "apply_gameplay_overlay_palette_and_arm_lower_split"
+      ]
+    },
+    "P02": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "apply_ticker_highlight_colors_and_arm_frame_end"
+      ]
+    },
+    "P03": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "latch_last_gameplay_copper_split"
+      ],
+      "unapplied_components": "Bit7 purpose retained in function identity; existing bit5/bit7 distinction preserved. No unused flag equate added."
+    },
+    "P04": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "update_title_frame_palette_and_rotate_gradient"
+      ]
+    },
+    "P05": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "run_title_starfield_until_fire"
+      ]
+    },
+    "P06": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "advance_active_descriptor_animation_chains"
+      ]
+    },
+    "P07": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "run_eligible_world_object_scripts"
+      ],
+      "unapplied_components": "Existing mask$42 retained; not split into newly asserted global semantic flags."
+    },
+    "P12": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "draw_ui_overlay_text_lines",
+        "entry A5:ui_overlay_descriptor"
+      ]
+    },
+    "P13": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "redraw_ui_overlay_selected_line_proportional",
+        "entry A5:ui_overlay_descriptor"
+      ]
+    },
+    "P14": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "blit_tile_pointer_rectangle_to_buffer"
+      ],
+      "unapplied_components": "Full register contracts and DMA/source bounds deferred: partial WORD saves and asynchronous device effects are not encoded as complete preservation claims."
+    },
+    "P15": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "blit_masked_frame_aligned_word_four_planes"
+      ],
+      "unapplied_components": "Full register contracts and DMA/source bounds deferred: partial WORD saves and asynchronous device effects are not encoded as complete preservation claims."
+    },
+    "P16": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "blit_masked_frame_shifted_two_words_four_planes"
+      ],
+      "unapplied_components": "Full register contracts and DMA/source bounds deferred: partial WORD saves and asynchronous device effects are not encoded as complete preservation claims."
+    },
+    "P17": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "initialize_scene_and_animation_mask_banks"
+      ]
+    },
+    "P18": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "draw_title_glyph_string",
+        "draw_title_glyph"
+      ]
+    },
+    "P19": {
+      "status": "pending"
+    },
+    "P22": {
+      "status": "pending"
+    },
+    "P23": {
+      "status": "pending"
+    },
+    "P24": {
+      "status": "pending"
+    },
+    "P25": {
+      "status": "pending"
+    },
+    "P26": {
+      "status": "pending"
+    },
+    "P27": {
+      "status": "pending"
+    },
+    "P28": {
+      "status": "pending"
+    },
+    "P29": {
+      "status": "pending"
+    },
+    "P30": {
+      "status": "pending"
+    },
+    "P31": {
+      "status": "pending"
+    },
+    "P32": {
+      "status": "pending"
+    },
+    "P33": {
+      "status": "pending"
+    },
+    "P34": {
+      "status": "pending"
+    },
+    "A01": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ticker_highlight_rgb12"
+      ]
+    },
+    "A02": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_tile_pointer_grid_byte_size"
+      ]
+    },
+    "A03": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_tile_pointer_grid_end"
+      ]
+    },
+    "A04": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_tile_pointer_grid_row_stride_bytes"
+      ]
+    },
+    "A05": {
+      "status": "pending"
+    },
+    "A06": {
+      "status": "pending"
+    },
+    "A07": {
+      "status": "pending"
+    },
+    "A08": {
+      "status": "pending"
+    },
+    "A09": {
+      "status": "pending"
+    },
+    "A10": {
+      "status": "pending"
+    },
+    "A11": {
+      "status": "pending"
+    },
+    "A12": {
+      "status": "pending"
+    },
+    "A13": {
+      "status": "pending"
+    },
+    "A14": {
+      "status": "pending"
+    }
+  },
+  "counts": {
+    "accepted_supported_name": 14,
+    "pending": 24,
+    "accepted": 4
+  }
+}

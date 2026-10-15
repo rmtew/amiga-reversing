@@ -112,7 +112,7 @@ app_inventory_selection_latched RS.B 1
 app_text_plane_mask RS.B 1
 app_ui_flags RS.B 1
 app_input_fire_pressed_ff RS.B 1
-app_0230 RS.W 1
+app_ticker_highlight_rgb12 RS.W 1
 app_scrolling_message_queue_head RS.L 1
     RS.B 60
 app_0272 RS.L 1
@@ -133,9 +133,9 @@ app_camera_scroll_top_trigger RS.W 1
 app_camera_scroll_bottom_trigger RS.W 1
 app_camera_scroll_delta_x RS.W 1
 app_camera_scroll_delta_y RS.W 1
-app_029A RS.L 1
-app_029E RS.L 1
-app_02A2 RS.L 1
+app_tile_pointer_grid_byte_size RS.L 1
+app_tile_pointer_grid_end RS.L 1
+app_tile_pointer_grid_row_stride_bytes RS.L 1
 app_02A6 RS.B 1
 app_nearby_object_prompt_countdown RS.B 1
 app_active_world_object_ptr_table RS.L 1
@@ -1074,11 +1074,11 @@ abs_0_00010498:
 	move #$2000,sr
     ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
-	bsr.w abs_0_00010F88
+	bsr.w run_title_starfield_until_fire
 	move.w #DMAF_RASTER,dmacon(a5)
 	lea.l handle_vertical_blank_frame_update(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
-	lea.l abs_0_00010A72(pc),a0
+	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l gameplay_split_display_copper_list(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
@@ -1094,9 +1094,9 @@ abs_0_00010498:
 	move.l #FRAMEBUFFER_BANK1_BASE,app_front_bitplane_base(a6)
 	bsr.w abs_0_0001079E
 	jsr initialize_player_and_fixed_animation_nodes.l
-	bsr.w abs_0_0001253C
+	bsr.w run_eligible_world_object_scripts
 	bsr.w abs_0_000124F0
-	bsr.w abs_0_000124FE
+	bsr.w advance_active_descriptor_animation_chains
 	bsr.w update_nearby_object_detection
 	bsr.w snapshot_entity_draw_state
 	bsr.w wait_for_next_frame_counter
@@ -1121,8 +1121,8 @@ wait_for_completed_frame:
 	bsr.w update_camera_scroll
 	bsr.w handle_inventory_panel_input
 	bsr.w snapshot_entity_draw_state
-	bsr.w abs_0_000124FE
-	bsr.w abs_0_0001253C
+	bsr.w advance_active_descriptor_animation_chains
+	bsr.w run_eligible_world_object_scripts
 	bsr.w update_nearby_object_detection
 	jsr process_security_checkpoint_response.l
 	jsr service_selected_ranged_weapon_fire.l
@@ -1401,7 +1401,7 @@ handle_vertical_blank_frame_update:
 	lea.l $0028(a0),a0
 	move.l a0,$00EC(a5)
 	bsr.w apply_current_palette
-	lea.l abs_0_00010A72(pc),a0
+	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
     ; VBL updates the two POS/CTL pairs in cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer, then programs the selected DMA pointers. Pixel payloads were copied before source-scratch reuse.
 	lea.l $00065370.l,a0
@@ -1469,7 +1469,7 @@ gameplay_split_display_copper_list:
 	dc.w COPPER_WAIT|$F400,$FFFE	; copper wait v=$F4 h=$00 mask $FFFE
 	dc.w color,$0000
 	dc.w $FFFF,$FFFE
-abs_0_00010A72:
+apply_gameplay_overlay_palette_and_arm_lower_split:
 	lea.l gameplay_current_rgb12_palette.l,a0
 	move.l (a0)+,color(a5)	; palette colors 0-1
 	move.l (a0)+,color+$04(a5)	; palette colors 2-3
@@ -1479,18 +1479,18 @@ abs_0_00010A72:
 	move.l (a0)+,color+$14(a5)	; palette colors 10-11
 	move.l (a0)+,color+$18(a5)	; palette colors 12-13
 	move.l (a0)+,color+$1C(a5)	; palette colors 14-15
-	lea.l abs_0_00010AA2(pc),a0
+	lea.l apply_ticker_highlight_colors_and_arm_frame_end(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010AA2:
-	move.w app_0230(a6),color+$02(a5)	; palette color 1
+apply_ticker_highlight_colors_and_arm_frame_end:
+	move.w app_ticker_highlight_rgb12(a6),color+$02(a5)	; palette color 1
 	move.w #$E8,color+$14(a5)
-	lea.l abs_0_00010AB8(pc),a0
+	lea.l latch_last_gameplay_copper_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010AB8:
+latch_last_gameplay_copper_split:
 	bset.b #7,app_status_flags(a6)
-	lea.l abs_0_00010A72(pc),a0
+	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 abs_0_00010AC8:
@@ -1813,7 +1813,7 @@ copper_list_00020ED8:
 	dc.w COPPER_WAIT|$EB00,$FFFE	; copper wait v=$EB h=$00 mask $FFFE
 	dc.w intreq,INTF_SETCLR|INTF_COPER
 	dc.w $FFFF,$FFFE
-abs_0_00010F54:
+update_title_frame_palette_and_rotate_gradient:
 	addq.l #1,app_frame_counter(a6)
 	bsr.w apply_current_palette
 	move.b #$20,app_palette_effect_countdown(a6)
@@ -1832,7 +1832,7 @@ abs_0_00010F7E:
 	move.w (a7)+,(a0)
 abs_0_00010F86:
 	rts
-abs_0_00010F88:
+run_title_starfield_until_fire:
 	move.l #FRAMEBUFFER_BANK0_BASE,app_front_bitplane_base(a6)
     ; First cold title entry starts the seeded ascending zero blit over $70000..$7CD28, including loaded-input tail $75370..$7C000. Later contents vary; original tail purpose remains unknown.
 	bsr.w start_seeded_zero_copy_blit
@@ -1843,7 +1843,7 @@ abs_0_00010F88:
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
-	lea.l abs_0_00010F54(pc),a0
+	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
 	addi.l #150,d5
@@ -1864,7 +1864,7 @@ abs_0_00010FEC:
 	moveq.l #1,d1
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_0001A7D0.l,a3
-	bsr.w abs_0_00017748
+	bsr.w draw_title_glyph_string
 	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #20,d1
@@ -5194,7 +5194,7 @@ abs_0_000124F4:
 	movea.l d0,a0
 	bsr.b copy_world_object_xy_to_position_descriptor
 	bra.b abs_0_000124F4
-abs_0_000124FE:
+advance_active_descriptor_animation_chains:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_0001253A
 	move.w active_world_object_count(a6),d7
@@ -5222,7 +5222,7 @@ abs_0_00012536:
 	dbf.w d7,abs_0_0001250E
 abs_0_0001253A:
 	rts
-abs_0_0001253C:
+run_eligible_world_object_scripts:
 	lea.l world_object_ptr_table(pc),a0
 abs_0_00012540:
 	move.l (a0)+,d0
@@ -5698,7 +5698,7 @@ abs_0_00012A9E:
 	move.l (a7)+,d0
 	lea.l body_inventory_overlay(pc),a5
 	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
-	bsr.w abs_0_00016632
+	bsr.w redraw_ui_overlay_selected_line_proportional
 abs_0_00012AB6:
 	rts
 transfer_selected_item_to_carried_inventory:
@@ -5713,7 +5713,7 @@ transfer_selected_item_to_carried_inventory:
 	move.w (a7)+,d0
 	lea.l backpack_inventory_overlay(pc),a5
 	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
-	bra.w abs_0_00016632
+	bra.w redraw_ui_overlay_selected_line_proportional
 handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
 	moveq.l #0,d0
@@ -5746,7 +5746,7 @@ transfer_selected_item_to_pocket_inventory:
 	move.w (a7)+,d0
 	lea.l pocket_inventory_overlay(pc),a5
 	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
-	bra.w abs_0_00016632
+	bra.w redraw_ui_overlay_selected_line_proportional
 item_too_large_for_pockets_message:
 	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
 	dc.b $00
@@ -5815,7 +5815,7 @@ abs_0_00012C2E:
 	beq.b abs_0_00012C48
 	move.w #$F55,d1
 abs_0_00012C48:
-	move.w d1,app_0230(a6)
+	move.w d1,app_ticker_highlight_rgb12(a6)
 	move.b d0,app_message_palette_flash_countdown(a6)
 abs_0_00012C50:
 	btst.b #6,app_ui_flags(a6)
@@ -7760,7 +7760,8 @@ abs_0_000165B4:
 	bsr.w abs_0_000162A8
 	move.l (a7)+,d7
 	rts
-abs_0_000165E0:
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+draw_ui_overlay_text_lines:
 	movem.l d7/a4,-(a7)
 	move.b ui_overlay_descriptor_text_color(a5),app_text_plane_mask(a6)
 	lea.l ui_overlay_descriptor_line_0_ptr(a5),a4
@@ -7789,7 +7790,8 @@ abs_0_00016624:
 	bne.b abs_0_000165F0
 	movem.l (a7)+,d7/a4
 	rts
-abs_0_00016632:
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+redraw_ui_overlay_selected_line_proportional:
 	bsr.w abs_0_0001640E
 	move.b $0005(a5),app_text_plane_mask(a6)
 	add.w d0,d0
@@ -7850,7 +7852,7 @@ abs_0_000166B0:
 abs_0_000166C2:
 	bsr.w clear_ui_overlay_rectangle
 	bsr.w draw_ui_overlay_border_and_title
-	bsr.w abs_0_000165E0
+	bsr.w draw_ui_overlay_text_lines
 	bset.b #UI_OVERLAY_CALLBACK_READY_BIT,$0006(a5)
 	rts
     ; Wait/ack BLIT; zero 40 bytes, then start 656x80 A-to-D $70000->$70028 (end $7CD28). Reuses hit snapshot/bank1; zero modulos, inherited BLTCON1, no final wait. Allocation bounds remain open.
@@ -8025,7 +8027,7 @@ abs_0_00016898:
 abs_0_0001689A:
 	movem.l (a7)+,d0-d3
 	rts
-abs_0_000168A0:
+blit_tile_pointer_rectangle_to_buffer:
 	movem.l d2-d5,-(a7)
 	move.l #$DFF000,d4
 	moveq.l #0,d3
@@ -8057,17 +8059,17 @@ abs_0_000168C4:
 	exg d4,a5
 	addq.l #2,a5
 	dbf.w d2,abs_0_000168BE
-	adda.l app_02A2(a6),a2
-	cmpa.l app_029E(a6),a2
+	adda.l app_tile_pointer_grid_row_stride_bytes(a6),a2
+	cmpa.l app_tile_pointer_grid_end(a6),a2
 	bcs.b abs_0_00016910
-	move.l app_029A(a6),d2
+	move.l app_tile_pointer_grid_byte_size(a6),d2
 	suba.l d2,a2
 abs_0_00016910:
 	lea.l $0A00(a4),a4
 	dbf.w d1,abs_0_000168B8
 	movem.l (a7)+,d2-d5
 	rts
-abs_0_0001691E:
+blit_masked_frame_aligned_word_four_planes:
 	moveq.l #0,d6
 	movem.l a0-a2/a5,-(a7)
 	movem.w d4-d7,-(a7)
@@ -8141,7 +8143,7 @@ abs_0_00016A0C:
 	movem.l (a7)+,a0-a2/a5
 	rts
 	dc.b $61,$06,$50,$88,$54,$89,$54,$8A
-abs_0_00016A1E:
+blit_masked_frame_shifted_two_words_four_planes:
 	movem.l a0-a2/a5,-(a7)
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
@@ -8603,7 +8605,7 @@ abs_0_00016F48:
 	bsr.w abs_0_00016DAE
 	move.w d5,d0
 	move.w d6,d1
-	bsr.w abs_0_000168A0
+	bsr.w blit_tile_pointer_rectangle_to_buffer
 abs_0_00016F58:
 	movea.l (a7)+,a0
 	rts
@@ -8703,7 +8705,7 @@ abs_0_0001702E:
 	subq.w #1,d4
 	bmi.w abs_0_00017166
 abs_0_00017056:
-	bsr.w abs_0_0001691E
+	bsr.w blit_masked_frame_aligned_word_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
@@ -8729,7 +8731,7 @@ abs_0_00017068:
 	addq.l #8,a0
 	addq.l #2,a1
 abs_0_0001709A:
-	bsr.w abs_0_00016A1E
+	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
@@ -8772,7 +8774,7 @@ abs_0_000170DC:
 	tst.w d4
 	bmi.b abs_0_00017110
 abs_0_00017102:
-	bsr.w abs_0_00016A1E
+	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
@@ -8806,7 +8808,7 @@ abs_0_0001711E:
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d0,a2
 abs_0_00017158:
-	bsr.w abs_0_00016A1E
+	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
@@ -8887,7 +8889,7 @@ abs_0_00017238:
 	move.w (a7)+,d7
 	dbf.w d7,abs_0_00017224
 	rts
-abs_0_00017244:
+initialize_scene_and_animation_mask_banks:
 	lea.l scene_pixel_cells_for_mask_bank_00.l,a0
 	lea.l scene_mask_bank_00.l,a1
 	moveq.l #10,d6
@@ -9208,13 +9210,13 @@ abs_0_0001773A:
 	dbf.w d6,abs_0_0001773A
 	rts
 abs_0_00017746:
-	bsr.b abs_0_00017750
-abs_0_00017748:
+	bsr.b draw_title_glyph
+draw_title_glyph_string:
 	moveq.l #0,d0
 	move.b (a3)+,d0
 	bne.b abs_0_00017746
 	rts
-abs_0_00017750:
+draw_title_glyph:
 	move.l d7,-(a7)
 	cmp.b #$20,d0
 	beq.b abs_0_0001778A
@@ -9526,7 +9528,7 @@ display_current_item_name:
 	lea.l nearby_carrying_overlay.l,a5
 	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
 	moveq.l #0,d0
-	bsr.w abs_0_00016632
+	bsr.w redraw_ui_overlay_selected_line_proportional
 	movea.l (a7)+,a5
 	rts
 clear_inventory_item_selection_flags:
@@ -10285,7 +10287,7 @@ abs_0_00018492:
 	rts
 render_context_prompt:
 	moveq.l #0,d0
-	bra.w abs_0_00016632
+	bra.w redraw_ui_overlay_selected_line_proportional
 partition_world_object_update_ptrs:
 	lea.l world_object_sort_source_ptrs(pc),a0
 	movea.l a0,a2
@@ -12004,7 +12006,7 @@ abs_0_00019F06:
 	move.w d3,(a2)+
 	addq.l #8,a0
 	dbf.w d7,abs_0_00019F06
-	bsr.w abs_0_00017244
+	bsr.w initialize_scene_and_animation_mask_banks
 	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	rts
 initialize_world_state:
@@ -12091,7 +12093,7 @@ abs_0_0001A056:
 	dbf.w d7,abs_0_0001A056
 	lea.l player_holding_overlay_line_0_ptr.l,a0
 	move.l d0,(a0)	; operand 2: ui_overlay_descriptor_line_0_ptr at (a0)
-	move.w #$EEE,app_0230(a6)
+	move.w #$EEE,app_ticker_highlight_rgb12(a6)
 	clr.b app_ui_flags(a6)
 	clr.b app_status_flags(a6)
 	clr.b app_02A6(a6)
@@ -12247,11 +12249,11 @@ abs_0_0001A1B4:
 	move.w app_tilemap_width(a6),d0
 	add.w d0,d0
 	add.w d0,d0
-	move.l d0,app_02A2(a6)
+	move.l d0,app_tile_pointer_grid_row_stride_bytes(a6)
 	mulu.w app_tilemap_height(a6),d0
-	move.l d0,app_029A(a6)
+	move.l d0,app_tile_pointer_grid_byte_size(a6)
 	adda.l d0,a0
-	move.l a0,app_029E(a6)
+	move.l a0,app_tile_pointer_grid_end(a6)
 	movea.l (a7)+,a5
 	rts
 item_name_string_table:

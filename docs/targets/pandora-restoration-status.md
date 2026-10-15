@@ -2017,3 +2017,13 @@ rendered-source SHA256 is
 Original assets/SDK files, previous unrelated facts and history prefixes remain
 unchanged. The canonical `.s` was regenerated, never hand-edited. No framework
 implementation changed, no broad migration was attempted, and PR 5 remains draft.
+
+## Remaining whole-file proposal queue
+
+The queue's per-proposal dispositions, unapplied components and exact receipts
+are in `docs/validation/pandora-whole-file-queue-review.json`. Naming established
+behavior is counted separately from newly recovered durable roles/types.
+
+| Checkpoint | Reviewed proposals | Concrete result | Applicable verification |
+|---|---|---|---|
+| Frame/render | P01–P07, P12–P18, A01–A04 | 15 function symbols, four exact-width ticker/tile-grid app roles, two entry-only A5 overlay-descriptor types; no full blitter register/DMA contract or unused flag equates | 31 overlay/framebuffer tests; all 376,832 bytes exact with C/vasm; receipt `eb91ecd72b044faceceae766874e033a98b4aeca03e55bf73110d461987e5dbb` |
