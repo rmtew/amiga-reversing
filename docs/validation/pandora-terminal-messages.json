@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "revision": "9433e1f116ca1d0d9e2d1045da4b705de49e09e9f1ea07857c6526eeb3762a72",
+  "subject_revision": "9ed4f40d23b46732ef7d1499dde375dbd6493ae26a0d8427159e143cf45736dd",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "records": [
+    {
+      "pointer_source_offset": 36000,
+      "encoded_pointer": 101716,
+      "native_target_offset": 36180,
+      "symbol": "terminal_message_earth_warning",
+      "world_x": 240,
+      "world_y": 208,
+      "text_start": 36184,
+      "end_offset": 36261,
+      "text": "computer plans to drop\rgenetic pods holding\rinvasion force. must\rwarn earth."
+    },
+    {
+      "pointer_source_offset": 36004,
+      "encoded_pointer": 101798,
+      "native_target_offset": 36262,
+      "symbol": "terminal_message_orange_freak",
+      "world_x": 432,
+      "world_y": 208,
+      "text_start": 36266,
+      "end_offset": 36319,
+      "text": "someone should control\rthat ridiculous orange\rfreak."
+    },
+    {
+      "pointer_source_offset": 36008,
+      "encoded_pointer": 101856,
+      "native_target_offset": 36320,
+      "symbol": "terminal_message_bank_instructions",
+      "world_x": 432,
+      "world_y": 432,
+      "text_start": 36324,
+      "end_offset": 36396,
+      "text": "Instructions:\rdefraud all customers\rwith illegally high\rinterest rates."
+    },
+    {
+      "pointer_source_offset": 36012,
+      "encoded_pointer": 101932,
+      "native_target_offset": 36396,
+      "symbol": "terminal_message_product_teaser",
+      "world_x": 720,
+      "world_y": 448,
+      "text_start": 36400,
+      "end_offset": 36477,
+      "text": "more tasty product by\rP.S.I. in the not too\rdistant future, look\rout for it."
+    },
+    {
+      "pointer_source_offset": 36016,
+      "encoded_pointer": 102014,
+      "native_target_offset": 36478,
+      "symbol": "terminal_message_ice_sound_hint",
+      "world_x": 912,
+      "world_y": 528,
+      "text_start": 36482,
+      "end_offset": 36540,
+      "text": "mutant ice creature\rseems to be sensitive\rto sound waves."
+    },
+    {
+      "pointer_source_offset": 36020,
+      "encoded_pointer": 102076,
+      "native_target_offset": 36540,
+      "symbol": "terminal_message_ship_rankings",
+      "world_x": 1104,
+      "world_y": 448,
+      "text_start": 36544,
+      "end_offset": 36619,
+      "text": "Pandora ship ranking:\r1. Captain\r2. Commander\r3. Lt. Commander\r4. Engineer"
+    },
+    {
+      "pointer_source_offset": 36024,
+      "encoded_pointer": 102156,
+      "native_target_offset": 36620,
+      "symbol": "terminal_message_margin_stain",
+      "world_x": 1296,
+      "world_y": 496,
+      "text_start": 36624,
+      "end_offset": 36645,
+      "text": "Ah, a margins stain."
+    },
+    {
+      "pointer_source_offset": 36028,
+      "encoded_pointer": 102182,
+      "native_target_offset": 36646,
+      "symbol": "terminal_message_sonicdriver_hint",
+      "world_x": 672,
+      "world_y": 736,
+      "text_start": 36650,
+      "end_offset": 36690,
+      "text": "My sonicdriver sure is\ra flexible tool."
+    },
+    {
+      "pointer_source_offset": 36032,
+      "encoded_pointer": 102226,
+      "native_target_offset": 36690,
+      "symbol": "terminal_message_captains_log",
+      "world_x": 672,
+      "world_y": 976,
+      "text_start": 36694,
+      "end_offset": 36776,
+      "text": "Captain's log:\rI believe I have lost\rcontrol of this ship.\rmust destroy pandora.."
+    },
+    {
+      "pointer_source_offset": 36036,
+      "encoded_pointer": 102312,
+      "native_target_offset": 36776,
+      "symbol": "terminal_message_escape_claim",
+      "world_x": 960,
+      "world_y": 1792,
+      "text_start": 36780,
+      "end_offset": 36849,
+      "text": "I have discovered that\rI alone have the means\rto escape from Pandora"
+    }
+  ],
+  "display_labels": [
+    {
+      "pointer_source_offset": 37324,
+      "encoded_pointer": 101633,
+      "native_target_offset": 36097,
+      "symbol": "terminal_clearance_omega",
+      "text": "Omega"
+    },
+    {
+      "pointer_source_offset": 37328,
+      "encoded_pointer": 101627,
+      "native_target_offset": 36091,
+      "symbol": "terminal_clearance_pi",
+      "text": "Pi   "
+    },
+    {
+      "pointer_source_offset": 37332,
+      "encoded_pointer": 101615,
+      "native_target_offset": 36079,
+      "symbol": "terminal_clearance_alpha",
+      "text": "Alpha"
+    },
+    {
+      "pointer_source_offset": 37336,
+      "encoded_pointer": 101627,
+      "native_target_offset": 36091,
+      "symbol": "terminal_clearance_pi",
+      "text": "Pi   "
+    },
+    {
+      "pointer_source_offset": 37340,
+      "encoded_pointer": 101609,
+      "native_target_offset": 36073,
+      "symbol": "terminal_clearance_none",
+      "text": "None "
+    },
+    {
+      "pointer_source_offset": 37344,
+      "encoded_pointer": 101621,
+      "native_target_offset": 36085,
+      "symbol": "terminal_clearance_delta",
+      "text": "Delta"
+    },
+    {
+      "pointer_source_offset": 37348,
+      "encoded_pointer": 101609,
+      "native_target_offset": 36073,
+      "symbol": "terminal_clearance_none",
+      "text": "None "
+    },
+    {
+      "pointer_source_offset": 37352,
+      "encoded_pointer": 101609,
+      "native_target_offset": 36073,
+      "symbol": "terminal_clearance_none",
+      "text": "None "
+    }
+  ],
+  "header_field_uses": [
+    {
+      "field_name": "world_x",
+      "field_offset": 0,
+      "field_size": 2,
+      "operand_index": 0,
+      "owner_struct_name": "terminal_location_message_header",
+      "provenance": {
+        "kind": 11,
+        "section_index": 0,
+        "source_offset": 37212
+      },
+      "root_struct_name": "terminal_location_message_header",
+      "section_index": 0,
+      "source_offset": 37212
+    },
+    {
+      "field_name": "world_y",
+      "field_offset": 2,
+      "field_size": 2,
+      "operand_index": 0,
+      "owner_struct_name": "terminal_location_message_header",
+      "provenance": {
+        "kind": 11,
+        "section_index": 0,
+        "source_offset": 37212
+      },
+      "root_struct_name": "terminal_location_message_header",
+      "section_index": 0,
+      "source_offset": 37214
+    }
+  ],
+  "limits": [
+    "Initial accepted typed references, not immutable runtime pointer values.",
+    "Physical table prefixes are not admission guards; source scan still uses NULL.",
+    "Byte display selector domain is distinct from security authorization."
+  ]
+}

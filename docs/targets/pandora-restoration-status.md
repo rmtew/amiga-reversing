@@ -2314,3 +2314,66 @@ indirect caller or callback connects the palette prefix to a known phase. That
 edge, absolute stack separation, all alias/interrupt consumers and general DMA
 arbitration remain unresolved; second hit-family capture is also unobserved.
 Fix CLR predecrement separately before relying on affected full-stack traces.
+
+## Terminal location messages and card display selector
+
+The next whole-program batch follows the terminal consumer through its complete
+initialized data family, rather than treating default function IDs as a coverage
+metric. Ten records at source `$8D54..$8FF1` contain a shared four-byte WORD X/Y
+header followed immediately by variable ASCII/CR/NUL text. Three shared schemas
+express the header, mapped-source message reference and mapped-source label
+reference. Seventeen new disjoint layouts describe 730 bytes: ten message
+records (664 bytes), five clearance strings (30), the eight-pointer display
+selector (32), and the adjacent message-table NULL (4). The existing 40-byte
+message-pointer layout keeps its identity and bounds. All eighteen pointer
+entries now resolve symbolically through native source mapping; no manually
+subtracted reference facts were added. Alignment bytes remain raw.
+
+The original scan `$9140..$917A` terminates at NULL, not after ten records. It
+subtracts, takes signed absolute values, and sums in WORD arithmetic; strict
+unsigned improvement retains the first tie. An update puts the inline text
+address (record +4) in A2. Its initial fallback is the first record's base, so
+empty or malformed tables do not have a validated text-pointer result. The
+physical table extent is not an admission guard. Focused execution includes an
+explicit changed-data model with an eleventh record and a new sentinel, stopping
+before display; this does not modify the original image.
+
+The byte normalization at `$90F0` admits exactly item IDs 48..55 to the eight
+clearance-label pointers at `$91CC..$91EC`. Their labels are Omega, Pi, Alpha,
+Pi, None, Delta, None, None. This makes the already documented distinction from
+the six-entry security table explicit in source structure; display membership
+does not establish authorization. A scoped A1 header seed follows the nonnull
+record load, and comments preserve the scan/selector algorithm contracts.
+
+Reproduction, with the resident restoration service on localhost:8123:
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_terminal_messages.py tests/test_pandora_state_transitions.py tests/test_pandora_status_roles.py tests/test_pandora_snapshot_guards.py
+.venv/bin/python -m amiga_reversing.tools.pandora_terminal_message_inventory docs/validation/pandora-terminal-messages.json
+```
+
+The combined original-CPU checks pass **49 tests with one strict expected
+failure**, including fifteen new cases covering all ten locations, first ties,
+WORD-distance overflow, sentinel extension, every byte item ID and all eight
+label selectors. The existing `CLR.W -(A7)` predecrement failure remains
+excluded as trace evidence; this terminal batch does not execute it. No general
+simulator implementation or Copperline runtime route changed.
+
+Broader gaps remain the overlapping positive-X node/player-tail view, unchecked
+deposit/audio/other selector paths, source `$938E` across unknown helper memory
+effects, mutable callbacks and saved-state validity, and asynchronous lifetimes.
+The `$77FE0..$78000` shared hit/palette tail and its three native pointer/frame
+obligations remain an explicit relocation blocker. No runtime allocation,
+exclusive ownership, whole-file restoration percentage, or complete-game proof
+is inferred from this batch. Function-candidate `loc_` IDs can survive accepted
+source renames and must not be counted as unnamed semantic functions.
+
+All 51 catalog actions are accepted in three verified stages. Final exact receipt:
+`32f07b7e004b58fa843e32e809daa61a4b8eeac7ea3b51547e1c327fb0601acf`;
+rendered-source SHA256:
+`edc1838b6ece057f8823b9b11d387f7e4ae1f43229b26a14615f075336000133`.
+C and independent vasm reproduce all 376,832 original bytes. The generated scan
+identifies both postincrement reads as header `world_x` and `world_y`. The
+read-only inventory is `docs/validation/pandora-terminal-messages.json`.
+Original binary and all 78 packaged asset/include identities remain unchanged;
+previous manual-action and decision-journal bytes remain intact as prefixes.

@@ -694,6 +694,22 @@ audio_note_offset_command_note_offset_byte RS.B 1
 audio_note_offset_command_advance_opcode RS.B 1
 audio_note_offset_command_SIZEOF EQU __RS
 
+; STRUCT terminal_location_message_header
+    RSRESET
+terminal_location_message_header_world_x RS.W 1
+terminal_location_message_header_world_y RS.W 1
+terminal_location_message_header_SIZEOF EQU __RS
+
+; STRUCT terminal_location_message_reference
+    RSRESET
+terminal_location_message_reference_message_ptr RS.L 1
+terminal_location_message_reference_SIZEOF EQU __RS
+
+; STRUCT terminal_clearance_label_reference
+    RSRESET
+terminal_clearance_label_reference_label_ptr RS.L 1
+terminal_clearance_label_reference_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -10799,73 +10815,121 @@ tile_pointers:
 	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
 	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
 	dc.l $0002DC28,$0002DBA8,$0002DBA8,$0002DCA8	; Modal 20 by 8 tile pointer grid
-terminal_proximity_object_ptrs:
-	dc.l $00018D54,$00018DA6,$00018DE0,$00018E2C	; terminal_proximity_object_pointer_table
-	dc.l $00018E7E,$00018EBC,$00018F0C,$00018F26	; terminal_proximity_object_pointer_table
-	dc.l $00018F52,$00018FA8	; terminal_proximity_object_pointer_table
-	dc.b $00,$00,$00,$00
+terminal_proximity_object_table:
+	dc.l terminal_message_earth_warning	; message_ptr
+	dc.l terminal_message_orange_freak	; message_ptr
+	dc.l terminal_message_bank_instructions	; message_ptr
+	dc.l terminal_message_product_teaser	; message_ptr
+	dc.l terminal_message_ice_sound_hint	; message_ptr
+	dc.l terminal_message_ship_rankings	; message_ptr
+	dc.l terminal_message_margin_stain	; message_ptr
+	dc.l terminal_message_sonicdriver_hint	; message_ptr
+	dc.l terminal_message_captains_log	; message_ptr
+	dc.l terminal_message_escape_claim	; message_ptr
+terminal_location_message_table_end:
+	dc.l $00000000	; NULL terminates location message scan
 abs_0_00018CCC:
 	dc.b "CLEARANCE:",$00
 abs_0_00018CD7:
 	dc.b "CARD NAME:",$00
 abs_0_00018CE2:
 	dc.b "ENTRY:",$00
-	dc.b "None ",$00
-	dc.b "Alpha",$00
-	dc.b "Delta",$00
-	dc.b "Pi   ",$00
-	dc.b "Omega",$00
+terminal_clearance_none:
+	dc.b 'N','o','n','e',' ',$00	; Terminal clearance display text
+terminal_clearance_alpha:
+	dc.b 'A','l','p','h','a',$00	; Terminal clearance display text
+terminal_clearance_delta:
+	dc.b 'D','e','l','t','a',$00	; Terminal clearance display text
+terminal_clearance_pi:
+	dc.b 'P','i',' ',' ',' ',$00	; Terminal clearance display text
+terminal_clearance_omega:
+	dc.b 'O','m','e','g','a',$00	; Terminal clearance display text
 	dcb.b $20,$20
 	dc.b $00
 	dc.b "Terminal mode",$00
 abs_0_00018D36:
 	dc.b "ACCESS DENIED...",$00
 	dc.b "ID REQUIRED",$00
-	dc.b $00,$00,$F0,$00,$D0,$63,$6F,$6D,$70,$75,$74,$65,$72,$20,$70,$6C
-	dc.b $61,$6E,$73,$20,$74,$6F,$20,$64,$72,$6F,$70,$0D,$67,$65,$6E,$65
-	dc.b $74,$69,$63,$20,$70,$6F,$64,$73,$20,$68,$6F,$6C,$64,$69,$6E,$67
-	dc.b $0D,$69,$6E,$76,$61,$73,$69,$6F,$6E,$20,$66,$6F,$72,$63,$65,$2E
-	dc.b $20,$6D,$75,$73,$74,$0D
+	dc.b $00
+terminal_message_earth_warning:
+	dc.w $00F0	; world_x
+	dc.w $00D0	; world_y
+terminal_message_earth_warning_text:
+	dc.b "computer plans to drop",$0D
+	dc.b "genetic pods holding",$0D
+	dc.b "invasion force. must",$0D
 	dc.b "warn earth.",$00
-	dc.b $00,$01,$B0,$00,$D0,$73,$6F,$6D,$65,$6F,$6E,$65,$20,$73,$68,$6F
-	dc.b $75,$6C,$64,$20,$63,$6F,$6E,$74,$72,$6F,$6C,$0D,$74,$68,$61,$74
-	dc.b $20,$72,$69,$64,$69,$63,$75,$6C,$6F,$75,$73,$20,$6F,$72,$61,$6E
-	dc.b $67,$65,$0D,$66,$72,$65,$61,$6B,$2E,$00,$00,$01,$B0,$01,$B0,$49
-	dc.b $6E,$73,$74,$72,$75,$63,$74,$69,$6F,$6E,$73,$3A,$0D,$64,$65,$66
-	dc.b $72,$61,$75,$64,$20,$61,$6C,$6C,$20,$63,$75,$73,$74,$6F,$6D,$65
-	dc.b $72,$73,$0D,$77,$69,$74,$68,$20,$69,$6C,$6C,$65,$67,$61,$6C,$6C
-	dc.b $79,$20,$68,$69,$67,$68,$0D
+	dc.b $00
+terminal_message_orange_freak:
+	dc.w $01B0	; world_x
+	dc.w $00D0	; world_y
+terminal_message_orange_freak_text:
+	dc.b "someone should control",$0D
+	dc.b "that ridiculous orange",$0D
+	dc.b "freak.",$00
+	dc.b $00
+terminal_message_bank_instructions:
+	dc.w $01B0	; world_x
+	dc.w $01B0	; world_y
+terminal_message_bank_instructions_text:
+	dc.b "Instructions:",$0D
+	dc.b "defraud all customers",$0D
+	dc.b "with illegally high",$0D
 	dc.b "interest rates.",$00
-	dc.b $02,$D0,$01,$C0,$6D,$6F,$72,$65,$20,$74,$61,$73,$74,$79,$20,$70
-	dc.b $72,$6F,$64,$75,$63,$74,$20,$62,$79,$0D,$50,$2E,$53,$2E,$49,$2E
-	dc.b $20,$69,$6E,$20,$74,$68,$65,$20,$6E,$6F,$74,$20,$74,$6F,$6F,$0D
-	dc.b $64,$69,$73,$74,$61,$6E,$74,$20,$66,$75,$74,$75,$72,$65,$2C,$20
-	dc.b $6C,$6F,$6F,$6B,$0D
+terminal_message_product_teaser:
+	dc.w $02D0	; world_x
+	dc.w $01C0	; world_y
+terminal_message_product_teaser_text:
+	dc.b "more tasty product by",$0D
+	dc.b "P.S.I. in the not too",$0D
+	dc.b "distant future, look",$0D
 	dc.b "out for it.",$00
-	dc.b $00,$03,$90,$02,$10,$6D,$75,$74,$61,$6E,$74,$20,$69,$63,$65,$20
-	dc.b $63,$72,$65,$61,$74,$75,$72,$65,$0D,$73,$65,$65,$6D,$73,$20,$74
-	dc.b $6F,$20,$62,$65,$20,$73,$65,$6E,$73,$69,$74,$69,$76,$65,$0D
+	dc.b $00
+terminal_message_ice_sound_hint:
+	dc.w $0390	; world_x
+	dc.w $0210	; world_y
+terminal_message_ice_sound_hint_text:
+	dc.b "mutant ice creature",$0D
+	dc.b "seems to be sensitive",$0D
 	dc.b "to sound waves.",$00
-	dc.b $04,$50,$01,$C0,$50,$61,$6E,$64,$6F,$72,$61,$20,$73,$68,$69,$70
-	dc.b $20,$72,$61,$6E,$6B,$69,$6E,$67,$3A,$0D,$31,$2E,$20,$43,$61,$70
-	dc.b $74,$61,$69,$6E,$0D,$32,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64,$65
-	dc.b $72,$0D,$33,$2E,$20,$4C,$74,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64
-	dc.b $65,$72,$0D
+terminal_message_ship_rankings:
+	dc.w $0450	; world_x
+	dc.w $01C0	; world_y
+terminal_message_ship_rankings_text:
+	dc.b "Pandora ship ranking:",$0D
+	dc.b "1. Captain",$0D
+	dc.b "2. Commander",$0D
+	dc.b "3. Lt. Commander",$0D
 	dc.b "4. Engineer",$00
-	dc.b $00,$05,$10,$01,$F0
-	dc.b "Ah, a margins stain.",$00
-	dc.b $00,$02,$A0,$02,$E0,$4D,$79,$20,$73,$6F,$6E,$69,$63,$64,$72,$69
-	dc.b $76,$65,$72,$20,$73,$75,$72,$65,$20,$69,$73,$0D
-	dc.b "a flexible tool.",$00
-	dc.b $02,$A0,$03,$D0,$43,$61,$70,$74,$61,$69,$6E,$27,$73,$20,$6C,$6F
-	dc.b $67,$3A,$0D,$49,$20,$62,$65,$6C,$69,$65,$76,$65,$20,$49,$20,$68
-	dc.b $61,$76,$65,$20,$6C,$6F,$73,$74,$0D,$63,$6F,$6E,$74,$72,$6F,$6C
-	dc.b $20,$6F,$66,$20,$74,$68,$69,$73,$20,$73,$68,$69,$70,$2E,$0D
+	dc.b $00
+terminal_message_margin_stain:
+	dc.w $0510	; world_x
+	dc.w $01F0	; world_y
+terminal_message_margin_stain_text:
+	dc.b 'A','h',',',' ','a',' ','m','a','r','g','i','n','s',' ','s','t'	; XY then inline NUL message
+	dc.b 'a','i','n','.',$00
+	dc.b $00
+terminal_message_sonicdriver_hint:
+	dc.w $02A0	; world_x
+	dc.w $02E0	; world_y
+terminal_message_sonicdriver_hint_text:
+	dc.b 'M','y',' ','s','o','n','i','c','d','r','i','v','e','r',' ','s'	; XY then inline NUL message
+	dc.b 'u','r','e',' ','i','s',$0D,'a',' ','f','l','e','x','i','b','l'
+	dc.b 'e',' ','t','o','o','l','.',$00
+terminal_message_captains_log:
+	dc.w $02A0	; world_x
+	dc.w $03D0	; world_y
+terminal_message_captains_log_text:
+	dc.b "Captain's log:",$0D
+	dc.b "I believe I have lost",$0D
+	dc.b "control of this ship.",$0D
 	dc.b "must destroy pandora..",$00
-	dc.b $03,$C0,$07,$00,$49,$20,$68,$61,$76,$65,$20,$64,$69,$73,$63,$6F
-	dc.b $76,$65,$72,$65,$64,$20,$74,$68,$61,$74,$0D,$49,$20,$61,$6C,$6F
-	dc.b $6E,$65,$20,$68,$61,$76,$65,$20,$74,$68,$65,$20,$6D,$65,$61,$6E
-	dc.b $73,$0D
+terminal_message_escape_claim:
+	dc.w $03C0	; world_x
+	dc.w $0700	; world_y
+terminal_message_escape_claim_text:
+	dc.b "I have discovered that",$0D
+	dc.b "I alone have the means",$0D
 	dc.b "to escape from Pandora",$00
 	dc.b $00
     ; Swap to the terminal backdrop and service inventory, messages and the Earth deadline. Main world-update and self-destruct countdown services are omitted; exit requests a camera redraw.
@@ -10946,6 +11010,7 @@ abs_0_000190D6:
 	clr.w (a1)+
 	lea.l $0028(a0),a0
 	dbf.w d7,abs_0_000190D6
+    ; Only item IDs 48..55 reach the eight-entry clearance-label selector; BYTE subtraction normalizes the ID. This display domain is separate from the six-entry security table.
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
 	move.b d0,app_modal_last_selected_item_id(a6)
@@ -10969,18 +11034,20 @@ abs_0_000190D6:
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CE2(pc),a3
 	bsr.w draw_compact_text_string
-	lea.l terminal_proximity_object_ptrs(pc),a0
+    ; NULL-terminated XY/text scan; strict WORD-distance improvement keeps first ties. abs/sub/add wrap at 16 bits. On update A2=record+4; no ten-entry count or empty-table guard.
+	lea.l terminal_proximity_object_table(pc),a0
 	lea.l player_world_object.l,a4
 	move.w world_object_shared_prefix_world_x(a4),d0
 	move.w world_object_shared_prefix_world_y(a4),d1
 	moveq.l #-1,d4
-	movea.l (a0),a2
+	movea.l (a0),a2	; operand 1: terminal_location_message_reference_message_ptr at (a0)
 abs_0_00019156:
 	move.l (a0)+,d5
 	beq.b abs_0_0001917A
 	movea.l d5,a1
-	move.w (a1)+,d2
-	move.w (a1)+,d3
+    ; KNOWN: type A1=Target code-entry register seed:terminal_location_message_header
+	move.w (a1)+,d2	; operand 1: terminal_location_message_header_world_x at (a1)+
+	move.w (a1)+,d3	; operand 1: terminal_location_message_header_world_y at (a1)+
 	sub.w d0,d2
 	bpl.b abs_0_00019166
 	neg.w d2
@@ -11006,7 +11073,7 @@ abs_0_0001917A:
 	bsr.w draw_compact_text_string
 	move.w (a7)+,d0
 	lsl.w #2,d0
-	movea.l abs_0_000191CC(pc,d0.w),a3
+	movea.l terminal_card_clearance_label_table(pc,d0.w),a3
 	moveq.l #14,d0
 	moveq.l #3,d1
 	bsr.w set_text_cursor_in_front_buffer
@@ -11022,9 +11089,15 @@ abs_0_0001917A:
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	rts
-abs_0_000191CC:
-	dc.l $00018D01,$00018CFB,$00018CEF,$00018CFB	; lookup_table
-	dc.l $00018CE9,$00018CF5,$00018CE9,$00018CE9	; lookup_table
+terminal_card_clearance_label_table:
+	dc.l terminal_clearance_omega	; label_ptr
+	dc.l terminal_clearance_pi	; label_ptr
+	dc.l terminal_clearance_alpha	; label_ptr
+	dc.l terminal_clearance_pi	; label_ptr
+	dc.l terminal_clearance_none	; label_ptr
+	dc.l terminal_clearance_delta	; label_ptr
+	dc.l terminal_clearance_none	; label_ptr
+	dc.l terminal_clearance_none	; label_ptr
 abs_0_000191EC:
 	moveq.l #10,d0
 	moveq.l #5,d1
