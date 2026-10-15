@@ -758,9 +758,56 @@ Feed input route, without duplicating its full scenario or editing guest state:
 
 Use a fresh state directory. The recorded run is **partial**, not an all-phases
 success: hit capture, six Feed hits, combat-exit restore and return to gameplay
-are observed; the subsequent body-open entry `$27E0` times out after 15 seconds.
-Later body phases do not run. Next capture nearest-object pointer, collision
+are observed. Correction: the subsequent timeout watches `$27E0`, a trade
+announcement, rather than body entry `$27EA`; it is not negative body-entry
+evidence. Later scripted body phases do not run. Next capture nearest-object pointer, collision
 carry and object bit1 at inventory guards `$2736/$2748/$274A`; a timeout does not
 identify which guard failed. Second combat recapture and hit-tail palette reuse
 remain unobserved. Snapshot sample hashes and hardware values in the compact
 receipt are observations, not complete lifetime/alias guarantees.
+
+### Body inventory guard and recapture stages
+
+The snapshot scenario composer also supports `--stage root`, `--stage guards`
+and `--stage body`. Root replays the established Feed encounter and ends at
+post-combat `$5CA`; save it with `--checkpoint-save`. Guards resumes that root,
+uses key64, and stops after resolving the original descriptor/state/geometry
+pointers at `$26A4`; optionally save that diagnostic checkpoint separately.
+Body resumes the **root**, not the partly opened guard checkpoint. Direct up
+movement is terrain-blocked; the stage checks an 18-move local route to
+`(822,146)`, then probes canonical body entry `$27EA`, capture, restore and
+recapture. The route derives from the existing terrain model and is checked at
+each commit. The previous `$27E0` probe was a trade-announcement instruction.
+
+Generate each stage with the public composer:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage root /tmp/pandora-body-root.json
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage guards /tmp/pandora-body-guards.json
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage body /tmp/pandora-body-cycle.json
+```
+
+Use the same target/ROM/Copperline/direct-contract CLI arguments as above, with
+fresh state directories and these checkpoint arguments:
+
+| Scenario | Load receipt | Save receipt |
+| --- | --- | --- |
+| `/tmp/pandora-body-root.json` | none | a fresh local `post-combat.json` |
+| `/tmp/pandora-body-guards.json` | `post-combat.json` | optional fresh `geometry.json` |
+| `/tmp/pandora-body-cycle.json` | `post-combat.json` | a fresh local `body-recaptured.json` |
+
+Checkpoint hashes, guard inputs, phase outcomes and remaining limits are recorded
+in `runtime/observations/pandora-snapshot-body-guards.json`; no guest snapshots are
+published. The palette-stack witnesses are modeled original-CPU calls, separate
+from the normal Copperline gameplay observations.
+
+
+The corrected body stage completes all 37 source-row phases in the recorded run,
+including 18 coordinate-checked moves to `(822,146)`, body open at canonical
+`$27EA`, first capture, direct close restore and reopen/second capture. A verified
+successor is saved. Flags cycle `$40,$60,$E0,$40,$60,$E0`; before each capture
+BLIT request is clear and the first post-start stop shows completion and no
+BBUSY. Six sampled body chunks retain identical hashes through restore and
+second capture (384 of 2,304 bytes). These are bounded observations, not all-path
+allocation, alias exclusion or bus arbitration guarantees. Hit-family second
+capture and palette-tail entry/exclusion remain unresolved.

@@ -507,7 +507,7 @@
       }
     ],
     "completed_prefix": "Original cold direct-payload boot through normal Feed encounter, hit capture, six hits, combat-exit direct restore and return to gameplay.",
-    "limit": "Body open entry source27E0 not observed in the following 15-second key64 attempt; no body capture/restore or second combat capture observed.",
+    "limit": "Correction: the recorded timeout watched source27E0, a trade-announcement instruction, rather than canonical body-open entry27EA. It is invalid negative body-entry evidence; retain raw phase outcome as history. See pandora-snapshot-body-guards.json for corrected probes.",
     "route_phase_outcomes": [
       {
         "name": "title_menu_loop",
@@ -693,6 +693,12 @@
         "name": "feed_after_combat_audio_entry",
         "status": "hit"
       }
-    ]
+    ],
+    "probe_correction": {
+      "incorrect_offset": "s0:000027E0:instruction",
+      "actual_instruction": "lea announce_item_trade(pc),a0",
+      "correct_body_open_entry": "s0:000027EA:instruction",
+      "basis": "Native reference from2750 resolves open_nearby_object_inventory_panel to27EA."
+    }
   }
 }

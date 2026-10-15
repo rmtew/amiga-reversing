@@ -46,7 +46,7 @@
         "source27C0 direct restore",
         "source27C8 nearby-character enqueue -> clear wait fences restore"
       ],
-      "limits": "No queue-membership/SAVED test on restore. Subsequent normal body-open attempt timed out before entry27E0, so body runtime acquisition/consumption remains unobserved."
+      "limits": "No queue-membership/SAVED test on restore. Corrected native entry27EA is now observed for a normal body capture/restore/second-capture cycle. This is not an exclusive-allocation or all-input contract."
     },
     {
       "family": "hit_feedback",
@@ -77,7 +77,7 @@
     "token_assumptions": "A completion request represents the preceding serialized packet; no intervening software synthesizes/stales/consumes the token, DMA remains enabled, and descriptor addresses/geometry retain the inspected values."
   },
   "remaining_blockers": [
-    "Hit capture/restore is now observed on the original normal Feed route. Body-open entry27E0 was not observed within the following 15-second key64 attempt; capture guard inputs at2736/2748/274A (nearest pointer, collision carry, object bit1) next. Second combat entry/recapture remains unobserved.",
+    "Corrected body entry27EA, first capture, direct restore and second capture are observed; the old27E0 negative interpretation is withdrawn. Hit-family second capture and shared-tail palette entry/exclusion remain open.",
     "The palette work-buffer leaf reads hit snapshot tail 0x77FE0..0x78000. Its wrapper has no named direct reference; stack-trampoline/indirect entry and phase exclusion remain open, not disproved by absent references.",
     "CPU border/text versus clear DMA ordering needs hardware-capable observation; packet wait fences alone do not guarantee arbitrary CPU alias reuse.",
     "No complete inventory of indirect/interrupt alias writers or ownership of low body storage; no allocation/relocation claim."
@@ -96,9 +96,10 @@
     "receipt": "runtime/observations/pandora-snapshot-lifecycle.json",
     "initial_clear": "All canonical stops and gameplay hit; BBUSY clear and BLIT completion set after clear start through READY.",
     "normal_gameplay": "Original Feed input route reaches hit capture, six attacks, direct combat-exit restore, return to gameplay. Snapshot flags transition 0x60 -> 0xE0 -> 0x40. BBUSY clear and BLIT completion set at sampled post-start/return points.",
-    "body_limit": "Guarded open entry27E0 not observed within 15 seconds of the subsequent key64 attempt; body phases did not execute.",
+    "body_limit": "The historical timeout at27E0 is not a body-entry test; canonical body entry is27EA. Raw outcome retained, negative interpretation withdrawn.",
     "guarantee_limit": "Debugger stops are discrete observations; no all-path arbitration, exclusive ownership, second capture or relocation safety guarantee.",
-    "sample_lifetime": "First64 and final32 hit snapshot bytes change at capture and retain identical hashes at overlay ready, restore call and restore return. This samples96 of768 bytes and does not prove full-buffer exclusivity."
+    "sample_lifetime": "First64 and final32 hit snapshot bytes change at capture and retain identical hashes at overlay ready, restore call and restore return. This samples96 of768 bytes and does not prove full-buffer exclusivity.",
+    "body_followup": "Normal body cycle now verified after18 checked local moves to(822,146); see runtime/observations/pandora-snapshot-body-guards.json."
   },
   "verification": {
     "exact": true,
@@ -116,5 +117,6 @@
   "tests": {
     "combined_focused": "103 passed in 30.65s",
     "components": "84 adapter/session and 19 snapshot/framebuffer cases; no new generic simulator tests in this slice."
-  }
+  },
+  "followup_receipt": "runtime/observations/pandora-snapshot-body-guards.json"
 }

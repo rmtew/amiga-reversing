@@ -5380,6 +5380,7 @@ abs_0_00012688:
 	cmp.w #$18,d0
 abs_0_0001268C:
 	rts
+    ; C set iff unsigned WORD player+(16,31) is strictly inside descriptor+state+geometry origin and origin+extent bounds. Equality fails; arithmetic wraps at 16 bits. D0-D2/A0-A2 preserved.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 is_player_within_world_object_collision_bounds:
 	lea.l player_world_object.l,a4
@@ -8841,6 +8842,7 @@ prepare_work_buffer_arguments:
 	lea.l WORK_BUFFER_PALETTE_INPUT_BASE.l,a1
 	moveq.l #15,d7
 	rts
+    ; Net SP+2 before RTS splices the return low WORD with the next stack WORD. At the four copied-view BSR sites, the 24-bit target leaves the verified payload; these are not balanced returns.
 return_work_buffer_argument:
 	move.l #gameplay_current_rgb12_palette,-(a7)
 	addq.l #6,a7
@@ -8882,6 +8884,7 @@ abs_0_00017206:
 	andi.b #254,d0
 	movea.l d0,a0
 	bra.b abs_0_00017202
+    ; Unpack reads the hit snapshot tail before the stack-splicing return helper. The later subtract loop is not reached by an ordinary balanced return from that helper.
 fade_out_work_buffer_palette:
 	bsr.w prepare_work_buffer_arguments
 	jsr unpack_rgb12_palette_components.l

@@ -2156,8 +2156,9 @@ This is observed completion by those stops, not an all-path bus-timing guarantee
 The first 64 and final 32 snapshot bytes change at capture and retain identical
 hashes through overlay readiness, restore call and return; this samples 96 of
 768 bytes and does not prove full-buffer exclusivity.
-The next key64 attempt does not reach body-open entry `$27E0` within 15 seconds;
-its downstream body phases never run. Second combat recapture and palette-tail
+Correction: the next key64 attempt watches `$27E0`, a trade-announcement
+instruction, rather than canonical body entry `$27EA`. Its timeout is invalid
+negative body-entry evidence; downstream scripted body phases never run. Second combat recapture and palette-tail
 phase exclusion remain unobserved. The compact receipt preserves this partial
 outcome without publishing guest snapshots or retaining a full instruction trace.
 
@@ -2172,3 +2173,76 @@ source SHA256 is
 All 78 packaged asset/include identities and previous history prefixes remain
 intact. Four comments were added through catalog actions and accepted after
 verification; the generated source was never hand-edited.
+
+## Body-open guards and shared-tail control-flow follow-up
+
+The saved post-Feed-combat execution now provides a measured inventory predicate,
+rather than an assumed proximity condition. At `$2736`, nearest object is Feed
+`$5C1D2`, flags `$66` include bit 1, and player XY is `(829,182)`. At `$26A4`,
+the original pointer chain is descriptor `$5C2BE` -> state `$5C226` -> geometry
+`$5C240`. Its current origin is `(832,168)` with extent `(64,32)` and zero state
+and geometry offsets. The tested player point is `(845,213)`: X passes, while
+`213 < 200` fails. That branch result follows from captured inputs and the
+original tested predicate; the probe stops before the comparisons. These inputs predict a failed body guard. Independently, the historical
+15-second probe used trade instruction `$27E0`, not canonical body entry `$27EA`;
+its negative body-entry inference is withdrawn.
+
+The original predicate at `$268E` preserves D0-D2/A0-A2, binds A4 to the player,
+and sets carry only for a point strictly inside unsigned WORD bounds after
+wrapping additions. Boundary equality fails. Four hypothetical upward commits would place the point at `(845,197)`, inside
+the captured rectangle, but the first commit is not observed within ten seconds
+and the original terrain model rejects up there. A bounded local terrain plan
+then matches all 18 measured commits to `(822,146)`, point `(838,177)`. The
+corrected body probe uses the canonical `$27EA` entry.
+
+The shared-tail investigation also corrects an implicit control-flow assumption.
+At `$71A2`, the palette return helper pushes a long pointer, advances SP by six,
+then executes RTS. For a pre-BSR stack S, this returns with SP=S+2 and builds PC
+from the BSR return's low WORD followed by WORD(S). At the four original sites
+`$71E0/$71EE/$7220/$7230`, the resulting 24-bit target has high byte
+`E2/F0/22/34`, outside the verified copied payload. The focused tests execute
+BSR and the helper only, with modeled stack words, and stop before fetching the
+computed target. No crash, intended purpose or wrapper unreachability is claimed.
+
+Crucially, fade-out entry `$7216` unpacks the palette input at `$77FE0` **before**
+its stack-splicing helper call at `$7220`. Thus even this control-flow limitation
+does not prove hit-tail lifetime exclusion. Native direct-reference queries find
+no named callers for either wrapper; constructed/indirect entries remain open.
+Unchanged snapshot hashes cannot exclude palette reads. Ordinary balanced-call
+fallthrough into the later fade loops must not be assumed.
+
+Three new catalog comments at `$268E/$71A2/$7216` express these arithmetic and
+temporal facts alongside existing types. Seventeen original-CPU geometry/stack
+cases and the earlier applicable suites pass: **120 tests** total. C and vasm
+reproduce all 376,832 original bytes, receipt
+`825c8bc771a13ebb4f8692ba016da3866f183f8d017c92a5830d23ce414c0461`;
+source SHA256 is
+`842aebbab8d5a2d7b48c07da99e1cb0b9f7adb57a328ce97cd313d38f4d6f6de`.
+
+
+The corrected original Copperline probe completes **all 37 source-row phases**:
+18 individually checked movement commits reach `(822,146)`; body-open `$27EA`,
+capture, close/direct restore, reopen and second capture into `$7F0` all occur.
+The native branch reference, rather than a guessed address, identifies the entry.
+A verified successor checkpoint is saved privately, linked to the normal Feed
+root. No predicate, pointer, input cache or game storage was patched.
+
+Both captures reach original BLTSIZE with A0=`$75518`, A1=`$7F0` and D1 low WORD
+`$3006`: 192 packed rows of six WORDs, or 2,304 bytes. BLIT request is clear before
+each capture and set at the first post-start stop; BBUSY is clear there. Body
+flags progress `$40->$60->$E0->$40->$60->$E0` across capture/restore/recapture.
+The six sampled chunks (384 of 2,304 bytes) change on first capture, stay stable
+through restore and are identical after second capture. The second invocation
+and completion are observed even though these sampled pixels match. Logical
+flags remain distinct from completion guarantees, and no full-buffer exclusivity
+or general bus-timing guarantee follows.
+
+The resulting contract is conditional but reachable: open captures the current
+background, close consumes it through direct restore, and reopen reacquires the
+same storage via a new capture. Second **hit-family** capture, shared-tail palette
+entry/exclusion, all alias/interrupt consumers and allocation remain open. The
+fade-out's first shared-tail read cannot be dismissed on account of its later
+stack behavior. Evidence and reproduction are in
+`runtime/observations/pandora-snapshot-body-guards.json` and
+`docs/copperline-runtime.md`. Original bytes, asset/include identities and prior
+history prefixes remain preserved; publication stays on draft PR 5.
