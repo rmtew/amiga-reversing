@@ -2742,3 +2742,14 @@ PR 5 stays unmerged with its metadata and review state unchanged.
 
 Detailed native identities, preservation checks, source-size measurements and
 final proof are recorded in `docs/validation/pandora-tail-asset.json`.
+
+The eight optional backend failures now have a complete pre-change comparison:
+all tracked native sources at `ffae9904` were independently rebuilt and exactly
+those eight unchanged test bodies were selected. All reproduce their current
+errors, confirming no new regression among them. Three lack corpus inputs, two
+have stale wire/key expectations, and three exercise older code-promotion or
+presentation expectations. They were outside the earlier green focused baseline.
+See [the failure-by-failure audit](../validation/backend-eight-failures.md) and
+`docs/validation/backend-eight-baseline.json`; the former mixed-object renderer
+comparison is no longer the sole basis for calling these pre-change failures.
+No production code, target facts or PR metadata changed in this audit.
