@@ -2047,3 +2047,57 @@ render-order investigation, resolving general KB-driven MOVEQ sign extension
 before relying on affected CPU traces. Source `$938E` remains numeric across
 unknown memory effects. No framework implementation or original instruction
 bytes changed, and publication stays on draft PR 5 without merging.
+
+
+## MOVEQ correction and snapshot sequencing follow-up
+
+The earlier `$84BC` limitation is resolved. The KB already describes a signed
+8-bit immediate and a long destination; generated operand metadata now carries
+that encoded signed width into both abstract and concrete execution. No
+mnemonic-specific rule, KB assertion or target-byte patch was needed. The sort
+tests execute the original `MOVEQ #-1,D5` rather than injecting its result.
+The historical split-test account above records the earlier checkpoint only.
+
+Focused simulator/generator/arithmetic/abstract checks pass **49 tests and 1004
+subtests**, including 4096 exhaustive MOVEQ register/byte/CCR combinations and
+five abstract boundary cases. The final combined Pandora palette/sort/ammunition, overlay, framebuffer and
+render-order run passes **47 tests**. Four original-CPU rendering order cases
+pass in `tests/test_pandora_render_order.py`:
+
+- Direct enqueue waits before capture and clear packets; CPU border/title and
+  ready marking proceed without a further software completion poll.
+- Original combat entry `$7792..$77B8`, with inventory closed, queues the
+  opponent panel then captures the hit background at `$77D00` before its clear.
+- Inventory close interior `$27AE` directly restores the body snapshot from
+  `$7F0` with either value of the saved flag, an empty queue and NULL callback;
+  the nearby panel subsequently waits before its clear. This is a conditional
+  interior-path proof, not execution of the entire inventory close routine.
+
+Current native named references identify direct restore callers at `$0720`,
+`$27C0` and `$7A8E`, capture at `$66BE`, and border/clear at `$66C6/$66C2`.
+The queue processor has no named direct references. That absence and initial
+NULL callback values do not establish that it is unreachable or unused.
+
+The tests explicitly supply INTREQR bit 6 between packets: the MMIO shadow
+neither performs DMA nor clears its request register when INTREQ is written.
+Consequently CPU flag clearing, ready marking and return do not certify DMA
+consumption; observed CPU sequencing does not demonstrate a real hardware race.
+Cold-start reachability, bus arbitration, snapshot reuse phases and the overlap
+between hit snapshot tail `$77FE0..$78000` and palette input remain unresolved.
+No new ownership or relocation permission follows from these tests.
+
+Reproduction after `make -j4`:
+
+```sh
+.venv/bin/python -m pytest -q src/tests/test_m68k_simulator_moveq.py src/tests/test_generate_c99_simulator_subset.py src/tests/test_m68k_simulator_arithmetic.py src/tests/test_m68k_simulator_abstract.py
+.venv/bin/python -m pytest -q tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_render_order.py tests/test_pandora_framebuffer_lifetime.py tests/test_pandora_overlay_pipeline.py
+```
+
+The native suite reports 807 passing and the same two pre-existing failures:
+`facts_v2_render_asm_source_propagates_pointer_table_pointee_type` and
+`decompression_identify_reports_unknown_payload_without_failure`. Changed C
+files pass the repository style check. Exact C/vasm receipt
+`427ef725d9a438c6d4c8824cd6f97034b5e30491df15dc533ea35e6eb0241561`
+reproduces all 376,832 original bytes. Source SHA256 remains
+`e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b`.
+No target facts or generated assembly changed in this follow-up.
