@@ -5191,10 +5191,10 @@ static const char *manual_representation_symbol_name(const M68kRenderLookup *loo
   return policy->target_equates[representation->target_equate_index - 1U].name;
 }
 
-static void apply_manual_operand_representations(const M68kRenderLookup *lookup, size_t section_index,
+static int apply_manual_operand_representations(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
-  if (instruction == NULL) return;
+  if (instruction == NULL) return -1;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kAnalysisManualRepresentation *representation;
@@ -5204,6 +5204,30 @@ static void apply_manual_operand_representations(const M68kRenderLookup *lookup,
     int is_immediate = m68k_ir_operand_immediate_value(operand, &value);
     int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
     int is_absolute = operand_absolute_offset_local(operand, &value);
+    representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+    if (representation != NULL && representation->has_source_symbol) {
+      uint32_t rendered_value = representation->source_symbol_offset;
+      uint32_t runtime_value = 0U;
+      int runtime_view;
+      if ((!is_immediate && !is_absolute) || lookup == NULL ||
+          representation->source_symbol_section >= lookup->section_count ||
+          representation->source_symbol_offset >= lookup->label_extents[representation->source_symbol_section]) return -1;
+      runtime_view = lookup_source_should_render_runtime_label(lookup, representation->source_symbol_section,
+        representation->source_symbol_offset, &runtime_value);
+      if (runtime_view) rendered_value = runtime_value;
+      if (!!runtime_view != !!representation->source_symbol_runtime_view ||
+          rendered_value != representation->source_symbol_value || value != rendered_value) return -1;
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.has_name = 1U;
+      operand->symbol_ref.has_section = 1U;
+      operand->symbol_ref.has_section_offset = 1U;
+      operand->symbol_ref.section_index = representation->source_symbol_section;
+      operand->symbol_ref.section_offset = representation->source_symbol_offset;
+      operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+      (void)format_rendered_asm_label_with_generation(lookup, operand->symbol_ref.name,
+        sizeof(operand->symbol_ref.name), representation->source_symbol_section, representation->source_symbol_offset);
+      continue;
+    }
     if ((operand->symbol_ref.has_name != 0U &&
           (!is_absolute || operand->symbol_ref.name_is_generated == 0U)) ||
         (!is_immediate && !is_base_displacement && !is_absolute)) continue;
@@ -5228,6 +5252,7 @@ static void apply_manual_operand_representations(const M68kRenderLookup *lookup,
     if (!is_immediate) continue;
     operand->manual_representation_style_id = representation->style_id;
   }
+  return 0;
 }
 
 static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id);
@@ -10345,7 +10370,7 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
       (void)attach_amiga_app_base_slot_symbols(lookup, &platform_state, section->section_index, candidate->offset,
         &instruction);
       (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
-      apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction);
+      if (apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction) != 0) return -1;
       if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return -1;
       apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
       if (!instruction_has_noncanonical_byte_immediate_extension(&instruction, section->data + candidate->offset,
@@ -10963,7 +10988,14 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
     control_target = candidate_control_target_for_operand(candidate, operand_index);
     if (control_target != NULL) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
-      if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+      /* The attached operand has already resolved the execution view. Decode
+       * targets retain their original coordinates and must not re-project an
+       * encoded absolute address as a source offset in copied images. */
+      if (operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
+          operand->symbol_ref.section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
+        access.target_offset = operand->symbol_ref.section_offset;
+      } else if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
         access.target_section_index = (uint32_t)relocation->target_section_index;
         access.target_offset = relocation->target_offset;
       } else {

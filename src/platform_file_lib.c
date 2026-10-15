@@ -7516,6 +7516,7 @@ typedef enum MetadataSeededEntitySubtypeId {
   METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING,
   METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP,
   METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_OPAQUE_DATA,
   METADATA_SEEDED_ENTITY_SUBTYPE_STRING,
   METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE,
   METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE,
@@ -7565,6 +7566,7 @@ static const MetadataSeededEntitySubtypeName METADATA_SEEDED_ENTITY_SUBTYPE_NAME
   { "length_prefixed_string", METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING },
   { "bitmap", METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP },
   { "sound_sample", METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE },
+  { "opaque_data", METADATA_SEEDED_ENTITY_SUBTYPE_OPAQUE_DATA },
   { "string", METADATA_SEEDED_ENTITY_SUBTYPE_STRING },
   { "audio_table", METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE },
   { "sprite", METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE },
@@ -7620,6 +7622,7 @@ static uint32_t metadata_seeded_entity_role_flags_from_subtype_id_local(Metadata
       return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
     case METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
     case METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_OPAQUE_DATA: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA;
     case METADATA_SEEDED_ENTITY_SUBTYPE_STRING: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
     case METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE;
     case METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
@@ -7783,9 +7786,43 @@ static int append_metadata_manual_representation_local(const char *object_start,
   if (!has_addr) return 1;
   style_id = analysis_representation_style_id_from_text_local(style);
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) return 1;
-  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && symbol[0] == '\0') return 1;
   if (has_end && end > addr) size = end - addr;
   if (has_operand_index && operand_index > 3U) return 1;
+  {
+    const char *identity_end = NULL;
+    const char *identity = json_object_field_local(object_start, object_end, "source_symbol", &identity_end);
+    if (identity != NULL && identity < object_end) {
+      static const char *keys[] = { "section_index", "source_offset", "encoded_value", "runtime_view" };
+      uint32_t section = 0U, offset = 0U, value = 0U, runtime_view = 0U;
+      int hs = 0, ho = 0, hv = 0, hr = 0;
+      uint16_t index;
+      M68kAnalysisManualRepresentation *slot;
+      if (!has_operand_index || style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+          !json_object_has_only_keys_local(identity, identity_end, keys, 4U) ||
+          !json_number_field_local(identity, identity_end, "section_index", &section, &hs) || !hs ||
+          !json_number_field_local(identity, identity_end, "source_offset", &offset, &ho) || !ho ||
+          !json_number_field_local(identity, identity_end, "encoded_value", &value, &hv) || !hv ||
+          !json_number_field_local(identity, identity_end, "runtime_view", &runtime_view, &hr) || !hr || runtime_view > 1U) return 0;
+      for (index = 0U; index < policy->manual_representation_count; ++index) {
+        slot = &policy->manual_representations[index];
+        if (slot->section_index != (has_hunk ? hunk : 0U) || slot->offset != addr ||
+            slot->size != size || !slot->has_operand_index || slot->operand_index != operand_index) continue;
+        return slot->has_source_symbol && slot->source_symbol_section == section &&
+          slot->source_symbol_offset == offset && slot->source_symbol_value == value &&
+          slot->source_symbol_runtime_view == runtime_view;
+      }
+      if (!policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size,
+          style_id, 1U, (uint8_t)operand_index, NULL)) return 0;
+      slot = &policy->manual_representations[policy->manual_representation_count - 1U];
+      slot->has_source_symbol = 1U;
+      slot->source_symbol_runtime_view = (uint8_t)runtime_view;
+      slot->source_symbol_section = section;
+      slot->source_symbol_offset = offset;
+      slot->source_symbol_value = value;
+      return 1;
+    }
+  }
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && symbol[0] == '\0') return 1;
   return policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size, style_id,
     has_operand_index ? 1U : 0U, (uint8_t)operand_index,
     style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ? symbol : NULL);
@@ -10384,6 +10421,10 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (representation->has_operand_index &&
         json_builder_appendf(builder, ",\"operand_index\":%u", (unsigned)representation->operand_index) != 0)
       return -1;
+    if (representation->has_source_symbol && json_builder_appendf(builder,
+        ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,\"runtime_view\":%u,\"encoded_value\":%u}",
+        (unsigned)representation->source_symbol_section, (unsigned)representation->source_symbol_offset,
+        (unsigned)representation->source_symbol_runtime_view, (unsigned)representation->source_symbol_value) != 0) return -1;
     if (representation->symbol_id != 0U) {
       const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
       if (symbol_name != NULL && symbol_name[0] != '\0' &&
@@ -13920,6 +13961,14 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       else Q(json_builder_append(&b, "{\"section_index\":null,\"source_offset\":null"));
       STR("name", d->name);
       STR("expression", d->expression);
+      if (d->kind == M68K_RENDER_PLANNED_DECLARATION_LABEL && d->has_source_target) {
+        const M68kRenderPlannedLabel *label = m68k_render_plan_find_label(plan, d->section_index, d->offset);
+        if (label != NULL && strcmp(label->name, d->name) == 0) {
+          Q(json_builder_appendf(&b, ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,\"runtime_view\":%u,\"encoded_value\":%u}",
+            (unsigned)d->section_index, (unsigned)d->offset, (unsigned)label->has_runtime_address,
+            (unsigned)(label->has_runtime_address ? label->runtime_address : label->source_offset)));
+        }
+      }
       {
         size_t si, oi, origin_count = 0;
         const M68kSymbolOriginIR *first_origin = NULL;

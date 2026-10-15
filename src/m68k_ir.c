@@ -214,6 +214,7 @@ const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE) != 0U) return "sprite";
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM) != 0U)
     return "string_control_stream";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA) != 0U) return "opaque_data";
   return NULL;
 }
 

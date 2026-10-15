@@ -1353,6 +1353,7 @@ class ManualRepresentationMetadata:
     element_kind: str | None = None
     operand_index: int | None = None
     symbol: str | None = None
+    source_symbol: dict[str, object] | None = None
     source_id: str | None = None
     source_path: str | None = None
     source_locator: str | None = None
@@ -1360,6 +1361,15 @@ class ManualRepresentationMetadata:
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
         assert isinstance(self.style, ManualRepresentationStyle)
+        if self.source_symbol is not None:
+            identity = self.source_symbol
+            if (not isinstance(identity, dict) or set(identity) != {
+                    "section_index", "source_offset", "runtime_view", "encoded_value"}
+                    or any(type(v) is not int or not 0 <= v <= 0xFFFFFFFF for v in identity.values())
+                    or identity["runtime_view"] not in {0, 1}
+                    or self.operand_index is None or self.style != ManualRepresentationStyle.SYMBOL):
+                raise ValueError("invalid canonical source symbol identity")
+
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> ManualRepresentationMetadata:
@@ -1394,6 +1404,7 @@ class ManualRepresentationMetadata:
             element_kind=element_kind,
             operand_index=operand_index,
             symbol=symbol,
+            source_symbol=payload.get("source_symbol"),
             seed_origin=_target_metadata_seed_origin(seed_origin),
             review_status=_target_metadata_review_status(review_status),
             citation=citation,
@@ -2128,6 +2139,9 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
     # Optional address-domain declarations do not change the legacy wire shape.
+    for representation in payload.get("manual_representations", ()):
+        if representation.get("source_symbol") is None:
+            representation.pop("source_symbol", None)
     for entity in payload.get("seeded_entities", ()):
         for key in ("pointer_address_domain", "pointer_symbol_group", "source_owner_start", "source_owner_size"):
             if entity.get(key) is None:

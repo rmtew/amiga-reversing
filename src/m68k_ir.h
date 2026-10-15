@@ -354,7 +354,8 @@ typedef enum M68kAnalysisStructuredDataRoleFlag {
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER = 1U << 11,
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE = 1U << 12,
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM = 1U << 13,
-  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING = 1U << 14
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING = 1U << 14,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA = 1U << 15
 } M68kAnalysisStructuredDataRoleFlag;
 
 typedef enum M68kAnalysisStructuredDataSourcePattern {
@@ -663,6 +664,11 @@ typedef struct M68kAnalysisManualRepresentation {
   uint8_t operand_index;
   uint16_t symbol_id;
   uint16_t target_equate_index;
+  uint8_t has_source_symbol;
+  uint8_t source_symbol_runtime_view;
+  uint32_t source_symbol_section;
+  uint32_t source_symbol_offset;
+  uint32_t source_symbol_value;
   uint32_t section_index;
   uint32_t offset;
   uint32_t size;

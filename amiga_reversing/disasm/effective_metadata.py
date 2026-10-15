@@ -307,6 +307,7 @@ def _manual_representation_to_metadata(representation: dict[str, object]) -> Man
         element_kind=_manual_seed_text(representation, "element_kind"),
         operand_index=_manual_seed_int(representation, "operand_index"),
         symbol=_manual_seed_text(representation, "symbol"),
+        source_symbol=representation.get("source_symbol"),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(representation, "representation_id"),

@@ -2312,23 +2312,69 @@ def _validate_candidate_equate_capacity(
     metadata = effective_target_metadata(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if metadata is not None and metadata.target_equates:
         validate_target_equate_count_with_c_backend(len(metadata.target_equates))
-    # Absolute-address presentation rules carry the current native literal.
-    # Resolve against the whole candidate so a new EQU and its use can share
-    # one atomic batch, without changing historical representation records.
-    equates = {equate.name: equate.value for equate in metadata.target_equates} if metadata is not None else {}
-    for action in pending_actions:
-        if action.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION:
-            continue
-        representation = action.get("representation")
-        if not isinstance(representation, dict) or representation.get("element_kind") != "absolute_address" or representation.get("style") != "symbol":
-            continue
-        value = representation.get("value")
+    # Resolve source labels against one candidate native plan while the append
+    # lock is held. Remove only pending presentations from this read-only plan;
+    # declarations/equates created in the same atomic batch remain visible.
+    representations = [a["representation"] for a in pending_actions
+        if a.get("kind") == ManualActionKind.CREATE_MANUAL_REPRESENTATION
+        and isinstance(a.get("representation"), dict) and a["representation"].get("style") == "symbol"]
+    if not representations:
+        return
+    equates = {e.name: e.value for e in metadata.target_equates} if metadata else {}
+    source_choices = []
+    for representation in representations:
+        representation.pop("source_symbol", None)  # Never trust a caller-supplied identity.
+        symbol, value = representation.get("symbol"), representation.get("value")
         width = representation.get("width_bytes")
-        symbol = representation.get("symbol")
-        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 0xFFFFFFFF or width not in {2, 4}:
-            raise ValueError("absolute symbol representation requires a decoded address and width")
-        if not isinstance(symbol, str) or equates.get(symbol) != value:
-            raise ValueError("absolute symbol representation EQU value must match the decoded address")
+        if representation.get("element_kind") == "absolute_address" and symbol in equates:
+            if width not in {2, 4} or equates[symbol] != value:
+                raise ValueError("absolute symbol representation EQU value must match the decoded address")
+        elif representation.get("element_kind") in {"immediate", "absolute_address"} and symbol not in equates:
+            source_choices.append(representation)
+    if not source_choices:
+        return
+    import tempfile
+    from amiga_reversing.disasm.c_backend import build_listing_artifact_profile_from_binary_source
+    from amiga_reversing.disasm.effective_metadata import effective_metadata_text
+    # Platform symbols retain their existing representation path. A native
+    # query distinguishes declarations from source labels without Python
+    # interpreting generated names or subtracting load addresses.
+    pending_without_presentations = [a for a in pending_actions
+        if a.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION]
+    text = effective_metadata_text(target_dir, pending_actions=pending_without_presentations, binary_source=binary_source)
+    with tempfile.TemporaryDirectory(prefix="representation-identity-") as directory:
+        metadata_path = Path(directory) / "metadata.json"
+        metadata_path.write_text(text or "{}", encoding="utf-8")
+        _, _, artifact = build_listing_artifact_profile_from_binary_source(binary_source, metadata_path=metadata_path)
+        try:
+            for representation in source_choices:
+                symbol = representation["symbol"]
+                matches = artifact.query_payload("symbols", symbol=symbol, limit=2)["items"]
+                if len(matches) != 1:
+                    raise ValueError("symbol representation requires one canonical native declaration")
+                identity = matches[0].get("source_symbol")
+                if identity is None:
+                    if matches[0].get("source_offset") is None:
+                        continue  # Existing platform declaration.
+                    raise ValueError("symbol has no unambiguous rendered address view")
+                width, value = representation.get("width_bytes"), representation.get("value")
+                row = artifact.row_for_source_offset(section_index=representation.get("hunk", 0), offset=representation["addr"])
+                parts = row.get("operand_parts", []) if row else []
+                literal = [p for p in parts if p.get("kind") == representation.get("element_kind")
+                    and p.get("operand_index") == representation.get("operand_index")]
+                if len(literal) != 1 or literal[0].get("width_bytes") != width or literal[0].get("value") != value:
+                    raise ValueError("source symbol requires the native decoded value and width")
+                if type(width) is not int or width not in {1, 2, 4} or type(value) is not int:
+                    raise ValueError("source symbol representation requires decoded value and width")
+                mask = (1 << (width * 8)) - 1
+                expected = identity["encoded_value"]
+                fits = expected <= mask or (representation.get("element_kind") == "absolute_address"
+                    and width == 2 and expected >= 0xFFFF8000)
+                if not fits or (value & mask) != (expected & mask):
+                    raise ValueError("source symbol encoded value/width must match the decoded operand")
+                representation["source_symbol"] = identity
+        finally:
+            artifact.close()
 
 
 # These actions can change native structured-item or named-label expansion.

@@ -269,3 +269,20 @@ establish absolute stack ownership or separation from application/object writes.
 [The next proof capability](proposals/044-runtime-memory-relocation-proof.md)
 records address provenance and interrupt/context requirements. Conditional build
 or runtime guard enforcement is not implemented.
+
+Operand symbol presentations may select a canonical source declaration as well
+as a platform symbol or target equate. The append preflight resolves one native
+render-plan declaration and persists `source_symbol` with `section_index`,
+`source_offset`, `runtime_view` (0/1) and `encoded_value`. It checks the current
+native operand value/width and address view before writing history. No Python
+load-address arithmetic or generated-label parsing participates. Ambiguous,
+missing and mismatched choices refuse the entire batch. The native renderer
+checks the identity again and derives the current name from its coordinates,
+so renaming a label preserves both the expression and its xref identity.
+
+An explicit data layout with role `opaque_data` and a raw element can be
+packaged as an INCBIN through the existing binary-assets output mode. This
+classification preserves bytes with unknown purpose; it does not assert media
+format, unused storage or relocation safety. Unclassified bytes remain excluded
+from automatic asset extraction, and existing label, expression, fixup, ORG and
+range-overlap guards still apply.
