@@ -2442,10 +2442,10 @@ unchanged. Shared-tail relocation obligations and unknown callback/IRQ/DMA
 lifetimes remain open. The next authorized tooling slice is the general CLR
 predecrement fix, followed by rerunning the previously excluded palette prefix.
 
-The descriptor audit exposes a remaining propagation gap: all 35 nonzero object
-references resolve symbolically, but only one of the 61 descriptor references
-has a native symbolic resolution. The other 60 remain explicitly unresolved in
-the inventory and numeric in source. Their accepted schema bindings do not
+The complete audit exposes a remaining propagation gap: only two of the 35
+nonzero object references and one of the 61 descriptor references have native
+symbolic resolutions. The other 93 remain explicitly unresolved in the inventory
+and numeric in source. Their accepted schema bindings do not
 license a hand-subtracted target mapping. Completing native descriptor-target
 identity/label propagation is a follow-up; this checkpoint claims structured
-prefixes and the actual resolved references, not 96 symbolic references.
+prefixes and three resolved references, not 96 symbolic references.
