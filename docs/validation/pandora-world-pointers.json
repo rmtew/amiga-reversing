@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
-  "revision": "1cb53d6aab8e709c55a7d0d7f42e5401b273fbe07d1fe4913a9c3804bdb5d0bc",
-  "subject_revision": "4914b5a078bc553fc62d16289674cd92a6f10b8d5a25d20402ffc22a29b30202",
+  "revision": "3497938d7ea5800a0a5a6c97081aaa0dc7e33d322d5aa68f7192e9eaddd6070b",
+  "subject_revision": "d013ec101ef28aed35b0e21346959aab8926b0092f754b87d413ce4e4e078490",
   "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
   "families": {
     "world_object_source_reference": [
@@ -907,6 +907,7 @@
   ],
   "limits": [
     "Initial source references, not immutable runtime values or unique objects.",
+    "Unresolved structured export does not prove the rendered operand is numeric.",
     "The object scan uses NULL; physical prefixes are not all-input bounds.",
     "Changed candidate cooldown overwrites the distance threshold register.",
     "Callback, storage ownership and asynchronous lifetimes remain open."

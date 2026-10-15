@@ -2444,11 +2444,12 @@ predecrement fix, followed by rerunning the previously excluded palette prefix.
 
 The complete audit exposes a remaining propagation gap: only two of the 35
 nonzero object references and one of the 61 descriptor references have native
-symbolic resolutions. The other 93 remain explicitly unresolved in the inventory
-and numeric in source. Their accepted schema bindings do not
-license a hand-subtracted target mapping. Completing native descriptor-target
-identity/label propagation is a follow-up; this checkpoint claims structured
-prefixes and three resolved references, not 96 symbolic references.
+symbolic resolutions. The other 93 remain explicitly unresolved in the structured-query inventory,
+although the generated source renders symbolic LONG expressions for them. Their accepted schema bindings do not
+license a hand-subtracted target mapping. Completing the native structured-resolution export
+for those generated operands is a follow-up; this checkpoint claims structured
+prefixes and three structured-query resolutions. The rendered symbolic expressions
+and structured query must not be conflated or joined by parsing source text.
 
 ## Concrete scalar EA update fix and palette trace recovery
 

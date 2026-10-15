@@ -55,6 +55,7 @@ def collect(client):
                 {'start': 0x309A, 'end': 0x310E, 'entries': 29, 'role': 'active descriptors'},
                 {'start': 0x310E, 'end': 0x318E, 'entries': 32, 'role': 'sort descriptor source'}],
             'limits': ['Initial source references, not immutable runtime values or unique objects.',
+                       'Unresolved structured export does not prove the rendered operand is numeric.',
                        'The object scan uses NULL; physical prefixes are not all-input bounds.',
                        'Changed candidate cooldown overwrites the distance threshold register.',
                        'Callback, storage ownership and asynchronous lifetimes remain open.']}

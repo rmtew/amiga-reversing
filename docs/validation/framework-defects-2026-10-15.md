@@ -69,7 +69,13 @@ is established. Concrete prefix evidence is distinct from abstract propagation.
    typed-register transfer paths. Impact is missing source names/types, not a
    demonstrated execution or byte-reproduction failure. The latest world-pointer
    inventory independently exposes only 3 symbolic and 93 unresolved nonzero
-   initial references; that limitation is retained rather than hand-mapped.
+   initial structured-query references; that limitation is retained rather than
+   hand-mapped. Resumed source inspection finds those operands rendered
+   symbolically (for example source $3012 is `dc.l world_object_megabio_feed`),
+   while its listing row has no `pointer_resolution` member. Thus structured
+   export completeness is a separate gap; unresolved query results do not mean
+   the source is numeric or that the rendered expression supplies durable
+   target-identity facts.
 
 4. **Linux native decompression identity hashing.** Existing native test
    `decompression_identify_reports_unknown_payload_without_failure` in
