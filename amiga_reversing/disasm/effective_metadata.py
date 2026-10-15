@@ -250,6 +250,32 @@ def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMeta
     )
 
 
+def _append_manual_label_declaration(declarations, declaration, label):
+    """An explicit row rename replaces that name at its exact address identity.
+
+    Older manual labels can have another durable ID. Keep unrelated aliases,
+    but place the renamed declaration first so native lookup sees the new name.
+    No runtime/source address arithmetic or cross-section matching is implied.
+    """
+    previous = set(label.get("previous_names", []))
+    if isinstance(label.get("previous_name"), str):
+        previous.add(label["previous_name"])
+    if not previous:
+        declarations.append(declaration)
+        return
+    kept = []
+    position = None
+    for item in declarations:
+        same_address = (getattr(item, "hunk", None) == getattr(declaration, "hunk", None)
+                        and item.addr == declaration.addr)
+        if same_address and position is None:
+            position = len(kept)
+        if not (same_address and item.name in previous):
+            kept.append(item)
+    kept.insert(len(kept) if position is None else position, declaration)
+    declarations[:] = kept
+
+
 def _manual_label_to_absolute_code_label(label: dict[str, object]) -> AbsoluteCodeLabelMetadata | None:
     if _manual_seed_text(label, "address_domain") != "runtime":
         return None
@@ -2116,10 +2142,10 @@ def _apply_manual_seed_projection(
     for label in labels:
         code_label = _manual_label_to_code_label(label)
         if code_label is not None:
-            seeded_code_labels.append(code_label)
+            _append_manual_label_declaration(seeded_code_labels, code_label, label)
         absolute_label = _manual_label_to_absolute_code_label(label)
         if absolute_label is not None:
-            absolute_code_labels.append(absolute_label)
+            _append_manual_label_declaration(absolute_code_labels, absolute_label, label)
     for comment in comments:
         entry_comment = _manual_comment_to_entry_comment(comment)
         if entry_comment is not None:

@@ -2821,3 +2821,80 @@ independent vasm reproduce all 376,832 original bytes exactly. Receipt
 `2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776`. Original binary/assets/SDK and history
 prefixes remain intact. Actor-owner naming is the remaining fresh-pass swath.
 PR5 remains unmerged; deferred backend maintenance and unrelated work are excluded.
+
+
+## Fresh-pass actor identity correction and complete closeout
+
+The remaining actor swath is accepted. Restart `$A0E4/$A0E8/$A0EC` resolves
+object byte+`$4A` through the signed name-offset table and stores its initialized
+display pointer at +0; the nearby-object overlay consumes that pointer. Original
+CPU prefixes verify all eight identities independently of inventory contents.
+These are initialized owner/display identities, not inferred artwork or perpetual
+exclusive ownership of mutable state.
+
+| Actor source | Previous owner prefix | Current owner prefix | Display ID / resolved name |
+|---|---|---|---|
+| `$4BA66` | `pianist` | `secdroid_alpha_1` | `$53` / Secdroid ALPHA 1 |
+| `$4BB0E` | `wackobrain ` | `secdroid_delta_2` | `$58` / Secdroid DELTA 2 |
+| `$4BABA` | `defence_controller` | `secdroid_delta_1` | `$57` / Secdroid DELTA 1 |
+| `$4BB62` | `glass` | `secdroid_pi` | `$59` / Secdroid PI |
+| `$4BBB6` | `kwik_kleen` | `secdroid_omega` | `$5B` / Secdroid OMEGA |
+| `$4BC0A` | `flight_controller` | `secdroid_alpha_2` | `$54` / Secdroid ALPHA 2 |
+| `$4943E` | `kriptonite` | `wackobrain_actor` | `$62` / Wackobrain |
+| `$4C1D2` | `megabio_feed` | `pianist_actor` | `$5D` / Pianist |
+
+The old "Pianist" encounter in the frozen planning observation is Secdroid
+ALPHA 1 at `$4BA66`; the actual initialized Pianist at `$4C1D2` is the object
+used by proximity music, previously named for Megabio feed. Wackobrain is at
+`$4943E`, corroborated by its named interaction callback. The formerly
+wackobrain-named object at `$4BB0E` is Secdroid DELTA 2. Raw historical receipts
+and snapshots retain the names they recorded; they were not rewritten.
+
+A scope-checked programmatic plan propagates these **eight semantic corrections**
+through **602 source labels, 34 layouts and 355 typed element names**. These are
+propagated names, not 991 independent discoveries. Existing typed layouts plus
+explicit descriptor/saved-state/node/attachment pointer chains constrain the
+selection. Complete native incoming pages cover 35 intervals / 270 references.
+All layout/element shapes, binding IDs/provenance and interpreted references
+compare unchanged. Six droids have distinct state records but share saved
+artwork; generic fixed-NPC frame/table names remain legitimate shared aliases.
+Global item strings/equates, original assets/SDK and history prefixes remain.
+
+Two small catalog capabilities were necessary: identity-preserving manual
+layout rename and bounded name-only bulk element rename. They use the normal
+revision-checked path, preserve typed ownership and references, reject unknown
+or duplicate element identities atomically, and support undo/redo. They were
+published in `ca4d592d` and`39e67da9`; no native CPU/KB rules changed.
+
+The independent rendered-name audit also found **118 shadowed renames**:
+older manual labels had different durable IDs, so their old names still won
+although the new row rename was recorded. The effective projection now retires
+only explicit predecessor names at the same section/address in the same address
+domain, prioritizes the requested declaration, and retains unrelated aliases.
+Repeated row renames carry their name chain through replay and undo/redo. Raw
+metadata/history are preserved. Native and actual rendered-source audits now
+find all 602 new declarations at their original coordinates and none of the 602
+retired spellings. The intermediate byte-exact receipt`d4959d6c64a0a34932fb6b6f6619e903ac51f1e603d9f60f58af643bf65a3b9e`
+was insufficient to establish that source-quality contract; the final proof below
+follows the fix. Earlier journal decisions remain with their supersessions.
+
+The offline model now binds actors by source coordinate, uses the current
+ammunition name, and exposes actor-neutral/current terminology while explicitly
+retaining historical consumer keys. A live read of current native bindings and
+the existing verified checkpoint succeeds with **both route searches disabled**.
+No emulator operation, new route or new BYTE-path observation was performed.
+
+Final validation: **262 Pandora tests**, **230 source-identity/framework tests**
+and **62 effective-metadata checks** pass; an overlapping final target selection
+passes 71. C and independent vasm reproduce all 376,832 original bytes exactly.
+All 637 actor actions are accepted against final receipt
+`54d4c229bd78cc51ac5f324d92a00b5ea56a979af6109643cafd5bc687976c4d`; source SHA256
+`be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6`. Across the five fresh swaths, 678 new
+manual actions are accepted. See `docs/validation/pandora-fresh-reading-review.json`
+and the coordinate/rename audit `docs/validation/pandora-actor-identities.json`.
+
+The resident service is PID 216406 at http://127.0.0.1:8123/ with the target ready.
+The deferred eight-test maintenance patch remains byte-identical and uncommitted.
+PR5 stays unmerged without routine metadata edits. Shared-tail relocation and
+its allocation/caller/interrupt-lifetime obligations remain open; no exclusive
+ownership, whole-file semantic completion or general index bounds are asserted.

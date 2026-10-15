@@ -1358,11 +1358,11 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776",
-        "size": 929857
+        "sha256": "be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6",
+        "size": 934755
       }
     ],
-    "metadata_hash": "cb6741c70b19a3bb75cbe9cadd08ef26f59abc2f5dce48383712b7c3c2d3a993",
+    "metadata_hash": "70397141b180792b29b8ed3c5e55211cb8cbf05caae157085defc7e83c4c2112",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 256
@@ -1372,5 +1372,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "4b400089ea8d77e5d91a01b740d341e62253af024bdfe3cbce07130fe485ad7c"
+  "sha256": "6f977462f19f59d28f9fe3ebcf46c68d73fca701ffe7a23e890440d0a38b0806"
 }

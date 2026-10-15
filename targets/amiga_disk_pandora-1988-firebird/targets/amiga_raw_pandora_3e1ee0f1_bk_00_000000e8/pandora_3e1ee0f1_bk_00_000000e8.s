@@ -2723,762 +2723,762 @@ squash_player_script_command_00A6_reload_count:
 squash_player_script_command_00AE:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l world_object_squash_player_behavior_script	; target_pointer
-world_object_kriptonite_behavior_script:
+world_object_wackobrain_actor_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0514	; world_x
 	dc.w $00F4	; world_y
-kriptonite_script_command_0006:
+wackobrain_actor_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_000C:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0010:
+wackobrain_actor_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0010_operand_word:
-	dc.w kriptonite_script_command_001C_reload_count-kriptonite_script_command_0010_operand_word	; operand_word
-kriptonite_script_command_0014:
+wackobrain_actor_script_command_0010_operand_word:
+	dc.w wackobrain_actor_script_command_001C_reload_count-wackobrain_actor_script_command_0010_operand_word	; operand_word
+wackobrain_actor_script_command_0014:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0018:
+wackobrain_actor_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_001C:
+wackobrain_actor_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_001C_reload_count:
+wackobrain_actor_script_command_001C_reload_count:
 	dc.w $0078	; reload_count
 	dc.w $0078	; remaining_count
-	dc.w kriptonite_script_command_0014-kriptonite_script_command_001C	; branch_displacement
-kriptonite_script_command_0024:
+	dc.w wackobrain_actor_script_command_0014-wackobrain_actor_script_command_001C	; branch_displacement
+wackobrain_actor_script_command_0024:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_002A:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_002A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_002E:
+wackobrain_actor_script_command_002E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_0034:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_0034:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0034_operand_word:
-	dc.w kriptonite_script_command_0040_reload_count-kriptonite_script_command_0034_operand_word	; operand_word
-kriptonite_script_command_0038:
+wackobrain_actor_script_command_0034_operand_word:
+	dc.w wackobrain_actor_script_command_0040_reload_count-wackobrain_actor_script_command_0034_operand_word	; operand_word
+wackobrain_actor_script_command_0038:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_003C:
+wackobrain_actor_script_command_003C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0040:
+wackobrain_actor_script_command_0040:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0040_reload_count:
+wackobrain_actor_script_command_0040_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_0038-kriptonite_script_command_0040	; branch_displacement
-kriptonite_script_command_0048:
+	dc.w wackobrain_actor_script_command_0038-wackobrain_actor_script_command_0040	; branch_displacement
+wackobrain_actor_script_command_0048:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_004E:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_004E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_004E_operand_word:
-	dc.w kriptonite_script_command_005A_reload_count-kriptonite_script_command_004E_operand_word	; operand_word
-kriptonite_script_command_0052:
+wackobrain_actor_script_command_004E_operand_word:
+	dc.w wackobrain_actor_script_command_005A_reload_count-wackobrain_actor_script_command_004E_operand_word	; operand_word
+wackobrain_actor_script_command_0052:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0056:
+wackobrain_actor_script_command_0056:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_005A:
+wackobrain_actor_script_command_005A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_005A_reload_count:
+wackobrain_actor_script_command_005A_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_0052-kriptonite_script_command_005A	; branch_displacement
-kriptonite_script_command_0062:
+	dc.w wackobrain_actor_script_command_0052-wackobrain_actor_script_command_005A	; branch_displacement
+wackobrain_actor_script_command_0062:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_0068:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_0068:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_006C:
+wackobrain_actor_script_command_006C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_0072:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0072_operand_word:
-	dc.w kriptonite_script_command_007E_reload_count-kriptonite_script_command_0072_operand_word	; operand_word
-kriptonite_script_command_0076:
+wackobrain_actor_script_command_0072_operand_word:
+	dc.w wackobrain_actor_script_command_007E_reload_count-wackobrain_actor_script_command_0072_operand_word	; operand_word
+wackobrain_actor_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_007A:
+wackobrain_actor_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_007E:
+wackobrain_actor_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_007E_reload_count:
+wackobrain_actor_script_command_007E_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_0076-kriptonite_script_command_007E	; branch_displacement
-kriptonite_script_command_0086:
+	dc.w wackobrain_actor_script_command_0076-wackobrain_actor_script_command_007E	; branch_displacement
+wackobrain_actor_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_008C:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_008C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_008C_operand_word:
-	dc.w kriptonite_script_command_0098_reload_count-kriptonite_script_command_008C_operand_word	; operand_word
-kriptonite_script_command_0090:
+wackobrain_actor_script_command_008C_operand_word:
+	dc.w wackobrain_actor_script_command_0098_reload_count-wackobrain_actor_script_command_008C_operand_word	; operand_word
+wackobrain_actor_script_command_0090:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0094:
+wackobrain_actor_script_command_0094:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0098:
+wackobrain_actor_script_command_0098:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0098_reload_count:
+wackobrain_actor_script_command_0098_reload_count:
 	dc.w $0060	; reload_count
 	dc.w $0060	; remaining_count
-	dc.w kriptonite_script_command_0090-kriptonite_script_command_0098	; branch_displacement
-kriptonite_script_command_00A0:
+	dc.w wackobrain_actor_script_command_0090-wackobrain_actor_script_command_0098	; branch_displacement
+wackobrain_actor_script_command_00A0:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_00A6:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_00A6:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00A6_operand_word:
-	dc.w kriptonite_script_command_00B2_reload_count-kriptonite_script_command_00A6_operand_word	; operand_word
-kriptonite_script_command_00AA:
+wackobrain_actor_script_command_00A6_operand_word:
+	dc.w wackobrain_actor_script_command_00B2_reload_count-wackobrain_actor_script_command_00A6_operand_word	; operand_word
+wackobrain_actor_script_command_00AA:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_00AE:
+wackobrain_actor_script_command_00AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_00B2:
+wackobrain_actor_script_command_00B2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_00B2_reload_count:
+wackobrain_actor_script_command_00B2_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_00AA-kriptonite_script_command_00B2	; branch_displacement
-kriptonite_script_command_00BA:
+	dc.w wackobrain_actor_script_command_00AA-wackobrain_actor_script_command_00B2	; branch_displacement
+wackobrain_actor_script_command_00BA:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_00C0:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_00C0:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00C0_operand_word:
-	dc.w kriptonite_script_command_00CC_reload_count-kriptonite_script_command_00C0_operand_word	; operand_word
-kriptonite_script_command_00C4:
+wackobrain_actor_script_command_00C0_operand_word:
+	dc.w wackobrain_actor_script_command_00CC_reload_count-wackobrain_actor_script_command_00C0_operand_word	; operand_word
+wackobrain_actor_script_command_00C4:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_00C8:
+wackobrain_actor_script_command_00C8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_00CC:
+wackobrain_actor_script_command_00CC:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_00CC_reload_count:
+wackobrain_actor_script_command_00CC_reload_count:
 	dc.w $0078	; reload_count
 	dc.w $0078	; remaining_count
-	dc.w kriptonite_script_command_00C4-kriptonite_script_command_00CC	; branch_displacement
-kriptonite_script_command_00D4:
+	dc.w wackobrain_actor_script_command_00C4-wackobrain_actor_script_command_00CC	; branch_displacement
+wackobrain_actor_script_command_00D4:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_00DA:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_00DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
-kriptonite_script_command_00DE:
+wackobrain_actor_script_command_00DE:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_00E4:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_00E4:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00E4_operand_word:
-	dc.w kriptonite_script_command_00F0_reload_count-kriptonite_script_command_00E4_operand_word	; operand_word
-kriptonite_script_command_00E8:
+wackobrain_actor_script_command_00E4_operand_word:
+	dc.w wackobrain_actor_script_command_00F0_reload_count-wackobrain_actor_script_command_00E4_operand_word	; operand_word
+wackobrain_actor_script_command_00E8:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_00EC:
+wackobrain_actor_script_command_00EC:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_00F0:
+wackobrain_actor_script_command_00F0:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_00F0_reload_count:
+wackobrain_actor_script_command_00F0_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_00E8-kriptonite_script_command_00F0	; branch_displacement
-kriptonite_script_command_00F8:
+	dc.w wackobrain_actor_script_command_00E8-wackobrain_actor_script_command_00F0	; branch_displacement
+wackobrain_actor_script_command_00F8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_00FE:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_00FE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00FE_operand_word:
-	dc.w kriptonite_script_command_010A_reload_count-kriptonite_script_command_00FE_operand_word	; operand_word
-kriptonite_script_command_0102:
+wackobrain_actor_script_command_00FE_operand_word:
+	dc.w wackobrain_actor_script_command_010A_reload_count-wackobrain_actor_script_command_00FE_operand_word	; operand_word
+wackobrain_actor_script_command_0102:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFD	; operand_word
-kriptonite_script_command_0106:
+wackobrain_actor_script_command_0106:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_010A:
+wackobrain_actor_script_command_010A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_010A_reload_count:
+wackobrain_actor_script_command_010A_reload_count:
 	dc.w $008A	; reload_count
 	dc.w $008A	; remaining_count
-	dc.w kriptonite_script_command_0102-kriptonite_script_command_010A	; branch_displacement
-kriptonite_script_command_0112:
+	dc.w wackobrain_actor_script_command_0102-wackobrain_actor_script_command_010A	; branch_displacement
+wackobrain_actor_script_command_0112:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_0118:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_0118:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_011C:
+wackobrain_actor_script_command_011C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_0122:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_0122:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0122_operand_word:
-	dc.w kriptonite_script_command_012E_reload_count-kriptonite_script_command_0122_operand_word	; operand_word
-kriptonite_script_command_0126:
+wackobrain_actor_script_command_0122_operand_word:
+	dc.w wackobrain_actor_script_command_012E_reload_count-wackobrain_actor_script_command_0122_operand_word	; operand_word
+wackobrain_actor_script_command_0126:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0003	; operand_word
-kriptonite_script_command_012A:
+wackobrain_actor_script_command_012A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_012E:
+wackobrain_actor_script_command_012E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_012E_reload_count:
+wackobrain_actor_script_command_012E_reload_count:
 	dc.w $00BA	; reload_count
 	dc.w $00BA	; remaining_count
-	dc.w kriptonite_script_command_0126-kriptonite_script_command_012E	; branch_displacement
-kriptonite_script_command_0136:
+	dc.w wackobrain_actor_script_command_0126-wackobrain_actor_script_command_012E	; branch_displacement
+wackobrain_actor_script_command_0136:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_013C:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_013C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_013C_operand_word:
-	dc.w kriptonite_script_command_0148_reload_count-kriptonite_script_command_013C_operand_word	; operand_word
-kriptonite_script_command_0140:
+wackobrain_actor_script_command_013C_operand_word:
+	dc.w wackobrain_actor_script_command_0148_reload_count-wackobrain_actor_script_command_013C_operand_word	; operand_word
+wackobrain_actor_script_command_0140:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0144:
+wackobrain_actor_script_command_0144:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0148:
+wackobrain_actor_script_command_0148:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0148_reload_count:
+wackobrain_actor_script_command_0148_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_0140-kriptonite_script_command_0148	; branch_displacement
-kriptonite_script_command_0150:
+	dc.w wackobrain_actor_script_command_0140-wackobrain_actor_script_command_0148	; branch_displacement
+wackobrain_actor_script_command_0150:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_0156:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_0156:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0156_operand_word:
-	dc.w kriptonite_script_command_0162_reload_count-kriptonite_script_command_0156_operand_word	; operand_word
-kriptonite_script_command_015A:
+wackobrain_actor_script_command_0156_operand_word:
+	dc.w wackobrain_actor_script_command_0162_reload_count-wackobrain_actor_script_command_0156_operand_word	; operand_word
+wackobrain_actor_script_command_015A:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0004	; operand_word
-kriptonite_script_command_015E:
+wackobrain_actor_script_command_015E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0162:
+wackobrain_actor_script_command_0162:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0162_reload_count:
+wackobrain_actor_script_command_0162_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_015A-kriptonite_script_command_0162	; branch_displacement
-kriptonite_script_command_016A:
+	dc.w wackobrain_actor_script_command_015A-wackobrain_actor_script_command_0162	; branch_displacement
+wackobrain_actor_script_command_016A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_0170:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_0170:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0170_operand_word:
-	dc.w kriptonite_script_command_017C_reload_count-kriptonite_script_command_0170_operand_word	; operand_word
-kriptonite_script_command_0174:
+wackobrain_actor_script_command_0170_operand_word:
+	dc.w wackobrain_actor_script_command_017C_reload_count-wackobrain_actor_script_command_0170_operand_word	; operand_word
+wackobrain_actor_script_command_0174:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0178:
+wackobrain_actor_script_command_0178:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_017C:
+wackobrain_actor_script_command_017C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_017C_reload_count:
+wackobrain_actor_script_command_017C_reload_count:
 	dc.w $0078	; reload_count
 	dc.w $0078	; remaining_count
-	dc.w kriptonite_script_command_0174-kriptonite_script_command_017C	; branch_displacement
-kriptonite_script_command_0184:
+	dc.w wackobrain_actor_script_command_0174-wackobrain_actor_script_command_017C	; branch_displacement
+wackobrain_actor_script_command_0184:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_018A:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_018A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_018E:
+wackobrain_actor_script_command_018E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_0194:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_0194:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0194_operand_word:
-	dc.w kriptonite_script_command_01A0_reload_count-kriptonite_script_command_0194_operand_word	; operand_word
-kriptonite_script_command_0198:
+wackobrain_actor_script_command_0194_operand_word:
+	dc.w wackobrain_actor_script_command_01A0_reload_count-wackobrain_actor_script_command_0194_operand_word	; operand_word
+wackobrain_actor_script_command_0198:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_019C:
+wackobrain_actor_script_command_019C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01A0:
+wackobrain_actor_script_command_01A0:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01A0_reload_count:
+wackobrain_actor_script_command_01A0_reload_count:
 	dc.w $0090	; reload_count
 	dc.w $0090	; remaining_count
-	dc.w kriptonite_script_command_0198-kriptonite_script_command_01A0	; branch_displacement
-kriptonite_script_command_01A8:
+	dc.w wackobrain_actor_script_command_0198-wackobrain_actor_script_command_01A0	; branch_displacement
+wackobrain_actor_script_command_01A8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_01AE:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_01AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_01B2:
+wackobrain_actor_script_command_01B2:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_01B8:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_01B8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_01B8_operand_word:
-	dc.w kriptonite_script_command_01C4_reload_count-kriptonite_script_command_01B8_operand_word	; operand_word
-kriptonite_script_command_01BC:
+wackobrain_actor_script_command_01B8_operand_word:
+	dc.w wackobrain_actor_script_command_01C4_reload_count-wackobrain_actor_script_command_01B8_operand_word	; operand_word
+wackobrain_actor_script_command_01BC:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_01C0:
+wackobrain_actor_script_command_01C0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01C4:
+wackobrain_actor_script_command_01C4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01C4_reload_count:
+wackobrain_actor_script_command_01C4_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_01BC-kriptonite_script_command_01C4	; branch_displacement
-kriptonite_script_command_01CC:
+	dc.w wackobrain_actor_script_command_01BC-wackobrain_actor_script_command_01C4	; branch_displacement
+wackobrain_actor_script_command_01CC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_01D2:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_01D2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_01D2_operand_word:
-	dc.w kriptonite_script_command_01DE_reload_count-kriptonite_script_command_01D2_operand_word	; operand_word
-kriptonite_script_command_01D6:
+wackobrain_actor_script_command_01D2_operand_word:
+	dc.w wackobrain_actor_script_command_01DE_reload_count-wackobrain_actor_script_command_01D2_operand_word	; operand_word
+wackobrain_actor_script_command_01D6:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_01DA:
+wackobrain_actor_script_command_01DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01DE:
+wackobrain_actor_script_command_01DE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01DE_reload_count:
+wackobrain_actor_script_command_01DE_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_01D6-kriptonite_script_command_01DE	; branch_displacement
-kriptonite_script_command_01E6:
+	dc.w wackobrain_actor_script_command_01D6-wackobrain_actor_script_command_01DE	; branch_displacement
+wackobrain_actor_script_command_01E6:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_01EC:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_01EC:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_01EC_operand_word:
-	dc.w kriptonite_script_command_01F8_reload_count-kriptonite_script_command_01EC_operand_word	; operand_word
-kriptonite_script_command_01F0:
+wackobrain_actor_script_command_01EC_operand_word:
+	dc.w wackobrain_actor_script_command_01F8_reload_count-wackobrain_actor_script_command_01EC_operand_word	; operand_word
+wackobrain_actor_script_command_01F0:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_01F4:
+wackobrain_actor_script_command_01F4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01F8:
+wackobrain_actor_script_command_01F8:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01F8_reload_count:
+wackobrain_actor_script_command_01F8_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_01F0-kriptonite_script_command_01F8	; branch_displacement
-kriptonite_script_command_0200:
+	dc.w wackobrain_actor_script_command_01F0-wackobrain_actor_script_command_01F8	; branch_displacement
+wackobrain_actor_script_command_0200:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_0206:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_0206:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0206_operand_word:
-	dc.w kriptonite_script_command_0212_reload_count-kriptonite_script_command_0206_operand_word	; operand_word
-kriptonite_script_command_020A:
+wackobrain_actor_script_command_0206_operand_word:
+	dc.w wackobrain_actor_script_command_0212_reload_count-wackobrain_actor_script_command_0206_operand_word	; operand_word
+wackobrain_actor_script_command_020A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_020E:
+wackobrain_actor_script_command_020E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0212:
+wackobrain_actor_script_command_0212:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0212_reload_count:
+wackobrain_actor_script_command_0212_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_020A-kriptonite_script_command_0212	; branch_displacement
-kriptonite_script_command_021A:
+	dc.w wackobrain_actor_script_command_020A-wackobrain_actor_script_command_0212	; branch_displacement
+wackobrain_actor_script_command_021A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_0220:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_0220:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0220_operand_word:
-	dc.w kriptonite_script_command_022C_reload_count-kriptonite_script_command_0220_operand_word	; operand_word
-kriptonite_script_command_0224:
+wackobrain_actor_script_command_0220_operand_word:
+	dc.w wackobrain_actor_script_command_022C_reload_count-wackobrain_actor_script_command_0220_operand_word	; operand_word
+wackobrain_actor_script_command_0224:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0228:
+wackobrain_actor_script_command_0228:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_022C:
+wackobrain_actor_script_command_022C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_022C_reload_count:
+wackobrain_actor_script_command_022C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_0224-kriptonite_script_command_022C	; branch_displacement
-kriptonite_script_command_0234:
+	dc.w wackobrain_actor_script_command_0224-wackobrain_actor_script_command_022C	; branch_displacement
+wackobrain_actor_script_command_0234:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_023A:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_023A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_023E:
+wackobrain_actor_script_command_023E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_0244:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_0244:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0244_operand_word:
-	dc.w kriptonite_script_command_0250_reload_count-kriptonite_script_command_0244_operand_word	; operand_word
-kriptonite_script_command_0248:
+wackobrain_actor_script_command_0244_operand_word:
+	dc.w wackobrain_actor_script_command_0250_reload_count-wackobrain_actor_script_command_0244_operand_word	; operand_word
+wackobrain_actor_script_command_0248:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_024C:
+wackobrain_actor_script_command_024C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0250:
+wackobrain_actor_script_command_0250:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0250_reload_count:
+wackobrain_actor_script_command_0250_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_0248-kriptonite_script_command_0250	; branch_displacement
-kriptonite_script_command_0258:
+	dc.w wackobrain_actor_script_command_0248-wackobrain_actor_script_command_0250	; branch_displacement
+wackobrain_actor_script_command_0258:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_025E:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_025E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_025E_operand_word:
-	dc.w kriptonite_script_command_026A_reload_count-kriptonite_script_command_025E_operand_word	; operand_word
-kriptonite_script_command_0262:
+wackobrain_actor_script_command_025E_operand_word:
+	dc.w wackobrain_actor_script_command_026A_reload_count-wackobrain_actor_script_command_025E_operand_word	; operand_word
+wackobrain_actor_script_command_0262:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0266:
+wackobrain_actor_script_command_0266:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_026A:
+wackobrain_actor_script_command_026A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_026A_reload_count:
+wackobrain_actor_script_command_026A_reload_count:
 	dc.w $00C0	; reload_count
 	dc.w $00C0	; remaining_count
-	dc.w kriptonite_script_command_0262-kriptonite_script_command_026A	; branch_displacement
-kriptonite_script_command_0272:
+	dc.w wackobrain_actor_script_command_0262-wackobrain_actor_script_command_026A	; branch_displacement
+wackobrain_actor_script_command_0272:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_0278:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_0278:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0278_operand_word:
-	dc.w kriptonite_script_command_0284_reload_count-kriptonite_script_command_0278_operand_word	; operand_word
-kriptonite_script_command_027C:
+wackobrain_actor_script_command_0278_operand_word:
+	dc.w wackobrain_actor_script_command_0284_reload_count-wackobrain_actor_script_command_0278_operand_word	; operand_word
+wackobrain_actor_script_command_027C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0280:
+wackobrain_actor_script_command_0280:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0284:
+wackobrain_actor_script_command_0284:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0284_reload_count:
+wackobrain_actor_script_command_0284_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_027C-kriptonite_script_command_0284	; branch_displacement
-kriptonite_script_command_028C:
+	dc.w wackobrain_actor_script_command_027C-wackobrain_actor_script_command_0284	; branch_displacement
+wackobrain_actor_script_command_028C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_0292:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_0292:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0292_operand_word:
-	dc.w kriptonite_script_command_029E_reload_count-kriptonite_script_command_0292_operand_word	; operand_word
-kriptonite_script_command_0296:
+wackobrain_actor_script_command_0292_operand_word:
+	dc.w wackobrain_actor_script_command_029E_reload_count-wackobrain_actor_script_command_0292_operand_word	; operand_word
+wackobrain_actor_script_command_0296:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_029A:
+wackobrain_actor_script_command_029A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_029E:
+wackobrain_actor_script_command_029E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_029E_reload_count:
+wackobrain_actor_script_command_029E_reload_count:
 	dc.w $00A8	; reload_count
 	dc.w $00A8	; remaining_count
-	dc.w kriptonite_script_command_0296-kriptonite_script_command_029E	; branch_displacement
-kriptonite_script_command_02A6:
+	dc.w wackobrain_actor_script_command_0296-wackobrain_actor_script_command_029E	; branch_displacement
+wackobrain_actor_script_command_02A6:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_kriptonite_behavior_script	; target_pointer
-world_object_glass_behavior_script:
+	dc.l world_object_wackobrain_actor_behavior_script	; target_pointer
+world_object_secdroid_pi_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $02D4	; world_x
 	dc.w $05D4	; world_y
-glass_script_command_0006:
+secdroid_pi_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
-glass_script_command_0010:
+secdroid_pi_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-glass_script_command_0014:
+secdroid_pi_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_0014_operand_word:
-	dc.w glass_script_command_0020_reload_count-glass_script_command_0014_operand_word	; operand_word
-glass_script_command_0018:
+secdroid_pi_script_command_0014_operand_word:
+	dc.w secdroid_pi_script_command_0020_reload_count-secdroid_pi_script_command_0014_operand_word	; operand_word
+secdroid_pi_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_001C:
+secdroid_pi_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0020:
+secdroid_pi_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_0020_reload_count:
+secdroid_pi_script_command_0020_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w glass_script_command_0018-glass_script_command_0020	; branch_displacement
-glass_script_command_0028:
+	dc.w secdroid_pi_script_command_0018-secdroid_pi_script_command_0020	; branch_displacement
+secdroid_pi_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
-glass_script_command_0032:
+secdroid_pi_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_0036:
+secdroid_pi_script_command_0036:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_0036_operand_word:
-	dc.w glass_script_command_0042_reload_count-glass_script_command_0036_operand_word	; operand_word
-glass_script_command_003A:
+secdroid_pi_script_command_0036_operand_word:
+	dc.w secdroid_pi_script_command_0042_reload_count-secdroid_pi_script_command_0036_operand_word	; operand_word
+secdroid_pi_script_command_003A:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_003E:
+secdroid_pi_script_command_003E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0042:
+secdroid_pi_script_command_0042:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_0042_reload_count:
+secdroid_pi_script_command_0042_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_003A-glass_script_command_0042	; branch_displacement
-glass_script_command_004A:
+	dc.w secdroid_pi_script_command_003A-secdroid_pi_script_command_0042	; branch_displacement
+secdroid_pi_script_command_004A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_004A_operand_word:
-	dc.w glass_script_command_0056_reload_count-glass_script_command_004A_operand_word	; operand_word
-glass_script_command_004E:
+secdroid_pi_script_command_004A_operand_word:
+	dc.w secdroid_pi_script_command_0056_reload_count-secdroid_pi_script_command_004A_operand_word	; operand_word
+secdroid_pi_script_command_004E:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0052:
+secdroid_pi_script_command_0052:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-glass_script_command_0056:
+secdroid_pi_script_command_0056:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_0056_reload_count:
+secdroid_pi_script_command_0056_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w glass_script_command_004E-glass_script_command_0056	; branch_displacement
-glass_script_command_005E:
+	dc.w secdroid_pi_script_command_004E-secdroid_pi_script_command_0056	; branch_displacement
+secdroid_pi_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_005E_operand_word:
-	dc.w glass_script_command_006A_reload_count-glass_script_command_005E_operand_word	; operand_word
-glass_script_command_0062:
+secdroid_pi_script_command_005E_operand_word:
+	dc.w secdroid_pi_script_command_006A_reload_count-secdroid_pi_script_command_005E_operand_word	; operand_word
+secdroid_pi_script_command_0062:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0066:
+secdroid_pi_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_006A:
+secdroid_pi_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_006A_reload_count:
+secdroid_pi_script_command_006A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_0062-glass_script_command_006A	; branch_displacement
-glass_script_command_0072:
+	dc.w secdroid_pi_script_command_0062-secdroid_pi_script_command_006A	; branch_displacement
+secdroid_pi_script_command_0072:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_0076:
+secdroid_pi_script_command_0076:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-glass_script_command_0080:
+secdroid_pi_script_command_0080:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_0084:
+secdroid_pi_script_command_0084:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-glass_script_command_008E:
+secdroid_pi_script_command_008E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_008E_operand_word:
-	dc.w glass_script_command_009A_reload_count-glass_script_command_008E_operand_word	; operand_word
-glass_script_command_0092:
+secdroid_pi_script_command_008E_operand_word:
+	dc.w secdroid_pi_script_command_009A_reload_count-secdroid_pi_script_command_008E_operand_word	; operand_word
+secdroid_pi_script_command_0092:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_0096:
+secdroid_pi_script_command_0096:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_009A:
+secdroid_pi_script_command_009A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_009A_reload_count:
+secdroid_pi_script_command_009A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_0092-glass_script_command_009A	; branch_displacement
-glass_script_command_00A2:
+	dc.w secdroid_pi_script_command_0092-secdroid_pi_script_command_009A	; branch_displacement
+secdroid_pi_script_command_00A2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_00A2_operand_word:
-	dc.w glass_script_command_00AE_reload_count-glass_script_command_00A2_operand_word	; operand_word
-glass_script_command_00A6:
+secdroid_pi_script_command_00A2_operand_word:
+	dc.w secdroid_pi_script_command_00AE_reload_count-secdroid_pi_script_command_00A2_operand_word	; operand_word
+secdroid_pi_script_command_00A6:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_00AA:
+secdroid_pi_script_command_00AA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-glass_script_command_00AE:
+secdroid_pi_script_command_00AE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_00AE_reload_count:
+secdroid_pi_script_command_00AE_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w glass_script_command_00A6-glass_script_command_00AE	; branch_displacement
-glass_script_command_00B6:
+	dc.w secdroid_pi_script_command_00A6-secdroid_pi_script_command_00AE	; branch_displacement
+secdroid_pi_script_command_00B6:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_00B6_operand_word:
-	dc.w glass_script_command_00C2_reload_count-glass_script_command_00B6_operand_word	; operand_word
-glass_script_command_00BA:
+secdroid_pi_script_command_00B6_operand_word:
+	dc.w secdroid_pi_script_command_00C2_reload_count-secdroid_pi_script_command_00B6_operand_word	; operand_word
+secdroid_pi_script_command_00BA:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_00BE:
+secdroid_pi_script_command_00BE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_00C2:
+secdroid_pi_script_command_00C2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_00C2_reload_count:
+secdroid_pi_script_command_00C2_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_00BA-glass_script_command_00C2	; branch_displacement
-glass_script_command_00CA:
+	dc.w secdroid_pi_script_command_00BA-secdroid_pi_script_command_00C2	; branch_displacement
+secdroid_pi_script_command_00CA:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
-glass_script_command_00D4:
+secdroid_pi_script_command_00D4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_00D8:
+secdroid_pi_script_command_00D8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_00D8_operand_word:
-	dc.w glass_script_command_00E4_reload_count-glass_script_command_00D8_operand_word	; operand_word
-glass_script_command_00DC:
+secdroid_pi_script_command_00D8_operand_word:
+	dc.w secdroid_pi_script_command_00E4_reload_count-secdroid_pi_script_command_00D8_operand_word	; operand_word
+secdroid_pi_script_command_00DC:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_00E0:
+secdroid_pi_script_command_00E0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_00E4:
+secdroid_pi_script_command_00E4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_00E4_reload_count:
+secdroid_pi_script_command_00E4_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w glass_script_command_00DC-glass_script_command_00E4	; branch_displacement
-glass_script_command_00EC:
+	dc.w secdroid_pi_script_command_00DC-secdroid_pi_script_command_00E4	; branch_displacement
+secdroid_pi_script_command_00EC:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-glass_script_command_00F6:
+secdroid_pi_script_command_00F6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
-glass_script_command_00FA:
+secdroid_pi_script_command_00FA:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_glass_behavior_script	; target_pointer
-world_object_kwik_kleen_behavior_script:
+	dc.l world_object_secdroid_pi_behavior_script	; target_pointer
+world_object_secdroid_omega_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0364	; world_x
 	dc.w $0694	; world_y
-kwik_kleen_script_command_0006:
+secdroid_omega_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
-kwik_kleen_script_command_0010:
+secdroid_omega_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_0014:
+secdroid_omega_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_0014_operand_word:
-	dc.w kwik_kleen_script_command_0020_reload_count-kwik_kleen_script_command_0014_operand_word	; operand_word
-kwik_kleen_script_command_0018:
+secdroid_omega_script_command_0014_operand_word:
+	dc.w secdroid_omega_script_command_0020_reload_count-secdroid_omega_script_command_0014_operand_word	; operand_word
+secdroid_omega_script_command_0018:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0008	; operand_word
-kwik_kleen_script_command_001C:
+secdroid_omega_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_0020:
+secdroid_omega_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_0020_reload_count:
+secdroid_omega_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0018-kwik_kleen_script_command_0020	; branch_displacement
-kwik_kleen_script_command_0028:
+	dc.w secdroid_omega_script_command_0018-secdroid_omega_script_command_0020	; branch_displacement
+secdroid_omega_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-kwik_kleen_script_command_0032:
+secdroid_omega_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_0032_operand_word:
-	dc.w kwik_kleen_script_command_003E_reload_count-kwik_kleen_script_command_0032_operand_word	; operand_word
-kwik_kleen_script_command_0036:
+secdroid_omega_script_command_0032_operand_word:
+	dc.w secdroid_omega_script_command_003E_reload_count-secdroid_omega_script_command_0032_operand_word	; operand_word
+secdroid_omega_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0008	; operand_word
-kwik_kleen_script_command_003A:
+secdroid_omega_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_003E:
+secdroid_omega_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_003E_reload_count:
+secdroid_omega_script_command_003E_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0036-kwik_kleen_script_command_003E	; branch_displacement
-kwik_kleen_script_command_0046:
+	dc.w secdroid_omega_script_command_0036-secdroid_omega_script_command_003E	; branch_displacement
+secdroid_omega_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-kwik_kleen_script_command_0050:
+secdroid_omega_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_0050_operand_word:
-	dc.w kwik_kleen_script_command_005C_reload_count-kwik_kleen_script_command_0050_operand_word	; operand_word
-kwik_kleen_script_command_0054:
+secdroid_omega_script_command_0050_operand_word:
+	dc.w secdroid_omega_script_command_005C_reload_count-secdroid_omega_script_command_0050_operand_word	; operand_word
+secdroid_omega_script_command_0054:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFF8	; operand_word
-kwik_kleen_script_command_0058:
+secdroid_omega_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_005C:
+secdroid_omega_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_005C_reload_count:
+secdroid_omega_script_command_005C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0054-kwik_kleen_script_command_005C	; branch_displacement
-kwik_kleen_script_command_0064:
+	dc.w secdroid_omega_script_command_0054-secdroid_omega_script_command_005C	; branch_displacement
+secdroid_omega_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
-kwik_kleen_script_command_006E:
+secdroid_omega_script_command_006E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_006E_operand_word:
-	dc.w kwik_kleen_script_command_007A_reload_count-kwik_kleen_script_command_006E_operand_word	; operand_word
-kwik_kleen_script_command_0072:
+secdroid_omega_script_command_006E_operand_word:
+	dc.w secdroid_omega_script_command_007A_reload_count-secdroid_omega_script_command_006E_operand_word	; operand_word
+secdroid_omega_script_command_0072:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFF8	; operand_word
-kwik_kleen_script_command_0076:
+secdroid_omega_script_command_0076:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_007A:
+secdroid_omega_script_command_007A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_007A_reload_count:
+secdroid_omega_script_command_007A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0072-kwik_kleen_script_command_007A	; branch_displacement
-kwik_kleen_script_command_0082:
+	dc.w secdroid_omega_script_command_0072-secdroid_omega_script_command_007A	; branch_displacement
+secdroid_omega_script_command_0082:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_kwik_kleen_behavior_script	; target_pointer
+	dc.l world_object_secdroid_omega_behavior_script	; target_pointer
 world_object_technician_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0304	; world_x
@@ -4184,519 +4184,519 @@ hooligan_script_command_028E_reload_count:
 hooligan_script_command_0296:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l world_object_hooligan_behavior_script	; target_pointer
-world_object_pianist_behavior_script:
+world_object_secdroid_alpha_1_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0330	; world_x
 	dc.w $02D8	; world_y
-pianist_script_command_0006:
+secdroid_alpha_1_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-pianist_script_command_000A:
+secdroid_alpha_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
-pianist_script_command_0014:
+secdroid_alpha_1_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0014_operand_word:
-	dc.w pianist_script_command_0020_reload_count-pianist_script_command_0014_operand_word	; operand_word
-pianist_script_command_0018:
+secdroid_alpha_1_script_command_0014_operand_word:
+	dc.w secdroid_alpha_1_script_command_0020_reload_count-secdroid_alpha_1_script_command_0014_operand_word	; operand_word
+secdroid_alpha_1_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_001C:
+secdroid_alpha_1_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_0020:
+secdroid_alpha_1_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_0020_reload_count:
+secdroid_alpha_1_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_0018-pianist_script_command_0020	; branch_displacement
-pianist_script_command_0028:
+	dc.w secdroid_alpha_1_script_command_0018-secdroid_alpha_1_script_command_0020	; branch_displacement
+secdroid_alpha_1_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-pianist_script_command_0032:
+secdroid_alpha_1_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0032_operand_word:
-	dc.w pianist_script_command_003E_reload_count-pianist_script_command_0032_operand_word	; operand_word
-pianist_script_command_0036:
+secdroid_alpha_1_script_command_0032_operand_word:
+	dc.w secdroid_alpha_1_script_command_003E_reload_count-secdroid_alpha_1_script_command_0032_operand_word	; operand_word
+secdroid_alpha_1_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_003A:
+secdroid_alpha_1_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-pianist_script_command_003E:
+secdroid_alpha_1_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_003E_reload_count:
+secdroid_alpha_1_script_command_003E_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w pianist_script_command_0036-pianist_script_command_003E	; branch_displacement
-pianist_script_command_0046:
+	dc.w secdroid_alpha_1_script_command_0036-secdroid_alpha_1_script_command_003E	; branch_displacement
+secdroid_alpha_1_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
-pianist_script_command_0050:
+secdroid_alpha_1_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0050_operand_word:
-	dc.w pianist_script_command_005C_reload_count-pianist_script_command_0050_operand_word	; operand_word
-pianist_script_command_0054:
+secdroid_alpha_1_script_command_0050_operand_word:
+	dc.w secdroid_alpha_1_script_command_005C_reload_count-secdroid_alpha_1_script_command_0050_operand_word	; operand_word
+secdroid_alpha_1_script_command_0054:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_0058:
+secdroid_alpha_1_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_005C:
+secdroid_alpha_1_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_005C_reload_count:
+secdroid_alpha_1_script_command_005C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_0054-pianist_script_command_005C	; branch_displacement
-pianist_script_command_0064:
+	dc.w secdroid_alpha_1_script_command_0054-secdroid_alpha_1_script_command_005C	; branch_displacement
+secdroid_alpha_1_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
-pianist_script_command_006E:
+secdroid_alpha_1_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
-pianist_script_command_0072:
+secdroid_alpha_1_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0072_operand_word:
-	dc.w pianist_script_command_007E_reload_count-pianist_script_command_0072_operand_word	; operand_word
-pianist_script_command_0076:
+secdroid_alpha_1_script_command_0072_operand_word:
+	dc.w secdroid_alpha_1_script_command_007E_reload_count-secdroid_alpha_1_script_command_0072_operand_word	; operand_word
+secdroid_alpha_1_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-pianist_script_command_007A:
+secdroid_alpha_1_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_007E:
+secdroid_alpha_1_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_007E_reload_count:
+secdroid_alpha_1_script_command_007E_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_0076-pianist_script_command_007E	; branch_displacement
-pianist_script_command_0086:
+	dc.w secdroid_alpha_1_script_command_0076-secdroid_alpha_1_script_command_007E	; branch_displacement
+secdroid_alpha_1_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$14	; frame_sequence_ptr
-pianist_script_command_0090:
+secdroid_alpha_1_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0090_operand_word:
-	dc.w pianist_script_command_009C_reload_count-pianist_script_command_0090_operand_word	; operand_word
-pianist_script_command_0094:
+secdroid_alpha_1_script_command_0090_operand_word:
+	dc.w secdroid_alpha_1_script_command_009C_reload_count-secdroid_alpha_1_script_command_0090_operand_word	; operand_word
+secdroid_alpha_1_script_command_0094:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-pianist_script_command_0098:
+secdroid_alpha_1_script_command_0098:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-pianist_script_command_009C:
+secdroid_alpha_1_script_command_009C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_009C_reload_count:
+secdroid_alpha_1_script_command_009C_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w pianist_script_command_0094-pianist_script_command_009C	; branch_displacement
-pianist_script_command_00A4:
+	dc.w secdroid_alpha_1_script_command_0094-secdroid_alpha_1_script_command_009C	; branch_displacement
+secdroid_alpha_1_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
-pianist_script_command_00AE:
+secdroid_alpha_1_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_00AE_operand_word:
-	dc.w pianist_script_command_00BA_reload_count-pianist_script_command_00AE_operand_word	; operand_word
-pianist_script_command_00B2:
+secdroid_alpha_1_script_command_00AE_operand_word:
+	dc.w secdroid_alpha_1_script_command_00BA_reload_count-secdroid_alpha_1_script_command_00AE_operand_word	; operand_word
+secdroid_alpha_1_script_command_00B2:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-pianist_script_command_00B6:
+secdroid_alpha_1_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_00BA:
+secdroid_alpha_1_script_command_00BA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_00BA_reload_count:
+secdroid_alpha_1_script_command_00BA_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_00B2-pianist_script_command_00BA	; branch_displacement
-pianist_script_command_00C2:
+	dc.w secdroid_alpha_1_script_command_00B2-secdroid_alpha_1_script_command_00BA	; branch_displacement
+secdroid_alpha_1_script_command_00C2:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_pianist_behavior_script	; target_pointer
-world_object_flight_controller_behavior_script:
+	dc.l world_object_secdroid_alpha_1_behavior_script	; target_pointer
+world_object_secdroid_alpha_2_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0450	; world_x
 	dc.w $03C8	; world_y
-flight_controller_script_command_0006:
+secdroid_alpha_2_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-flight_controller_script_command_000A:
+secdroid_alpha_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$28	; frame_sequence_ptr
-flight_controller_script_command_0014:
+secdroid_alpha_2_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0014_operand_word:
-	dc.w flight_controller_script_command_0020_reload_count-flight_controller_script_command_0014_operand_word	; operand_word
-flight_controller_script_command_0018:
+secdroid_alpha_2_script_command_0014_operand_word:
+	dc.w secdroid_alpha_2_script_command_0020_reload_count-secdroid_alpha_2_script_command_0014_operand_word	; operand_word
+secdroid_alpha_2_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-flight_controller_script_command_001C:
+secdroid_alpha_2_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_0020:
+secdroid_alpha_2_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_0020_reload_count:
+secdroid_alpha_2_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_0018-flight_controller_script_command_0020	; branch_displacement
-flight_controller_script_command_0028:
+	dc.w secdroid_alpha_2_script_command_0018-secdroid_alpha_2_script_command_0020	; branch_displacement
+secdroid_alpha_2_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
-flight_controller_script_command_0032:
+secdroid_alpha_2_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0032_operand_word:
-	dc.w flight_controller_script_command_003E_reload_count-flight_controller_script_command_0032_operand_word	; operand_word
-flight_controller_script_command_0036:
+secdroid_alpha_2_script_command_0032_operand_word:
+	dc.w secdroid_alpha_2_script_command_003E_reload_count-secdroid_alpha_2_script_command_0032_operand_word	; operand_word
+secdroid_alpha_2_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-flight_controller_script_command_003A:
+secdroid_alpha_2_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-flight_controller_script_command_003E:
+secdroid_alpha_2_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_003E_reload_count:
+secdroid_alpha_2_script_command_003E_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w flight_controller_script_command_0036-flight_controller_script_command_003E	; branch_displacement
-flight_controller_script_command_0046:
+	dc.w secdroid_alpha_2_script_command_0036-secdroid_alpha_2_script_command_003E	; branch_displacement
+secdroid_alpha_2_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$5C	; frame_sequence_ptr
-flight_controller_script_command_0050:
+secdroid_alpha_2_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0050_operand_word:
-	dc.w flight_controller_script_command_005C_reload_count-flight_controller_script_command_0050_operand_word	; operand_word
-flight_controller_script_command_0054:
+secdroid_alpha_2_script_command_0050_operand_word:
+	dc.w secdroid_alpha_2_script_command_005C_reload_count-secdroid_alpha_2_script_command_0050_operand_word	; operand_word
+secdroid_alpha_2_script_command_0054:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-flight_controller_script_command_0058:
+secdroid_alpha_2_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_005C:
+secdroid_alpha_2_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_005C_reload_count:
+secdroid_alpha_2_script_command_005C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_0054-flight_controller_script_command_005C	; branch_displacement
-flight_controller_script_command_0064:
+	dc.w secdroid_alpha_2_script_command_0054-secdroid_alpha_2_script_command_005C	; branch_displacement
+secdroid_alpha_2_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early	; frame_sequence_ptr
-flight_controller_script_command_006E:
+secdroid_alpha_2_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
-flight_controller_script_command_0072:
+secdroid_alpha_2_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0072_operand_word:
-	dc.w flight_controller_script_command_007E_reload_count-flight_controller_script_command_0072_operand_word	; operand_word
-flight_controller_script_command_0076:
+secdroid_alpha_2_script_command_0072_operand_word:
+	dc.w secdroid_alpha_2_script_command_007E_reload_count-secdroid_alpha_2_script_command_0072_operand_word	; operand_word
+secdroid_alpha_2_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_007A:
+secdroid_alpha_2_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_007E:
+secdroid_alpha_2_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_007E_reload_count:
+secdroid_alpha_2_script_command_007E_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_0076-flight_controller_script_command_007E	; branch_displacement
-flight_controller_script_command_0086:
+	dc.w secdroid_alpha_2_script_command_0076-secdroid_alpha_2_script_command_007E	; branch_displacement
+secdroid_alpha_2_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$38	; frame_sequence_ptr
-flight_controller_script_command_0090:
+secdroid_alpha_2_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0090_operand_word:
-	dc.w flight_controller_script_command_009C_reload_count-flight_controller_script_command_0090_operand_word	; operand_word
-flight_controller_script_command_0094:
+secdroid_alpha_2_script_command_0090_operand_word:
+	dc.w secdroid_alpha_2_script_command_009C_reload_count-secdroid_alpha_2_script_command_0090_operand_word	; operand_word
+secdroid_alpha_2_script_command_0094:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_0098:
+secdroid_alpha_2_script_command_0098:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-flight_controller_script_command_009C:
+secdroid_alpha_2_script_command_009C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_009C_reload_count:
+secdroid_alpha_2_script_command_009C_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w flight_controller_script_command_0094-flight_controller_script_command_009C	; branch_displacement
-flight_controller_script_command_00A4:
+	dc.w secdroid_alpha_2_script_command_0094-secdroid_alpha_2_script_command_009C	; branch_displacement
+secdroid_alpha_2_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-flight_controller_script_command_00AE:
+secdroid_alpha_2_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_00AE_operand_word:
-	dc.w flight_controller_script_command_00BA_reload_count-flight_controller_script_command_00AE_operand_word	; operand_word
-flight_controller_script_command_00B2:
+secdroid_alpha_2_script_command_00AE_operand_word:
+	dc.w secdroid_alpha_2_script_command_00BA_reload_count-secdroid_alpha_2_script_command_00AE_operand_word	; operand_word
+secdroid_alpha_2_script_command_00B2:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_00B6:
+secdroid_alpha_2_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_00BA:
+secdroid_alpha_2_script_command_00BA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_00BA_reload_count:
+secdroid_alpha_2_script_command_00BA_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_00B2-flight_controller_script_command_00BA	; branch_displacement
-flight_controller_script_command_00C2:
+	dc.w secdroid_alpha_2_script_command_00B2-secdroid_alpha_2_script_command_00BA	; branch_displacement
+secdroid_alpha_2_script_command_00C2:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_flight_controller_behavior_script	; target_pointer
-world_object_wackobrain_behavior_script:
+	dc.l world_object_secdroid_alpha_2_behavior_script	; target_pointer
+world_object_secdroid_delta_2_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0210	; world_x
 	dc.w $05A8	; world_y
-wackobrain_script_command_0006:
+secdroid_delta_2_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-wackobrain_script_command_000A:
+secdroid_delta_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
-wackobrain_script_command_0014:
+secdroid_delta_2_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0014_operand_word:
-	dc.w wackobrain_script_command_0020_reload_count-wackobrain_script_command_0014_operand_word	; operand_word
-wackobrain_script_command_0018:
+secdroid_delta_2_script_command_0014_operand_word:
+	dc.w secdroid_delta_2_script_command_0020_reload_count-secdroid_delta_2_script_command_0014_operand_word	; operand_word
+secdroid_delta_2_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-wackobrain_script_command_001C:
+secdroid_delta_2_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0020:
+secdroid_delta_2_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0020_reload_count:
+secdroid_delta_2_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_0018-wackobrain_script_command_0020	; branch_displacement
-wackobrain_script_command_0028:
+	dc.w secdroid_delta_2_script_command_0018-secdroid_delta_2_script_command_0020	; branch_displacement
+secdroid_delta_2_script_command_0028:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0028_operand_word:
-	dc.w wackobrain_script_command_0034_reload_count-wackobrain_script_command_0028_operand_word	; operand_word
-wackobrain_script_command_002C:
+secdroid_delta_2_script_command_0028_operand_word:
+	dc.w secdroid_delta_2_script_command_0034_reload_count-secdroid_delta_2_script_command_0028_operand_word	; operand_word
+secdroid_delta_2_script_command_002C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFC	; operand_word
-wackobrain_script_command_0030:
+secdroid_delta_2_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-wackobrain_script_command_0034:
+secdroid_delta_2_script_command_0034:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0034_reload_count:
+secdroid_delta_2_script_command_0034_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w wackobrain_script_command_002C-wackobrain_script_command_0034	; branch_displacement
-wackobrain_script_command_003C:
+	dc.w secdroid_delta_2_script_command_002C-secdroid_delta_2_script_command_0034	; branch_displacement
+secdroid_delta_2_script_command_003C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_003C_operand_word:
-	dc.w wackobrain_script_command_0048_reload_count-wackobrain_script_command_003C_operand_word	; operand_word
-wackobrain_script_command_0040:
+secdroid_delta_2_script_command_003C_operand_word:
+	dc.w secdroid_delta_2_script_command_0048_reload_count-secdroid_delta_2_script_command_003C_operand_word	; operand_word
+secdroid_delta_2_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-wackobrain_script_command_0044:
+secdroid_delta_2_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0048:
+secdroid_delta_2_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0048_reload_count:
+secdroid_delta_2_script_command_0048_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_0040-wackobrain_script_command_0048	; branch_displacement
-wackobrain_script_command_0050:
+	dc.w secdroid_delta_2_script_command_0040-secdroid_delta_2_script_command_0048	; branch_displacement
+secdroid_delta_2_script_command_0050:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-wackobrain_script_command_0054:
+secdroid_delta_2_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
-wackobrain_script_command_005E:
+secdroid_delta_2_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_005E_operand_word:
-	dc.w wackobrain_script_command_006A_reload_count-wackobrain_script_command_005E_operand_word	; operand_word
-wackobrain_script_command_0062:
+secdroid_delta_2_script_command_005E_operand_word:
+	dc.w secdroid_delta_2_script_command_006A_reload_count-secdroid_delta_2_script_command_005E_operand_word	; operand_word
+secdroid_delta_2_script_command_0062:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0066:
+secdroid_delta_2_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_006A:
+secdroid_delta_2_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_006A_reload_count:
+secdroid_delta_2_script_command_006A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_0062-wackobrain_script_command_006A	; branch_displacement
-wackobrain_script_command_0072:
+	dc.w secdroid_delta_2_script_command_0062-secdroid_delta_2_script_command_006A	; branch_displacement
+secdroid_delta_2_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0072_operand_word:
-	dc.w wackobrain_script_command_007E_reload_count-wackobrain_script_command_0072_operand_word	; operand_word
-wackobrain_script_command_0076:
+secdroid_delta_2_script_command_0072_operand_word:
+	dc.w secdroid_delta_2_script_command_007E_reload_count-secdroid_delta_2_script_command_0072_operand_word	; operand_word
+secdroid_delta_2_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0004	; operand_word
-wackobrain_script_command_007A:
+secdroid_delta_2_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-wackobrain_script_command_007E:
+secdroid_delta_2_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_007E_reload_count:
+secdroid_delta_2_script_command_007E_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w wackobrain_script_command_0076-wackobrain_script_command_007E	; branch_displacement
-wackobrain_script_command_0086:
+	dc.w secdroid_delta_2_script_command_0076-secdroid_delta_2_script_command_007E	; branch_displacement
+secdroid_delta_2_script_command_0086:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0086_operand_word:
-	dc.w wackobrain_script_command_0092_reload_count-wackobrain_script_command_0086_operand_word	; operand_word
-wackobrain_script_command_008A:
+secdroid_delta_2_script_command_0086_operand_word:
+	dc.w secdroid_delta_2_script_command_0092_reload_count-secdroid_delta_2_script_command_0086_operand_word	; operand_word
+secdroid_delta_2_script_command_008A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_008E:
+secdroid_delta_2_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0092:
+secdroid_delta_2_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0092_reload_count:
+secdroid_delta_2_script_command_0092_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_008A-wackobrain_script_command_0092	; branch_displacement
-wackobrain_script_command_009A:
+	dc.w secdroid_delta_2_script_command_008A-secdroid_delta_2_script_command_0092	; branch_displacement
+secdroid_delta_2_script_command_009A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_wackobrain_behavior_script	; target_pointer
-world_object_defence_controller_behavior_script:
+	dc.l world_object_secdroid_delta_2_behavior_script	; target_pointer
+world_object_secdroid_delta_1_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0150	; world_x
 	dc.w $04B8	; world_y
-defence_controller_script_command_0006:
+secdroid_delta_1_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-defence_controller_script_command_000A:
+secdroid_delta_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
-defence_controller_script_command_0014:
+secdroid_delta_1_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0014_operand_word:
-	dc.w defence_controller_script_command_0020_reload_count-defence_controller_script_command_0014_operand_word	; operand_word
-defence_controller_script_command_0018:
+secdroid_delta_1_script_command_0014_operand_word:
+	dc.w secdroid_delta_1_script_command_0020_reload_count-secdroid_delta_1_script_command_0014_operand_word	; operand_word
+secdroid_delta_1_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_001C:
+secdroid_delta_1_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0020:
+secdroid_delta_1_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0020_reload_count:
+secdroid_delta_1_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_0018-defence_controller_script_command_0020	; branch_displacement
-defence_controller_script_command_0028:
+	dc.w secdroid_delta_1_script_command_0018-secdroid_delta_1_script_command_0020	; branch_displacement
+secdroid_delta_1_script_command_0028:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0028_operand_word:
-	dc.w defence_controller_script_command_0034_reload_count-defence_controller_script_command_0028_operand_word	; operand_word
-defence_controller_script_command_002C:
+secdroid_delta_1_script_command_0028_operand_word:
+	dc.w secdroid_delta_1_script_command_0034_reload_count-secdroid_delta_1_script_command_0028_operand_word	; operand_word
+secdroid_delta_1_script_command_002C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0004	; operand_word
-defence_controller_script_command_0030:
+secdroid_delta_1_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-defence_controller_script_command_0034:
+secdroid_delta_1_script_command_0034:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0034_reload_count:
+secdroid_delta_1_script_command_0034_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w defence_controller_script_command_002C-defence_controller_script_command_0034	; branch_displacement
-defence_controller_script_command_003C:
+	dc.w secdroid_delta_1_script_command_002C-secdroid_delta_1_script_command_0034	; branch_displacement
+secdroid_delta_1_script_command_003C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_003C_operand_word:
-	dc.w defence_controller_script_command_0048_reload_count-defence_controller_script_command_003C_operand_word	; operand_word
-defence_controller_script_command_0040:
+secdroid_delta_1_script_command_003C_operand_word:
+	dc.w secdroid_delta_1_script_command_0048_reload_count-secdroid_delta_1_script_command_003C_operand_word	; operand_word
+secdroid_delta_1_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0044:
+secdroid_delta_1_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0048:
+secdroid_delta_1_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0048_reload_count:
+secdroid_delta_1_script_command_0048_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_0040-defence_controller_script_command_0048	; branch_displacement
-defence_controller_script_command_0050:
+	dc.w secdroid_delta_1_script_command_0040-secdroid_delta_1_script_command_0048	; branch_displacement
+secdroid_delta_1_script_command_0050:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-defence_controller_script_command_0054:
+secdroid_delta_1_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
-defence_controller_script_command_005E:
+secdroid_delta_1_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_005E_operand_word:
-	dc.w defence_controller_script_command_006A_reload_count-defence_controller_script_command_005E_operand_word	; operand_word
-defence_controller_script_command_0062:
+secdroid_delta_1_script_command_005E_operand_word:
+	dc.w secdroid_delta_1_script_command_006A_reload_count-secdroid_delta_1_script_command_005E_operand_word	; operand_word
+secdroid_delta_1_script_command_0062:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-defence_controller_script_command_0066:
+secdroid_delta_1_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_006A:
+secdroid_delta_1_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_006A_reload_count:
+secdroid_delta_1_script_command_006A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_0062-defence_controller_script_command_006A	; branch_displacement
-defence_controller_script_command_0072:
+	dc.w secdroid_delta_1_script_command_0062-secdroid_delta_1_script_command_006A	; branch_displacement
+secdroid_delta_1_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0072_operand_word:
-	dc.w defence_controller_script_command_007E_reload_count-defence_controller_script_command_0072_operand_word	; operand_word
-defence_controller_script_command_0076:
+secdroid_delta_1_script_command_0072_operand_word:
+	dc.w secdroid_delta_1_script_command_007E_reload_count-secdroid_delta_1_script_command_0072_operand_word	; operand_word
+secdroid_delta_1_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFC	; operand_word
-defence_controller_script_command_007A:
+secdroid_delta_1_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-defence_controller_script_command_007E:
+secdroid_delta_1_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_007E_reload_count:
+secdroid_delta_1_script_command_007E_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w defence_controller_script_command_0076-defence_controller_script_command_007E	; branch_displacement
-defence_controller_script_command_0086:
+	dc.w secdroid_delta_1_script_command_0076-secdroid_delta_1_script_command_007E	; branch_displacement
+secdroid_delta_1_script_command_0086:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0086_operand_word:
-	dc.w defence_controller_script_command_0092_reload_count-defence_controller_script_command_0086_operand_word	; operand_word
-defence_controller_script_command_008A:
+secdroid_delta_1_script_command_0086_operand_word:
+	dc.w secdroid_delta_1_script_command_0092_reload_count-secdroid_delta_1_script_command_0086_operand_word	; operand_word
+secdroid_delta_1_script_command_008A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-defence_controller_script_command_008E:
+secdroid_delta_1_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0092:
+secdroid_delta_1_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0092_reload_count:
+secdroid_delta_1_script_command_0092_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_008A-defence_controller_script_command_0092	; branch_displacement
-defence_controller_script_command_009A:
+	dc.w secdroid_delta_1_script_command_008A-secdroid_delta_1_script_command_0092	; branch_displacement
+secdroid_delta_1_script_command_009A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_defence_controller_behavior_script	; target_pointer
-world_object_megabio_feed_behavior_script:
+	dc.l world_object_secdroid_delta_1_behavior_script	; target_pointer
+world_object_pianist_actor_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0348	; world_x
 	dc.w $00A8	; world_y
-megabio_feed_script_command_0006:
+pianist_actor_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l megabio_feed_nodes_4C226_4	; state_node_ptr
-megabio_feed_script_command_000C:
+	dc.l pianist_actor_nodes_4C226_4	; state_node_ptr
+pianist_actor_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $2710	; operand_word
-megabio_feed_script_command_0010:
+pianist_actor_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l megabio_feed_script_command_000C	; target_pointer
+	dc.l pianist_actor_script_command_000C	; target_pointer
 world_object_musician_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0306	; world_x
@@ -6188,23 +6188,23 @@ abs_0_00012FE8:
 world_object_ptr_table:
 	dc.l player_world_object	; object_ptr
 world_object_ptr_table_object_ptr_1:
-	dc.l world_object_pianist	; object_ptr
+	dc.l world_object_secdroid_alpha_1	; object_ptr
 world_object_ptr_table_object_ptr_2:
-	dc.l world_object_megabio_feed	; object_ptr
+	dc.l world_object_pianist_actor	; object_ptr
 world_object_ptr_table_object_ptr_3:
-	dc.l world_object_defence_controller	; object_ptr
+	dc.l world_object_secdroid_delta_1	; object_ptr
 world_object_ptr_table_object_ptr_4:
-	dc.l world_object_wackobrain	; object_ptr
+	dc.l world_object_secdroid_delta_2	; object_ptr
 world_object_ptr_table_object_ptr_5:
 	dc.l world_object_squash_player	; object_ptr
 world_object_ptr_table_object_ptr_6:
-	dc.l world_object_kriptonite	; object_ptr
+	dc.l world_object_wackobrain_actor	; object_ptr
 world_object_ptr_table_object_ptr_7:
-	dc.l world_object_glass	; object_ptr
+	dc.l world_object_secdroid_pi	; object_ptr
 world_object_ptr_table_object_ptr_8:
-	dc.l world_object_kwik_kleen	; object_ptr
+	dc.l world_object_secdroid_omega	; object_ptr
 world_object_ptr_table_object_ptr_9:
-	dc.l world_object_flight_controller	; object_ptr
+	dc.l world_object_secdroid_alpha_2	; object_ptr
 world_object_ptr_table_object_ptr_10:
 	dc.l world_object_thief	; object_ptr
 world_object_ptr_table_object_ptr_11:
@@ -6292,14 +6292,14 @@ world_object_sort_source_ptrs:
 	dc.l world_position_descriptors+$9C	; descriptor_ptr
 	dc.l hooligan_positions_4A07C_1	; descriptor_ptr
 	dc.l fixed_npc_position_states	; descriptor_ptr
-	dc.l defence_controller_position_descriptor	; descriptor_ptr
-	dc.l wackobrain_position_descriptor	; descriptor_ptr
-	dc.l glass_position_descriptor	; descriptor_ptr
-	dc.l kwik_kleen_position_descriptor	; descriptor_ptr
-	dc.l flight_controller_position_descriptor	; descriptor_ptr
-	dc.l megabio_feed_positions_4C226_2	; descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; descriptor_ptr
+	dc.l pianist_actor_positions_4C226_2	; descriptor_ptr
 	dc.l squash_player_positions_49268_3	; descriptor_ptr
-	dc.l kriptonite_positions_49492_2	; descriptor_ptr
+	dc.l wackobrain_actor_positions_49492_2	; descriptor_ptr
 	dc.l security_officer_positions_4B882_2	; descriptor_ptr
 	dc.l combat_visual_position_descriptor	; descriptor_ptr
 	dc.l thief_positions_4995C_2	; descriptor_ptr
@@ -13512,7 +13512,7 @@ captain_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-pianist_inventory_slots:
+secdroid_alpha_1_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13521,7 +13521,7 @@ pianist_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-pianist_initial_inventory_slots:
+secdroid_alpha_1_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13530,7 +13530,7 @@ pianist_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-flight_controller_inventory_slots:
+secdroid_alpha_2_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13539,7 +13539,7 @@ flight_controller_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-flight_controller_initial_inventory_slots:
+secdroid_alpha_2_initial_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13639,7 +13639,7 @@ resource_officer_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-defence_controller_inventory_slots:
+secdroid_delta_1_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13648,7 +13648,7 @@ defence_controller_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-defence_controller_initial_inventory_slots:
+secdroid_delta_1_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13657,7 +13657,7 @@ defence_controller_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-wackobrain_inventory_slots:
+secdroid_delta_2_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13666,7 +13666,7 @@ wackobrain_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-wackobrain_initial_inventory_slots:
+secdroid_delta_2_initial_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13675,7 +13675,7 @@ wackobrain_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-glass_inventory_slots:
+secdroid_pi_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13684,7 +13684,7 @@ glass_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-glass_initial_inventory_slots:
+secdroid_pi_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13855,7 +13855,7 @@ robomechanic_initial_inventory_slots:
 	dc.b $1E	; trade_value
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $64	; trade_value
-kwik_kleen_inventory_slots:
+secdroid_omega_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13864,7 +13864,7 @@ kwik_kleen_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-kwik_kleen_initial_inventory_slots:
+secdroid_omega_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13982,7 +13982,7 @@ commander_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_CODE_SCARLET	; item_id
 	dc.b $00	; trade_value
-kriptonite_inventory_slots:
+wackobrain_actor_inventory_slots:
 	dc.b ITEM_ID_BROKEN_ORAK	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_SANDWORM_SHELL	; item_id
@@ -13991,7 +13991,7 @@ kriptonite_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-kriptonite_initial_inventory_slots:
+wackobrain_actor_initial_inventory_slots:
 	dc.b ITEM_ID_BROKEN_ORAK	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_SANDWORM_SHELL	; item_id
@@ -14000,7 +14000,7 @@ kriptonite_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-megabio_feed_inventory_slots:
+pianist_actor_inventory_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -14009,7 +14009,7 @@ megabio_feed_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-megabio_feed_initial_inventory_slots:
+pianist_actor_initial_inventory_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -16821,27 +16821,27 @@ squash_player_sequence_49268_8:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_12	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_13	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_14	; frame_ptr
-world_object_kriptonite:
+world_object_wackobrain_actor:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_wackobrain	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l kriptonite_inventory_slots	; inventory_slots_ptr
+	dc.l wackobrain_actor_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l kriptonite_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l wackobrain_actor_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_kriptonite_behavior_script	; behavior_script_ptr
-	dc.l world_object_kriptonite_behavior_script	; initial_behavior_script_ptr
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+	dc.l world_object_wackobrain_actor_behavior_script	; behavior_script_ptr
+	dc.l world_object_wackobrain_actor_behavior_script	; initial_behavior_script_ptr
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_kriptonite_gap_36:
+world_object_wackobrain_actor_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
-world_object_kriptonite_gap_40:
+world_object_wackobrain_actor_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -16853,19 +16853,19 @@ world_object_kriptonite_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l kriptonite_animation_bank	; saved_position_state_ptr
+	dc.l wackobrain_actor_animation_bank	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-kriptonite_animation_bank:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; current_geometry_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; previous_geometry_ptr
-	dc.l kriptonite_nodes_49492_14	; state_node_ptr
+wackobrain_actor_animation_bank:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; current_geometry_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; previous_geometry_ptr
+	dc.l wackobrain_actor_nodes_49492_14	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-kriptonite_frames_49492_1:
+wackobrain_actor_frames_49492_1:
 	dc.l scene_pixel_cells_for_mask_bank_18	; bitplane_data_ptr
 	dc.l scene_mask_bank_18	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16873,7 +16873,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_1:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_18+$170	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$5C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16881,7 +16881,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_2:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_18+$300	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$C0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16889,7 +16889,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_3:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$134	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16897,7 +16897,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_3:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_4:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_18+$6D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$1B4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16905,7 +16905,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_4:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_5:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_18+$8D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$234	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16913,7 +16913,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_5:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_6:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_18+$AA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$2A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16921,7 +16921,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_6:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_7:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_18+$C40	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$310	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16929,7 +16929,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_7:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_8:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_18+$DB0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$36C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16937,7 +16937,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_8:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_9:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_18+$F20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$3C8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16945,7 +16945,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_9:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_10:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1090	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$424	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16953,7 +16953,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_11:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1220	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$488	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16961,7 +16961,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_11:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_12:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_18+$13F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$4FC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16969,7 +16969,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_12:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_13:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_18+$15F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$57C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16977,7 +16977,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_13:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_14:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_18+$17F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$5FC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16985,7 +16985,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_14:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_15:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_18+$19C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$670	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -16993,7 +16993,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_15:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_16:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_16:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1B60	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$6D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17001,7 +17001,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_16:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_17:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_17:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1CD0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$734	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17009,7 +17009,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_18:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_18:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1E50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$794	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17017,7 +17017,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_18:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_19:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_19:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2020	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$808	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17025,7 +17025,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_19:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_20:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_20:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2210	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$884	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17033,7 +17033,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_20:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_21:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_21:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2410	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$904	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17041,7 +17041,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_21:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_22:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_22:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2610	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$984	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17049,7 +17049,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_22:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_23:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_23:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2800	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$A00	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17057,7 +17057,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_23:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_24:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_24:
 	dc.l scene_pixel_cells_for_mask_bank_18+$29C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$A70	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17065,7 +17065,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_25:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_25:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2B40	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$AD0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17073,7 +17073,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_25:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_26:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_26:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2D00	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$B40	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17081,7 +17081,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_26:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_27:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_27:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$BBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17089,7 +17089,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_27:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_28:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_28:
 	dc.l scene_pixel_cells_for_mask_bank_18+$30F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$C3C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17097,7 +17097,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_28:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_29:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_29:
 	dc.l scene_pixel_cells_for_mask_bank_18+$32F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$CBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17105,7 +17105,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_29:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_30:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_30:
 	dc.l scene_pixel_cells_for_mask_bank_18+$34E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$D38	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17113,7 +17113,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_30:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_31:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_31:
 	dc.l scene_pixel_cells_for_mask_bank_18+$36A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$DA8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17121,7 +17121,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_31:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_32:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_32:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3870	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$E1C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17129,7 +17129,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_32:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_33:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_33:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3A50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$E94	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17137,7 +17137,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_33:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_34:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_34:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3C50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F14	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17145,7 +17145,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_34:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_35:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_35:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3D20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F48	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17153,7 +17153,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_35:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_36:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_36:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3E20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F88	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17161,7 +17161,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_36:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_37:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_37:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$FBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17169,7 +17169,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_37:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_38:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_38:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3F60	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$FD8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17177,7 +17177,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_38:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_39:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_39:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4030	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$100C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17185,7 +17185,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_39:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_40:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_40:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4130	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$104C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17193,7 +17193,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_40:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0006	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_41:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_41:
 	dc.l scene_pixel_cells_for_mask_bank_18+$42B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$10AC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17201,7 +17201,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_41:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000C	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_42:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_42:
 	dc.l scene_pixel_cells_for_mask_bank_18+$43B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$10EC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -17209,137 +17209,137 @@ kriptonite_frames_49492_1_bitplane_data_ptr_42:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0011	; y_offset
-kriptonite_positions_49492_2:
-	dc.l kriptonite_states_49492_3	; position_state_ptr
+wackobrain_actor_positions_49492_2:
+	dc.l wackobrain_actor_states_49492_3	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-kriptonite_states_49492_3:
+wackobrain_actor_states_49492_3:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-kriptonite_nodes_49492_4:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_nodes_49492_4:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_5	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_4_gap_B:
+wackobrain_actor_nodes_49492_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_5:
-	dc.l kriptonite_frames_49492_1	; frame_ptr
-	dc.l kriptonite_frames_49492_1	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_1	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_2	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_3	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_4	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_5	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_6	; frame_ptr
-kriptonite_nodes_49492_6:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_5:
+	dc.l wackobrain_actor_frames_49492_1	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_6	; frame_ptr
+wackobrain_actor_nodes_49492_6:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_7	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_7	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_6_gap_B:
+wackobrain_actor_nodes_49492_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_7:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_8	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_9	; frame_ptr
-kriptonite_nodes_49492_8:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_7:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_8	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_9	; frame_ptr
+wackobrain_actor_nodes_49492_8:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_9	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_9	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_8_gap_B:
+wackobrain_actor_nodes_49492_8_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_9:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_11	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_12	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_13	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_14	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_15	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_16	; frame_ptr
-kriptonite_nodes_49492_10:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_9:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_11	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_12	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_13	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_14	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_15	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_16	; frame_ptr
+wackobrain_actor_nodes_49492_10:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_11	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_11	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_10_gap_B:
+wackobrain_actor_nodes_49492_10_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_11:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_18	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_19	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_20	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_21	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_22	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_23	; frame_ptr
-kriptonite_nodes_49492_12:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_11:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_18	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_19	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_20	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_21	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_22	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_23	; frame_ptr
+wackobrain_actor_nodes_49492_12:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_13	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_13	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_12_gap_B:
+wackobrain_actor_nodes_49492_12_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_13:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_25	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_26	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_27	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_28	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_29	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_30	; frame_ptr
-kriptonite_nodes_49492_14:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_13:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_25	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_26	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_27	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_28	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_29	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_30	; frame_ptr
+wackobrain_actor_nodes_49492_14:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $0C	; frame_count
 	dc.b $2D	; phase_step
-	dc.l kriptonite_sequence_49492_15	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_15	; frame_sequence_ptr
 	dc.b $04	; mode_flags
-kriptonite_nodes_49492_14_gap_B:
+wackobrain_actor_nodes_49492_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_15:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_31	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_32	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_33	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_34	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_35	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_36	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_37	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_38	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_39	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_40	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_41	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
+wackobrain_actor_sequence_49492_15:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_31	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_32	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_33	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_34	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_35	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_36	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_37	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_38	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_39	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_40	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_41	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
 world_object_thief:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -19674,40 +19674,40 @@ initialize_player_and_fixed_animation_nodes:
 	lea.l priest_states_49B98_2_current_geometry_ptr_1.l,a4
 	move.l a0,(a4)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a4)
 	lea.l fixed_npc_geometry_headers(pc),a0
-	lea.l pianist_attachment_position_state(pc),a4
+	lea.l secdroid_alpha_1_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l pianist_primary_position_state(pc),a4
+	lea.l secdroid_alpha_1_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers(pc),a0
-	lea.l defence_controller_attachment_position_state(pc),a4
+	lea.l secdroid_delta_1_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l defence_controller_primary_position_state(pc),a4
+	lea.l secdroid_delta_1_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l wackobrain_attachment_position_state(pc),a4
+	lea.l secdroid_delta_2_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l wackobrain_primary_position_state(pc),a4
+	lea.l secdroid_delta_2_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l glass_attachment_position_state(pc),a4
+	lea.l secdroid_pi_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l glass_primary_position_state(pc),a4
+	lea.l secdroid_pi_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l kwik_kleen_attachment_position_state(pc),a4
+	lea.l secdroid_omega_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l kwik_kleen_primary_position_state(pc),a4
+	lea.l secdroid_omega_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l flight_controller_attachment_position_state(pc),a4
+	lea.l secdroid_alpha_2_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l flight_controller_primary_position_state(pc),a4
+	lea.l secdroid_alpha_2_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	rts
 complete_priest_interaction:
@@ -20698,27 +20698,27 @@ chemist_nodes_4BA0C_2_gap_B:
 chemist_sequence_4BA0C_3:
 	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
-world_object_pianist:
+world_object_secdroid_alpha_1:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l pianist_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_alpha_1_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l pianist_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_alpha_1_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_pianist_behavior_script	; behavior_script_ptr
-	dc.l world_object_pianist_behavior_script	; initial_behavior_script_ptr
+	dc.l world_object_secdroid_alpha_1_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_alpha_1_behavior_script	; initial_behavior_script_ptr
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_pianist_gap_36:
+world_object_secdroid_alpha_1_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0041	; hit_points
 	dc.w $0041	; initial_hit_points
-world_object_pianist_gap_40:
+world_object_secdroid_alpha_1_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20730,29 +20730,29 @@ world_object_pianist_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l pianist_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_alpha_1_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_defence_controller:
+world_object_secdroid_delta_1:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l defence_controller_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_delta_1_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l defence_controller_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_delta_1_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_defence_controller_behavior_script	; behavior_script_ptr
-	dc.l world_object_defence_controller_behavior_script	; initial_behavior_script_ptr
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_delta_1_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_delta_1_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_defence_controller_gap_36:
+world_object_secdroid_delta_1_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0055	; hit_points
 	dc.w $0055	; initial_hit_points
-world_object_defence_controller_gap_40:
+world_object_secdroid_delta_1_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20764,29 +20764,29 @@ world_object_defence_controller_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l defence_controller_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_delta_1_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_wackobrain:
+world_object_secdroid_delta_2:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l wackobrain_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_delta_2_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l wackobrain_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_delta_2_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_wackobrain_behavior_script	; behavior_script_ptr
-	dc.l world_object_wackobrain_behavior_script	; initial_behavior_script_ptr
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_delta_2_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_delta_2_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_wackobrain_gap_36:
+world_object_secdroid_delta_2_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $004B	; hit_points
 	dc.w $004B	; initial_hit_points
-world_object_wackobrain_gap_40:
+world_object_secdroid_delta_2_gap_40:
 	dc.w $00BE	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20798,29 +20798,29 @@ world_object_wackobrain_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l wackobrain_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_delta_2_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_glass:
+world_object_secdroid_pi:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l glass_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_pi_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l glass_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_pi_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_glass_behavior_script	; behavior_script_ptr
-	dc.l world_object_glass_behavior_script	; initial_behavior_script_ptr
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_pi_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_pi_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_glass_gap_36:
+world_object_secdroid_pi_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $004B	; hit_points
 	dc.w $004B	; initial_hit_points
-world_object_glass_gap_40:
+world_object_secdroid_pi_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20832,29 +20832,29 @@ world_object_glass_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l glass_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_pi_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_kwik_kleen:
+world_object_secdroid_omega:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l kwik_kleen_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_omega_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l kwik_kleen_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_omega_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_kwik_kleen_behavior_script	; behavior_script_ptr
-	dc.l world_object_kwik_kleen_behavior_script	; initial_behavior_script_ptr
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_omega_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_omega_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_kwik_kleen_gap_36:
+world_object_secdroid_omega_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
-world_object_kwik_kleen_gap_40:
+world_object_secdroid_omega_gap_40:
 	dc.w $00BE	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20866,29 +20866,29 @@ world_object_kwik_kleen_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l kwik_kleen_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_omega_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_flight_controller:
+world_object_secdroid_alpha_2:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l flight_controller_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_alpha_2_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l flight_controller_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_alpha_2_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_flight_controller_behavior_script	; behavior_script_ptr
-	dc.l world_object_flight_controller_behavior_script	; initial_behavior_script_ptr
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_alpha_2_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_alpha_2_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_flight_controller_gap_36:
+world_object_secdroid_alpha_2_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0037	; hit_points
 	dc.w $0037	; initial_hit_points
-world_object_flight_controller_gap_40:
+world_object_secdroid_alpha_2_gap_40:
 	dc.w $005A	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20900,7 +20900,7 @@ world_object_flight_controller_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l flight_controller_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_alpha_2_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 fixed_npc_geometry_headers:
 	dc.l scene_pixel_cells_for_mask_bank_06	; bitplane_data_ptr
@@ -21031,7 +21031,7 @@ fixed_npc_saved_animation_states_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-pianist_saved_position_state:
+secdroid_alpha_1_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
 	dc.l fixed_npc_saved_animation_states	; state_node_ptr
@@ -21041,123 +21041,123 @@ pianist_saved_position_state:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-defence_controller_saved_animation_node:
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+secdroid_delta_1_saved_animation_node:
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
-defence_controller_saved_animation_node_gap_B:
+secdroid_delta_1_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-defence_controller_saved_position_state:
+secdroid_delta_1_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l defence_controller_saved_animation_node	; state_node_ptr
+	dc.l secdroid_delta_1_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-wackobrain_saved_animation_node:
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+secdroid_delta_2_saved_animation_node:
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
-wackobrain_saved_animation_node_gap_B:
+secdroid_delta_2_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-wackobrain_saved_position_state:
+secdroid_delta_2_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l wackobrain_saved_animation_node	; state_node_ptr
+	dc.l secdroid_delta_2_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-glass_saved_animation_node:
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+secdroid_pi_saved_animation_node:
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
-glass_saved_animation_node_gap_B:
+secdroid_pi_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-glass_saved_position_state:
+secdroid_pi_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l glass_saved_animation_node	; state_node_ptr
+	dc.l secdroid_pi_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-kwik_kleen_saved_animation_node:
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+secdroid_omega_saved_animation_node:
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
-kwik_kleen_saved_animation_node_gap_B:
+secdroid_omega_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kwik_kleen_saved_position_state:
+secdroid_omega_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l kwik_kleen_saved_animation_node	; state_node_ptr
+	dc.l secdroid_omega_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-flight_controller_saved_animation_node:
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+secdroid_alpha_2_saved_animation_node:
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
 	dc.b $04	; mode_flags
-flight_controller_saved_animation_node_gap_B:
+secdroid_alpha_2_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-flight_controller_saved_position_state:
+secdroid_alpha_2_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l flight_controller_saved_animation_node	; state_node_ptr
+	dc.l secdroid_alpha_2_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
 fixed_npc_position_states:
-	dc.l pianist_primary_position_state	; position_state_ptr
+	dc.l secdroid_alpha_1_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-pianist_primary_position_state:
+secdroid_alpha_1_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $000C	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
-	dc.l pianist_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_alpha_1_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
-pianist_attachment_position_state:
+secdroid_alpha_1_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -21167,133 +21167,133 @@ pianist_attachment_position_state:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-defence_controller_position_descriptor:
-	dc.l defence_controller_primary_position_state	; position_state_ptr
+secdroid_delta_1_position_descriptor:
+	dc.l secdroid_delta_1_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-defence_controller_primary_position_state:
+secdroid_delta_1_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $000C	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
-	dc.l defence_controller_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
-defence_controller_attachment_position_state:
+secdroid_delta_1_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-wackobrain_position_descriptor:
-	dc.l wackobrain_primary_position_state	; position_state_ptr
+secdroid_delta_2_position_descriptor:
+	dc.l secdroid_delta_2_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-wackobrain_primary_position_state:
+secdroid_delta_2_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
-	dc.l wackobrain_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
-wackobrain_attachment_position_state:
+secdroid_delta_2_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-glass_position_descriptor:
-	dc.l glass_primary_position_state	; position_state_ptr
+secdroid_pi_position_descriptor:
+	dc.l secdroid_pi_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-glass_primary_position_state:
+secdroid_pi_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l glass_position_descriptor	; position_descriptor_ptr
-	dc.l glass_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
-glass_attachment_position_state:
+secdroid_pi_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-kwik_kleen_position_descriptor:
-	dc.l kwik_kleen_primary_position_state	; position_state_ptr
+secdroid_omega_position_descriptor:
+	dc.l secdroid_omega_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-kwik_kleen_primary_position_state:
+secdroid_omega_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
-	dc.l kwik_kleen_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
-kwik_kleen_attachment_position_state:
+secdroid_omega_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-flight_controller_position_descriptor:
-	dc.l flight_controller_primary_position_state	; position_state_ptr
+secdroid_alpha_2_position_descriptor:
+	dc.l secdroid_alpha_2_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-flight_controller_primary_position_state:
+secdroid_alpha_2_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
-	dc.l flight_controller_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $88	; world_object_flags
-flight_controller_attachment_position_state:
+secdroid_alpha_2_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
@@ -21371,7 +21371,7 @@ fixed_npc_script_animation_nodes_gap_1D_1:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
@@ -21380,7 +21380,7 @@ fixed_npc_script_animation_nodes_gap_2F_2:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
@@ -21389,7 +21389,7 @@ fixed_npc_script_animation_nodes_gap_41_3:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
@@ -21398,7 +21398,7 @@ fixed_npc_script_animation_nodes_gap_53_4:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
@@ -21407,7 +21407,7 @@ fixed_npc_script_animation_nodes_gap_65_5:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
@@ -21416,7 +21416,7 @@ fixed_npc_script_animation_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
@@ -21425,7 +21425,7 @@ fixed_npc_script_animation_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
@@ -21434,7 +21434,7 @@ fixed_npc_script_animation_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
@@ -21443,7 +21443,7 @@ fixed_npc_script_animation_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
@@ -21452,7 +21452,7 @@ fixed_npc_script_animation_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
@@ -21461,52 +21461,52 @@ fixed_npc_script_animation_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-world_object_megabio_feed:
+world_object_pianist_actor:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l clear_security_checkpoint_audio_state	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l megabio_feed_inventory_slots	; inventory_slots_ptr
+	dc.l pianist_actor_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l megabio_feed_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l pianist_actor_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_megabio_feed_behavior_script	; behavior_script_ptr
-	dc.l world_object_megabio_feed_behavior_script	; initial_behavior_script_ptr
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+	dc.l world_object_pianist_actor_behavior_script	; behavior_script_ptr
+	dc.l world_object_pianist_actor_behavior_script	; initial_behavior_script_ptr
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_megabio_feed_gap_36:
+world_object_pianist_actor_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $001D	; hit_points
 	dc.w $001D	; initial_hit_points
-world_object_megabio_feed_gap_40:
+world_object_pianist_actor_gap_40:
 	dc.w $006E	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
 	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
-world_object_megabio_feed_world_object_flags:
+world_object_pianist_actor_world_object_flags:
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
 	dc.b $5D	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l megabio_feed_animation_bank	; saved_position_state_ptr
+	dc.l pianist_actor_animation_bank	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-megabio_feed_animation_bank:
-	dc.l megabio_feed_frames_4C226_1	; current_geometry_ptr
-	dc.l megabio_feed_frames_4C226_1	; previous_geometry_ptr
+pianist_actor_animation_bank:
+	dc.l pianist_actor_frames_4C226_1	; current_geometry_ptr
+	dc.l pianist_actor_frames_4C226_1	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $42	; world_object_flags
-megabio_feed_frames_4C226_1:
+pianist_actor_frames_4C226_1:
 	dc.l scene_pixel_cells_for_mask_bank_27	; bitplane_data_ptr
 	dc.l scene_mask_bank_27	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -21514,7 +21514,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_1:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_13	; bitplane_data_ptr
 	dc.l scene_mask_bank_13	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21522,7 +21522,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_2:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_13+$1B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$6C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21530,7 +21530,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_2:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_3:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_13+$360	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21538,7 +21538,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_3:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_4:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_13+$510	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$144	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21546,7 +21546,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_4:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_5:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_13+$6C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$1B0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21554,7 +21554,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_5:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_6:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_13+$870	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$21C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -21562,40 +21562,40 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_6:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_positions_4C226_2:
-	dc.l megabio_feed_states_4C226_3	; position_state_ptr
+pianist_actor_positions_4C226_2:
+	dc.l pianist_actor_states_4C226_3	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-megabio_feed_states_4C226_3:
+pianist_actor_states_4C226_3:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-megabio_feed_nodes_4C226_4:
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+pianist_actor_nodes_4C226_4:
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $19	; phase_step
-	dc.l megabio_feed_sequence_4C226_5	; frame_sequence_ptr
+	dc.l pianist_actor_sequence_4C226_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-megabio_feed_nodes_4C226_4_gap_B:
+pianist_actor_nodes_4C226_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-megabio_feed_sequence_4C226_5:
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_2	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_3	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_4	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_5	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_6	; frame_ptr
+pianist_actor_sequence_4C226_5:
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_6	; frame_ptr
     ; Repeat player movement through an absolute call, mutable delay word and self jump. Delay loads the object interpreter countdown before the next loop pass.
 player_movement_script_loop:
 	dc.w WORLD_CMD_CALL_FUNCTION	; Player movement call-delay-jump loop; mutable delay operand
@@ -22603,15 +22603,15 @@ abs_0_0005D460:
 	move.w d0,d0
 	rts
 abs_0_0005D464:
-	movea.l kriptonite_positions_49492_2.l,a0
+	movea.l wackobrain_actor_positions_49492_2.l,a0
 	movea.l $0000(a0),a0
-	cmpa.l #kriptonite_frames_49492_1,a0
+	cmpa.l #wackobrain_actor_frames_49492_1,a0
 	beq.b abs_0_0005D48E
-	cmpa.l #kriptonite_frames_49492_1_bitplane_data_ptr_10,a0
+	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_10,a0
 	beq.b abs_0_0005D48E
-	cmpa.l #kriptonite_frames_49492_1_bitplane_data_ptr_17,a0
+	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_17,a0
 	beq.b abs_0_0005D48E
-	cmpa.l #kriptonite_frames_49492_1_bitplane_data_ptr_24,a0
+	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_24,a0
 	bne.b abs_0_0005D460
 abs_0_0005D48E:
 	bclr.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
@@ -24481,7 +24481,7 @@ abs_0_000652DE:
 abs_0_000652FC:
 	rts
 update_player_proximity_audio:
-	btst.b #1,world_object_megabio_feed_world_object_flags.l
+	btst.b #1,world_object_pianist_actor_world_object_flags.l
 	bne.b abs_0_000652DE
 	lea.l player_world_object_world_x.l,a0
 	move.w (a0)+,d0	; operand 1: world_object_shared_prefix_world_x at (a0)+

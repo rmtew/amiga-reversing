@@ -49,3 +49,18 @@ def test_overlay_reads_only_contiguous_nonnull_line_prefix(cpu_fixture, prefix, 
     assert cpu.a[4] == line0+4*prefix and cpu.d[7] == 6
     assert bytes(memory[descriptor:descriptor+44]) == before
     # A later poison string pointer would exceed fixture RAM if consumed.
+
+
+def test_six_security_droids_share_saved_art_but_have_distinct_state_records(cpu_fixture):
+    cpu, memory, schemas, read, write, run = cpu_fixture
+    obj, state, node = (schemas[n] for n in ['world_object_shared_prefix', 'world_position_state_record', 'WorldPositionStateNode'])
+    actors = [BASE+x[0] for x in ACTORS[1:7]]
+    descriptors = [read(a+obj['position_descriptor_ptr']) for a in actors]
+    saved = [read(a+obj['saved_position_state_ptr']) for a in actors]
+    nodes = [read(a+state['state_node_ptr']) for a in saved]
+    assert len(set(descriptors)) == len(set(saved)) == len(set(nodes)) == 6
+    assert len({read(a+state['current_geometry_ptr']) for a in saved}) == 1
+    assert len({read(a+node['frame_sequence_ptr']) for a in nodes}) == 1
+    assert all(read(s+state['position_descriptor_ptr']) == d for s, d in zip(saved, descriptors))
+    # Shared frame identities remain generic; an actor name does not grant
+    # exclusive ownership of an image or the mutable render-state population.

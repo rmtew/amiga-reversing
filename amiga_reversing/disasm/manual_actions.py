@@ -1908,7 +1908,16 @@ def _project_actions(
         elif action.kind is ManualActionKind.REMOVE_MANUAL_FUNCTION_SUMMARY:
             _drop_by_id(function_summaries, action, "function_summary_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_LABEL:
-            _put_by_id(labels, _projected_manual_label(action), "label_id")
+            label = _projected_manual_label(action)
+            previous = labels.get(str(label.get("label_id")))
+            if previous is not None and isinstance(label.get("previous_name"), str):
+                names = list(previous.get("previous_names", []))
+                if isinstance(previous.get("previous_name"), str):
+                    names.append(previous["previous_name"])
+                if names:
+                    names.append(label["previous_name"])
+                    label["previous_names"] = list(dict.fromkeys(names))
+            _put_by_id(labels, label, "label_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_LABEL:
             _drop_by_id(labels, action, "label_id")
         elif action.kind is ManualActionKind.RENAME_MANUAL_LABEL:

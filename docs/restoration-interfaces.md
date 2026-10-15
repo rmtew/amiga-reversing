@@ -96,6 +96,13 @@ use inspected `label.rename` actions for those identities as a separate part
 of the same swath. Seeded-only layouts must first have a supported manual
 layout identity rather than relying on implicit range/default reconstruction.
 
+A row `label.rename` explicitly supersedes its predecessor name at the same
+section/address within its address domain, including an older manual label
+with a different ID. The renamed declaration takes precedence; unrelated
+same-address aliases remain available. Repeated row renames retain their name
+chain through replay and undo/redo. Original metadata and action history are
+preserved. This avoids an accepted rename silently rendering the older name.
+
 `target.data_block.elements.rename` accepts 1..1000 explicit `{layout_id,
 offset, name}` selectors. It changes only names of active manual elements,
 preserving their widths, types, binding IDs, binding provenance and reference
