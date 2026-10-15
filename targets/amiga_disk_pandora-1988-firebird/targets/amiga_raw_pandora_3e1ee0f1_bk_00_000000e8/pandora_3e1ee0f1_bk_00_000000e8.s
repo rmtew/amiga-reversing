@@ -120,9 +120,9 @@ app_scrolling_message_queue_tail RS.L 1
 app_message_palette_flash_countdown RS.B 1
 app_status_flags RS.B 1
 app_current_palette RS.L 1
-app_0280 RS.L 1
+app_title_raster_gradient_ptr RS.L 1
 app_palette_transition_steps_remaining RS.B 1
-app_0285 RS.B 1
+app_title_star_palette_steps_remaining RS.B 1
 app_earth_orbit_countdown_bcd RS.W 1
 app_earth_orbit_countdown_divider RS.B 1
 app_camera_scroll_ticks_remaining RS.B 1
@@ -1531,19 +1531,46 @@ latch_last_gameplay_copper_split:
 	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010AC8:
-	dcb.b $20,$00
-abs_0_00010AE8:
-	dc.b $00,$00,$0F,$FF,$0D,$DD,$0B,$BB,$09,$99,$07,$77,$05,$55,$03,$33
-abs_0_00010AF8:
-	dcb.b $30,$00
-abs_0_00010B28:
-	dcb.b $40,$00
-abs_0_00010B68:
-	dc.b $00,$00,$00,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E
-	dc.b $00,$0E,$00,$22,$00,$44,$00,$66,$00,$88,$00,$AA,$00,$CC,$00,$EE
-	dc.b $00,$E0,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E,$00
-	dc.b $0E,$00,$02,$2A,$04,$4A,$06,$6A,$08,$8A,$0A,$AA,$0C,$CA,$0E,$EA
+title_current_rgb12_palette:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+title_star_palette_rgb12_increments:
+	dc.w $0000,$0FFF,$0DDD,$0BBB,$0999,$0777,$0555,$0333	; rgb12_palette_increments
+title_star_palette_fractional_components:
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+title_current_raster_gradient_rgb12:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+title_raster_gradient_rgb12_increments:
+	dc.w $0000,$0002,$0004,$0006,$0008,$000A,$000C,$000E	; rgb12_palette_increments
+	dc.w $000E,$0022,$0044,$0066,$0088,$00AA,$00CC,$00EE	; rgb12_palette_increments
+	dc.w $00E0,$0200,$0400,$0600,$0800,$0A00,$0C00,$0E00	; rgb12_palette_increments
+	dc.w $0E00,$022A,$044A,$066A,$088A,$0AAA,$0CCA,$0EEA	; rgb12_palette_increments
 update_star_motion:
 	move.w title_star_record_origin_x.w(a2),d0
 	asl.w #4,d0
@@ -1695,17 +1722,17 @@ abs_0_00010D14:
 	bset.b d1,$0050(a0)
 	jmp (a3)
 initialize_starfield:
-	lea.l abs_0_00010B28(pc),a0
-	lea.l abs_0_00010B68(pc),a1
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #31,d7
 	jsr clear_rgb12_palette_components.l
 	moveq.l #7,d7
-	lea.l abs_0_00010AF8(pc),a2
-	lea.l abs_0_00010AC8(pc),a0
-	lea.l abs_0_00010AE8(pc),a1
+	lea.l title_star_palette_fractional_components(pc),a2
+	lea.l title_current_rgb12_palette(pc),a0
+	lea.l title_star_palette_rgb12_increments(pc),a1
 	jsr clear_rgb12_palette_components.l
-	lea.l abs_0_00010AC8(pc),a0
+	lea.l title_current_rgb12_palette(pc),a0
 	move.l a0,app_current_palette(a6)
 	move.w #$63,d7
 	movea.l #$400,a2
@@ -1716,13 +1743,13 @@ abs_0_00010D5C:
 finish_starfield_initialization:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D5C
-	lea.l abs_0_00010AF8(pc),a0
+	lea.l title_star_palette_fractional_components(pc),a0
 	moveq.l #23,d7
 abs_0_00010D76:
 	clr.w (a0)+
 	dbf.w d7,abs_0_00010D76
 	bset.b #2,app_status_flags(a6)
-	move.b #$10,app_0285(a6)
+	move.b #$10,app_title_star_palette_steps_remaining(a6)
 	rts
 update_starfield:
 	move.w #$63,d7
@@ -1743,17 +1770,17 @@ abs_0_00010DAE:
 	btst.b #2,app_status_flags(a6)
 	beq.b abs_0_00010DDE
 	moveq.l #7,d7
-	lea.l abs_0_00010AF8(pc),a2
-	lea.l abs_0_00010AC8(pc),a0
-	lea.l abs_0_00010AE8(pc),a1
+	lea.l title_star_palette_fractional_components(pc),a2
+	lea.l title_current_rgb12_palette(pc),a0
+	lea.l title_star_palette_rgb12_increments(pc),a1
 	jsr add_rgb12_palette_components.l
-	subq.b #1,app_0285(a6)
+	subq.b #1,app_title_star_palette_steps_remaining(a6)
 	bne.b abs_0_00010DDE
 	bclr.b #2,app_status_flags(a6)
 abs_0_00010DDE:
 	rts
 abs_0_00010DE0:
-	movea.l app_0280(a6),a0
+	movea.l app_title_raster_gradient_ptr(a6),a0
 abs_0_00010DE4:
 	move.b vhposr(a5),d0
 abs_0_00010DE8:
@@ -1855,8 +1882,8 @@ update_title_frame_palette_and_rotate_gradient:
 	addq.l #1,app_frame_counter(a6)
 	bsr.w apply_current_palette
 	move.b #$20,app_palette_effect_countdown(a6)
-	lea.l abs_0_00010B28(pc),a0
-	move.l a0,app_0280(a6)
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	move.l a0,app_title_raster_gradient_ptr(a6)
 	btst.b #0,app_frame_counter+3(a6)
 	bne.b abs_0_00010F86
 	lea.l abs_0_00010EB8(pc),a0
@@ -1910,8 +1937,8 @@ abs_0_00010FEC:
 	lea.l string_0002109E(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$20,app_palette_effect_countdown(a6)
-	lea.l abs_0_00010B28(pc),a0
-	move.l a0,app_0280(a6)
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	move.l a0,app_title_raster_gradient_ptr(a6)
 	move.l a6,-(a7)
 	moveq.l #0,d0
 	jsr initialize_audio_player.l
@@ -1928,8 +1955,8 @@ abs_0_00011052:
 	tst.b app_palette_transition_steps_remaining(a6)
 	beq.b abs_0_00011070
 	subq.b #1,app_palette_transition_steps_remaining(a6)
-	lea.l abs_0_00010B28(pc),a0
-	lea.l abs_0_00010B68(pc),a1
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #31,d7
 	bsr.w add_rgb12_palette_components
@@ -7882,6 +7909,7 @@ abs_0_000165B4:
 	bsr.w abs_0_000162A8
 	move.l (a7)+,d7
 	rts
+    ; With stable line pointers, only the contiguous non-NULL prefix is read: a NULL leaves A4 unchanged for later visits. Line styles retain their prefix indices.
     ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
 draw_ui_overlay_text_lines:
 	movem.l d7/a4,-(a7)
@@ -14381,7 +14409,7 @@ title_glyph_A:
 	dc.l $0FFFEFF0,$0FFFEFF0,$1FFFE7F8,$1FFFE7F8	; data
 	dc.l $3FE003FC,$3FC003FC,$7FC003FE,$7F8001FE	; data
 	dc.l $7F8001FE,$7F0000FE,$00000000,$00000000	; data
-four_byte_rows:
+title_glyph_B:
 	dc.l $00000000,$00000000,$0FFFF800,$0FFFFE00	; data
 	dc.l $0FFFFF00,$0FFFFF00,$0FC0FF80,$0FC07F80	; data
 	dc.l $0FC03F80,$0FC01F80,$0FC03F80,$0FC07F80	; data
@@ -14390,7 +14418,7 @@ four_byte_rows:
 	dc.l $0FC0FFC0,$0FC03FC0,$0FC01FC0,$0FC01FC0	; data
 	dc.l $0FC03FC0,$0FC07FC0,$0FDFFF80,$0FDFFF80	; data
 	dc.l $0FDFFF00,$0FDFF800,$00000000,$00000000	; data
-four_byte_rows_2:
+title_glyph_C:
 	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
 	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
 	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
@@ -14408,7 +14436,7 @@ title_glyph_D:
 	dc.l $0FE007FC,$0FE00FF8,$0FE01FF8,$0FE07FF8	; data
 	dc.l $0FE7FFF0,$0FEFFFE0,$0FFFFFE0,$0FFFFFC0	; data
 	dc.l $0FFFFF80,$0FEFFE00,$0FE7F000,$00000000	; data
-four_byte_rows_3:
+title_glyph_E:
 	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
@@ -14417,7 +14445,7 @@ four_byte_rows_3:
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FE00000,$1FFFFF80,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
-four_byte_rows_4:
+title_glyph_F:
 	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
@@ -14426,7 +14454,7 @@ four_byte_rows_4:
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
-four_byte_rows_5:
+title_glyph_G:
 	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
 	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
 	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
@@ -14435,7 +14463,7 @@ four_byte_rows_5:
 	dc.l $3FE003FC,$1FF001FC,$1FF801FC,$1FFE03FC	; data
 	dc.l $0FFF8FFC,$07FFFFFC,$07FFFFFC,$03FFFFFC	; data
 	dc.l $01FFFFFC,$007FFFF8,$000FFFE0,$00000000	; data
-four_byte_rows_6:
+title_glyph_H:
 	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
@@ -14444,7 +14472,7 @@ four_byte_rows_6:
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$0F8001F0,$00000000	; data
-four_byte_rows_7:
+title_glyph_I:
 	dc.l $00000000,$00000000,$007FFE00,$00FFFF00	; data
 	dc.l $00FFFF00,$00FFFF00,$007FFE00,$000FF000	; data
 	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
@@ -14453,7 +14481,7 @@ four_byte_rows_7:
 	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
 	dc.l $000FF000,$000FF000,$007FFE00,$00FFFF00	; data
 	dc.l $00FFFF00,$00FFFF00,$007FFE00,$00000000	; data
-four_byte_rows_8:
+title_glyph_J:
 	dc.l $00000000,$00000000,$000007C0,$00000FE0	; data
 	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
 	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
@@ -14462,7 +14490,7 @@ four_byte_rows_8:
 	dc.l $00000FE0,$00001FE0,$07E03FE0,$0FF87FE0	; data
 	dc.l $0FFFFFE0,$0FFFFFE0,$0FFFFFC0,$07FFFFC0	; data
 	dc.l $03FFFF80,$01FFFE00,$003FF000,$00000000	; data
-four_byte_rows_9:
+title_glyph_K:
 	dc.l $00000000,$00000000,$0F800F80,$1FC01FC0	; data
 	dc.l $1FC03FC0,$1FC07FC0,$1FC0FF80,$1FC1FF00	; data
 	dc.l $1FC3FE00,$1FC7FC00,$1FCFF800,$1FDFF000	; data
@@ -14471,7 +14499,7 @@ four_byte_rows_9:
 	dc.l $1FFFC000,$1FFFE000,$1FDFF000,$1FCFF800	; data
 	dc.l $1FC7FC00,$1FC3FE00,$1FC1FF00,$1FC0FF80	; data
 	dc.l $1FC07F80,$1FC03F80,$0F801F00,$00000000	; data
-four_byte_rows_10:
+title_glyph_L:
 	dc.l $00000000,$00000000,$0F800000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
@@ -14480,7 +14508,7 @@ four_byte_rows_10:
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
-four_byte_rows_11:
+title_glyph_M:
 	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
 	dc.l $FF0001FE,$FF8003FE,$FFC007FE,$FFE00FFE	; data
 	dc.l $FFF01FFE,$FFF83FFE,$FFFC7FFE,$FFFFFFFE	; data
@@ -14516,7 +14544,7 @@ title_glyph_P:
 	dc.l $1FFFF800,$1FDFE000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
-four_byte_rows_12:
+title_glyph_Q:
 	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80	; data
 	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8	; data
 	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE	; data
@@ -14534,7 +14562,7 @@ title_glyph_R:
 	dc.l $1FDFF800,$1FDFE000,$1FDFC000,$1FCFE000	; data
 	dc.l $1FC7F000,$1FC3F800,$1FC1FC00,$1FC0FE00	; data
 	dc.l $1FC07F00,$1FC03F80,$0F801F00,$00000000	; data
-four_byte_rows_13:
+title_glyph_S:
 	dc.l $00000000,$000FFC00,$00FFFF80,$03FFFFE0	; data
 	dc.l $07FFFFF0,$0FFFFFF8,$1FFE3FF8,$1FF80FF8	; data
 	dc.l $1FF007F8,$1FE001F0,$1FF00000,$1FF80000	; data
@@ -14543,7 +14571,7 @@ four_byte_rows_13:
 	dc.l $00000FFC,$000007FC,$0F8003FC,$1FE007FC	; data
 	dc.l $3FF00FFC,$3FFE3FF8,$3FFFFFF8,$1FFFFFF0	; data
 	dc.l $0FFFFFE0,$03FFFF80,$003FF800,$00000000	; data
-four_byte_rows_14:
+title_glyph_T:
 	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
 	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFF8	; data
 	dc.l $000FF800,$0007F000,$0007F000,$0007F000	; data
@@ -14552,7 +14580,7 @@ four_byte_rows_14:
 	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
 	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
 	dc.l $0007F000,$0007F000,$0003E000,$00000000	; data
-four_byte_rows_15:
+title_glyph_U:
 	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
@@ -14561,7 +14589,7 @@ four_byte_rows_15:
 	dc.l $1FC003F8,$1FE007F8,$1FE007F8,$0FF00FF0	; data
 	dc.l $0FFC3FF0,$0FFFFFF0,$07FFFFE0,$07FFFFE0	; data
 	dc.l $03FFFFC0,$00FFFF00,$003FFC00,$00000000	; data
-four_byte_rows_16:
+title_glyph_V:
 	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
 	dc.l $7F8001FE,$7F8001FE,$3FC003FC,$3FC003FC	; data
 	dc.l $1FE007F8,$1FE007F8,$0FF00FF0,$0FF00FF0	; data
@@ -14570,7 +14598,7 @@ four_byte_rows_16:
 	dc.l $007FFE00,$007FFE00,$003FFC00,$003FFC00	; data
 	dc.l $001FF800,$001FF800,$000FF000,$000FF000	; data
 	dc.l $0007E000,$0003C000,$00000000,$00000000	; data
-four_byte_rows_17:
+title_glyph_W:
 	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
 	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
 	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
@@ -14579,7 +14607,7 @@ four_byte_rows_17:
 	dc.l $FFFFFFFE,$FFFFFFFE,$FFFFFFFE,$FFFE7FFE	; data
 	dc.l $FFFC3FFE,$FFF81FFE,$FFF00FFE,$FFE007FE	; data
 	dc.l $FFC003FE,$FF8001FE,$7E00007C,$00000000	; data
-four_byte_rows_18:
+title_glyph_X:
 	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
 	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
 	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
@@ -14588,7 +14616,7 @@ four_byte_rows_18:
 	dc.l $01FFFF80,$03FFFFC0,$07FE7FE0,$0FFC3FF0	; data
 	dc.l $1FF81FF8,$3FF00FFC,$3FE007FC,$3FC003FC	; data
 	dc.l $3F8001FC,$1F0000F8,$00000000,$00000000	; data
-four_byte_rows_19:
+title_glyph_Y:
 	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
 	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
 	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
@@ -14597,7 +14625,7 @@ four_byte_rows_19:
 	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
 	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
 	dc.l $0007E000,$0007E000,$0003C000,$00000000	; data
-four_byte_rows_20:
+title_glyph_Z:
 	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
 	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFFC	; data
 	dc.l $00001FF8,$00003FF0,$00007FE0,$0000FFC0	; data

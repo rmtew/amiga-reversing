@@ -2758,22 +2758,22 @@ No production code, target facts or PR metadata changed in this audit.
 ## Fresh whole-file pass: salvage eligibility
 
 A new independent reading of the current restored source at `14bbb400` delivered
-all582,092 presentation bytes /18,065 lines in27 ordered chunks. Its new
-proposal set is separate from the earlier48-proposal queue. Ordered delivery
+all 582,092 presentation bytes / 18,065 lines in 27 ordered chunks. Its new
+proposal set is separate from the earlier 48-proposal queue. Ordered delivery
 does not prove simultaneous retention. The first accepted swath is the previously
-unclaimed15-byte MSB-first bitset at source`$A813..$A822` (end exclusive), now
-`salvage_item_eligibility_bits` with an explicit15-byte binary array.
+unclaimed 15-byte MSB-first bitset at source`$A813..$A822` (end exclusive), now
+`salvage_item_eligibility_bits` with an explicit 15-byte binary array.
 
 Native xrefs identify terminal deposit`$89EA` and four-carried-slot outcome
 ranking`$4C9EA`; both test via`$5FFE` and increment `app_salvage_item_count`.
-Original bytes`000001d8000000000000000000dd80` select12 initialized item IDs.
-The helper has no arbitrary-ID bounds check;120 stored bits are not a256-ID
+Original bytes`000001d8000000000000000000dd80` select 12 initialized item IDs.
+The helper has no arbitrary-ID bounds check; 120 stored bits are not a 256-ID
 guarantee. Ranking counts eligible occupied slots, including duplicates.
 
 Three canonical actions are journal-accepted. **22 focused tests pass**, including
-all120 valid bit indices, six bounded terminal cases and three outcome cases,
-plus the existing12 status/deposit checks. C and independent vasm reproduce
-all376,832 original bytes exactly; receipt`74d949eb160c9ecceb3c08498455cb7d6d985bc175c46d950d961afc993fb884`;
+all 120 valid bit indices, six bounded terminal cases and three outcome cases,
+plus the existing 12 status/deposit checks. C and independent vasm reproduce
+all 376,832 original bytes exactly; receipt`74d949eb160c9ecceb3c08498455cb7d6d985bc175c46d950d961afc993fb884`;
 source SHA256`05e1c0121f682bcbb1f7156a995c42da3d95ab70f1221345a5c0cdbce8b410da`. Original binary/assets/SDK,
 prior history prefixes and unrelated facts remain intact. The shared-tail
 relocation blocker is unchanged and no runtime route was explored.
@@ -2785,3 +2785,39 @@ MAL rationale; any visible contract is a tested formalization, not a new discove
 The per-swath ledger is `docs/validation/pandora-fresh-reading-review.json`.
 Deferred backend test maintenance remains separate; PR5 remains unmerged, with
 no routine title/body/review-state edits.
+
+
+## Fresh-pass title palette, glyphs and overlay contract
+
+Five exact title-data spans are now canonical: 16 current RGB12 WORDs at`$AC8`,
+eight increment WORDs at`$AE8`, eight existing six-byte `rgb12_accumulator`
+records at`$AF8`,32 current gradient WORDs at`$B28` and32 gradient increment
+WORDs at`$B68`, ending at the next routine`$BA8`. The title initializer clears
+all 32 gradient colors using 192 bytes of previously documented shared scratch,
+but only the first 8 of 16 palette outputs. The star fade updates those 8 colors
+and uses a 16-service-step byte counter. New exact-width app roles are
+`app_title_raster_gradient_ptr` (+`$280`, 4 bytes) and
+`app_title_star_palette_steps_remaining` (+`$285`, 1 byte). No scratch-lifetime
+or device timing claim is added.
+
+Twenty remaining title glyphs now carry index-derived B/C/E/F/G/H/I/J/K/L/M/Q/
+S/T/U/V/W/X/Y/Z names. The original routine normalizes ASCII lowercase, subtracts
+65 and selects 128-byte slots; D7=31/DBF establishes 32 four-byte rasters. The
+bounded CPU witnesses check all 52 uppercase/lowercase indices and the first
+raster/stride with guards, rather than retain overflowing full-copy traces.
+PANDORA uses six distinct slots across seven characters. Malformed inputs are
+still unchecked.
+
+A visible contract on `draw_ui_overlay_text_lines` now states the stable-pointer
+NULL-prefix behavior already recognized in an earlier MAL rationale: only
+nonnull visits advance A4. Tests cover prefixes 0..6 in both text styles, leaving
+poison string pointers after the first NULL unconsumed. This is a tested
+formalization, not a newly found runtime defect or sparse-layout guarantee.
+
+**55 focused checks pass** across new display-identity/prefix/title tests and
+existing overlay/palette tests. All 38 actions are journal-accepted after C and
+independent vasm reproduce all 376,832 original bytes exactly. Receipt
+`7769e67a2f2ed3a8079827c2d731bfb784f4c562d1fbb9609677093f10a7c72a`; source SHA256
+`2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776`. Original binary/assets/SDK and history
+prefixes remain intact. Actor-owner naming is the remaining fresh-pass swath.
+PR5 remains unmerged; deferred backend maintenance and unrelated work are excluded.

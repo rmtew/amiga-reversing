@@ -21,13 +21,26 @@
       "status": "pending native family/xref review"
     },
     "overlay_prefix": {
-      "status": "pending visible contract and bounded tests; prior MAL rationale already recognized nonnull-only A4 advance"
+      "status": "accepted",
+      "actions": 1,
+      "verification_id": "7769e67a2f2ed3a8079827c2d731bfb784f4c562d1fbb9609677093f10a7c72a",
+      "source_sha256": "2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776",
+      "tests": "55 combined focused checks pass; glyph witness tests index and first raster for52 ASCII inputs;32-row extent is statically established",
+      "novelty": "Visible semantic contract and bounded tests formalize the earlier MAL rationale; not a newly discovered behavior."
     },
     "title_palette": {
-      "status": "pending consumer/type verification"
+      "status": "accepted",
+      "actions": 17,
+      "verification_id": "7769e67a2f2ed3a8079827c2d731bfb784f4c562d1fbb9609677093f10a7c72a",
+      "source_sha256": "2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776",
+      "tests": "55 combined focused checks pass; glyph witness tests index and first raster for52 ASCII inputs;32-row extent is statically established"
     },
     "title_glyphs": {
-      "status": "pending indexed-consumer verification"
+      "status": "accepted",
+      "actions": 20,
+      "verification_id": "7769e67a2f2ed3a8079827c2d731bfb784f4c562d1fbb9609677093f10a7c72a",
+      "source_sha256": "2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776",
+      "tests": "55 combined focused checks pass; glyph witness tests index and first raster for52 ASCII inputs;32-row extent is statically established"
     }
   },
   "original_bytes_preserved": 376832,
