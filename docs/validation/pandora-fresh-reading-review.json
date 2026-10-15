@@ -73,9 +73,15 @@
     "new_manual_actions": 678,
     "all_five_swaths": "accepted within documented scope",
     "resident_server": {
-      "pid": 216406,
+      "pid": 557,
       "listen": "127.0.0.1:8123",
-      "log": "/workspace/amiga-reversing/.runtime-state/pandora-analysis/fresh-restoration/server-label-precedence.log"
+      "log": ".runtime-state/pandora-analysis/fresh-restoration/server-after-reconnect.log",
+      "ready": true,
+      "target_ui_http_status": 200,
+      "revision": "f3ec3d667612bee3703d05c00c6060a88271b932c4e3f14f629cc2d0f2085744",
+      "subject_revision": "ab0d1da24dfc581bb44247e5ed7eb41575869e93e69a452f85502f25e3294232",
+      "exact_source_subject_preserved": true,
+      "native_renamed_field_verified": true
     },
     "preservation": {
       "rendered_new_declarations": 602,

@@ -2893,7 +2893,10 @@ All 637 actor actions are accepted against final receipt
 manual actions are accepted. See `docs/validation/pandora-fresh-reading-review.json`
 and the coordinate/rename audit `docs/validation/pandora-actor-identities.json`.
 
-The resident service is PID 216406 at http://127.0.0.1:8123/ with the target ready.
+The cloud execution transport reconnected after validation and reset resident
+processes. The service was restarted as PID 557 at http://127.0.0.1:8123/;
+its target is ready, target UI returns HTTP 200, and the final source subject
+and corrected native field name were checked unchanged.
 The deferred eight-test maintenance patch remains byte-identical and uncommitted.
 PR5 stays unmerged without routine metadata edits. Shared-tail relocation and
 its allocation/caller/interrupt-lifetime obligations remain open; no exclusive
