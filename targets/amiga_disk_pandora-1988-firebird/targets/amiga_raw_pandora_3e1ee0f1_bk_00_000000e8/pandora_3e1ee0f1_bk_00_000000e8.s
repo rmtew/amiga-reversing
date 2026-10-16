@@ -891,9 +891,15 @@ WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	EQU	25
 WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	EQU	30
 WORLD_CMD_SET_POSITION	EQU	23
 WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
+WORLD_DEPTH_SORT_DESCRIPTOR_COUNT	EQU	32
+WORLD_DEPTH_SORT_LAST_INDEX	EQU	WORLD_DEPTH_SORT_DESCRIPTOR_COUNT-1
 WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
+WORLD_POSITION_SECURITY_CHECKPOINT_BIT	EQU	7
+WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOINT_BIT)|$08
+WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
+WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
@@ -10469,7 +10475,7 @@ partition_world_object_update_ptrs:
 	lea.l world_object_sort_source_ptrs(pc),a0
 	movea.l a0,a2
 	lea.l abs_0_0001318E(pc),a1
-	moveq.l #31,d7
+	moveq.l #WORLD_DEPTH_SORT_LAST_INDEX,d7
 	move.l d7,d6
 	lea.l world_depth_sort_copy_scratch(pc),a3
 	movea.l a3,a4
@@ -10484,13 +10490,13 @@ partition_next_world_descriptor:
 	movea.l (a4)+,a3
     ; KNOWN: type A3=Target code-entry register seed:world_position_descriptor_prefix
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2
-	btst.b #6,world_position_state_record_world_object_flags(a2)
+	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
 	beq.b partition_world_descriptor_check_back_group
 	move.l a3,(a0)+
 	subq.w #1,d7
 	bra.b advance_world_descriptor_partition
 partition_world_descriptor_check_back_group:
-	btst.b #7,world_position_state_record_world_object_flags(a2)
+	btst.b #WORLD_POSITION_SECURITY_CHECKPOINT_BIT,world_position_state_record_world_object_flags(a2)
 	beq.b defer_world_descriptor_for_depth_sort
 	move.l a3,-(a1)
 	subq.w #1,d7
@@ -10794,7 +10800,7 @@ process_security_checkpoint_response:
 	movea.l d0,a5
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-	btst.b #7,world_position_state_record_world_object_flags(a0)
+	btst.b #WORLD_POSITION_SECURITY_CHECKPOINT_BIT,world_position_state_record_world_object_flags(a0)
 	bne.b abs_0_00018850
 clear_security_response_if_checkpoint_missing:
 	tst.b app_security_checkpoint_response_active(a6)
@@ -11367,7 +11373,7 @@ scan_ranged_effect_position_descriptors:
 	beq.b scan_ranged_effect_position_descriptors
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a2
 test_ranged_effect_state_chain:
-	btst.b #6,world_position_state_record_world_object_flags(a2)
+	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
 	bne.b scan_ranged_effect_position_descriptors
 	btst.b #3,world_position_state_record_world_object_flags(a2)
 	bne.w next_ranged_effect_attachment_state
@@ -15413,7 +15419,7 @@ musician_animation_bank:
 	dc.l musician_positions_4870E_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 musician_frames_4870E_1:
 	dc.l scene_pixel_cells_for_mask_bank_42	; bitplane_data_ptr
 	dc.l scene_mask_bank_42	; mask_data_ptr
@@ -16669,7 +16675,7 @@ squash_player_states_49268_1:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 squash_player_frames_49268_2:
 	dc.l scene_pixel_cells_for_mask_bank_17	; bitplane_data_ptr
 	dc.l scene_mask_bank_17	; mask_data_ptr
@@ -16895,7 +16901,7 @@ wackobrain_actor_animation_bank:
 	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 wackobrain_actor_frames_49492_1:
 	dc.l scene_pixel_cells_for_mask_bank_18	; bitplane_data_ptr
 	dc.l scene_mask_bank_18	; mask_data_ptr
@@ -17414,7 +17420,7 @@ thief_animation_bank:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 thief_frames_4995C_1:
 	dc.l scene_pixel_cells_for_mask_bank_23	; bitplane_data_ptr
 	dc.l scene_mask_bank_23	; mask_data_ptr
@@ -17810,7 +17816,7 @@ priest_states_49B98_2_current_geometry_ptr_2:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 priest_nodes_49B98_3:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $08	; frame_count
@@ -18061,7 +18067,7 @@ icelord_states_49DCE_2_current_geometry_ptr_1:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 icelord_nodes_49DCE_3:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.b $13	; frame_count
@@ -18439,7 +18445,7 @@ hooligan_states_4A07C_2_current_geometry_ptr_1:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 hooligan_frames_4A07C_3:
 	dc.l scene_pixel_cells_for_mask_bank_08	; bitplane_data_ptr
 	dc.l scene_mask_bank_08	; mask_data_ptr
@@ -18681,7 +18687,7 @@ entry_officer_states_4A45E_2_current_geometry_ptr_1:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 entry_officer_nodes_4A45E_3:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
@@ -18805,7 +18811,7 @@ death_fly_states_4A600_2_current_geometry_ptr_1:
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 death_fly_nodes_4A600_3:
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
@@ -18927,7 +18933,7 @@ driffid_states_4A6E8_2_current_geometry_ptr_1:
 	dc.l driffid_positions_4A6E8_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 driffid_frames_4A6E8_3:
 	dc.l scene_pixel_cells_for_mask_bank_41	; bitplane_data_ptr
 	dc.l scene_mask_bank_41	; mask_data_ptr
@@ -19003,7 +19009,7 @@ captain_states_4A828_1:
 	dc.l captain_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 captain_frames_4A828_2:
 	dc.l scene_pixel_cells_for_mask_bank_09	; bitplane_data_ptr
 	dc.l scene_mask_bank_09	; mask_data_ptr
@@ -19061,7 +19067,7 @@ resource_officer_states_4A8B4_1:
 	dc.l resource_officer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 resource_officer_frames_4A8B4_2:
 	dc.l scene_pixel_cells_for_mask_bank_10	; bitplane_data_ptr
 	dc.l scene_mask_bank_10	; mask_data_ptr
@@ -19119,7 +19125,7 @@ engineer_states_4A940_1:
 	dc.l engineer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 engineer_frames_4A940_2:
 	dc.l scene_pixel_cells_for_mask_bank_11	; bitplane_data_ptr
 	dc.l scene_mask_bank_11	; mask_data_ptr
@@ -19177,7 +19183,7 @@ science_officer_states_4A9CC_1:
 	dc.l science_officer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 science_officer_frames_4A9CC_2:
 	dc.l scene_pixel_cells_for_mask_bank_12	; bitplane_data_ptr
 	dc.l scene_mask_bank_12	; mask_data_ptr
@@ -19235,7 +19241,7 @@ medic_states_4AA58_1:
 	dc.l medic_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 world_object_awol_officer:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -19285,7 +19291,7 @@ awol_officer_states_4AAD2_1:
 	dc.l awol_officer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 awol_officer_frames_4AAD2_2:
 	dc.l scene_pixel_cells_for_mask_bank_10	; bitplane_data_ptr
 	dc.l scene_mask_bank_10	; mask_data_ptr
@@ -19343,7 +19349,7 @@ lieutenant_commander_states_4AB5E_1:
 	dc.l lieutenant_commander_animation_bank	; position_descriptor_ptr
 	dc.l lieutenant_commander_states_4AB5E_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_1	; current_geometry_ptr
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_1	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -19352,7 +19358,7 @@ lieutenant_commander_states_4AB5E_1:
 	dc.l lieutenant_commander_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 lieutenant_commander_frames_4AB5E_2:
 	dc.l scene_pixel_cells_for_mask_bank_35	; bitplane_data_ptr
 	dc.l scene_mask_bank_35	; mask_data_ptr
@@ -19428,7 +19434,7 @@ commander_states_4AC3A_1:
 	dc.l commander_animation_bank	; position_descriptor_ptr
 	dc.l commander_states_4AC3A_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_2	; current_geometry_ptr
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_2	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -19437,7 +19443,7 @@ commander_states_4AC3A_1:
 	dc.l commander_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 world_object_menial_droid:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_menial_droid	; interaction_callback
@@ -19491,7 +19497,7 @@ menial_droid_states_4ACCE_1:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.b $00,$05,$2E,$E8,$00,$06,$8E,$0C,$00,$01,$00,$06,$00,$10,$00,$00
 	dc.b $00,$01,$00,$05,$2F,$18,$00,$06,$8E,$18,$00,$01,$00,$07,$00,$10
 	dc.b $00,$00,$00,$01,$00,$05,$2F,$50,$00,$06,$8E,$26,$00,$01,$00,$07
@@ -19650,7 +19656,7 @@ gardener_states_4AEF8_1:
 	dc.l gardener_positions_4AF7E_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.b $00,$05,$33,$10,$00,$06,$8F,$16,$00,$01,$00,$0D,$00,$20,$00,$00
 	dc.b $00,$01,$00,$05,$33,$E0,$00,$06,$8F,$4A,$00,$01,$00,$0F,$00,$20
 	dc.b $00,$00,$00,$00,$00,$05,$34,$D0,$00,$06,$8F,$86,$00,$01,$00,$10
@@ -19980,7 +19986,7 @@ technician_states_4B1DA_3:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 technician_nodes_4B1DA_4:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
@@ -20072,7 +20078,7 @@ robomechanic_states_4B3F2_1:
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.b $00,$05,$37,$80,$00,$06,$90,$32,$00,$02,$00,$05,$00,$20,$00,$00
 	dc.b $00,$05,$00,$05,$37,$D0,$00,$06,$90,$46,$00,$02,$00,$05,$00,$20
 	dc.b $00,$00,$00,$05,$00,$05,$38,$20,$00,$06,$90,$5A,$00,$02,$00,$07
@@ -20336,7 +20342,7 @@ doctor_states_4B552_2_current_geometry_ptr_1:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.l doctor_states_4B552_2+$34	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l doctor_animation_bank_bitplane_data_ptr_14	; current_geometry_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_14	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -20345,7 +20351,7 @@ doctor_states_4B552_2_current_geometry_ptr_1:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 doctor_nodes_4B552_3:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
@@ -20467,7 +20473,7 @@ diabetic_states_4B7A0_1_current_geometry_ptr_2:
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
 	dc.l diabetic_states_4B7A0_1+$4E	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l doctor_animation_bank_bitplane_data_ptr_15	; current_geometry_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_15	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -20476,7 +20482,7 @@ diabetic_states_4B7A0_1_current_geometry_ptr_2:
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 diabetic_script_pose_controller:
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
 	dc.b $01	; frame_count
@@ -20566,7 +20572,7 @@ security_officer_states_4B882_3:
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 security_officer_nodes_4B882_4:
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
 	dc.b $01	; frame_count
@@ -20655,7 +20661,7 @@ bank_manager_states_4B954_3:
 	dc.l bank_manager_positions_4B954_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 world_object_chemist:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_chemist	; interaction_callback
@@ -20715,7 +20721,7 @@ chemist_states_4BA0C_1_current_geometry_ptr_1:
 	dc.l chemist_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 chemist_nodes_4BA0C_2:
 	dc.l chemist_animation_bank	; position_descriptor_ptr
 	dc.b $01	; frame_count
@@ -21071,7 +21077,7 @@ secdroid_alpha_1_saved_position_state:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 secdroid_delta_1_saved_animation_node:
 	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
@@ -21091,7 +21097,7 @@ secdroid_delta_1_saved_position_state:
 	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 secdroid_delta_2_saved_animation_node:
 	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
@@ -21111,7 +21117,7 @@ secdroid_delta_2_saved_position_state:
 	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 secdroid_pi_saved_animation_node:
 	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
@@ -21131,7 +21137,7 @@ secdroid_pi_saved_position_state:
 	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 secdroid_omega_saved_animation_node:
 	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
@@ -21151,7 +21157,7 @@ secdroid_omega_saved_position_state:
 	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 secdroid_alpha_2_saved_animation_node:
 	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
@@ -21171,7 +21177,7 @@ secdroid_alpha_2_saved_position_state:
 	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 fixed_npc_position_states:
 	dc.l secdroid_alpha_1_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
@@ -21187,7 +21193,7 @@ secdroid_alpha_1_primary_position_state:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.l secdroid_alpha_1_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
 secdroid_alpha_1_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -21213,7 +21219,7 @@ secdroid_delta_1_primary_position_state:
 	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.l secdroid_delta_1_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
 secdroid_delta_1_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -21239,7 +21245,7 @@ secdroid_delta_2_primary_position_state:
 	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.l secdroid_delta_2_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
 secdroid_delta_2_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -21265,7 +21271,7 @@ secdroid_pi_primary_position_state:
 	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.l secdroid_pi_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
 secdroid_pi_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -21291,7 +21297,7 @@ secdroid_omega_primary_position_state:
 	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.l secdroid_omega_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
 secdroid_omega_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -21317,7 +21323,7 @@ secdroid_alpha_2_primary_position_state:
 	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.l secdroid_alpha_2_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
 secdroid_alpha_2_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -21536,7 +21542,7 @@ pianist_actor_animation_bank:
 	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 pianist_actor_frames_4C226_1:
 	dc.l scene_pixel_cells_for_mask_bank_27	; bitplane_data_ptr
 	dc.l scene_mask_bank_27	; mask_data_ptr
@@ -21939,7 +21945,7 @@ player_static_defeat_state:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 entry_officer_animation_bank_2:
 	dc.l scene_pixel_cells_for_mask_bank_30	; bitplane_data_ptr
 	dc.l scene_mask_bank_30	; mask_data_ptr
@@ -22053,7 +22059,7 @@ player_animated_defeat_state:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 player_animated_defeat_node:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $0D	; frame_count

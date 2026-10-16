@@ -2302,16 +2302,32 @@ def _apply_manual_seed_projection(
             data_block_layouts.append(data_block_layout)
     merged_data_block_layouts = {layout.layout_id: layout for layout in data_block_layouts}
     effective_data_block_layouts = list(merged_data_block_layouts.values())
+    # A bound structure emits its fields, not the enclosing element's display
+    # representation. Preserve an explicit symbolic identity of an exact scalar
+    # field; broad/partial overlaps and pointer identities keep their owners.
+    typed_entities_by_element = {
+        (layout.layout_id, element.offset): _data_block_bound_struct_entities(layout, element, merged_custom_structs)
+        for layout in effective_data_block_layouts for element in layout.elements
+    }
+    scalar_field_spans = {
+        (entity.hunk, entity.addr, entity.end)
+        for entities in typed_entities_by_element.values() for entity in entities
+        if entity.field_name and entity.end is not None and entity.end - entity.addr in {1, 2, 4}
+        and entity.value_kind == "scalar" and not entity.pointer_struct
+    }
     data_block_representation_ranges = _data_block_element_representation_ranges(effective_data_block_layouts)
     if data_block_representation_ranges:
         manual_representations = [
             representation
             for representation in manual_representations
             if not _representation_overlaps_data_block_element(representation, data_block_representation_ranges)
+            or (representation.element_kind == "data_literal"
+                and representation.style is ManualRepresentationStyle.SYMBOL
+                and (representation.hunk, representation.addr, representation.end) in scalar_field_spans)
         ]
     for effective_layout in effective_data_block_layouts:
         for element in effective_layout.elements:
-            typed_entities = _data_block_bound_struct_entities(effective_layout, element, merged_custom_structs)
+            typed_entities = typed_entities_by_element[(effective_layout.layout_id, element.offset)]
             if typed_entities:
                 seeded_entities.extend(typed_entities)
             else:

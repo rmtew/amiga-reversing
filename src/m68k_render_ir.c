@@ -478,13 +478,60 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, Arena *scratch_
   return 1;
 }
 
+/* Emit dependencies before consumers while retaining alphabetical root order.
+ * Literal text must not be mistaken for a symbol dependency. */
+static int append_planned_equate(M68kRenderPlan *dest, const M68kRenderPlan *source,
+    size_t index, uint8_t *states, uint32_t row_kind, uint32_t *count) {
+  const M68kRenderPlannedDeclaration *item = &source->declarations[index];
+  const char *cursor = item->expression;
+  char line[224];
+  int length;
+  if (states[index] == 2U) return 1;
+  if (states[index] == 1U) return 0;
+  states[index] = 1U;
+  while (*cursor != '\0') {
+    const char *start;
+    size_t token_length, dependency;
+    if (*cursor == '\'' || *cursor == '"') {
+      char quote = *cursor++;
+      while (*cursor != '\0' && *cursor != quote) ++cursor;
+      if (*cursor != '\0') ++cursor;
+      continue;
+    }
+    if (*cursor == '$' || *cursor == '%' || (*cursor >= '0' && *cursor <= '9')) {
+      ++cursor;
+      while (ascii_char_is_symbol_local(*cursor, 0)) ++cursor;
+      continue;
+    }
+    if (!ascii_char_is_symbol_local(*cursor, 1)) { ++cursor; continue; }
+    start = cursor++;
+    while (ascii_char_is_symbol_local(*cursor, 0)) ++cursor;
+    token_length = (size_t)(cursor - start);
+    for (dependency = 0U; dependency < source->declaration_count; ++dependency) {
+      const M68kRenderPlannedDeclaration *candidate = &source->declarations[dependency];
+      if (candidate->kind == M68K_RENDER_PLANNED_DECLARATION_EQUATE && candidate->emits_header_text &&
+          strlen(candidate->name) == token_length && strncmp(start, candidate->name, token_length) == 0 &&
+          !append_planned_equate(dest, source, dependency, states, row_kind, count)) return 0;
+    }
+  }
+  length = snprintf(line, sizeof(line), "%s\tEQU\t%s\n", item->name, item->expression);
+  if (length <= 0 || (size_t)length >= sizeof(line) ||
+      m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+  states[index] = 2U;
+  ++*count;
+  return 1;
+}
+
 static int append_planned_header_declarations(M68kRenderPlan *dest, const M68kRenderPlan *source,
     uint8_t kind, uint32_t row_kind, uint32_t *out_count) {
   char previous_name[sizeof(source->declarations[0].name)];
   uint32_t count = 0U;
   int have_previous = 0;
+  uint8_t *states;
   if (out_count != NULL) *out_count = 0U;
   if (dest == NULL || source == NULL) return 0;
+  states = calloc(source->declaration_count + 1U, sizeof(*states));
+  if (states == NULL) return 0;
   for (;;) {
     const M68kRenderPlannedDeclaration *selected = NULL;
     size_t index;
@@ -499,19 +546,19 @@ static int append_planned_header_declarations(M68kRenderPlan *dest, const M68kRe
       char line[128];
       int length = snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", selected->name);
       if (length <= 0 || (size_t)length >= sizeof(line) ||
-          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) { free(states); return 0; }
+      ++count;
     } else if (kind == M68K_RENDER_PLANNED_DECLARATION_EQUATE) {
-      char line[224];
-      int length = snprintf(line, sizeof(line), "%s\tEQU\t%s\n", selected->name, selected->expression);
-      if (length <= 0 || (size_t)length >= sizeof(line) ||
-          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+      if (!append_planned_equate(dest, source, (size_t)(selected - source->declarations),
+          states, row_kind, &count)) { free(states); return 0; }
     } else {
+      free(states);
       return 0;
     }
     snprintf(previous_name, sizeof(previous_name), "%s", selected->name);
     have_previous = 1;
-    ++count;
   }
+  free(states);
   if (out_count != NULL) *out_count = count;
   return 1;
 }

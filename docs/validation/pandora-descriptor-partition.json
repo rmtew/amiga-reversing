@@ -56,7 +56,7 @@
         "field": "world_position_descriptor_prefix_world_y"
       }
     ],
-    "remaining_gap": "The former 0x84C0 typed load gap is closed by the shared register-seed reconciliation fix; see pandora-descriptor-seed-reconciliation.json for current verification. Descriptor-count and flag-constant operand bindings remain future work."
+    "remaining_gap": "Descriptor pointer, descriptor-count and supported position-state flag operands are now bound. Unknown residual flag bits and the distinct object-record combat bit retain numeric spelling; general mutable-state lifetimes remain unproved."
   },
   "verification": {
     "receipt_id": "19e81b45193f3db3cb34b0495004a0c0f4f3a6635afc709a060328e813868495",
@@ -82,5 +82,43 @@
     "result": "27 passed in 59.78s",
     "scope": "Fresh recovery run before the annotation batch. The batch changed only canonical labels/register types/comment and generated text; subsequent native inspection and exact C/vasm verification cover the annotations.",
     "history_prefixes_preserved": true
+  },
+  "constant_bindings": {
+    "status": "accepted",
+    "equate_count": 6,
+    "operand_count": 51,
+    "instruction_offsets": [
+      "0x84A4",
+      "0x84C4",
+      "0x84D2",
+      "0x8840",
+      "0x933A"
+    ],
+    "typed_flag_initializers": {
+      "0x42": 40,
+      "0x88": 6
+    },
+    "semantics": "32 descriptors; DBF starts at count-1. BTST operands use bit indices 6/7; initializer masks shift these indices and retain unknown residual bits $02/$08.",
+    "selection": "Native instruction contexts and exact typed world_position_render_state_prefix.world_object_flags fields; no substitution from coincident numeric values.",
+    "excluded": "Distinct object-record combat bit 6 at $77C8/$7A48 and unrelated #31 operands.",
+    "framework_fixes": [
+      "Dependency-ordered final EQU emission with cycle rejection and literal-aware symbol matching.",
+      "Preserve exact scalar-field symbolic representations under typed containers; display-only, partial, padding and pointer overlaps retain existing precedence."
+    ],
+    "tests": {
+      "native": 816,
+      "native_ir": 652,
+      "focused_metadata": 62,
+      "affected_pandora_cpu": 40
+    },
+    "asset_count_unchanged": 86,
+    "history_prefixes_preserved": true,
+    "verification": {
+      "receipt_id": "d2f8b2400bf61f48319fcad9aed6963f9d3c961975e04f456363ccf6d7327392",
+      "exact": true,
+      "framework_exact": true,
+      "source_sha256": "4d199e421ef8f10e4f9570fcbec89b13483bf9ad7adf70a74a2d96632f4a05c7",
+      "source_package_sha256": "8175e5459b0ef1bf79876283017281e8467a97c664e0eff44bfdcaaeb37f07ae"
+    }
   }
 }

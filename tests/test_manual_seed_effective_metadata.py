@@ -3223,3 +3223,49 @@ def test_effective_metadata_ignores_manual_seeds_when_log_target_identity_mismat
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["seeded_code_entrypoints"] == []
+
+
+def test_bound_scalar_field_presentation_survives_container_display_style(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    spans = [(0x100, 0x101, "symbol", "FLAGS"),  # exact byte field
+             (0x102, 0x104, "symbol", "FLAGS"), # exact word field
+             (0x100, 0x101, "binary", None),     # display-only field choice
+             (0x102, 0x103, "hex", None),        # partial field
+             (0x100, 0x104, "hex", None),        # crosses fields
+             (0x101, 0x102, "hex", None),        # padding
+             (0x104, 0x108, "symbol", "FLAGS"), # pointer identity
+             (0x110, 0x111, "hex", None)]        # outside the container
+    representations = tuple(ManualRepresentationMetadata(
+        addr=start, end=end, hunk=0, style=ManualRepresentationStyle(style), symbol=symbol,
+        element_kind="data_literal", seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED, citation=f"field-{i}",
+    ) for i, (start, end, style, symbol) in enumerate(spans))
+    write_target_metadata(target_dir, TargetMetadata(
+        target_type="program", entry_register_seeds=(), manual_representations=representations))
+    _append_jsonl(target_dir / MANUAL_ACTION_LOG_FILE_NAME, [
+        {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+        _action("a1", 1, "create_manual_custom_struct", custom_struct={
+            "name": "Packet", "size": 8, "fields": [
+                {"name": "flags", "type": "UBYTE", "offset": 0, "size": 1},
+                {"name": "count", "type": "UWORD", "offset": 2, "size": 2},
+                {"name": "next", "type": "APTR", "offset": 4, "size": 4,
+                 "value_kind": "target_pointer"}]}),
+        _action("a2", 2, "create_manual_data_block_layout", data_block_layout={
+            "layout_id": "packet", "hunk": 0, "source_start": 0x100,
+            "source_end": 0x108, "default_unit": "byte"}),
+        _action("a3", 3, "set_manual_data_block_element", data_block_element={
+            "data_block_element_id": "packet:0", "layout_id": "packet", "offset": 0,
+            "width": 8, "kind": "struct", "representation": "hex",
+            "type_binding": {"type_binding_id": "packet-type", "layout_id": "packet",
+                "element_offset": 0, "element_width": 8, "binding_kind": "custom_struct",
+                "bound_type_id": "Packet", "owner_action_id": "a3"}}),
+        _action("a4", 4, "create_manual_target_equate", target_equate={"name": "FLAGS", "value": 66}),
+    ])
+    payload = json.loads(effective_metadata_text(target_dir))
+    assert {(r["addr"], r["end"], r["style"], r["symbol"])
+            for r in payload["manual_representations"]} == {
+        (0x100, 0x101, "symbol", "FLAGS"), (0x102, 0x104, "symbol", "FLAGS"),
+        (0x110, 0x111, "hex", None)}
+    assert {e["field_name"] for e in payload["seeded_entities"] if e.get("struct_name") == "Packet"} == {
+        "flags", "count", "next"}

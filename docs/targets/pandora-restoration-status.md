@@ -3117,7 +3117,18 @@ all 376,832 original bytes, receipt
 See `docs/validation/pandora-descriptor-seed-reconciliation.json` for hashes,
 native reference evidence and limits.
 
-The next connected gap is semantic binding of descriptor-count and flag-bit
-operands. Nonempty deferred input and equal-depth tie behavior remain unproved
-generally. No further exception-consequence investigation is planned for the
-completed optional patch proof.
+Descriptor-count and supported position-state flag operands are now named at
+51 uses: five instructions and 46 typed initializers, backed by six EQU
+definitions. Bit-test indices and shifted initializer masks remain distinct;
+unknown residual bits and the separate object-record combat bit stay numeric.
+Shared fixes order final EQU definitions by dependency and preserve exact scalar
+field symbols under typed containers. All 816 native tests, 62 focused metadata
+tests and 40 affected Pandora CPU tests pass. C and vasm reproduce all 376,832
+original bytes; 86 asset identities and payload hashes remain unchanged.
+See `docs/validation/pandora-descriptor-partition.json` for the receipt and scope.
+
+The next substantial gap is a typed positive-X animation-node view over the
+existing player-state tail, including its overlapping ownership and lifetime.
+General mutable-state combinations and equal-depth tie behavior remain unproved.
+No further exception-consequence investigation is planned for the completed
+optional patch proof.

@@ -6885,6 +6885,66 @@ static int test_facts_v2_affine_static_interior_expression_same_identity_join_su
   return 0;
 }
 
+static int target_equate_dependency_fixture(int cycle) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[] = {0x4eU, 0x75U};
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  char *assembly_profile = NULL, *assembly_error = NULL;
+  int status;
+  const char *names[] = {"a_flags", "b_last", "late_bit", "count", "FACE", "Q"};
+  const char *expressions[] = {"(1<<late_bit)|$02", "count-1", "6", "32", "$FACE", "'Q'"};
+  int32_t values[] = {66, 31, 6, 32, 0xFACE, 'Q'};
+  size_t index;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes); section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.target_equate_count = 6U;
+  for (index = 0U; index < 6U; ++index) {
+    snprintf(policy.target_equates[index].name, sizeof(policy.target_equates[index].name), "%s", names[index]);
+    policy.target_equates[index].value = values[index];
+    policy.target_equates[index].value_style_id = M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL;
+    snprintf(policy.target_equates[index].value_expr, sizeof(policy.target_equates[index].value_expr),
+      "%s", expressions[index]);
+  }
+  if (cycle) snprintf(policy.target_equates[2].value_expr, sizeof(policy.target_equates[2].value_expr), "a_flags");
+  status = m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile, m68k_diag_sink(NULL));
+  if (cycle) {
+    M68K_C_ASSERT(status != 0 || profile.asm_source_refused != 0U);
+  } else {
+    const char *bit, *flags, *count, *last;
+    M68K_C_ASSERT_INT(0, status);
+    M68K_C_ASSERT(source != NULL);
+    bit = strstr(source, "late_bit\tEQU\t6\n"); flags = strstr(source, "a_flags\tEQU\t(1<<late_bit)|$02\n");
+    count = strstr(source, "count\tEQU\t32\n"); last = strstr(source, "b_last\tEQU\tcount-1\n");
+    M68K_C_ASSERT(bit && flags && count && last);
+    M68K_C_ASSERT(bit < flags && count < last);
+    M68K_C_ASSERT(strstr(source, "FACE\tEQU\t$FACE\n") != NULL);
+    M68K_C_ASSERT(strstr(source, "Q\tEQU\t'Q'\n") != NULL);
+    M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "",
+      source, "68000", &rebuilt, &rebuilt_size, &assembly_profile, &assembly_error));
+    M68K_C_ASSERT(rebuilt_size == sizeof(bytes) && memcmp(rebuilt, bytes, sizeof(bytes)) == 0);
+    platform_file_free_bytes(rebuilt); platform_file_free_text(assembly_profile); platform_file_free_text(assembly_error);
+  }
+  m68k_facts_v2_free_text(source); m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_target_equates_emit_dependencies_before_consumers(void) {
+  return target_equate_dependency_fixture(0);
+}
+
+static int test_target_equates_reject_dependency_cycles(void) {
+  return target_equate_dependency_fixture(1);
+}
+
 static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
   M68kObject object;
   M68kSection section;
@@ -39240,6 +39300,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_affine_static_interior_expression_same_identity_join_survives},
     {"facts_v2_absolute_operand_manual_equate_preserves_encoding",
       test_facts_v2_absolute_operand_manual_equate_preserves_encoding},
+    {"target_equates_emit_dependencies_before_consumers", test_target_equates_emit_dependencies_before_consumers},
+    {"target_equates_reject_dependency_cycles", test_target_equates_reject_dependency_cycles},
     {"facts_v2_render_asm_source_records_manual_equate_access",
       test_facts_v2_render_asm_source_records_manual_equate_access},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",
