@@ -173,6 +173,21 @@ still requires an existing input index. Empty and malformed input arrays remain
 distinct. Native metadata reading accepts compact
 and indented JSON for these arrays without changing the contract or ABI.
 
+Bounded native callee inference may also publish a generated `hardware_base`
+register result with a stable `hardware_base_id`. The proof starts without
+caller hardware values, follows original register transfers, and requires the
+same full address on every reached normal return. Such a result establishes a
+fixed return value; it does not assert that the entry register is preserved.
+Partial writes, unresolved calls, conflicting returns and proof limits retain
+unknown state. This generated result is not a new target-metadata result kind;
+reviewer-authored results remain restricted to `identity_input`. Hardware value
+domains consume validated native address uses, including call/CFG proofs,
+instead of requiring a second linear lifetime proof. Existing manual operand
+representations take precedence over newly inferred value-domain expressions.
+The symbol-element catalog does not yet expose numeric representation editing
+for an already symbolized SDK literal; replay of earlier accepted bindings is
+supported, while adding that editing path remains a separate command gap.
+
 Native policy storage accepts up to 16,384 structured data items and 16,384 named
 labels after array fields expand. The merged pending interpretation is checked
 against the actual binary before any Manual Action Log append; overflow refuses

@@ -39174,8 +39174,39 @@ static int test_function_summary_append_rejects_invalid_effect_state(void) {
   return 0;
 }
 
+static int test_function_summary_hardware_result_requires_a_full_known_register(void) {
+  M68kSectionAnalysisIR section;
+  M68kFunctionSummaryIR summary;
+  uint16_t base_id;
+  memset(&summary, 0, sizeof(summary));
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_custom", &base_id));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section, test_ir_result_arena()));
+  snprintf(summary.function_summary_id, sizeof(summary.function_summary_id), "constant-hardware-return");
+  summary.result_count = 1U;
+  summary.results[0].kind = M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE;
+  summary.results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary.results[0].location.register_count = 1U;
+  summary.results[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary.results[0].location.registers[0].register_index = 5U;
+  summary.results[0].hardware_base_id = base_id;
+  summary.results[0].location.width = 2U;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_function_summary(&section, &summary));
+  summary.results[0].location.width = 4U;
+  summary.results[0].hardware_base_id = 0xffffU;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_function_summary(&section, &summary));
+  summary.results[0].hardware_base_id = base_id;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_function_summary(&section, &summary));
+  M68K_C_ASSERT_U32(1U, section.function_summary_count);
+  M68K_C_ASSERT_U32(base_id, section.function_summaries[0].results[0].hardware_base_id);
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
 int m68k_c_ir_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"function_summary_hardware_result_requires_a_full_known_register",
+      test_function_summary_hardware_result_requires_a_full_known_register},
     {"platform_canonical_row_batch_copies_borrowed_row_data",
       test_platform_canonical_row_batch_copies_borrowed_row_data},
     {"render_evidence_source_order_finalization", test_render_evidence_source_order_finalization},

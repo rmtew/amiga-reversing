@@ -49,6 +49,7 @@
 ;   evidence: no recovered OS calls
 
     INCLUDE "graphics/copper.i"
+    INCLUDE "graphics/display.i"
     INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/blit.i"
     INCLUDE "hardware/cia.i"
@@ -1214,17 +1215,17 @@ abs_0_00010498:
 	move.l a0,m68k_vector_level_3_interrupt_autovector.w
     ; Configure four bitplanes with modulo 120. The frame callback sets plane starts 40 bytes apart, forming an interleaved plane layout.
 	moveq.l #120,d0
-	move.w d0,$0108(a5)
-	move.w d0,$010A(a5)
-	move.w #$4200,$0100(a5)
-	move.w #$2C81,$008E(a5)
-	move.w #$F4C1,$0090(a5)
-	move.w #$38,$0092(a5)
-	move.w #$D0,$0094(a5)
-	move.w #$86C0,$0096(a5)
+	move.w d0,bpl1mod(a5)
+	move.w d0,bpl2mod(a5)
+	move.w #(4<<PLNCNTSHFT)|COLORON,bplcon0(a5)
+	move.w #$2C81,diwstrt(a5)
+	move.w #$F4C1,diwstop(a5)
+	move.w #$38,ddfstrt(a5)
+	move.w #$D0,ddfstop(a5)
+	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_COPPER|DMAF_BLITTER,dmacon(a5)
 	move #$2000,sr
     ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
-	move.w #$C030,$009A(a5)
+	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
 	bsr.w run_title_starfield_until_fire
 	move.w #$100,$0096(a5)
 	lea.l handle_vertical_blank_frame_update(pc),a0
@@ -2014,19 +2015,19 @@ run_title_starfield_until_fire:
 	move.l #FRAMEBUFFER_BANK0_BASE,app_front_bitplane_base(a6)
     ; First cold title entry starts the seeded ascending zero blit over $70000..$7CD28, including loaded-input tail $75370..$7C000. Later contents vary; original tail purpose remains unknown.
 	bsr.w start_seeded_zero_copy_blit
-	move.w #$4000,$009A(a5)
-	move.w #$200,$0096(a5)
+	move.w #INTF_INTEN,intena(a5)
+	move.w #DMAF_MASTER,dmacon(a5)
 	bsr.w initialize_starfield
 	lea.l abs_0_00010DE0(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
-	move.l a0,$0080(a5)
+	move.l a0,cop1lc(a5)
 	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
 	addi.l #150,d5
-	move.w #$C000,$009A(a5)
-	move.w #$8300,$0096(a5)
+	move.w #INTF_SETCLR|INTF_INTEN,intena(a5)
+	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)
 abs_0_00010FD2:
 	bsr.w update_starfield
 	btst.b #0,app_world_interaction_audio_flags(a6)

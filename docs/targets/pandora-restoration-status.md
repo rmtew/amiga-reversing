@@ -3327,3 +3327,38 @@ All 86 asset hashes and both history prefixes are preserved. C and independent
 vasm reproduce all 376,832 original bytes, receipt
 `63c65ac70f7500726ceab857b58be86766251056f1f5cfa9d8724ffcee8c8a1b`.
 See the [compact packet evidence](../validation/pandora-scene-blit-packets.json).
+
+## Display return contracts
+
+Of 27 reviewed display/audio register sites lost across calls or register
+changes, 14 are now resolved: nine bootstrap display writes and five title
+setup writes. Seven corresponding immediate expressions regain SDK symbols.
+Three accepted canonical summaries record prime-blit, world-init
+and starfield-init preservation. World initialization saves/restores A5 on its
+sole normal exit; its six helpers leave A6 unchanged. Starfield initialization
+leaves A5/A6 unchanged across its eight plane-operation continuations. Other
+unproved effects remain conservative and memory/escape effects remain unknown.
+These contracts assume valid original pointers and an ABI-disjoint stack.
+
+The seeded-clear routine instead returns the fixed `_custom` address in A5.
+Bounded native callee inference now represents that generated result separately
+from preservation, requiring one full hardware address on every reached normal
+return. Hardware value symbols consume the same native address facts and retain
+accepted manual operand expressions. The display SDK include is restored
+identically to the earlier published version; existing packet bindings survive.
+
+Thirteen reviewed sites remain numeric: ten audio accesses, two after the whole
+title function returns, and one after the Copper callback. Audio computes
+A6=`_custom+16*channel`, with original channel indices 0..3. A literal `_custom`
+seed would erase this relationship. A bounded channel-relative hardware model
+is the next connected swath; callback/whole-title return closure also remains
+open. This batch does not claim pixel DMA, alias safety or arbitrary replacement
+admission.
+
+819 native tests, 71 focused framework/catalog tests and nine original-instruction
+CPU cases pass. A broader existing decompression check still raises `KeyError:
+codec_id`; its producer is unchanged here. All 86 assets and both historical
+prefixes are preserved. C and independent vasm match all 376,832 original bytes,
+receipt `cba1f3707d5fdb0dfc8fcb6c022613bcf1ec90de90fd7adda2713fe5734183b7`.
+The [site-by-site evidence](../validation/pandora-display-return-contracts.json)
+separates reviewed, resolved and remaining sites.

@@ -5784,6 +5784,56 @@ static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M6
   return candidate_direct_target(candidate, out_section_index, out_target_offset);
 }
 
+/* A bounded callee proof starts with no hardware constants. These compact
+ * values are independent of caller origins and cannot manufacture inputs. */
+typedef struct M68kLocalHardwareValues {
+  uint32_t known[2];
+  uint16_t ids[2][8];
+} M68kLocalHardwareValues;
+
+static void local_hardware_unpack(M68kRenderPlatformState *state, const M68kLocalHardwareValues *values) {
+  memset(state, 0, sizeof(*state));
+  state->data_hardware_base_known = values->known[0];
+  state->address_hardware_base_known = values->known[1];
+  memcpy(state->data_hardware_base_id, values->ids[0], sizeof(values->ids[0]));
+  memcpy(state->address_hardware_base_id, values->ids[1], sizeof(values->ids[1]));
+}
+
+static void local_hardware_pack(M68kLocalHardwareValues *values, const M68kRenderPlatformState *state) {
+  values->known[0] = state->data_hardware_base_known;
+  values->known[1] = state->address_hardware_base_known;
+  memcpy(values->ids[0], state->data_hardware_base_id, sizeof(values->ids[0]));
+  memcpy(values->ids[1], state->address_hardware_base_id, sizeof(values->ids[1]));
+}
+
+static void local_hardware_apply_call(M68kLocalHardwareValues *values,
+    const M68kAnalysisFunctionSummary *summary) {
+  uint8_t kind, reg, index;
+  if (summary != NULL && summary->effects_invalid != 0U) summary = NULL;
+  for (kind = 0U; kind < 2U; ++kind) {
+    for (reg = 0U; reg < 8U; ++reg) {
+      if (function_summary_register_effect(summary,
+          kind == 0U ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
+          M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) {
+        values->known[kind] &= ~((uint32_t)1U << reg);
+        values->ids[kind][reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+      }
+    }
+  }
+  if (summary == NULL || summary->result_contract_invalid != 0U) return;
+  for (index = 0U; index < summary->result_count; ++index) {
+    const M68kAnalysisFunctionSummaryResult *result = &summary->results[index];
+    if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE ||
+        result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+        result->location.width != 4U || result->location.register_count != 1U) continue;
+    reg = result->location.registers[0].register_index;
+    kind = result->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ? 0U : 1U;
+    if (reg >= 8U) continue;
+    values->known[kind] |= (uint32_t)1U << reg;
+    values->ids[kind][reg] = result->hardware_base_id;
+  }
+}
+
 /* Direct-body identity is a pointer-sized register value, not an address-mode
  * claim. Keep the entry register class in one compact encoding so an ABI
  * pointer can enter in Dn and return through An (or vice versa). */
@@ -5828,6 +5878,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
      * value. It is otherwise unknown, so scalar Dn values never manufacture
      * pointer ABI inputs. */
     uint8_t data_origin[8];
+    M68kLocalHardwareValues hardware;
   } M68kTypedLocalCalleeState;
   M68kTypedLocalCalleeState worklist[128];
   M68kTypedLocalCalleeState visited[128];
@@ -5835,6 +5886,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   uint8_t work_count = 0U, visited_count = 0U, returned = 0U, returned_mask = 0U;
   uint16_t input_origin_mask = 0U;
   uint8_t returned_origin[8], returned_data_origin[8];
+  M68kLocalHardwareValues returned_hardware;
   M68kFunctionSummaryMemoryEffectIR static_writes[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
   uint8_t static_write_count = 0U;
@@ -5846,6 +5898,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       section_index >= decode->section_count || accepted_start[section_index] == NULL) return 0;
   section = &decode->sections[section_index];
   if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0;
+  memset(&worklist[0], 0, sizeof(worklist[0]));
+  memset(&returned_hardware, 0, sizeof(returned_hardware));
   worklist[work_count].offset = target_offset;
   worklist[work_count++].saved_mask = 0U;
   worklist[0].preserved_mask = requested_mask;
@@ -5868,7 +5922,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
             visited[index].preserved_mask == state.preserved_mask &&
             visited[index].stack_entry_stable == state.stack_entry_stable &&
             memcmp(visited[index].entry_origin, state.entry_origin, sizeof(state.entry_origin)) == 0 &&
-            memcmp(visited[index].data_origin, state.data_origin, sizeof(state.data_origin)) == 0) break;
+            memcmp(visited[index].data_origin, state.data_origin, sizeof(state.data_origin)) == 0 &&
+            memcmp(&visited[index].hardware, &state.hardware, sizeof(state.hardware)) == 0) break;
       }
       if (index != visited_count) break;
       if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) {
@@ -6181,6 +6236,13 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         state.preserved_mask &= (uint8_t)~typed_flow_instruction_written_unsaved_address_mask(&instruction,
           requested_mask, state.saved_mask);
       }
+      if (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_RETURN &&
+          metadata->flow_kind != M68K_SIM_FLOW_JUMP) {
+        M68kRenderPlatformState hardware;
+        local_hardware_unpack(&hardware, &state.hardware);
+        platform_state_update_after_instruction(&hardware, lookup, &instruction);
+        local_hardware_pack(&state.hardware, &hardware);
+      }
       if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
         size_t callee_section = 0U;
         uint32_t callee_offset = 0U;
@@ -6202,6 +6264,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           memory_effects_unknown = 1U;
           escape_effects_unknown = 1U;
         }
+        local_hardware_apply_call(&state.hardware, callee_summary);
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
           uint8_t reg;
@@ -6217,6 +6280,14 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
         if (state.saved_mask != 0U) return 0U;
+        if (returned == 0U) returned_hardware = state.hardware;
+        else for (uint8_t kind = 0U; kind < 2U; ++kind) {
+          returned_hardware.known[kind] &= state.hardware.known[kind];
+          for (uint8_t reg = 0U; reg < 8U; ++reg) {
+            if (returned_hardware.ids[kind][reg] != state.hardware.ids[kind][reg])
+              returned_hardware.known[kind] &= ~((uint32_t)1U << reg);
+          }
+        }
         if (returned == 0U) returned_mask = state.preserved_mask;
         else returned_mask &= state.preserved_mask;
         if (returned == 0U) {
@@ -6239,6 +6310,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           if (out_limit_hit != NULL) *out_limit_hit = 1U;
           return 0;
         }
+        worklist[work_count].hardware = state.hardware;
         worklist[work_count].offset = branch_target;
         worklist[work_count++].saved_mask = state.saved_mask;
         worklist[work_count - 1U].preserved_mask = state.preserved_mask;
@@ -6344,6 +6416,23 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
     out_summary->results[out_summary->result_count].location.register_count = 1U;
     out_summary->results[out_summary->result_count].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
     out_summary->results[out_summary->result_count++].location.registers[0].register_index = reg;
+  }
+  for (uint8_t kind = 0U; kind < 2U; ++kind) {
+    for (uint8_t reg = 0U; reg < 8U; ++reg) {
+      M68kAnalysisFunctionSummaryResult *result;
+      if ((returned_hardware.known[kind] & ((uint32_t)1U << reg)) == 0U ||
+          out_summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT) continue;
+      result = &out_summary->results[out_summary->result_count++];
+      memset(result, 0, sizeof(*result));
+      result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE;
+      result->hardware_base_id = returned_hardware.ids[kind][reg];
+      result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+      result->location.width = 4U;
+      result->location.register_count = 1U;
+      result->location.registers[0].register_kind =
+        kind == 0U ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+      result->location.registers[0].register_index = reg;
+    }
   }
   function_summary_set_register_partition(out_summary, 0U, returned_mask);
   if (memory_effects_unknown == 0U) {
@@ -8750,6 +8839,19 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
         out_platform_state->data_hardware_base_id[reg] = before.data_hardware_base_id[reg];
       }
     }
+    if (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+      M68kLocalHardwareValues values;
+      M68kRenderPlatformState hardware;
+      local_hardware_pack(&values, &before);
+      local_hardware_apply_call(&values, selected_local_effects);
+      local_hardware_unpack(&hardware, &values);
+      out_platform_state->data_hardware_base_known = hardware.data_hardware_base_known;
+      out_platform_state->address_hardware_base_known = hardware.address_hardware_base_known;
+      memcpy(out_platform_state->data_hardware_base_id, hardware.data_hardware_base_id,
+        sizeof(hardware.data_hardware_base_id));
+      memcpy(out_platform_state->address_hardware_base_id, hardware.address_hardware_base_id,
+        sizeof(hardware.address_hardware_base_id));
+    }
   }
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
   if (candidate_terminates_a6_state(node->candidate)) typed_state_clear_all(out_typed_state);
@@ -9884,7 +9986,9 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     for (uint8_t result_index = 0U; result_index < inferred->result_count; ++result_index) {
       const M68kAnalysisFunctionSummaryResult *inferred_result = &inferred->results[result_index];
       M68kFunctionSummaryResultIR *result = &summary.results[summary.result_count++];
-      result->kind = M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+      result->kind = inferred_result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE ?
+        M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE : M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+      result->hardware_base_id = inferred_result->hardware_base_id;
       result->location = inferred_result->location;
       result->identity_input_index = inferred_result->input_index;
     }

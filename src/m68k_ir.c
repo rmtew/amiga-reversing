@@ -3428,7 +3428,12 @@ static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
     const M68kFunctionSummaryResultIR *result = &summary->results[index];
     if (!m68k_function_summary_abi_location_is_valid(&result->location) ||
         result->kind < M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER ||
-        result->kind > M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) return 0;
+        result->kind > M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE) return 0;
+    if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE &&
+        (result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+         result->location.width != 4U || result->location.register_count != 1U ||
+         platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+           result->hardware_base_id) == NULL)) return 0;
     if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
       const M68kFunctionSummaryAbiLocation *input_location;
       if (result->identity_input_index >= summary->input_count) return 0;

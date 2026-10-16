@@ -12424,7 +12424,8 @@ static int source_quality_hardware_register_immediate_symbol_expr(uint16_t hardw
 }
 
 static int append_expected_hardware_register_value_domain_symbol_accesses_for_section(
-    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+    M68kSectionAnalysisIR *section_analysis, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kAnalysisPolicy *policy) {
   size_t observation_index;
   if (section_analysis == NULL || section == NULL || accepted_start == NULL) return 0;
   for (observation_index = 0U; observation_index < section_analysis->address_observation_count; ++observation_index) {
@@ -12469,6 +12470,59 @@ static int append_expected_hardware_register_value_domain_symbol_accesses_for_se
         return -1;
     }
   }
+  /* CFG/call contracts already publish validated hardware-address uses. Value
+   * domains consume those same facts rather than rerunning a linear lifetime. */
+  for (observation_index = 0U; observation_index < section_analysis->platform_address_use_count; ++observation_index) {
+    const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[observation_index];
+    const M68kDecodeCandidate *candidate;
+    const M68kAddressObservationIR *observation;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    uint16_t hardware_base_id;
+    uint32_t register_offset;
+    int use_bit_domain;
+    size_t operand_index;
+    const char *producer;
+    uint32_t absolute;
+    if (use->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS ||
+        !platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          use->address, &hardware_base_id, &register_offset)) continue;
+    candidate = m68k_decode_ir_find_candidate_at_offset(section, use->offset);
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate) ||
+        m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+        !platform_address_use_operand_matches_accepted_instruction(use, &instruction,
+          M68K_PLATFORM_BACKEND_AMIGA_HUNK)) continue;
+    observation = platform_address_use_matching_observation(section_analysis, use);
+    if (observation != NULL && (observation->conflicted != 0U ||
+        observation->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN)) continue;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) continue;
+    use_bit_domain = metadata->operation_type == M68K_SIM_OP_BIT_TEST ||
+      metadata->operation_type == M68K_SIM_OP_BIT_SET || metadata->operation_type == M68K_SIM_OP_BIT_CLEAR ||
+      metadata->operation_type == M68K_SIM_OP_BIT_CHANGE;
+    producer = source_quality_operand_absolute_offset(&instruction.operands[use->operand_index], &absolute) ?
+      "platform_hardware_register_value_domain_operand" : "platform_hardware_base_register_value_domain_operand";
+    for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
+      char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
+      uint32_t value;
+      uint16_t representation_index;
+      int manual = 0;
+      for (representation_index = 0U; policy != NULL &&
+           representation_index < policy->manual_representation_count; ++representation_index) {
+        const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[representation_index];
+        if (representation->has_section_index && representation->section_index == section_analysis->section_index &&
+            representation->offset == candidate->offset && representation->has_operand_index &&
+            representation->operand_index == operand_index) { manual = 1; break; }
+      }
+      if (manual) continue;
+      if (!m68k_ir_operand_immediate_value(&instruction.operands[operand_index], &value) ||
+          !source_quality_hardware_register_immediate_symbol_expr(hardware_base_id, register_offset,
+            &instruction, use_bit_domain, value, symbol_expr, sizeof(symbol_expr))) continue;
+      if (append_platform_operand_expr_semantic_use(section_analysis, candidate,
+          M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, (uint32_t)operand_index, symbol_expr,
+          use->confidence, producer, use->confidence) != 0) return -1;
+    }
+  }
   return 0;
 }
 
@@ -12484,7 +12538,7 @@ static int append_expected_hardware_register_value_domain_symbol_accesses(M68kSo
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL) continue;
     if (append_expected_hardware_register_value_domain_symbol_accesses_for_section(section_analysis, section,
-        accepted_start[decode_index]) != 0) {
+        accepted_start[decode_index], &source_analysis->policy) != 0) {
       return -1;
     }
   }

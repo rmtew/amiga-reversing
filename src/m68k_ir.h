@@ -178,7 +178,9 @@ typedef enum M68kAnalysisFunctionSummaryResultKind {
   M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 1,
   /* Generated-only. Target metadata remains restricted to identity_input;
    * generated platform contracts carry stable IDs, never copied names. */
-  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 2
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 2,
+  /* Generated-only constant hardware address, proven on every normal return. */
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE = 3
 } M68kAnalysisFunctionSummaryResultKind;
 
 typedef struct M68kAnalysisFunctionSummaryResult {
@@ -187,7 +189,8 @@ typedef struct M68kAnalysisFunctionSummaryResult {
   uint8_t input_index;
   uint16_t platform_library_id;
   uint16_t platform_function_id;
-  uint16_t platform_output_id;
+  /* Result kind selects the stable ID; preserve the existing ABI slot. */
+  union { uint16_t platform_output_id; uint16_t hardware_base_id; };
 } M68kAnalysisFunctionSummaryResult;
 
 typedef enum M68kFunctionSummaryLocationEffect {
@@ -1397,7 +1400,8 @@ typedef enum M68kFunctionSummaryResultKind {
   M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER = 1,
   M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER = 2,
   M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 3,
-  M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 4
+  M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 4,
+  M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE = 5
 } M68kFunctionSummaryResultKind;
 
 /* Results belong to one callable summary.  The ABI output location and
@@ -1413,7 +1417,7 @@ typedef struct M68kFunctionSummaryResultIR {
   int32_t success_reg_value;
   uint16_t platform_library_id;
   uint16_t platform_function_id;
-  uint16_t platform_output_id;
+  union { uint16_t platform_output_id; uint16_t hardware_base_id; };
   union {
     M68kPlatformNamedBaseEffectPayloadIR named_base;
     M68kPlatformTypedEffectPayloadIR typed;

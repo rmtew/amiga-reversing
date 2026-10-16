@@ -4768,6 +4768,13 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         for (result_index = 0U; result_index < summary->result_count; ++result_index) {
           const M68kFunctionSummaryResultIR *result = &summary->results[result_index];
           if (result_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE) {
+            if (json_builder_append(&builder, "{\"kind\":\"hardware_base\",\"location\":") != 0 ||
+                append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
+                json_builder_appendf(&builder, ",\"hardware_base_id\":%u}",
+                  (unsigned)result->hardware_base_id) != 0) goto oom;
+            continue;
+          }
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
             if (json_builder_append(&builder, "{\"kind\":\"identity_input\",\"location\":") != 0 ||
                 append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
