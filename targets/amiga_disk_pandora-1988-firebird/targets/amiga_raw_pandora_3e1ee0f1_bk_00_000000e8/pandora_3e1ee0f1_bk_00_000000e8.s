@@ -1217,23 +1217,23 @@ abs_0_00010498:
 	moveq.l #120,d0
 	move.w d0,bpl1mod(a5)
 	move.w d0,bpl2mod(a5)
-	move.w #(4<<PLNCNTSHFT)|COLORON,bplcon0(a5)
-	move.w #$2C81,diwstrt(a5)
-	move.w #$F4C1,diwstop(a5)
-	move.w #$38,ddfstrt(a5)
-	move.w #$D0,ddfstop(a5)
+	move.w #(4<<PLNCNTSHFT)|COLORON,bplcon0(a5)	; display 4 bitplanes lores color
+	move.w #$2C81,diwstrt(a5)	; display window start v=$2C h=$81
+	move.w #$F4C1,diwstop(a5)	; display window stop v=$F4 h=$C1
+	move.w #$38,ddfstrt(a5)	; display fetch start $38
+	move.w #$D0,ddfstop(a5)	; display fetch stop $D0
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_COPPER|DMAF_BLITTER,dmacon(a5)
 	move #$2000,sr
     ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
 	bsr.w run_title_starfield_until_fire
-	move.w #$100,$0096(a5)
+	move.w #DMAF_RASTER,dmacon(a5)
 	lea.l handle_vertical_blank_frame_update(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l gameplay_split_display_copper_list(pc),a0
-	move.l a0,$0080(a5)
+	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_0001076E(pc),a0
 	move.l a0,app_current_palette(a6)
 	bsr.w start_seeded_zero_copy_blit
@@ -1515,7 +1515,7 @@ handle_level_3_interrupts:
 	beq.b abs_0_00010910
 	movea.l app_copper_interrupt_callback(a6),a0
 	jsr (a0)
-	move.w #$10,$009C(a5)
+	move.w #INTF_COPER,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
 abs_0_00010910:
@@ -2021,7 +2021,7 @@ run_title_starfield_until_fire:
 	lea.l abs_0_00010DE0(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
-	move.l a0,cop1lc(a5)
+	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
@@ -8315,17 +8315,17 @@ restore_tile_columns:
 	movea.l a5,a1
 	exg d4,a5
 wait_tile_rectangle_blit:
-	move.w intreqr(a5),d5
+	move.w intreqr(a5),d5	; interrupt request state
 	btst #INTB_BLIT,d5
 	beq.b wait_tile_rectangle_blit
 	move.w #INTF_BLIT,intreq(a5)
 	move.w #$FFFF,bltalwm(a5)
-	move.l a0,bltapt(a5)
-	move.l a1,bltdpt(a5)
+	move.l a0,bltapt(a5)	; blitter_source pointer
+	move.l a1,bltdpt(a5)	; blitter_destination pointer
 	clr.w bltamod(a5)
 	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #SCENE_TILE_COPY_CONTROL,bltcon0(a5)
-	move.w #SCENE_TILE_BLTSIZE,bltsize(a5)
+	move.w #SCENE_TILE_BLTSIZE,bltsize(a5)	; blitter size 64 rows x 1 words (2 bytes/row)
 	exg d4,a5
 	addq.l #2,a5
 	dbf.w d2,restore_tile_columns
@@ -23199,8 +23199,8 @@ abs_0_0005D968:
 	move.w d1,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9CC
-	move.l a2,$00A0(a6)
-	move.w d1,$00A4(a6)
+	move.l a2,aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w d1,aud0+ac_len(a6)
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
@@ -23208,8 +23208,8 @@ abs_0_0005D9CE:
 	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9EC
-	move.l audio_player_globals_silence_sample_ptr(pc),$00A0(a6)
-	move.w #$20,$00A4(a6)
+	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,audio_channel_runtime_state_update_countdown(a0)
 	beq.b abs_0_0005DA16
@@ -23247,9 +23247,9 @@ abs_0_0005DA1A:
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA6E
-	move.l audio_sample_metadata_sample_ptr.w(a5),$00A0(a6)
-	move.w audio_sample_metadata_sample_length(a5),$00A4(a6)
-	move.w d1,$00A8(a6)
+	move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)
+	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
 	lea.l audio_pitch_scalars(pc),a2
@@ -23262,7 +23262,7 @@ abs_0_0005DA6E:
 	move.w d0,audio_channel_dma_configuration_sample_period(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA94
-	move.w d0,$00A6(a6)
+	move.w d0,aud0+ac_per(a6)	; audio period
 abs_0_0005DA94:
 	sf.b audio_channel_runtime_state_sample_start_pending(a0)
 abs_0_0005DA98:
@@ -23339,7 +23339,7 @@ abs_0_0005DB64:
 	move.w d0,audio_channel_dma_configuration_sample_period(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DB72
-	move.w d0,$00A6(a6)
+	move.w d0,aud0+ac_per(a6)	; audio period
     ; Primary volume: a negative marker retains the cursor but applies its low seven bits. Secondary envelopes retain both cursor and previous volume. Original markers bound the current streams.
 abs_0_0005DB72:
 	subq.b #1,audio_channel_runtime_state_volume_sequence_countdown(a0)
@@ -23357,7 +23357,7 @@ abs_0_0005DB8A:
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DBA4
-	move.w d1,$00A8(a6)
+	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DBA4:
 	bra.w abs_0_0005DAAE
 abs_0_0005DBA8:

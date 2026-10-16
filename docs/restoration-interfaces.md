@@ -188,6 +188,19 @@ The symbol-element catalog does not yet expose numeric representation editing
 for an already symbolized SDK literal; replay of earlier accepted bindings is
 supported, while adding that editing path remains a separate command gap.
 
+`representation.hardware_offset` binds a decoded address-register displacement
+to a registered SDK base's offset domain. The caller supplies `base_symbol`;
+the command takes the encoded offset from the native listing element. Native
+policy admission requires a known base and field, and rendering checks that
+the instruction still contains that displacement. This preserves expressions
+such as `aud0+ac_len(a6)` when A6 selects a channel with a runtime stride.
+It asserts the literal's meaning, supplies SDK dependencies and access notes,
+and creates no runtime address, register identity, or call-preservation fact.
+The same SDK access notes also consume validated native hardware address uses,
+so explanations survive call and CFG proofs alongside operand names. Pointer
+notes inferred from a destination field yield to existing pointer-provenance
+notes. Unknown calls and conflicting values remain conservative.
+
 Native policy storage accepts up to 16,384 structured data items and 16,384 named
 labels after array fields expand. The merged pending interpretation is checked
 against the actual binary before any Manual Action Log append; overflow refuses

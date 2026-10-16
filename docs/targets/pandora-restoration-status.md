@@ -3347,13 +3347,14 @@ return. Hardware value symbols consume the same native address facts and retain
 accepted manual operand expressions. The display SDK include is restored
 identically to the earlier published version; existing packet bindings survive.
 
-Thirteen reviewed sites remain numeric: ten audio accesses, two after the whole
-title function returns, and one after the Copper callback. Audio computes
+At commit `06f34f30`, thirteen reviewed sites remained numeric: ten audio
+accesses, two after the whole title function returns, and one after the Copper
+callback. Audio computes
 A6=`_custom+16*channel`, with original channel indices 0..3. A literal `_custom`
-seed would erase this relationship. A bounded channel-relative hardware model
-is the next connected swath; callback/whole-title return closure also remains
-open. This batch does not claim pixel DMA, alias safety or arbitrary replacement
-admission.
+seed would erase this relationship. The rendering correction below preserves
+this relationship through offset literals; callback/whole-title return closure
+remains open. This batch does not claim pixel DMA, alias safety or arbitrary
+replacement admission.
 
 819 native tests, 71 focused framework/catalog tests and nine original-instruction
 CPU cases pass. A broader existing decompression check still raises `KeyError:
@@ -3362,3 +3363,32 @@ prefixes are preserved. C and independent vasm match all 376,832 original bytes,
 receipt `cba1f3707d5fdb0dfc8fcb6c022613bcf1ec90de90fd7adda2713fe5734183b7`.
 The [site-by-site evidence](../validation/pandora-display-return-contracts.json)
 separates reviewed, resolved and remaining sites.
+
+## Rendering quality correction
+
+The rendering regression is corrected across the full source diff against
+`8fcfd31f`. All 27 reviewed hardware sites are symbolic again, and all 19
+remaining lost instruction/comment occurrences match that baseline. Display
+bit expressions, window/fetch explanations, Copper-list pointers and audio
+field names and notes are restored. No earlier annotation was disproved.
+
+Thirteen accepted offset-domain representations name encoded SDK literals;
+two accepted immediate representations restore DMAF_RASTER and INTF_COPER.
+For audio, `aud0+ac_*` names the offset in the channel selected by
+A6=`_custom+16*channel`; it does not assert a fixed A6 address. The bootstrap
+and interrupt bindings likewise preserve intended offset names without
+inventing whole-title or indirect-callback proofs. Conservative call/write
+invalidation remains active. SDK access notes now consume native address
+proofs as well as these explicit literal domains, retaining richer existing
+pointer-provenance notes.
+
+819 native tests and 298 focused framework/catalog/CPU tests pass, including a
+source snapshot that failed before correction. C and independent vasm reproduce
+all 376,832 original bytes, receipt
+`6c32110f18577bdcf80d6b91e3b38d17722ab6e9ec1d8435ae3f1febf9ea81bb`.
+All 86 assets and both history prefixes are preserved. An isolated build of the
+`8fcfd31f` backend returns the identical missing-Ancient-provider payload for
+the existing `codec_id` failure, establishing that it predates this correction.
+See the [correction evidence](../validation/pandora-render-quality-correction.json)
+and [SDK offset-domain contract](../restoration-interfaces.md). Runtime callback
+closure, pixel DMA, alias safety and arbitrary replacement admission remain open.

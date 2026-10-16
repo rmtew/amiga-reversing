@@ -658,7 +658,8 @@ typedef enum M68kAnalysisRepresentationStyle {
   M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER = 3,
   M68K_ANALYSIS_REPRESENTATION_STYLE_STRING = 4,
   M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL = 5,
-  M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL = 6
+  M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL = 6,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET = 7
 } M68kAnalysisRepresentationStyle;
 
 typedef struct M68kAnalysisManualRepresentation {
@@ -670,9 +671,11 @@ typedef struct M68kAnalysisManualRepresentation {
   uint16_t target_equate_index;
   uint8_t has_source_symbol;
   uint8_t source_symbol_runtime_view;
-  uint32_t source_symbol_section;
+  /* The representation style tags these alternative identities. A hardware
+   * offset is a literal domain, never a claim about the register's value. */
+  union { uint32_t source_symbol_section; uint32_t hardware_offset_base_id; };
   uint32_t source_symbol_offset;
-  uint32_t source_symbol_value;
+  union { uint32_t source_symbol_value; uint32_t hardware_register_offset; };
   uint32_t section_index;
   uint32_t offset;
   uint32_t size;

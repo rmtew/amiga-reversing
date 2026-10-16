@@ -1,0 +1,228 @@
+{
+  "rendering_baseline_commit": "8fcfd31ffd70a54aa9b456f929f7798f0f1a4d77",
+  "correction_parent_commit": "06f34f30304258609019eed4fbd526aeeaf188b7",
+  "scope": "Restore all remaining reviewed hardware names, SDK immediate expressions and explanatory comments lost since 8fcfd31f, retaining conservative call/register invalidation.",
+  "canonical_actions": {
+    "hardware_offset_literals": 13,
+    "sdk_immediate_symbols": 2
+  },
+  "all_reviewed_register_sites": 27,
+  "all_reviewed_sites_symbolic": true,
+  "remaining_lost_baseline_lines": 0,
+  "restored_baseline_line_occurrences": 19,
+  "groups": {
+    "boot": [
+      {
+        "offset": 1254,
+        "text": "move.w d0,bpl1mod(a5)"
+      },
+      {
+        "offset": 1258,
+        "text": "move.w d0,bpl2mod(a5)"
+      },
+      {
+        "offset": 1262,
+        "text": "move.w #(4<<PLNCNTSHFT)|COLORON,bplcon0(a5)\t; display 4 bitplanes lores color"
+      },
+      {
+        "offset": 1268,
+        "text": "move.w #$2C81,diwstrt(a5)\t; display window start v=$2C h=$81"
+      },
+      {
+        "offset": 1274,
+        "text": "move.w #$F4C1,diwstop(a5)\t; display window stop v=$F4 h=$C1"
+      },
+      {
+        "offset": 1280,
+        "text": "move.w #$38,ddfstrt(a5)\t; display fetch start $38"
+      },
+      {
+        "offset": 1286,
+        "text": "move.w #$D0,ddfstop(a5)\t; display fetch stop $D0"
+      },
+      {
+        "offset": 1292,
+        "text": "move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_COPPER|DMAF_BLITTER,dmacon(a5)"
+      },
+      {
+        "offset": 1302,
+        "text": "move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)"
+      },
+      {
+        "offset": 1312,
+        "text": "move.w #DMAF_RASTER,dmacon(a5)"
+      },
+      {
+        "offset": 1338,
+        "text": "move.l a0,cop1lc(a5)\t; copper_list pointer"
+      }
+    ],
+    "title": [
+      {
+        "offset": 3988,
+        "text": "move.w #INTF_INTEN,intena(a5)"
+      },
+      {
+        "offset": 3994,
+        "text": "move.w #DMAF_MASTER,dmacon(a5)"
+      },
+      {
+        "offset": 4016,
+        "text": "move.l a0,cop1lc(a5)\t; copper_list pointer"
+      },
+      {
+        "offset": 4038,
+        "text": "move.w #INTF_SETCLR|INTF_INTEN,intena(a5)"
+      },
+      {
+        "offset": 4044,
+        "text": "move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)"
+      }
+    ],
+    "audio": [
+      {
+        "offset": 317892,
+        "text": "move.l a2,aud0+ac_ptr(a6)\t; sound_sample pointer"
+      },
+      {
+        "offset": 317896,
+        "text": "move.w d1,aud0+ac_len(a6)"
+      },
+      {
+        "offset": 317920,
+        "text": "move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)\t; sound_sample pointer"
+      },
+      {
+        "offset": 317926,
+        "text": "move.w #$20,aud0+ac_len(a6)\t; sound sample length 64 bytes"
+      },
+      {
+        "offset": 318046,
+        "text": "move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)\t; sound_sample pointer"
+      },
+      {
+        "offset": 318052,
+        "text": "move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)"
+      },
+      {
+        "offset": 318058,
+        "text": "move.w d1,aud0+ac_vol(a6)"
+      },
+      {
+        "offset": 318096,
+        "text": "move.w d0,aud0+ac_per(a6)\t; audio period"
+      },
+      {
+        "offset": 318318,
+        "text": "move.w d0,aud0+ac_per(a6)\t; audio period"
+      },
+      {
+        "offset": 318368,
+        "text": "move.w d1,aud0+ac_vol(a6)"
+      }
+    ],
+    "interrupt": [
+      {
+        "offset": 2308,
+        "text": "move.w #INTF_COPER,intreq(a5)"
+      }
+    ]
+  },
+  "native_counts": {
+    "instructions": {
+      "count": 7043,
+      "scope": "native_artifact"
+    },
+    "symbols": {
+      "count": 4489,
+      "scope": "native_artifact"
+    },
+    "references": {
+      "count": 5163,
+      "scope": "native_artifact"
+    },
+    "functions": {
+      "count": 225,
+      "scope": "current accepted analysis"
+    },
+    "fields": {
+      "count": 910,
+      "scope": "native_artifact",
+      "native_record_status_counts": {
+        "resolved": 883,
+        "unresolved": 27
+      }
+    },
+    "edges": {
+      "count": 3418,
+      "scope": "native_artifact"
+    },
+    "gaps": {
+      "count": 89,
+      "scope": "native analysis review items"
+    }
+  },
+  "canonical_declarations": {
+    "custom_structs": 61,
+    "data_block_layouts": 496,
+    "function_summaries": 86,
+    "entry_register_seeds": 71,
+    "rsset_layout_regions": 114,
+    "seeded_code_labels": 835,
+    "target_equates": 276,
+    "manual_data_references": 284,
+    "manual_representations": 1982
+  },
+  "verification": {
+    "receipt_id": "6c32110f18577bdcf80d6b91e3b38d17722ab6e9ec1d8435ae3f1febf9ea81bb",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "ecfb4465e415b5488916de1cadc5e166f7c39f59b5a65ec15a4ececaf784c353",
+    "source_package_sha256": "19156e3d06dc512a6960b461a051e2a8096e4ea0e574932d4615f316a2b11b93",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "preservation": {
+    "assets_unchanged": 86,
+    "both_history_prefixes_preserved": true
+  },
+  "codec_environment_baseline": {
+    "commit": "8fcfd31f",
+    "status": "ok",
+    "payload": {
+      "provider_id": "ancient-cli",
+      "provider_path": "ext\\tools\\ancient\\Ancient.exe",
+      "found": false,
+      "source_offset": 232,
+      "packed_size": 189000,
+      "source_section": 0,
+      "source_section_offset": 232,
+      "source_sha256": "67ed99d005ca8e01fe863335949e3cf511a649b14819abd90b91e24f9c7da824"
+    },
+    "current_payload_identical": true,
+    "test_failure": "KeyError: codec_id"
+  },
+  "tests": {
+    "native": 819,
+    "focused_framework_and_original_cpu": 80,
+    "metadata_catalog_cli_and_rendering": 205,
+    "sdk_symbol_catalog": 13,
+    "source_snapshot_failed_before_correction": true
+  },
+  "limits": [
+    "The thirteen offset-domain facts name encoded literals, not fixed runtime addresses or preserved registers. No new hardware address-use fact is supplied by these representations.",
+    "Audio A6 is _custom+16*channel for original D7=3..0. aud0+ac_* denotes the relative SDK field in that selected channel.",
+    "Whole-title return proof and the indirect Copper callback target/return closure remain open. Existing intent may be expressed without inventing those proofs.",
+    "No old source annotation was disproved. Sound clobber handling remains active; opaque calls and conflicting/partial writes do not acquire hardware identities.",
+    "SDK destination roles supply pointer notes without inferring source-pointer provenance. Existing richer pointer facts take precedence.",
+    "Original-CPU checks model custom registers as a memory shadow, not pixel DMA, alias safety, or arbitrary replacement admission."
+  ]
+}

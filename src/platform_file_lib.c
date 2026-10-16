@@ -1641,6 +1641,7 @@ static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
   { "character", M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER },
   { "string", M68K_ANALYSIS_REPRESENTATION_STYLE_STRING },
   { "symbol", M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL },
+  { "hardware_offset", M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET },
 };
 
 static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) {
@@ -7796,6 +7797,36 @@ static int append_metadata_manual_representation_local(const char *object_start,
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) return 1;
   if (has_end && end > addr) size = end - addr;
   if (has_operand_index && operand_index > 3U) return 1;
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
+    const char *domain_end = NULL;
+    const char *domain = json_object_field_local(object_start, object_end, "hardware_offset", &domain_end);
+    char base_symbol[64], field[96];
+    uint32_t offset = 0U;
+    uint16_t base_id;
+    uint16_t index;
+    int has_offset = 0;
+    M68kAnalysisManualRepresentation *slot;
+    static const char *const keys[] = {"base_symbol", "offset"};
+    if (!has_operand_index || domain == NULL || !json_object_has_only_keys_local(domain, domain_end, keys, 2U) ||
+        !json_optional_string_field_local(domain, domain_end, "base_symbol", base_symbol, sizeof(base_symbol)) ||
+        !json_number_field_local(domain, domain_end, "offset", &offset, &has_offset) || !has_offset || offset > 0x7fffU ||
+        !platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_symbol, &base_id) ||
+        platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          base_id, offset, field, sizeof(field)) == NULL) return 0;
+    for (index = 0U; index < policy->manual_representation_count; ++index) {
+      slot = &policy->manual_representations[index];
+      if (slot->section_index != (has_hunk ? hunk : 0U) || slot->offset != addr ||
+          slot->size != size || !slot->has_operand_index || slot->operand_index != operand_index) continue;
+      return slot->style_id == style_id && slot->hardware_offset_base_id == base_id &&
+        slot->hardware_register_offset == offset;
+    }
+    if (!policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size,
+        style_id, 1U, (uint8_t)operand_index, NULL)) return 0;
+    slot = &policy->manual_representations[policy->manual_representation_count - 1U];
+    slot->hardware_offset_base_id = base_id;
+    slot->hardware_register_offset = offset;
+    return 1;
+  }
   {
     const char *identity_end = NULL;
     const char *identity = json_object_field_local(object_start, object_end, "source_symbol", &identity_end);
@@ -9282,6 +9313,7 @@ static const char *manual_representation_style_name_local(uint8_t style_id) {
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) return "character";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) return "string";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) return "symbol";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) return "hardware_offset";
   return "none";
 }
 
@@ -10430,6 +10462,13 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (representation->has_operand_index &&
         json_builder_appendf(builder, ",\"operand_index\":%u", (unsigned)representation->operand_index) != 0)
       return -1;
+    if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
+      if (json_builder_append(builder, ",\"hardware_offset\":{\"base_symbol\":") != 0 ||
+          json_builder_append_json_string(builder, platform_facts_v2_hardware_base_symbol(
+            M68K_PLATFORM_BACKEND_AMIGA_HUNK, (uint16_t)representation->hardware_offset_base_id)) != 0 ||
+          json_builder_appendf(builder, ",\"offset\":%u}",
+            (unsigned)representation->hardware_register_offset) != 0) return -1;
+    }
     if (representation->has_source_symbol && json_builder_appendf(builder,
         ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,\"runtime_view\":%u,\"encoded_value\":%u}",
         (unsigned)representation->source_symbol_section, (unsigned)representation->source_symbol_offset,

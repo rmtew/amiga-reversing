@@ -2456,7 +2456,7 @@ def _validate_candidate_policy_capacity(
     if not any(manual_action_kind(str(action["kind"])) in _POLICY_STORAGE_ACTION_KINDS
                or (action.get("kind") == ManualActionKind.CREATE_MANUAL_REPRESENTATION
                    and isinstance(action.get("representation"), dict)
-                   and action["representation"].get("style") == "symbol")
+                   and action["representation"].get("style") in {"symbol", "hardware_offset"})
                for action in pending_actions):
         return
     from amiga_reversing.disasm.c_backend import validate_policy_storage_with_c_backend

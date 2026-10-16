@@ -222,7 +222,9 @@ def target_catalog_manual_payload(
     if action.get("action") == "remove_manual_data_block_layout":
         return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
     if action.get("action") == "rename_manual_data_block_elements":
-        from amiga_reversing.disasm.manual_actions import normalize_data_block_element_renames
+        from amiga_reversing.disasm.manual_actions import (
+            normalize_data_block_element_renames,
+        )
         return "rename_manual_data_block_elements", {
             "data_block_element_renames": normalize_data_block_element_renames(params.get("renames"))
         }
@@ -517,6 +519,13 @@ def listing_element_action_catalog(
         actions.append(_context_log_action(
             "representation.symbol", "Use displacement symbol", "set_representation", context,
             {"representation": "symbol"}, _symbol_representation_parameter_schema()))
+    if (element_kind == "displacement"
+            and (displacement := _optional_int(context.get("displacement"))) is not None
+            and 0 <= displacement <= 32767):
+        actions.append(_context_log_action(
+            "representation.hardware_offset", "Use hardware register offset", "set_representation", context,
+            {"representation": "hardware_offset"},
+            {"type": "object", "properties": {"base_symbol": {"type": "string"}}, "required": ["base_symbol"]}))
     if element_kind == "immediate":
         actions.append(
             _context_log_action(
@@ -5044,8 +5053,8 @@ def _representation_payload(
     params: Mapping[str, object],
 ) -> dict[str, object]:
     style = params.get("representation")
-    if style not in {"hex", "binary", "character", "string", "symbol"}:
-        raise ValueError("representation must be hex, binary, character, string, or symbol")
+    if style not in {"hex", "binary", "character", "string", "symbol", "hardware_offset"}:
+        raise ValueError("representation must be hex, binary, character, string, symbol, or hardware_offset")
     addr = _int_field(row, "start_offset", fallback="addr")
     element_kind = str((element_context or {}).get("element_kind") or "")
     representation: dict[str, object] = {
@@ -5058,6 +5067,14 @@ def _representation_payload(
     end = _optional_int(row.get("end_offset"))
     if end is not None and end > addr:
         representation["end"] = end
+    if style == "hardware_offset":
+        context = selected_listing_element_context(row, element_context or {})
+        offset = _optional_int(context.get("displacement"))
+        base = params.get("base_symbol")
+        if (context.get("element_kind") != "displacement" or offset is None
+                or not 0 <= offset <= 32767 or not isinstance(base, str) or not base.strip()):
+            raise ValueError("hardware offset requires a decoded address-register displacement and base symbol")
+        representation["hardware_offset"] = {"base_symbol": base.strip(), "offset": offset}
     if style == "symbol":
         symbol = params.get("symbol")
         if not isinstance(symbol, str) or not symbol.strip():

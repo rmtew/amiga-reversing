@@ -5378,6 +5378,21 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
     int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
     int is_absolute = operand_absolute_offset_local(operand, &value);
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+    if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
+      char field[96];
+      const char *symbol;
+      if (!is_base_displacement || displacement < 0 ||
+          representation->hardware_offset_base_id > UINT16_MAX ||
+          (uint32_t)displacement != representation->hardware_register_offset) return -1;
+      symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        (uint16_t)representation->hardware_offset_base_id, representation->hardware_register_offset,
+        field, sizeof(field));
+      if (symbol == NULL) return -1;
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.has_name = 1U;
+      snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol);
+      continue;
+    }
     if (representation != NULL && representation->has_source_symbol) {
       uint32_t rendered_value = representation->source_symbol_offset;
       uint32_t runtime_value = 0U;

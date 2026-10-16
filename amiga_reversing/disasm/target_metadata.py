@@ -76,6 +76,7 @@ class ManualRepresentationStyle(StrEnum):
     CHARACTER = "character"
     STRING = "string"
     SYMBOL = "symbol"
+    HARDWARE_OFFSET = "hardware_offset"
 
 
 class DataBlockElementKind(StrEnum):
@@ -1354,6 +1355,7 @@ class ManualRepresentationMetadata:
     operand_index: int | None = None
     symbol: str | None = None
     source_symbol: dict[str, object] | None = None
+    hardware_offset: dict[str, object] | None = None
     source_id: str | None = None
     source_path: str | None = None
     source_locator: str | None = None
@@ -1361,6 +1363,15 @@ class ManualRepresentationMetadata:
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
         assert isinstance(self.style, ManualRepresentationStyle)
+        if self.style == ManualRepresentationStyle.HARDWARE_OFFSET:
+            domain = self.hardware_offset
+            if (not isinstance(domain, dict) or set(domain) != {"base_symbol", "offset"}
+                    or not isinstance(domain["base_symbol"], str) or not domain["base_symbol"]
+                    or type(domain["offset"]) is not int or not 0 <= domain["offset"] <= 32767
+                    or self.operand_index is None or self.element_kind != "displacement"):
+                raise ValueError("invalid hardware offset literal domain")
+        elif self.hardware_offset is not None:
+            raise ValueError("hardware offset domain requires hardware_offset style")
         if self.source_symbol is not None:
             identity = self.source_symbol
             if (not isinstance(identity, dict) or set(identity) != {
@@ -1405,6 +1416,7 @@ class ManualRepresentationMetadata:
             operand_index=operand_index,
             symbol=symbol,
             source_symbol=payload.get("source_symbol"),
+            hardware_offset=payload.get("hardware_offset"),
             seed_origin=_target_metadata_seed_origin(seed_origin),
             review_status=_target_metadata_review_status(review_status),
             citation=citation,
@@ -2142,6 +2154,8 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     for representation in payload.get("manual_representations", ()):
         if representation.get("source_symbol") is None:
             representation.pop("source_symbol", None)
+        if representation.get("hardware_offset") is None:
+            representation.pop("hardware_offset", None)
     for entity in payload.get("seeded_entities", ()):
         for key in ("pointer_address_domain", "pointer_symbol_group", "source_owner_start", "source_owner_size"):
             if entity.get(key) is None:
