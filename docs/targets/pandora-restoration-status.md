@@ -3176,3 +3176,35 @@ Known count/sequence pairs fit; arbitrary later mutation and shared-node lifetim
 are not proved by this static/local execution pass. Equal-depth tie behavior and
 allocation lifetime remain separate engine questions. No further consequence
 investigation is planned for the completed optional patch proof.
+
+## Grouped animation gaps and primary audio dispatcher
+
+The follow-up inspected the four animation gaps together. None acquired a new
+supported meaning: all 89 known node bytes at +11 are zero; the four numeric
++11 accesses belong to keyboard/audio state. The optional XY field has only
+known consumers, and no initialized node enables XY or chaining. Three flag-5
+readers establish the proximity variant and X bias, without proving a physical
+orientation. The 14 trailing frame pointers resemble two seven-entry sequences,
+but have neither an established consumer nor literal pointers into their range
+anywhere in the original image. Computed references and later mutations remain
+open. No initial shared-node alias was found among the inspected typed render
+states; script reuse does not establish lifetime or scheduling. The compact
+[gap evidence](../validation/pandora-animation-gap-pass.json) retains these limits.
+
+The next connected source batch restores primary audio dispatch contracts using
+existing schemas. All 11 original signed-offset control handlers retain the
+48-byte runtime and 12-byte DMA record bases to their decoder/exit continuations.
+The shared note decoder uses the loaded or selected sample record. Twenty-five
+canonical register facts restore **50 named field operands across 45
+instructions**: runtime fields 46→82, resolved DMA fields 18→27, sample fields
+7→12. One pre-existing unresolved secondary DMA access remains unchanged.
+No new field meanings, table extents, or arbitrary-selector safety were asserted.
+
+All 37 focused tests pass, including 11 original dispatch targets, four channel
+stride producers, existing audio command cases and animation sequence regressions.
+Full C and vasm reproduction matches all 376,832 original bytes, receipt
+`4c9fbfc61b3d075199b627404ffef80d17fe859433eceb0266f98613dc7add21`.
+All 86 asset identities, paths, sizes and hashes, all data directives and history
+prefixes are preserved. See the [audio evidence](../validation/pandora-audio-dispatch-contracts.json).
+Invalid opcodes, replacement program bounds, sample allocation lifetimes and
+Paula DMA timing remain outside this local CPU/static proof.

@@ -1,0 +1,157 @@
+{
+  "baseline_commit": "ab394267e52d2445cb327c68d462ed254d73e3a6",
+  "scope": "Grouped static producer/consumer inspection; absence of accepted references or literal encodings is not proof of unreachability.",
+  "newly_resolved_unknown_meanings": 0,
+  "frame_tail": {
+    "source_start": 299428,
+    "source_end": 299484,
+    "entries": 14,
+    "native_named_references": [],
+    "whole_original_image_literal_pointer_hits": {
+      "299428": [],
+      "299432": [],
+      "299436": [],
+      "299440": [],
+      "299444": [],
+      "299448": [],
+      "299452": [],
+      "299456": [],
+      "299460": [],
+      "299464": [],
+      "299468": [],
+      "299472": [],
+      "299476": [],
+      "299480": []
+    },
+    "observed_pattern": "Two seven-entry groups mirror held-plus-six forward/reverse sequences using frame indices 12..17. No established consumer/count; no sequence-role fact applied."
+  },
+  "node_byte_11": {
+    "nodes": 89,
+    "initial_values": {
+      "0": 89
+    },
+    "raw_displacement_uses": [
+      {
+        "source_offset": 1698,
+        "text": "tst.b $000B(a0)"
+      },
+      {
+        "source_offset": 318040,
+        "text": "tst.b $000B(a4)"
+      },
+      {
+        "source_offset": 318090,
+        "text": "tst.b $000B(a4)"
+      },
+      {
+        "source_offset": 318592,
+        "text": "tst.b $000B(a4)"
+      }
+    ],
+    "explanation": "0x6A2 is the keyboard table; 0x4DA58, 0x4DA8A and 0x4DC80 use audio DMA start_pending. No node-byte use established; keep unknown, not padding."
+  },
+  "variant_bit_5": {
+    "reader_source_offsets": [
+      32334,
+      32386,
+      32456
+    ],
+    "known": "Selects X bias 8 versus 16 and proximity sequence pair 1 versus 0.",
+    "unknown": "Physical orientation/purpose remains unproved; no new direction name applied."
+  },
+  "optional_producers": {
+    "initialized_xy_nodes": 0,
+    "initialized_chain_nodes": 0,
+    "xy_field_native_accesses": [
+      {
+        "field_name": "xy_sequence_ptr",
+        "field_offset": 12,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "WorldPositionStateNode",
+        "provenance": {
+          "kind": 7,
+          "section_index": 0,
+          "source_offset": 38178
+        },
+        "root_struct_name": "WorldPositionStateNode",
+        "section_index": 0,
+        "source_offset": 38208
+      },
+      {
+        "field_name": "xy_sequence_ptr",
+        "field_offset": 12,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "WorldPositionStateNode",
+        "provenance": {
+          "kind": 7,
+          "section_index": 0,
+          "source_offset": 38178
+        },
+        "root_struct_name": "WorldPositionStateNode",
+        "section_index": 0,
+        "source_offset": 38314
+      },
+      {
+        "field_name": "xy_sequence_ptr",
+        "field_offset": 12,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "WorldPositionStateNode",
+        "provenance": {
+          "kind": 7,
+          "section_index": 0,
+          "source_offset": 38178
+        },
+        "root_struct_name": "WorldPositionStateNode",
+        "section_index": 0,
+        "source_offset": 38320
+      },
+      {
+        "field_name": "xy_sequence_ptr",
+        "field_offset": 12,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "WorldPositionStateNode",
+        "provenance": {
+          "kind": 7,
+          "section_index": 0,
+          "source_offset": 38178
+        },
+        "root_struct_name": "WorldPositionStateNode",
+        "section_index": 0,
+        "source_offset": 38348
+      }
+    ],
+    "chain_field_native_accesses": [
+      {
+        "field_name": "next_node_ptr",
+        "field_offset": 18,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "WorldPositionChainedStateNode",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 38274
+        },
+        "root_struct_name": "WorldPositionChainedStateNode",
+        "section_index": 0,
+        "source_offset": 38274
+      }
+    ],
+    "raw_offset_12_explanations": {
+      "0x6BA": "keyboard key 12",
+      "0x28B6/0x28C8": "palette WORD",
+      "0x71C2": "stack adjustment",
+      "0xA228": "tile pointer grid stride",
+      "0x4DC14": "audio pitch sequence pointer"
+    },
+    "boundary": "No concrete producer established. Existing command replacements preserve XY and chain mode, so they do not establish initialization or reachability."
+  },
+  "initial_shared_node_aliases": [],
+  "lifetime_boundary": "No shared initialized state-node target was found in this typed population. Multiple script commands can install or reset a node over time. Transitive writes, command ordering and arbitrary replacement/lifetime remain open.",
+  "next_subsystem": "Primary audio indirect control dispatcher; existing 48-byte runtime and 12-byte DMA/sample schemas are lost at shared command roots.",
+  "initial_alias_scope": "Initialized typed render-state records/prefixes in the published metadata; no duplicate nonzero state-node target was found in that population."
+}

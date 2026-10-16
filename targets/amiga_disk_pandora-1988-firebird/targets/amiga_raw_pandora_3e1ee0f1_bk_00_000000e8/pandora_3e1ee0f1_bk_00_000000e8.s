@@ -23137,47 +23137,48 @@ abs_0_0005DA12:
 	bra.w abs_0_0005DAAE
 abs_0_0005DA16:
 	clr.b audio_channel_runtime_state_channel_flags.w(a0)
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A5=Target code-entry register seed:audio_sample_metadata
 abs_0_0005DA1A:
 	moveq.l #0,d0
 	move.b (a1)+,d0
 	bmi.w abs_0_0005DBA8
-	move.b d0,$0002(a0)
+	move.b d0,audio_channel_runtime_state_current_note(a0)
 	add.b audio_global_note_offset(pc),d0
-	add.b $0003(a0),d0
-	movea.l $0022(a0),a2
+	add.b audio_channel_runtime_state_note_offset(a0),d0
+	movea.l audio_channel_runtime_state_volume_sequence_start_ptr(a0),a2
 	move.b (a2)+,d1
-	move.l a2,$0026(a0)
-	move.b $002A(a0),$002B(a0)
+	move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)
+	move.b audio_channel_runtime_state_volume_sequence_interval(a0),audio_channel_runtime_state_volume_sequence_countdown(a0)
 	ext.w d1
-	move.l $0000(a5),$0000(a4)
-	move.w $0008(a5),$0004(a4)
+	move.l audio_sample_metadata_sample_ptr.w(a5),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.w audio_sample_metadata_sample_length(a5),audio_channel_dma_configuration_sample_length(a4)
 	move.w audio_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
-	move.w d1,$0008(a4)
-	tst.b $000B(a4)
+	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA6E
-	move.l $0000(a5),aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w $0008(a5),aud0+ac_len(a6)
+	move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)
 	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
 	lea.l audio_pitch_scalars(pc),a2
-	move.w $000A(a5),d1
+	move.w audio_sample_metadata_sample_period(a5),d1
 	moveq.l #10,d2
 	add.w d0,d0
 	move.w $0(a2,d0.w),d0
 	mulu.w d1,d0
 	lsr.l d2,d0
-	move.w d0,$0006(a4)
-	tst.b $000B(a4)
+	move.w d0,audio_channel_dma_configuration_sample_period(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA94
 	move.w d0,aud0+ac_per(a6)	; audio period
 abs_0_0005DA94:
-	sf.b $0016(a0)
+	sf.b audio_channel_runtime_state_sample_start_pending(a0)
 abs_0_0005DA98:
-	move.l a1,$0004(a0)
-	move.w $001C(a0),$001E(a0)
+	move.l a1,audio_channel_runtime_state_program_cursor(a0)
+	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
 	move.w #$8200,d1
 	bset d7,d1
 	move.w d1,_custom+dmacon.l
@@ -23275,7 +23276,7 @@ abs_0_0005DBA8:
 	blt.b abs_0_0005DBBE
 	subi.b #223,d0
 	mulu.w audio_duration_multiplier(pc),d0
-	move.w d0,$001C(a0)
+	move.w d0,audio_channel_runtime_state_update_reload_countdown(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBBE:
 	cmp.b #$C0,d0
@@ -23284,7 +23285,7 @@ abs_0_0005DBBE:
 	lea.l audio_sample_metadata(pc),a5
 	mulu.w #$C,d0
 	adda.w d0,a5
-	move.l a5,$0018(a0)
+	move.l a5,audio_channel_runtime_state_sample_metadata_ptr(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBDA:
 	cmp.b #$B0,d0
@@ -23294,8 +23295,8 @@ abs_0_0005DBDA:
 	lea.l audio_volume_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
-	move.l a2,$0022(a0)
-	move.b -$0001(a2),$002A(a0)
+	move.l a2,audio_channel_runtime_state_volume_sequence_start_ptr(a0)
+	move.b -$0001(a2),audio_channel_runtime_state_volume_sequence_interval(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBFE:
 	cmp.b #$A0,d0
@@ -23305,69 +23306,80 @@ abs_0_0005DBFE:
 	lea.l audio_pitch_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
-	move.l a2,$000C(a0)
-	move.l a2,$0010(a0)
+	move.l a2,audio_channel_runtime_state_pitch_sequence_start_ptr(a0)
+	move.l a2,audio_channel_runtime_state_pitch_sequence_cursor(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DC20:
 	add.b d0,d0
 	lea.l audio_control_opcode_handler_offsets(pc),a2
 	movea.w $0(a2,d0.w),a2
 	jmp $0(a3,a2.w)
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 advance_audio_sequence_program:
-	move.w $000A(a0),d0
-	movea.w $0008(a0),a2
+	move.w audio_channel_runtime_state_channel_configuration_cursor_offset(a0),d0
+	movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2
 	adda.w d0,a2
 	addq.w #2,d0
 	tst.w $0(a3,a2.w)
 	bne.b abs_0_0005DC46
-	movea.w $0008(a0),a2
+	movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2
 	moveq.l #2,d0
 abs_0_0005DC46:
 	movea.w $0(a3,a2.w),a1
 	adda.l a3,a1
-	move.w d0,$000A(a0)
+	move.w d0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 enable_audio_pitch_delta:
-	clr.w $0020(a0)
-	move.b (a1)+,$0014(a0)
-	move.b (a1)+,$0015(a0)
-	bset.b #1,$0000(a0)
+	clr.w audio_channel_runtime_state_pitch_delta_accumulator(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_delta_step(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_delta_countdown(a0)
+	bset.b #1,audio_channel_runtime_state_channel_flags.w(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 start_audio_silence_sample:
-	move.w $001C(a0),$001E(a0)
-	move.l a1,$0004(a0)
-	move.l audio_silence_sample_ptr(pc),$0000(a4)
-	move.w #$20,$0004(a4)
-	tst.b $000B(a4)
+	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
+	move.l a1,audio_channel_runtime_state_program_cursor(a0)
+	move.l audio_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DC92
 	move.l audio_silence_sample_ptr(pc),$00A0(a6)
 	move.w #$20,$00A4(a6)
 abs_0_0005DC92:
 	bra.w abs_0_0005DAAE
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 enable_audio_channel_dma_and_reload_duration:
 	bra.w abs_0_0005DA98
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 reset_audio_channels_command:
 	bra.w reset_audio_channels
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 set_audio_global_note_offset:
 	move.b (a1)+,$052A(a3)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 enable_audio_pitch_modulation:
-	st.b $0001(a0)
-	move.b (a1)+,$002C(a0)
-	move.b (a1)+,$002E(a0)
-	clr.b $002D(a0)
+	st.b audio_channel_runtime_state_pitch_modulation_flags(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_modulation_step(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_modulation_limit(a0)
+	clr.b audio_channel_runtime_state_pitch_modulation_value(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 disable_audio_pitch_modulation:
-	sf.b $0001(a0)
+	sf.b audio_channel_runtime_state_pitch_modulation_flags(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 set_audio_channel_note_offset:
-	move.b (a1)+,$0003(a0)
+	move.b (a1)+,audio_channel_runtime_state_note_offset(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 set_audio_channel_program_configuration:
-	move.b (a1)+,$0008(a0)
-	move.b (a1)+,$0009(a0)
-	move.w #$0,$000A(a0)
+	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset(a0)
+	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset+1(a0)
+	move.w #$0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 set_audio_duration_multiplier_from_signed_byte:
 	move.b (a1)+,d0
 	ext.w d0
