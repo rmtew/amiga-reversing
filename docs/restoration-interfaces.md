@@ -58,8 +58,14 @@ start a new build. Responses include `revision`,
 and `next_cursor`; send that cursor with the same query and revision to continue.
 The server rejects stale cursors rather than joining different snapshots.
 
-`typed_pointers` selects canonical bound fields with explicit pointer semantics,
-and supports only the optional `struct_name` filter. Its total and outcome/reason
+`typed_pointers` selects canonical bound fields with explicit pointer semantics.
+Use `struct_name` and/or `section_index`, with optional `source_offset` (inclusive)
+and `end_offset` (exclusive), to inspect a source family. Interval bounds require
+the section and select **field starts**; returned fields retain their complete
+native extent even if an upper bound cuts through one. Selection happens before
+native row lookup, so unselected families do not inflate work or counts. Cursors
+bind the complete filter set and refuse reuse with another interval.
+Its total and outcome/reason
 counts cover the entire selected population, while field details are paged.
 With `exceptions_only: true`, `total` counts unresolved/invalid fields and
 `population_total` retains the full denominator. The UI's **Pointer exceptions**
@@ -83,10 +89,47 @@ relations include `callers`, `callees`, `ranges`, `owned_blocks`,
 `unresolved_transfers`, `entry_evidence` and `name_evidence`. Ownership is a
 conservative candidate, not proof of a complete function boundary.
 
+Native CFG queries include accepted traced destinations for indirect transfers,
+using each code-start fact's source section and instruction offset. A resolved
+destination edge identifies a known candidate; it does not close the target set.
+The unresolved edge remains alongside candidates because discovery does not
+establish completeness across mutable stores or all callers. Table addresses,
+cross-section aliases and unaccepted instruction starts are not destinations.
+
 For mutation parameters use `--request request.json` (or `--request -` for stdin).
 RSSET region renaming requires an explicit `size` from the current declaration.
 An omitted extent can otherwise become four bytes and cover neighboring fields.
 Existing add/edit defaults and historical records remain supported.
+
+`target.data_block.layout.rename` takes an active manual `layout_id` and `name`.
+It reuses the existing sparse layout-edit action, preserving the ID, range,
+role, elements, type bindings and interpreted references. Unknown or removed
+manual IDs are refused before append. This does not rename source symbols;
+use inspected `label.rename` actions for those identities as a separate part
+of the same swath. Seeded-only layouts must first have a supported manual
+layout identity rather than relying on implicit range/default reconstruction.
+
+`target.data_block.layout.describe` takes an active manual `layout_id` and a
+nonempty `role`. It uses the same sparse edit/history path as layout rename,
+preserving name, extent, unit, elements, type bindings and reference identities.
+Use it to refine a resource's discovered uses without replacing its owner or
+rewriting history. Unknown identities and stale revisions refuse the edit.
+
+A row `label.rename` explicitly supersedes its predecessor name at the same
+section/address within its address domain, including an older manual label
+with a different ID. The renamed declaration takes precedence; unrelated
+same-address aliases remain available. Repeated row renames retain their name
+chain through replay and undo/redo. Original metadata and action history are
+preserved. This avoids an accepted rename silently rendering the older name.
+
+`target.data_block.elements.rename` accepts 1..1000 explicit `{layout_id,
+offset, name}` selectors. It changes only names of active manual elements,
+preserving their widths, types, binding IDs, binding provenance and reference
+owners. Duplicate identities, unknown elements and non-name edits refuse the
+whole append. Normal undo/redo applies to the single bulk action. This is useful
+for propagating a reviewed owner identity without recreating every typed element.
+RSSET aggregate extents support 1..32767 bytes through the catalog, metadata
+projection and native policy; absolute-storage slots retain their separate limit.
 The file is an object of operation parameters, without `operation`. For example:
 
 ```json
@@ -131,8 +174,64 @@ as fresh catalog state, so dependent commands require a new inspection.
 `target.function_summary.add` also accepts the canonical optional `results`,
 `effects` and `note` fields. Explicit register effects must partition all sixteen
 general registers; omitted effects remain unknown. The command validates the
-complete summary before appending it. Native metadata reading accepts compact
+complete summary before appending it. `inputs: []` is valid for an effect-only
+leaf with no typed pointer arguments; an identity result or input-relative effect
+still requires an existing input index. Empty and malformed input arrays remain
+distinct. Native metadata reading accepts compact
 and indented JSON for these arrays without changing the contract or ABI.
+
+Bounded native callee inference may also publish a generated `hardware_base`
+register result with a stable `hardware_base_id`. The proof starts without
+caller hardware values, follows original register transfers, and requires the
+same full address on every reached normal return. Such a result establishes a
+fixed return value; it does not assert that the entry register is preserved.
+Partial writes, unresolved calls, conflicting returns and proof limits retain
+unknown state. This generated result is not a new target-metadata result kind;
+reviewer-authored results remain restricted to `identity_input`. Hardware value
+domains consume validated native address uses, including call/CFG proofs,
+instead of requiring a second linear lifetime proof. Existing manual operand
+representations take precedence over newly inferred value-domain expressions.
+The symbol-element catalog does not yet expose numeric representation editing
+for an already symbolized SDK literal; replay of earlier accepted bindings is
+supported, while adding that editing path remains a separate command gap.
+
+`representation.hardware_offset` binds a decoded address-register displacement
+to a registered SDK base's offset domain. The caller supplies `base_symbol`;
+the command takes the encoded offset from the native listing element. Native
+policy admission requires a known base and field, and rendering checks that
+the instruction still contains that displacement. This preserves expressions
+such as `aud0+ac_len(a6)` when A6 selects a channel with a runtime stride.
+It asserts the literal's meaning, supplies SDK dependencies and access notes,
+and creates no runtime address, register identity, or call-preservation fact.
+The same SDK access notes also consume validated native hardware address uses,
+so explanations survive call and CFG proofs alongside operand names. Pointer
+notes inferred from a destination field yield to existing pointer-provenance
+notes. Unknown calls and conflicting values remain conservative.
+
+`target.code.hardware_indexed_input.add` declares an explicit entry precondition:
+an address register equals a registered hardware base plus `stride` times the
+low WORD of a data register. Its `hardware_indexed` object contains
+`base_symbol`, `index_register`, `stride` and a sorted closed `index_values`
+list of at most eight nonnegative members. The command also requires an entry
+address, section, destination register and precondition note. Native admission
+checks the registered base, register classes, set capacity and offset extent
+before history is appended. Source comments say `INPUT contract`, rather than
+presenting the destination as a fixed address or a recovered game struct.
+
+The bounded hardware solver tracks low-WORD constants, moves, immediate shifts
+and multiplies, ADDA.W, and DBF's separate backedge/exhaustion states. It unions
+closed sets at joins and discards unknown or overflowing sets. Its fixed point
+is independent of typed-memory propagation; an exhausted hardware proof budget
+publishes no family facts. Calls, unmodelled/partial writes, memory loads and
+address autoupdates invalidate the affected domain. Each member must resolve
+to the same SDK register-family field before an automatic symbol/note is added.
+The resulting `hardware_register_family` facts expose `relative_base_offsets`
+and `proof_scope: analysis_entry_contracts`; `address` and `effective_address`
+are null. `requires_indexed_input_contract` records whether such an explicit
+indexed precondition supplied the bounds, including after scalar transfers and
+joins. Literal offset interpretations remain valid fallbacks where these
+bounds are unknown. An accepted input precondition is not proof that every
+possible indirect caller or opcode supplies it.
 
 Native policy storage accepts up to 16,384 structured data items and 16,384 named
 labels after array fields expand. The merged pending interpretation is checked
@@ -233,6 +332,11 @@ address, size/alignment, CPU placement, persistent lifetime and DMA requirement
 through ordinary revision-checked interpretation/history. `query` with
 `kind: "memory_regions"` projects native instruction references and bounded
 pointer-path obligations. Definitions do not assert relocation safety.
+Distinct region identities may overlap: the native projection reports their
+exact shared interval and offsets in `overlapping_regions`, with a
+`coordinated_source_placement` obligation. A single-region plan refuses with
+`overlapping_source_regions`; no joint-move or phase-based split is implemented.
+Persistent storage does not mean immutable contents or exclusive ownership.
 `source_domain: "mapped_source"` additionally requires a unique contiguous native
 materialization for the initial bytes. Plans retain PC-displacement encoding when
 the new signed displacement fits; indexed and PC-relative pointer producers remain
@@ -264,3 +368,34 @@ establish absolute stack ownership or separation from application/object writes.
 [The next proof capability](proposals/044-runtime-memory-relocation-proof.md)
 records address provenance and interrupt/context requirements. Conditional build
 or runtime guard enforcement is not implemented.
+
+Operand symbol presentations may select a canonical source declaration as well
+as a platform symbol or target equate. The append preflight resolves one native
+render-plan declaration and persists `source_symbol` with `section_index`,
+`source_offset`, `runtime_view` (0/1) and `encoded_value`. It checks the current
+native operand value/width and address view before writing history. No Python
+load-address arithmetic or generated-label parsing participates. Ambiguous,
+missing and mismatched choices refuse the entire batch. The native renderer
+checks the identity again and derives the current name from its coordinates,
+so renaming a label preserves both the expression and its xref identity.
+
+An explicit data layout with role `opaque_data` and a raw element can be
+packaged as an INCBIN through the existing binary-assets output mode. This
+classification preserves bytes with unknown purpose; it does not assert media
+format, unused storage or relocation safety. Unclassified bytes remain excluded
+from automatic asset extraction, and existing label, expression, fixup, ORG and
+range-overlap guards still apply.
+
+Brief address-register indexed operands expose their encoded signed-byte
+`indexed_displacement` as an element. `representation.symbol` accepts only an
+equal-valued canonical target EQU; the native renderer checks the actual decoded
+displacement again and preserves the base register, index register, width and
+scale. This names the fixed displacement only. It does not resolve the dynamic
+index, infer a structure field, or prove array bounds. PC-indexed and full-extension
+forms are outside this command's scope.
+
+Function-summary commands also accept type-neutral `abi_pointer` inputs in
+single-register or register-tuple locations. Combined with `identity_input`
+results, these express shared save/restore wrappers without imposing a fixed
+pointee type on every caller. Register preservation alone retains the existing
+conservative treatment of storage-derived types across opaque memory effects.

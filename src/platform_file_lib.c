@@ -1632,6 +1632,7 @@ static const TextU8Map ANALYSIS_REGISTER_SEED_KIND_NAMES[] = {
   { "library_base", M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE },
   { "struct_ptr", M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR },
   { "abi_pointer", M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER },
+  { "hardware_indexed", M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED },
 };
 
 static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
@@ -1641,6 +1642,7 @@ static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
   { "character", M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER },
   { "string", M68K_ANALYSIS_REPRESENTATION_STYLE_STRING },
   { "symbol", M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL },
+  { "hardware_offset", M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET },
 };
 
 static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) {
@@ -1718,7 +1720,7 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
 static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
   uint8_t has_entry_offset, const char *register_name, uint8_t seed_kind, const char *name, const char *type_name,
   const char *context_name);
-static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint16_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
@@ -1779,6 +1781,7 @@ int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *poli
     return 0;
   }
   seed->kind = analysis_register_seed_kind_id_from_text_local(parts[2]);
+  if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) return 0; /* Structured contract required. */
   if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_NONE) return 0;
   if (!copy_policy_text(seed->name, sizeof(seed->name), parts[3])) return 0;
   if (part_count > 4U && !copy_policy_text(seed->type_name, sizeof(seed->type_name), parts[4])) return 0;
@@ -2068,6 +2071,12 @@ int platform_file_validate_entry_comment_text(const char *json_string, const cha
   return strcmp(parsed, text) == 0 ? 0 : 2;
 }
 
+int platform_file_symbol_constant_value(const char *backend, const char *symbol, int32_t *out_value) {
+  if (out_value != NULL) *out_value = 0;
+  if (backend == NULL || (strcmp(backend, "amiga-raw") != 0 && strcmp(backend, "amiga-hunk") != 0)) return 0;
+  return platform_facts_v2_symbol_constant_value(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol, out_value);
+}
+
 static int json_optional_string_field_local(const char *object_start, const char *object_end, const char *key,
     char *out, size_t out_size) {
   const char *value = json_find_key_local(object_start, object_end, key);
@@ -2183,6 +2192,9 @@ static const char *json_next_object_local(const char *cursor, const char *end, c
   return NULL;
 }
 
+static int append_metadata_hardware_indexed_seed_local(const char *, const char *, M68kAnalysisPolicy *,
+  const char *, uint32_t, uint32_t, const char *);
+
 static int append_metadata_register_seed_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   char register_name[8];
@@ -2205,6 +2217,11 @@ static int append_metadata_register_seed_local(const char *object_start, const c
     return 0;
   }
   seed_kind = analysis_register_seed_kind_id_from_text_local(kind);
+  if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
+    if (!has_entry_offset) return 0;
+    return append_metadata_hardware_indexed_seed_local(object_start, object_end, policy,
+      register_name, has_hunk ? hunk : 0U, entry_offset, context_name);
+  }
   if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) {
     if (!json_optional_string_field_local(object_start, object_end, "library_name", name, sizeof(name))) return 0;
   } else if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
@@ -2359,6 +2376,56 @@ static const char *json_object_field_local(const char *object_start, const char 
   return value;
 }
 
+static int append_metadata_hardware_indexed_seed_local(const char *start, const char *end,
+    M68kAnalysisPolicy *policy, const char *reg, uint32_t section, uint32_t offset, const char *context) {
+  const char *domain_end, *array_end, *cursor;
+  const char *domain = json_object_field_local(start, end, "hardware_indexed", &domain_end);
+  uint32_t stride = 0U;
+  uint16_t base_id, values[8] = {0}, index;
+  uint8_t count = 0U;
+  int has_stride;
+  char base[64], counter[8];
+  static const char *const keys[] = {"base_symbol", "index_register", "stride", "index_values"};
+  if (domain == NULL || !json_object_has_only_keys_local(domain, domain_end, keys, 4U) ||
+      !json_optional_string_field_local(domain, domain_end, "base_symbol", base, sizeof(base)) ||
+      !json_optional_string_field_local(domain, domain_end, "index_register", counter, sizeof(counter)) ||
+      !json_number_field_local(domain, domain_end, "stride", &stride, &has_stride) || !has_stride ||
+      stride == 0U || stride > INT16_MAX || strlen(reg) != 2U || reg[0] != 'A' || reg[1] < '0' || reg[1] > '7' ||
+      strlen(counter) != 2U || counter[0] != 'D' || counter[1] < '0' || counter[1] > '7' ||
+      !platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base, &base_id)) return 0;
+  cursor = json_array_field_local(domain, domain_end, "index_values", &array_end);
+  if (cursor == NULL) return 0;
+  while ((cursor = json_skip_ws_local(cursor, array_end)) < array_end) {
+    char *next;
+    unsigned long value;
+    if (count == 8U || *cursor < '0' || *cursor > '9') return 0;
+    value = strtoul(cursor, &next, 10);
+    if (next > array_end || value > (uint32_t)INT16_MAX / stride ||
+        (count != 0U && value <= values[count - 1U])) return 0;
+    values[count++] = (uint16_t)value;
+    cursor = json_skip_ws_local(next, array_end);
+    if (cursor == array_end) break;
+    if (*cursor++ != ',' || json_skip_ws_local(cursor, array_end) == array_end) return 0;
+  }
+  if (count == 0U || !policy_add_register_seed_local(policy, section, offset, 1U, reg,
+      M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED, base, "", context)) return 0;
+  for (index = 0U; index < policy->register_seed_count; ++index) {
+    M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED || seed->section_index != section ||
+        seed->entry_offset != offset || seed->reg_index != (uint8_t)(reg[1] - '0')) continue;
+    if (strcmp(seed->name, base) != 0 || strcmp(seed->context_name, context) != 0) return 0;
+    if (seed->hardware_index_count != 0U)
+      return seed->hardware_stride == stride && seed->hardware_index_register == (uint8_t)(counter[1] - '0') &&
+        seed->hardware_index_count == count && memcmp(seed->hardware_index_values, values, sizeof(values)) == 0;
+    seed->hardware_stride = (uint16_t)stride;
+    seed->hardware_index_register = (uint8_t)(counter[1] - '0');
+    seed->hardware_index_count = count;
+    memcpy(seed->hardware_index_values, values, sizeof(values));
+    return 1;
+  }
+  return 0;
+}
+
 static int function_summary_register_name_local(const char *text, uint8_t *out_kind, uint8_t *out_index) {
   if (text == NULL || out_kind == NULL || out_index == NULL || text[0] == '\0' || text[2] != '\0' ||
       (text[0] != 'D' && text[0] != 'd' && text[0] != 'A' && text[0] != 'a') ||
@@ -2417,6 +2484,8 @@ static int append_metadata_function_summary_abi_location_local(const char *objec
     char member_name[8];
     out_location->kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
     while (cursor != NULL && cursor < registers_end) {
+      cursor = json_skip_ws_local(cursor, registers_end);
+      if (cursor == registers_end) break;
       if (out_location->register_count >= M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT ||
           (cursor = json_next_string_local(cursor, registers_end, member_name, sizeof(member_name))) == NULL ||
           !function_summary_register_name_local(member_name,
@@ -2898,7 +2967,7 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
     return 0;
   }
   if (!has_offset) return 1;
-  if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
+  if (has_size && (explicit_size == 0U || explicit_size > INT16_MAX)) return 0;
   if (has_flags && (flags & ~((uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT |
       (uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE)) != 0U) {
     return 0;
@@ -2906,7 +2975,7 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   {
     uint8_t storage_kind_id = rsset_layout_region_storage_kind_id_from_text_local(storage_kind);
     return policy_add_rsset_layout_region_local(policy, offset,
-      has_size ? (uint8_t)explicit_size : rsset_layout_region_size_from_storage_kind_id_local(storage_kind_id),
+      has_size ? (uint16_t)explicit_size : rsset_layout_region_size_from_storage_kind_id_local(storage_kind_id),
       layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, has_flags ? (uint8_t)flags : 0U,
       storage_kind_id, storage_kind, semantic_type);
   }
@@ -3130,14 +3199,14 @@ static int append_metadata_function_summary_local(const char *object_start, cons
   if (!copy_policy_text(summary->function_summary_id, sizeof(summary->function_summary_id), function_summary_id) ||
       !copy_policy_text(summary->context_name, sizeof(summary->context_name), context_name)) return 0;
   cursor = json_array_field_local(object_start, object_end, "inputs", &inputs_end);
-  while (cursor != NULL && cursor < inputs_end) {
+  if (cursor == NULL) return 0;
+  cursor = json_skip_ws_local(cursor, inputs_end);
+  while (cursor < inputs_end) {
     const char *input_end;
     const char *input_start = json_next_object_local(cursor, inputs_end, &input_end);
-    if (input_start == NULL) break;
-    if (!append_metadata_function_summary_input_local(input_start, input_end, summary)) return 0;
-    cursor = input_end;
+    if (input_start == NULL || !append_metadata_function_summary_input_local(input_start, input_end, summary)) return 0;
+    cursor = json_skip_ws_local(input_end, inputs_end);
   }
-  if (summary->input_count == 0U) return 0;
   cursor = json_array_field_local(object_start, object_end, "results", &results_end);
   if (cursor == NULL) return 0;
   cursor = json_skip_ws_local(cursor, results_end);
@@ -3284,7 +3353,7 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   return 1;
 }
 
-static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
+static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint16_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type) {
@@ -3292,7 +3361,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   uint16_t index;
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
   const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : AMIGA_APP_BASE_TAG;
-  if (policy == NULL || offset > 0x7FFFU || size == 0U ||
+  if (policy == NULL || offset > 0x7FFFU || size == 0U || size > INT16_MAX ||
       policy->rsset_layout_region_count >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) {
     return 0;
   }
@@ -7516,6 +7585,7 @@ typedef enum MetadataSeededEntitySubtypeId {
   METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING,
   METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP,
   METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_OPAQUE_DATA,
   METADATA_SEEDED_ENTITY_SUBTYPE_STRING,
   METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE,
   METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE,
@@ -7565,6 +7635,7 @@ static const MetadataSeededEntitySubtypeName METADATA_SEEDED_ENTITY_SUBTYPE_NAME
   { "length_prefixed_string", METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING },
   { "bitmap", METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP },
   { "sound_sample", METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE },
+  { "opaque_data", METADATA_SEEDED_ENTITY_SUBTYPE_OPAQUE_DATA },
   { "string", METADATA_SEEDED_ENTITY_SUBTYPE_STRING },
   { "audio_table", METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE },
   { "sprite", METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE },
@@ -7620,6 +7691,7 @@ static uint32_t metadata_seeded_entity_role_flags_from_subtype_id_local(Metadata
       return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
     case METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
     case METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_OPAQUE_DATA: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA;
     case METADATA_SEEDED_ENTITY_SUBTYPE_STRING: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
     case METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE;
     case METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
@@ -7783,9 +7855,73 @@ static int append_metadata_manual_representation_local(const char *object_start,
   if (!has_addr) return 1;
   style_id = analysis_representation_style_id_from_text_local(style);
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) return 1;
-  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && symbol[0] == '\0') return 1;
   if (has_end && end > addr) size = end - addr;
   if (has_operand_index && operand_index > 3U) return 1;
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
+    const char *domain_end = NULL;
+    const char *domain = json_object_field_local(object_start, object_end, "hardware_offset", &domain_end);
+    char base_symbol[64], field[96];
+    uint32_t offset = 0U;
+    uint16_t base_id;
+    uint16_t index;
+    int has_offset = 0;
+    M68kAnalysisManualRepresentation *slot;
+    static const char *const keys[] = {"base_symbol", "offset"};
+    if (!has_operand_index || domain == NULL || !json_object_has_only_keys_local(domain, domain_end, keys, 2U) ||
+        !json_optional_string_field_local(domain, domain_end, "base_symbol", base_symbol, sizeof(base_symbol)) ||
+        !json_number_field_local(domain, domain_end, "offset", &offset, &has_offset) || !has_offset || offset > 0x7fffU ||
+        !platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_symbol, &base_id) ||
+        platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          base_id, offset, field, sizeof(field)) == NULL) return 0;
+    for (index = 0U; index < policy->manual_representation_count; ++index) {
+      slot = &policy->manual_representations[index];
+      if (slot->section_index != (has_hunk ? hunk : 0U) || slot->offset != addr ||
+          slot->size != size || !slot->has_operand_index || slot->operand_index != operand_index) continue;
+      return slot->style_id == style_id && slot->hardware_offset_base_id == base_id &&
+        slot->hardware_register_offset == offset;
+    }
+    if (!policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size,
+        style_id, 1U, (uint8_t)operand_index, NULL)) return 0;
+    slot = &policy->manual_representations[policy->manual_representation_count - 1U];
+    slot->hardware_offset_base_id = base_id;
+    slot->hardware_register_offset = offset;
+    return 1;
+  }
+  {
+    const char *identity_end = NULL;
+    const char *identity = json_object_field_local(object_start, object_end, "source_symbol", &identity_end);
+    if (identity != NULL && identity < object_end) {
+      static const char *keys[] = { "section_index", "source_offset", "encoded_value", "runtime_view" };
+      uint32_t section = 0U, offset = 0U, value = 0U, runtime_view = 0U;
+      int hs = 0, ho = 0, hv = 0, hr = 0;
+      uint16_t index;
+      M68kAnalysisManualRepresentation *slot;
+      if (!has_operand_index || style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+          !json_object_has_only_keys_local(identity, identity_end, keys, 4U) ||
+          !json_number_field_local(identity, identity_end, "section_index", &section, &hs) || !hs ||
+          !json_number_field_local(identity, identity_end, "source_offset", &offset, &ho) || !ho ||
+          !json_number_field_local(identity, identity_end, "encoded_value", &value, &hv) || !hv ||
+          !json_number_field_local(identity, identity_end, "runtime_view", &runtime_view, &hr) || !hr || runtime_view > 1U) return 0;
+      for (index = 0U; index < policy->manual_representation_count; ++index) {
+        slot = &policy->manual_representations[index];
+        if (slot->section_index != (has_hunk ? hunk : 0U) || slot->offset != addr ||
+            slot->size != size || !slot->has_operand_index || slot->operand_index != operand_index) continue;
+        return slot->has_source_symbol && slot->source_symbol_section == section &&
+          slot->source_symbol_offset == offset && slot->source_symbol_value == value &&
+          slot->source_symbol_runtime_view == runtime_view;
+      }
+      if (!policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size,
+          style_id, 1U, (uint8_t)operand_index, NULL)) return 0;
+      slot = &policy->manual_representations[policy->manual_representation_count - 1U];
+      slot->has_source_symbol = 1U;
+      slot->source_symbol_runtime_view = (uint8_t)runtime_view;
+      slot->source_symbol_section = section;
+      slot->source_symbol_offset = offset;
+      slot->source_symbol_value = value;
+      return 1;
+    }
+  }
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && symbol[0] == '\0') return 1;
   return policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size, style_id,
     has_operand_index ? 1U : 0U, (uint8_t)operand_index,
     style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ? symbol : NULL);
@@ -8800,8 +8936,9 @@ static int append_metadata_memory_region_local(const char *start, const char *en
   r.persistent = 1U; r.dma_access = !strcmp(dma,"chip");r.source_mapped=!strcmp(source,"mapped_source");
   for (i=0;i<policy->memory_region_count;i++) {
     const M68kMemoryRegionIR *old=&policy->memory_regions[i];
-    if (!strcmp(old->region_id,r.region_id) || (r.runtime_address < old->runtime_address+old->size &&
-        old->runtime_address < r.runtime_address+r.size)) return 0;
+    /* Shared storage may have more than one semantic identity. Native region
+     * projection retains the overlap and single-region relocation refuses it. */
+    if (!strcmp(old->region_id,r.region_id)) return 0;
   }
   policy->memory_regions[policy->memory_region_count++]=r;
   return 1;
@@ -9215,6 +9352,7 @@ static const char *analysis_register_kind_name_local(uint8_t kind) {
 }
 
 static const char *analysis_register_seed_kind_name_local(uint8_t kind) {
+  if (kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) return "hardware_indexed";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) return "library_base";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) return "struct_ptr";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER) return "abi_pointer";
@@ -9236,6 +9374,7 @@ static const char *manual_representation_style_name_local(uint8_t style_id) {
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) return "character";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) return "string";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) return "symbol";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) return "hardware_offset";
   return "none";
 }
 
@@ -9358,7 +9497,7 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
        index < M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT; ++index) {
     const M68kAnalysisFunctionSummary *summary = &policy->function_summaries[index];
     uint8_t input_index;
-    if (!summary->has_section_index || summary->input_count == 0U ||
+    if (!summary->has_section_index ||
         summary->input_count > M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT ||
         (summary->callable_kind == M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT &&
          !validate_policy_offset_local(diagnostics, object, 1U, summary->section_index, summary->entry_offset,
@@ -10114,6 +10253,17 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_append_json_string(builder, analysis_register_kind_name_local(seed->reg_kind)) != 0) return -1;
     if (json_builder_appendf(builder, ",\"reg_index\":%u,\"kind\":", (unsigned)seed->reg_index) != 0) return -1;
     if (json_builder_append_json_string(builder, analysis_register_seed_kind_name_local(seed->kind)) != 0) return -1;
+    if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
+      uint8_t value_index;
+      if (json_builder_append(builder, ",\"hardware_indexed\":{\"base_symbol\":") != 0 ||
+          json_builder_append_json_string(builder, seed->name) != 0 ||
+          json_builder_appendf(builder, ",\"index_register\":\"D%u\",\"stride\":%u,\"index_values\":[",
+            (unsigned)seed->hardware_index_register, (unsigned)seed->hardware_stride) != 0) return -1;
+      for (value_index = 0U; value_index < seed->hardware_index_count; ++value_index)
+        if (json_builder_appendf(builder, "%s%u", value_index == 0U ? "" : ",",
+            (unsigned)seed->hardware_index_values[value_index]) != 0) return -1;
+      if (json_builder_append(builder, "]}") != 0) return -1;
+    }
     if (json_builder_append(builder, ",\"name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, seed->name) != 0) return -1;
     if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;
@@ -10384,6 +10534,17 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (representation->has_operand_index &&
         json_builder_appendf(builder, ",\"operand_index\":%u", (unsigned)representation->operand_index) != 0)
       return -1;
+    if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
+      if (json_builder_append(builder, ",\"hardware_offset\":{\"base_symbol\":") != 0 ||
+          json_builder_append_json_string(builder, platform_facts_v2_hardware_base_symbol(
+            M68K_PLATFORM_BACKEND_AMIGA_HUNK, (uint16_t)representation->hardware_offset_base_id)) != 0 ||
+          json_builder_appendf(builder, ",\"offset\":%u}",
+            (unsigned)representation->hardware_register_offset) != 0) return -1;
+    }
+    if (representation->has_source_symbol && json_builder_appendf(builder,
+        ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,\"runtime_view\":%u,\"encoded_value\":%u}",
+        (unsigned)representation->source_symbol_section, (unsigned)representation->source_symbol_offset,
+        (unsigned)representation->source_symbol_runtime_view, (unsigned)representation->source_symbol_value) != 0) return -1;
     if (representation->symbol_id != 0U) {
       const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
       if (symbol_name != NULL && symbol_name[0] != '\0' &&
@@ -13920,6 +14081,16 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       else Q(json_builder_append(&b, "{\"section_index\":null,\"source_offset\":null"));
       STR("name", d->name);
       STR("expression", d->expression);
+      if (d->kind == M68K_RENDER_PLANNED_DECLARATION_LABEL && d->has_source_target) {
+        const M68kRenderPlannedLabel *label = m68k_render_plan_find_label(plan, d->section_index, d->offset);
+        if (label != NULL && strcmp(label->name, d->name) == 0) {
+          Q(json_builder_appendf(&b,
+            ",\"source_symbol\":{\"section_index\":%u,\"source_offset\":%u,"
+            "\"runtime_view\":%u,\"encoded_value\":%u}",
+            (unsigned)d->section_index, (unsigned)d->offset, (unsigned)label->has_runtime_address,
+            (unsigned)(label->has_runtime_address ? label->runtime_address : label->source_offset)));
+        }
+      }
       {
         size_t si, oi, origin_count = 0;
         const M68kSymbolOriginIR *first_origin = NULL;

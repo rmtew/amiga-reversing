@@ -378,6 +378,7 @@ typedef struct M68kSimFormMetadata {
   uint8_t operand_result_kinds[4];
   uint8_t operand_width_modes[4];
   uint8_t operand_widths[4];
+  uint8_t operand_immediate_signed_bits[4];
   uint8_t ea_register_width;
   uint8_t ea_memory_width;
   uint16_t sp_effect_start;

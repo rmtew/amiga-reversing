@@ -77,11 +77,19 @@ def test_invalid_batch_does_not_create_history(target):
 
 def test_native_manual_count_boundary_is_atomic(target):
     capacity = _capacity("platform_file_entry_comment_count_capacity")
-    _append(target, *(_comment("valid", str(index)) for index in range(capacity)))
+    # Distinct source offsets exercise native storage rather than deduplication.
+    target[1].path.write_bytes(b"\x4e\x71" * (capacity+1) + b"\x4e\x75")
+    actions = [(Kind.CREATE_MANUAL_COMMENT, {"comment": {
+        "comment_id": str(index), "hunk": 0, "addr": 2*index, "text": f"Boundary {index}.",
+    }}) for index in range(capacity)]
+    _append(target, *actions)
+    journal = target[0] / "decision_journal.jsonl"
+    journal.write_bytes(b"existing journal bytes\n")
     history = (target[0] / "manual_actions.jsonl").read_bytes()
     with pytest.raises(ValueError, match="active manual comments"):
         _append(target, _comment("valid", "overflow"))
     assert (target[0] / "manual_actions.jsonl").read_bytes() == history
+    assert journal.read_bytes() == b"existing journal bytes\n"
 
 
 def test_invalid_legacy_comment_can_be_undone_but_not_redone(target):
@@ -122,6 +130,29 @@ def test_supported_comment_renders_and_roundtrips(tmp_path):
     with effective_metadata_file(tmp_path) as metadata:
         text = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata)
         assert "Synthetic entry returns to its caller." in text
+        rebuilt, _analysis, _profile = c_backend.facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source, metadata_path=metadata, compare_original=True,
+        )
+    assert rebuilt == original
+
+
+def test_more_than_128_distinct_comments_render_and_rebuild(tmp_path):
+    directory = tmp_path
+    binary = directory / 'many-comments.hunk'
+    original = make_synthetic_hunkexe(code_data=b'\x4e\x71' * 129 + b'\x4e\x75')
+    binary.write_bytes(original)
+    source = HunkFileBinarySource(kind=BinarySourceKind.HUNK_FILE, path=binary,
+        display_path=str(binary), analysis_cache_path=directory / 'binary.analysis')
+    (directory / 'source_binary.json').write_text(json.dumps({'kind': 'hunk_file', 'path': str(binary)}))
+    actions = [(Kind.CREATE_MANUAL_COMMENT, {'comment': {
+        'comment_id': f'boundary-{index}', 'hunk': 0, 'addr': index*2,
+        'text': f'Preserved source boundary {index}.',
+    }}) for index in range(129)]
+    _append((directory, source), *actions)
+    with effective_metadata_file(directory) as metadata:
+        text = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata)
+        for index in range(129):
+            assert f'Preserved source boundary {index}.' in text
         rebuilt, _analysis, _profile = c_backend.facts_v2_direct_rebuild_project_source_with_c_backend_profile(
             source, metadata_path=metadata, compare_original=True,
         )

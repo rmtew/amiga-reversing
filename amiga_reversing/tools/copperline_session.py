@@ -17,10 +17,10 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
+from amiga_reversing.tools.runtime_analysis import build_project_listing_artifact_profile, analysis_scope
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.copperline_runtime import (
-    MAX_SCENARIO_PHASES, observe, validate_memory_expectation,
+    MAX_SCENARIO_PHASES, observe, validate_memory_expectation, validate_custom_registers,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
@@ -309,6 +309,7 @@ def compile_scenario(
             }
         )
     _, _, artifact = build_project_listing_artifact_profile(target_id)
+    excluded_ranges = ()
     try:
         needs_regions = derived_manifest is not None or any(
             "region_id" in r
@@ -331,10 +332,15 @@ def compile_scenario(
 
             manifest, _ = validate_manifest(derived_manifest, target_id)
             verify_native_binding(manifest, artifact)
-            placements[manifest["region"]["region_id"]] = (
-                manifest["placement"]["runtime_address"],
-                manifest["region"]["size"],
-            )
+            if manifest.get('kind') == 'fixed_size_optional_patch':
+                from amiga_reversing.tools.optional_patch import anchor_offset
+                excluded_ranges = tuple((anchor_offset(p['start']), anchor_offset(p['end']))
+                                        for p in manifest['patches'])
+            else:
+                placements[manifest["region"]["region_id"]] = (
+                    manifest["placement"]["runtime_address"],
+                    manifest["region"]["size"],
+                )
         for phase in compiled_phases:
             for read in phase["capture"].get("memory_reads", []):
                 if "region_id" in read:
@@ -352,6 +358,8 @@ def compile_scenario(
             row = _resolve_breakpoint_stable_key_from_artifact(
                 artifact, str(phase["stable_key"])
             )
+            if any(start <= row['start_offset'] < end for start, end in excluded_ranges):
+                raise ValueError('Scenario anchor lies inside an optional patch; original instruction mapping is invalid')
             address = row.get("runtime_breakpoint_address")
             if not isinstance(address, int):
                 raise ValueError(
@@ -362,7 +370,8 @@ def compile_scenario(
             phase["runtime_view"] = row["runtime_observation_view"]
         symbols = (
             generate_runtime_symbol_artifact(
-                target_id, symbol_directory, artifact=artifact
+                target_id, symbol_directory, artifact=artifact,
+                **({'excluded_ranges': excluded_ranges} if excluded_ranges else {}),
             )
             if symbol_directory is not None
             else None
@@ -397,7 +406,7 @@ def compile_scenario(
 
 
 def resolve_paused_pc(
-    target_id: str, runner_report: dict[str, object]
+    target_id: str, runner_report: dict[str, object], *, derived_manifest: Path | None = None
 ) -> dict[str, object]:
     """Resolve a runner JSON observation to a canonical listing row.
 
@@ -444,6 +453,14 @@ def resolve_paused_pc(
             "pc": f"0x{pc:08x}",
             "payload": payload,
         }
+    if derived_manifest is not None:
+        from amiga_reversing.disasm.derived_artifact import validate_manifest
+        from amiga_reversing.disasm.optional_artifact import overlaps
+        manifest, _ = validate_manifest(derived_manifest, target_id)
+        if manifest.get('kind') == 'fixed_size_optional_patch' and overlaps(
+                manifest, row['start_offset'], row['start_offset'] + 1):
+            return {'status': 'modified_instruction_range', 'pc': f'0x{pc:08x}',
+                    'payload': payload, 'reason': 'Original instruction mapping is invalid inside an optional patch'}
     payload_status = payload["status"]
     if payload_status == "pc_matched":
         matched_offset = _as_int(payload.get("payload_offset"))
@@ -530,9 +547,7 @@ def validate_capture(capture: object) -> None:
     if not isinstance(capture, dict) or set(capture) - {"registers", "memory_reads", "custom_registers"}:
         raise ValueError("Scenario capture supports only registers, memory_reads and custom_registers.")
     custom = capture.get("custom_registers", [])
-    if (not isinstance(custom, list) or len(custom) > 16
-            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
-        raise ValueError("Capture requires at most 16 named custom registers")
+    validate_custom_registers(custom)
     registers, reads = capture.get("registers", []), capture.get("memory_reads", [])
     allowed = {f"{kind}{i}" for kind in ("a", "d") for i in range(8)} | {"sr"}
     if (
@@ -596,7 +611,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--derived-artifact",
         type=Path,
-        help="Manifest of a closed native fixed-width relocation plan",
+        help="Validated fixed-width relocation manifest or explicit optional-patch receipt",
     )
     parser.add_argument("--target", required=True)
     parser.add_argument("--rom", required=True, type=Path)
@@ -655,7 +670,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
+def _main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     observation_memory_equals = (
         bytes.fromhex(args.observation_memory_equals)
@@ -727,6 +742,8 @@ def main(argv: list[str] | None = None) -> int:
         observation_memory_equals = contract.handoff_marker_value.to_bytes(4, "big")
         observation_memory_write_watch = True
         direct_payload_contract = contract.identifier
+        if direct_payload.get('optional_patches') and not args.scenario:
+            raise ValueError('Optional patched runtime artifacts require a canonical scenario')
     compiled_scenario = None
     scenario_output = None
     if args.scenario:
@@ -810,12 +827,18 @@ def main(argv: list[str] | None = None) -> int:
         "runner": report,
         "direct_payload": direct_payload,
         "scenario": scenario_summary,
-        "pc_resolution": resolve_paused_pc(args.target, report),
+        "pc_resolution": resolve_paused_pc(args.target, report,
+            **({'derived_manifest': args.derived_artifact} if args.derived_artifact else {})),
     }
     if breakpoint_row is not None:
         result["breakpoint"] = resolve_breakpoint_hit(breakpoint_row, report)
     print(json.dumps(result, indent=2))
     return 0 if report.get("status") == "ok" else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    with analysis_scope():
+        return _main(argv)
 
 
 if __name__ == "__main__":

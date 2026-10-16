@@ -1,5 +1,8 @@
 #include "platform_host_compat.h"
 #include "m68k_ir.h"
+#include "m68k_instruction_spec.h"
+#include "m68k_parse_util.h"
+#include "m68k_simulator.h"
 
 #include "generated/amiga_os_runtime.h"
 #include "generated/atari_st_os_runtime.h"
@@ -214,6 +217,7 @@ const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE) != 0U) return "sprite";
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM) != 0U)
     return "string_control_stream";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA) != 0U) return "opaque_data";
   return NULL;
 }
 
@@ -734,6 +738,8 @@ const char *m68k_platform_address_use_shape_name(uint8_t use_shape) {
       return "execbase_literal";
     case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
       return "hardware_base_address";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY:
+      return "hardware_register_family";
     default:
       return "unknown";
   }
@@ -858,6 +864,18 @@ uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStruct
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) return 2U;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return 4U;
   return 0U;
+}
+
+/* Presentation of the decoded brief displacement is independent of the
+ * dynamic index value. It does not establish array bounds or field identity. */
+int m68k_ir_operand_brief_index_displacement(const M68kOperandIR *operand, int32_t *out_value) {
+  if (operand == NULL || operand->kind != M68K_ASM_OPERAND_EA ||
+      m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_INDEX ||
+      operand->value.ea_mode != 6U || operand->value.full_ext_base_suppress ||
+      operand->value.full_ext_index_suppress || operand->value.full_ext_base_disp_size ||
+      operand->value.full_ext_outer_disp_size || operand->value.full_ext_iis) return 0;
+  if (out_value != NULL) *out_value = (int32_t)m68k_sign_extend32(operand->value.value, 8U);
+  return 1;
 }
 
 int m68k_ir_operand_immediate_value(const M68kOperandIR *operand, uint32_t *out_value) {
@@ -3412,7 +3430,12 @@ static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
     const M68kFunctionSummaryResultIR *result = &summary->results[index];
     if (!m68k_function_summary_abi_location_is_valid(&result->location) ||
         result->kind < M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER ||
-        result->kind > M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) return 0;
+        result->kind > M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE) return 0;
+    if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE &&
+        (result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+         result->location.width != 4U || result->location.register_count != 1U ||
+         platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+           result->hardware_base_id) == NULL)) return 0;
     if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
       const M68kFunctionSummaryAbiLocation *input_location;
       if (result->identity_input_index >= summary->input_count) return 0;
@@ -3618,7 +3641,13 @@ int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *
         existing->address == use->address &&
         existing->effective_address == use->effective_address &&
         existing->access_kind == use->access_kind &&
-        existing->use_shape == use->use_shape) {
+        existing->use_shape == use->use_shape &&
+        existing->relative_base_id == use->relative_base_id &&
+        existing->relative_register_offset == use->relative_register_offset &&
+        existing->relative_base_offset_count == use->relative_base_offset_count &&
+        existing->relative_requires_input_contract == use->relative_requires_input_contract &&
+        memcmp(existing->relative_base_offsets, use->relative_base_offsets,
+          sizeof(use->relative_base_offsets)) == 0) {
       return 0;
     }
   }

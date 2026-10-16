@@ -1,0 +1,201 @@
+{
+  "baseline_commit": "2f449ea1a07a4c0c5811b5bebd14902c9d4b29a5",
+  "scope": "Three bootstrap/starfield preservation contracts and bounded native fixed hardware returns; display/audio hardware review group.",
+  "canonical_actions": 3,
+  "reviewed_register_sites": 27,
+  "resolved_register_sites": 14,
+  "remaining_register_sites": 13,
+  "groups": {
+    "boot": {
+      "reviewed": 11,
+      "resolved": [
+        {
+          "offset": 1254,
+          "text": "move.w d0,bpl1mod(a5)"
+        },
+        {
+          "offset": 1258,
+          "text": "move.w d0,bpl2mod(a5)"
+        },
+        {
+          "offset": 1262,
+          "text": "move.w #(4<<PLNCNTSHFT)|COLORON,bplcon0(a5)"
+        },
+        {
+          "offset": 1268,
+          "text": "move.w #$2C81,diwstrt(a5)"
+        },
+        {
+          "offset": 1274,
+          "text": "move.w #$F4C1,diwstop(a5)"
+        },
+        {
+          "offset": 1280,
+          "text": "move.w #$38,ddfstrt(a5)"
+        },
+        {
+          "offset": 1286,
+          "text": "move.w #$D0,ddfstop(a5)"
+        },
+        {
+          "offset": 1292,
+          "text": "move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_COPPER|DMAF_BLITTER,dmacon(a5)"
+        },
+        {
+          "offset": 1302,
+          "text": "move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)"
+        }
+      ],
+      "remaining": [
+        1312,
+        1338
+      ]
+    },
+    "title": {
+      "reviewed": 5,
+      "resolved": [
+        {
+          "offset": 3988,
+          "text": "move.w #INTF_INTEN,intena(a5)"
+        },
+        {
+          "offset": 3994,
+          "text": "move.w #DMAF_MASTER,dmacon(a5)"
+        },
+        {
+          "offset": 4016,
+          "text": "move.l a0,cop1lc(a5)"
+        },
+        {
+          "offset": 4038,
+          "text": "move.w #INTF_SETCLR|INTF_INTEN,intena(a5)"
+        },
+        {
+          "offset": 4044,
+          "text": "move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)"
+        }
+      ],
+      "remaining": []
+    },
+    "audio": {
+      "reviewed": 10,
+      "resolved": [],
+      "remaining": [
+        317892,
+        317896,
+        317920,
+        317926,
+        318046,
+        318052,
+        318058,
+        318096,
+        318318,
+        318368
+      ]
+    },
+    "interrupt": {
+      "reviewed": 1,
+      "resolved": [],
+      "remaining": [
+        2308
+      ]
+    }
+  },
+  "native_counts": {
+    "instructions": {
+      "count": 7043,
+      "scope": "native_artifact"
+    },
+    "symbols": {
+      "count": 4489,
+      "scope": "native_artifact"
+    },
+    "references": {
+      "count": 5148,
+      "scope": "native_artifact"
+    },
+    "functions": {
+      "count": 225,
+      "scope": "current accepted analysis"
+    },
+    "fields": {
+      "count": 910,
+      "scope": "native_artifact",
+      "native_record_status_counts": {
+        "resolved": 883,
+        "unresolved": 27
+      }
+    },
+    "edges": {
+      "count": 3418,
+      "scope": "native_artifact"
+    },
+    "gaps": {
+      "count": 89,
+      "scope": "native analysis review items"
+    }
+  },
+  "canonical_declarations": {
+    "custom_structs": 61,
+    "data_block_layouts": 496,
+    "function_summaries": 86,
+    "entry_register_seeds": 71,
+    "rsset_layout_regions": 114,
+    "seeded_code_labels": 835,
+    "target_equates": 276,
+    "manual_data_references": 284,
+    "manual_representations": 1967
+  },
+  "verification": {
+    "receipt_id": "cba1f3707d5fdb0dfc8fcb6c022613bcf1ec90de90fd7adda2713fe5734183b7",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "78c1a1e8090c2e1d49ebc10ad47d566d3253dbc5c43603952e398e550fb590a9",
+    "source_package_sha256": "d40023ddb1f1cbf72a6fb40b6e247b2ed79d50d25a14c221e2f7f596985e90a6",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "preservation": {
+    "assets_unchanged": 86,
+    "history_prefixes_preserved": true,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+  },
+  "tests": {
+    "native": 819,
+    "framework_queries_and_catalog": 71,
+    "original_cpu": 9,
+    "broader_native_contract_checks": {
+      "passed": 8,
+      "failed": 1,
+      "failure": "test_decompression_c_backend_pandora_bk_section_range_contract: KeyError codec_id; decompression producer unchanged by this batch."
+    }
+  },
+  "limits": [
+    "Register preservation, a fixed return value, and unknown state are separate facts. No target-authored fixed-output kind or fake Custom struct was added.",
+    "Callee constant proofs start without caller hardware identities; conflicting/unknown returns and proof limits yield no constant. Manual operand bindings retain priority.",
+    "Bootstrap and starfield preservation assumes valid original data and an ABI-disjoint active stack; no arbitrary replacement or alias closure is established.",
+    "Audio A6 is _custom+16*channel for original channel indices 0..3. A literal _custom seed or unconditional preservation would not model that relation.",
+    "The Copper callback target/return closure and complete title-function return value remain unproved.",
+    "CPU tests execute original instructions with a custom-register shadow, not pixel DMA; no new runtime or whole-game relocation claim."
+  ],
+  "restored_hardware_immediate_expressions": {
+    "count": 7,
+    "source_offsets": [
+      1262,
+      1286,
+      1302,
+      3988,
+      3994,
+      4038,
+      4044
+    ]
+  }
+}

@@ -225,3 +225,27 @@ def test_real_513th_manual_word_reference_rejected_atomically_and_duplicate_allo
     with pytest.raises(ValueError, match=r"manual data reference capacity exceeded \(512\)"):
         append_manual_actions(directory, actions=[_reference(512)], binary_source=source)
     assert {p.name: p.read_bytes() for p in directory.iterdir() if p.is_file()} == before
+
+
+@pytest.mark.parametrize('count', [65, 256])
+def test_register_seed_capacity_retains_entries_beyond_old_limit(tmp_path, count):
+    source = _source(tmp_path)
+    path = tmp_path / 'register-seeds.json'
+    path.write_text(json.dumps({'target_type':'raw_binary', 'entry_register_seeds':[
+        {'entry_offset':2*i, 'register':'A0', 'kind':'struct_ptr',
+         'struct_name':'ExecBase', 'note':'capacity-test', 'context_name':f'entry_{i}'}
+        for i in range(count)]}))
+    policy = c_backend.effective_policy_project_source_with_c_backend(source, metadata_path=path)['analysis_policy']
+    assert policy['register_seed_count'] == count
+    assert len(policy['register_seeds']) == count
+    assert policy['register_seeds'][-1]['entry_offset'] == 2*(count-1)
+
+
+def test_register_seed_overflow_is_refused(tmp_path):
+    source = _source(tmp_path)
+    text = json.dumps({'target_type':'raw_binary', 'entry_register_seeds':[
+        {'entry_offset':2*i, 'register':'A0', 'kind':'struct_ptr',
+         'struct_name':'ExecBase', 'note':'capacity-test', 'context_name':f'entry_{i}'}
+        for i in range(257)]})
+    with pytest.raises(RuntimeError, match='failed parsing target metadata entry register seed'):
+        c_backend.validate_policy_storage_with_c_backend(source, metadata_text=text)

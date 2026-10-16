@@ -63,7 +63,8 @@ static int eligible(const M68kObject *object, const M68kRenderPlan *plan,
       row->source_size < minimum || row->source_section_index >= object->section_count ||
       row->label_line_mask || !row->text ||
       (row->data_class_flags != M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP &&
-       row->data_class_flags != M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE)) return 0;
+       row->data_class_flags != M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE &&
+       row->data_class_flags != M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA)) return 0;
   section = &object->sections[row->source_section_index];
   if (section->kind == M68K_SECTION_BSS || !section->data ||
       row->source_offset > section->data_size || row->source_size > section->data_size - row->source_offset ||
@@ -112,7 +113,8 @@ static int eligible(const M68kObject *object, const M68kRenderPlan *plan,
 /* A coalesced asset needs its native role comment once. Keep every other
  * annotation, including comments containing the role plus additional text. */
 static int role_comment(const char *comment, size_t length, uint32_t flags) {
-  const char *role = flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP ? "bitmap" : "sound_sample";
+  const char *role = flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP ? "bitmap" :
+    flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA ? "opaque_data" : "sound_sample";
   if (!length || *comment != ';') return 0;
   ++comment; --length;
   while (length && (*comment == ' ' || *comment == '\t')) { ++comment; --length; }
@@ -391,7 +393,8 @@ int m68k_source_package_json_alloc(const M68kObject *object, const M68kRenderPla
       int role_emitted = 0;
       const uint8_t *bytes = object->sections[row->source_section_index].data + row->source_offset;
       const char *classification = row->data_class_flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP
-        ? "bitmap" : "sound_sample";
+        ? "bitmap" : row->data_class_flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA
+          ? "opaque_data" : "sound_sample";
       snprintf(path, sizeof(path), "assets/%s.bin", asset_name->name);
       for (run_index = index; run_index < end; ++run_index)
         if (append_asset_source(&source, &plan->rows[run_index], path, asset_name->needs_alias ? asset_name->name : NULL, &emitted, &role_emitted) != 0) goto done;

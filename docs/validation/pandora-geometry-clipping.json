@@ -1,0 +1,585 @@
+{
+  "baseline_commit": "3a61f3401d10eba8abaabb722c2f81e0d5cc0f29",
+  "canonical_actions": 74,
+  "command_counts": {
+    "target.equate.add": 5,
+    "target.rsset_region.rename": 2,
+    "target.function_summary.add": 4,
+    "label.rename": 43,
+    "representation.symbol": 15,
+    "comment.edit": 5
+  },
+  "accepted_decisions": [
+    {
+      "action": "accept_fact",
+      "action_id": "manual-ac350d554d2149c0bc921d479d544ff6",
+      "decision_id": "restoration-0abda5639eaa427a93767ff0ef52f2a5"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-23bd8cf4e0ba4843a09e161ec9b47b00",
+      "decision_id": "restoration-6127d4295a3f4219a53bc540253088eb"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-4fea2115c205460f82ac1c31249d3d51",
+      "decision_id": "restoration-bfbad8df28ce4a7f814e6ac14520c21a"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-0964ac3367404304a82b734077d67cc8",
+      "decision_id": "restoration-33dbd7c922e94792859c8045dfb74a34"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-17d24ea5e25c4fa1b6b89a9f93c32d8f",
+      "decision_id": "restoration-69470a3ef6c34a3b8ddfcd0bccdc1768"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-2660e68642b247bfbfd476b61272455c",
+      "decision_id": "restoration-f62f1fe873d14615bbf156935ec90fef"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-6886850a5c6349af8b9cc9da6937e118",
+      "decision_id": "restoration-8fe87ef9c4214c1fbfe1c74ea5094f62"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-e593407811d641d798a36b5ce5f0812d",
+      "decision_id": "restoration-a2355d3332244d849aed62e453a48dde"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-8283e1a59dca4a51b612e047fa0cd3f6",
+      "decision_id": "restoration-811f244c5de7494b83bc70ab2d66004d"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-c4bafeebedae48cdbf75152a518bbad6",
+      "decision_id": "restoration-c4b0e764cc1a4f58b38db14b94adddc1"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-8d6b805cd2674940ac5148b2aab4a58a",
+      "decision_id": "restoration-d402d70bb13c49bd98bdc4d4c5744985"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-caa22d39ce3f4bed97b64e494bbc63ba",
+      "decision_id": "restoration-df73464a425e472ba479d05dcb7bced7"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-d2fa1de623e04377820e96f686556d2e",
+      "decision_id": "restoration-b8b8cb8ef9824ba28d52647feb024095"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-cd26cb12a5e0429882e2e766e985433e",
+      "decision_id": "restoration-e52328b367d2412e8613cd56abed3baf"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-9a890bb951ca41db8355cc5db619aeee",
+      "decision_id": "restoration-8104d79692584d6098eb7a205defbb5e"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-02fd0460c52f45e3873bc5eece2d7768",
+      "decision_id": "restoration-5c6a577613e443f888a2b283ad8575ab"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-729f3e5eee074e3f8f74964f6036be7f",
+      "decision_id": "restoration-3b8272cebb2b41899398d714df6e5de0"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-f18161e8868e4f428df8a2e3d6d9a20a",
+      "decision_id": "restoration-dc26d8bb4b6746a9a7ec1feae6012121"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-399cd78f0d284ce29f46cf3b0f2d59c1",
+      "decision_id": "restoration-de28c0f4aa514ae394a5ec6ffb03b33f"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-246ee226497c40149f32ef2694659575",
+      "decision_id": "restoration-117b33db86804c139ff905ab6cd10b65"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-f2b5f0cf9d114f60af2dd42701c7f801",
+      "decision_id": "restoration-60c3176c251b497b9d33c10aad369616"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-61a4259322ca498a85424e268b75b44c",
+      "decision_id": "restoration-dd20b44cecf34c37889c11a61d22d90e"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-d9268624e46d44c1855ca3ce1c4a138f",
+      "decision_id": "restoration-19d85632b1ee4cfa923b464b2cf357f2"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-b633349a653f474180799e1093281d3f",
+      "decision_id": "restoration-a2ee67364a1f40f38a431c4e702a33e6"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-076caa6870cf4c93875c8a7aa60b77f1",
+      "decision_id": "restoration-e58559b474b144a69f32a68585082435"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-3676929f26164b00b665e8362cad3ee5",
+      "decision_id": "restoration-daefeede14904993b7d2a283d45edd50"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-585346d74f164934affcb14c3061cfee",
+      "decision_id": "restoration-026360cc554848a48d5cfd3b32a41a49"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-2f28ec6b335a456c81a87a6a74c78b68",
+      "decision_id": "restoration-fc39d79a7c9b4796b3c4ffb43f64f114"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-87f1b93fd5214f65a0680468988955c4",
+      "decision_id": "restoration-9481abb5648b4d518b2805017ebcc358"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-41bf82b7c84e427d840ef32f4cd5ea1d",
+      "decision_id": "restoration-e8ab0bfa1ca14493877f0f17d5b8d41c"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-a644818e0d44405995301141599db990",
+      "decision_id": "restoration-8156d118ab4041d294e58a1cf5c1e58a"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-4cffe563e43f41a0a5a6b15fc4e93b57",
+      "decision_id": "restoration-23907cb067844fe99fa9fa44c998545f"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-4f09589824db4c589205d8f0d58300fa",
+      "decision_id": "restoration-a4f224b78ed4482f82169dadca1c75c8"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-cc436eac32bb4543b1e61f28f2a34605",
+      "decision_id": "restoration-143254884c9f402db5c634d476881d4e"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-49ecf4cea0cb4c959154f8883bb0e439",
+      "decision_id": "restoration-c23f7b8c3a934c63ad46d1eb1aeae5c4"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-b3a1b875d4cd4ca883e21309e858694e",
+      "decision_id": "restoration-37e9256b86a0450697bd2161011a80fc"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-e3409bee9d2f45d685897c6b64b00ed8",
+      "decision_id": "restoration-2db92d2b186e410d92272fbf0efbca01"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-fca0d9f8e5f04ddf910473fd968d32fd",
+      "decision_id": "restoration-2b21af1b35fb48f7857a2ef17b6e5ef1"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-594ea54e935047bb8df1fccb80ac79d1",
+      "decision_id": "restoration-d12aafd7c73041ba8a1fe38eda53e92e"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-c7af6f145bbf4780bf57238c87a88d85",
+      "decision_id": "restoration-c0fd1840c57b4f629e36220062c63574"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-8acb8b555f694f7289c5221cee39e2d7",
+      "decision_id": "restoration-3ba8a544a6554dceb4c8e77ca8bc1207"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-aa600da525574af88d3320ce91b5b928",
+      "decision_id": "restoration-961ac457c7fa4dc28e4a2dc6f6ba47c7"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-961e54ed9e3e453da5dc0b57478a5cee",
+      "decision_id": "restoration-0e58fd8e46ee4cd6953f575fa7a8008f"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-9f0690c802064e8cbc7069286648699f",
+      "decision_id": "restoration-cb11999736f94e788fa79db8dd4d653a"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-d6357ea8e9dc42fb8a6e9a192a5cf954",
+      "decision_id": "restoration-2aeae1acb4d24fa4bb644717f0c8a100"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-10530332b9644cc2bf059cb9716f6cd8",
+      "decision_id": "restoration-7b5fc1cc0f194abd92d7e9f3df162a50"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-3d25428d73d847358e89217c470770e0",
+      "decision_id": "restoration-b5a89f068a8840728c0b954c3521b132"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-35b8df51a2f64e35bf876b2bde43cc8e",
+      "decision_id": "restoration-641ee9bb2189431badcd90c2b1806944"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-7b452dfa2e4049e7ad2c24f040433a03",
+      "decision_id": "restoration-c90e2950ee3647b2b9478e32602b7f76"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-f40ca2c55f744f6cbba785d50da1c93a",
+      "decision_id": "restoration-79a182ca24ee49a78b8d279e21be8902"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-8a8f1d3878364eeabf467722f718e7d9",
+      "decision_id": "restoration-b3cf3d2513844e43a38102d3cd767440"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-a46ce0161713460a87cf917137828a81",
+      "decision_id": "restoration-7658c396652f4468a708114dedaf6b56"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-d76a36d4e4b9455984608740bc602eea",
+      "decision_id": "restoration-f01cc589d22245cea6416483c0bf3444"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-66ab8363d7ed4a549d6d903a713c61e6",
+      "decision_id": "restoration-49818fd411b940099e4b6f158433a08d"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-b6c4d58ebb594f54b3a15100e5f54a32",
+      "decision_id": "restoration-a3b6fa05f0644e4aaa0b8145c0a5673b"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-d0049efb282c4a21b0c3d87bd4b971b3",
+      "decision_id": "restoration-57f206e1654b45059590a174f138dd94"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-8a4c9913b484471dae3f34aa089135b7",
+      "decision_id": "restoration-5fd0ceeb49ca43ec9467556a083fa06e"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-1e464173e591484aa60255faefb48e52",
+      "decision_id": "restoration-599d3c5232fc494499da90972e881e5b"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-20ff6107269649de8312356a18b12625",
+      "decision_id": "restoration-ae4616ad0bfb45e882149a4ed73c6a28"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-031d15cc16364b19bb5e90cef2fecd45",
+      "decision_id": "restoration-d744edc6888f46ee9c02728adafbf4a6"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-57a4a47300e84ceeb586d3770e1564eb",
+      "decision_id": "restoration-369e7fce67b1463f89f18b4ee5d18897"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-c8b3335049924dfbbd598fddd2f78e75",
+      "decision_id": "restoration-210c784c66ac4f80af940b32b899169d"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-0f9cc2c00912415eacff785f4034d1fb",
+      "decision_id": "restoration-edfe8d22b5334f1db282d2bb2d88deee"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-075fc0267e9c42fb9f4ffc718ec45b22",
+      "decision_id": "restoration-fc62f5e61e884ed7bb4dfda699046e5d"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-6649054745ad4e53b630f75ac8246276",
+      "decision_id": "restoration-84f1b5501d5d4730aaef8fcbe2499b28"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-316429945c3341638b3d92d060570c2d",
+      "decision_id": "restoration-b6cf37da7c564e15b802b5a3a679b692"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-8f178577c4dd4fd5b0808d81488d1cca",
+      "decision_id": "restoration-203739b9ae214422bd94b464636e824f"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-0fd649a951d44a028726c612c9bf7714",
+      "decision_id": "restoration-685236c1107e4069aab4b8cf1740a67c"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-4ef677fbb2d84abcabbbb9bca8ccd33a",
+      "decision_id": "restoration-05359c63e62a4353b60e1d3be54fa4fd"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-5aecc8dc7d984121bd67039f852ec986",
+      "decision_id": "restoration-7a1d0b8aad8b4139b00f12b1b4196462"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-3bf50d10ceb24be6aecc503393e73e67",
+      "decision_id": "restoration-531f32a2516c4c0093adca94deed8ec3"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-13e8bcaff30c4b9389f7e10febb7ce09",
+      "decision_id": "restoration-1f2542da024b4116a72f24d174982e47"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-ef06a04aab954df7bb8adf7a355e6976",
+      "decision_id": "restoration-459902c3215543ff80207fbe2b7ed6f6"
+    },
+    {
+      "action": "accept_fact",
+      "action_id": "manual-6a2241faca594c8a915c3b105df79cc7",
+      "decision_id": "restoration-24fb5375967d4a87bdc4dd10d48e421e"
+    }
+  ],
+  "stocktake_before": {
+    "canonical_declarations": {
+      "custom_structs": 61,
+      "data_block_layouts": 496,
+      "function_summaries": 82,
+      "entry_register_seeds": 71,
+      "rsset_layout_regions": 112,
+      "seeded_code_labels": 835,
+      "target_equates": 264,
+      "manual_data_references": 284,
+      "manual_representations": 1935
+    },
+    "observed_native_query_counts": {
+      "functions": 225,
+      "fields": 902,
+      "edges": 3418,
+      "gaps": 89
+    },
+    "actions": 7135,
+    "unassessed": 1061
+  },
+  "stocktake_after": {
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "revision": "c9d411bb9d57852de25d9126cc15a929bb55145cf6d6991e390b7b061b8f3943",
+    "subject_revision": "ef70b8ec737b4c86b8c218ff6496e6e71a927394ff847935398c2767243604fd",
+    "payload": {
+      "size": 376832,
+      "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "canonical_declarations": {
+      "custom_structs": 61,
+      "data_block_layouts": 496,
+      "function_summaries": 83,
+      "entry_register_seeds": 71,
+      "rsset_layout_regions": 114,
+      "seeded_code_labels": 835,
+      "target_equates": 269,
+      "manual_data_references": 284,
+      "manual_representations": 1950
+    },
+    "native_query_totals": {
+      "instructions": {
+        "count": 7043,
+        "scope": "native_artifact"
+      },
+      "symbols": {
+        "count": 4482,
+        "scope": "native_artifact"
+      },
+      "references": {
+        "count": 5135,
+        "scope": "native_artifact"
+      },
+      "functions": {
+        "count": 225,
+        "scope": "current accepted analysis"
+      },
+      "fields": {
+        "count": 910,
+        "scope": "native_artifact",
+        "native_record_status_counts": {
+          "resolved": 883,
+          "unresolved": 27
+        }
+      },
+      "edges": {
+        "count": 3418,
+        "scope": "native_artifact"
+      },
+      "gaps": {
+        "count": 89,
+        "scope": "native analysis review items"
+      }
+    },
+    "history": {
+      "actions": 7209,
+      "unassessed": 1061
+    },
+    "existing_coverage_inventory": {
+      "path": "docs/targets/pandora-coverage-current.tsv",
+      "sha256": "82857cb4189e1c08b98c6d0742ac8002969399f4dd980cdb55bb0a005a28ea9d",
+      "intervals": 344,
+      "interval_counts": {
+        "code": 47,
+        "unclaimed": 146,
+        "accepted_noncode": 151
+      },
+      "union_bytes": {
+        "code": 24394,
+        "unclaimed": 88851,
+        "accepted_noncode": 263587
+      },
+      "partition_bytes": 376832,
+      "scope": "Existing inventory partition; not rederived at this revision and not a semantic completion claim."
+    },
+    "assets": {
+      "count": 86,
+      "identity_sha256": "391a06d747b5f60e81ec2ae5019a32d10d7cd3e595b9e1bf7b2063a0394e8eee",
+      "all_payloads_match_manifest": true
+    },
+    "limits": [
+      "Exact original-layout reproduction is a separate verification receipt.",
+      "Declarations and candidate/query counts do not establish semantic truth or complete ownership.",
+      "Raw preservation and the existing coverage partition do not establish resource purpose.",
+      "Alternate-layout readiness requires closed references, placement/lifetime constraints and changed-layout execution evidence."
+    ]
+  },
+  "resolved_source": {
+    "numeric_field_operands": 8,
+    "field_source_offsets": [
+      28194,
+      28514,
+      28616,
+      28642,
+      28648,
+      28688,
+      28852,
+      28958
+    ],
+    "anonymous_span_stores": 8,
+    "clipping_constant_operands": 15,
+    "named_branch_or_helper_declarations": 43,
+    "preservation_contracts": 4,
+    "new_entry_comments": 5,
+    "native_field_records_before": 902,
+    "native_field_records_after": 910,
+    "native_resolved_fields_after": {
+      "resolved": 883,
+      "unresolved": 27
+    }
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "ab1f896592710b0815dfb753baeaaadfdde9011f9ff7f8bee812ab57095bf9e0",
+    "revision": "ef8bbed1f32642a9f4098d395298746ecdb267e9f134b9f291d960b89cf78fb0",
+    "source_package_sha256": "7cdf11998813ceaa0a2b2bd78e3c759ceb2d3f2d9d727f33570c26c3e5ba55c0",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/7cdf11998813ceaa0a2b2bd78e3c759ceb2d3f2d9d727f33570c26c3e5ba55c0/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "8e4574d0f6f215be84da225a3afee783dd1200c2e302ab9ea0284790d2d394fa",
+    "status": "exact",
+    "subject_revision": "ef70b8ec737b4c86b8c218ff6496e6e71a927394ff847935398c2767243604fd",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "preservation": {
+    "immutable_tracked_files": 99,
+    "asset_identities_paths_sizes_hashes_unchanged": 86,
+    "data_directives_unchanged": true,
+    "history_prefixes": {
+      "manual_actions.jsonl": {
+        "preserved_bytes": 10412209,
+        "prefix_sha256": "5591c40c776812e3c577edc0df56bce3ff2132c135e7eb5e617199b7851027fe",
+        "appended_records": 74
+      },
+      "decision_journal.jsonl": {
+        "preserved_bytes": 10608684,
+        "prefix_sha256": "f82e2afae9ad15f2e31159b0fc1b1ab56d7cb1893925b4e9d3a560cef69fc384",
+        "appended_records": 74
+      }
+    }
+  },
+  "checks": {
+    "native": 816,
+    "distinct_focused_tests": 49,
+    "new_geometry_tests": 7,
+    "rectangle_boundary_cases": 1156,
+    "point_cases_native": 49,
+    "point_cases_independent_musashi": 5,
+    "draw_clip_cases": 10,
+    "top_clip_row_adjustment_cases": 3,
+    "previous_geometry_helper_cases": 2,
+    "lint": "passed",
+    "git_diff_check": "passed"
+  },
+  "original_behavior": {
+    "point_test": "SWAP D0 at 0x6836 clears carry before BCC 0x6838, so original interior points also return the rejection low WORD; upper D4 is retained. Native CPU and independent Musashi agree. No correction or gameplay consequence is claimed.",
+    "four_side_alias": "All four side flags produce 15, the same value rejected by both callers. The boundary matrix includes a rectangle enclosing the view; REJECT does not imply geometric disjointness for arbitrary rectangles.",
+    "computed_top_skip": "visible=Y+H+1-view_top; computed_skip=H-visible. Mask advance is 2*stride_words*computed_skip and interleaved four-plane pixel advance is four times that. Original +1 remains.",
+    "span_slots": "Two WORDs record produced coordinate differences; left clipping forces the X slot to zero. No reader is established; no allocation or DMA-size meaning is asserted."
+  },
+  "limits": [
+    "No chipset DMA scheduling, completion, pixel output or exclusive buffer lifetime proof. MMIO drawing tests provide an explicit ready-bit shadow only.",
+    "Wrapping coordinates, arbitrary extents, unchecked DBF inputs, attachment cycles and later alias writers remain open.",
+    "Animation and audio unresolved selectors/producers/timing/lifetimes retain their prior inventory limits; no repeated investigation was performed.",
+    "Alternate-layout readiness remains separate: whole-game changed code/data/DMA placement and lifetime/reference closure are unproved."
+  ],
+  "next_connected_gap": "Custom-register address context through the tile rectangle copier EXG path, followed by bounded DMA packets/extents; the existing numeric hardware operands remain explicit."
+}

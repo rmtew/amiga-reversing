@@ -176,6 +176,7 @@ class ManualActionKind(StrEnum):
     EDIT_MANUAL_DATA_BLOCK_LAYOUT = "edit_manual_data_block_layout"
     REMOVE_MANUAL_DATA_BLOCK_LAYOUT = "remove_manual_data_block_layout"
     SET_MANUAL_DATA_BLOCK_ELEMENT = "set_manual_data_block_element"
+    RENAME_MANUAL_DATA_BLOCK_ELEMENTS = "rename_manual_data_block_elements"
     REMOVE_MANUAL_DATA_BLOCK_ELEMENT = "remove_manual_data_block_element"
     REPRESENT_MANUAL_DATA_BLOCK_ELEMENT = "represent_manual_data_block_element"
     INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF = "interpret_manual_data_block_element_ref"
@@ -1290,6 +1291,28 @@ def _data_block_element_key(element: dict[str, object]) -> tuple[str, int]:
     return layout_id, offset
 
 
+def normalize_data_block_element_renames(value: object) -> list[dict[str, object]]:
+    """Bound explicit name-only edits to existing owner/offset identities."""
+    if not isinstance(value, list) or not 1 <= len(value) <= 1000:
+        raise ValueError("element renames require 1..1000 entries")
+    result: list[dict[str, object]] = []
+    identities: set[tuple[str, int]] = set()
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {"layout_id", "offset", "name"}:
+            raise ValueError("element rename requires layout_id, offset and name only")
+        if type(item["offset"]) is not int:
+            raise ValueError("element rename offset must be an integer")
+        layout_id, offset = _data_block_element_key(item)
+        name = item["name"]
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("element rename requires a nonempty name")
+        if (layout_id, offset) in identities:
+            raise ValueError("element rename contains duplicate owner/offset identity")
+        identities.add((layout_id, offset))
+        result.append({"layout_id": layout_id, "offset": offset, "name": name.strip()})
+    return result
+
+
 def _validated_data_block_element(element: dict[str, object], layouts: dict[str, dict[str, object]]) -> dict[str, object]:
     layout_id, offset = _data_block_element_key(element)
     width = _manual_seed_int(element, "width")
@@ -1885,7 +1908,16 @@ def _project_actions(
         elif action.kind is ManualActionKind.REMOVE_MANUAL_FUNCTION_SUMMARY:
             _drop_by_id(function_summaries, action, "function_summary_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_LABEL:
-            _put_by_id(labels, _projected_manual_label(action), "label_id")
+            label = _projected_manual_label(action)
+            previous = labels.get(str(label.get("label_id")))
+            if previous is not None and isinstance(label.get("previous_name"), str):
+                names = list(previous.get("previous_names", []))
+                if isinstance(previous.get("previous_name"), str):
+                    names.append(previous["previous_name"])
+                if names:
+                    names.append(label["previous_name"])
+                    label["previous_names"] = list(dict.fromkeys(names))
+            _put_by_id(labels, label, "label_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_LABEL:
             _drop_by_id(labels, action, "label_id")
         elif action.kind is ManualActionKind.RENAME_MANUAL_LABEL:
@@ -2072,6 +2104,13 @@ def _project_actions(
                     removed_ref = data_block_interpreted_refs.pop(ref_id)
                     removed_ref["cleanup_action_id"] = action.action_id
                     removed_data_block_interpreted_refs[ref_id] = removed_ref
+        elif action.kind is ManualActionKind.RENAME_MANUAL_DATA_BLOCK_ELEMENTS:
+            renames = normalize_data_block_element_renames(action.payload.get("data_block_element_renames"))
+            if any(_data_block_element_key(item) not in data_block_elements for item in renames):
+                raise ValueError("element rename references unknown active owner/offset")
+            for item in renames:
+                key = _data_block_element_key(item)
+                data_block_elements[key] = {**data_block_elements[key], "name": item["name"]}
         elif action.kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
             try:
                 element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
@@ -2206,9 +2245,8 @@ def _project_actions(
             region = validate_region(dict(_action_object(action, "memory_region")))
             if region["region_id"] in memory_regions:
                 raise ValueError("memory_region identity already exists; remove before replacement")
-            if any(region["runtime_address"] < old["runtime_address"] + old["size"] and
-                   old["runtime_address"] < region["runtime_address"] + region["size"] for old in memory_regions.values()):
-                raise ValueError("memory_region overlaps another persistent region")
+            # Shared storage identities remain distinct. Native facts expose
+            # their overlap and refuse independent single-region relocation.
             if len(memory_regions) >= 16:
                 raise ValueError("memory_region native capacity exceeded")
             memory_regions[region["region_id"]] = region
@@ -2305,6 +2343,7 @@ def _validate_candidate_equate_capacity(
     # Use the renderer's canonical merge, including generated reference proxies,
     # while the append lock still protects the candidate from concurrent writes.
     from amiga_reversing.disasm.c_backend import (
+        platform_constant_value_with_c_backend,
         validate_target_equate_count_with_c_backend,
     )
     from amiga_reversing.disasm.effective_metadata import effective_target_metadata
@@ -2312,23 +2351,80 @@ def _validate_candidate_equate_capacity(
     metadata = effective_target_metadata(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if metadata is not None and metadata.target_equates:
         validate_target_equate_count_with_c_backend(len(metadata.target_equates))
-    # Absolute-address presentation rules carry the current native literal.
-    # Resolve against the whole candidate so a new EQU and its use can share
-    # one atomic batch, without changing historical representation records.
-    equates = {equate.name: equate.value for equate in metadata.target_equates} if metadata is not None else {}
-    for action in pending_actions:
-        if action.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION:
-            continue
-        representation = action.get("representation")
-        if not isinstance(representation, dict) or representation.get("element_kind") != "absolute_address" or representation.get("style") != "symbol":
-            continue
-        value = representation.get("value")
+    # Resolve source labels against one candidate native plan while the append
+    # lock is held. Remove only pending presentations from this read-only plan;
+    # declarations/equates created in the same atomic batch remain visible.
+    representations = [a["representation"] for a in pending_actions
+        if a.get("kind") == ManualActionKind.CREATE_MANUAL_REPRESENTATION
+        and isinstance(a.get("representation"), dict) and a["representation"].get("style") == "symbol"]
+    if not representations:
+        return
+    equates = {e.name: e.value for e in metadata.target_equates} if metadata else {}
+    source_choices = []
+    for representation in representations:
+        representation.pop("source_symbol", None)  # Never trust a caller-supplied identity.
+        symbol, value = representation.get("symbol"), representation.get("value")
         width = representation.get("width_bytes")
-        symbol = representation.get("symbol")
-        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 0xFFFFFFFF or width not in {2, 4}:
-            raise ValueError("absolute symbol representation requires a decoded address and width")
-        if not isinstance(symbol, str) or equates.get(symbol) != value:
-            raise ValueError("absolute symbol representation EQU value must match the decoded address")
+        if representation.get("element_kind") == "indexed_displacement":
+            if width != 1 or type(value) is not int or not -128 <= value <= 127 or symbol not in equates or equates[symbol] != value:
+                raise ValueError("indexed displacement requires an equal-valued canonical EQU")
+        elif representation.get("element_kind") == "absolute_address" and symbol in equates:
+            if width not in {2, 4} or equates[symbol] != value:
+                raise ValueError("absolute symbol representation EQU value must match the decoded address")
+        elif representation.get("element_kind") in {"immediate", "absolute_address"} and symbol not in equates:
+            constant = platform_constant_value_with_c_backend(binary_source, str(symbol))
+            if constant is not None:
+                if constant not in (value, representation.get("signed_value")):
+                    raise ValueError("platform symbol constant must match the decoded value")
+            else:
+                source_choices.append(representation)
+    if not source_choices:
+        return
+    import tempfile
+
+    from amiga_reversing.disasm.c_backend import (
+        build_listing_artifact_profile_from_binary_source,
+    )
+    from amiga_reversing.disasm.effective_metadata import effective_metadata_text
+    # Platform constants were handled by the native registry above. Resolve
+    # source declarations against one native plan, without interpreting names
+    # or subtracting load addresses in Python.
+    pending_without_presentations = [a for a in pending_actions
+        if a.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION]
+    text = effective_metadata_text(target_dir, pending_actions=pending_without_presentations, binary_source=binary_source)
+    with tempfile.TemporaryDirectory(prefix="representation-identity-") as directory:
+        metadata_path = Path(directory) / "metadata.json"
+        metadata_path.write_text(text or "{}", encoding="utf-8")
+        _, _, artifact = build_listing_artifact_profile_from_binary_source(binary_source, metadata_path=metadata_path)
+        try:
+            for representation in source_choices:
+                symbol = representation["symbol"]
+                matches = artifact.query_payload("symbols", symbol=symbol, limit=2)["items"]
+                if len(matches) != 1:
+                    raise ValueError("symbol representation requires one canonical native declaration")
+                identity = matches[0].get("source_symbol")
+                if identity is None:
+                    if matches[0].get("source_offset") is None:
+                        continue  # Existing platform declaration.
+                    raise ValueError("symbol has no unambiguous rendered address view")
+                width, value = representation.get("width_bytes"), representation.get("value")
+                row = artifact.row_for_source_offset(section_index=representation.get("hunk", 0), offset=representation["addr"])
+                parts = row.get("operand_parts", []) if row else []
+                literal = [p for p in parts if p.get("kind") == representation.get("element_kind")
+                    and p.get("operand_index") == representation.get("operand_index")]
+                if len(literal) != 1 or literal[0].get("width_bytes") != width or literal[0].get("value") != value:
+                    raise ValueError("source symbol requires the native decoded value and width")
+                if type(width) is not int or width not in {1, 2, 4} or type(value) is not int:
+                    raise ValueError("source symbol representation requires decoded value and width")
+                mask = (1 << (width * 8)) - 1
+                expected = identity["encoded_value"]
+                fits = expected <= mask or (representation.get("element_kind") == "absolute_address"
+                    and width == 2 and expected >= 0xFFFF8000)
+                if not fits or (value & mask) != (expected & mask):
+                    raise ValueError("source symbol encoded value/width must match the decoded operand")
+                representation["source_symbol"] = identity
+        finally:
+            artifact.close()
 
 
 # These actions can change native structured-item or named-label expansion.
@@ -2345,6 +2441,7 @@ _POLICY_STORAGE_ACTION_KINDS = frozenset({
     ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
     ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT,
     ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT, ManualActionKind.REPRESENT_MANUAL_DATA_BLOCK_ELEMENT,
+    ManualActionKind.RENAME_MANUAL_DATA_BLOCK_ELEMENTS,
     ManualActionKind.INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF, ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF,
     ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW, ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW,
     ManualActionKind.CREATE_MANUAL_RUNTIME_OBSERVATION_VIEW, ManualActionKind.REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW,
@@ -2357,6 +2454,12 @@ def _validate_candidate_policy_capacity(
     target_dir: Path, pending_actions: Sequence[dict[str, object]], *, binary_source: BinarySource,
 ) -> None:
     if not any(manual_action_kind(str(action["kind"])) in _POLICY_STORAGE_ACTION_KINDS
+               or (action.get("kind") == ManualActionKind.CREATE_MANUAL_REPRESENTATION
+                   and isinstance(action.get("representation"), dict)
+                   and action["representation"].get("style") in {"symbol", "hardware_offset"})
+               or (action.get("kind") == ManualActionKind.CREATE_MANUAL_REGISTER_SEED
+                   and isinstance(action.get("register_seed"), dict)
+                   and action["register_seed"].get("kind") == "hardware_indexed")
                for action in pending_actions):
         return
     from amiga_reversing.disasm.c_backend import validate_policy_storage_with_c_backend
@@ -2364,7 +2467,12 @@ def _validate_candidate_policy_capacity(
 
     text = effective_metadata_text(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if text:
-        validate_policy_storage_with_c_backend(binary_source, metadata_text=text)
+        try:
+            validate_policy_storage_with_c_backend(binary_source, metadata_text=text)
+        except RuntimeError as exc:
+            if "manual representation" in str(exc):
+                raise ValueError("unsupported or invalid native symbol representation") from exc
+            raise
 
 
 def load_manual_projection(

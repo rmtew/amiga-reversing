@@ -1,0 +1,711 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "result": "ordinary_gameplay_combat_defeat_null_node_write_confirmed",
+  "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "environment": "Copperline 1.0.0; A500OCS PAL 68000, 512 KiB chip + 512 KiB slow; existing legal ROM",
+  "checkpoint_chain": [
+    {
+      "segment": "corridor",
+      "snapshot_sha256": "48461212136d40a13ff80615f950c8963291951db0da90ae45df58e363b99fb8",
+      "parent_snapshot_sha256": null,
+      "completed_phases": 61,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "west",
+      "snapshot_sha256": "53c07af1fda8bd7dc6590d7b2965d89cc04f002ef1b5604996a3297ba3df8f4e",
+      "parent_snapshot_sha256": "48461212136d40a13ff80615f950c8963291951db0da90ae45df58e363b99fb8",
+      "completed_phases": 32,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "east",
+      "snapshot_sha256": "ea78b307e1a71b61f263a2ac6e9e933458f4be557c2f896e1c3505798a90fac4",
+      "parent_snapshot_sha256": "53c07af1fda8bd7dc6590d7b2965d89cc04f002ef1b5604996a3297ba3df8f4e",
+      "completed_phases": 30,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "ready",
+      "snapshot_sha256": "bf27e756a1dca9f9df005717408135921eb2b75935f1de78f3b1683392a6e03a",
+      "parent_snapshot_sha256": "ea78b307e1a71b61f263a2ac6e9e933458f4be557c2f896e1c3505798a90fac4",
+      "completed_phases": 38,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "rifle",
+      "snapshot_sha256": "2b2cb80ff575db18240985e244c471cb9057787d0be2bfc6a2569f2db47cec42",
+      "parent_snapshot_sha256": "bf27e756a1dca9f9df005717408135921eb2b75935f1de78f3b1683392a6e03a",
+      "completed_phases": 5,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "audit",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+      "parent_snapshot_sha256": "2b2cb80ff575db18240985e244c471cb9057787d0be2bfc6a2569f2db47cec42",
+      "completed_phases": 2,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "neutral",
+      "snapshot_sha256": "6da2623515f6bfaad1ef8fa58e4ed7ab5b58c828776e18ab1541c9abc48a3741",
+      "parent_snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+      "completed_phases": 8,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "reverse-stage",
+      "snapshot_sha256": "5128d1dfd6ef1bb6f03d1367e13b1cb5e184aba4405eb7dd6058ac0363d414cc",
+      "parent_snapshot_sha256": "6da2623515f6bfaad1ef8fa58e4ed7ab5b58c828776e18ab1541c9abc48a3741",
+      "completed_phases": 15,
+      "inputs_released": true,
+      "stable_key": "s0:000005CA:instruction"
+    },
+    {
+      "segment": "damage",
+      "snapshot_sha256": "411d2998f70edefb5dea37e6348d4a8cd3ccbd993fda445efc8be67ff7af6654",
+      "parent_snapshot_sha256": "5128d1dfd6ef1bb6f03d1367e13b1cb5e184aba4405eb7dd6058ac0363d414cc",
+      "completed_phases": 38,
+      "inputs_released": true,
+      "stable_key": "s0:0000887C:instruction"
+    }
+  ],
+  "provenance": "Fresh direct-payload boot and committed ordinary input scenarios; later probes apply no gameplay inputs and no guest-state edits. Checkpoints remain local and are not published. Original disk/loader parity is outside this proof.",
+  "proof": {
+    "scenario": "runtime/scenarios/pandora-combat-null-node.json",
+    "runner_status": "ok",
+    "raw_report_sha256": "75a37c539100a64639a2a24b4a1526c7432600c825d58b06cefb6e45c608d32d",
+    "phases": [
+      {
+        "name": "first_damage_anchor",
+        "stable_key": "s0:0000887C:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x00013502",
+            "a4": "0x0005c322",
+            "a5": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002000"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a00fc081c",
+              "base_register": null,
+              "offset": null
+            }
+          ]
+        },
+        "resolved_function": {
+          "name": "store_security_damage_health_byte",
+          "source_start": 34940,
+          "source_end": 34966,
+          "runtime_start": 100476,
+          "runtime_end": 100502
+        },
+        "address": "0x0001887c",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x0001887c",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105f0",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x887c"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x887c",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "first_damage_applied",
+        "stable_key": "s0:00008896:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x0001aa72",
+            "a4": "0x000132d6",
+            "a5": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c35e",
+              "bytes": "002c",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "002c",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a00fc081c",
+              "base_register": null,
+              "offset": null
+            }
+          ]
+        },
+        "resolved_function": {
+          "name": "service_security_damage_palette_flash",
+          "source_start": 34966,
+          "source_end": 35004,
+          "runtime_start": 100502,
+          "runtime_end": 100540
+        },
+        "address": "0x00018896",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00018896",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105f0",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x8896"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x8896",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "combat_player_defeat",
+        "stable_key": "s0:000079A8:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x0000397c",
+            "a4": "0x0005c322",
+            "a5": "0x0005bc0a",
+            "a6": "0x000039fc",
+            "sr": "0x00002019"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c35e",
+              "bytes": "0002",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a00fc081c",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "2200",
+              "base_register": "a6",
+              "offset": 558
+            }
+          ]
+        },
+        "resolved_function": {
+          "name": "handle_combat_player_defeat",
+          "source_start": 31144,
+          "source_end": 31204,
+          "runtime_start": 96680,
+          "runtime_end": 96740
+        },
+        "address": "0x000179a8",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000179a8",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105ce",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 32,
+          "matching_offsets": [
+            "0x79a8"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x79a8",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "before_combat_state_exchange",
+        "stable_key": "s0:00007A06:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x0005cc87",
+            "a4": "0x000132d6",
+            "a5": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c35e",
+              "bytes": "0000",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0000",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a00fc081c",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c5be",
+              "bytes": "00000000",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "00000000",
+                "mask_hex": "ffffffff",
+                "matched": true
+              }
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x00017a06",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00017a06",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105ce",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x7a06"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x7a06",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "null_node_before_writes",
+        "stable_key": "s0:0000868A:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x00000000",
+            "a4": "0x000132d6",
+            "a5": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002000"
+          },
+          "memory_reads": [
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a00fc081c",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c5be",
+              "bytes": "00000000",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "00000000",
+                "mask_hex": "ffffffff",
+                "matched": true
+              }
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x0001868a",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x0001868a",
+        "sp": "0x00010442",
+        "stack_return_address": "0x0005c5b6",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x868a"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x868a",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "null_node_after_writes",
+        "stable_key": "s0:00008694:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x00000000",
+            "a4": "0x000132d6",
+            "a5": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "memory_reads": [
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a0000081c",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c5be",
+              "bytes": "00000000",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "00000000",
+                "mask_hex": "ffffffff",
+                "matched": true
+              }
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x00018694",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00018694",
+        "sp": "0x00010442",
+        "stack_return_address": "0x0005c5b6",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x8694"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x8694",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "combat_exchange_returned",
+        "stable_key": "s0:00007A0A:instruction",
+        "capture": {
+          "registers": {
+            "a0": "0x0005cc87",
+            "a4": "0x000132d6",
+            "a5": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002000"
+          },
+          "memory_reads": [
+            {
+              "address": "0x00000008",
+              "bytes": "00fc081800fc081a0000081c",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "0000",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0000",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x00017a0a",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00017a0a",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105ce",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x7a0a"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x7a0a",
+          "runtime_base": "0x00010000"
+        }
+      }
+    ]
+  },
+  "eligibility": {
+    "scenario": "runtime/scenarios/pandora-security-eligibility-window.json",
+    "runner_status": "ok",
+    "raw_report_sha256": "f8b38ab3a7c0e73c6dbf21d8d54760dbced5ba228bf388415b0b206060c2c3b3",
+    "service_calls_observed": 160,
+    "samples": [
+      {
+        "phase": "service_window_1",
+        "capture": "first_capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          1123,
+          758
+        ],
+        "hp": 44,
+        "security_zone": 0,
+        "flash_remaining": 30,
+        "response_active": 1,
+        "countdown": 50,
+        "ui_flags": 32,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 55,
+        "actor_stored_xy": [
+          1104,
+          722
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_1",
+        "capture": "capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          1123,
+          758
+        ],
+        "hp": 44,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 49,
+        "ui_flags": 32,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 49,
+        "actor_stored_xy": [
+          1104,
+          728
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_2",
+        "capture": "first_capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          1123,
+          758
+        ],
+        "hp": 44,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 48,
+        "ui_flags": 32,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 47,
+        "actor_stored_xy": [
+          1104,
+          730
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_2",
+        "capture": "capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          11123,
+          758
+        ],
+        "hp": 37,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 34,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 33,
+        "actor_stored_xy": [
+          11104,
+          744
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_3",
+        "capture": "first_capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          11123,
+          758
+        ],
+        "hp": 37,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 34,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 33,
+        "actor_stored_xy": [
+          11104,
+          744
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_3",
+        "capture": "capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          11123,
+          758
+        ],
+        "hp": 16,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 34,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 33,
+        "actor_stored_xy": [
+          11104,
+          744
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_4",
+        "capture": "first_capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          11123,
+          758
+        ],
+        "hp": 16,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 34,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 33,
+        "actor_stored_xy": [
+          11104,
+          744
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_4",
+        "capture": "capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          11123,
+          758
+        ],
+        "hp": 2,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 34,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 33,
+        "actor_stored_xy": [
+          11104,
+          744
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_5",
+        "capture": "first_capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          11123,
+          758
+        ],
+        "hp": 2,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 34,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 33,
+        "actor_stored_xy": [
+          11104,
+          744
+        ],
+        "vectors_8_to_13": "00fc081800fc081a00fc081c"
+      },
+      {
+        "phase": "service_window_5",
+        "capture": "capture",
+        "occurrences_observed": 32,
+        "player_stored_xy": [
+          1120,
+          758
+        ],
+        "hp": 0,
+        "security_zone": 0,
+        "flash_remaining": 0,
+        "response_active": 1,
+        "countdown": 33,
+        "ui_flags": 32,
+        "nearest_object": "0005bc0a",
+        "nearest_distance": 30,
+        "actor_stored_xy": [
+          1104,
+          772
+        ],
+        "vectors_8_to_13": "00fc081800fc081a0000081c"
+      }
+    ]
+  },
+  "interpretation": [
+    "First security hit changes HP95 to44. The separate second-security-hit wait again times out; this is not defeat unreachability.",
+    "During counted service observations, combat flag bit1 becomes set, security countdown pauses at33, and HP falls to0. The nearest object remains the flight controller in the samples.",
+    "Explicit original-gameplay trace reaches combat defeat79A8, before-exchange7A06, NULL-node868A (A0=0), after-reset8694 and return7A0A. Word10 changes00FC to0000. ByteA is08 before and after: bit0 was already clear.",
+    "Synthetic CPU setup is used only for optional-patch regression, not for the original gameplay reachability claim.",
+    "Corrected gameplay has not been run; the optional correction is a bounded CPU/assembly proof with an explicit stack precondition."
+  ]
+}

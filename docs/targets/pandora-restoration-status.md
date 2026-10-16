@@ -555,17 +555,211 @@ presentation, not the semantic recovery status below.
 | Bootstrap / initialization | Fixed-base overlap-safe copy, continuation, supervisor/stack/workspace and initial buffers | Dependent resource setup and storage lifetimes | Copy-helper return lineage, temporal overwrites and alternate placement |
 | IRQ / frame / gameplay | Dispatch priority, display pointer programming, completion latch; front/back swap and shared main/modal input, text and mission-timer services | Callback effects, input phases and buffer ownership | Complete allocation/lifetime and caller coverage |
 | Title / starfield | Ten-byte record fields and five scoped A2 inputs; grounded post-reset continuation typing; ten initialized runtime samples match signed projection arithmetic | Byte 9 remains unknown; clear/render use continuation jumps; the 1000-byte runtime array is outside the absolute-storage command schema | Complete runtime ownership/lifetime, table bounds and indirect paths |
-| World commands / objects | All 33 handler identities and operand contracts; 12 shared command schemas, 20 scoped handler inputs and 31 named operand uses; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | Mutable scripts, callback effects, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
+| World commands / objects | All 33 handler identities and operand contracts; 12 shared command schemas, 20 scoped handler inputs and 31 named operand uses; 17 records in the diabetic/officer programs now use those same formats, with named active/held and post-handoff waits; selected object prefixes; 780 commands and 1843 typed fields in all 26 initialized NPC streams; the remaining 14 streams add 238 source anchors and 238 relative WORD references with opcode names | The officer handoff inhibits opcode dispatch while delay continues to count down; restart can exchange active/saved states before restoring the initial cursor. External cursor writes and transitive callback effects remain open. Mutable scripts, raw pointer operands and arbitrary pointer/lifetime limits | Full-family capacity blockers are resolved with checked 8192-entry data/label storage and 512 manual references; remaining work is indirect/runtime effects and pointer/lifetime coverage |
 | Combat / encounter | Proximity/trade entry, equipment reload/damage tables, player/opponent charge state, health overlays, hit feedback, charge gauge and defeat cleanup; initialized callback targets and their shared item-state helper | Four non-null callbacks among 35 initialized objects; callback precedes opponent deactivation; item-state addition wraps modulo 256 and skips flag-bit-1 objects. XY-copy and saved-state swap use typed object fields; the table wrapper loads A0 but the helper inherits A5 | Mutable callback replacements, fixed-RAM pointer purpose, complete state/pointer lifetimes and indirect callers; nine initialized saved-state pointers are null |
 | Scene / tiles / geometry | Reviewed scene selectors, tile records and selected pixel/mask banks; mask-input/border consumers and shared 20×8 modal grid; fixed NPC and receptacle geometry/descriptor families | Receptacle deposit saves the attachment, completion/restart restores it and clears the saved pointer; restart clears the entire interaction flags byte, including proximity bit 0 | Remaining banks, complete write ownership, arbitrary attachment chains and DMA constraints |
-| Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
+| Entity animation / updates | Shared geometry/clock/draw-state contracts; directional and combat controllers; fixed NPC geometry, sequences, saved nodes/states and six descriptor/paired-state clusters. The existing 22-state table retains its exact 26-byte prefix; two checkpoint attachment states have a separate 52-byte owner. Shared rules cover 119 attachment fields; the diabetic first-attachment pose controller adds two frame descriptors, one node and its held/active pointer pair (62 bytes). The shared state exchanger is reversible and restarts only the incoming node | Initial 112-prefix attachment graph closes with 23 links, no cycles and maximum chain three. Original script/header counts ground 49 fixed sequence slots; the unproven 60-byte gap remains raw. Six receptacles retain explicit conditional pointer tails and six-byte interaction records. Numeric mask RAM values, nulls and shared state remain preserved | Mutable sequence replacements, conditional chain extensions, later attachment cycles/alias writes and complete caller/lifetime coverage |
 | Player movement / collision / camera | Axis scaling, tile probes, request versus drift/commit, direction/idle modes, bitset and camera handoff; movement script, directional prefixes, copied-pointer links and corrected idle field; two typed camera countdown/margin profiles, sequential field reads and movement scroll triggers | Initialized-map restriction prefix, unchecked profile index and coordinates, and pointer/lifetime limits; ambiguous or inactive runtime mappings refused | Later exit-delay reset/writer coverage and reachable inherited state; shared positive-X node word and held-frame/player-layout boundary |
-| Inventory / trading / NPC | Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
+| Inventory / trading / NPC | Diabetic selected/carried insulin and needle responses, self-destruct advice latch and read-only range predicate; four named ASCII responses (178 bytes). Four-entry records, 81 table identities, 175 typed address fields; current/initial inventory and offer pointers, source name pointers, shared empty-bank role, selected offer/reset/panel/name/pocket paths and proven item/name constants | Self-copy aliases; unmatched +8/+9 reaches setup/palette scratch. Original shared zero offers and clear trade-ready flags cannot arm a matching trade. Cursor domains, duplicated display identities and selected security callbacks remain qualified | Later alias/flag/pointer writers, complete callers, templates' write ownership and lifecycle |
 | Mission / terminals / outcomes | Terminal versus self-destruct modal roles; SDI disk and qualifying-card count, submitted-name prefix, Earth BCD deadline versus armed main-loop countdown, outcome latch and salvage/defeat ranking; shared title/gameplay palette counter; decoded escape helper, six conditional 70-step reloads and distinct main/modal exit gates; fade/brain health latches | Local validation has no order/duplicate check; modal header changes role on swap; counts wrap and exit timing depends on service paths | Later delay reset/writer coverage, reachable zero/inherited states and complete writer/lifetime and domain coverage |
-| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; named renderer/cursor/shift state; health overlays and grade/color/text tables | Proportional advance uses the WORD's low byte; the named pixel-shift byte retains its original extent and neighboring sprite DMA pointer. Character/destination bounds are unchecked and straddle DMA can read a neighboring WORD. Cursor pixels survive observed source-scratch reuse; header/pointer consumption is phase-dependent. Overlay callback ownership and 128-byte clear versus 64-byte layout remain partial | Arbitrary-input behavior, queue-processing reachability and adjacent storage ownership |
+| Text / fonts / overlays | Compact/title fonts and rendering contracts; proportional UI font with 68 advance-plus-seven-row records and its 96-byte character map; renderer/cursor/shift state; all ten fixed 44-byte overlay descriptors; background capture/restore/clear register contracts, persistent 16-slot callback scan, 200-WORD raster lookup and split world/UI framebuffer addressing | Snapshot transfers preserve original rounding, inherited blitter state and restore byte-height wrap. Fixed snapshot extents and reset/palette-input overlaps are explicit; queue deduplication still permits recapture. Registration deduplicates only the non-NULL prefix; all ten initialized callbacks are NULL. Font bounds remain unchecked and straddle DMA can read a neighboring WORD. Header/pointer consumption is phase-dependent | Queue-processing gameplay reachability; 128-byte clear versus 64-byte queue and adjacent storage ownership; complete framebuffer/snapshot aliases and phase ordering, DMA completion, exclusive allocation/lifetime and arbitrary inputs |
 | Audio / samples | Four-channel commands, lists, programs, pitch/volume and secondary streams; nine shared address rules distinguish 43 cold NULL bases/cursors; 29 pitch/primary-volume selector references and six secondary references; eleven sample extents, 64-byte silence and 640-byte secondary waveform owner | Original 858-token corpus yields pitch indices 22..58 within 72 WORDs; configured secondary DMA windows fit five 128-byte slices. Future selectors remain unchecked; primary/secondary marker and reload semantics differ; reset retains ticks and NPC pending bits | Mutable cursors, later/interleaved DMA writes, arbitrary replacement scripts, caller combinations and storage lifetime |
 | Unclaimed resources / uncopied tail | Original bytes preserved by exact reassembly; mask-input and border prefixes, 910-cell mask bank and 29 modal tiles classified; six descriptor references corrected to canonical source coordinates | Known consumers establish selected physical prefixes; the first cold-title zero blit footprint covers the loaded-input tail. Three sampled tail windows become zero at title and two change again by UI entry; original purpose stays unproved | Original file-tail purpose, complete later writer/consumer coverage, DMA lookahead and scratch allocation bounds remain unknown |
 | Alternate execution layout | Two-byte volume relocation: both normal game WORD writers agree | Nine bounded local CPU calls and all 65,536 direct BYTE-store words agree; normal-gameplay BYTE execution remains unobserved | Whole-game changed code/data/DMA placement, temporal/late lineage and unrestricted contexts remain unproven |
+
+The scripted-pose checkpoint runs the original interpreter, both diabetic
+callbacks and the shared controller in a bounded local CPU fixture. The first
+attachment receives the controller once; 100 interpreter-delay counts select the
+active frame and six select the held header. Primary state is unchanged. The
+handoff helper has an input-only A5 object contract: player defeat skips it;
+otherwise it transfers the selected item and clears the first inventory slot
+before the state/UI callbacks. The giver becomes inactive: delay counts down
+before the flag test, but later opcode dispatch stays inhibited. The nominal
+long-delay tail alone therefore does not explain resumed behavior.
+
+The shared helper is now `exchange_world_object_position_states`, reflecting its
+two-way active/saved pointer exchange. It clears the incoming node hold bit and
+frame/phase clock; a second call exchanges states back. Its complete register
+partition preserves the caller's initial-flags byte in D0 on normal returns with
+valid, disjoint records/stack. Memory/escape effects stay unknown. Restart calls
+it only when current and initial inactive bits differ, then restores initial
+flags; the later suffix restores the original script cursor and clears delay.
+Four bounded CPU cases cover two exchanges in three mode/clock contexts and the
+handoff prefix, countdown/inhibition, restart parity branch/cursor suffix and
+re-entered introductory delay. Full queue/UI/audio calls and intervening restart
+callees are outside those cases. The examined diabetic hint paths issue no controller replacement. Generic
+combat, alternate scripts, later aliases and complete pointer/caller/lifetime
+closure remain open.
+
+The diabetic callback is a one-time self-destruct advice event, not a pose
+transition in the examined paths. NPC-selected hypodermic plus player-selected
+insulin and strict `abs(dx)<24`, `abs(dy)<16` WORD-coordinate tests set the latch
+before attempting two hint queue entries. With a different player selection,
+four carried IDs distinguish missing insulin from insulin carried but not
+selected; selected insulin without the needle requests that prerequisite.
+The shared `request_world_object_context_message` tail sets cooldown 250 and
+carry. The advice path clears carry, leaves the selected items/inventories and
+object/player records unchanged in the tested contexts, and keeps its latch even
+if the queue is full. Global interaction-flags reset rearms the hint independently
+of controller installation. The initialized pose mode stays zero/hold-only under
+its script/controller paths; the callback leaves the controller and 100/6 loop
+intact. This is not a universal absence-of-writers claim.
+
+Thirteen original CPU cases cover positive/negative strict range edges, four-slot
+scan bounds, both responses, selected-item/inventory preservation, advice queue
+entries/refusal, latch/rearm and continued active/held poses. Full callback runs
+use a preactivated valid queue to avoid entering text drawing; inactive-queue
+rendering, hardware timing and ordinary gameplay reachability remain outside the
+fixture. The leaf range helper has a reusable read-only, no-input-escape contract
+and preserves all general registers except D0/A4. The prior shared prompt
+contract and every initialized callback/script target are unchanged.
+
+Native analysis now renders the
+position-descriptor operand at source `0x938E` numerically across the helper's
+unknown memory effects in a pointer-table loop. Its canonical type/table facts
+are preserved; restoring that derived annotation requires a caller-visible
+alias/lifetime proof rather than an unconditional type seed.
+
+Reproduce with `.venv/bin/python -m pytest -q tests/test_pandora_scripted_pose.py tests/test_pandora_state_transitions.py tests/test_pandora_diabetic_interaction.py`.
+The combined catalog/model/type/pointer suite passes 261 tests; the state-transition
+and diabetic-callback cases are in the reproduction command above. Canonical review
+preserves every other layout/type/contract/comment, all 30 initialized absolute
+script targets, asset/include identities and both history prefixes. C and vasm
+match all 376,832 original bytes, receipt
+`48630088a3214fabb773fd0f442ff361846a27b95fbf64cb5c600ce38ec1d146`.
+This is bounded CPU validation; normal-gameplay BYTE volume coverage remains
+unobserved and clearance-route expansion remains paused.
+
+Shared overlay pipeline checkpoint (2026-10-15): eight additional 44-byte
+owners supply 136 typed fields, completing all ten initialized descriptors in one
+shared format. Holding, health, nearby-character/carrying/distance, hit feedback,
+body, backpack and pocket roles now name caller operands and field accesses.
+These names describe initial roles; the distance descriptor is also reused by
+the Earth-orbit countdown. All ten initialized callbacks remain NULL. The only
+non-NULL initialized snapshot addresses, `$7F0` and `$77D00`, remain unresolved
+runtime storage rather than asserted static assets. Shared bitmap and callback
+fields now explicitly distinguish runtime-only storage from mapped code.
+
+The named save/restore/clear primitives have complete general-register partitions
+with memory/escape effects still unknown. Capture and restore round width upward;
+clear rounds downward. Restore retains the original byte-sized height shift and
+clears saved/ready bits after starting the transfer. Capture/restore inherit the
+first-word mask and BLTCON1; clear resets BLTCON1. The callback scan visits exactly
+16 slots, skips holes and inactive descriptors, preserves registrations, and
+invokes a non-NULL callback with A5. Admission scans to the first NULL or matching
+pointer without that 16-slot bound. The modeled full-prefix case can reach the
+following slot; this does not establish its ownership or ordinary reachability.
+The existing 128-byte clear still exceeds the known 64-byte queue owner; the
+adjacent 64 bytes remain unclaimed. No ordinary invocation of the callback scan
+has yet been recovered.
+
+Sixteen bounded original-CPU cases cover every initialized geometry class,
+odd-width and byte-height-wrap edges, inherited control state, register
+preservation, callback scan/registration persistence and admission prefixes.
+The MMIO shadow checks programmed blitter packets and CPU control only: it does
+not emulate DMA, pixels, interrupts or completion timing. The combined focused
+suite passes **290 tests**. Native checks pass **807**, with the same two baseline
+failures (`facts_v2_render_asm_source_propagates_pointer_table_pointee_type` and
+`decompression_identify_reports_unknown_payload_without_failure`). The generic
+entry-comment capacity is now checked at 512 instead of 128; 129 distinct
+comments render and rebuild, and overflow leaves both histories unchanged.
+Rebuilding that backend alone preserved the baseline source byte-for-byte.
+
+Canonical review preserves all prior facts except the three explicitly refined
+primitive contracts and two shared pointer domains, every original byte,
+asset/include identities and history prefixes. The 49 appended actions include
+those contract refinements; they are not 49 independent new semantic facts.
+C and independent vasm reproduce all 376,832 bytes, receipt
+`e3bc3f211125c4698b4c6242faeb9dc1d72c21b9d229ec1da9d5892605550d13`.
+Reproduce the focused additions with
+`.venv/bin/python -m pytest -q tests/test_pandora_overlay_pipeline.py tests/test_comment_write_contract.py`.
+The next material gap is shared framebuffer row/address production and buffer
+swap/allocation lifetime, including the snapshot destinations and DMA consumers.
+The numeric `0x938E` operand, normal-gameplay BYTE writer gap and stopped
+clearance-route expansion above are unchanged.
+
+Framebuffer/snapshot reuse checkpoint (2026-10-15, after the overlay descriptor
+milestone): the row producer writes exactly 200 WORDs, `160*y`, into workspace
+`$39FC..$3B8C`. Each raster row interleaves four 40-byte plane rows. The two text
+origin helpers mask X to 63 and Y to 31, select row index `(Y&31)*8`, add X as a
+WORD and sign-extend before adding the bank. This is not clipping: Y>=25 can read
+adjacent workspace. Front-buffer text follows `app_front_bitplane_base`; overlay
+text always uses bank0 at `$70000`. The named gameplay Copper list waits at
+vertical `$AC` (128 rows after display start `$2C`) and installs `$75000+40*i`.
+VBL installs the selected world-bank pointers first. Thus the world view swaps,
+while the lower 72 UI rows remain fixed in bank0.
+
+The normal memory-region and typed-reference facilities now record these fixed
+physical access extents. `persistent` records the address identity, not persistent
+contents, exclusive allocation, a DMA lease or a closed relocation proof.
+
+| Runtime extent (end exclusive) | Demonstrated role |
+| --- | --- |
+| `$39FC..$3B8C` (400 bytes) | 200-WORD raster offsets, CPU only |
+| `$70000..$77D00` (32,000 bytes) | Bank0: title/framebuffer reuse and fixed lower gameplay UI; chip DMA |
+| `$78000..$7D000` (20,480 bytes) | Bank1's 128-row world display/render prefix; no claim about the remaining bank capacity |
+| `$77D00..$78000` (768 bytes) | Initialized hit snapshot: 96 packed rows of four WORDs |
+| `$7F0..$10F0` (2,304 bytes) | Initialized body snapshot: 192 packed rows of six WORDs |
+
+The existing runtime-only snapshot field group resolves both non-NULL initialized
+bitmap pointers to these bounded address symbols; all ten callbacks remain NULL.
+The overlay pointer report has 77 NULL and 13 symbolic fields, with no unresolved
+field in this family. That is address-resolution coverage, not allocation or
+lifetime closure. Instruction-region reference discovery and typed data-field
+resolution remain complementary. Native region references include explicit
+`ambiguous_scalar_or_pointer` candidates (for example blitter-control and color
+immediates numerically within the low body-snapshot range); those are not
+confirmed pointer uses. Absence of a qualified instruction reference cannot
+prove that snapshot storage is unused.
+
+Priming uses one WORD at the hit snapshot address. The seeded copy's programmed
+destination `$70028..$7CD28` crosses that snapshot and bank1's prefix; its zero
+modulos, inherited BLTCON1 and lack of a final completion wait are preserved.
+An existing queue match still requests a new capture when bit 6 is set, even if
+saved/ready bits were already set. The saved bit does not guard the restore leaf.
+Captures therefore do not establish immutable original-background contents.
+Separately, `prepare_work_buffer_arguments` supplies A1=`$77FE0`, the last 32 hit
+snapshot bytes, to the 16-WORD palette readers. The source now expresses that
+physical alias through `WORK_BUFFER_PALETTE_INPUT_BASE`, whose EQU expression is
+`UI_HIT_BACKGROUND_STORAGE+$2E0`. The preparation/unpack leaf is
+checked; stack-trampoline caller reachability and phase exclusivity are unproved.
+The discarded `$78000` stack arguments and unexplained app `+$1E0` role stay
+uninterpreted.
+
+Fifteen bounded original-CPU cases cover the row producer, valid and out-of-table
+cursor calculations, reversible world-bank exchange, VBL's four plane-pointer
+writes, both initialized snapshot packet extents, reset reuse, repeated capture
+and the palette input alias. The MMIO shadow performs no DMA, pixel, IRQ or bus
+arbitration simulation. Original WORD arithmetic, geometry rounding, restore
+height wrap and asynchronous return behavior remain intact.
+
+The reusable setup fix widens checked RSSET aggregate extents from 255 to 32,767
+bytes through catalog validation, metadata projection and native policy, allowing
+the full 400-byte row table to replace a partial/absent declaration. Extents 255,
+256, 400 and 32,767 retain an adjacent declaration and reproduce exact bytes with
+C and vasm; 32,768 is refused without changing history. The native structure keeps
+its overall size and eight-byte prefix, but flags move within that prefix; native
+objects and the ctypes mirror were rebuilt together for the widened field.
+The rebuilt backend alone preserved the previous canonical source byte-for-byte.
+
+The final combined applicable suite passes **414 tests**, with one skipped
+independent Copperline arithmetic oracle because `COPPERLINE_BINARY` was unset.
+Native checks pass **807**, with the same two baseline failures recorded above.
+C and independent vasm reproduce all 376,832 original bytes, receipt
+`163c58a36b2f3b4178a0df62fca7c31e7117a81c78b115cfa57e618f7bd09f0c`.
+Reproduce the focused additions with
+`.venv/bin/python -m pytest -q tests/test_pandora_framebuffer_lifetime.py tests/test_rsset_aggregate_extent.py`.
+All previous layouts, schemas, call contracts, initialized script/callback
+values, original binary, asset/include identities and history prefixes are
+preserved; only the six scoped comments refine earlier/new rendering explanations.
+No alternate-layout payload or new gameplay route was created. Native pointer,
+alias/control-flow and asynchronous DMA obligations remain explicit. The next
+material rendering gap is the phase/caller ordering that makes snapshot reuse
+safe, including the work-buffer palette readers and completion before consuming
+or replacing snapshots. This requires a bounded reachable-path question before
+any hardware probe; a frame-completion latch alone is not a blitter fence.
+The numeric `0x938E` operand and unobserved normal-gameplay BYTE volume writer
+remain unchanged, and clearance-route expansion stays paused.
 
 The native ownership snapshot immediately before the font/lifecycle batch has
 55,391 unclaimed bytes, including the 27,792-byte uncopied tail. These are
@@ -1769,3 +1963,1496 @@ Changed C/header/table files pass style; no independent machine68k oracle is
 available. Original/source, verified rifle snapshot and prior relocation evidence
 remain intact. The service is restarted/reloaded for the new native backend.
 Clearance gameplay remains paused; normal game writer coverage stays two of three.
+
+## Whole-file reader review: palette, depth-sort scratch and ranged ammunition
+
+Reviewed **P08–P11 and P20/P21: six accepted, zero rejected, zero deferred**.
+The subsequent disposition of the other 42 reader proposals is recorded below.
+P27/P28 mostly restate already documented behavior and are not counted as new discoveries. The reader's report
+is a hypothesis source; current native locators, complete named xrefs, original
+accesses and exact bytes were checked before the normal catalog actions.
+
+Coordinates below are section-0 source offsets; the copied prefix's runtime
+view adds `$10000`. No universal mapping or relocation safety is inferred.
+
+| Source span | Accepted fact | Producers/consumers and limits |
+|---|---|---|
+| `$31AA..$322A` | `world_depth_sort_copy_scratch`, 32 descriptor pointers | `$849A` copies all 32 pointers before partitioning; a later call refreshes the scratch. This is mutable storage, not an immutable object inventory. |
+| `$322A..$32AA` | `world_depth_sort_deferred_scratch`, capacity 32 descriptor pointers | `$84E0` appends the middle partition; `$84EA` consumes it backwards before sorting by descriptor WORD +6. The zero-middle case has no guard before predecrement, so the declared storage extent does not prove all-input bounds. |
+| `$3462..$34C2` | `gameplay_palette_fractional_components`, 16 `rgb12_accumulator` records | Each six-byte record has red/green/blue WORD accumulators with four fractional bits. `$2614` unpacks nibbles shifted by four; add/subtract advance six bytes per color. |
+| `$34C2..$34E2` | `gameplay_current_rgb12_palette`, 16 WORDs | Reset/fade helpers write it; Copper, cursor binding, health and inventory consume or modify it. It is not exclusively a world-only palette. |
+| `$34E2..$3502` | `gameplay_palette_increment_rgb12`, 16 WORDs | `$7DD6` and `$A020` pass it as A1 with D7=15. Clear/add leave the input array unchanged in bounded tests; arbitrary later writers remain outside that claim. |
+| `$924C..$9250` | `initial_ranged_weapon_ammunition` and `ranged_weapon_ammunition_remaining`, two bytes each | `$9F28` copies initial `5,1`; `$92AA/$92B6` selects and consumes one byte for item 18/19. These are consumable counts, not elapsed-tick cooldowns. The two obsolete cooldown layout owners were replaced through catalog remove/create/set actions. |
+| `$9250` | `service_selected_ranged_weapon_fire` | Replaces the misleading `update_active_world_object_positions` source name. Fire-edge/held-fire, UI/object guards, zero ammunition, ray collision and damage uses establish the service role. No arbitrary ray-termination guarantee is added. |
+
+The palette's prepared A1 input at `$77FE0..$78000` still aliases the final
+32 bytes of hit-snapshot storage. These typed source regions do not establish
+exclusive contents, phase separation, interrupt atomicity, allocation or DMA
+lifetimes. The normal source now expresses the storage and references; no
+new runtime memory-region/relocation ownership claims were added.
+
+Validation: **44 focused tests pass**, including 12 new bounded original-CPU
+cases for palette clear/add/unpack extents and values, scratch refresh and
+partition behavior, empty-middle entry state, ammunition initialization,
+new/held/released fire, empty counts and unsupported selected items. The sort
+checks explicitly split at `$84BC/$84BE`: the existing simulator produces D5
+`$000000FF` for original bytes `7AFF` (`MOVEQ #-1,D5`), whereas the PDF-backed
+MOVEQ description in `knowledge/m68k_instructions.json` (page 238) specifies
+sign extension to `$FFFFFFFF`. The suffix therefore takes that architectural
+D5 value as an explicit modeled entry condition. This is not complete
+whole-routine execution or a fix to the simulator. The general follow-up is to
+consume the existing signed-immediate KB semantics in execution; do not patch
+the target or special-case Pandora. No independent CPU oracle was installed.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_framebuffer_lifetime.py tests/test_pandora_world_model.py
+```
+
+The 23 catalog actions are accepted in the Decision Journal using exact receipt
+`5763b6810d0d7f55808d6e50dbd85d6d633ca498711ea5a18fa670278ceea8ff`.
+C and independent vasm reproduce all 376,832 bytes with original SHA256
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`;
+rendered-source SHA256 is
+`60597d4fd583a59cc247fdd6cd5c4dc7ab5979894c566795aa357fe00c626af7`.
+Original assets/SDK files, previous unrelated facts and history prefixes remain
+unchanged. The canonical `.s` was regenerated, never hand-edited. No framework
+implementation changed, no broad migration was attempted, and PR 5 remains draft.
+
+## Remaining whole-file proposal queue
+
+The queue's per-proposal dispositions, unapplied components and exact receipts
+are in `docs/validation/pandora-whole-file-queue-review.json`. Naming established
+behavior is counted separately from newly recovered durable roles/types.
+
+| Checkpoint | Reviewed proposals | Concrete result | Applicable verification |
+|---|---|---|---|
+| Frame/render | P01–P07, P12–P18, A01–A04 | 15 function symbols, four exact-width ticker/tile-grid app roles, two entry-only A5 overlay-descriptor types; no full blitter register/DMA contract or unused flag equates | 31 overlay/framebuffer tests; all 376,832 bytes exact with C/vasm; receipt `eb91ecd72b044faceceae766874e033a98b4aeca03e55bf73110d461987e5dbb` |
+| Security/status | P19, P22–P26, A05–A14 | Six function symbols, three damage/clearance table names, ten app roles; deposit reset spans 64 bytes but insertion can reach adjacent +$31A; status duration counts space runs plus one nonspace presence, not characters/ordinary words | 12 new status/deposit tests; earlier fire-edge evidence reused; C/vasm exact; receipt `74f57913663fe635ffaaa39f5cdf90acaa2ebc9755f0ada9c6e6ad5b5dd6d28a` |
+| Audio/closeout | P27–P34 | Eleven explicit signed handler references; eight shared three-byte offset commands; corrected packed-selector bytes; two mutable shift WORDs. P27 is naming formalization; P28/P34 already known; P29 selector-only restyling rejected; P33 noise/PRNG purpose not asserted | Eight original command/add-byte cases; all11 rendered references checked; C/vasm exact; receipt `8468e10602be39da44d6c5e5e8f1d5aadbad892da268de81768da64dd7082f40` |
+
+All **42 remaining entries are dispositioned: 39 accepted wholly/partly, one
+rejected, two already known with no change; no pending entries**. Together with
+the initial six, this is 45 accepted proposals, not 45 new discoveries. The
+three checkpoints append 78 accepted actions. Applicable runs pass 31 frame/UI,
+12 status/deposit and eight audio cases; prior palette/ammunition evidence is
+reused. Original binary/assets/SDK and unrelated facts/history remain intact.
+Final rendered-source SHA256:
+`e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b`.
+
+Genuine gaps remain the overlapping node view, unchecked array/selector paths,
+full blitter/register/callback contracts, and asynchronous snapshot/framebuffer
+lifetimes; shift-state noise purpose is unproved. Recommended next restoration
+step: resume reachable capture/consume/reuse caller sequencing with the preserved
+render-order investigation, resolving general KB-driven MOVEQ sign extension
+before relying on affected CPU traces. Source `$938E` remains numeric across
+unknown memory effects. No framework implementation or original instruction
+bytes changed, and publication stays on draft PR 5 without merging.
+
+
+## MOVEQ correction and snapshot sequencing follow-up
+
+The earlier `$84BC` limitation is resolved. The KB already describes a signed
+8-bit immediate and a long destination; generated operand metadata now carries
+that encoded signed width into both abstract and concrete execution. No
+mnemonic-specific rule, KB assertion or target-byte patch was needed. The sort
+tests execute the original `MOVEQ #-1,D5` rather than injecting its result.
+The historical split-test account above records the earlier checkpoint only.
+
+Focused simulator/generator/arithmetic/abstract checks pass **49 tests and 1004
+subtests**, including 4096 exhaustive MOVEQ register/byte/CCR combinations and
+five abstract boundary cases. The final combined Pandora palette/sort/ammunition, overlay, framebuffer and
+render-order run passes **47 tests**. Four original-CPU rendering order cases
+pass in `tests/test_pandora_render_order.py`:
+
+- Direct enqueue waits before capture and clear packets; CPU border/title and
+  ready marking proceed without a further software completion poll.
+- Original combat entry `$7792..$77B8`, with inventory closed, queues the
+  opponent panel then captures the hit background at `$77D00` before its clear.
+- Inventory close interior `$27AE` directly restores the body snapshot from
+  `$7F0` with either value of the saved flag, an empty queue and NULL callback;
+  the nearby panel subsequently waits before its clear. This is a conditional
+  interior-path proof, not execution of the entire inventory close routine.
+
+Current native named references identify direct restore callers at `$0720`,
+`$27C0` and `$7A8E`, capture at `$66BE`, and border/clear at `$66C6/$66C2`.
+The queue processor has no named direct references. That absence and initial
+NULL callback values do not establish that it is unreachable or unused.
+
+The tests explicitly supply INTREQR bit 6 between packets: the MMIO shadow
+neither performs DMA nor clears its request register when INTREQ is written.
+Consequently CPU flag clearing, ready marking and return do not certify DMA
+consumption; observed CPU sequencing does not demonstrate a real hardware race.
+Cold-start reachability, bus arbitration, snapshot reuse phases and the overlap
+between hit snapshot tail `$77FE0..$78000` and palette input remain unresolved.
+No new ownership or relocation permission follows from these tests.
+
+Reproduction after `make -j4`:
+
+```sh
+.venv/bin/python -m pytest -q src/tests/test_m68k_simulator_moveq.py src/tests/test_generate_c99_simulator_subset.py src/tests/test_m68k_simulator_arithmetic.py src/tests/test_m68k_simulator_abstract.py
+.venv/bin/python -m pytest -q tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_render_order.py tests/test_pandora_framebuffer_lifetime.py tests/test_pandora_overlay_pipeline.py
+```
+
+The native suite reports 807 passing and the same two pre-existing failures:
+`facts_v2_render_asm_source_propagates_pointer_table_pointee_type` and
+`decompression_identify_reports_unknown_payload_without_failure`. Changed C
+files pass the repository style check. Exact C/vasm receipt
+`427ef725d9a438c6d4c8824cd6f97034b5e30491df15dc533ea35e6eb0241561`
+reproduces all 376,832 original bytes. Source SHA256 remains
+`e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b`.
+No target facts or generated assembly changed in this follow-up.
+
+## Conditional snapshot lifecycle contracts
+
+The connected caller/packet model is recorded in
+`docs/validation/pandora-snapshot-lifecycle.json`. Four accepted catalog comments
+at `$27C0`, `$6400`, `$66C2` and `$7A8E` now carry the timing semantics into the
+normal source. They supplement existing field types and extents; no new memory
+ownership or relocation declarations were created.
+
+| Phase | Required ordering and meaning |
+| --- | --- |
+| Capture pending | Enqueue sets SAVED before calling capture. That flag does not certify completed pixels. Capture waits/acks the previous BLIT request, then starts its snapshot write. |
+| Capture completed, overlay drawn | The immediately following clear waits/acks capture completion before starting its own DMA. CPU border/text and READY follow without a post-clear software poll. |
+| Restore pending | Restore waits/acks the preceding packet, starts snapshot-to-screen DMA, then clears SAVED/READY and returns. The snapshot may still be a DMA source. |
+| Next packet reuse | Another capture/clear/restore waits before starting its DMA, fencing the preceding packet under the normal serialized completion-request protocol. This is not an arbitrary CPU-write fence. |
+| Warm restart | `$456/$45C` explicitly waits for DMACONR.BBUSY to clear before setup/title reuse. |
+
+For body inventory, opening requires a nearby object, the collision-bounds guard
+and its dead/object flag before `$2750` enters the body panel. Body capture is
+queued first, followed by backpack and pocket panels. Close uses the nearby-object
+inventory UI flag to select direct restore at `$27C0`; it does not test SAVED or
+queue membership. The next nearby-character clear waits for restore completion.
+
+For hit feedback, `$2F52` enters combat after the player/nearby-object/range/trade
+guards. Entry closes an active inventory, queues the opponent panel, then captures
+the hit background. Normal combat exit redraws nearby distance then restores the
+hit snapshot at `$7A8E`; self-destruct expiry has another guarded restore at
+`$0720`. A subsequent combat entry recaptures through bit 6 even if the descriptor
+was already registered. The content lifetime therefore follows capture calls,
+not registration lifetime or an immutable initial background.
+
+These fences assume an enabled, single serialized blitter and a completion token
+that has not been synthesized, consumed or made stale by another path. Setup
+clears interrupt enables then enables master/VERTB/COPER, leaving BLIT disabled;
+the level-3 handler nevertheless samples raw requests. The frame-completion latch
+is not a blitter fence. Static caller edges and CPU prefixes alone do not prove gameplay reachability;
+the runtime observation below now witnesses the hit capture/restore portion.
+
+Remaining gaps are explicit: the hit-tail palette reader's indirect/stack entry
+and phase exclusion, all alias writers, low body-storage allocation, and actual
+CPU-versus-DMA ordering at the unfenced border/text boundary. No relocation
+safety is inferred. The smallest remaining gameplay step is to capture the inventory-toggle guard
+inputs at `$2736/$2748/$274A`, rather than assuming the post-combat body is still
+the nearest object and within collision bounds.
+
+
+The bounded original Copperline replay now witnesses hit capture, six Feed hits,
+combat-exit direct restore and return to gameplay. Flags progress `$60` at capture,
+`$E0` when the overlay is ready, and `$40` after restore. Numeric-offset
+`custom.read` reports BBUSY clear and BLIT request set at the sampled post-capture,
+post-clear and post-restore stops, with BLITHOG enabled and BLIT interrupt disabled.
+This is observed completion by those stops, not an all-path bus-timing guarantee.
+The first 64 and final 32 snapshot bytes change at capture and retain identical
+hashes through overlay readiness, restore call and return; this samples 96 of
+768 bytes and does not prove full-buffer exclusivity.
+Correction: the next key64 attempt watches `$27E0`, a trade-announcement
+instruction, rather than canonical body entry `$27EA`. Its timeout is invalid
+negative body-entry evidence; downstream scripted body phases never run. Second combat recapture and palette-tail
+phase exclusion remain unobserved. The compact receipt preserves this partial
+outcome without publishing guest snapshots or retaining a full instruction trace.
+
+The only support change lets scenario captures use Copperline's documented even
+custom-register offsets below `$200`, retaining the sixteen-register bound.
+Named DMACONR queries were refused, and debugger memory reads returned `FFFF`;
+neither was used as hardware-status evidence. The combined focused suite passes
+**103 tests**. C and vasm reproduce all **376,832 original bytes**, receipt
+`9857609c4a334a758748c7c7c610ac05cae8001392542f0eb7ccddb724e5cdfa`;
+source SHA256 is
+`50610e260dbfc17f60c8f4f8a4f216b20543e8221de4924bf3e43f0ab6678ddb`.
+All 78 packaged asset/include identities and previous history prefixes remain
+intact. Four comments were added through catalog actions and accepted after
+verification; the generated source was never hand-edited.
+
+## Body-open guards and shared-tail control-flow follow-up
+
+The saved post-Feed-combat execution now provides a measured inventory predicate,
+rather than an assumed proximity condition. At `$2736`, nearest object is Feed
+`$5C1D2`, flags `$66` include bit 1, and player XY is `(829,182)`. At `$26A4`,
+the original pointer chain is descriptor `$5C2BE` -> state `$5C226` -> geometry
+`$5C240`. Its current origin is `(832,168)` with extent `(64,32)` and zero state
+and geometry offsets. The tested player point is `(845,213)`: X passes, while
+`213 < 200` fails. That branch result follows from captured inputs and the
+original tested predicate; the probe stops before the comparisons. These inputs predict a failed body guard. Independently, the historical
+15-second probe used trade instruction `$27E0`, not canonical body entry `$27EA`;
+its negative body-entry inference is withdrawn.
+
+The original predicate at `$268E` preserves D0-D2/A0-A2, binds A4 to the player,
+and sets carry only for a point strictly inside unsigned WORD bounds after
+wrapping additions. Boundary equality fails. Four hypothetical upward commits would place the point at `(845,197)`, inside
+the captured rectangle, but the first commit is not observed within ten seconds
+and the original terrain model rejects up there. A bounded local terrain plan
+then matches all 18 measured commits to `(822,146)`, point `(838,177)`. The
+corrected body probe uses the canonical `$27EA` entry.
+
+The shared-tail investigation also corrects an implicit control-flow assumption.
+At `$71A2`, the palette return helper pushes a long pointer, advances SP by six,
+then executes RTS. For a pre-BSR stack S, this returns with SP=S+2 and builds PC
+from the BSR return's low WORD followed by WORD(S). At the four original sites
+`$71E0/$71EE/$7220/$7230`, the resulting 24-bit target has high byte
+`E2/F0/22/34`, outside the verified copied payload. The focused tests execute
+BSR and the helper only, with modeled stack words, and stop before fetching the
+computed target. No crash, intended purpose or wrapper unreachability is claimed.
+
+Crucially, fade-out entry `$7216` unpacks the palette input at `$77FE0` **before**
+its stack-splicing helper call at `$7220`. Thus even this control-flow limitation
+does not prove hit-tail lifetime exclusion. Native direct-reference queries find
+no named callers for either wrapper; constructed/indirect entries remain open.
+Unchanged snapshot hashes cannot exclude palette reads. Ordinary balanced-call
+fallthrough into the later fade loops must not be assumed.
+
+Three new catalog comments at `$268E/$71A2/$7216` express these arithmetic and
+temporal facts alongside existing types. Seventeen original-CPU geometry/stack
+cases and the earlier applicable suites pass: **120 tests** total. C and vasm
+reproduce all 376,832 original bytes, receipt
+`825c8bc771a13ebb4f8692ba016da3866f183f8d017c92a5830d23ce414c0461`;
+source SHA256 is
+`842aebbab8d5a2d7b48c07da99e1cb0b9f7adb57a328ce97cd313d38f4d6f6de`.
+
+
+The corrected original Copperline probe completes **all 37 source-row phases**:
+18 individually checked movement commits reach `(822,146)`; body-open `$27EA`,
+capture, close/direct restore, reopen and second capture into `$7F0` all occur.
+The native branch reference, rather than a guessed address, identifies the entry.
+A verified successor checkpoint is saved privately, linked to the normal Feed
+root. No predicate, pointer, input cache or game storage was patched.
+
+Both captures reach original BLTSIZE with A0=`$75518`, A1=`$7F0` and D1 low WORD
+`$3006`: 192 packed rows of six WORDs, or 2,304 bytes. BLIT request is clear before
+each capture and set at the first post-start stop; BBUSY is clear there. Body
+flags progress `$40->$60->$E0->$40->$60->$E0` across capture/restore/recapture.
+The six sampled chunks (384 of 2,304 bytes) change on first capture, stay stable
+through restore and are identical after second capture. The second invocation
+and completion are observed even though these sampled pixels match. Logical
+flags remain distinct from completion guarantees, and no full-buffer exclusivity
+or general bus-timing guarantee follows.
+
+The resulting contract is conditional but reachable: open captures the current
+background, close consumes it through direct restore, and reopen reacquires the
+same storage via a new capture. Second **hit-family** capture, shared-tail palette
+entry/exclusion, all alias/interrupt consumers and allocation remain open. The
+fade-out's first shared-tail read cannot be dismissed on account of its later
+stack behavior. Evidence and reproduction are in
+`runtime/observations/pandora-snapshot-body-guards.json` and
+`docs/copperline-runtime.md`. Original bytes, asset/include identities and prior
+history prefixes remain preserved; publication stays on draft PR 5.
+
+## Shared-tail access map and priority checkpoint
+
+The current native inventory is reproducible with
+`.venv/bin/python -m amiga_reversing.tools.pandora_shared_tail_inventory /tmp/pandora-shared-tail-native.json`
+against the ready resident server. It enumerates **2,690 typed pointer fields**;
+only the initialized hit descriptor's bitmap field targets the hit region.
+There are 90 overlay pointer fields, ten bitmap fields (eight NULL, hit and body),
+and two resolved bitmap consumers at `$633E/$63A6`. The native instruction-region
+report has three roots and **three open obligations**. These roots include an
+unused A4 setup and return/frame refusals; they are not three confirmed data
+accesses. No obligation was cleared by adding comments.
+
+`docs/validation/pandora-shared-tail-contract.json` records the known accesses,
+conditions and phase edges; `pandora-shared-tail-native.json` preserves the native
+snapshot. All intervals below are runtime, end exclusive.
+
+| Producer/consumer | Shared-tail relationship | Required scope/ordering |
+| --- | --- | --- |
+| Direct-payload bootstrap load `$20000..$7C000` | Writes the tail as original input bytes | Earlier full handoff verification; original disk-loader parity remains unproved. Native prefix copy ends at `$75370` and excludes the tail. |
+| Hit capture / restore `$77D00..$78000` | Capture writes and restore reads the entire tail | Initialized descriptor and ascending area mode. Known packet waits/acknowledgements order DMA; UI flags do not establish ownership. |
+| Seeded reset copy | A reads `$70000..$7CD00`; D writes `$70028..$7CD28`, covering the tail in both | Ascending area mode, inherited BLTCON1; calls at `$F90/$546`; no final software wait. |
+| Add `$71E8`, unpack `$721A`, subtract `$722A` | Each can read exactly `$77FE0..$78000` | Prepare binds A1 and D7=15. Unpack precedes the first escaped transfer; add/subtract require entry beyond an earlier spliced return. |
+| Clear `$71DA` | No A1 input read | Writes 32 palette and 96 accumulator bytes at separate constant outputs, plus its stack spill. |
+| Prime completion copy | Only `$77D00..$77D02` | Does not touch the tail. |
+| Initialized display / UI rectangles | Their known bounded extents exclude the tail | This does not close unchecked/changed geometry or synthesized-address writes. |
+
+The ten named palette-helper call sites are fully enumerated. Three potential
+shared-input read sites remain; the other add bindings use `$10AE8`, `$10B68` or
+`$134E2`, and clear never reads A1. In the render wrapper's ordinary prefix,
+`D7=$7D22` is overwritten with 15 before use, A4=`$77FDE` is not dereferenced, and
+stack arguments are discarded without an I/O call. The filename/count/pointer
+combination therefore does not establish an executed loader or a 32,034-byte
+allocation. The first palette call is clear, then the splicing helper leaves the
+verified copied view before ordinary add-loop fallthrough.
+
+Fade-out is different: its first unpack reads all 32 shared bytes and writes the
+palette/accumulators before the spliced return. A bounded original-CPU prefix test
+confirms that sequence. The modeled cases at all four direct helper sites, together with the original
+stack operations, bound return targets independently of the following stack WORD. No escaped target is fetched;
+no crash or wrapper unreachability is inferred.
+
+Absolute caller SP remains unknown on the unconnected palette entry. Ordinary
+palette spills occupy 16 bytes below clear's entry SP, 20 below unpack's, and up
+to 52 below add/subtract's including the nested color helper, before caller/IRQ
+frames. These possible aliases must be separated from the tail before claiming a
+complete non-write contract. This is one reason the native frame obligations stay
+open; unchanged snapshot samples cannot exclude reads or unknown frame aliases.
+
+Validation passes **49 focused tests with one strict expected failure**. The new
+rendering-prefix case exposes original `4267` (`CLR.W -(A7)`) writing at SP without
+predecrement in the concrete simulator: SP `$9000` stays unchanged and WORD `$9000`
+is cleared instead of WORD `$8FFE`. Its whole-prefix trace is excluded as proof;
+the fade-out prefix and direct helper cases do not execute that instruction.
+The general CLR defect is recorded for a separate tooling slice, not patched here.
+Five catalog annotations are accepted. C and vasm reproduce all 376,832 bytes,
+receipt `2b9309586da1e127a81e515c9892e7b33bb4fddaa4ffea8aab42d7fea78c7b1a`;
+source SHA256 is
+`1e46cd360d01afedb36021a834196206150d5d5ebe70aa720d502a99b02dc5cd`.
+No new Copperline probe, memory allocation or relocation change was made.
+
+Recommendation: return to broader object-state/animation and selector/scan
+semantic restoration through native gaps. Keep this alias as a relocation
+blocker. Further gameplay-route probing is low value until a concrete loader,
+indirect caller or callback connects the palette prefix to a known phase. That
+edge, absolute stack separation, all alias/interrupt consumers and general DMA
+arbitration remain unresolved; second hit-family capture is also unobserved.
+Fix CLR predecrement separately before relying on affected full-stack traces.
+
+## Terminal location messages and card display selector
+
+The next whole-program batch follows the terminal consumer through its complete
+initialized data family, rather than treating default function IDs as a coverage
+metric. Ten records at source `$8D54..$8FF1` contain a shared four-byte WORD X/Y
+header followed immediately by variable ASCII/CR/NUL text. Three shared schemas
+express the header, mapped-source message reference and mapped-source label
+reference. Seventeen new disjoint layouts describe 730 bytes: ten message
+records (664 bytes), five clearance strings (30), the eight-pointer display
+selector (32), and the adjacent message-table NULL (4). The existing 40-byte
+message-pointer layout keeps its identity and bounds. All eighteen pointer
+entries now resolve symbolically through native source mapping; no manually
+subtracted reference facts were added. Alignment bytes remain raw.
+
+The original scan `$9140..$917A` terminates at NULL, not after ten records. It
+subtracts, takes signed absolute values, and sums in WORD arithmetic; strict
+unsigned improvement retains the first tie. An update puts the inline text
+address (record +4) in A2. Its initial fallback is the first record's base, so
+empty or malformed tables do not have a validated text-pointer result. The
+physical table extent is not an admission guard. Focused execution includes an
+explicit changed-data model with an eleventh record and a new sentinel, stopping
+before display; this does not modify the original image.
+
+The byte normalization at `$90F0` admits exactly item IDs 48..55 to the eight
+clearance-label pointers at `$91CC..$91EC`. Their labels are Omega, Pi, Alpha,
+Pi, None, Delta, None, None. This makes the already documented distinction from
+the six-entry security table explicit in source structure; display membership
+does not establish authorization. A scoped A1 header seed follows the nonnull
+record load, and comments preserve the scan/selector algorithm contracts.
+
+Reproduction, with the resident restoration service on localhost:8123:
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_terminal_messages.py tests/test_pandora_state_transitions.py tests/test_pandora_status_roles.py tests/test_pandora_snapshot_guards.py
+.venv/bin/python -m amiga_reversing.tools.pandora_terminal_message_inventory docs/validation/pandora-terminal-messages.json
+```
+
+The combined original-CPU checks pass **49 tests with one strict expected
+failure**, including fifteen new cases covering all ten locations, first ties,
+WORD-distance overflow, sentinel extension, every byte item ID and all eight
+label selectors. The existing `CLR.W -(A7)` predecrement failure remains
+excluded as trace evidence; this terminal batch does not execute it. No general
+simulator implementation or Copperline runtime route changed.
+
+Broader gaps remain the overlapping positive-X node/player-tail view, unchecked
+deposit/audio/other selector paths, source `$938E` across unknown helper memory
+effects, mutable callbacks and saved-state validity, and asynchronous lifetimes.
+The `$77FE0..$78000` shared hit/palette tail and its three native pointer/frame
+obligations remain an explicit relocation blocker. No runtime allocation,
+exclusive ownership, whole-file restoration percentage, or complete-game proof
+is inferred from this batch. Function-candidate `loc_` IDs can survive accepted
+source renames and must not be counted as unnamed semantic functions.
+
+All 51 catalog actions are accepted in three verified stages. Final exact receipt:
+`32f07b7e004b58fa843e32e809daa61a4b8eeac7ea3b51547e1c327fb0601acf`;
+rendered-source SHA256:
+`edc1838b6ece057f8823b9b11d387f7e4ae1f43229b26a14615f075336000133`.
+C and independent vasm reproduce all 376,832 original bytes. The generated scan
+identifies both postincrement reads as header `world_x` and `world_y`. The
+read-only inventory is `docs/validation/pandora-terminal-messages.json`.
+Original binary and all 78 packaged asset/include identities remain unchanged;
+previous manual-action and decision-journal bytes remain intact as prefixes.
+
+## World proximity scan and initialized pointer propagation
+
+This connected follow-up distinguishes the scan's observed selection behavior
+from a mathematical nearest-object reduction. At `$836A`, a newly selected
+object overwrites D0 (the distance threshold) with its context cooldown and then
+decrements nonzero values. If the optional message path is skipped, later objects
+compare their WORD distance with that value. A zero cooldown then freezes selection;
+a larger one can admit a farther object. An unchanged stored pointer bypasses
+that overwrite and retains the distance threshold. Equal-distance ordering is
+therefore conditional, unlike the terminal message scan's first-tie rule.
+The optional enqueue saves only A0-A3; its spacing/duration computation overwrites
+D0 again, so the cooldown-derived threshold is not a full-callback invariant.
+Original instruction bytes and game behavior are unchanged.
+
+The scan sets the per-object improvement bit on each admitted object and does
+not clear earlier admissions retroactively. A separate first-context-visit bit
+is set before inactive-object and NULL-message guards; it does not mean a
+message was queued. Shared app bits distinguish changed-context refresh,
+no-candidate admission and an empty-prompt display latch. These roles now have
+symbolic bit indices at their original consumers. The no-candidate prefix
+leaves the cached pointer/distance untouched; its downstream prompt service is
+separate. Player descriptor XY synchronization happens before self-exclusion.
+Subtraction, absolute value and addition retain WORD wrap, including a modeled
+zero-distance wrap case. The pointer walk still uses NULL, without a physical
+prefix count guard.
+
+Two mapped-source reference schemas replace the address-domain ambiguity in
+existing object/descriptor prefixes. This reuses their durable layout identities
+and bounds: `$300A..$309A` has 35 object pointers and a NULL (the interior static
+suffix starts at `$300E`); `$309A..$310E` has 29 descriptor pointers; and
+`$310E..$318E` has 32 sort-source descriptor pointers. The latter two are distinct
+physical prefixes inside the existing owner. Pointer counts are initialized
+reference populations, not new object discoveries, runtime admission guarantees,
+unique-object counts or ownership/lifetime proofs. Adjacent scratch and scalar
+facts remain intact. The read-only native collector is
+`amiga_reversing.tools.pandora_world_pointer_inventory`.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_proximity_scan.py tests/test_pandora_terminal_messages.py tests/test_pandora_state_transitions.py tests/test_pandora_status_roles.py
+.venv/bin/python -m amiga_reversing.tools.pandora_world_pointer_inventory docs/validation/pandora-world-pointers.json
+```
+
+The combined run passes **43 tests**, including twelve new bounded scan cases.
+The tests use explicitly modeled table contents for candidate-order cases and
+stop at `$83AE` before sorting, active-chain processing, interaction callbacks
+or prompt rendering. They do not execute the known CLR predecrement defect.
+The original input hash is checked by the fixture. No new Copperline probe,
+framework implementation change or shared-tail relocation claim is involved.
+The simulator/Copperline distinction and installed release provenance are also
+recorded in `docs/copperline-runtime.md`.
+
+The three stages append **28 accepted actions** (including two final comment
+qualifications for the optional queue's D0 clobber). Final C/vasm exact receipt:
+`934aeef23757132a548ba6503edf9768684e0170027e2f18d6e26c9927cd53a6`;
+rendered-source SHA256:
+`862da61d0e5cb735de20a6b44279831ed52df9a8132b07b57c4389738d081cde`.
+All 376,832 bytes reassemble exactly. The native inventory in
+`docs/validation/pandora-world-pointers.json` preserves encoded values and native
+source identities; the original NULL is retained as an unresolved non-reference.
+All 78 packaged asset/include identities and previous history prefixes remain
+unchanged. Shared-tail relocation obligations and unknown callback/IRQ/DMA
+lifetimes remain open. The next authorized tooling slice is the general CLR
+predecrement fix, followed by rerunning the previously excluded palette prefix.
+
+The complete audit exposes a remaining propagation gap: only two of the 35
+nonzero object references and one of the 61 descriptor references have native
+symbolic resolutions. The other 93 remain explicitly unresolved in the structured-query inventory,
+although the generated source renders symbolic LONG expressions for them. Their accepted schema bindings do not
+license a hand-subtracted target mapping. Completing the native structured-resolution export
+for those generated operands is a follow-up; this checkpoint claims structured
+prefixes and three structured-query resolutions. The rendered symbolic expressions
+and structured query must not be conflated or joined by parsing source text.
+
+## Concrete scalar EA update fix and palette trace recovery
+
+The concrete executor now invokes its existing metadata-driven predecrement
+preparation before scalar memory access, including CLR and condition stores,
+logical/unary/shift RMW, compare/test, multiply/divide and TAS paths. RMW writes
+reuse the read address; postincrement runs after the final access, including TAS.
+No Pandora special case or new instruction/width rule was introduced. The
+existing A7 byte-step rule is shared. All CLR sizes and address registers are
+covered, along with sibling operations and rejected wrapped accesses.
+
+The former strict expected failure in
+`tests/test_pandora_snapshot_guards.py` now passes. Original `4267` predecrements
+SP correctly; the complete render prefix reaches the modeled first spliced
+return with the predicted stack state. The palette control-flow conclusion is
+unchanged. The trace is now usable as bounded concrete evidence; ordinary
+entry/phase reachability, absolute caller/IRQ stack separation and the shared
+hit/palette tail still block relocation. This does not repair abstract scalar
+EA updates or same-register two-memory operand scheduling; those separately
+confirmed issues and their reproducers are in
+`docs/validation/framework-defects-2026-10-15.md`.
+
+```sh
+make -j4
+.venv/bin/python -m pytest -q src/tests/test_m68k_simulator_ea_updates.py src/tests/test_m68k_simulator_arithmetic.py src/tests/test_m68k_simulator_moveq.py src/tests/test_m68k_simulator_abstract.py src/tests/test_generate_c99_simulator_subset.py tests/test_pandora_snapshot_guards.py tests/test_pandora_palette_sort_ammunition.py tests/test_pandora_render_order.py
+.venv/bin/python src/scripts/check_c_style.py src/m68k_simulator.c
+```
+
+The broad focused run passes 89 tests and 1175 subtests. The final EA matrix,
+including six subsequently added wrapped-access cases, passes six tests and 177
+subtests. The native simulator-only suite passes all 30 cases; the full native
+suite was not rerun merely to recount baseline failures. Nine representative
+CLR/Scc/RMW/alias-reproducer encodings agree with independent vasm. Exact C/vasm
+receipt `662843b11ba5e9ad3a359d75f1b3d2d6af442e4b1b85ddf27b6b62d1f0dd34b4`
+reproduces all 376,832 bytes. Source SHA256 remains
+`862da61d0e5cb735de20a6b44279831ed52df9a8132b07b57c4389738d081cde`.
+Original assets/includes and target histories are unchanged in this tooling fix.
+The resident service was restarted to load the rebuilt C library; UI still
+returns HTTP 200 at `http://127.0.0.1:8123/` (PID 200712).
+
+## Five general framework defects resolved
+
+The follow-up fixes all five confirmed defects from the 2026-10-15 ledger in
+normal framework layers. Concrete source accesses and their updates complete
+before destination evaluation for shared-register CMPM, ADDX/SUBX and MOVE.
+Abstract scalar execution captures each updating operand address once, makes
+its update visible to later operands, and reuses the captured address for RMW
+writeback. Unknown/wrapped addresses do not produce invented memory facts;
+existing PACK/UNPK and MOVEM multi-access executors are preserved. The test
+ctypes state now declares the existing `sr_known`/reserved bytes explicitly.
+
+Explicit pointer fields are planned independently of covering anchors/ranges,
+and the listing JSON selects the most specific canonical field. It exports the
+same native render-plan decision used by source rendering. Static table cursor
+widening retains a homogeneous pointee type without inventing a concrete target
+or bound; a known one-past load remains rejected. The original native pointee
+baseline and its new one-past negative regression both pass. Eighteen Pandora
+operand accesses now recover their existing object/descriptor field names,
+including the proximity scan's position pointer, XY, flags, distance, cooldown
+and context-message fields. No target-specific field seeds were added.
+
+The fresh `pandora-world-pointers.json` now reports **96 symbolic nonzero
+references, zero unresolved nonzero references, and one NULL**, agreeing with
+all 97 rendered LONG rows. The previous 3/93 query/export gap is resolved by
+native planning/JSON changes, without parsing source text or hand-mapping values.
+All original object/descriptor layout identities and physical bounds remain.
+
+Native file hashing now streams through the common host SHA256 helper, using
+the existing BCrypt/OpenSSL dependencies. Decompression uses the same helper
+for provider, source range and output identities. The Linux unknown-input fixture
+uses the existing harmless `false` executable for metadata testing; no Ancient
+provider was installed and codec interoperability is not claimed by that test.
+Known vectors, chunk boundaries, errors and Python `hashlib` comparisons pass.
+
+Validation after the combined changes: **811 native tests pass with no failures**,
+including both longstanding baseline failures; **318 Python tests and 1581
+subtests pass**, with one explicit opt-in Copperline execution oracle skipped.
+C style has no new issues on changed lines. The broader applicable runs were
+performed once after implementation. Full C and independent vasm reproduce all
+376,832 bytes, receipt
+`f7bd711ebfba35b769cfd7af280bf4a94592a20acdd9c92d6723c066a460916e`;
+rendered-source SHA256:
+`491f9194975382e9dbbfb3ade4a84f3eb8a391a0c895a3e6666fa3682fd86421`.
+Original image SHA256 remains
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+All 78 packaged asset/include identities, target metadata and both histories
+remain byte-identical. Generated source and package manifest were regenerated
+normally. The restarted service (PID 204195) returns HTTP 200 on localhost:8123.
+
+The reproduction commands and prior failure vectors are retained in
+`docs/validation/framework-defects-2026-10-15.md`; the combined Python run covers
+simulator/generator, pointer domains/reporting, restoration operations and the
+bounded Pandora scan/palette/render witnesses. The shared hit/palette tail,
+callback/IRQ/DMA lifetimes, unknown helper effects and unchecked game paths remain
+separate restoration/relocation obligations. No PR merge, review-state change,
+new gameplay route, ROM download or private-input copy was performed.
+
+## Whole-file continuation: ranged-impact visual and point scan
+
+The next connected batch restores five disjoint existing-format ranges, **214
+bytes** in total: descriptor `$4859A..$485A6`, 26-byte render prefix
+`$485B2..$485CC`, seven 18-byte geometry records `$4860A..$48688`, animation
+header `$48688..$4869A`, and eight physical frame pointers `$4869A..$486BA`.
+Addresses here are source offsets, established by native source mappings.
+The adjacent second descriptor/state, earlier combat frame sequence, and gaps
+between these ranges remain outside this classification. Combat feedback also
+uses the newly typed render prefix; the ranged names identify this activation
+path, not exclusive ownership of the storage.
+
+Ten semantic code/text names connect the point scan, object-owner search,
+blocked-tile and unmatched-hit paths, defeat path, force-field message and visual
+activation helper. Existing record types now propagate through direct LEAs,
+field loads and the helper's register-preservation contract. Four scoped register
+facts cover the object candidate and three known coordinate-store consumers;
+two immediate operands use existing domain bit names. All mutations use the
+revision-checked catalog, not hand edits to generated assembly.
+
+The original helper at `$9486` preserves D0-D7 and A2-A7 on a normal return with
+valid fixed records/app base and disjoint stack. It loads A1 from the visual
+state's descriptor field. All three direct call sites then store impact
+coordinates through that returned descriptor. A changed descriptor-field test
+confirms this is a load, not an immutable-address return guarantee. Two callers
+can bypass activation when the hit state's interaction bit 0 is set: those paths
+retain and update the incoming hit descriptor. Both bypasses are exercised.
+The three A1 facts are valid descriptor types on both arms; they do not force a
+particular address or automatically type hypothetical future callers. Memory
+and escape effects remain unknown.
+
+The initialized animation increments before selecting a cycling frame. Resetting
+its clock to zero therefore selects physical sequence slots 2 through 7, then
+held slot 0, which repeats the final geometry; this is not proof that slot 1 is
+shown. Its independent timer starts at 25 **eligible service visits**. An
+inactive-player guard skips timer service, and only the transition from 1 to 0
+unbinds the animation node. Geometry is retained. These bounded CPU witnesses do
+not establish drawing completion, seconds/frame timing or lifetime ownership.
+
+The per-point scan traverses a NULL-terminated descriptor table, without using
+the adjacent active-count slot. It excludes the player and visual descriptors,
+then visits attachment states in order. Flag bit 6 skips the descriptor; bit 3
+skips only that state. Descriptor coordinates, state offsets and geometry origins
+compose in WORD arithmetic. For ordinary nonwrapping coordinates the signed
+negative/unsigned extent tests implement half-open bounds. First matching table
+entry wins. NULL resumes ray stepping; overall ray termination remains unproved.
+
+The normal callable-summary path previously required a typed pointer input even
+for a leaf whose useful contract is register preservation. The general catalog,
+metadata model and native reader now accept `inputs: []`, preserving strict
+member validation and rejection of references to nonexistent inputs. No dummy
+input or target-specific native exception was added. Nineteen focused summary
+checks pass, including catalog/history/native projection and exact assembly.
+The combined applicable run passed **54 tests**; three additional original CPU
+checks for both bypasses and the mutable descriptor passed separately. Together
+these are **57 distinct focused cases**, including 25 ranged-visual/scan cases.
+The previously green 811-native/318-Python baseline was reused, not rerun or
+claimed as fresh validation of this small extension.
+
+The read-only `pandora_ranged_visual_inventory` tool collects canonical bound
+fields and authoritative native listing resolutions without parsing generated
+source or translating encoded addresses itself. Its checked-in report is
+`docs/validation/pandora-ranged-hit-visual.json`: **31 pointer fields, 25 symbolic,
+five NULL, one unresolved `field_boundary`** at the final geometry mask field
+(source `$4867A`). The six resolved mask references name existing generated
+runtime mask storage. The boundary exception remains explicit; a symbolic
+expression alone would not prove its extent or lifetime.
+
+Reproduction from the repository root, with the resident localhost:8123 service
+and built native backend:
+
+```sh
+make -j4
+.venv/bin/python -m pytest -q tests/test_pandora_ranged_hit_visual.py tests/test_pandora_scripted_pose.py tests/test_pandora_palette_sort_ammunition.py tests/test_function_summary_catalog_effects.py -m 'not real_integration'
+.venv/bin/python -m amiga_reversing.tools.pandora_ranged_visual_inventory /tmp/pandora-ranged-hit-visual.json
+.venv/bin/python -m amiga_reversing.tools.rendered_source_roundtrip_report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --update-rendered-source --no-write-report --json
+```
+
+The prebatch animation inventory found 85 NULL XY pointers and one field-boundary
+exception among 86 headers; this batch does not invent an XY sequence to fill
+that gap. The icelord boundary, positive-X player-tail overlap, adjacent visual
+records, arbitrary callback effects and IRQ/DMA lifetimes remain open. The shared
+`$77FE0..$78000` tail remains blocked for relocation. This is connected source
+restoration, not a claim of whole-file completion or a relocated executable.
+
+Final C and independent vasm verification reproduces all 376,832 bytes exactly.
+Receipt: `070a1b7cd1fa0afbe096c318d79722f7672e98700b6baac7b9a9634b939caa32`;
+rendered-source SHA256:
+`36b0703b44bf05c6554563a836dda28d8d37f1cd1f4c31f51da0274a846179ce`.
+The original image and all 78 asset/include identities remain unchanged; both
+histories retain their published byte prefixes. This batch appends 30 actions
+(including the final purpose-comment refinement) with matching accepted decisions.
+Target metadata is unchanged. Changed C lines have no new style findings.
+The resident service is PID 205091 at http://127.0.0.1:8123/. No runtime route
+exploration or relocation was performed in this batch.
+
+## Whole-file continuation: ranged ray tile sampling
+
+From checkpoint `358a085b`, the connected follow-up examines `$92DE..$9322`,
+before the restored per-point hit scan. Its source comment records an algorithm limitation rather than paraphrasing
+individual instructions, through the inspected revision-bound command catalog.
+An attempted symbolic tile-bank subtraction exposed a framework gap: the
+catalog accepts a source label, but the native manual-representation reader
+recognizes only platform symbols and target equates. The representation was
+undone through the normal history API; the numeric operand remains. No
+generated source is hand-edited. Supporting arbitrary canonical source symbols
+needs a general native representation change and conservative regression tests;
+adding a duplicate equate would only disguise that gap.
+
+Coordinates advance with WORD arithmetic. Unsigned coordinate words are divided
+by 16, the row is multiplied by hardcoded 90, and the column is added before two
+WORD doublings. Clearing the upper word leaves a byte offset modulo 65,536.
+This differs from assuming an unbounded linear array index or consulting the
+current app tilemap width. The loaded tile pointer is converted to a 128-byte
+bank index and tested in the existing MSB-first movement-block bitset. Set bits
+select the blocked-tile visual path; clear bits restore the sampled coordinates
+for descriptor collision testing.
+
+A NULL descriptor-table entry resumes ray sampling. This loop has no range
+counter or map clamp; zero step leaves the point unchanged on that back edge.
+The bounded witnesses establish this recurrence, not whole-ray termination,
+arbitrary tile-pointer validity or gameplay reachability of zero step. There
+is no new permission to relocate the shared hit/palette tail, and no new
+Copperline route exploration.
+
+Twelve new original-CPU cases cover positive/negative/zero steps, coordinate
+WORD wrap, grid-byte wrap, first/byte-boundary/last-known bit selectors, blocked
+and clear branches, and NULL-scan resumption. The combined ray and prior impact
+suite passes **37 tests**. Existing broad green baseline results are reused.
+
+```sh
+.venv/bin/python -m pytest -q tests/test_pandora_ranged_ray.py tests/test_pandora_ranged_hit_visual.py
+```
+
+C and independent vasm reproduce all 376,832 original bytes. Receipt:
+`8b5ec5eb334efc61c50564f4152a07b6d52ed3df2dca11f2ea5d595fb13079d6`;
+source SHA256 `3d58d217b7bd4e75108cb717dbc6e15509c0abca8fd47e530cc083497d8818e0`.
+The surviving semantic comment is journal-accepted; the attempted representation
+and its undo remain in append-only history. Original binary, target metadata,
+asset/include contents and historical prefixes are preserved. The companion
+[tail investigation](../validation/pandora-preserved-tail.md) distinguishes the
+original unpack destination, fixed-copy extent and generated orphan label.
+PR 5 remains open, unmerged and in its existing ready review state.
+
+## Canonical address identities and preserved payload tail
+
+The copied-call projection and operand source-symbol paths are repaired in
+`1be7a2a9` and the following tail checkpoint. A call's attached canonical
+section/offset now takes precedence over its original decode target when planning
+source declarations. The orphan `$6AFFA` is gone; original decode facts and all
+manual history remain. Source-symbol representations carry native coordinates,
+rendered address view and value, validate the actual native operand/width before
+append, pass the native codec, and follow renames without duplicating equates.
+The subtraction at `$9302` now names `world_tile_pixels_000_through_011`.
+
+Runtime-only scratch EQU references retain their names without asserting file
+byte targets. Three retained analysis-only labels at source `$57D00`, `$57FDE`
+and `$57FE0` no longer act as hidden rendering boundaries when absent from the
+final source plan. The legacy unbounded blitter-source rename remains unchanged.
+Actual emitted labels, code, relocations and structured ownership still guard
+asset extraction. The normal `opaque_data` layout/raw-element commands preserve
+all **27,792 bytes** at source `$55370..$5C000` as
+`assets/preserved_uncopied_payload_tail.bin`. Its 144-byte prefix precedes the
+27,648-byte patterned body; no purpose is invented for either.
+
+The native boundary corrections also permit sixteen already-classified media
+ranges to export as named assets, in addition to the opaque tail. No new media
+format was inferred. The original 78 asset/include files remain byte-identical
+and retained. Generated assembly shrinks from **1,322,155 bytes / 30,540 lines**
+at `ffae9904` to **927,999 bytes / 24,497 lines**: **394,156 bytes (29.8%) and
+6,043 lines fewer**. This moves bytes into faithful assets; it does not shrink
+the game image or establish whole-file semantic completion.
+
+Final validation passes **311 focused Python checks** and **812 native checks**,
+including retained-analysis-label and full-tail-size asset cases. A broader
+runtime/backend selection still has the same eight previous-renderer failures
+(16 passes, two skips); their exact identities and comparison evidence are in
+[the framework report](../validation/canonical-source-symbols.md).
+C and independent vasm reproduce all **376,832** original bytes exactly.
+Receipt: `0c11b57ba11fc0b92b6f84e360120cd3463aac16b314fef724d9b3b832bdd0b2`;
+source SHA256 `63c2c28022bab20c5328ddaccabd2ae91da75774440c22bb09a794189a957d4b`.
+The three new canonical actions are accepted against this final receipt; prior
+history prefixes and the original binary remain intact.
+
+[The tail report](../validation/pandora-preserved-tail.md) distinguishes original
+unpack storage `$75370..$7C000` from the generated `$65370..$6C000` view and the
+inspected fixed-copy bound. Runtime scratch overlaps the original unpacked
+window; initial-content consumption, other indirect/load paths and fill purpose
+remain unproved. The shared hit/palette tail remains blocked for relocation.
+No additional Copperline route was explored. The resident service is PID 211346
+at http://127.0.0.1:8123/; its target is ready and the UI returns HTTP 200.
+PR 5 stays unmerged with its metadata and review state unchanged.
+
+Detailed native identities, preservation checks, source-size measurements and
+final proof are recorded in `docs/validation/pandora-tail-asset.json`.
+
+The eight optional backend failures now have a complete pre-change comparison:
+all tracked native sources at `ffae9904` were independently rebuilt and exactly
+those eight unchanged test bodies were selected. All reproduce their current
+errors, confirming no new regression among them. Three lack corpus inputs, two
+have stale wire/key expectations, and three exercise older code-promotion or
+presentation expectations. They were outside the earlier green focused baseline.
+See [the failure-by-failure audit](../validation/backend-eight-failures.md) and
+`docs/validation/backend-eight-baseline.json`; the former mixed-object renderer
+comparison is no longer the sole basis for calling these pre-change failures.
+No production code, target facts or PR metadata changed in this audit.
+
+
+## Fresh whole-file pass: salvage eligibility
+
+A new independent reading of the current restored source at `14bbb400` delivered
+all 582,092 presentation bytes / 18,065 lines in 27 ordered chunks. Its new
+proposal set is separate from the earlier 48-proposal queue. Ordered delivery
+does not prove simultaneous retention. The first accepted swath is the previously
+unclaimed 15-byte MSB-first bitset at source`$A813..$A822` (end exclusive), now
+`salvage_item_eligibility_bits` with an explicit 15-byte binary array.
+
+Native xrefs identify terminal deposit`$89EA` and four-carried-slot outcome
+ranking`$4C9EA`; both test via`$5FFE` and increment `app_salvage_item_count`.
+Original bytes`000001d8000000000000000000dd80` select 12 initialized item IDs.
+The helper has no arbitrary-ID bounds check; 120 stored bits are not a 256-ID
+guarantee. Ranking counts eligible occupied slots, including duplicates.
+
+Three canonical actions are journal-accepted. **22 focused tests pass**, including
+all 120 valid bit indices, six bounded terminal cases and three outcome cases,
+plus the existing 12 status/deposit checks. C and independent vasm reproduce
+all 376,832 original bytes exactly; receipt`74d949eb160c9ecceb3c08498455cb7d6d985bc175c46d950d961afc993fb884`;
+source SHA256`05e1c0121f682bcbb1f7156a995c42da3d95ab70f1221345a5c0cdbce8b410da`. Original binary/assets/SDK,
+prior history prefixes and unrelated facts remain intact. The shared-tail
+relocation blocker is unchanged and no runtime route was explored.
+
+The other four fresh swaths remain under review: actor display/owner identity,
+overlay NULL-prefix behavior, title palette state and indexed glyph aliases.
+The overlay's nonnull-only pointer advance was already recorded in an earlier
+MAL rationale; any visible contract is a tested formalization, not a new discovery.
+The per-swath ledger is `docs/validation/pandora-fresh-reading-review.json`.
+Deferred backend test maintenance remains separate; PR5 remains unmerged, with
+no routine title/body/review-state edits.
+
+
+## Fresh-pass title palette, glyphs and overlay contract
+
+Five exact title-data spans are now canonical: 16 current RGB12 WORDs at`$AC8`,
+eight increment WORDs at`$AE8`, eight existing six-byte `rgb12_accumulator`
+records at`$AF8`,32 current gradient WORDs at`$B28` and32 gradient increment
+WORDs at`$B68`, ending at the next routine`$BA8`. The title initializer clears
+all 32 gradient colors using 192 bytes of previously documented shared scratch,
+but only the first 8 of 16 palette outputs. The star fade updates those 8 colors
+and uses a 16-service-step byte counter. New exact-width app roles are
+`app_title_raster_gradient_ptr` (+`$280`, 4 bytes) and
+`app_title_star_palette_steps_remaining` (+`$285`, 1 byte). No scratch-lifetime
+or device timing claim is added.
+
+Twenty remaining title glyphs now carry index-derived B/C/E/F/G/H/I/J/K/L/M/Q/
+S/T/U/V/W/X/Y/Z names. The original routine normalizes ASCII lowercase, subtracts
+65 and selects 128-byte slots; D7=31/DBF establishes 32 four-byte rasters. The
+bounded CPU witnesses check all 52 uppercase/lowercase indices and the first
+raster/stride with guards, rather than retain overflowing full-copy traces.
+PANDORA uses six distinct slots across seven characters. Malformed inputs are
+still unchecked.
+
+A visible contract on `draw_ui_overlay_text_lines` now states the stable-pointer
+NULL-prefix behavior already recognized in an earlier MAL rationale: only
+nonnull visits advance A4. Tests cover prefixes 0..6 in both text styles, leaving
+poison string pointers after the first NULL unconsumed. This is a tested
+formalization, not a newly found runtime defect or sparse-layout guarantee.
+
+**55 focused checks pass** across new display-identity/prefix/title tests and
+existing overlay/palette tests. All 38 actions are journal-accepted after C and
+independent vasm reproduce all 376,832 original bytes exactly. Receipt
+`7769e67a2f2ed3a8079827c2d731bfb784f4c562d1fbb9609677093f10a7c72a`; source SHA256
+`2e3bc67abbd221a5667208843a3f63e04c2564bd9f8c303e883e0cb5c2bd1776`. Original binary/assets/SDK and history
+prefixes remain intact. Actor-owner naming is the remaining fresh-pass swath.
+PR5 remains unmerged; deferred backend maintenance and unrelated work are excluded.
+
+
+## Fresh-pass actor identity correction and complete closeout
+
+The remaining actor swath is accepted. Restart `$A0E4/$A0E8/$A0EC` resolves
+object byte+`$4A` through the signed name-offset table and stores its initialized
+display pointer at +0; the nearby-object overlay consumes that pointer. Original
+CPU prefixes verify all eight identities independently of inventory contents.
+These are initialized owner/display identities, not inferred artwork or perpetual
+exclusive ownership of mutable state.
+
+| Actor source | Previous owner prefix | Current owner prefix | Display ID / resolved name |
+|---|---|---|---|
+| `$4BA66` | `pianist` | `secdroid_alpha_1` | `$53` / Secdroid ALPHA 1 |
+| `$4BB0E` | `wackobrain ` | `secdroid_delta_2` | `$58` / Secdroid DELTA 2 |
+| `$4BABA` | `defence_controller` | `secdroid_delta_1` | `$57` / Secdroid DELTA 1 |
+| `$4BB62` | `glass` | `secdroid_pi` | `$59` / Secdroid PI |
+| `$4BBB6` | `kwik_kleen` | `secdroid_omega` | `$5B` / Secdroid OMEGA |
+| `$4BC0A` | `flight_controller` | `secdroid_alpha_2` | `$54` / Secdroid ALPHA 2 |
+| `$4943E` | `kriptonite` | `wackobrain_actor` | `$62` / Wackobrain |
+| `$4C1D2` | `megabio_feed` | `pianist_actor` | `$5D` / Pianist |
+
+The old "Pianist" encounter in the frozen planning observation is Secdroid
+ALPHA 1 at `$4BA66`; the actual initialized Pianist at `$4C1D2` is the object
+used by proximity music, previously named for Megabio feed. Wackobrain is at
+`$4943E`, corroborated by its named interaction callback. The formerly
+wackobrain-named object at `$4BB0E` is Secdroid DELTA 2. Raw historical receipts
+and snapshots retain the names they recorded; they were not rewritten.
+
+A scope-checked programmatic plan propagates these **eight semantic corrections**
+through **602 source labels, 34 layouts and 355 typed element names**. These are
+propagated names, not 991 independent discoveries. Existing typed layouts plus
+explicit descriptor/saved-state/node/attachment pointer chains constrain the
+selection. Complete native incoming pages cover 35 intervals / 270 references.
+All layout/element shapes, binding IDs/provenance and interpreted references
+compare unchanged. Six droids have distinct state records but share saved
+artwork; generic fixed-NPC frame/table names remain legitimate shared aliases.
+Global item strings/equates, original assets/SDK and history prefixes remain.
+
+Two small catalog capabilities were necessary: identity-preserving manual
+layout rename and bounded name-only bulk element rename. They use the normal
+revision-checked path, preserve typed ownership and references, reject unknown
+or duplicate element identities atomically, and support undo/redo. They were
+published in `ca4d592d` and`39e67da9`; no native CPU/KB rules changed.
+
+The independent rendered-name audit also found **118 shadowed renames**:
+older manual labels had different durable IDs, so their old names still won
+although the new row rename was recorded. The effective projection now retires
+only explicit predecessor names at the same section/address in the same address
+domain, prioritizes the requested declaration, and retains unrelated aliases.
+Repeated row renames carry their name chain through replay and undo/redo. Raw
+metadata/history are preserved. Native and actual rendered-source audits now
+find all 602 new declarations at their original coordinates and none of the 602
+retired spellings. The intermediate byte-exact receipt`d4959d6c64a0a34932fb6b6f6619e903ac51f1e603d9f60f58af643bf65a3b9e`
+was insufficient to establish that source-quality contract; the final proof below
+follows the fix. Earlier journal decisions remain with their supersessions.
+
+The offline model now binds actors by source coordinate, uses the current
+ammunition name, and exposes actor-neutral/current terminology while explicitly
+retaining historical consumer keys. A live read of current native bindings and
+the existing verified checkpoint succeeds with **both route searches disabled**.
+No emulator operation, new route or new BYTE-path observation was performed.
+
+Final validation: **262 Pandora tests**, **230 source-identity/framework tests**
+and **62 effective-metadata checks** pass; an overlapping final target selection
+passes 71. C and independent vasm reproduce all 376,832 original bytes exactly.
+All 637 actor actions are accepted against final receipt
+`54d4c229bd78cc51ac5f324d92a00b5ea56a979af6109643cafd5bc687976c4d`; source SHA256
+`be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6`. Across the five fresh swaths, 678 new
+manual actions are accepted. See `docs/validation/pandora-fresh-reading-review.json`
+and the coordinate/rename audit `docs/validation/pandora-actor-identities.json`.
+
+The cloud execution transport reconnected after validation and reset resident
+processes. The service was restarted as PID 557 at http://127.0.0.1:8123/;
+its target is ready, target UI returns HTTP 200, and the final source subject
+and corrected native field name were checked unchanged.
+The deferred eight-test maintenance patch remains byte-identical and uncommitted.
+PR5 stays unmerged without routine metadata edits. Shared-tail relocation and
+its allocation/caller/interrupt-lifetime obligations remain open; no exclusive
+ownership, whole-file semantic completion or general index bounds are asserted.
+
+## Shared-tail ownership and lifetime follow-up
+
+The deferred eight-backend-test cleanup is published in `f5315cc4`, with paired
+execution/data fixtures and independent C/vasm raw reconstruction. The configured
+host vasm capability replaces its Linux-only helper path. Affected checks pass
+9 cases and skip only the three recorded absent original inputs; 16 related
+checks pass. Three failures exposed by a wider copied-code selection reproduce
+with the pre-cleanup test bodies and remain separate. See
+`docs/validation/backend-test-cleanup-2026-10-15.md`.
+
+Canonical analysis now retains `pandora_work_buffer_palette_input`, the 32 bytes
+at `$77FE0`, as an explicit alias within `pandora_ui_snapshot_hit`. The general
+framework permits overlapping semantic region identities, projects their exact
+intersection and offsets, and refuses independent single-region relocation.
+Coincident, contained, enclosing, partial, adjacent and disjoint cases are tested,
+along with history/undo/redo. No joint-move or phase-based split is implemented.
+The original two setup LEAs now name `runtime_supervisor_stack_top` at `$10452`;
+no allocation extent or all-path stack bound is invented.
+
+The new original-code IRQ fixtures establish the dispatcher save/return layout
+with explicit modeled hardware frames and the original no-op callback. They
+confirm five LONG saves (20 bytes), the extra four-byte callback return slot,
+interrupted A0 at callback SP+8, and intact saved registers/frame at RTE entry.
+This is not arbitrary-callback or asynchronous hardware validation. The already
+fixed CLR prefix passes; its older simulator-limit ledger paragraph is historical.
+
+The defensible placement assessment is in
+`docs/validation/pandora-shared-tail-lifetime.md`, with native proofs/refusals in
+`pandora-shared-tail-lifetime.json`. Preserve the hit/palette alias relationship;
+the covering reset blit is an additional cross-buffer writer. Palette caller,
+producer and phase, absolute stack ownership, audio/other callback continuations,
+changed DMA geometry and complete alias lifetimes remain open. The body snapshot
+and palette output arrays are separate candidates, not newly certified moves.
+The current independent volume plan still closes its five accepted references.
+No new Copperline route, allocation, relocated artifact or whole-file reading ran.
+
+Validation passes **124 framework checks** (one optional Copperline arithmetic
+oracle skipped), **812 native checks** and **43 Pandora checks**, including five
+new stack/IRQ cases. All 99 immutable tracked target files and prior history
+prefixes remain unchanged. Two new actions and two review decisions append.
+C and independent vasm reproduce all 376,832 original bytes exactly: receipt
+`2824c4c9b75108e48467e32a6840549b4d27a6c4fc97879253c74cc3dcf4ddf4`,
+source SHA256 `a0d7e192b08cdbe494344ef37e238c93067ed10310693034cf890ba76814efc8`.
+The resident loopback service was restarted for the native backend change as
+PID 1822 at http://127.0.0.1:8123/. PR5 remains unmerged, without metadata edits.
+
+## Gameplay checkpoint policy and response state machine
+
+Sixty-four accepted actions connect the eight-ID possession recheck, six-ID
+selected clearance policy, 30x43 macrocell lookup and security damage/flash
+service. Fifteen constants propagate to 25 actual operand sites, including all
+known pending-recheck producers and initialization. Typed actor fields and
+branch names replace numeric accesses; the existing palette owner retains its
+shape. Original map cells distribute as 22/23/15/16 restricted cells at tiers
+0/1/2/3, with 1214 unrestricted cells. No arbitrary-coordinate bounds are added.
+
+A selected card must strictly exceed the zone tier. Valid clearance pauses the
+response without clearing it; an active flash bypasses checkpoint/combat gates.
+Damage changes only the HP low byte with a signed-result clamp. A normal flash
+reload of 31 uses palette entries 1..30, then restores the saved color. The first live
+inventory byte is reselected on response start, without consuming that slot.
+These are original behaviors, not new game rules. The focused original-CPU suite
+passes 15 checks, including 10 new cases covering all 1290 initialized cells and
+all 256 selected item IDs at five zone values. No normal UI/audio route or
+IRQ/ownership closure is inferred.
+
+C and independent vasm reproduce all 376,832 original bytes exactly, receipt
+`66b810b6db004709bbce4dd3c7a5a720c2efa497ae7955600842361340f7848e`. See `docs/validation/pandora-security-policy.json`.
+The next connected gap is the anonymous shared defeat-state/animation family
+used by ID failure, checkpoint damage and combat; shared-tail relocation stays
+separate and unresolved.
+
+## Shared player failure states and final-pose data
+
+Twenty-six accepted actions restore six layouts covering 324 source bytes and
+116 field instances: two final-pose geometries, two render-state prefixes, nine
+additional shared animation frames, an 18-byte controller and 14 frame pointers.
+The prior four-frame owner is unchanged. Defeat and escape share the final-pose
+family; the escape store and all 14 frame fields resolve through the native
+model automatically. One unknown header byte remains raw. Direct original-CPU
+execution covers all 13 animation frames and the hold after 84 services.
+
+The general catalog now supports sparse layout role descriptions, preserving
+identity, extent, elements and references. Typed-pointer queries support bounded
+source intervals, filtering before native lookup with scoped counts and bound
+cursors. These remove metadata replacement and whole-family scan workarounds.
+106 focused framework checks pass; 16 original-CPU cases pass collectively.
+All 99 immutable tracked target files and prior history prefixes are preserved.
+
+The initialized static state's NULL animation node makes the original exchange
+helper clear bit 0 at absolute `$A` and WORD `$10`. So far this specific effect is
+verified through an isolated original-code continuation, not a normal play-session
+observation. Richard's follow-up asks whether genuine gameplay reaches it; that
+focused investigation continues separately without altering canonical bytes.
+
+C and vasm remain exact for all 376,832 original bytes, receipt
+`65a94e792c8a308779fe30cc222b6e57038a4d954a58d275758f886669668b4a`. Native field/reference and preservation evidence is in
+`docs/validation/pandora-security-defeat.json`. The local service is PID 4652,
+target ready and UI HTTP 200. PR5 remains unmerged; relocation is unchanged.
+
+## Descriptor partition and unsigned depth order
+
+Twelve accepted canonical actions connect the recovered original-CPU evidence
+to generated source: eight branch names, three descriptor-prefix register seeds
+and one ordering/precondition comment. The 32-pointer snapshot feeds the three
+groups: bit6 wins and retains front order; bit7 reverses back order; the deferred
+middle is reverse-copied, then sorted by unsigned WORD world Y. Native propagation
+names both comparison operands at `0x8522` and `0x8526`. The seeded state-pointer
+load at `0x84C0` remained numeric at this stage; the reconciliation fix below
+closes that native field-resolution question. Nonempty deferred input and tie stability remain unproved generally.
+
+The recovered published head `e1eac3eb` passes 27 focused security, partition and
+state-transition tests. Canonical verification after the annotation batch reproduces
+all 376,832 bytes with C and independent vasm, receipt
+`19e81b45193f3db3cb34b0495004a0c0f4f3a6635afc709a060328e813868495`.
+Existing manual and decision history prefixes and original payload bytes are
+preserved. See `docs/validation/pandora-descriptor-partition.json` for action IDs,
+field sites and hashes. This is static restoration, not gameplay defeat proof.
+
+The replacement worker recovered both published commits with identities intact.
+The local canonical server now works through approved loopback access. Saved
+checkpoint retrieval still fails through the supported Library route with
+`Tunnel connection failed: 403 Forbidden`; no alternate transfer route was used.
+The original-input NULL-node reachability investigation and any optional corrected
+variant remain pending. The legal ROM and original decoded payload match their
+recorded hashes; no emulator checkpoint or Copperline executable was transferred.
+
+## Ordinary combat defeat reaches the NULL-node writes
+
+The replacement worker recreated the documented corridor-to-rifle checkpoint
+chain from the pinned Copperline release and existing legal ROM. Rifle pickup
+and fresh-process audit passed at `(1228,874)`, HP 95, selected item 18. Neutral,
+reverse-staging and first-security-damage scenarios also passed. No checkpoint
+transfer or guest predicate edit was needed.
+
+The former second-security-hit timeout was the wrong gate for the observed
+route. A 160-service-call diagnostic shows combat flag bit 1 becoming set while
+the security countdown remains 33 and HP falls to 0. The explicit original
+combat probe then reaches `$79A8`, `$7A06`, `$868A` with A0=0, `$8694` with word
+`$10` changed `$00FC`→zero, and return `$7A0A`. Byte `$A` was `$08` before and
+after because bit 0 was already clear. This closes ordinary-input reachability
+for this direct-payload route, not original-disk loader parity or all defeat
+paths. Captures and checkpoint lineage are in
+`runtime/observations/pandora-combat-null-node.json`.
+
+The general explicit optional-patch builder now admits raw single-section,
+fixed-size corrections against original hashes, expected bytes and canonical
+instruction boundaries. With no enabled patch it emits the original unchanged.
+The Pandora opt-in guard occupies the same 40 bytes at `$867E..$86A6`, exchanges
+states normally, and skips only the reset of a NULL node. It needs 12 disjoint
+writable stack bytes below entry SP instead of 8; no code cave or relocated code
+is assumed. See `docs/optional-patches.md` and the annotated patch manifest.
+Corrected gameplay has not been run: corrected behavior is presently a bounded
+CPU/independent-assembly proof, distinct from original gameplay confirmation.
+
+Validation covers 41 distinct focused tests across admission, assembler identity,
+register/CCR/memory equivalence, NULL preservation, original policy/transitions,
+and full original death callees with either helper. Canonical default source
+still reproduces all 376,832 original bytes with C and independent vasm, receipt
+`95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836`.
+The one new source comment is accepted through the Decision Journal. Original
+history prefixes and asset payloads are preserved. Optional output hashes and
+scope are recorded in `docs/validation/pandora-optional-null-guard.json`.
+
+## Corrected gameplay proof completed
+
+The opt-in guard completed the same ordinary combat-defeat route from a fresh
+corrected boot, through ten successful segments and build-bound checkpoints.
+Original checkpoints are refused for the corrected context. All captures in the
+eight shared pre-defeat segments match the original. The NULL exchange returns
+with the same common registers and state behavior, while the illegal-instruction
+vector remains `$00FC081C` instead of becoming `$0000081C`. The bus-error vector
+remains `$00FC0818` in both runs; the original bit clear at byte `$A` was already
+a value no-op. A separate non-NULL caller comparison matches registers and
+record/vector bytes, with only the documented extra stack scratch difference.
+
+Eight subsequent main-loop visits confirm HP 0, the defeated flag/static state,
+combat mode cleared and intact vectors. The exit timer remains 70 in that bounded
+window. There is no claimed visible improvement, crash/glitch consequence, or
+full exit/title transition. Treat the low-impact bug as a proof case for the
+general explicit optional-fix mechanism. See
+`runtime/observations/pandora-corrected-combat-defeat.json` and
+`docs/optional-patches.md` for evidence and reproduction.
+
+Runtime admission now validates optional raw payloads against their complete
+patch ledger and canonical boundaries, refuses source probes inside rewritten
+ranges, and keeps snapshots tied to build identity. It shares one canonical
+analysis snapshot within a CLI invocation without weakening hash checks.
+127 focused framework tests pass. Default target source and payload remain
+unchanged at the existing full C/vasm exact receipt.
+
+## Typed descriptor load restored
+
+The shared native register-seed path now clears stale table-origin metadata when
+an explicit seed establishes an independent typed root. At `$84C0`, the accepted
+A3 descriptor seed had retained origin `$31AA`; table-contract reconciliation
+then discarded its field annotation. The formatter already supported the required
+zero-displacement encoding. Canonical regeneration now emits
+`movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2`.
+The following flags access and both depth comparisons retain their symbols.
+
+The general fix applies to supported address/data register and array seeds;
+unseeded or ambiguously bound table values retain their conservative checks.
+The complete source diff changes one operand. All 86 asset identities, sizes and
+hashes, and both manual/decision histories, remain unchanged. There are no new
+manual seeds or direct generated-source edits.
+
+All 814 native tests (650 IR tests) and four Pandora partition tests pass. The
+new address-seed regression fails before the fix; the seed tests also check
+provenance and absence of stale table origin. C and independent vasm reproduce
+all 376,832 original bytes, receipt
+`06fc580a878bf197df3ee041613c44530597082cd2ddf7efe1ac06e41e33216a`.
+See `docs/validation/pandora-descriptor-seed-reconciliation.json` for hashes,
+native reference evidence and limits.
+
+Descriptor-count and supported position-state flag operands are now named at
+51 uses: five instructions and 46 typed initializers, backed by six EQU
+definitions. Bit-test indices and shifted initializer masks remain distinct;
+unknown residual bits and the separate object-record combat bit stay numeric.
+Shared fixes order final EQU definitions by dependency and preserve exact scalar
+field symbols under typed containers. All 816 native tests, 62 focused metadata
+tests and 40 affected Pandora CPU tests pass. C and vasm reproduce all 376,832
+original bytes; 86 asset identities and payload hashes remain unchanged.
+See `docs/validation/pandora-descriptor-partition.json` for the receipt and scope.
+
+The positive-X boundary is now corrected: the concrete player uses the existing
+26-byte render prefix, followed by an 18-byte animation node. The former overlap
+came from its generic 30-byte state binding. Initialization and movement now name
+`player_move_positive_x_animation`; its header and eight frame pointers use the
+same types as the other directions. Idle changes hold/clock state within this
+node; no player interaction-tail phase was established. Its byte +11 stays an
+unknown gap. All 29 focused tests and exact C/vasm reproduction pass; 86 assets
+are unchanged. See `docs/validation/pandora-player-directional-nodes.json`.
+
+The guarded chain transition now uses a 22-byte extended schema containing the
+existing 18-byte header and an absolute LONG successor pointer. Its three field
+accesses are symbolic; only the guarded A0 context receives the extended type.
+It resets and installs one successor per call, preserving all mode bits except
+hold. There is no NULL/sentinel guard before successor writes. None of the 89
+typed nodes or 77 typed-pointer targets has the chain bit set initially, so no
+concrete record was widened or gameplay reachability asserted. All 17 focused
+tests and exact C/vasm reproduction pass; data directives and 86 assets are
+unchanged. See `docs/validation/pandora-chained-animation.json`.
+
+The combined animation pass separates held and active records for all 63
+established sequence starts (416 pointer entries), covering 89 initialized nodes,
+26 script replacements and four proximity variants. The frame/XY consumers now
+name the held-record skip and XY fields. Nonzero initial modes and remaining mode
+bit operands use the established masks/indices. Counts and phase steps retain
+their original values; replacement preserves both and the optional XY pointer.
+
+A shared feedback-audio contract restores the identities of D1-D7/A1-A6 on normal
+return, without imposing a game-specific pointee type on other callers. The
+normal command path now supports the existing type-neutral identity model;
+canonical tuple serialization and whitespace parsing are covered by positive and
+conservative tests. Opaque-memory invalidation remains conservative without an
+explicit identity result.
+
+The inventory reports 70 to
+78 named node-field accesses and
+zero exceptions among 267 node pointers and 430 frame pointers (including NULLs).
+Full C/vasm exactness preserves all 376,832 original bytes and 86 asset identities,
+paths, sizes and hashes. Test results, the receipt, all sequence bounds and the
+compact before/after inventory are in
+`docs/validation/pandora-animation-subsystem.json`.
+
+Remaining animation unknowns are the 14 trailing frame pointers at
+`$491A4..$491DC` without an established sequence consumer, node byte `+11`, and
+the physical meaning of proximity variant flag 5. No initialized node uses XY or
+chaining, so their actual gameplay producers and scheduling remain unestablished.
+Known count/sequence pairs fit; arbitrary later mutation and shared-node lifetime
+are not proved by this static/local execution pass. Equal-depth tie behavior and
+allocation lifetime remain separate engine questions. No further consequence
+investigation is planned for the completed optional patch proof.
+
+## Grouped animation gaps and primary audio dispatcher
+
+The follow-up inspected the four animation gaps together. None acquired a new
+supported meaning: all 89 known node bytes at +11 are zero; the four numeric
++11 accesses belong to keyboard/audio state. The optional XY field has only
+known consumers, and no initialized node enables XY or chaining. Three flag-5
+readers establish the proximity variant and X bias, without proving a physical
+orientation. The 14 trailing frame pointers resemble two seven-entry sequences,
+but have neither an established consumer nor literal pointers into their range
+anywhere in the original image. Computed references and later mutations remain
+open. No initial shared-node alias was found among the inspected typed render
+states; script reuse does not establish lifetime or scheduling. The compact
+[gap evidence](../validation/pandora-animation-gap-pass.json) retains these limits.
+
+The next connected source batch restores primary audio dispatch contracts using
+existing schemas. All 11 original signed-offset control handlers retain the
+48-byte runtime and 12-byte DMA record bases to their decoder/exit continuations.
+The shared note decoder uses the loaded or selected sample record. Twenty-five
+canonical register facts restore **50 named field operands across 45
+instructions**: runtime fields 46→82, resolved DMA fields 18→27, sample fields
+7→12. One pre-existing unresolved secondary DMA access remains unchanged.
+No new field meanings, table extents, or arbitrary-selector safety were asserted.
+
+All 37 focused tests pass, including 11 original dispatch targets, four channel
+stride producers, existing audio command cases and animation sequence regressions.
+Full C and vasm reproduction matches all 376,832 original bytes, receipt
+`4c9fbfc61b3d075199b627404ffef80d17fe859433eceb0266f98613dc7add21`.
+All 86 asset identities, paths, sizes and hashes, all data directives and history
+prefixes are preserved. See the [audio evidence](../validation/pandora-audio-dispatch-contracts.json).
+Invalid opcodes, replacement program bounds, sample allocation lifetimes and
+Paula DMA timing remain outside this local CPU/static proof.
+
+## Shared audio state and program operands
+
+The audio inventory covers 29 physical program intervals (907 bytes, 858 decoded
+tokens) and their shared state consumers. All **42 numeric A3 state-access sites
+now use named fields**. The sparse base view is relative to
+`initialize_audio_player`; it does not classify intervening code as data or claim
+allocation ownership. The 18-byte global record retains its unknown byte at +13.
+Two dynamic indexed accesses remain unresolved in native type analysis.
+
+Parameter-bearing command coverage increases **8→33 records**: 16 additional
+pitch-modulation records expose opcode/step/limit, and nine channel-note-offset
+records expose opcode/operand. All original program extents and three shared-tail
+entry points remain intact. Unsupported control bytes and arbitrary replacement
+sample/envelope selectors remain unbounded. The phase-increment copy has no
+established reader, and the skip gate has no established enabling writer here.
+
+The valid candidate exceeded the native 64-register-context capacity before any
+history append. Capacity is now 256 with refusal beyond that bound; tests retain
+65 and 256 entries and reject 257. The direct-loader ctypes fixture was also
+stale and now matches the native policy ABI. All **816 native, 22 focused framework,
+2 loader-ABI and 33 audio tests pass**, including 7,168 phase/counter cases,
+all four reset pairs, the guarded eleven-sample initializer and all 25 new
+parameter records.
+
+All 76 canonical facts are verified against exact C/vasm reproduction of the
+376,832-byte original, receipt
+`6aca81da954ad25534cb3f93b04cd74520c77ab6c829e56900a6e4033f156847`.
+All 86 asset identities, paths, sizes and hashes are unchanged. The
+[compact inventory and evidence](../validation/pandora-audio-state-and-programs.json)
+retain the remaining bounds, timing and lifetime limitations.
+
+
+## Geometry clipping, attachment traversal and background restoration
+
+The compact [programmatic stocktake](../validation/pandora-geometry-clipping.json)
+uses canonical metadata and native query totals. The published starting head
+`3a61f340` has 496 layouts, 61 structures, 82 callable summaries, 71 entry seeds
+and 902 native field records (resolved and unresolved). The retained coverage
+inventory partitions all 376,832
+bytes into 344 intervals: 24,394 code, 263,587 accepted noncode and 88,851 unclaimed
+bytes. That existing partition was checked, not rederived at this revision. Neither
+raw preservation nor a classified opaque asset establishes semantic completion.
+The final native snapshot has 7,043 instructions, 225 function candidates, 3,418
+CFG edges and 89 review candidates; none is a completion score. Rerun the index
+with `.venv/bin/python -m amiga_reversing.tools.pandora_restoration_stocktake`
+against the ready resident service.
+
+**74 accepted canonical actions** restore a connected rendering swath. Four
+normal-return contracts preserve existing state/geometry identities across the
+clipper, draw routine and both previous-geometry helpers. Native propagation
+resolves **eight additional field operands** (902→910 total native field records),
+including both attachment
+traversals and every remaining numeric geometry dimension/stride read after
+clipping. The final field inventory contains 883 resolved and 27 unresolved uses.
+Two WORD span names replace **eight anonymous stores**. Five clip
+constants name **15 operand sites** across every producer and both consumers.
+**43 branch/helper declarations** now identify the previous-geometry union,
+clipped tile-grid traversal and aligned/shifted drawing paths. Five comments
+record the contracts and their limits. No generated source was edited manually.
+
+The original point test rejects interior points because SWAP clears carry before
+BCC; native CPU and independent Musashi execution agree. This is documented
+behavior, without a correction or claimed gameplay consequence. The four side
+flags also alias the rejection value 15, so both callers skip an enclosing
+rectangle. Top clipping retains its original `Y+H+1-view_top` row arithmetic.
+The two produced span slots have no established reader; they are not inferred
+allocations or DMA sizes.
+
+Validation passes **49 distinct focused tests** across the existing rendering,
+framebuffer, snapshot and state suites and seven new geometry cases, plus
+**816 native checks**. The new checks cover 1,156 rectangle boundaries, 49 point
+cases, five independent Musashi point cases, ten drawing cases, three top-row
+adjustments and both previous-geometry helpers. MMIO tests supply a ready-bit
+shadow; they do not run a chipset or prove pixel output, DMA ordering or lifetime.
+
+C and independent vasm reproduce all **376,832 original bytes** exactly, receipt
+`ab1f896592710b0815dfb753baeaaadfdde9011f9ff7f8bee812ab57095bf9e0`. All **86 asset identities, names, paths, sizes and hashes**,
+all data directives, 99 immutable tracked target files and both history prefixes
+are preserved. The Decision Journal accepts all 74 new actions. No runtime setup,
+optional-patch change, merge or PR-description edit was needed.
+
+Semantic gaps remain in arbitrary coordinates/extents, mutable pointers and
+attachment lifetimes, indirect effects, resource/tail purpose and audio/DMA
+scheduling. The previously investigated animation and audio unknowns stay open.
+Original-layout exactness does not close whole-game relocation: changed code,
+data and DMA placement still needs reference, lifetime and execution evidence.
+The next connected rendering gap is custom-register address context through the
+tile copier's EXG path and its bounded DMA packet/extents.
+
+## Scene blit packets and exchanged hardware base
+
+The tile copier now tracks `_custom` through D4 and the D4/A5 exchanges,
+rendering nine register operands symbolically. Twenty-eight accepted actions
+add seven shared stride/size/control equates, seventeen operand bindings and
+four bounded packet comments. The four masked helpers share the 160-byte
+world row and the 16-byte staging row. The final edge copy reads one WORD
+from each four-byte scratch pair and writes at a 40-byte row stride.
+Initialized H<=48 gives a conditional 768-byte scratch extent; it is not an
+allocation or replacement-admission proof. Zero tile dimensions underflow,
+and final DMA starts can outlive the helper return.
+
+Native hardware context follows full register values and simultaneous EXG.
+Calls retain only registers proved preserved by an existing callable summary;
+unknown calls and register changes discard the identity. This conservatism
+also exposes earlier display/audio naming assumptions: boot/title return
+values, the Copper callback return, and channel-relative audio bases need
+further contracts. Those operands remain numeric; this projection no longer
+selects `graphics/display.i`. No target seed was invented to hide the gap.
+The SDK registry now admits registered constants such as INTB_BLIT and
+INTF_BLIT even when unused constants lack source declarations, rejecting
+mismatched values before appending history.
+
+818 native tests, 75 focused context/query/symbol tests and 25 original-CPU
+packet cases pass. The packet harness models registers, not pixel DMA.
+All 86 asset hashes and both history prefixes are preserved. C and independent
+vasm reproduce all 376,832 original bytes, receipt
+`63c65ac70f7500726ceab857b58be86766251056f1f5cfa9d8724ffcee8c8a1b`.
+See the [compact packet evidence](../validation/pandora-scene-blit-packets.json).
+
+## Display return contracts
+
+Of 27 reviewed display/audio register sites lost across calls or register
+changes, 14 are now resolved: nine bootstrap display writes and five title
+setup writes. Seven corresponding immediate expressions regain SDK symbols.
+Three accepted canonical summaries record prime-blit, world-init
+and starfield-init preservation. World initialization saves/restores A5 on its
+sole normal exit; its six helpers leave A6 unchanged. Starfield initialization
+leaves A5/A6 unchanged across its eight plane-operation continuations. Other
+unproved effects remain conservative and memory/escape effects remain unknown.
+These contracts assume valid original pointers and an ABI-disjoint stack.
+
+The seeded-clear routine instead returns the fixed `_custom` address in A5.
+Bounded native callee inference now represents that generated result separately
+from preservation, requiring one full hardware address on every reached normal
+return. Hardware value symbols consume the same native address facts and retain
+accepted manual operand expressions. The display SDK include is restored
+identically to the earlier published version; existing packet bindings survive.
+
+At commit `06f34f30`, thirteen reviewed sites remained numeric: ten audio
+accesses, two after the whole title function returns, and one after the Copper
+callback. Audio computes
+A6=`_custom+16*channel`, with original channel indices 0..3. A literal `_custom`
+seed would erase this relationship. The rendering correction below preserves
+this relationship through offset literals; callback/whole-title return closure
+remains open. This batch does not claim pixel DMA, alias safety or arbitrary
+replacement admission.
+
+819 native tests, 71 focused framework/catalog tests and nine original-instruction
+CPU cases pass. A broader existing decompression check still raises `KeyError:
+codec_id`; its producer is unchanged here. All 86 assets and both historical
+prefixes are preserved. C and independent vasm match all 376,832 original bytes,
+receipt `cba1f3707d5fdb0dfc8fcb6c022613bcf1ec90de90fd7adda2713fe5734183b7`.
+The [site-by-site evidence](../validation/pandora-display-return-contracts.json)
+separates reviewed, resolved and remaining sites.
+
+## Rendering quality correction
+
+The rendering regression is corrected across the full source diff against
+`8fcfd31f`. All 27 reviewed hardware sites are symbolic again, and all 19
+remaining lost instruction/comment occurrences match that baseline. Display
+bit expressions, window/fetch explanations, Copper-list pointers and audio
+field names and notes are restored. No earlier annotation was disproved.
+
+Thirteen accepted offset-domain representations name encoded SDK literals;
+two accepted immediate representations restore DMAF_RASTER and INTF_COPER.
+For audio, `aud0+ac_*` names the offset in the channel selected by
+A6=`_custom+16*channel`; it does not assert a fixed A6 address. The bootstrap
+and interrupt bindings likewise preserve intended offset names without
+inventing whole-title or indirect-callback proofs. Conservative call/write
+invalidation remains active. SDK access notes now consume native address
+proofs as well as these explicit literal domains, retaining richer existing
+pointer-provenance notes.
+
+819 native tests and 298 focused framework/catalog/CPU tests pass, including a
+source snapshot that failed before correction. C and independent vasm reproduce
+all 376,832 original bytes, receipt
+`6c32110f18577bdcf80d6b91e3b38d17722ab6e9ec1d8435ae3f1febf9ea81bb`.
+All 86 assets and both history prefixes are preserved. An isolated build of the
+`8fcfd31f` backend returns the identical missing-Ancient-provider payload for
+the existing `codec_id` failure, establishing that it predates this correction.
+See the [correction evidence](../validation/pandora-render-quality-correction.json)
+and [SDK offset-domain contract](../restoration-interfaces.md). Runtime callback
+closure, pixel DMA, alias safety and arbitrary replacement admission remain open.
+
+## Audio channel-relative hardware
+
+Twelve primary-player audio writes are reviewed as one group: ten in the main
+channel loop and two in the silence opcode handler. All twelve now have native
+closed hardware-family facts with base offsets `{0,16,32,48}`; previously none
+had such a bounded fact. Ten already had valid accepted offset names. The two
+silence writes now gain `aud0+ac_ptr` / `aud0+ac_len` and their pointer / 64-byte
+length explanations. The corrected `27bc9a02` instruction names, inline notes
+and standalone comments are preserved.
+
+These twelve proofs depend on eleven explicit handler-entry input contracts:
+A6=`_custom+16*D7.w`, with D7.w in 0..3, for original valid primary-player
+dispatch. Existing handler discovery entries otherwise supply unknown register
+values and erase the loop bounds. The contracts appear on complete separate
+`INPUT contract` source lines. The independent bounded solver propagates low
+WORD sets, ADDA.W and DBF backedge/exhaustion states, validates every candidate
+against the same SDK family field, and records input dependence. It publishes
+no fabricated single address and drops unknown, overflowing or unfinished
+proofs. Calls and unsupported writes remain conservative. Accepted offset
+renderings remain independent fallbacks.
+
+The original instruction harness checks all eleven opcode handlers in all four
+channels, including D7 upper-WORD sentinels and reset through RTS. Four producer
+cases and four actual silence-handler channel-write cases bring that audio
+group to 52 CPU cases. The native indirect jump at 4DC2A remains unresolved;
+arbitrary handler entry, opcode/operand replacement and dispatch closure are
+not proved by these input contracts. MMIO is a memory shadow, not audio output
+or DMA timing.
+
+819 native and 380 focused framework/catalog/CPU/source-quality tests pass.
+C and independent vasm match all 376,832 original bytes, receipt
+`5046acf61f021bc19c38f5276d168ad74c1bfc016a5bd301f07474b9c5b71cd0`.
+All 86 assets and both historical prefixes are preserved. The `codec_id`
+provenance question was closed by the preceding correction's isolated baseline
+comparison; the missing Ancient provider is pre-existing and unchanged here.
+See the [reviewed-versus-resolved evidence](../validation/pandora-audio-channel-hardware.json)
+and [indexed input contract](../restoration-interfaces.md).
+
+
+## Indirect dispatch and star color operations
+
+The 22-site native indirect-transfer inventory now feeds 58 known destination
+edges at 14 sites into the CFG, including the eight star operations and all 33
+world-command handlers. Previously discovery knew these destinations but the
+CFG omitted them. Every site retains its unresolved alternative: candidate
+edges do not establish a complete target set. Runtime-mapped direct branches
+now retain the existing bounded permission to replay distinct continuation
+inputs; focused tests reproduce the previous lost-target behavior.
+
+Eight star color writers and two continuations gain semantic names. One
+canonical eight-entry signature records opaque A0/A3 pointer inputs; two source
+comments explain the lifetime selector, three planes spaced 40 bytes apart,
+and tail continuation. Original instruction checks cover every color with all
+three original continuations, every valid lifetime, and the unsigned world
+opcode guard. AND #7 bounds the pixel bit, not the star table index.
+
+819 native and 283 focused tests pass. C and independent vasm reproduce all
+376,832 original bytes, receipt `3ad5a1de386597905593f9ba670d22911c144e4c5d5183b2345cb5b95f52680e`. All 86 assets, both history prefixes,
+and earlier symbolic instructions/comments are preserved modulo the ten label
+renames. The [inventory and limits](../validation/pandora-indirect-dispatch.json)
+record eight sites without known targets. The next swath is continuation
+propagation through the longer star selector: native replay still recovers
+only DAE per writer, despite the three reviewed original continuations.

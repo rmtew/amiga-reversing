@@ -1,0 +1,185 @@
+{
+  "baseline_commit": "8fcfd31ffd70a54aa9b456f929f7798f0f1a4d77",
+  "scope": "Tile-copy EXG hardware context and the five scene blit helpers; original instructions and payload are preserved.",
+  "framework": {
+    "context": "Full hardware-base values survive data/address register copies and EXG; CFG joins require matching incoming base identities. Native platform-address uses feed normal source rendering.",
+    "conservative_cases": [
+      "Partial writes, unknown loads, changed address registers, opaque calls and explicit pointer seeds discard prior hardware identity. Calls restore only registers proven preserved by existing summaries; CFG jump edges retain unchanged values.",
+      "The existing linear source-quality path invalidates exchanged/clobbered address contexts; new exchange facts come from the CFG result."
+    ],
+    "existing_public_layouts_changed": false,
+    "sdk_constant_admission": "Resolve registered constants in the native SDK registry before source-label admission. Names absent from the rendered declaration index are supported; mismatched values refuse before append."
+  },
+  "canonical_actions": 28,
+  "equates": 7,
+  "symbolic_packet_and_interrupt_operands": 17,
+  "bounded_semantic_comments": 4,
+  "packets": {
+    "tile": {
+      "packed_source_bytes": 128,
+      "destination_span_bytes": 2522,
+      "hardware_rows": 64,
+      "width_words": 1,
+      "destination_row_stride_bytes": 40,
+      "destination_tile_row_stride_bytes": 2560,
+      "aligned_20_by_8_view_bytes": 20480
+    },
+    "masked": {
+      "world_row_bytes": 160,
+      "width_words": [
+        1,
+        2
+      ],
+      "world_modulos": [
+        158,
+        156
+      ],
+      "scratch_stage_row_bytes": 16,
+      "scratch_pair_modulo": 12,
+      "scratch_copy_source_stride_bytes": 4,
+      "scratch_copy_source_modulo": 2,
+      "scratch_copy_destination_stride_bytes": 40,
+      "scratch_copy_hardware_rows": "4*H",
+      "initialized_frame_height_bound": 48,
+      "conditional_scratch_extent_bytes": 768
+    }
+  },
+  "limits": [
+    "Zero tile width/height underflows the DBF counters; the helper has no dimension admission guard.",
+    "Synthetic widths/heights beyond the view and H=49 are accepted; bounds describe the tested packets, not arbitrary replacement safety.",
+    "Tests use an explicit custom-register shadow and do not execute pixel DMA, prove allocation/alias exclusion or establish whole-game relocation.",
+    "All helpers poll before packet use; final starts may outlive return. INTREQR BLIT polling is distinct from a full bus/DMA lifetime proof.",
+    "Masked helpers restore D4-D7 with MOVEM.W sign extension; the aligned entry clears D6 before saving.",
+    "Conservative call/write invalidation removes earlier display/audio names where the current analysis lacks a proved hardware return value or channel-base relation. Byte exactness does not close those return/base contracts; graphics/display.i is no longer selected by this projection."
+  ],
+  "tests": {
+    "native": 818,
+    "framework_context_and_queries": 32,
+    "symbol_commands_and_sdk_registry": 43,
+    "packet_cpu": 25,
+    "existing_geometry_render_framebuffer_cpu": 25,
+    "existing_independent_oracle_skipped": 1
+  },
+  "gains": {
+    "hardware_register_operands": 9,
+    "hardware_base_immediate": 1,
+    "hardware_register_sites": {
+      "intreqr": 26820,
+      "intreq": 26830,
+      "bltalwm": 26836,
+      "bltapt": 26842,
+      "bltdpt": 26846,
+      "bltamod": 26850,
+      "bltdmod": 26854,
+      "bltcon0": 26860,
+      "bltsize": 26866
+    }
+  },
+  "stocktake": {
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "revision": "0300c45f71005945c7a843189a33faf0f2be167f3f46c7871b746b7639fd12c9",
+    "subject_revision": "9f7ea8eb77b08b62addd34996302472cc53c9d31e36a86d05a66bd93a57649ca",
+    "payload": {
+      "size": 376832,
+      "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "canonical_declarations": {
+      "custom_structs": 61,
+      "data_block_layouts": 496,
+      "function_summaries": 83,
+      "entry_register_seeds": 71,
+      "rsset_layout_regions": 114,
+      "seeded_code_labels": 835,
+      "target_equates": 276,
+      "manual_data_references": 284,
+      "manual_representations": 1967
+    },
+    "native_query_totals": {
+      "instructions": {
+        "count": 7043,
+        "scope": "native_artifact"
+      },
+      "symbols": {
+        "count": 4488,
+        "scope": "native_artifact"
+      },
+      "references": {
+        "count": 5127,
+        "scope": "native_artifact"
+      },
+      "functions": {
+        "count": 225,
+        "scope": "current accepted analysis"
+      },
+      "fields": {
+        "count": 910,
+        "scope": "native_artifact",
+        "native_record_status_counts": {
+          "resolved": 883,
+          "unresolved": 27
+        }
+      },
+      "edges": {
+        "count": 3418,
+        "scope": "native_artifact"
+      },
+      "gaps": {
+        "count": 89,
+        "scope": "native analysis review items"
+      }
+    },
+    "history": {
+      "actions": 7237,
+      "unassessed": 1061
+    },
+    "existing_coverage_inventory": {
+      "path": "docs/targets/pandora-coverage-current.tsv",
+      "sha256": "82857cb4189e1c08b98c6d0742ac8002969399f4dd980cdb55bb0a005a28ea9d",
+      "intervals": 344,
+      "interval_counts": {
+        "code": 47,
+        "unclaimed": 146,
+        "accepted_noncode": 151
+      },
+      "union_bytes": {
+        "code": 24394,
+        "unclaimed": 88851,
+        "accepted_noncode": 263587
+      },
+      "partition_bytes": 376832,
+      "scope": "Existing inventory partition; not rederived at this revision and not a semantic completion claim."
+    },
+    "assets": {
+      "count": 86,
+      "identity_sha256": "391a06d747b5f60e81ec2ae5019a32d10d7cd3e595b9e1bf7b2063a0394e8eee",
+      "all_payloads_match_manifest": true
+    },
+    "limits": [
+      "Exact original-layout reproduction is a separate verification receipt.",
+      "Declarations and candidate/query counts do not establish semantic truth or complete ownership.",
+      "Raw preservation and the existing coverage partition do not establish resource purpose.",
+      "Alternate-layout readiness requires closed references, placement/lifetime constraints and changed-layout execution evidence."
+    ]
+  },
+  "verification": {
+    "receipt_id": "63c65ac70f7500726ceab857b58be86766251056f1f5cfa9d8724ffcee8c8a1b",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "ddbb289eb69a45fe5b72ce30a77a7199c1e3983049eafcc9ea7700aab8d60e5b",
+    "source_package_sha256": "a769a3de30e0c6cc1b6d3c9ec5a0adcbe281212419519c5f91213ff37f1668d2",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "preservation": {
+    "assets_unchanged": 86,
+    "manual_and_decision_history_prefixes_preserved": true,
+    "original_binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+  }
+}

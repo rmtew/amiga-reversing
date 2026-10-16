@@ -128,10 +128,14 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_code_label_action(),
         _target_code_label_remove_action(),
         _target_code_register_seed_action(),
+        _target_hardware_indexed_input_action(),
         _target_code_register_seed_remove_action(),
         _target_function_summary_action(),
         _target_function_summary_remove_action(),
         _target_data_block_layout_action(),
+        _target_data_block_layout_rename_action(),
+        _target_data_block_layout_describe_action(),
+        _target_data_block_element_renames_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
         _target_data_block_element_ref_action(),
@@ -196,6 +200,8 @@ def target_catalog_manual_payload(
         return "create_manual_label", {"label": _target_code_label_payload(params)}
     if action.get("action") == "remove_manual_label":
         return "remove_manual_label", {"label_id": str(params["label_id"])}
+    if action.get("action") == "create_manual_hardware_indexed_input":
+        return "create_manual_register_seed", {"register_seed": _target_hardware_indexed_input_payload(params)}
     if action.get("action") == "create_manual_register_seed":
         return "create_manual_register_seed", {"register_seed": _target_code_register_seed_payload(params)}
     if action.get("action") == "remove_manual_register_seed":
@@ -206,8 +212,25 @@ def target_catalog_manual_payload(
         return "remove_manual_function_summary", {"function_summary_id": str(params["function_summary_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
+    if action.get("action") == "edit_manual_data_block_layout":
+        field = "role" if action_id == "target.data_block.layout.describe" else "name"
+        layout_id, value = params.get("layout_id"), params.get(field)
+        if not isinstance(layout_id, str) or not layout_id.strip():
+            raise ValueError("edit data-block layout requires a nonempty layout_id")
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"edit data-block layout requires a nonempty {field}")
+        return "edit_manual_data_block_layout", {
+            "data_block_layout": {"layout_id": layout_id.strip(), field: value.strip()}
+        }
     if action.get("action") == "remove_manual_data_block_layout":
         return "remove_manual_data_block_layout", {"data_block_layout": _data_block_layout_identity_payload(params)}
+    if action.get("action") == "rename_manual_data_block_elements":
+        from amiga_reversing.disasm.manual_actions import (
+            normalize_data_block_element_renames,
+        )
+        return "rename_manual_data_block_elements", {
+            "data_block_element_renames": normalize_data_block_element_renames(params.get("renames"))
+        }
     if action.get("action") == "set_manual_data_block_element":
         payload = (
             _data_block_element_type_binding_payload([], params)
@@ -494,6 +517,18 @@ def listing_element_action_catalog(
                 {"representation": "symbol"}, _symbol_representation_parameter_schema(),
             )
         )
+    if (element_kind == "indexed_displacement" and context.get("width_bytes") == 1
+            and (value := _optional_int(context.get("value"))) is not None and -128 <= value <= 127):
+        actions.append(_context_log_action(
+            "representation.symbol", "Use displacement symbol", "set_representation", context,
+            {"representation": "symbol"}, _symbol_representation_parameter_schema()))
+    if (element_kind == "displacement"
+            and (displacement := _optional_int(context.get("displacement"))) is not None
+            and 0 <= displacement <= 32767):
+        actions.append(_context_log_action(
+            "representation.hardware_offset", "Use hardware register offset", "set_representation", context,
+            {"representation": "hardware_offset"},
+            {"type": "object", "properties": {"base_symbol": {"type": "string"}}, "required": ["base_symbol"]}))
     if element_kind == "immediate":
         actions.append(
             _context_log_action(
@@ -2682,8 +2717,8 @@ def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, obje
     symbol = params.get("symbol")
     if offset is None or offset < 0 or offset > 0x7FFF:
         raise ValueError("create_manual_rsset_layout_region requires offset in range")
-    if size is not None and (size <= 0 or size > 255):
-        raise ValueError("create_manual_rsset_layout_region size must be 1..255")
+    if size is not None and (size <= 0 or size > 32767):
+        raise ValueError("create_manual_rsset_layout_region size must be 1..32767")
     if not isinstance(symbol, str) or not symbol.strip():
         raise ValueError("create_manual_rsset_layout_region requires parameter symbol")
     layout_name = str(params.get("layout_name") or "app").strip() or "app"
@@ -3402,8 +3437,8 @@ def _app_slot_region_payload(context: Mapping[str, object], params: Mapping[str,
     symbol = params.get("symbol") or params.get("name")
     if offset is None or offset < 0 or offset > 0x7FFF:
         raise ValueError("app_slot.rename requires app-slot displacement")
-    if size is None or size <= 0 or size > 255:
-        raise ValueError("app_slot.rename requires size 1..255")
+    if size is None or size <= 0 or size > 32767:
+        raise ValueError("app_slot.rename requires size 1..32767")
     if not isinstance(symbol, str) or not symbol.strip():
         raise ValueError("app_slot.rename requires parameter symbol")
     region: dict[str, object] = {
@@ -3547,7 +3582,7 @@ def _app_slot_rename_parameter_schema() -> dict[str, object]:
         "type": "object",
         "properties": {
             "symbol": {"type": "string"},
-            "size": {"type": "integer", "minimum": 1, "maximum": 255},
+            "size": {"type": "integer", "minimum": 1, "maximum": 32767},
             "storage_kind": {
                 "type": "string",
                   "enum": ["scalar", "pointer", "pointer_table", "struct_instance", "struct_pointer", "byte_array"],
@@ -3857,7 +3892,7 @@ def _rsset_layout_region_parameter_schema() -> dict[str, object]:
         "type": "object",
         "properties": {
             "offset": {"type": "integer", "minimum": 0},
-            "size": {"type": "integer", "minimum": 1, "maximum": 255},
+            "size": {"type": "integer", "minimum": 1, "maximum": 32767},
             "symbol": {"type": "string"},
             "layout_name": {"type": "string", "default": "app"},
             "base_symbol": {"type": "string"},
@@ -5021,8 +5056,8 @@ def _representation_payload(
     params: Mapping[str, object],
 ) -> dict[str, object]:
     style = params.get("representation")
-    if style not in {"hex", "binary", "character", "string", "symbol"}:
-        raise ValueError("representation must be hex, binary, character, string, or symbol")
+    if style not in {"hex", "binary", "character", "string", "symbol", "hardware_offset"}:
+        raise ValueError("representation must be hex, binary, character, string, symbol, or hardware_offset")
     addr = _int_field(row, "start_offset", fallback="addr")
     element_kind = str((element_context or {}).get("element_kind") or "")
     representation: dict[str, object] = {
@@ -5035,11 +5070,24 @@ def _representation_payload(
     end = _optional_int(row.get("end_offset"))
     if end is not None and end > addr:
         representation["end"] = end
+    if style == "hardware_offset":
+        context = selected_listing_element_context(row, element_context or {})
+        offset = _optional_int(context.get("displacement"))
+        base = params.get("base_symbol")
+        if (context.get("element_kind") != "displacement" or offset is None
+                or not 0 <= offset <= 32767 or not isinstance(base, str) or not base.strip()):
+            raise ValueError("hardware offset requires a decoded address-register displacement and base symbol")
+        representation["hardware_offset"] = {"base_symbol": base.strip(), "offset": offset}
     if style == "symbol":
         symbol = params.get("symbol")
         if not isinstance(symbol, str) or not symbol.strip():
             raise ValueError("symbol representation requires parameter symbol")
         representation["symbol"] = symbol.strip()
+        if element_kind == "indexed_displacement":
+            element_context = selected_listing_element_context(row, element_context or {})
+            value = _optional_int((element_context or {}).get("value"))
+            if value is None or not -128 <= value <= 127 or (element_context or {}).get("width_bytes") != 1:
+                raise ValueError("indexed displacement requires a native signed byte")
         if element_kind == "absolute_address":
             element_context = selected_listing_element_context(row, element_context or {})
             value = _optional_int((element_context or {}).get("value"))
@@ -5796,6 +5844,47 @@ def _target_data_block_layout_action() -> dict[str, object]:
     )
 
 
+def _target_data_block_layout_rename_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.layout.rename",
+        "Rename manual data-block layout",
+        "edit_manual_data_block_layout",
+        {
+            "type": "object",
+            "properties": {"layout_id": {"type": "string"}, "name": {"type": "string"}},
+            "required": ["layout_id", "name"],
+        },
+    )
+
+
+def _target_data_block_layout_describe_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.layout.describe",
+        "Describe manual data-block layout role",
+        "edit_manual_data_block_layout",
+        {
+            "type": "object",
+            "properties": {"layout_id": {"type": "string"}, "role": {"type": "string"}},
+            "required": ["layout_id", "role"],
+        },
+    )
+
+
+def _target_data_block_element_renames_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.elements.rename",
+        "Rename manual data-block elements",
+        "rename_manual_data_block_elements",
+        {"type": "object", "properties": {"renames": {
+            "type": "array", "minItems": 1, "maxItems": 1000,
+            "items": {"type": "object", "properties": {
+                "layout_id": {"type": "string"}, "offset": {"type": "integer", "minimum": 0},
+                "name": {"type": "string"}}, "required": ["layout_id", "offset", "name"],
+                "additionalProperties": False},
+        }}, "required": ["renames"]},
+    )
+
+
 def _target_data_block_layout_remove_action() -> dict[str, object]:
     return _target_log_action(
         "target.data_block.layout.remove",
@@ -5858,6 +5947,47 @@ def _target_code_label_remove_action() -> dict[str, object]:
     )
 
 
+def _target_hardware_indexed_input_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code.hardware_indexed_input.add", "Add indexed hardware entry contract",
+        "create_manual_hardware_indexed_input", {
+            "type": "object", "properties": {
+                "hunk": {"type": "integer", "minimum": 0}, "addr": {"type": "integer", "minimum": 0},
+                "register": {"type": "string", "pattern": "^A[0-7]$"},
+                "hardware_indexed": {"type": "object", "properties": {
+                    "base_symbol": {"type": "string"},
+                    "index_register": {"type": "string", "pattern": "^D[0-7]$"},
+                    "stride": {"type": "integer", "minimum": 1, "maximum": 32767},
+                    "index_values": {"type": "array", "items": {"type": "integer", "minimum": 0},
+                                     "minItems": 1, "maxItems": 8, "uniqueItems": True},
+                }, "required": ["base_symbol", "index_register", "stride", "index_values"],
+                    "additionalProperties": False},
+                "context_name": {"type": "string"}, "note": {"type": "string"},
+            }, "required": ["hunk", "addr", "register", "hardware_indexed", "note"],
+        })
+
+
+def _target_hardware_indexed_input_payload(params: Mapping[str, object]) -> dict[str, object]:
+    from .target_metadata import EntryRegisterSeedKind, EntryRegisterSeedMetadata
+
+    hunk, addr = _optional_int(params.get("hunk")), _optional_int(params.get("addr"))
+    if (hunk is None or hunk < 0 or addr is None or addr < 0
+            or not isinstance(params.get("note"), str) or not params["note"].strip()):
+        raise ValueError("indexed hardware contract requires hunk, addr and an explicit precondition note")
+    seed = {
+        "register_seed_id": f"catalog-indexed-hardware-{uuid.uuid4().hex}", "hunk": hunk,
+        "entry_offset": addr, "register": str(params.get("register", "")).upper(),
+        "kind": "hardware_indexed", "library_name": None, "struct_name": None,
+        "context_name": str(params.get("context_name", "")), "note": params["note"],
+        "hardware_indexed": params.get("hardware_indexed"),
+    }
+    EntryRegisterSeedMetadata(
+        entry_offset=addr, register=seed["register"], kind=EntryRegisterSeedKind.HARDWARE_INDEXED,
+        note=seed["note"], hardware_indexed=seed["hardware_indexed"], hunk=hunk,
+    )
+    return seed
+
+
 def _target_code_register_seed_action() -> dict[str, object]:
     return _target_log_action(
         "target.code.register_seed.add",
@@ -5903,7 +6033,7 @@ def _target_function_summary_action() -> dict[str, object]:
                 "entry_offset": {"type": "integer", "minimum": 0},
                 "table_offset": {"type": "integer", "minimum": 0},
                 "entry_count": {"type": "integer", "minimum": 1},
-                "inputs": {"type": "array", "minItems": 1},
+                "inputs": {"type": "array", "minItems": 0},
                 "context_name": {"type": "string"},
                 "results": {"type": "array", "description": "Validated callable results; only identity_input is supported."},
                 "effects": {"type": "object", "description": "Validated register, memory and escape partitions. Explicit registers require all 16 general registers."},
@@ -6010,6 +6140,26 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
             raise ValueError("target.function_summary.add inputs must be objects")
         location = raw_input.get("location")
         struct_name = raw_input.get("struct_name")
+        if raw_input.get("value_kind") == "abi_pointer":
+            # The metadata/native contract already supports type-neutral
+            # identity results. Expose that contract without assigning one
+            # pointee structure to every caller of a shared save/restore helper.
+            if not isinstance(location, Mapping) or "struct_name" in raw_input:
+                raise ValueError("abi_pointer inputs require location and no struct_name")
+            normalized = dict(location)
+            if normalized.get("kind") == "register" and isinstance(normalized.get("register"), str):
+                if normalized.get("width") != 4:
+                    raise ValueError("abi_pointer register inputs require width 4")
+                normalized["register"] = normalized["register"].strip().upper()
+            elif normalized.get("kind") == "register_tuple" and isinstance(normalized.get("registers"), list):
+                normalized["registers"] = [r.strip().upper() if isinstance(r, str) else r
+                                           for r in normalized["registers"]]
+            else:
+                raise ValueError("abi_pointer inputs require register or register_tuple locations")
+            inputs.append({"location": normalized, "value_kind": "abi_pointer"})
+            continue
+        if raw_input.get("value_kind", "struct_ptr") != "struct_ptr":
+            raise ValueError("function summary input value_kind must be struct_ptr or abi_pointer")
         if not isinstance(location, Mapping) or not isinstance(struct_name, str) or not struct_name.strip():
             raise ValueError("target.function_summary.add inputs require location and struct_name")
         location_kind = location.get("kind")
@@ -6023,7 +6173,7 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
             "value_kind": "struct_ptr",
             "struct_name": struct_name.strip(),
         })
-    if not inputs or len({str(item["location"]) for item in inputs}) != len(inputs):
+    if len({str(item["location"]) for item in inputs}) != len(inputs):
         raise ValueError("target.function_summary.add inputs must have distinct locations")
     if callable_kind == "direct":
         if entry_offset is None:

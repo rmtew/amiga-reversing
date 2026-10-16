@@ -84,6 +84,8 @@ class M68kSimCpuState(ctypes.Structure):
         ("c", M68kSimValue * 32),
         ("pc", ctypes.c_uint32),
         ("sr", ctypes.c_uint16),
+        ("sr_known", ctypes.c_uint8),
+        ("reserved0", ctypes.c_uint8),
     ]
 
 

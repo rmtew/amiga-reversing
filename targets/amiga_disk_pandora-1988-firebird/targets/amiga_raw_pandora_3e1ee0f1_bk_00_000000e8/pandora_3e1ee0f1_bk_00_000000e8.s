@@ -58,7 +58,8 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-    RS.B 405
+app_raster_row_byte_offsets RS.B 400
+    RS.B 5
 app_palette_effect_countdown RS.B 1
 app_carried_item_ids RS.B 4
 app_pocket_item_ids RS.B 4
@@ -89,8 +90,8 @@ app_text_cursor_ptr RS.L 1
 app_font_glyph_bitmap_table_ptr RS.L 1
 app_proportional_text_word_cursor_ptr RS.L 1
 app_font_glyph_layout_table_ptr RS.L 1
-app_01F4 RS.W 1
-app_01F6 RS.W 1
+app_geometry_clipped_x_span RS.W 1
+app_geometry_clipped_y_span RS.W 1
     RS.B 18
 app_020A RS.B 1
 app_proportional_text_pixel_shift RS.B 1
@@ -111,7 +112,7 @@ app_inventory_selection_latched RS.B 1
 app_text_plane_mask RS.B 1
 app_ui_flags RS.B 1
 app_input_fire_pressed_ff RS.B 1
-app_0230 RS.W 1
+app_ticker_highlight_rgb12 RS.W 1
 app_scrolling_message_queue_head RS.L 1
     RS.B 60
 app_0272 RS.L 1
@@ -119,9 +120,9 @@ app_scrolling_message_queue_tail RS.L 1
 app_message_palette_flash_countdown RS.B 1
 app_status_flags RS.B 1
 app_current_palette RS.L 1
-app_0280 RS.L 1
+app_title_raster_gradient_ptr RS.L 1
 app_palette_transition_steps_remaining RS.B 1
-app_0285 RS.B 1
+app_title_star_palette_steps_remaining RS.B 1
 app_earth_orbit_countdown_bcd RS.W 1
 app_earth_orbit_countdown_divider RS.B 1
 app_camera_scroll_ticks_remaining RS.B 1
@@ -132,9 +133,9 @@ app_camera_scroll_top_trigger RS.W 1
 app_camera_scroll_bottom_trigger RS.W 1
 app_camera_scroll_delta_x RS.W 1
 app_camera_scroll_delta_y RS.W 1
-app_029A RS.L 1
-app_029E RS.L 1
-app_02A2 RS.L 1
+app_tile_pointer_grid_byte_size RS.L 1
+app_tile_pointer_grid_end RS.L 1
+app_tile_pointer_grid_row_stride_bytes RS.L 1
 app_02A6 RS.B 1
 app_nearby_object_prompt_countdown RS.B 1
 app_active_world_object_ptr_table RS.L 1
@@ -156,23 +157,22 @@ app_02C2 RS.B 1
 app_camera_scroll_countdown_reload_word RS.W 1
 app_camera_scroll_profile_index RS.W 1
 app_game_exit_service_ticks_remaining RS.B 1
-app_02CD RS.B 1
-app_02CE RS.B 1
-app_02CF RS.B 1
-app_02D0 RS.W 1
-app_02D2 RS.W 1
+app_player_security_zone_tier RS.B 1
+app_security_damage_flash_ticks_remaining RS.B 1
+app_security_checkpoint_response_active RS.B 1
+app_security_damage_service_countdown RS.W 1
+app_security_saved_palette_color RS.W 1
 app_02D4 RS.L 1
 app_player_movement_commit_inhibited RS.B 1
 app_salvage_item_count RS.B 1
-app_02DA RS.L 1
-    RS.B 60
+app_terminal_deposited_item_ids RS.B 64
 app_modal_last_selected_item_id RS.B 1
-app_031B RS.B 1
+app_ranged_weapon_fire_latched RS.B 1
 app_last_accepted_move_request_x_step RS.W 1
 app_last_accepted_move_request_y_step RS.W 1
-app_0320 RS.W 1
-app_0322 RS.W 1
-app_0324 RS.W 1
+app_ranged_hit_visual_ticks_remaining RS.W 1
+app_ranged_weapon_variant_index RS.W 1
+app_status_message_service_ticks_remaining RS.W 1
 app_self_destruct_qualifying_card_count RS.B 1
 app_defeated_object_count RS.B 1
 app_self_destruct_service_ticks_remaining RS.W 1
@@ -680,15 +680,140 @@ cmd_node_sequence_state_node_ptr RS.L 1
 cmd_node_sequence_frame_sequence_ptr RS.L 1
 cmd_node_sequence_SIZEOF EQU __RS
 
+; STRUCT rgb12_accumulator
+    RSRESET
+rgb12_accumulator_red_q4 RS.W 1
+rgb12_accumulator_green_q4 RS.W 1
+rgb12_accumulator_blue_q4 RS.W 1
+rgb12_accumulator_SIZEOF EQU __RS
+
+; STRUCT audio_note_offset_command
+    RSRESET
+audio_note_offset_command_command_opcode RS.B 1
+audio_note_offset_command_note_offset_byte RS.B 1
+audio_note_offset_command_advance_opcode RS.B 1
+audio_note_offset_command_SIZEOF EQU __RS
+
+; STRUCT terminal_location_message_header
+    RSRESET
+terminal_location_message_header_world_x RS.W 1
+terminal_location_message_header_world_y RS.W 1
+terminal_location_message_header_SIZEOF EQU __RS
+
+; STRUCT terminal_location_message_reference
+    RSRESET
+terminal_location_message_reference_message_ptr RS.L 1
+terminal_location_message_reference_SIZEOF EQU __RS
+
+; STRUCT terminal_clearance_label_reference
+    RSRESET
+terminal_clearance_label_reference_label_ptr RS.L 1
+terminal_clearance_label_reference_SIZEOF EQU __RS
+
+; STRUCT world_object_source_reference
+    RSRESET
+world_object_source_reference_object_ptr RS.L 1
+world_object_source_reference_SIZEOF EQU __RS
+
+; STRUCT world_position_descriptor_source_reference
+    RSRESET
+world_position_descriptor_source_reference_descriptor_ptr RS.L 1
+world_position_descriptor_source_reference_SIZEOF EQU __RS
+
+; STRUCT WorldPositionChainedStateNode
+    RSRESET
+WorldPositionChainedStateNode_header RS.B 18
+WorldPositionChainedStateNode_next_node_ptr RS.L 1
+WorldPositionChainedStateNode_SIZEOF EQU __RS
+
+; STRUCT WorldPositionXYOffset
+    RSRESET
+WorldPositionXYOffset_x_offset RS.W 1
+WorldPositionXYOffset_y_offset RS.W 1
+WorldPositionXYOffset_SIZEOF EQU __RS
+
+; STRUCT audio_player_global_state
+    RSRESET
+audio_player_global_state_duration_multiplier RS.W 1
+audio_player_global_state_master_volume RS.W 1
+audio_player_global_state_update_phase_increment RS.B 1
+audio_player_global_state_initial_phase_increment_copy RS.B 1
+audio_player_global_state_update_phase_accumulator RS.B 1
+audio_player_global_state_player_initialized RS.B 1
+audio_player_global_state_samples_initialized RS.B 1
+audio_player_global_state_primary_updates_enabled RS.B 1
+audio_player_global_state_global_note_offset RS.B 1
+audio_player_global_state_skip_gate_countdown RS.B 1
+audio_player_global_state_skip_gate_enabled RS.B 1
+    RS.B 1
+audio_player_global_state_silence_sample_ptr RS.L 1
+audio_player_global_state_SIZEOF EQU __RS
+
+; STRUCT audio_player_base_view
+    RSRESET
+    RS.B 1312
+audio_player_base_view_globals RS.B 18
+audio_player_base_view_sample_7_waveform_direction RS.W 1
+audio_player_base_view_sample_7_word_write_offset RS.W 1
+    RS.B 504
+audio_player_base_view_sample_7_length_words RS.W 1
+    RS.B 1436
+audio_player_base_view_shift_state_high_word RS.W 1
+audio_player_base_view_shift_state_low_word RS.W 1
+    RS.B 352
+audio_player_base_view_playback_0_active RS.B 1
+    RS.B 37
+audio_player_base_view_playback_1_active RS.B 1
+    RS.B 37
+audio_player_base_view_playback_2_active RS.B 1
+    RS.B 37
+audio_player_base_view_playback_3_active RS.B 1
+    RS.B 13
+audio_player_base_view_effect_channel_and_configuration RS.W 1
+    RS.B 10
+audio_player_base_view_dma_0_enabled_and_pending RS.W 1
+    RS.B 10
+audio_player_base_view_dma_1_enabled_and_pending RS.W 1
+    RS.B 10
+audio_player_base_view_dma_2_enabled_and_pending RS.W 1
+    RS.B 10
+audio_player_base_view_dma_3_enabled_and_pending RS.W 1
+    RS.B 638
+audio_player_base_view_secondary_sample_address_base RS.L 1
+audio_player_base_view_secondary_volume_sequence_offsets RS.B 12
+audio_player_base_view_SIZEOF EQU __RS
+
+; STRUCT audio_pitch_modulation_command
+    RSRESET
+audio_pitch_modulation_command_opcode RS.B 1
+audio_pitch_modulation_command_step RS.B 1
+audio_pitch_modulation_command_limit RS.B 1
+audio_pitch_modulation_command_SIZEOF EQU __RS
+
+; STRUCT audio_note_offset_operand
+    RSRESET
+audio_note_offset_operand_opcode RS.B 1
+audio_note_offset_operand_note_offset_byte RS.B 1
+audio_note_offset_operand_SIZEOF EQU __RS
+
+ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
+ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
+ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
+ANIM_MODE_HOLD_AT_END_MASK	EQU	1<<ANIM_MODE_HOLD_AT_END_BIT
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
 ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
+CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 DMAF_CLRALL	EQU	$7FFF
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
+FRAMEBUFFER_BANK0_BASE	EQU	$70000
+FRAMEBUFFER_BANK1_BASE	EQU	$78000
+FRAMEBUFFER_LAST_RASTER_ROW	EQU	199
+FRAMEBUFFER_RASTER_ROW_BYTES	EQU	160
 GAME_EVENT_ESCAPE_CARD_OK_BIT	EQU	4
 GAME_EVENT_ESCAPE_TRIGGERED_BIT	EQU	3
 GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT	EQU	2
@@ -698,6 +823,7 @@ GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT	EQU	0
 GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
+ID_POSSESSION_VARIANT_COUNT	EQU	8
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
@@ -798,6 +924,29 @@ ITEM_ID_THIEF	EQU	$44
 ITEM_ID_WACKOBRAIN	EQU	$62
 ITEM_ID_WOOKEY_WIG	EQU	$1C
 ITEM_ID_WRENCH	EQU	$2
+NEARBY_CONTEXT_CHANGED_BIT	EQU	1
+NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
+NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
+SCENE_EDGE_COPY_SOURCE_MODULO	EQU	4-2
+SCENE_EDGE_PAIR_MODULO	EQU	16-4
+SCENE_PLANE_WORD_MODULO	EQU	40-2
+SCENE_TILE_BLTSIZE	EQU	(64<<6)|1
+SCENE_TILE_COPY_CONTROL	EQU	$9F0
+SCENE_WORLD_PAIR_MODULO	EQU	160-4
+SCENE_WORLD_WORD_MODULO	EQU	160-2
+SECURITY_CHECKPOINT_HEALTH_DAMAGE	EQU	51
+SECURITY_CLEARANCE_VARIANT_COUNT	EQU	6
+SECURITY_DAMAGE_FLASH_SERVICE_STEPS	EQU	31
+SECURITY_DAMAGE_PERIOD_SERVICE_STEPS	EQU	50
+SECURITY_MACROCELL_PIXELS	EQU	48
+SECURITY_ZONE_0_END_SELECTOR	EQU	81
+SECURITY_ZONE_0_FIRST_SELECTOR	EQU	69
+SECURITY_ZONE_1_END_SELECTOR	EQU	169
+SECURITY_ZONE_1_FIRST_SELECTOR	EQU	156
+SECURITY_ZONE_2_END_SELECTOR	EQU	183
+SECURITY_ZONE_2_FIRST_SELECTOR	EQU	176
+SECURITY_ZONE_3_END_SELECTOR	EQU	314
+SECURITY_ZONE_3_FIRST_SELECTOR	EQU	307
 SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
 SELF_DESTRUCT_STATE_ARMED	EQU	$FF
 SELF_DESTRUCT_STATE_AWAIT_DISK	EQU	$0
@@ -806,8 +955,22 @@ TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
+UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
+UI_HIT_BACKGROUND_STORAGE	EQU	$77D00
+UI_OVERLAY_BLIT_ROW_BYTES	EQU	40
+UI_OVERLAY_CALLBACK_READY_BIT	EQU	7
+UI_OVERLAY_SAVED_BACKGROUND_BIT	EQU	5
+UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
+UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
+UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
+VIEW_CLIP_BOTTOM_BIT	EQU	$1
+VIEW_CLIP_LEFT_BIT	EQU	$2
+VIEW_CLIP_REJECT	EQU	$F
+VIEW_CLIP_RIGHT_BIT	EQU	$3
+VIEW_CLIP_TOP_BIT	EQU	$0
+WORK_BUFFER_PALETTE_INPUT_BASE	EQU	UI_HIT_BACKGROUND_STORAGE+$2E0
 WORLD_CMD_ADD_X	EQU	0
 WORLD_CMD_ADD_Y	EQU	1
 WORLD_CMD_CALL_FUNCTION	EQU	7
@@ -820,6 +983,17 @@ WORLD_CMD_SET_NODE_IF_FLAG3_CLEAR	EQU	25
 WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	EQU	30
 WORLD_CMD_SET_POSITION	EQU	23
 WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
+WORLD_DEPTH_SORT_DESCRIPTOR_COUNT	EQU	32
+WORLD_DEPTH_SORT_LAST_INDEX	EQU	WORLD_DEPTH_SORT_DESCRIPTOR_COUNT-1
+WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
+WORLD_OBJECT_INACTIVE_BIT	EQU	1
+WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
+WORLD_POSITION_SECURITY_CHECKPOINT_BIT	EQU	7
+WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOINT_BIT)|$08
+WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
+WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
+WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
+WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
@@ -991,7 +1165,7 @@ copy_image_backward_bytes:
 	bne.b copy_image_backward_bytes
 	jmp (a3)
 	dcb.b $400,$00
-abs_0_00010452:
+runtime_supervisor_stack_top:
 	dc.b $00,$00,$00,$10
     ; Warm restart waits for blitter busy to clear before setup/title CPU reuse of shared scratch. Render helpers may return with the final scratch read active; this wait closes that transition.
 abs_0_00010456:
@@ -1010,7 +1184,7 @@ initialize_runtime_workspace:
 clear_runtime_workspace_bytes:
 	clr.b (a0)+
 	dbf.w d0,clear_runtime_workspace_bytes
-	lea.l abs_0_00010452(pc),a7
+	lea.l runtime_supervisor_stack_top(pc),a7
 	lea.l supervisor_runtime_entry(pc),a0
 	move.l a0,m68k_vector_trap_0_instruction_vector.w
 	trap #0
@@ -1029,7 +1203,7 @@ abs_0_00010498:
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l a0,$0190(a6)
     ; Reset the active stack to source $452 (runtime $10452 here) after supervisor entry. The temporary TRAP0 frame is not returned through.
-	lea.l abs_0_00010452(pc),a7
+	lea.l runtime_supervisor_stack_top(pc),a7
 	moveq.l #-1,d0
 	move.w d0,bltafwm(a5)
 	move.w d0,bltalwm(a5)
@@ -1052,29 +1226,29 @@ abs_0_00010498:
 	move #$2000,sr
     ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
-	bsr.w abs_0_00010F88
+	bsr.w run_title_starfield_until_fire
 	move.w #DMAF_RASTER,dmacon(a5)
 	lea.l handle_vertical_blank_frame_update(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
-	lea.l abs_0_00010A72(pc),a0
+	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
-	lea.l abs_0_000109EA(pc),a0
+	lea.l gameplay_split_display_copper_list(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l abs_0_0001076E(pc),a0
 	move.l a0,app_current_palette(a6)
 	bsr.w start_seeded_zero_copy_blit
     ; Render both fixed buffer banks ($78000, then $70000). Initial front/display is $78000 and back is $70000; these chip-visible placements are not arbitrary-base relocation.
-	move.l #$78000,app_display_bitplane_base(a6)
-	move.l #$78000,app_back_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK1_BASE,app_display_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK1_BASE,app_back_bitplane_base(a6)
 	bsr.w render_tilemap_view_to_back_buffer
-	move.l #$70000,app_back_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_back_bitplane_base(a6)
 	bsr.w render_tilemap_view_to_back_buffer
-	move.l #$78000,app_front_bitplane_base(a6)
+	move.l #FRAMEBUFFER_BANK1_BASE,app_front_bitplane_base(a6)
 	bsr.w abs_0_0001079E
 	jsr initialize_player_and_fixed_animation_nodes.l
-	bsr.w abs_0_0001253C
+	bsr.w run_eligible_world_object_scripts
 	bsr.w abs_0_000124F0
-	bsr.w abs_0_000124FE
+	bsr.w advance_active_descriptor_animation_chains
 	bsr.w update_nearby_object_detection
 	bsr.w snapshot_entity_draw_state
 	bsr.w wait_for_next_frame_counter
@@ -1099,17 +1273,17 @@ wait_for_completed_frame:
 	bsr.w update_camera_scroll
 	bsr.w handle_inventory_panel_input
 	bsr.w snapshot_entity_draw_state
-	bsr.w abs_0_000124FE
-	bsr.w abs_0_0001253C
+	bsr.w advance_active_descriptor_animation_chains
+	bsr.w run_eligible_world_object_scripts
 	bsr.w update_nearby_object_detection
 	jsr process_security_checkpoint_response.l
-	jsr update_active_world_object_positions.l
+	jsr service_selected_ranged_weapon_fire.l
 	bsr.w update_world_object_interactions
 	jsr process_terminal_item_deposit.l
 	bsr.w service_keyboard_pause_gate
 	lea.l _custom.l,a5
 	jsr poll_joystick1_directions_and_fire.l
-	jsr abs_0_00019A48.l
+	jsr service_status_message_duration.l
 	bsr.w service_gameplay_palette_transition
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
@@ -1179,11 +1353,11 @@ handle_self_destruct_countdown_expiry:
 	move.b WorldPositionStateNode_phase_step(a0),WorldPositionStateNode_frame_index_and_phase+1(a0)
 	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
-	lea.l abs_0_0001332E.l,a5
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
+	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001335A.l,a5
-	bsr.w abs_0_0001639A
+	lea.l hit_feedback_overlay.l,a5
+	bsr.w restore_ui_overlay_background
 abs_0_00010724:
 	move.w #$1,app_earth_orbit_countdown_bcd(a6)
 	lea.l blank_sprite_data.l,a0
@@ -1224,25 +1398,25 @@ abs_0_00010794:
 	move.l (a7)+,d0
 	rts
 abs_0_0001079E:
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	bsr.b abs_0_000107C6
 	lea.l player_health_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_0001332E(pc),a5
+	lea.l nearby_distance_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_00013386(pc),a5
+	lea.l nearby_character_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_000133B2(pc),a5
+	lea.l nearby_carrying_overlay(pc),a5
 	bsr.b abs_0_000107C6
-	lea.l abs_0_000132AA(pc),a5
+	lea.l player_holding_overlay(pc),a5
 abs_0_000107C6:
 	bsr.w enqueue_ui_overlay_update
 	rts
     ; Start a one-row, one-word A-to-D copy with source and destination both $77D00. No local wait; the later seeded-copy routine waits for the BLIT completion request.
 prime_blitter_completion_request:
-	movea.l #$77D00,a0
+	movea.l #UI_HIT_BACKGROUND_STORAGE,a0
 	move.l a0,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	clr.w bltamod(a5)
@@ -1362,7 +1536,7 @@ abs_0_00010928:
 	rte
 abs_0_00010940:
 	bclr #15,d0
-	move.w d0,$009C(a5)
+	move.w d0,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
     ; Clear frame-completion bit 5 on entry, increment the frame counter and install display pointers. Completion is signalled only after the later keyboard poll.
@@ -1379,7 +1553,7 @@ handle_vertical_blank_frame_update:
 	lea.l $0028(a0),a0
 	move.l a0,$00EC(a5)
 	bsr.w apply_current_palette
-	lea.l abs_0_00010A72(pc),a0
+	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
     ; VBL updates the two POS/CTL pairs in cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer, then programs the selected DMA pointers. Pixel payloads were copied before source-scratch reuse.
 	lea.l $00065370.l,a0
@@ -1411,7 +1585,7 @@ abs_0_000109CC:
     ; Signal frame-callback completion after keyboard polling. Main-loop waits use this latch; it is not an input-event flag.
 	bset.b #5,app_status_flags(a6)
 	rts
-abs_0_000109EA:
+gameplay_split_display_copper_list:
     ; display layout 4 bitmap planes $00075000..$00075078 step $28
 	dc.w sprpt+$1C,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
 	dc.w sprpt+$1E,sprite_0005D5DE_lo
@@ -1447,8 +1621,8 @@ abs_0_000109EA:
 	dc.w COPPER_WAIT|$F400,$FFFE	; copper wait v=$F4 h=$00 mask $FFFE
 	dc.w color,$0000
 	dc.w $FFFF,$FFFE
-abs_0_00010A72:
-	lea.l abs_0_000134C2.l,a0
+apply_gameplay_overlay_palette_and_arm_lower_split:
+	lea.l gameplay_current_rgb12_palette.l,a0
 	move.l (a0)+,color(a5)	; palette colors 0-1
 	move.l (a0)+,color+$04(a5)	; palette colors 2-3
 	move.l (a0)+,color+$08(a5)	; palette colors 4-5
@@ -1457,33 +1631,60 @@ abs_0_00010A72:
 	move.l (a0)+,color+$14(a5)	; palette colors 10-11
 	move.l (a0)+,color+$18(a5)	; palette colors 12-13
 	move.l (a0)+,color+$1C(a5)	; palette colors 14-15
-	lea.l abs_0_00010AA2(pc),a0
+	lea.l apply_ticker_highlight_colors_and_arm_frame_end(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010AA2:
-	move.w app_0230(a6),color+$02(a5)	; palette color 1
+apply_ticker_highlight_colors_and_arm_frame_end:
+	move.w app_ticker_highlight_rgb12(a6),color+$02(a5)	; palette color 1
 	move.w #$E8,color+$14(a5)
-	lea.l abs_0_00010AB8(pc),a0
+	lea.l latch_last_gameplay_copper_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010AB8:
+latch_last_gameplay_copper_split:
 	bset.b #7,app_status_flags(a6)
-	lea.l abs_0_00010A72(pc),a0
+	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010AC8:
-	dcb.b $20,$00
-abs_0_00010AE8:
-	dc.b $00,$00,$0F,$FF,$0D,$DD,$0B,$BB,$09,$99,$07,$77,$05,$55,$03,$33
-abs_0_00010AF8:
-	dcb.b $30,$00
-abs_0_00010B28:
-	dcb.b $40,$00
-abs_0_00010B68:
-	dc.b $00,$00,$00,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E
-	dc.b $00,$0E,$00,$22,$00,$44,$00,$66,$00,$88,$00,$AA,$00,$CC,$00,$EE
-	dc.b $00,$E0,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E,$00
-	dc.b $0E,$00,$02,$2A,$04,$4A,$06,$6A,$08,$8A,$0A,$AA,$0C,$CA,$0E,$EA
+title_current_rgb12_palette:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+title_star_palette_rgb12_increments:
+	dc.w $0000,$0FFF,$0DDD,$0BBB,$0999,$0777,$0555,$0333	; rgb12_palette_increments
+title_star_palette_fractional_components:
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+title_current_raster_gradient_rgb12:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+title_raster_gradient_rgb12_increments:
+	dc.w $0000,$0002,$0004,$0006,$0008,$000A,$000C,$000E	; rgb12_palette_increments
+	dc.w $000E,$0022,$0044,$0066,$0088,$00AA,$00CC,$00EE	; rgb12_palette_increments
+	dc.w $00E0,$0200,$0400,$0600,$0800,$0A00,$0C00,$0E00	; rgb12_palette_increments
+	dc.w $0E00,$022A,$044A,$066A,$088A,$0AAA,$0CCA,$0EEA	; rgb12_palette_increments
 update_star_motion:
 	move.w title_star_record_origin_x.w(a2),d0
 	asl.w #4,d0
@@ -1558,6 +1759,7 @@ abs_0_00010C24:
 clear_star_pixel:
 	moveq.l #0,d2
 	bra.b abs_0_00010C6A
+    ; Lifetimes 17..64 select colors 1..7: 1+((lifetime-16)>>3). Clear uses color 0. AND #7 later selects the pixel bit; it does not clamp the dispatch index.
 render_star_pixel_by_lifetime:
 	moveq.l #0,d2
 	move.b title_star_record_lifetime(a2),d2
@@ -1583,69 +1785,70 @@ abs_0_00010C6A:
 	add.w d2,d2
 	movea.l star_plane_bit_operation_dispatch(pc,d2.w),a1
 	adda.w d0,a0
+    ; Writers update bit D1 at A0/A0+40/A0+80, then JMP A3. Original continuations resume initialization, update motion after clearing, or advance the record after drawing.
 	jmp (a1)
 star_plane_bit_operation_dispatch:
-	dc.l abs_0_00010CC0	; pointer_table
+	dc.l write_star_pixel_color_0	; pointer_table
 star_plane_operation_1:
-	dc.l abs_0_00010CCC	; pointer_table
-	dc.l abs_0_00010CD8	; pointer_table
-	dc.l abs_0_00010CE4	; pointer_table
-	dc.l abs_0_00010CF0	; pointer_table
-	dc.l abs_0_00010CFC	; pointer_table
-	dc.l abs_0_00010D08	; pointer_table
-	dc.l abs_0_00010D14	; pointer_table
-abs_0_00010CC0:
+	dc.l write_star_pixel_color_1	; pointer_table
+	dc.l write_star_pixel_color_2	; pointer_table
+	dc.l write_star_pixel_color_3	; pointer_table
+	dc.l write_star_pixel_color_4	; pointer_table
+	dc.l write_star_pixel_color_5	; pointer_table
+	dc.l write_star_pixel_color_6	; pointer_table
+	dc.l write_star_pixel_color_7	; pointer_table
+write_star_pixel_color_0:
 	bclr.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CCC:
+write_star_pixel_color_1:
 	bset.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CD8:
+write_star_pixel_color_2:
 	bclr.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CE4:
+write_star_pixel_color_3:
 	bset.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CF0:
+write_star_pixel_color_4:
 	bclr.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CFC:
+write_star_pixel_color_5:
 	bset.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010D08:
+write_star_pixel_color_6:
 	bclr.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010D14:
+write_star_pixel_color_7:
 	bset.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
 initialize_starfield:
-	lea.l abs_0_00010B28(pc),a0
-	lea.l abs_0_00010B68(pc),a1
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #31,d7
 	jsr clear_rgb12_palette_components.l
 	moveq.l #7,d7
-	lea.l abs_0_00010AF8(pc),a2
-	lea.l abs_0_00010AC8(pc),a0
-	lea.l abs_0_00010AE8(pc),a1
+	lea.l title_star_palette_fractional_components(pc),a2
+	lea.l title_current_rgb12_palette(pc),a0
+	lea.l title_star_palette_rgb12_increments(pc),a1
 	jsr clear_rgb12_palette_components.l
-	lea.l abs_0_00010AC8(pc),a0
+	lea.l title_current_rgb12_palette(pc),a0
 	move.l a0,app_current_palette(a6)
 	move.w #$63,d7
 	movea.l #$400,a2
@@ -1656,44 +1859,44 @@ abs_0_00010D5C:
 finish_starfield_initialization:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D5C
-	lea.l abs_0_00010AF8(pc),a0
+	lea.l title_star_palette_fractional_components(pc),a0
 	moveq.l #23,d7
 abs_0_00010D76:
 	clr.w (a0)+
 	dbf.w d7,abs_0_00010D76
 	bset.b #2,app_status_flags(a6)
-	move.b #$10,app_0285(a6)
+	move.b #$10,app_title_star_palette_steps_remaining(a6)
 	rts
 update_starfield:
 	move.w #$63,d7
 	movea.l #$400,a2
 abs_0_00010D94:
-	lea.l abs_0_00010D9C(pc),a3
+	lea.l continue_starfield_after_pixel_clear(pc),a3
 	bra.w clear_star_pixel
-abs_0_00010D9C:
+continue_starfield_after_pixel_clear:
 	bsr.w update_star_motion
 	bne.b abs_0_00010DA6
 	bsr.w reset_star_motion
 abs_0_00010DA6:
-	lea.l abs_0_00010DAE(pc),a3
+	lea.l advance_starfield_after_pixel_render(pc),a3
 	bra.w render_star_pixel_by_lifetime
-abs_0_00010DAE:
+advance_starfield_after_pixel_render:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D94
 	btst.b #2,app_status_flags(a6)
 	beq.b abs_0_00010DDE
 	moveq.l #7,d7
-	lea.l abs_0_00010AF8(pc),a2
-	lea.l abs_0_00010AC8(pc),a0
-	lea.l abs_0_00010AE8(pc),a1
+	lea.l title_star_palette_fractional_components(pc),a2
+	lea.l title_current_rgb12_palette(pc),a0
+	lea.l title_star_palette_rgb12_increments(pc),a1
 	jsr add_rgb12_palette_components.l
-	subq.b #1,app_0285(a6)
+	subq.b #1,app_title_star_palette_steps_remaining(a6)
 	bne.b abs_0_00010DDE
 	bclr.b #2,app_status_flags(a6)
 abs_0_00010DDE:
 	rts
 abs_0_00010DE0:
-	movea.l app_0280(a6),a0
+	movea.l app_title_raster_gradient_ptr(a6),a0
 abs_0_00010DE4:
 	move.b vhposr(a5),d0
 abs_0_00010DE8:
@@ -1791,12 +1994,12 @@ copper_list_00020ED8:
 	dc.w COPPER_WAIT|$EB00,$FFFE	; copper wait v=$EB h=$00 mask $FFFE
 	dc.w intreq,INTF_SETCLR|INTF_COPER
 	dc.w $FFFF,$FFFE
-abs_0_00010F54:
+update_title_frame_palette_and_rotate_gradient:
 	addq.l #1,app_frame_counter(a6)
 	bsr.w apply_current_palette
 	move.b #$20,app_palette_effect_countdown(a6)
-	lea.l abs_0_00010B28(pc),a0
-	move.l a0,app_0280(a6)
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	move.l a0,app_title_raster_gradient_ptr(a6)
 	btst.b #0,app_frame_counter+3(a6)
 	bne.b abs_0_00010F86
 	lea.l abs_0_00010EB8(pc),a0
@@ -1810,8 +2013,8 @@ abs_0_00010F7E:
 	move.w (a7)+,(a0)
 abs_0_00010F86:
 	rts
-abs_0_00010F88:
-	move.l #$70000,app_front_bitplane_base(a6)
+run_title_starfield_until_fire:
+	move.l #FRAMEBUFFER_BANK0_BASE,app_front_bitplane_base(a6)
     ; First cold title entry starts the seeded ascending zero blit over $70000..$7CD28, including loaded-input tail $75370..$7C000. Later contents vary; original tail purpose remains unknown.
 	bsr.w start_seeded_zero_copy_blit
 	move.w #INTF_INTEN,intena(a5)
@@ -1821,7 +2024,7 @@ abs_0_00010F88:
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
-	lea.l abs_0_00010F54(pc),a0
+	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
 	addi.l #150,d5
@@ -1840,18 +2043,18 @@ abs_0_00010FEC:
 	move.l d5,-(a7)
 	moveq.l #6,d0
 	moveq.l #1,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_0001A7D0.l,a3
-	bsr.w abs_0_00017748
+	bsr.w draw_title_glyph_string
 	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #20,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l string_0002109E(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$20,app_palette_effect_countdown(a6)
-	lea.l abs_0_00010B28(pc),a0
-	move.l a0,app_0280(a6)
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	move.l a0,app_title_raster_gradient_ptr(a6)
 	move.l a6,-(a7)
 	moveq.l #0,d0
 	jsr initialize_audio_player.l
@@ -1868,8 +2071,8 @@ abs_0_00011052:
 	tst.b app_palette_transition_steps_remaining(a6)
 	beq.b abs_0_00011070
 	subq.b #1,app_palette_transition_steps_remaining(a6)
-	lea.l abs_0_00010B28(pc),a0
-	lea.l abs_0_00010B68(pc),a1
+	lea.l title_current_raster_gradient_rgb12(pc),a0
+	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #31,d7
 	bsr.w add_rgb12_palette_components
@@ -2092,6 +2295,7 @@ abs_0_000112F0:
 abs_0_00011302:
 	addq.l #6,a4
 	rts
+    ; Ten-byte commands install node/frame and clear clock/hold; preserve count, step, XY and other modes. Head-only selector; the next two walk attachments by flag 3.
 world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -2176,7 +2380,7 @@ abs_0_000113E6:
 abs_0_000113F0:
 	addq.l #2,a4
 	rts
-    ; Run an object's behavior script. A5=object; A4=current command. A word opcode (0..32) selects its operand layout; handlers return the next A4, saved back to the object.
+    ; Delay counts down before the inactive-bit check. Inactive objects stop dispatch at zero; the current script pass does not recheck this guard after a callback.
 run_world_object_behavior_script:
 	move.l world_object_shared_prefix_behavior_script_ptr(a5),d0
 	beq.b abs_0_00011408
@@ -2189,7 +2393,7 @@ run_world_object_behavior_script:
 abs_0_00011408:
 	rts
 abs_0_0001140A:
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bne.b abs_0_00011408
 abs_0_00011412:
 	move.w (a4),d0
@@ -2636,762 +2840,762 @@ squash_player_script_command_00A6_reload_count:
 squash_player_script_command_00AE:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l world_object_squash_player_behavior_script	; target_pointer
-world_object_kriptonite_behavior_script:
+world_object_wackobrain_actor_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0514	; world_x
 	dc.w $00F4	; world_y
-kriptonite_script_command_0006:
+wackobrain_actor_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_000C:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0010:
+wackobrain_actor_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0010_operand_word:
-	dc.w kriptonite_script_command_001C_reload_count-kriptonite_script_command_0010_operand_word	; operand_word
-kriptonite_script_command_0014:
+wackobrain_actor_script_command_0010_operand_word:
+	dc.w wackobrain_actor_script_command_001C_reload_count-wackobrain_actor_script_command_0010_operand_word	; operand_word
+wackobrain_actor_script_command_0014:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0018:
+wackobrain_actor_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_001C:
+wackobrain_actor_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_001C_reload_count:
+wackobrain_actor_script_command_001C_reload_count:
 	dc.w $0078	; reload_count
 	dc.w $0078	; remaining_count
-	dc.w kriptonite_script_command_0014-kriptonite_script_command_001C	; branch_displacement
-kriptonite_script_command_0024:
+	dc.w wackobrain_actor_script_command_0014-wackobrain_actor_script_command_001C	; branch_displacement
+wackobrain_actor_script_command_0024:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_002A:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_002A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_002E:
+wackobrain_actor_script_command_002E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_0034:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_0034:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0034_operand_word:
-	dc.w kriptonite_script_command_0040_reload_count-kriptonite_script_command_0034_operand_word	; operand_word
-kriptonite_script_command_0038:
+wackobrain_actor_script_command_0034_operand_word:
+	dc.w wackobrain_actor_script_command_0040_reload_count-wackobrain_actor_script_command_0034_operand_word	; operand_word
+wackobrain_actor_script_command_0038:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_003C:
+wackobrain_actor_script_command_003C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0040:
+wackobrain_actor_script_command_0040:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0040_reload_count:
+wackobrain_actor_script_command_0040_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_0038-kriptonite_script_command_0040	; branch_displacement
-kriptonite_script_command_0048:
+	dc.w wackobrain_actor_script_command_0038-wackobrain_actor_script_command_0040	; branch_displacement
+wackobrain_actor_script_command_0048:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_004E:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_004E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_004E_operand_word:
-	dc.w kriptonite_script_command_005A_reload_count-kriptonite_script_command_004E_operand_word	; operand_word
-kriptonite_script_command_0052:
+wackobrain_actor_script_command_004E_operand_word:
+	dc.w wackobrain_actor_script_command_005A_reload_count-wackobrain_actor_script_command_004E_operand_word	; operand_word
+wackobrain_actor_script_command_0052:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0056:
+wackobrain_actor_script_command_0056:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_005A:
+wackobrain_actor_script_command_005A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_005A_reload_count:
+wackobrain_actor_script_command_005A_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_0052-kriptonite_script_command_005A	; branch_displacement
-kriptonite_script_command_0062:
+	dc.w wackobrain_actor_script_command_0052-wackobrain_actor_script_command_005A	; branch_displacement
+wackobrain_actor_script_command_0062:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_0068:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_0068:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_006C:
+wackobrain_actor_script_command_006C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_0072:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0072_operand_word:
-	dc.w kriptonite_script_command_007E_reload_count-kriptonite_script_command_0072_operand_word	; operand_word
-kriptonite_script_command_0076:
+wackobrain_actor_script_command_0072_operand_word:
+	dc.w wackobrain_actor_script_command_007E_reload_count-wackobrain_actor_script_command_0072_operand_word	; operand_word
+wackobrain_actor_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_007A:
+wackobrain_actor_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_007E:
+wackobrain_actor_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_007E_reload_count:
+wackobrain_actor_script_command_007E_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_0076-kriptonite_script_command_007E	; branch_displacement
-kriptonite_script_command_0086:
+	dc.w wackobrain_actor_script_command_0076-wackobrain_actor_script_command_007E	; branch_displacement
+wackobrain_actor_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_008C:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_008C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_008C_operand_word:
-	dc.w kriptonite_script_command_0098_reload_count-kriptonite_script_command_008C_operand_word	; operand_word
-kriptonite_script_command_0090:
+wackobrain_actor_script_command_008C_operand_word:
+	dc.w wackobrain_actor_script_command_0098_reload_count-wackobrain_actor_script_command_008C_operand_word	; operand_word
+wackobrain_actor_script_command_0090:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0094:
+wackobrain_actor_script_command_0094:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0098:
+wackobrain_actor_script_command_0098:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0098_reload_count:
+wackobrain_actor_script_command_0098_reload_count:
 	dc.w $0060	; reload_count
 	dc.w $0060	; remaining_count
-	dc.w kriptonite_script_command_0090-kriptonite_script_command_0098	; branch_displacement
-kriptonite_script_command_00A0:
+	dc.w wackobrain_actor_script_command_0090-wackobrain_actor_script_command_0098	; branch_displacement
+wackobrain_actor_script_command_00A0:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_00A6:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_00A6:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00A6_operand_word:
-	dc.w kriptonite_script_command_00B2_reload_count-kriptonite_script_command_00A6_operand_word	; operand_word
-kriptonite_script_command_00AA:
+wackobrain_actor_script_command_00A6_operand_word:
+	dc.w wackobrain_actor_script_command_00B2_reload_count-wackobrain_actor_script_command_00A6_operand_word	; operand_word
+wackobrain_actor_script_command_00AA:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_00AE:
+wackobrain_actor_script_command_00AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_00B2:
+wackobrain_actor_script_command_00B2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_00B2_reload_count:
+wackobrain_actor_script_command_00B2_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_00AA-kriptonite_script_command_00B2	; branch_displacement
-kriptonite_script_command_00BA:
+	dc.w wackobrain_actor_script_command_00AA-wackobrain_actor_script_command_00B2	; branch_displacement
+wackobrain_actor_script_command_00BA:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_00C0:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_00C0:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00C0_operand_word:
-	dc.w kriptonite_script_command_00CC_reload_count-kriptonite_script_command_00C0_operand_word	; operand_word
-kriptonite_script_command_00C4:
+wackobrain_actor_script_command_00C0_operand_word:
+	dc.w wackobrain_actor_script_command_00CC_reload_count-wackobrain_actor_script_command_00C0_operand_word	; operand_word
+wackobrain_actor_script_command_00C4:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_00C8:
+wackobrain_actor_script_command_00C8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_00CC:
+wackobrain_actor_script_command_00CC:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_00CC_reload_count:
+wackobrain_actor_script_command_00CC_reload_count:
 	dc.w $0078	; reload_count
 	dc.w $0078	; remaining_count
-	dc.w kriptonite_script_command_00C4-kriptonite_script_command_00CC	; branch_displacement
-kriptonite_script_command_00D4:
+	dc.w wackobrain_actor_script_command_00C4-wackobrain_actor_script_command_00CC	; branch_displacement
+wackobrain_actor_script_command_00D4:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_00DA:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_00DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
-kriptonite_script_command_00DE:
+wackobrain_actor_script_command_00DE:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_00E4:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_00E4:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00E4_operand_word:
-	dc.w kriptonite_script_command_00F0_reload_count-kriptonite_script_command_00E4_operand_word	; operand_word
-kriptonite_script_command_00E8:
+wackobrain_actor_script_command_00E4_operand_word:
+	dc.w wackobrain_actor_script_command_00F0_reload_count-wackobrain_actor_script_command_00E4_operand_word	; operand_word
+wackobrain_actor_script_command_00E8:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_00EC:
+wackobrain_actor_script_command_00EC:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_00F0:
+wackobrain_actor_script_command_00F0:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_00F0_reload_count:
+wackobrain_actor_script_command_00F0_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_00E8-kriptonite_script_command_00F0	; branch_displacement
-kriptonite_script_command_00F8:
+	dc.w wackobrain_actor_script_command_00E8-wackobrain_actor_script_command_00F0	; branch_displacement
+wackobrain_actor_script_command_00F8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_00FE:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_00FE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_00FE_operand_word:
-	dc.w kriptonite_script_command_010A_reload_count-kriptonite_script_command_00FE_operand_word	; operand_word
-kriptonite_script_command_0102:
+wackobrain_actor_script_command_00FE_operand_word:
+	dc.w wackobrain_actor_script_command_010A_reload_count-wackobrain_actor_script_command_00FE_operand_word	; operand_word
+wackobrain_actor_script_command_0102:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFD	; operand_word
-kriptonite_script_command_0106:
+wackobrain_actor_script_command_0106:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_010A:
+wackobrain_actor_script_command_010A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_010A_reload_count:
+wackobrain_actor_script_command_010A_reload_count:
 	dc.w $008A	; reload_count
 	dc.w $008A	; remaining_count
-	dc.w kriptonite_script_command_0102-kriptonite_script_command_010A	; branch_displacement
-kriptonite_script_command_0112:
+	dc.w wackobrain_actor_script_command_0102-wackobrain_actor_script_command_010A	; branch_displacement
+wackobrain_actor_script_command_0112:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_0118:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_0118:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_011C:
+wackobrain_actor_script_command_011C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_0122:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_0122:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0122_operand_word:
-	dc.w kriptonite_script_command_012E_reload_count-kriptonite_script_command_0122_operand_word	; operand_word
-kriptonite_script_command_0126:
+wackobrain_actor_script_command_0122_operand_word:
+	dc.w wackobrain_actor_script_command_012E_reload_count-wackobrain_actor_script_command_0122_operand_word	; operand_word
+wackobrain_actor_script_command_0126:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0003	; operand_word
-kriptonite_script_command_012A:
+wackobrain_actor_script_command_012A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_012E:
+wackobrain_actor_script_command_012E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_012E_reload_count:
+wackobrain_actor_script_command_012E_reload_count:
 	dc.w $00BA	; reload_count
 	dc.w $00BA	; remaining_count
-	dc.w kriptonite_script_command_0126-kriptonite_script_command_012E	; branch_displacement
-kriptonite_script_command_0136:
+	dc.w wackobrain_actor_script_command_0126-wackobrain_actor_script_command_012E	; branch_displacement
+wackobrain_actor_script_command_0136:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_013C:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_013C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_013C_operand_word:
-	dc.w kriptonite_script_command_0148_reload_count-kriptonite_script_command_013C_operand_word	; operand_word
-kriptonite_script_command_0140:
+wackobrain_actor_script_command_013C_operand_word:
+	dc.w wackobrain_actor_script_command_0148_reload_count-wackobrain_actor_script_command_013C_operand_word	; operand_word
+wackobrain_actor_script_command_0140:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0144:
+wackobrain_actor_script_command_0144:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0148:
+wackobrain_actor_script_command_0148:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0148_reload_count:
+wackobrain_actor_script_command_0148_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_0140-kriptonite_script_command_0148	; branch_displacement
-kriptonite_script_command_0150:
+	dc.w wackobrain_actor_script_command_0140-wackobrain_actor_script_command_0148	; branch_displacement
+wackobrain_actor_script_command_0150:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_0156:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_0156:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0156_operand_word:
-	dc.w kriptonite_script_command_0162_reload_count-kriptonite_script_command_0156_operand_word	; operand_word
-kriptonite_script_command_015A:
+wackobrain_actor_script_command_0156_operand_word:
+	dc.w wackobrain_actor_script_command_0162_reload_count-wackobrain_actor_script_command_0156_operand_word	; operand_word
+wackobrain_actor_script_command_015A:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0004	; operand_word
-kriptonite_script_command_015E:
+wackobrain_actor_script_command_015E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0162:
+wackobrain_actor_script_command_0162:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0162_reload_count:
+wackobrain_actor_script_command_0162_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_015A-kriptonite_script_command_0162	; branch_displacement
-kriptonite_script_command_016A:
+	dc.w wackobrain_actor_script_command_015A-wackobrain_actor_script_command_0162	; branch_displacement
+wackobrain_actor_script_command_016A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_0170:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_0170:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0170_operand_word:
-	dc.w kriptonite_script_command_017C_reload_count-kriptonite_script_command_0170_operand_word	; operand_word
-kriptonite_script_command_0174:
+wackobrain_actor_script_command_0170_operand_word:
+	dc.w wackobrain_actor_script_command_017C_reload_count-wackobrain_actor_script_command_0170_operand_word	; operand_word
+wackobrain_actor_script_command_0174:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0178:
+wackobrain_actor_script_command_0178:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_017C:
+wackobrain_actor_script_command_017C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_017C_reload_count:
+wackobrain_actor_script_command_017C_reload_count:
 	dc.w $0078	; reload_count
 	dc.w $0078	; remaining_count
-	dc.w kriptonite_script_command_0174-kriptonite_script_command_017C	; branch_displacement
-kriptonite_script_command_0184:
+	dc.w wackobrain_actor_script_command_0174-wackobrain_actor_script_command_017C	; branch_displacement
+wackobrain_actor_script_command_0184:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_018A:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_018A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_018E:
+wackobrain_actor_script_command_018E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_0194:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_0194:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0194_operand_word:
-	dc.w kriptonite_script_command_01A0_reload_count-kriptonite_script_command_0194_operand_word	; operand_word
-kriptonite_script_command_0198:
+wackobrain_actor_script_command_0194_operand_word:
+	dc.w wackobrain_actor_script_command_01A0_reload_count-wackobrain_actor_script_command_0194_operand_word	; operand_word
+wackobrain_actor_script_command_0198:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_019C:
+wackobrain_actor_script_command_019C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01A0:
+wackobrain_actor_script_command_01A0:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01A0_reload_count:
+wackobrain_actor_script_command_01A0_reload_count:
 	dc.w $0090	; reload_count
 	dc.w $0090	; remaining_count
-	dc.w kriptonite_script_command_0198-kriptonite_script_command_01A0	; branch_displacement
-kriptonite_script_command_01A8:
+	dc.w wackobrain_actor_script_command_0198-wackobrain_actor_script_command_01A0	; branch_displacement
+wackobrain_actor_script_command_01A8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_01AE:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_01AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_01B2:
+wackobrain_actor_script_command_01B2:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_01B8:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_01B8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_01B8_operand_word:
-	dc.w kriptonite_script_command_01C4_reload_count-kriptonite_script_command_01B8_operand_word	; operand_word
-kriptonite_script_command_01BC:
+wackobrain_actor_script_command_01B8_operand_word:
+	dc.w wackobrain_actor_script_command_01C4_reload_count-wackobrain_actor_script_command_01B8_operand_word	; operand_word
+wackobrain_actor_script_command_01BC:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_01C0:
+wackobrain_actor_script_command_01C0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01C4:
+wackobrain_actor_script_command_01C4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01C4_reload_count:
+wackobrain_actor_script_command_01C4_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_01BC-kriptonite_script_command_01C4	; branch_displacement
-kriptonite_script_command_01CC:
+	dc.w wackobrain_actor_script_command_01BC-wackobrain_actor_script_command_01C4	; branch_displacement
+wackobrain_actor_script_command_01CC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_01D2:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_01D2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_01D2_operand_word:
-	dc.w kriptonite_script_command_01DE_reload_count-kriptonite_script_command_01D2_operand_word	; operand_word
-kriptonite_script_command_01D6:
+wackobrain_actor_script_command_01D2_operand_word:
+	dc.w wackobrain_actor_script_command_01DE_reload_count-wackobrain_actor_script_command_01D2_operand_word	; operand_word
+wackobrain_actor_script_command_01D6:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_01DA:
+wackobrain_actor_script_command_01DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01DE:
+wackobrain_actor_script_command_01DE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01DE_reload_count:
+wackobrain_actor_script_command_01DE_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_01D6-kriptonite_script_command_01DE	; branch_displacement
-kriptonite_script_command_01E6:
+	dc.w wackobrain_actor_script_command_01D6-wackobrain_actor_script_command_01DE	; branch_displacement
+wackobrain_actor_script_command_01E6:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_01EC:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_01EC:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_01EC_operand_word:
-	dc.w kriptonite_script_command_01F8_reload_count-kriptonite_script_command_01EC_operand_word	; operand_word
-kriptonite_script_command_01F0:
+wackobrain_actor_script_command_01EC_operand_word:
+	dc.w wackobrain_actor_script_command_01F8_reload_count-wackobrain_actor_script_command_01EC_operand_word	; operand_word
+wackobrain_actor_script_command_01F0:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_01F4:
+wackobrain_actor_script_command_01F4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_01F8:
+wackobrain_actor_script_command_01F8:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_01F8_reload_count:
+wackobrain_actor_script_command_01F8_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_01F0-kriptonite_script_command_01F8	; branch_displacement
-kriptonite_script_command_0200:
+	dc.w wackobrain_actor_script_command_01F0-wackobrain_actor_script_command_01F8	; branch_displacement
+wackobrain_actor_script_command_0200:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_0206:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_0206:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0206_operand_word:
-	dc.w kriptonite_script_command_0212_reload_count-kriptonite_script_command_0206_operand_word	; operand_word
-kriptonite_script_command_020A:
+wackobrain_actor_script_command_0206_operand_word:
+	dc.w wackobrain_actor_script_command_0212_reload_count-wackobrain_actor_script_command_0206_operand_word	; operand_word
+wackobrain_actor_script_command_020A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_020E:
+wackobrain_actor_script_command_020E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0212:
+wackobrain_actor_script_command_0212:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0212_reload_count:
+wackobrain_actor_script_command_0212_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_020A-kriptonite_script_command_0212	; branch_displacement
-kriptonite_script_command_021A:
+	dc.w wackobrain_actor_script_command_020A-wackobrain_actor_script_command_0212	; branch_displacement
+wackobrain_actor_script_command_021A:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_10	; state_node_ptr
-kriptonite_script_command_0220:
+	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
+wackobrain_actor_script_command_0220:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0220_operand_word:
-	dc.w kriptonite_script_command_022C_reload_count-kriptonite_script_command_0220_operand_word	; operand_word
-kriptonite_script_command_0224:
+wackobrain_actor_script_command_0220_operand_word:
+	dc.w wackobrain_actor_script_command_022C_reload_count-wackobrain_actor_script_command_0220_operand_word	; operand_word
+wackobrain_actor_script_command_0224:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_0228:
+wackobrain_actor_script_command_0228:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_022C:
+wackobrain_actor_script_command_022C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_022C_reload_count:
+wackobrain_actor_script_command_022C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kriptonite_script_command_0224-kriptonite_script_command_022C	; branch_displacement
-kriptonite_script_command_0234:
+	dc.w wackobrain_actor_script_command_0224-wackobrain_actor_script_command_022C	; branch_displacement
+wackobrain_actor_script_command_0234:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_6	; state_node_ptr
-kriptonite_script_command_023A:
+	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
+wackobrain_actor_script_command_023A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-kriptonite_script_command_023E:
+wackobrain_actor_script_command_023E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_8	; state_node_ptr
-kriptonite_script_command_0244:
+	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
+wackobrain_actor_script_command_0244:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0244_operand_word:
-	dc.w kriptonite_script_command_0250_reload_count-kriptonite_script_command_0244_operand_word	; operand_word
-kriptonite_script_command_0248:
+wackobrain_actor_script_command_0244_operand_word:
+	dc.w wackobrain_actor_script_command_0250_reload_count-wackobrain_actor_script_command_0244_operand_word	; operand_word
+wackobrain_actor_script_command_0248:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-kriptonite_script_command_024C:
+wackobrain_actor_script_command_024C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0250:
+wackobrain_actor_script_command_0250:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0250_reload_count:
+wackobrain_actor_script_command_0250_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w kriptonite_script_command_0248-kriptonite_script_command_0250	; branch_displacement
-kriptonite_script_command_0258:
+	dc.w wackobrain_actor_script_command_0248-wackobrain_actor_script_command_0250	; branch_displacement
+wackobrain_actor_script_command_0258:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_025E:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_025E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_025E_operand_word:
-	dc.w kriptonite_script_command_026A_reload_count-kriptonite_script_command_025E_operand_word	; operand_word
-kriptonite_script_command_0262:
+wackobrain_actor_script_command_025E_operand_word:
+	dc.w wackobrain_actor_script_command_026A_reload_count-wackobrain_actor_script_command_025E_operand_word	; operand_word
+wackobrain_actor_script_command_0262:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0266:
+wackobrain_actor_script_command_0266:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_026A:
+wackobrain_actor_script_command_026A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_026A_reload_count:
+wackobrain_actor_script_command_026A_reload_count:
 	dc.w $00C0	; reload_count
 	dc.w $00C0	; remaining_count
-	dc.w kriptonite_script_command_0262-kriptonite_script_command_026A	; branch_displacement
-kriptonite_script_command_0272:
+	dc.w wackobrain_actor_script_command_0262-wackobrain_actor_script_command_026A	; branch_displacement
+wackobrain_actor_script_command_0272:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_4	; state_node_ptr
-kriptonite_script_command_0278:
+	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
+wackobrain_actor_script_command_0278:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0278_operand_word:
-	dc.w kriptonite_script_command_0284_reload_count-kriptonite_script_command_0278_operand_word	; operand_word
-kriptonite_script_command_027C:
+wackobrain_actor_script_command_0278_operand_word:
+	dc.w wackobrain_actor_script_command_0284_reload_count-wackobrain_actor_script_command_0278_operand_word	; operand_word
+wackobrain_actor_script_command_027C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_0280:
+wackobrain_actor_script_command_0280:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_0284:
+wackobrain_actor_script_command_0284:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_0284_reload_count:
+wackobrain_actor_script_command_0284_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w kriptonite_script_command_027C-kriptonite_script_command_0284	; branch_displacement
-kriptonite_script_command_028C:
+	dc.w wackobrain_actor_script_command_027C-wackobrain_actor_script_command_0284	; branch_displacement
+wackobrain_actor_script_command_028C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l kriptonite_nodes_49492_12	; state_node_ptr
-kriptonite_script_command_0292:
+	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
+wackobrain_actor_script_command_0292:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kriptonite_script_command_0292_operand_word:
-	dc.w kriptonite_script_command_029E_reload_count-kriptonite_script_command_0292_operand_word	; operand_word
-kriptonite_script_command_0296:
+wackobrain_actor_script_command_0292_operand_word:
+	dc.w wackobrain_actor_script_command_029E_reload_count-wackobrain_actor_script_command_0292_operand_word	; operand_word
+wackobrain_actor_script_command_0296:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-kriptonite_script_command_029A:
+wackobrain_actor_script_command_029A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kriptonite_script_command_029E:
+wackobrain_actor_script_command_029E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kriptonite_script_command_029E_reload_count:
+wackobrain_actor_script_command_029E_reload_count:
 	dc.w $00A8	; reload_count
 	dc.w $00A8	; remaining_count
-	dc.w kriptonite_script_command_0296-kriptonite_script_command_029E	; branch_displacement
-kriptonite_script_command_02A6:
+	dc.w wackobrain_actor_script_command_0296-wackobrain_actor_script_command_029E	; branch_displacement
+wackobrain_actor_script_command_02A6:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_kriptonite_behavior_script	; target_pointer
-world_object_glass_behavior_script:
+	dc.l world_object_wackobrain_actor_behavior_script	; target_pointer
+world_object_secdroid_pi_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $02D4	; world_x
 	dc.w $05D4	; world_y
-glass_script_command_0006:
+secdroid_pi_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
-glass_script_command_0010:
+	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
+secdroid_pi_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-glass_script_command_0014:
+secdroid_pi_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_0014_operand_word:
-	dc.w glass_script_command_0020_reload_count-glass_script_command_0014_operand_word	; operand_word
-glass_script_command_0018:
+secdroid_pi_script_command_0014_operand_word:
+	dc.w secdroid_pi_script_command_0020_reload_count-secdroid_pi_script_command_0014_operand_word	; operand_word
+secdroid_pi_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_001C:
+secdroid_pi_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0020:
+secdroid_pi_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_0020_reload_count:
+secdroid_pi_script_command_0020_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w glass_script_command_0018-glass_script_command_0020	; branch_displacement
-glass_script_command_0028:
+	dc.w secdroid_pi_script_command_0018-secdroid_pi_script_command_0020	; branch_displacement
+secdroid_pi_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
-glass_script_command_0032:
+	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
+secdroid_pi_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_0036:
+secdroid_pi_script_command_0036:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_0036_operand_word:
-	dc.w glass_script_command_0042_reload_count-glass_script_command_0036_operand_word	; operand_word
-glass_script_command_003A:
+secdroid_pi_script_command_0036_operand_word:
+	dc.w secdroid_pi_script_command_0042_reload_count-secdroid_pi_script_command_0036_operand_word	; operand_word
+secdroid_pi_script_command_003A:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_003E:
+secdroid_pi_script_command_003E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0042:
+secdroid_pi_script_command_0042:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_0042_reload_count:
+secdroid_pi_script_command_0042_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_003A-glass_script_command_0042	; branch_displacement
-glass_script_command_004A:
+	dc.w secdroid_pi_script_command_003A-secdroid_pi_script_command_0042	; branch_displacement
+secdroid_pi_script_command_004A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_004A_operand_word:
-	dc.w glass_script_command_0056_reload_count-glass_script_command_004A_operand_word	; operand_word
-glass_script_command_004E:
+secdroid_pi_script_command_004A_operand_word:
+	dc.w secdroid_pi_script_command_0056_reload_count-secdroid_pi_script_command_004A_operand_word	; operand_word
+secdroid_pi_script_command_004E:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0052:
+secdroid_pi_script_command_0052:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-glass_script_command_0056:
+secdroid_pi_script_command_0056:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_0056_reload_count:
+secdroid_pi_script_command_0056_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w glass_script_command_004E-glass_script_command_0056	; branch_displacement
-glass_script_command_005E:
+	dc.w secdroid_pi_script_command_004E-secdroid_pi_script_command_0056	; branch_displacement
+secdroid_pi_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_005E_operand_word:
-	dc.w glass_script_command_006A_reload_count-glass_script_command_005E_operand_word	; operand_word
-glass_script_command_0062:
+secdroid_pi_script_command_005E_operand_word:
+	dc.w secdroid_pi_script_command_006A_reload_count-secdroid_pi_script_command_005E_operand_word	; operand_word
+secdroid_pi_script_command_0062:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_0066:
+secdroid_pi_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_006A:
+secdroid_pi_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_006A_reload_count:
+secdroid_pi_script_command_006A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_0062-glass_script_command_006A	; branch_displacement
-glass_script_command_0072:
+	dc.w secdroid_pi_script_command_0062-secdroid_pi_script_command_006A	; branch_displacement
+secdroid_pi_script_command_0072:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_0076:
+secdroid_pi_script_command_0076:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-glass_script_command_0080:
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+secdroid_pi_script_command_0080:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_0084:
+secdroid_pi_script_command_0084:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-glass_script_command_008E:
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
+secdroid_pi_script_command_008E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_008E_operand_word:
-	dc.w glass_script_command_009A_reload_count-glass_script_command_008E_operand_word	; operand_word
-glass_script_command_0092:
+secdroid_pi_script_command_008E_operand_word:
+	dc.w secdroid_pi_script_command_009A_reload_count-secdroid_pi_script_command_008E_operand_word	; operand_word
+secdroid_pi_script_command_0092:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_0096:
+secdroid_pi_script_command_0096:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_009A:
+secdroid_pi_script_command_009A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_009A_reload_count:
+secdroid_pi_script_command_009A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_0092-glass_script_command_009A	; branch_displacement
-glass_script_command_00A2:
+	dc.w secdroid_pi_script_command_0092-secdroid_pi_script_command_009A	; branch_displacement
+secdroid_pi_script_command_00A2:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_00A2_operand_word:
-	dc.w glass_script_command_00AE_reload_count-glass_script_command_00A2_operand_word	; operand_word
-glass_script_command_00A6:
+secdroid_pi_script_command_00A2_operand_word:
+	dc.w secdroid_pi_script_command_00AE_reload_count-secdroid_pi_script_command_00A2_operand_word	; operand_word
+secdroid_pi_script_command_00A6:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_00AA:
+secdroid_pi_script_command_00AA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-glass_script_command_00AE:
+secdroid_pi_script_command_00AE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_00AE_reload_count:
+secdroid_pi_script_command_00AE_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w glass_script_command_00A6-glass_script_command_00AE	; branch_displacement
-glass_script_command_00B6:
+	dc.w secdroid_pi_script_command_00A6-secdroid_pi_script_command_00AE	; branch_displacement
+secdroid_pi_script_command_00B6:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_00B6_operand_word:
-	dc.w glass_script_command_00C2_reload_count-glass_script_command_00B6_operand_word	; operand_word
-glass_script_command_00BA:
+secdroid_pi_script_command_00B6_operand_word:
+	dc.w secdroid_pi_script_command_00C2_reload_count-secdroid_pi_script_command_00B6_operand_word	; operand_word
+secdroid_pi_script_command_00BA:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFFE	; operand_word
-glass_script_command_00BE:
+secdroid_pi_script_command_00BE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_00C2:
+secdroid_pi_script_command_00C2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_00C2_reload_count:
+secdroid_pi_script_command_00C2_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w glass_script_command_00BA-glass_script_command_00C2	; branch_displacement
-glass_script_command_00CA:
+	dc.w secdroid_pi_script_command_00BA-secdroid_pi_script_command_00C2	; branch_displacement
+secdroid_pi_script_command_00CA:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
-glass_script_command_00D4:
+	dc.l fixed_npc_frame_sequences_late_6_held	; frame_sequence_ptr
+secdroid_pi_script_command_00D4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-glass_script_command_00D8:
+secdroid_pi_script_command_00D8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-glass_script_command_00D8_operand_word:
-	dc.w glass_script_command_00E4_reload_count-glass_script_command_00D8_operand_word	; operand_word
-glass_script_command_00DC:
+secdroid_pi_script_command_00D8_operand_word:
+	dc.w secdroid_pi_script_command_00E4_reload_count-secdroid_pi_script_command_00D8_operand_word	; operand_word
+secdroid_pi_script_command_00DC:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_00E0:
+secdroid_pi_script_command_00E0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-glass_script_command_00E4:
+secdroid_pi_script_command_00E4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-glass_script_command_00E4_reload_count:
+secdroid_pi_script_command_00E4_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w glass_script_command_00DC-glass_script_command_00E4	; branch_displacement
-glass_script_command_00EC:
+	dc.w secdroid_pi_script_command_00DC-secdroid_pi_script_command_00E4	; branch_displacement
+secdroid_pi_script_command_00EC:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-glass_script_command_00F6:
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
+secdroid_pi_script_command_00F6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
-glass_script_command_00FA:
+secdroid_pi_script_command_00FA:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_glass_behavior_script	; target_pointer
-world_object_kwik_kleen_behavior_script:
+	dc.l world_object_secdroid_pi_behavior_script	; target_pointer
+world_object_secdroid_omega_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0364	; world_x
 	dc.w $0694	; world_y
-kwik_kleen_script_command_0006:
+secdroid_omega_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
-kwik_kleen_script_command_0010:
+	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
+secdroid_omega_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_0014:
+secdroid_omega_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_0014_operand_word:
-	dc.w kwik_kleen_script_command_0020_reload_count-kwik_kleen_script_command_0014_operand_word	; operand_word
-kwik_kleen_script_command_0018:
+secdroid_omega_script_command_0014_operand_word:
+	dc.w secdroid_omega_script_command_0020_reload_count-secdroid_omega_script_command_0014_operand_word	; operand_word
+secdroid_omega_script_command_0018:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $0008	; operand_word
-kwik_kleen_script_command_001C:
+secdroid_omega_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_0020:
+secdroid_omega_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_0020_reload_count:
+secdroid_omega_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0018-kwik_kleen_script_command_0020	; branch_displacement
-kwik_kleen_script_command_0028:
+	dc.w secdroid_omega_script_command_0018-secdroid_omega_script_command_0020	; branch_displacement
+secdroid_omega_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-kwik_kleen_script_command_0032:
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+secdroid_omega_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_0032_operand_word:
-	dc.w kwik_kleen_script_command_003E_reload_count-kwik_kleen_script_command_0032_operand_word	; operand_word
-kwik_kleen_script_command_0036:
+secdroid_omega_script_command_0032_operand_word:
+	dc.w secdroid_omega_script_command_003E_reload_count-secdroid_omega_script_command_0032_operand_word	; operand_word
+secdroid_omega_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0008	; operand_word
-kwik_kleen_script_command_003A:
+secdroid_omega_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_003E:
+secdroid_omega_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_003E_reload_count:
+secdroid_omega_script_command_003E_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0036-kwik_kleen_script_command_003E	; branch_displacement
-kwik_kleen_script_command_0046:
+	dc.w secdroid_omega_script_command_0036-secdroid_omega_script_command_003E	; branch_displacement
+secdroid_omega_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-kwik_kleen_script_command_0050:
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
+secdroid_omega_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_0050_operand_word:
-	dc.w kwik_kleen_script_command_005C_reload_count-kwik_kleen_script_command_0050_operand_word	; operand_word
-kwik_kleen_script_command_0054:
+secdroid_omega_script_command_0050_operand_word:
+	dc.w secdroid_omega_script_command_005C_reload_count-secdroid_omega_script_command_0050_operand_word	; operand_word
+secdroid_omega_script_command_0054:
 	dc.w WORLD_CMD_ADD_X	; opcode
 	dc.w $FFF8	; operand_word
-kwik_kleen_script_command_0058:
+secdroid_omega_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_005C:
+secdroid_omega_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_005C_reload_count:
+secdroid_omega_script_command_005C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0054-kwik_kleen_script_command_005C	; branch_displacement
-kwik_kleen_script_command_0064:
+	dc.w secdroid_omega_script_command_0054-secdroid_omega_script_command_005C	; branch_displacement
+secdroid_omega_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
-kwik_kleen_script_command_006E:
+	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
+secdroid_omega_script_command_006E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-kwik_kleen_script_command_006E_operand_word:
-	dc.w kwik_kleen_script_command_007A_reload_count-kwik_kleen_script_command_006E_operand_word	; operand_word
-kwik_kleen_script_command_0072:
+secdroid_omega_script_command_006E_operand_word:
+	dc.w secdroid_omega_script_command_007A_reload_count-secdroid_omega_script_command_006E_operand_word	; operand_word
+secdroid_omega_script_command_0072:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFF8	; operand_word
-kwik_kleen_script_command_0076:
+secdroid_omega_script_command_0076:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-kwik_kleen_script_command_007A:
+secdroid_omega_script_command_007A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-kwik_kleen_script_command_007A_reload_count:
+secdroid_omega_script_command_007A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w kwik_kleen_script_command_0072-kwik_kleen_script_command_007A	; branch_displacement
-kwik_kleen_script_command_0082:
+	dc.w secdroid_omega_script_command_0072-secdroid_omega_script_command_007A	; branch_displacement
+secdroid_omega_script_command_0082:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_kwik_kleen_behavior_script	; target_pointer
+	dc.l world_object_secdroid_omega_behavior_script	; target_pointer
 world_object_technician_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0304	; world_x
@@ -4097,519 +4301,519 @@ hooligan_script_command_028E_reload_count:
 hooligan_script_command_0296:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l world_object_hooligan_behavior_script	; target_pointer
-world_object_pianist_behavior_script:
+world_object_secdroid_alpha_1_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0330	; world_x
 	dc.w $02D8	; world_y
-pianist_script_command_0006:
+secdroid_alpha_1_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-pianist_script_command_000A:
+secdroid_alpha_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
-pianist_script_command_0014:
+	dc.l fixed_npc_frame_sequences_early_1_held	; frame_sequence_ptr
+secdroid_alpha_1_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0014_operand_word:
-	dc.w pianist_script_command_0020_reload_count-pianist_script_command_0014_operand_word	; operand_word
-pianist_script_command_0018:
+secdroid_alpha_1_script_command_0014_operand_word:
+	dc.w secdroid_alpha_1_script_command_0020_reload_count-secdroid_alpha_1_script_command_0014_operand_word	; operand_word
+secdroid_alpha_1_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_001C:
+secdroid_alpha_1_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_0020:
+secdroid_alpha_1_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_0020_reload_count:
+secdroid_alpha_1_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_0018-pianist_script_command_0020	; branch_displacement
-pianist_script_command_0028:
+	dc.w secdroid_alpha_1_script_command_0018-secdroid_alpha_1_script_command_0020	; branch_displacement
+secdroid_alpha_1_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
-pianist_script_command_0032:
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
+secdroid_alpha_1_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0032_operand_word:
-	dc.w pianist_script_command_003E_reload_count-pianist_script_command_0032_operand_word	; operand_word
-pianist_script_command_0036:
+secdroid_alpha_1_script_command_0032_operand_word:
+	dc.w secdroid_alpha_1_script_command_003E_reload_count-secdroid_alpha_1_script_command_0032_operand_word	; operand_word
+secdroid_alpha_1_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_003A:
+secdroid_alpha_1_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-pianist_script_command_003E:
+secdroid_alpha_1_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_003E_reload_count:
+secdroid_alpha_1_script_command_003E_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w pianist_script_command_0036-pianist_script_command_003E	; branch_displacement
-pianist_script_command_0046:
+	dc.w secdroid_alpha_1_script_command_0036-secdroid_alpha_1_script_command_003E	; branch_displacement
+secdroid_alpha_1_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
-pianist_script_command_0050:
+	dc.l fixed_npc_frame_sequences_late_6_held	; frame_sequence_ptr
+secdroid_alpha_1_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0050_operand_word:
-	dc.w pianist_script_command_005C_reload_count-pianist_script_command_0050_operand_word	; operand_word
-pianist_script_command_0054:
+secdroid_alpha_1_script_command_0050_operand_word:
+	dc.w secdroid_alpha_1_script_command_005C_reload_count-secdroid_alpha_1_script_command_0050_operand_word	; operand_word
+secdroid_alpha_1_script_command_0054:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_0058:
+secdroid_alpha_1_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_005C:
+secdroid_alpha_1_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_005C_reload_count:
+secdroid_alpha_1_script_command_005C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_0054-pianist_script_command_005C	; branch_displacement
-pianist_script_command_0064:
+	dc.w secdroid_alpha_1_script_command_0054-secdroid_alpha_1_script_command_005C	; branch_displacement
+secdroid_alpha_1_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
-pianist_script_command_006E:
+	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
+secdroid_alpha_1_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
-pianist_script_command_0072:
+secdroid_alpha_1_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0072_operand_word:
-	dc.w pianist_script_command_007E_reload_count-pianist_script_command_0072_operand_word	; operand_word
-pianist_script_command_0076:
+secdroid_alpha_1_script_command_0072_operand_word:
+	dc.w secdroid_alpha_1_script_command_007E_reload_count-secdroid_alpha_1_script_command_0072_operand_word	; operand_word
+secdroid_alpha_1_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-pianist_script_command_007A:
+secdroid_alpha_1_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_007E:
+secdroid_alpha_1_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_007E_reload_count:
+secdroid_alpha_1_script_command_007E_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_0076-pianist_script_command_007E	; branch_displacement
-pianist_script_command_0086:
+	dc.w secdroid_alpha_1_script_command_0076-secdroid_alpha_1_script_command_007E	; branch_displacement
+secdroid_alpha_1_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$14	; frame_sequence_ptr
-pianist_script_command_0090:
+	dc.l fixed_npc_frame_sequences_late_1_held	; frame_sequence_ptr
+secdroid_alpha_1_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_0090_operand_word:
-	dc.w pianist_script_command_009C_reload_count-pianist_script_command_0090_operand_word	; operand_word
-pianist_script_command_0094:
+secdroid_alpha_1_script_command_0090_operand_word:
+	dc.w secdroid_alpha_1_script_command_009C_reload_count-secdroid_alpha_1_script_command_0090_operand_word	; operand_word
+secdroid_alpha_1_script_command_0094:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-pianist_script_command_0098:
+secdroid_alpha_1_script_command_0098:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-pianist_script_command_009C:
+secdroid_alpha_1_script_command_009C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_009C_reload_count:
+secdroid_alpha_1_script_command_009C_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w pianist_script_command_0094-pianist_script_command_009C	; branch_displacement
-pianist_script_command_00A4:
+	dc.w secdroid_alpha_1_script_command_0094-secdroid_alpha_1_script_command_009C	; branch_displacement
+secdroid_alpha_1_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
-pianist_script_command_00AE:
+	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
+secdroid_alpha_1_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-pianist_script_command_00AE_operand_word:
-	dc.w pianist_script_command_00BA_reload_count-pianist_script_command_00AE_operand_word	; operand_word
-pianist_script_command_00B2:
+secdroid_alpha_1_script_command_00AE_operand_word:
+	dc.w secdroid_alpha_1_script_command_00BA_reload_count-secdroid_alpha_1_script_command_00AE_operand_word	; operand_word
+secdroid_alpha_1_script_command_00B2:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-pianist_script_command_00B6:
+secdroid_alpha_1_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-pianist_script_command_00BA:
+secdroid_alpha_1_script_command_00BA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-pianist_script_command_00BA_reload_count:
+secdroid_alpha_1_script_command_00BA_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w pianist_script_command_00B2-pianist_script_command_00BA	; branch_displacement
-pianist_script_command_00C2:
+	dc.w secdroid_alpha_1_script_command_00B2-secdroid_alpha_1_script_command_00BA	; branch_displacement
+secdroid_alpha_1_script_command_00C2:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_pianist_behavior_script	; target_pointer
-world_object_flight_controller_behavior_script:
+	dc.l world_object_secdroid_alpha_1_behavior_script	; target_pointer
+world_object_secdroid_alpha_2_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0450	; world_x
 	dc.w $03C8	; world_y
-flight_controller_script_command_0006:
+secdroid_alpha_2_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-flight_controller_script_command_000A:
+secdroid_alpha_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$28	; frame_sequence_ptr
-flight_controller_script_command_0014:
+	dc.l fixed_npc_frame_sequences_early_2_held	; frame_sequence_ptr
+secdroid_alpha_2_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0014_operand_word:
-	dc.w flight_controller_script_command_0020_reload_count-flight_controller_script_command_0014_operand_word	; operand_word
-flight_controller_script_command_0018:
+secdroid_alpha_2_script_command_0014_operand_word:
+	dc.w secdroid_alpha_2_script_command_0020_reload_count-secdroid_alpha_2_script_command_0014_operand_word	; operand_word
+secdroid_alpha_2_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-flight_controller_script_command_001C:
+secdroid_alpha_2_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_0020:
+secdroid_alpha_2_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_0020_reload_count:
+secdroid_alpha_2_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_0018-flight_controller_script_command_0020	; branch_displacement
-flight_controller_script_command_0028:
+	dc.w secdroid_alpha_2_script_command_0018-secdroid_alpha_2_script_command_0020	; branch_displacement
+secdroid_alpha_2_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
-flight_controller_script_command_0032:
+	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
+secdroid_alpha_2_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0032_operand_word:
-	dc.w flight_controller_script_command_003E_reload_count-flight_controller_script_command_0032_operand_word	; operand_word
-flight_controller_script_command_0036:
+secdroid_alpha_2_script_command_0032_operand_word:
+	dc.w secdroid_alpha_2_script_command_003E_reload_count-secdroid_alpha_2_script_command_0032_operand_word	; operand_word
+secdroid_alpha_2_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-flight_controller_script_command_003A:
+secdroid_alpha_2_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-flight_controller_script_command_003E:
+secdroid_alpha_2_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_003E_reload_count:
+secdroid_alpha_2_script_command_003E_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w flight_controller_script_command_0036-flight_controller_script_command_003E	; branch_displacement
-flight_controller_script_command_0046:
+	dc.w secdroid_alpha_2_script_command_0036-secdroid_alpha_2_script_command_003E	; branch_displacement
+secdroid_alpha_2_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$5C	; frame_sequence_ptr
-flight_controller_script_command_0050:
+	dc.l fixed_npc_frame_sequences_late_7_held	; frame_sequence_ptr
+secdroid_alpha_2_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0050_operand_word:
-	dc.w flight_controller_script_command_005C_reload_count-flight_controller_script_command_0050_operand_word	; operand_word
-flight_controller_script_command_0054:
+secdroid_alpha_2_script_command_0050_operand_word:
+	dc.w secdroid_alpha_2_script_command_005C_reload_count-secdroid_alpha_2_script_command_0050_operand_word	; operand_word
+secdroid_alpha_2_script_command_0054:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-flight_controller_script_command_0058:
+secdroid_alpha_2_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_005C:
+secdroid_alpha_2_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_005C_reload_count:
+secdroid_alpha_2_script_command_005C_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_0054-flight_controller_script_command_005C	; branch_displacement
-flight_controller_script_command_0064:
+	dc.w secdroid_alpha_2_script_command_0054-secdroid_alpha_2_script_command_005C	; branch_displacement
+secdroid_alpha_2_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_early	; frame_sequence_ptr
-flight_controller_script_command_006E:
+secdroid_alpha_2_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
-flight_controller_script_command_0072:
+secdroid_alpha_2_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0072_operand_word:
-	dc.w flight_controller_script_command_007E_reload_count-flight_controller_script_command_0072_operand_word	; operand_word
-flight_controller_script_command_0076:
+secdroid_alpha_2_script_command_0072_operand_word:
+	dc.w secdroid_alpha_2_script_command_007E_reload_count-secdroid_alpha_2_script_command_0072_operand_word	; operand_word
+secdroid_alpha_2_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_007A:
+secdroid_alpha_2_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_007E:
+secdroid_alpha_2_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_007E_reload_count:
+secdroid_alpha_2_script_command_007E_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_0076-flight_controller_script_command_007E	; branch_displacement
-flight_controller_script_command_0086:
+	dc.w secdroid_alpha_2_script_command_0076-secdroid_alpha_2_script_command_007E	; branch_displacement
+secdroid_alpha_2_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$38	; frame_sequence_ptr
-flight_controller_script_command_0090:
+	dc.l fixed_npc_frame_sequences_late_4_held	; frame_sequence_ptr
+secdroid_alpha_2_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_0090_operand_word:
-	dc.w flight_controller_script_command_009C_reload_count-flight_controller_script_command_0090_operand_word	; operand_word
-flight_controller_script_command_0094:
+secdroid_alpha_2_script_command_0090_operand_word:
+	dc.w secdroid_alpha_2_script_command_009C_reload_count-secdroid_alpha_2_script_command_0090_operand_word	; operand_word
+secdroid_alpha_2_script_command_0094:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_0098:
+secdroid_alpha_2_script_command_0098:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-flight_controller_script_command_009C:
+secdroid_alpha_2_script_command_009C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_009C_reload_count:
+secdroid_alpha_2_script_command_009C_reload_count:
 	dc.w $0048	; reload_count
 	dc.w $0048	; remaining_count
-	dc.w flight_controller_script_command_0094-flight_controller_script_command_009C	; branch_displacement
-flight_controller_script_command_00A4:
+	dc.w secdroid_alpha_2_script_command_0094-secdroid_alpha_2_script_command_009C	; branch_displacement
+secdroid_alpha_2_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-flight_controller_script_command_00AE:
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+secdroid_alpha_2_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-flight_controller_script_command_00AE_operand_word:
-	dc.w flight_controller_script_command_00BA_reload_count-flight_controller_script_command_00AE_operand_word	; operand_word
-flight_controller_script_command_00B2:
+secdroid_alpha_2_script_command_00AE_operand_word:
+	dc.w secdroid_alpha_2_script_command_00BA_reload_count-secdroid_alpha_2_script_command_00AE_operand_word	; operand_word
+secdroid_alpha_2_script_command_00B2:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_00B6:
+secdroid_alpha_2_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-flight_controller_script_command_00BA:
+secdroid_alpha_2_script_command_00BA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-flight_controller_script_command_00BA_reload_count:
+secdroid_alpha_2_script_command_00BA_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w flight_controller_script_command_00B2-flight_controller_script_command_00BA	; branch_displacement
-flight_controller_script_command_00C2:
+	dc.w secdroid_alpha_2_script_command_00B2-secdroid_alpha_2_script_command_00BA	; branch_displacement
+secdroid_alpha_2_script_command_00C2:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_flight_controller_behavior_script	; target_pointer
-world_object_wackobrain_behavior_script:
+	dc.l world_object_secdroid_alpha_2_behavior_script	; target_pointer
+world_object_secdroid_delta_2_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0210	; world_x
 	dc.w $05A8	; world_y
-wackobrain_script_command_0006:
+secdroid_delta_2_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-wackobrain_script_command_000A:
+secdroid_delta_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
-wackobrain_script_command_0014:
+	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
+secdroid_delta_2_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0014_operand_word:
-	dc.w wackobrain_script_command_0020_reload_count-wackobrain_script_command_0014_operand_word	; operand_word
-wackobrain_script_command_0018:
+secdroid_delta_2_script_command_0014_operand_word:
+	dc.w secdroid_delta_2_script_command_0020_reload_count-secdroid_delta_2_script_command_0014_operand_word	; operand_word
+secdroid_delta_2_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-wackobrain_script_command_001C:
+secdroid_delta_2_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0020:
+secdroid_delta_2_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0020_reload_count:
+secdroid_delta_2_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_0018-wackobrain_script_command_0020	; branch_displacement
-wackobrain_script_command_0028:
+	dc.w secdroid_delta_2_script_command_0018-secdroid_delta_2_script_command_0020	; branch_displacement
+secdroid_delta_2_script_command_0028:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0028_operand_word:
-	dc.w wackobrain_script_command_0034_reload_count-wackobrain_script_command_0028_operand_word	; operand_word
-wackobrain_script_command_002C:
+secdroid_delta_2_script_command_0028_operand_word:
+	dc.w secdroid_delta_2_script_command_0034_reload_count-secdroid_delta_2_script_command_0028_operand_word	; operand_word
+secdroid_delta_2_script_command_002C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFC	; operand_word
-wackobrain_script_command_0030:
+secdroid_delta_2_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-wackobrain_script_command_0034:
+secdroid_delta_2_script_command_0034:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0034_reload_count:
+secdroid_delta_2_script_command_0034_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w wackobrain_script_command_002C-wackobrain_script_command_0034	; branch_displacement
-wackobrain_script_command_003C:
+	dc.w secdroid_delta_2_script_command_002C-secdroid_delta_2_script_command_0034	; branch_displacement
+secdroid_delta_2_script_command_003C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_003C_operand_word:
-	dc.w wackobrain_script_command_0048_reload_count-wackobrain_script_command_003C_operand_word	; operand_word
-wackobrain_script_command_0040:
+secdroid_delta_2_script_command_003C_operand_word:
+	dc.w secdroid_delta_2_script_command_0048_reload_count-secdroid_delta_2_script_command_003C_operand_word	; operand_word
+secdroid_delta_2_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-wackobrain_script_command_0044:
+secdroid_delta_2_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0048:
+secdroid_delta_2_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0048_reload_count:
+secdroid_delta_2_script_command_0048_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_0040-wackobrain_script_command_0048	; branch_displacement
-wackobrain_script_command_0050:
+	dc.w secdroid_delta_2_script_command_0040-secdroid_delta_2_script_command_0048	; branch_displacement
+secdroid_delta_2_script_command_0050:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-wackobrain_script_command_0054:
+secdroid_delta_2_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
-wackobrain_script_command_005E:
+	dc.l fixed_npc_frame_sequences_early_1_held	; frame_sequence_ptr
+secdroid_delta_2_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_005E_operand_word:
-	dc.w wackobrain_script_command_006A_reload_count-wackobrain_script_command_005E_operand_word	; operand_word
-wackobrain_script_command_0062:
+secdroid_delta_2_script_command_005E_operand_word:
+	dc.w secdroid_delta_2_script_command_006A_reload_count-secdroid_delta_2_script_command_005E_operand_word	; operand_word
+secdroid_delta_2_script_command_0062:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0066:
+secdroid_delta_2_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_006A:
+secdroid_delta_2_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_006A_reload_count:
+secdroid_delta_2_script_command_006A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_0062-wackobrain_script_command_006A	; branch_displacement
-wackobrain_script_command_0072:
+	dc.w secdroid_delta_2_script_command_0062-secdroid_delta_2_script_command_006A	; branch_displacement
+secdroid_delta_2_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0072_operand_word:
-	dc.w wackobrain_script_command_007E_reload_count-wackobrain_script_command_0072_operand_word	; operand_word
-wackobrain_script_command_0076:
+secdroid_delta_2_script_command_0072_operand_word:
+	dc.w secdroid_delta_2_script_command_007E_reload_count-secdroid_delta_2_script_command_0072_operand_word	; operand_word
+secdroid_delta_2_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0004	; operand_word
-wackobrain_script_command_007A:
+secdroid_delta_2_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-wackobrain_script_command_007E:
+secdroid_delta_2_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_007E_reload_count:
+secdroid_delta_2_script_command_007E_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w wackobrain_script_command_0076-wackobrain_script_command_007E	; branch_displacement
-wackobrain_script_command_0086:
+	dc.w secdroid_delta_2_script_command_0076-secdroid_delta_2_script_command_007E	; branch_displacement
+secdroid_delta_2_script_command_0086:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-wackobrain_script_command_0086_operand_word:
-	dc.w wackobrain_script_command_0092_reload_count-wackobrain_script_command_0086_operand_word	; operand_word
-wackobrain_script_command_008A:
+secdroid_delta_2_script_command_0086_operand_word:
+	dc.w secdroid_delta_2_script_command_0092_reload_count-secdroid_delta_2_script_command_0086_operand_word	; operand_word
+secdroid_delta_2_script_command_008A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_008E:
+secdroid_delta_2_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-wackobrain_script_command_0092:
+secdroid_delta_2_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-wackobrain_script_command_0092_reload_count:
+secdroid_delta_2_script_command_0092_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w wackobrain_script_command_008A-wackobrain_script_command_0092	; branch_displacement
-wackobrain_script_command_009A:
+	dc.w secdroid_delta_2_script_command_008A-secdroid_delta_2_script_command_0092	; branch_displacement
+secdroid_delta_2_script_command_009A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_wackobrain_behavior_script	; target_pointer
-world_object_defence_controller_behavior_script:
+	dc.l world_object_secdroid_delta_2_behavior_script	; target_pointer
+world_object_secdroid_delta_1_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0150	; world_x
 	dc.w $04B8	; world_y
-defence_controller_script_command_0006:
+secdroid_delta_1_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-defence_controller_script_command_000A:
+secdroid_delta_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
-defence_controller_script_command_0014:
+	dc.l fixed_npc_frame_sequences_early_1_held	; frame_sequence_ptr
+secdroid_delta_1_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0014_operand_word:
-	dc.w defence_controller_script_command_0020_reload_count-defence_controller_script_command_0014_operand_word	; operand_word
-defence_controller_script_command_0018:
+secdroid_delta_1_script_command_0014_operand_word:
+	dc.w secdroid_delta_1_script_command_0020_reload_count-secdroid_delta_1_script_command_0014_operand_word	; operand_word
+secdroid_delta_1_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_001C:
+secdroid_delta_1_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0020:
+secdroid_delta_1_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0020_reload_count:
+secdroid_delta_1_script_command_0020_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_0018-defence_controller_script_command_0020	; branch_displacement
-defence_controller_script_command_0028:
+	dc.w secdroid_delta_1_script_command_0018-secdroid_delta_1_script_command_0020	; branch_displacement
+secdroid_delta_1_script_command_0028:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0028_operand_word:
-	dc.w defence_controller_script_command_0034_reload_count-defence_controller_script_command_0028_operand_word	; operand_word
-defence_controller_script_command_002C:
+secdroid_delta_1_script_command_0028_operand_word:
+	dc.w secdroid_delta_1_script_command_0034_reload_count-secdroid_delta_1_script_command_0028_operand_word	; operand_word
+secdroid_delta_1_script_command_002C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0004	; operand_word
-defence_controller_script_command_0030:
+secdroid_delta_1_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-defence_controller_script_command_0034:
+secdroid_delta_1_script_command_0034:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0034_reload_count:
+secdroid_delta_1_script_command_0034_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w defence_controller_script_command_002C-defence_controller_script_command_0034	; branch_displacement
-defence_controller_script_command_003C:
+	dc.w secdroid_delta_1_script_command_002C-secdroid_delta_1_script_command_0034	; branch_displacement
+secdroid_delta_1_script_command_003C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_003C_operand_word:
-	dc.w defence_controller_script_command_0048_reload_count-defence_controller_script_command_003C_operand_word	; operand_word
-defence_controller_script_command_0040:
+secdroid_delta_1_script_command_003C_operand_word:
+	dc.w secdroid_delta_1_script_command_0048_reload_count-secdroid_delta_1_script_command_003C_operand_word	; operand_word
+secdroid_delta_1_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0044:
+secdroid_delta_1_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0048:
+secdroid_delta_1_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0048_reload_count:
+secdroid_delta_1_script_command_0048_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_0040-defence_controller_script_command_0048	; branch_displacement
-defence_controller_script_command_0050:
+	dc.w secdroid_delta_1_script_command_0040-secdroid_delta_1_script_command_0048	; branch_displacement
+secdroid_delta_1_script_command_0050:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
-defence_controller_script_command_0054:
+secdroid_delta_1_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
-defence_controller_script_command_005E:
+	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
+secdroid_delta_1_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_005E_operand_word:
-	dc.w defence_controller_script_command_006A_reload_count-defence_controller_script_command_005E_operand_word	; operand_word
-defence_controller_script_command_0062:
+secdroid_delta_1_script_command_005E_operand_word:
+	dc.w secdroid_delta_1_script_command_006A_reload_count-secdroid_delta_1_script_command_005E_operand_word	; operand_word
+secdroid_delta_1_script_command_0062:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-defence_controller_script_command_0066:
+secdroid_delta_1_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_006A:
+secdroid_delta_1_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_006A_reload_count:
+secdroid_delta_1_script_command_006A_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_0062-defence_controller_script_command_006A	; branch_displacement
-defence_controller_script_command_0072:
+	dc.w secdroid_delta_1_script_command_0062-secdroid_delta_1_script_command_006A	; branch_displacement
+secdroid_delta_1_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0072_operand_word:
-	dc.w defence_controller_script_command_007E_reload_count-defence_controller_script_command_0072_operand_word	; operand_word
-defence_controller_script_command_0076:
+secdroid_delta_1_script_command_0072_operand_word:
+	dc.w secdroid_delta_1_script_command_007E_reload_count-secdroid_delta_1_script_command_0072_operand_word	; operand_word
+secdroid_delta_1_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFC	; operand_word
-defence_controller_script_command_007A:
+secdroid_delta_1_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
-defence_controller_script_command_007E:
+secdroid_delta_1_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_007E_reload_count:
+secdroid_delta_1_script_command_007E_reload_count:
 	dc.w $0030	; reload_count
 	dc.w $0030	; remaining_count
-	dc.w defence_controller_script_command_0076-defence_controller_script_command_007E	; branch_displacement
-defence_controller_script_command_0086:
+	dc.w secdroid_delta_1_script_command_0076-secdroid_delta_1_script_command_007E	; branch_displacement
+secdroid_delta_1_script_command_0086:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-defence_controller_script_command_0086_operand_word:
-	dc.w defence_controller_script_command_0092_reload_count-defence_controller_script_command_0086_operand_word	; operand_word
-defence_controller_script_command_008A:
+secdroid_delta_1_script_command_0086_operand_word:
+	dc.w secdroid_delta_1_script_command_0092_reload_count-secdroid_delta_1_script_command_0086_operand_word	; operand_word
+secdroid_delta_1_script_command_008A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
 	dc.w $FFFE	; operand_word
-defence_controller_script_command_008E:
+secdroid_delta_1_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0002	; operand_word
-defence_controller_script_command_0092:
+secdroid_delta_1_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
-defence_controller_script_command_0092_reload_count:
+secdroid_delta_1_script_command_0092_reload_count:
 	dc.w $0018	; reload_count
 	dc.w $0018	; remaining_count
-	dc.w defence_controller_script_command_008A-defence_controller_script_command_0092	; branch_displacement
-defence_controller_script_command_009A:
+	dc.w secdroid_delta_1_script_command_008A-secdroid_delta_1_script_command_0092	; branch_displacement
+secdroid_delta_1_script_command_009A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l world_object_defence_controller_behavior_script	; target_pointer
-world_object_megabio_feed_behavior_script:
+	dc.l world_object_secdroid_delta_1_behavior_script	; target_pointer
+world_object_pianist_actor_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0348	; world_x
 	dc.w $00A8	; world_y
-megabio_feed_script_command_0006:
+pianist_actor_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
-	dc.l megabio_feed_nodes_4C226_4	; state_node_ptr
-megabio_feed_script_command_000C:
+	dc.l pianist_actor_nodes_4C226_4	; state_node_ptr
+pianist_actor_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $2710	; operand_word
-megabio_feed_script_command_0010:
+pianist_actor_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l megabio_feed_script_command_000C	; target_pointer
+	dc.l pianist_actor_script_command_000C	; target_pointer
 world_object_musician_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0306	; world_x
@@ -4636,28 +4840,29 @@ icelord_script_command_000C:
 icelord_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l icelord_script_command_000C	; target_pointer
+    ; The installed first-attachment controller alternates one active pose and a held-header pose with 100/6 interpreter-delay counts; later controller replacement remains separate.
 world_object_diabetic_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
-	dc.w $0180	; world_x
-	dc.w $0402	; world_y
+	dc.w $0180	; x
+	dc.w $0402	; y
 diabetic_script_command_0006:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l initialize_position_state_link	; target_pointer
-diabetic_script_command_000C:
+	dc.l start_diabetic_attachment_animation	; target
+diabetic_active_pose_wait:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 diabetic_script_command_0010:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l toggle_position_state_active_flag	; target_pointer
-diabetic_script_command_0016:
+	dc.l toggle_diabetic_attachment_hold	; target
+diabetic_held_pose_wait:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0006	; operand_word
+	dc.w $0006	; ticks
 diabetic_script_command_001A:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l toggle_position_state_active_flag	; target_pointer
+	dc.l toggle_diabetic_attachment_hold	; target
 diabetic_script_command_0020:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l diabetic_script_command_000C	; target_pointer
+	dc.l diabetic_active_pose_wait	; target
 world_object_security_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $04D2	; world_x
@@ -4964,44 +5169,46 @@ bank_manager_script_command_0006:
 bank_manager_script_command_000A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l bank_manager_script_command_0006	; target_pointer
+    ; The handoff marks the giver inactive. Its nominal long-delay tail can count down, but dispatch stays inhibited until another path clears that flag.
 world_object_entry_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
-	dc.w $0197	; world_x
-	dc.w $0362	; world_y
+	dc.w $0197	; x
+world_object_entry_officer_behavior_script_y:
+	dc.w $0362	; y
 entry_officer_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l entry_officer_nodes_4A45E_3	; state_node_ptr
 entry_officer_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0014	; operand_word
+	dc.w $0014	; ticks
 entry_officer_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
-	dc.w $000C	; operand_word
+	dc.w $000C	; word_offset
 entry_officer_script_command_0014:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 entry_officer_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 entry_officer_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0015	; reload_count
 	dc.w $0015	; remaining_count
-	dc.w $FFF8	; branch_displacement
+	dc.w $FFF8	; branch_disp
 entry_officer_script_command_0024:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 entry_officer_script_command_0026:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 entry_officer_script_command_002A:
 	dc.w WORLD_CMD_CALL_FUNCTION	; opcode
-	dc.l collect_world_object_item	; target_pointer
-entry_officer_script_command_0030:
+	dc.l collect_world_object_item	; target
+entry_officer_post_handoff_wait:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 entry_officer_script_command_0034:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
-	dc.l entry_officer_script_command_0030	; target_pointer
+	dc.l entry_officer_post_handoff_wait	; target
 world_object_driffid_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0330	; world_x
@@ -5169,7 +5376,7 @@ abs_0_000124F4:
 	movea.l d0,a0
 	bsr.b copy_world_object_xy_to_position_descriptor
 	bra.b abs_0_000124F4
-abs_0_000124FE:
+advance_active_descriptor_animation_chains:
 	move.l app_active_world_object_ptr_table(a6),d0
 	beq.b abs_0_0001253A
 	move.w active_world_object_count(a6),d7
@@ -5197,13 +5404,13 @@ abs_0_00012536:
 	dbf.w d7,abs_0_0001250E
 abs_0_0001253A:
 	rts
-abs_0_0001253C:
+run_eligible_world_object_scripts:
 	lea.l world_object_ptr_table(pc),a0
 abs_0_00012540:
 	move.l (a0)+,d0
 	beq.b abs_0_0001255C
 	movea.l d0,a5
-	move.b world_object_shared_prefix_world_object_flags(a5),d0
+	move.b $0048(a5),d0
 	andi.b #66,d0
 	bne.b abs_0_00012540
 	move.l a0,-(a7)
@@ -5330,6 +5537,7 @@ set_copper_interrupt_callback_atomic:
 	move.l a0,app_copper_interrupt_callback(a6)
 	move (a7)+,sr
 	rts
+    ; Carry is set for |dx|<24 and |dy|<16 after WORD arithmetic. The diabetic hint path clears it on return; it is not a treatment-success result.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 is_player_within_world_object_interaction_range:
 	lea.l player_world_object.l,a4
@@ -5348,6 +5556,7 @@ abs_0_00012688:
 	cmp.w #$18,d0
 abs_0_0001268C:
 	rts
+    ; C set iff unsigned WORD player+(16,31) is strictly inside descriptor+state+geometry origin and origin+extent bounds. Equality fails; arithmetic wraps at 16 bits. D0-D2/A0-A2 preserved.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 is_player_within_world_object_collision_bounds:
 	lea.l player_world_object.l,a4
@@ -5410,12 +5619,12 @@ toggle_inventory_panel:
 abs_0_00012754:
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_inventory_cursor_x(a6)
-	bsr.w abs_0_000194AC
+	bsr.w snapshot_inventory_cursor_and_clear_hidden_latch
 	bra.w bind_cursor_sprites_and_palette
 close_inventory_panel:
 	bsr.w reset_inventory_panel_state
@@ -5439,12 +5648,13 @@ abs_0_000127AE:
 	bclr.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	beq.b abs_0_000127C4
-	lea.l abs_0_000133DE(pc),a5
-	bsr.w abs_0_0001639A
+	lea.l body_inventory_overlay(pc),a5
+    ; Nearby-object inventory flag selects direct body restore; queue membership and SAVED are not tested. The next nearby-character enqueue waits for restore completion before clearing.
+	bsr.w restore_ui_overlay_background
 abs_0_000127C4:
-	lea.l abs_0_00013386(pc),a5
+	lea.l nearby_character_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_000133B2(pc),a5
+	lea.l nearby_carrying_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	bsr.w finalize_inventory_selection
 	cmp.b #ITEM_ID_BENT_COIN,d0
@@ -5462,19 +5672,19 @@ open_nearby_object_inventory_panel:
 	bsr.w build_carried_item_name_list
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
-	lea.l abs_0_000133DE(pc),a5
+	lea.l body_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001340A(pc),a5
+	lea.l backpack_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_00013436(pc),a5
+	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	move.w #$C0,app_inventory_cursor_x(a6)
-	bsr.w abs_0_000194AC
+	bsr.w snapshot_inventory_cursor_and_clear_hidden_latch
 	bsr.w bind_cursor_sprites_and_palette
 	rts
 build_carried_item_name_list:
 	movem.l d0/d7/a0-a2,-(a7)
-	lea.l abs_0_000133EA(pc),a1
+	lea.l body_inventory_overlay_line_0_ptr(pc),a1
 	lea.l app_inventory_display_item_ids(a6),a2
 	clr.w d0
 	move.b (a2)+,d0
@@ -5504,7 +5714,7 @@ reset_inventory_panel_state:
 	move.b #$1,app_inventory_selection_latched(a6)
 update_inventory_panel_player_palette:
 	move.l a0,-(a7)
-	lea.l abs_0_000134C2(pc),a0
+	lea.l gameplay_current_rgb12_palette(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_000128BC
@@ -5607,8 +5817,8 @@ refresh_selected_item_name_display:
 	moveq.l #ITEM_ID_NOTHING,d0
 abs_0_000129D6:
 	bsr.w resolve_item_name
-	lea.l abs_0_000132AA(pc),a5
-	move.l d0,$000C(a5)
+	lea.l player_holding_overlay(pc),a5
+	move.l d0,ui_overlay_descriptor_line_0_ptr(a5)
 	bsr.w enqueue_ui_overlay_update
 	movea.l (a7)+,a5
 abs_0_000129E8:
@@ -5618,8 +5828,8 @@ refresh_inventory_panel:
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
-	lea.l abs_0_00013416(pc),a2
-	lea.l abs_0_00013442(pc),a3
+	lea.l backpack_inventory_overlay_line_0_ptr(pc),a2
+	lea.l pocket_inventory_overlay_line_0_ptr(pc),a3
 	lea.l item_name_offset_table.l,a4
 	lea.l item_name_string_table.l,a5
 abs_0_00012A0C:
@@ -5654,7 +5864,7 @@ handle_inventory_panel_selection:
 	subi.w #0,d2
 	cmp.w #$C0,d2
 	bne.b transfer_selected_item_to_carried_inventory
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
     ; With valid cursor rows and zero index high byte, nearby selection swaps only the record item ID, retaining value. ANDI.B masks low bits; invalid cursor states are not bounded here.
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	move.b $0(a0,d1.w),d2
@@ -5665,14 +5875,14 @@ handle_inventory_panel_selection:
 	cmp.b world_object_shared_prefix_selected_item_id(a5),d2
 	bne.b abs_0_00012A9E
 	clr.b world_object_shared_prefix_selected_item_id(a5)
-	move.l #abs_0_0001A25D,abs_0_000133BE.l
+	move.l #abs_0_0001A25D,nearby_carrying_overlay_line_0_ptr.l
 abs_0_00012A9E:
 	move.l d0,-(a7)
 	bsr.w build_carried_item_name_list
 	move.l (a7)+,d0
-	lea.l abs_0_000133DE(pc),a5
-	move.l #$70000,$01E0(a6)
-	bsr.w abs_0_00016632
+	lea.l body_inventory_overlay(pc),a5
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	bsr.w redraw_ui_overlay_selected_line_proportional
 abs_0_00012AB6:
 	rts
 transfer_selected_item_to_carried_inventory:
@@ -5685,9 +5895,9 @@ transfer_selected_item_to_carried_inventory:
 	move.w d0,-(a7)
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
-	lea.l abs_0_0001340A(pc),a5
-	move.l #$70000,$01E0(a6)
-	bra.w abs_0_00016632
+	lea.l backpack_inventory_overlay(pc),a5
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	bra.w redraw_ui_overlay_selected_line_proportional
 handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
 	moveq.l #0,d0
@@ -5718,9 +5928,9 @@ transfer_selected_item_to_pocket_inventory:
 	move.w d0,-(a7)
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
-	lea.l abs_0_00013436(pc),a5
-	move.l #$70000,$01E0(a6)
-	bra.w abs_0_00016632
+	lea.l pocket_inventory_overlay(pc),a5
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	bra.w redraw_ui_overlay_selected_line_proportional
 item_too_large_for_pockets_message:
 	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
 	dc.b $00
@@ -5789,7 +5999,7 @@ abs_0_00012C2E:
 	beq.b abs_0_00012C48
 	move.w #$F55,d1
 abs_0_00012C48:
-	move.w d1,app_0230(a6)
+	move.w d1,app_ticker_highlight_rgb12(a6)
 	move.b d0,app_message_palette_flash_countdown(a6)
 abs_0_00012C50:
 	btst.b #6,app_ui_flags(a6)
@@ -5807,7 +6017,7 @@ abs_0_00012C74:
 	add.l app_font_glyph_bitmap_table_ptr(a6),d0
 	movea.l d0,a2
 	addq.l #1,a2
-	movea.l #$70000,a1	; bitmap memory plane 4 base $00070000
+	movea.l #FRAMEBUFFER_BANK0_BASE,a1	; bitmap memory plane 4 base $00070000
 	move.b (a2)+,$78C7(a1)
 	move.b (a2)+,$7967(a1)
 	move.b (a2)+,$7A07(a1)
@@ -5918,14 +6128,14 @@ update_earth_orbit_countdown_display:
 	move.b d0,app_earth_orbit_countdown_bcd(a6)
 	btst.b #1,app_ui_flags(a6)
 	bne.b abs_0_00012DF8
-	lea.l abs_0_0001332E(pc),a0
-	move.b $0005(a0),app_text_plane_mask(a6)
+	lea.l nearby_distance_overlay(pc),a0
+	move.b ui_overlay_descriptor_text_color(a0),app_text_plane_mask(a6)
 	tst.b app_earth_orbit_countdown_bcd_low_byte(a6)
 	bne.b abs_0_00012DAE
 	move.b app_frame_counter+3(a6),app_text_plane_mask(a6)
 abs_0_00012DAE:
-	move.b $0000(a0),d0
-	move.b $0001(a0),d1
+	move.b ui_overlay_descriptor_x.w(a0),d0
+	move.b ui_overlay_descriptor_y(a0),d1
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -6024,7 +6234,7 @@ abs_0_00012F18:
 	movea.l world_object_shared_prefix_interaction_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	bsr.w refresh_selected_item_name_display
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	bra.b abs_0_00012F16
 abs_0_00012F44:
 	btst.b #3,world_object_shared_prefix_world_object_flags(a5)
@@ -6093,75 +6303,234 @@ abs_0_00012FE8:
 	movem.l (a7)+,d2-d3
 	rts
 world_object_ptr_table:
-	dc.l player_world_object	; mode=required, data_role=pointer_table, unit=pointer
-active_world_object_static_ptr_table:
-	dc.b $00,$05,$BA,$66,$00,$05,$C1,$D2,$00,$05,$BA,$BA,$00,$05,$BB,$0E
-	dc.b $00,$05,$92,$14,$00,$05,$94,$3E,$00,$05,$BB,$62,$00,$05,$BB,$B6
-	dc.b $00,$05,$BC,$0A,$00,$05,$99,$08,$00,$05,$9B,$32,$00,$05,$A0,$28
-	dc.b $00,$05,$A7,$D4,$00,$05,$A8,$60,$00,$05,$A8,$EC,$00,$05,$A9,$78
-	dc.b $00,$05,$AA,$04,$00,$05,$AA,$7E,$00,$05,$A4,$0A,$00,$05,$9D,$7A
-	dc.b $00,$05,$A5,$AC,$00,$05,$AB,$0A,$00,$05,$AB,$E6,$00,$05,$A6,$94
-	dc.b $00,$05,$86,$BA,$00,$05,$AC,$7A,$00,$05,$AE,$A4,$00,$05,$B3,$9E
-	dc.b $00,$05,$B4,$FE,$00,$05,$B7,$28,$00,$05,$B9,$B8,$00,$05,$B1,$86
-	dc.b $00,$05,$B9,$00,$00,$05,$B8,$2E,$00,$00,$00,$00
+	dc.l player_world_object	; object_ptr
+world_object_ptr_table_object_ptr_1:
+	dc.l world_object_secdroid_alpha_1	; object_ptr
+world_object_ptr_table_object_ptr_2:
+	dc.l world_object_pianist_actor	; object_ptr
+world_object_ptr_table_object_ptr_3:
+	dc.l world_object_secdroid_delta_1	; object_ptr
+world_object_ptr_table_object_ptr_4:
+	dc.l world_object_secdroid_delta_2	; object_ptr
+world_object_ptr_table_object_ptr_5:
+	dc.l world_object_squash_player	; object_ptr
+world_object_ptr_table_object_ptr_6:
+	dc.l world_object_wackobrain_actor	; object_ptr
+world_object_ptr_table_object_ptr_7:
+	dc.l world_object_secdroid_pi	; object_ptr
+world_object_ptr_table_object_ptr_8:
+	dc.l world_object_secdroid_omega	; object_ptr
+world_object_ptr_table_object_ptr_9:
+	dc.l world_object_secdroid_alpha_2	; object_ptr
+world_object_ptr_table_object_ptr_10:
+	dc.l world_object_thief	; object_ptr
+world_object_ptr_table_object_ptr_11:
+	dc.l world_object_priest	; object_ptr
+world_object_ptr_table_object_ptr_12:
+	dc.l world_object_hooligan	; object_ptr
+world_object_ptr_table_object_ptr_13:
+	dc.l world_object_captain	; object_ptr
+world_object_ptr_table_object_ptr_14:
+	dc.l world_object_resource_officer	; object_ptr
+world_object_ptr_table_object_ptr_15:
+	dc.l world_object_engineer	; object_ptr
+world_object_ptr_table_object_ptr_16:
+	dc.l world_object_science_officer	; object_ptr
+world_object_ptr_table_object_ptr_17:
+	dc.l world_object_medic	; object_ptr
+world_object_ptr_table_object_ptr_18:
+	dc.l world_object_awol_officer	; object_ptr
+world_object_ptr_table_object_ptr_19:
+	dc.l world_object_entry_officer	; object_ptr
+world_object_ptr_table_object_ptr_20:
+	dc.l world_object_icelord	; object_ptr
+world_object_ptr_table_object_ptr_21:
+	dc.l world_object_death_fly	; object_ptr
+world_object_ptr_table_object_ptr_22:
+	dc.l world_object_lieutenant_commander	; object_ptr
+world_object_ptr_table_object_ptr_23:
+	dc.l world_object_commander	; object_ptr
+world_object_ptr_table_object_ptr_24:
+	dc.l world_object_driffid	; object_ptr
+world_object_ptr_table_object_ptr_25:
+	dc.l world_object_musician	; object_ptr
+world_object_ptr_table_object_ptr_26:
+	dc.l world_object_menial_droid	; object_ptr
+world_object_ptr_table_object_ptr_27:
+	dc.l world_object_gardener	; object_ptr
+world_object_ptr_table_object_ptr_28:
+	dc.l world_object_robomechanic	; object_ptr
+world_object_ptr_table_object_ptr_29:
+	dc.l world_object_doctor	; object_ptr
+world_object_ptr_table_object_ptr_30:
+	dc.l world_object_diabetic	; object_ptr
+world_object_ptr_table_object_ptr_31:
+	dc.l world_object_chemist	; object_ptr
+world_object_ptr_table_object_ptr_32:
+	dc.l world_object_technician	; object_ptr
+world_object_ptr_table_object_ptr_33:
+	dc.l world_object_bank_manager	; object_ptr
+world_object_ptr_table_object_ptr_34:
+	dc.l world_object_security_officer	; object_ptr
+world_object_ptr_table_object_ptr_35:
+	dc.l $00000000	; object_ptr
 active_world_object_ptr_table:
-	dc.b $00,$05,$8C,$10,$00,$05,$8C,$28,$00,$05,$8C,$40,$00,$05,$8C,$4C
-	dc.b $00,$05,$8C,$64,$00,$05,$8C,$7C,$00,$05,$8C,$88,$00,$05,$8C,$A0
-	dc.b $00,$05,$8C,$AC,$00,$05,$8C,$B8,$00,$05,$8C,$C4,$00,$05,$A8,$28
-	dc.b $00,$05,$A8,$B4,$00,$05,$A9,$40,$00,$05,$A9,$CC,$00,$05,$AA,$58
-	dc.b $00,$05,$AA,$D2,$00,$05,$A5,$00,$00,$05,$AB,$5E,$00,$05,$AC,$3A
-	dc.b $00,$05,$88,$62,$00,$05,$88,$6E,$00,$05,$88,$7A,$00,$05,$88,$86
-	dc.b $00,$05,$88,$92,$00,$05,$88,$9E,$00,$05,$91,$EE,$00,$05,$AF,$90
-	dc.b $00,$05,$B4,$9C
+	dc.l world_position_descriptors+$18	; descriptor_ptr
+	dc.l world_position_descriptors+$30	; descriptor_ptr
+	dc.l world_position_descriptors+$48	; descriptor_ptr
+	dc.l world_position_descriptors+$54	; descriptor_ptr
+	dc.l world_position_descriptors+$6C	; descriptor_ptr
+	dc.l world_position_descriptors+$84	; descriptor_ptr
+	dc.l world_position_descriptors+$90	; descriptor_ptr
+	dc.l world_position_descriptors+$A8	; descriptor_ptr
+	dc.l world_position_descriptors+$B4	; descriptor_ptr
+	dc.l world_position_descriptors+$C0	; descriptor_ptr
+	dc.l world_position_descriptors+$CC	; descriptor_ptr
+	dc.l captain_animation_bank	; descriptor_ptr
+	dc.l resource_officer_animation_bank	; descriptor_ptr
+	dc.l engineer_animation_bank	; descriptor_ptr
+	dc.l science_officer_animation_bank	; descriptor_ptr
+	dc.l medic_animation_bank	; descriptor_ptr
+	dc.l awol_officer_animation_bank	; descriptor_ptr
+	dc.l entry_officer_positions_4A45E_1	; descriptor_ptr
+	dc.l lieutenant_commander_animation_bank	; descriptor_ptr
+	dc.l commander_animation_bank	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$C	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$18	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$24	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$30	; descriptor_ptr
+	dc.l item_receptacle_position_descriptors+$3C	; descriptor_ptr
+	dc.l abs_0_000591EE	; descriptor_ptr
+	dc.l gardener_positions_4AF7E_1	; descriptor_ptr
+	dc.l robomechanic_positions_4B454_1	; descriptor_ptr
 world_object_sort_source_ptrs:
-	dc.l world_position_descriptors_position_state_ptr_10	; pointer_table
-	dc.l world_position_descriptors_position_state_ptr_13
-	dc.l hooligan_positions_4A07C_1
-	dc.l fixed_npc_position_states
-	dc.l defence_controller_position_descriptor
-	dc.l wackobrain_position_descriptor
-	dc.l glass_position_descriptor
-	dc.l kwik_kleen_position_descriptor
-	dc.l flight_controller_position_descriptor
-	dc.l megabio_feed_positions_4C226_2
-	dc.l squash_player_positions_49268_3
-	dc.l kriptonite_positions_49492_2
-	dc.l security_officer_positions_4B882_2
-	dc.l combat_visual_position_descriptor
-	dc.l thief_positions_4995C_2
-	dc.l priest_positions_49B98_1
-	dc.l player_position_descriptor
-	dc.l world_position_descriptors
-	dc.l icelord_positions_49DCE_1
-	dc.l death_fly_positions_4A600_1
-	dc.l world_position_descriptors_position_state_ptr_1
-	dc.l world_position_descriptors_position_state_ptr_3
-	dc.l world_position_descriptors_position_state_ptr_5
-	dc.l world_position_descriptors_position_state_ptr_8
-	dc.l driffid_positions_4A6E8_1
-	dc.l musician_positions_4870E_2
-	dc.l menial_droid_positions_4AD66_1
-	dc.l doctor_positions_4B552_1
-	dc.l diabetic_animation_bank
-	dc.l chemist_animation_bank
-	dc.l bank_manager_positions_4B954_2
-	dc.l technician_positions_4B1DA_2
+	dc.l world_position_descriptors+$78	; descriptor_ptr
+	dc.l world_position_descriptors+$9C	; descriptor_ptr
+	dc.l hooligan_positions_4A07C_1	; descriptor_ptr
+	dc.l fixed_npc_position_states	; descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; descriptor_ptr
+	dc.l pianist_actor_positions_4C226_2	; descriptor_ptr
+	dc.l squash_player_positions_49268_3	; descriptor_ptr
+	dc.l wackobrain_actor_positions_49492_2	; descriptor_ptr
+	dc.l security_officer_positions_4B882_2	; descriptor_ptr
+	dc.l combat_visual_position_descriptor	; descriptor_ptr
+	dc.l thief_positions_4995C_2	; descriptor_ptr
+	dc.l priest_positions_49B98_1	; descriptor_ptr
+	dc.l player_position_descriptor	; descriptor_ptr
+	dc.l world_position_descriptors	; descriptor_ptr
+	dc.l icelord_positions_49DCE_1	; descriptor_ptr
+	dc.l death_fly_positions_4A600_1	; descriptor_ptr
+	dc.l world_position_descriptors+$C	; descriptor_ptr
+	dc.l world_position_descriptors+$24	; descriptor_ptr
+	dc.l world_position_descriptors+$3C	; descriptor_ptr
+	dc.l world_position_descriptors+$60	; descriptor_ptr
+	dc.l driffid_positions_4A6E8_1	; descriptor_ptr
+	dc.l musician_positions_4870E_2	; descriptor_ptr
+	dc.l menial_droid_positions_4AD66_1	; descriptor_ptr
+	dc.l doctor_positions_4B552_1	; descriptor_ptr
+	dc.l diabetic_animation_bank	; descriptor_ptr
+	dc.l chemist_animation_bank	; descriptor_ptr
+	dc.l bank_manager_positions_4B954_2	; descriptor_ptr
+	dc.l technician_positions_4B1DA_2	; descriptor_ptr
 abs_0_0001318E:
-	dc.l abs_0_0005859A	; pointer_table
+	dc.l ranged_hit_visual_descriptor	; pointer_table
 	dc.l abs_0_000585A6	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_18	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_19	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_20	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_21	; pointer_table
 	dc.b $00,$00,$00,$00
-abs_0_000131AA:
-	dcb.b $80,$00
-abs_0_0001322A:
-	dcb.b $80,$00
-abs_0_000132AA:
-	dc.b $02,$12,$13,$03,$06,$03,$00,$00,$00,$01,$AA,$ED
-abs_0_000132B6:
-	dcb.b $20,$00
+world_depth_sort_copy_scratch:
+	dc.l $00000000	; mutable_descriptor_pointer_scratch
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+world_depth_sort_deferred_scratch:
+	dc.l $00000000	; mutable_descriptor_pointer_scratch
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+player_holding_overlay:
+	dc.b $02	; x
+player_holding_overlay_y:
+	dc.b $12	; y
+	dc.b $13	; width
+	dc.b $03	; height
+	dc.b $06	; title_x_offset
+	dc.b $03	; text_color
+	dc.b $00	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AAED	; title_ptr
+player_holding_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
 player_health_overlay:
 	dc.b $22	; x
 player_health_overlay_y:
@@ -6200,40 +6569,198 @@ opponent_health_overlay_y:
 	dc.l $00000000	; line_5_ptr
 	dc.l $00000000	; bitmap_ptr
 	dc.l $00000000	; update_callback
-abs_0_0001332E:
-	dc.b $22,$14,$06,$03,$01,$09,$00,$00,$00,$01,$AA,$BF,$00,$01,$AA,$E3
-	dcb.b $1C,$00
-abs_0_0001335A:
-	dc.b $04,$13,$07,$03,$02,$0D,$40,$00,$00,$01,$AA,$F5
-	dcb.b $19,$00
-	dc.b $07,$7D,$00,$00,$00,$00,$00
-abs_0_00013386:
-	dc.b $16,$11,$0C,$03,$04,$0C,$00,$01,$00,$01,$AA,$C4
-	dcb.b $20,$00
-abs_0_000133B2:
-	dc.b $16,$14,$0C,$03,$02,$0C,$00,$01,$00,$01,$AA,$C9
-abs_0_000133BE:
-	dcb.b $20,$00
-abs_0_000133DE:
-	dc.b $18,$11,$0C,$06,$04,$0A,$40,$0F,$00,$01,$AA,$E8
-abs_0_000133EA:
-	dcb.b $1A,$00
-	dc.b $07,$F0,$00,$00,$00,$00
-abs_0_0001340A:
-	dc.b $00,$11,$0C,$06,$02,$08,$00,$0F,$00,$01,$AA,$D2
-abs_0_00013416:
-	dcb.b $20,$00
-abs_0_00013436:
-	dc.b $0C,$11,$0C,$06,$02,$07,$00,$0F,$00,$01,$AA,$DB
-abs_0_00013442:
-	dcb.b $20,$00
-abs_0_00013462:
-	dcb.b $60,$00
-abs_0_000134C2:
-	dcb.b $20,$00
-abs_0_000134E2:
-	dc.b $00,$00,$06,$66,$0A,$AA,$0E,$EE,$06,$00,$0A,$00,$0E,$00,$0F,$33
-	dc.b $00,$EE,$0F,$D0,$0E,$E0,$0E,$C0,$02,$F2,$00,$A2,$0E,$EE,$0E,$EE
+nearby_distance_overlay:
+	dc.b $22	; x
+nearby_distance_overlay_y:
+	dc.b $14	; y
+	dc.b $06	; width
+	dc.b $03	; height
+	dc.b $01	; title_x_offset
+	dc.b $09	; text_color
+	dc.b $00	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AABF	; title_ptr
+	dc.l abs_0_0001AAE3	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+hit_feedback_overlay:
+	dc.b $04	; x
+hit_feedback_overlay_y:
+	dc.b $13	; y
+	dc.b $07	; width
+	dc.b $03	; height
+	dc.b $02	; title_x_offset
+	dc.b $0D	; text_color
+	dc.b UI_OVERLAY_SAVE_BACKGROUND_MASK	; state_flags
+	dc.b $00	; line_style_flags
+	dc.l abs_0_0001AAF5	; title_ptr
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l UI_HIT_BACKGROUND_STORAGE	; bitmap_ptr
+	dc.l $00000000	; update_callback
+nearby_character_overlay:
+	dc.b $16	; x
+nearby_character_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $03	; height
+	dc.b $04	; title_x_offset
+	dc.b $0C	; text_color
+	dc.b $00	; state_flags
+	dc.b $01	; line_style_flags
+	dc.l abs_0_0001AAC4	; title_ptr
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+nearby_carrying_overlay:
+	dc.b $16	; x
+nearby_carrying_overlay_y:
+	dc.b $14	; y
+	dc.b $0C	; width
+	dc.b $03	; height
+	dc.b $02	; title_x_offset
+	dc.b $0C	; text_color
+	dc.b $00	; state_flags
+	dc.b $01	; line_style_flags
+	dc.l abs_0_0001AAC9	; title_ptr
+nearby_carrying_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+body_inventory_overlay:
+	dc.b $18	; x
+body_inventory_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $06	; height
+	dc.b $04	; title_x_offset
+	dc.b $0A	; text_color
+	dc.b UI_OVERLAY_SAVE_BACKGROUND_MASK	; state_flags
+	dc.b $0F	; line_style_flags
+	dc.l abs_0_0001AAE8	; title_ptr
+body_inventory_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l UI_BODY_BACKGROUND_STORAGE	; bitmap_ptr
+	dc.l $00000000	; update_callback
+backpack_inventory_overlay:
+	dc.b $00	; x
+backpack_inventory_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $06	; height
+	dc.b $02	; title_x_offset
+	dc.b $08	; text_color
+	dc.b $00	; state_flags
+	dc.b $0F	; line_style_flags
+	dc.l abs_0_0001AAD2	; title_ptr
+backpack_inventory_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+pocket_inventory_overlay:
+	dc.b $0C	; x
+pocket_inventory_overlay_y:
+	dc.b $11	; y
+	dc.b $0C	; width
+	dc.b $06	; height
+	dc.b $02	; title_x_offset
+	dc.b $07	; text_color
+	dc.b $00	; state_flags
+	dc.b $0F	; line_style_flags
+	dc.l abs_0_0001AADB	; title_ptr
+pocket_inventory_overlay_line_0_ptr:
+	dc.l $00000000	; line_0_ptr
+	dc.l $00000000	; line_1_ptr
+	dc.l $00000000	; line_2_ptr
+	dc.l $00000000	; line_3_ptr
+	dc.l $00000000	; line_4_ptr
+	dc.l $00000000	; line_5_ptr
+	dc.l $00000000	; bitmap_ptr
+	dc.l $00000000	; update_callback
+gameplay_palette_fractional_components:
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+	dc.w $0000	; red_q4
+	dc.w $0000	; green_q4
+	dc.w $0000	; blue_q4
+gameplay_current_rgb12_palette:
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+gameplay_palette_increment_rgb12:
+	dc.w $0000,$0666,$0AAA,$0EEE,$0600,$0A00,$0E00,$0F33	; rgb12_palette_increments
+	dc.w $00EE,$0FD0,$0EE0,$0EC0,$02F2,$00A2,$0EEE,$0EEE	; rgb12_palette_increments
 row_selector_ids:
 	dc.w $006A,$0073,$0073,$0073,$0073,$0073,$0073,$0080	; world_tilemap_row_selector_array
 	dc.w $0081,$0082,$0083,$0084,$0084,$0085,$0080,$0081	; world_tilemap_row_selector_array
@@ -7043,7 +7570,8 @@ abs_0_000160F8:
 	dbf.w d2,abs_0_000160B4
 	movem.l (a7)+,a1-a3
 	rts
-abs_0_00016108:
+    ; Text origin uses the current front bank; the overlay helper instead uses fixed bank0. X is masked to 63 and Y to 31, not clipped to the 40-byte/25-cell image.
+set_text_cursor_in_front_buffer:
 	andi.w #63,d0
 	andi.w #31,d1
 	lsl.w #4,d1
@@ -7054,6 +7582,7 @@ abs_0_00016108:
 	move.l d0,app_text_cursor_ptr(a6)
 	movea.l d0,a0
 	rts
+    ; Overlay origin stays in bank0 across world-bank swaps. Read row[(y&31)*8], add x&63 as WORD, sign-extend, then add $70000; the row table has only 200 entries.
 set_text_cursor_in_overlay_plane:
 	andi.w #63,d0
 	andi.w #31,d1
@@ -7280,7 +7809,8 @@ abs_0_000162B0:
 abs_0_0001632C:
 	move.l a1,app_text_cursor_ptr(a6)
 	rts
-abs_0_00016332:
+    ; Snapshot overlay pixels into bitmap_ptr: packed rows=height*32, words=ceil(width/2), display stride 40. Wait for the blitter request; return does not wait for the new DMA.
+save_ui_overlay_background:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -7292,7 +7822,7 @@ abs_0_00016332:
 	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
-	moveq.l #40,d2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
 	sub.w d1,d2
 	sub.w d1,d2
 	move.l a5,-(a7)
@@ -7313,7 +7843,8 @@ abs_0_00016366:
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
 	rts
-abs_0_0001639A:
+    ; Restore saved pixels and clear saved-background/callback-ready bits. Height*32 uses a byte here, unlike capture; height>=8 wraps before packing.
+restore_ui_overlay_background:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -7325,7 +7856,7 @@ abs_0_0001639A:
 	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
-	moveq.l #40,d2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
 	sub.w d1,d2
 	sub.w d1,d2
 	move.l a5,-(a7)
@@ -7345,8 +7876,9 @@ abs_0_000163CE:
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w d1,bltsize(a5)
 	movea.l (a7)+,a5
-	bclr.b #5,ui_overlay_descriptor_state_flags(a5)
-	bclr.b #7,ui_overlay_descriptor_state_flags(a5)
+    ; SAVED/READY clear after restore DMA starts, with no final wait. These logical UI flags do not certify that the snapshot DMA read has completed.
+	bclr.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
+	bclr.b #UI_OVERLAY_CALLBACK_READY_BIT,ui_overlay_descriptor_state_flags(a5)
 	rts
 abs_0_0001640E:
 	movem.l d0/d7/a0-a2,-(a7)
@@ -7368,7 +7900,8 @@ abs_0_00016432:
 	dbf.w d7,abs_0_00016432
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
-abs_0_00016444:
+    ; Clear the rectangle using the zero sprite datum. Width uses floor(width/2); capture and restore use ceil. Original rounding and height arithmetic are retained.
+clear_ui_overlay_rectangle:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -7379,7 +7912,7 @@ abs_0_00016444:
 	lsl.w #6,d0
 	move.b ui_overlay_descriptor_width(a5),d1
 	lsr.w #1,d1
-	moveq.l #40,d2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
 	moveq.l #0,d3
 	sub.w d1,d3
 	sub.w d1,d3
@@ -7493,7 +8026,9 @@ abs_0_000165B4:
 	bsr.w abs_0_000162A8
 	move.l (a7)+,d7
 	rts
-abs_0_000165E0:
+    ; With stable line pointers, only the contiguous non-NULL prefix is read: a NULL leaves A4 unchanged for later visits. Line styles retain their prefix indices.
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+draw_ui_overlay_text_lines:
 	movem.l d7/a4,-(a7)
 	move.b ui_overlay_descriptor_text_color(a5),app_text_plane_mask(a6)
 	lea.l ui_overlay_descriptor_line_0_ptr(a5),a4
@@ -7522,7 +8057,8 @@ abs_0_00016624:
 	bne.b abs_0_000165F0
 	movem.l (a7)+,d7/a4
 	rts
-abs_0_00016632:
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+redraw_ui_overlay_selected_line_proportional:
 	bsr.w abs_0_0001640E
 	move.b $0005(a5),app_text_plane_mask(a6)
 	add.w d0,d0
@@ -7545,8 +8081,9 @@ abs_0_0001666E:
 	clr.l (a0)+
 	dbf.w d7,abs_0_0001666E
 	rts
+    ; Visit all 16 slots, including past NULL holes. Ready descriptors call a nonnull target with A5=descriptor; registrations persist. A0/D7 are saved around callbacks.
 process_ui_overlay_update_queue:
-	moveq.l #15,d7
+	moveq.l #UI_OVERLAY_UPDATE_LAST_SLOT,d7
 	lea.l ui_overlay_update_queue(pc),a0
 abs_0_0001667C:
 	move.l (a0)+,d0
@@ -7563,6 +8100,7 @@ abs_0_0001667C:
 abs_0_0001669A:
 	dbf.w d7,abs_0_0001667C
 	rts
+    ; Reuse a nonnull-prefix match/first gap; no 16-slot admission bound. Bit6 recaptures even if saved/ready, then clear/draw/set ready. Registration dedup does not preserve a snapshot.
 enqueue_ui_overlay_update:
 	lea.l ui_overlay_update_queue(pc),a0
 abs_0_000166A4:
@@ -7574,19 +8112,20 @@ abs_0_000166A4:
 abs_0_000166AE:
 	move.l a5,-(a0)
 abs_0_000166B0:
-	btst.b #6,ui_overlay_descriptor_state_flags(a5)
+	btst.b #UI_OVERLAY_SAVE_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
 	beq.b abs_0_000166C2
-	bset.b #5,ui_overlay_descriptor_state_flags(a5)
-	bsr.w abs_0_00016332
+	bset.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
+	bsr.w save_ui_overlay_background
+    ; After optional capture, this clear waits/acks its completion before starting DMA. CPU border/text and ready marking follow without a post-clear software wait.
 abs_0_000166C2:
-	bsr.w abs_0_00016444
+	bsr.w clear_ui_overlay_rectangle
 	bsr.w draw_ui_overlay_border_and_title
-	bsr.w abs_0_000165E0
-	bset.b #7,$0006(a5)
+	bsr.w draw_ui_overlay_text_lines
+	bset.b #UI_OVERLAY_CALLBACK_READY_BIT,$0006(a5)
 	rts
-    ; Wait/ack BLIT completion; seed 40 zero bytes at $70000, then start A-to-D copy $70000->$70028, 656 rows x 40 words, zero modulo. BLTCON1 is inherited; full allocation bounds remain open.
+    ; Wait/ack BLIT; zero 40 bytes, then start 656x80 A-to-D $70000->$70028 (end $7CD28). Reuses hit snapshot/bank1; zero modulos, inherited BLTCON1, no final wait. Allocation bounds remain open.
 start_seeded_zero_copy_blit:
-	movea.l #$70000,a0	; bitmap memory plane 4 base $00070000
+	movea.l #FRAMEBUFFER_BANK0_BASE,a0	; bitmap memory plane 4 base $00070000
 	move.l a0,app_front_bitplane_base(a6)
 	lea.l _custom.l,a5
 abs_0_000166E6:
@@ -7609,6 +8148,7 @@ abs_0_000166E6:
 	clr.w bltamod(a5)
 	clr.w bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
+    ; Ascending A reads $70000..$7CD00; D writes $70028..$7CD28. Both cover the hit tail. These extents depend on inherited BLTCON1, not a separate buffer allocation.
 	move.w #(656<<6)|40,bltsize(a5)	; blitter size 656 rows x 40 words (80 bytes/row)
 	rts
 render_tilemap_view_to_back_buffer:
@@ -7695,110 +8235,114 @@ get_tilemap_view_bounds:
 	swap.w d1
 	move.w app_tilemap_scroll_y(a6),d1
 	rts
+    ; Original point test rejects interior points: SWAP D0 at $6836 clears C before BCC $6838. D4 high WORD survives. CPU and Musashi agree; gameplay consequences remain unproved.
 tilemap_point_is_in_view:
 	move.w #$FFFF,d4
 	bsr.b get_tilemap_view_bounds
 	cmp.w d0,d2
-	bcs.b abs_0_00016848
+	bcs.b point_view_return
 	swap.w d0
 	cmp.w d0,d2
 	swap.w d0
-	bcc.b abs_0_00016848
+	bcc.b point_view_return
 	cmp.w d1,d3
-	bcs.b abs_0_00016848
+	bcs.b point_view_return
 	swap.w d1
 	cmp.w d1,d3
 	swap.w d1
-	bcc.b abs_0_00016848
+	bcc.b point_view_return
 	moveq.l #0,d4
-abs_0_00016848:
+point_view_return:
 	rts
+    ; D0/D1 return exclusive view-end:start; D2/D3 retain inclusive rect-end:start. Unsigned D4 side flags. REJECT aliases all four flags; callers also reject enclosing rectangles. Wraps unchecked.
 clip_tile_region_to_view:
 	bsr.b get_tilemap_view_bounds
 	movem.l d0-d3,-(a7)
 	moveq.l #0,d4
 	swap.w d0
 	cmp.w d0,d2
-	bcc.b abs_0_00016898
+	bcc.b clip_reject_rectangle
 	swap.w d0
 	cmp.w d0,d2
-	bcc.b abs_0_0001686A
-	bset #2,d4
+	bcc.b clip_test_right_edge
+	bset #VIEW_CLIP_LEFT_BIT,d4
 	swap.w d2
 	cmp.w d0,d2
-	bcs.b abs_0_00016898
+	bcs.b clip_reject_rectangle
 	swap.w d2
-abs_0_0001686A:
+clip_test_right_edge:
 	swap.w d0
 	swap.w d2
 	cmp.w d0,d2
-	bcs.b abs_0_00016876
-	bset #3,d4
-abs_0_00016876:
+	bcs.b clip_test_vertical_edges
+	bset #VIEW_CLIP_RIGHT_BIT,d4
+clip_test_vertical_edges:
 	swap.w d1
 	cmp.w d1,d3
-	bcc.b abs_0_00016898
+	bcc.b clip_reject_rectangle
 	swap.w d1
 	cmp.w d1,d3
-	bcc.b abs_0_00016886
-	bset #0,d4
-abs_0_00016886:
+	bcc.b clip_test_bottom_edge
+	bset #VIEW_CLIP_TOP_BIT,d4
+clip_test_bottom_edge:
 	swap.w d3
 	cmp.w d1,d3
-	bcs.b abs_0_00016898
+	bcs.b clip_reject_rectangle
 	swap.w d1
 	cmp.w d1,d3
-	bcs.b abs_0_0001689A
-	bset #1,d4
-	bra.b abs_0_0001689A
-abs_0_00016898:
-	moveq.l #15,d4
-abs_0_0001689A:
+	bcs.b clip_return_packed_coordinates
+	bset #VIEW_CLIP_BOTTOM_BIT,d4
+	bra.b clip_return_packed_coordinates
+clip_reject_rectangle:
+	moveq.l #VIEW_CLIP_REJECT,d4
+clip_return_packed_coordinates:
 	movem.l (a7)+,d0-d3
 	rts
-abs_0_000168A0:
+    ; Copies W*H 16x16 four-plane tiles. Per packet: 128B source, 2522B destination span at 40B/row. Zero dimensions underflow; bounds are unchecked and final DMA can outlive return.
+blit_tile_pointer_rectangle_to_buffer:
 	movem.l d2-d5,-(a7)
-	move.l #$DFF000,d4
+	move.l #_custom,d4
 	moveq.l #0,d3
 	move.b #$98,d3
 	subq.w #1,d0
 	subq.w #1,d1
 	movea.l a0,a2
 	movea.l a1,a4
-abs_0_000168B8:
+restore_tile_rows:
 	move.l d0,d2
 	movea.l a2,a3
 	movea.l a4,a5
-abs_0_000168BE:
+restore_tile_columns:
 	movea.l (a3)+,a0
 	movea.l a5,a1
 	exg d4,a5
-abs_0_000168C4:
-	move.w $001E(a5),d5
-	btst #6,d5
-	beq.b abs_0_000168C4
-	move.w #$40,$009C(a5)
-	move.w #$FFFF,$0046(a5)
-	move.l a0,$0050(a5)
-	move.l a1,$0054(a5)
-	clr.w $0064(a5)
-	move.w #$26,$0066(a5)
-	move.w #$9F0,$0040(a5)
-	move.w #$1001,$0058(a5)
+wait_tile_rectangle_blit:
+	move.w intreqr(a5),d5	; interrupt request state
+	btst #INTB_BLIT,d5
+	beq.b wait_tile_rectangle_blit
+	move.w #INTF_BLIT,intreq(a5)
+	move.w #$FFFF,bltalwm(a5)
+	move.l a0,bltapt(a5)	; blitter_source pointer
+	move.l a1,bltdpt(a5)	; blitter_destination pointer
+	clr.w bltamod(a5)
+	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
+	move.w #SCENE_TILE_COPY_CONTROL,bltcon0(a5)
+	move.w #SCENE_TILE_BLTSIZE,bltsize(a5)	; blitter size 64 rows x 1 words (2 bytes/row)
 	exg d4,a5
 	addq.l #2,a5
-	dbf.w d2,abs_0_000168BE
-	adda.l app_02A2(a6),a2
-	cmpa.l app_029E(a6),a2
-	bcs.b abs_0_00016910
-	move.l app_029A(a6),d2
+	dbf.w d2,restore_tile_columns
+	adda.l app_tile_pointer_grid_row_stride_bytes(a6),a2
+	cmpa.l app_tile_pointer_grid_end(a6),a2
+	bcs.b restore_tile_next_row
+	move.l app_tile_pointer_grid_byte_size(a6),d2
 	suba.l d2,a2
-abs_0_00016910:
+    ; 2560B = 16 pixel rows * 4 planes * 40B. Grid advances one row stride, subtracting grid byte size at most once per row; arbitrary strides and allocation bounds remain unchecked.
+restore_tile_next_row:
 	lea.l $0A00(a4),a4
-	dbf.w d1,abs_0_000168B8
+	dbf.w d1,restore_tile_rows
 	movem.l (a7)+,d2-d5
 	rts
-abs_0_0001691E:
+blit_masked_frame_aligned_word_four_planes:
 	moveq.l #0,d6
 	movem.l a0-a2/a5,-(a7)
 	movem.w d4-d7,-(a7)
@@ -7824,8 +8368,8 @@ abs_0_00016944:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9E,bltcmod(a5)
-	move.w #$9E,bltdmod(a5)
+	move.w #SCENE_WORLD_WORD_MODULO,bltcmod(a5)
+	move.w #SCENE_WORLD_WORD_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -7872,7 +8416,7 @@ abs_0_00016A0C:
 	movem.l (a7)+,a0-a2/a5
 	rts
 	dc.b $61,$06,$50,$88,$54,$89,$54,$8A
-abs_0_00016A1E:
+blit_masked_frame_shifted_two_words_four_planes:
 	movem.l a0-a2/a5,-(a7)
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
@@ -7900,8 +8444,8 @@ abs_0_00016A48:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9C,bltcmod(a5)
-	move.w #$9C,bltdmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltcmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -7979,8 +8523,8 @@ abs_0_00016B4C:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9C,bltcmod(a5)
-	move.w #$C,bltdmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltcmod(a5)
+	move.w #SCENE_EDGE_PAIR_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -8025,6 +8569,7 @@ abs_0_00016BF4:
 	move.l a2,bltcpt(a5)	; blitter_source pointer
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
+    ; Staging uses 16B/row. Final one-WORD copy has 4H rows, A stride4B and D stride40B; initialized H<=48 bounds scratch to768B. Wait before reading; final DMA can outlive return.
 abs_0_00016C18:
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #6,d0
@@ -8033,8 +8578,8 @@ abs_0_00016C18:
 	move.w #$FFFF,bltalwm(a5)
 	move.l (a7)+,bltapt(a5)	; blitter_source pointer
 	move.l (a7)+,bltdpt(a5)	; blitter_destination pointer
-	move.w #$2,bltamod(a5)
-	move.w #$26,bltdmod(a5)
+	move.w #SCENE_EDGE_COPY_SOURCE_MODULO,bltamod(a5)
+	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	andi.w #65472,d7
 	add.w d7,d7
@@ -8078,8 +8623,8 @@ abs_0_00016C96:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9C,bltcmod(a5)
-	move.w #$C,bltdmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltcmod(a5)
+	move.w #SCENE_EDGE_PAIR_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -8124,6 +8669,7 @@ abs_0_00016D3E:
 	move.l a2,bltcpt(a5)	; blitter_source pointer
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
+    ; Final copy selects scratch+2, the second WORD of each four-byte pair, then copies 4H one-WORD rows with A stride4B and D stride40B. Initialized H<=48 is a bound, not an admission check.
 abs_0_00016D62:
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #6,d0
@@ -8134,8 +8680,8 @@ abs_0_00016D62:
 	addq.l #2,a3
 	move.l a3,bltapt(a5)	; blitter_source pointer
 	move.l (a7)+,bltdpt(a5)	; blitter_destination pointer
-	move.w #$2,bltamod(a5)
-	move.w #$26,bltdmod(a5)
+	move.w #SCENE_EDGE_COPY_SOURCE_MODULO,bltamod(a5)
+	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	andi.w #65472,d7
 	add.w d7,d7
@@ -8146,7 +8692,7 @@ abs_0_00016DA4:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
-abs_0_00016DAE:
+get_back_buffer_word_address:
 	movem.l d0-d2,-(a7)
 	lsr.w #3,d0
 	bclr #0,d0
@@ -8179,52 +8725,52 @@ copy_world_object_field_30_to_field_36:
     ; Restore background tiles in the saved entity/attachment rectangle, rounded to 16-pixel tile bounds and clipped to the view.
 restore_entity_background:
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a0),d0
-abs_0_00016E02:
-	beq.b abs_0_00016E5A
+find_first_previous_geometry:
+	beq.b restore_entity_background_return
 	movea.l d0,a4
 	tst.l world_position_state_record_previous_geometry_ptr(a4)
-	bne.b abs_0_00016E12
+	bne.b begin_previous_geometry_union
 	move.l world_position_state_record_attachment_state_ptr(a4),d0
-	bra.b abs_0_00016E02
-abs_0_00016E12:
+	bra.b find_first_previous_geometry
+begin_previous_geometry_union:
 	move.w world_position_descriptor_prefix_previous_world_x(a0),d0
 	move.w world_position_descriptor_prefix_previous_world_y(a0),d1
 	bsr.b get_previous_rect_start
 	bsr.b get_previous_rect_end
 	move.l d4,d2
 	move.l d5,d3
-abs_0_00016E22:
-	move.l $0014(a4),d6
-	beq.w abs_0_00016E9C
+union_next_attachment_geometry:
+	move.l world_position_state_record_attachment_state_ptr(a4),d6
+	beq.w restore_clipped_tile_rectangle
 	movea.l d6,a4
 	bsr.b get_previous_rect_start
 	cmp.w d2,d4
-	bcc.b abs_0_00016E34
+	bcc.b union_previous_rectangle_min_y
 	move.w d4,d2
-abs_0_00016E34:
+union_previous_rectangle_min_y:
 	cmp.w d3,d5
-	bcc.b abs_0_00016E3A
+	bcc.b union_previous_rectangle_maxima
 	move.w d5,d3
-abs_0_00016E3A:
+union_previous_rectangle_maxima:
 	bsr.b get_previous_rect_end
 	swap.w d2
 	swap.w d4
 	cmp.w d2,d4
-	bls.b abs_0_00016E46
+	bls.b union_previous_rectangle_max_y
 	move.w d4,d2
-abs_0_00016E46:
+union_previous_rectangle_max_y:
 	swap.w d2
 	swap.w d4
 	swap.w d3
 	swap.w d5
 	cmp.w d3,d5
-	bls.b abs_0_00016E54
+	bls.b union_previous_rectangle_next_attachment
 	move.w d5,d3
-abs_0_00016E54:
+union_previous_rectangle_next_attachment:
 	swap.w d3
 	swap.w d5
-	bra.b abs_0_00016E22
-abs_0_00016E5A:
+	bra.b union_next_attachment_geometry
+restore_entity_background_return:
 	rts
 get_previous_rect_start:
 	movea.l world_position_state_record_previous_geometry_ptr(a4),a3
@@ -8250,7 +8796,8 @@ get_previous_rect_end:
 	swap.w d4
 	swap.w d5
 	rts
-abs_0_00016E9C:
+    ; Round union outward to inclusive 16-pixel tile bounds; clip, shorten rows/columns and advance the source grid. REJECT skips the copy, including the all-four-sides flag combination.
+restore_clipped_tile_rectangle:
 	move.l a0,-(a7)
 	move.l d2,d5
 	move.l d3,d6
@@ -8267,8 +8814,8 @@ abs_0_00016E9C:
 	swap.w d2
 	swap.w d3
 	bsr.w clip_tile_region_to_view
-	cmp.b #$F,d4
-	beq.w abs_0_00016F58
+	cmp.b #VIEW_CLIP_REJECT,d4
+	beq.w restore_tile_rectangle_return
 	addq.w #1,d5
 	addq.w #1,d6
 	sub.w d2,d5
@@ -8279,9 +8826,9 @@ abs_0_00016E9C:
 	exg d1,d3
 	bsr.w get_tilemap_cell_pointer
 	tst.b d4
-	beq.w abs_0_00016F48
-	btst #2,d4
-	beq.b abs_0_00016EFA
+	beq.w restore_visible_tile_rectangle
+	btst #VIEW_CLIP_LEFT_BIT,d4
+	beq.b restore_clip_right_tiles
 	move.w d2,d7
 	sub.w d0,d7
 	add.w d7,d0
@@ -8290,10 +8837,10 @@ abs_0_00016E9C:
 	add.w d7,d7
 	add.w d7,d7
 	adda.w d7,a0
-	bra.w abs_0_00016F12
-abs_0_00016EFA:
-	btst #3,d4
-	beq.b abs_0_00016F12
+	bra.w restore_clip_vertical_tiles
+restore_clip_right_tiles:
+	btst #VIEW_CLIP_RIGHT_BIT,d4
+	beq.b restore_clip_vertical_tiles
 	swap.w d0
 	move.w d0,d7
 	swap.w d0
@@ -8303,9 +8850,9 @@ abs_0_00016EFA:
 	lsr.w #4,d7
 	sub.w d7,d5
 	swap.w d2
-abs_0_00016F12:
-	btst #0,d4
-	beq.b abs_0_00016F30
+restore_clip_vertical_tiles:
+	btst #VIEW_CLIP_TOP_BIT,d4
+	beq.b restore_clip_bottom_tiles
 	move.w d3,d7
 	sub.w d1,d7
 	move.w d3,d1
@@ -8315,10 +8862,10 @@ abs_0_00016F12:
 	add.w d7,d7
 	add.w d7,d7
 	adda.w d7,a0
-	bra.w abs_0_00016F48
-abs_0_00016F30:
-	btst #1,d4
-	beq.b abs_0_00016F48
+	bra.w restore_visible_tile_rectangle
+restore_clip_bottom_tiles:
+	btst #VIEW_CLIP_BOTTOM_BIT,d4
+	beq.b restore_visible_tile_rectangle
 	swap.w d1
 	move.w d1,d7
 	swap.w d1
@@ -8328,31 +8875,31 @@ abs_0_00016F30:
 	lsr.w #4,d7
 	sub.w d7,d6
 	swap.w d3
-abs_0_00016F48:
+restore_visible_tile_rectangle:
 	sub.w d3,d1
 	sub.w d2,d0
-	bsr.w abs_0_00016DAE
+	bsr.w get_back_buffer_word_address
 	move.w d5,d0
 	move.w d6,d1
-	bsr.w abs_0_000168A0
-abs_0_00016F58:
+	bsr.w blit_tile_pointer_rectangle_to_buffer
+restore_tile_rectangle_return:
 	movea.l (a7)+,a0
 	rts
 draw_entity_geometry_chain:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_00016F60:
+draw_next_geometry_attachment:
 	bsr.b draw_entity_geometry
-	move.l $0014(a0),d0
-	beq.b abs_0_00016F6C
+	move.l world_position_state_record_attachment_state_ptr(a0),d0
+	beq.b draw_geometry_chain_return
 	movea.l d0,a0
-	bra.b abs_0_00016F60
-abs_0_00016F6C:
+	bra.b draw_next_geometry_attachment
+draw_geometry_chain_return:
 	rts
     ; Draw current geometry at XY plus animation offsets. Original H<=48 bounds scratch to768B after nonwrapping clipping; fully clipped geometry sets bit0. DMA input bounds remain separate.
 draw_entity_geometry:
 	movem.l a0/a5,-(a7)
 	tst.l world_position_state_record_current_geometry_ptr.w(a0)
-	beq.w abs_0_00017166
+	beq.w draw_geometry_return
 	movea.l world_position_state_record_position_descriptor_ptr(a0),a1
 	move.w world_position_state_record_world_x_offset(a0),d0
 	move.w world_position_state_record_world_y_offset(a0),d1
@@ -8372,58 +8919,59 @@ draw_entity_geometry:
 	swap.w d3
 	move.w d1,d3
 	bsr.w clip_tile_region_to_view
-	cmp.b #$F,d4
-	beq.w abs_0_0001716C
+	cmp.b #VIEW_CLIP_REJECT,d4
+	beq.w mark_geometry_outside_view
 	bclr.b #0,world_position_state_record_interaction_flags(a0)
-	move.w $000A(a2),d7
+    ; Clip preserves A2 geometry, A4 mask and A3 pixels. Computed top skip advances mask by 2*stride_words*skip and four-plane pixels by four times that. Original +1 is retained.
+	move.w world_position_collision_bounds_world_y_extent(a2),d7
 	tst.b d4
-	beq.w abs_0_00017174
-	btst #0,d4
-	beq.b abs_0_00016FFA
+	beq.w draw_geometry_fully_visible
+	btst #VIEW_CLIP_TOP_BIT,d4
+	beq.b draw_geometry_clip_bottom
 	swap.w d3
 	move.w d3,d7
 	addq.w #1,d7
 	swap.w d3
 	sub.w d1,d7
-	move.w $000A(a2),d6
+	move.w world_position_collision_bounds_world_y_extent(a2),d6
 	sub.w d7,d6
-	mulu.w $0008(a2),d6
+	mulu.w world_position_collision_bounds_row_stride_words(a2),d6
 	add.w d6,d6
 	adda.w d6,a4
 	add.w d6,d6
 	add.w d6,d6
 	adda.w d6,a3
 	move.w d1,d3
-	bra.b abs_0_00017008
-abs_0_00016FFA:
-	btst #1,d4
-	beq.b abs_0_00017008
+	bra.b draw_geometry_clip_horizontal
+draw_geometry_clip_bottom:
+	btst #VIEW_CLIP_BOTTOM_BIT,d4
+	beq.b draw_geometry_clip_horizontal
 	swap.w d1
 	move.w d1,d7
 	swap.w d1
 	sub.w d3,d7
-abs_0_00017008:
-	btst #2,d4
-	beq.w abs_0_000170AC
-	move.w $0008(a2),d4
+draw_geometry_clip_horizontal:
+	btst #VIEW_CLIP_LEFT_BIT,d4
+	beq.w draw_geometry_test_right_clip
+	move.w world_position_collision_bounds_row_stride_words(a2),d4
 	move.w d4,d5
 	movea.l a4,a1
 	movea.l a3,a0
 	lsl.w #3,d5
 	sub.w d0,d2
-	bra.b abs_0_0001702E
-abs_0_00017020:
+	bra.b draw_geometry_test_left_alignment
+draw_geometry_skip_left_word:
 	addq.l #8,a0
 	addq.l #2,a1
 	subq.w #1,d4
-	bmi.w abs_0_00017166
+	bmi.w draw_geometry_return
 	addi.w #16,d2
-abs_0_0001702E:
-	bmi.b abs_0_00017020
-	bne.w abs_0_00017068
-	clr.w app_01F4(a6)
+draw_geometry_test_left_alignment:
+	bmi.b draw_geometry_skip_left_word
+	bne.w draw_geometry_left_shifted_edge
+	clr.w app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	move.w d3,app_01F6(a6)
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -8432,18 +8980,18 @@ abs_0_0001702E:
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d1,a2
 	subq.w #1,d4
-	bmi.w abs_0_00017166
-abs_0_00017056:
-	bsr.w abs_0_0001691E
+	bmi.w draw_geometry_return
+draw_geometry_left_aligned_columns:
+	bsr.w blit_masked_frame_aligned_word_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_00017056
-	bra.w abs_0_00017166
-abs_0_00017068:
-	clr.w app_01F4(a6)
+	dbf.w d4,draw_geometry_left_aligned_columns
+	bra.w draw_geometry_return
+draw_geometry_left_shifted_edge:
+	clr.w app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	move.w d3,app_01F6(a6)
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -8456,20 +9004,20 @@ abs_0_00017068:
 	subq.l #2,a1
 	bsr.w blit_masked_frame_second_word_via_shared_scratch
 	subq.w #1,d4
-	bmi.w abs_0_00017166
+	bmi.w draw_geometry_return
 	addq.l #8,a0
 	addq.l #2,a1
-abs_0_0001709A:
-	bsr.w abs_0_00016A1E
+draw_geometry_left_shifted_columns:
+	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_0001709A
-	bra.w abs_0_00017166
-abs_0_000170AC:
-	btst #3,d4
-	beq.w abs_0_0001711E
-	move.w $0008(a2),d4
+	dbf.w d4,draw_geometry_left_shifted_columns
+	bra.w draw_geometry_return
+draw_geometry_test_right_clip:
+	btst #VIEW_CLIP_RIGHT_BIT,d4
+	beq.w draw_geometry_horizontal_span_setup
+	move.w world_position_collision_bounds_row_stride_words(a2),d4
 	move.w d4,d5
 	subq.w #1,d4
 	movea.l a4,a1
@@ -8483,12 +9031,12 @@ abs_0_000170AC:
 	lsr.w #4,d0
 	subq.w #1,d0
 	move.w d0,d4
-	move.w d2,app_01F4(a6)
+	move.w d2,app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	bpl.b abs_0_000170DC
+	bpl.b draw_geometry_right_clipped_origin
 	moveq.l #0,d3
-abs_0_000170DC:
-	move.w d3,app_01F6(a6)
+draw_geometry_right_clipped_origin:
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -8501,29 +9049,30 @@ abs_0_000170DC:
 	add.w d0,d1
 	adda.w d1,a2
 	tst.w d4
-	bmi.b abs_0_00017110
-abs_0_00017102:
-	bsr.w abs_0_00016A1E
+	bmi.b draw_geometry_right_partial_word
+draw_geometry_right_visible_columns:
+	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_00017102
-abs_0_00017110:
+	dbf.w d4,draw_geometry_right_visible_columns
+draw_geometry_right_partial_word:
 	tst.b d6
-	beq.w abs_0_00017166
+	beq.w draw_geometry_return
 	bsr.w blit_masked_frame_first_word_via_shared_scratch
-	bra.w abs_0_00017166
-abs_0_0001711E:
-	move.w $0008(a2),d4
+	bra.w draw_geometry_return
+    ; Span WORDs store coordinate differences; left-clipped paths force X=0. No reader of these app slots is established. D4 drives the DBF column loop independently of the stored spans.
+draw_geometry_horizontal_span_setup:
+	move.w world_position_collision_bounds_row_stride_words(a2),d4
 	move.w d4,d5
 	subq.w #1,d4
 	lsl.w #3,d5
 	movea.l a4,a1
 	movea.l a3,a0
 	sub.w d0,d2
-	move.w d2,app_01F4(a6)
+	move.w d2,app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	move.w d3,app_01F6(a6)
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -8536,32 +9085,34 @@ abs_0_0001711E:
 	add.w d1,d0
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d0,a2
-abs_0_00017158:
-	bsr.w abs_0_00016A1E
+draw_geometry_full_width_columns:
+	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_00017158
-abs_0_00017166:
+	dbf.w d4,draw_geometry_full_width_columns
+draw_geometry_return:
 	movem.l (a7)+,a0/a5
 	rts
-abs_0_0001716C:
+mark_geometry_outside_view:
 	bset.b #0,world_position_state_record_interaction_flags(a0)
-	bra.b abs_0_00017166
-abs_0_00017174:
-	bra.b abs_0_0001711E
+	bra.b draw_geometry_return
+draw_geometry_fully_visible:
+	bra.b draw_geometry_horizontal_span_setup
 	dc.b $67,$75,$6E,$66,$69,$72,$65,$2E,$64,$61,$74,$00
 abs_0_00017182:
 	dc.b "pandora1.pi1",$00
 	dc.b $00
+    ; A1 selects the final 32 hit-snapshot bytes. Add/subtract/unpack read 16 WORDs; clear ignores A1. A0/A2 address separate palette outputs. Entry/phase exclusion remains unproved.
 prepare_work_buffer_arguments:
-	lea.l abs_0_000134C2(pc),a0
-	lea.l abs_0_00013462(pc),a2
-	lea.l $00077FE0.l,a1
+	lea.l gameplay_current_rgb12_palette(pc),a0
+	lea.l gameplay_palette_fractional_components(pc),a2
+	lea.l WORK_BUFFER_PALETTE_INPUT_BASE.l,a1
 	moveq.l #15,d7
 	rts
+    ; Net SP+2 before RTS splices the return low WORD with the next stack WORD. At the four copied-view BSR sites, the 24-bit target leaves the verified payload; these are not balanced returns.
 return_work_buffer_argument:
-	move.l #abs_0_000134C2,-(a7)
+	move.l #gameplay_current_rgb12_palette,-(a7)
 	addq.l #6,a7
 	rts
 render_work_buffer_overlay:
@@ -8574,8 +9125,10 @@ render_work_buffer_overlay:
 	addq.l #6,a7
 	lea.l abs_0_00017182(pc),a5
 	lea.l $00077FDE.l,a4
+    ; Prepare overwrites D7=$7D22 with 15 before use. A4=$77FDE is not dereferenced in this prefix; the filename and discarded arguments do not establish an executed load or buffer extent.
 	move.l #$7D22,d7
 	bsr.b prepare_work_buffer_arguments
+    ; This clear writes 32 palette and 96 accumulator bytes without reading A1. The following helper leaves the copied view, so the later shared-input add loop is not ordinary fallthrough.
 	jsr clear_rgb12_palette_components.l
 	bsr.b return_work_buffer_argument
 	moveq.l #15,d7
@@ -8601,6 +9154,7 @@ abs_0_00017206:
 	andi.b #254,d0
 	movea.l d0,a0
 	bra.b abs_0_00017202
+    ; Unpack reads 32 shared-tail bytes and writes 32 palette/96 accumulator bytes before the stack-splicing helper. The later subtract loop is not reached by an ordinary balanced return.
 fade_out_work_buffer_palette:
 	bsr.w prepare_work_buffer_arguments
 	jsr unpack_rgb12_palette_components.l
@@ -8617,7 +9171,7 @@ abs_0_00017238:
 	move.w (a7)+,d7
 	dbf.w d7,abs_0_00017224
 	rts
-abs_0_00017244:
+initialize_scene_and_animation_mask_banks:
 	lea.l scene_pixel_cells_for_mask_bank_00.l,a0
 	lea.l scene_mask_bank_00.l,a1
 	moveq.l #10,d6
@@ -8938,13 +9492,13 @@ abs_0_0001773A:
 	dbf.w d6,abs_0_0001773A
 	rts
 abs_0_00017746:
-	bsr.b abs_0_00017750
-abs_0_00017748:
+	bsr.b draw_title_glyph
+draw_title_glyph_string:
 	moveq.l #0,d0
 	move.b (a3)+,d0
 	bne.b abs_0_00017746
 	rts
-abs_0_00017750:
+draw_title_glyph:
 	move.l d7,-(a7)
 	cmp.b #$20,d0
 	beq.b abs_0_0001778A
@@ -8979,7 +9533,7 @@ abs_0_0001779E:
 	bset.b #1,app_ui_flags(a6)
 	lea.l opponent_health_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001335A.l,a5
+	lea.l hit_feedback_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_player_attack_charge(a6)
 	clr.w app_opponent_attack_charge(a6)
@@ -9125,15 +9679,16 @@ abs_0_00017980:
 	bsr.w advance_and_draw_player_attack_charge
 	bsr.w service_combat_hit_feedback_timers
 	rts
+    ; Observed normal combat defeat reaches the NULL-node reset at $868A and zeros WORD $10 (illegal-instruction vector high word). See runtime/observations/pandora-combat-null-node.json.
 handle_combat_player_defeat:
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
-	lea.l abs_0_0005C5B6.l,a0
+	lea.l player_static_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a4)
-	lea.l abs_0_0005C592.l,a1
-	move.l a1,$0000(a0)
-	move.l a1,$0004(a0)
+	lea.l player_final_pose_geometry_frames.l,a1
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a0)
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
@@ -9152,7 +9707,7 @@ finish_combat_encounter:
 	jsr (a0)
 	movem.l (a7)+,a4-a5
 abs_0_00017A06:
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	bset.b #1,$0048(a5)
 	bclr.b #1,app_ui_flags(a6)
 	lea.l combat_visual_render_state.l,a0
@@ -9178,11 +9733,12 @@ abs_0_00017A4E:
 	move.b WorldPositionStateNode_phase_step(a0),WorldPositionStateNode_frame_index_and_phase+1(a0)
 	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
-	lea.l abs_0_0001332E.l,a5
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
+	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
-	lea.l abs_0_0001335A.l,a5
-	bsr.w abs_0_0001639A
+	lea.l hit_feedback_overlay.l,a5
+    ; Direct hit-snapshot restore follows nearby-distance redraw and waits for its prior packet. Return is asynchronous; a later combat entry recaptures via bit6.
+	bsr.w restore_ui_overlay_background
 	rts
 show_player_combat_hit_feedback:
 	movem.l d0/a0-a5,-(a7)
@@ -9193,15 +9749,15 @@ show_player_combat_hit_feedback:
 	andi.b #28,d0
 	lea.l abs_0_000585E6.l,a0
 	movea.l $0(a0,d0.w),a1
-	lea.l abs_0_000585B2.l,a2
-	movea.l $0010(a2),a3
-	move.l a1,$0000(a2)
-	move.l a1,$0004(a2)
+	lea.l ranged_hit_visual_state.l,a2
+	movea.l world_position_render_state_prefix_position_descriptor_ptr(a2),a3
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a2)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a2)
 	lea.l player_world_object.l,a5
 	move.w world_object_shared_prefix_world_x(a5),d0
 	subi.w #10000,d0
-	move.w d0,$0004(a3)
-	move.w world_object_shared_prefix_world_y(a5),$0006(a3)
+	move.w d0,world_position_descriptor_prefix_world_x(a3)
+	move.w world_object_shared_prefix_world_y(a5),world_position_descriptor_prefix_world_y(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
 show_opponent_combat_hit_feedback:
@@ -9230,8 +9786,8 @@ service_combat_hit_feedback_timers:
 	beq.b abs_0_00017B54
 	subq.b #1,app_player_hit_feedback_ticks_remaining(a6)
 	bne.b abs_0_00017B54
-	lea.l abs_0_000585B2.l,a0
-	move.l #abs_0_00058588,(a0)
+	lea.l ranged_hit_visual_state.l,a0
+	move.l #abs_0_00058588,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
 abs_0_00017B54:
 	tst.b app_opponent_hit_feedback_ticks_remaining(a6)
 	beq.b abs_0_00017B6C
@@ -9242,10 +9798,10 @@ abs_0_00017B54:
 abs_0_00017B6C:
 	rts
 clear_combat_hit_feedback:
-	lea.l abs_0_000585B2.l,a0
+	lea.l ranged_hit_visual_state.l,a0
 	lea.l abs_0_000585CC.l,a1
 	lea.l abs_0_00058588.l,a2
-	move.l a2,(a0)
+	move.l a2,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
 	move.l a2,(a1)
 	rts
 display_current_item_name:
@@ -9253,10 +9809,10 @@ display_current_item_name:
 	moveq.l #0,d0
 	move.b $0046(a5),d0
 	bsr.w resolve_item_name
-	lea.l abs_0_000133B2.l,a5
-	move.l a0,$000C(a5)
+	lea.l nearby_carrying_overlay.l,a5
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
 	moveq.l #0,d0
-	bsr.w abs_0_00016632
+	bsr.w redraw_ui_overlay_selected_line_proportional
 	movea.l (a7)+,a5
 	rts
 clear_inventory_item_selection_flags:
@@ -9444,9 +10000,9 @@ service_gameplay_palette_transition:
 	lea.l player_world_object.l,a5
 	bsr.w draw_object_health_status
 abs_0_00017DD6:
-	lea.l abs_0_000134C2.l,a0
-	lea.l abs_0_000134E2.l,a1
-	lea.l abs_0_00013462.l,a2
+	lea.l gameplay_current_rgb12_palette.l,a0
+	lea.l gameplay_palette_increment_rgb12.l,a1
+	lea.l gameplay_palette_fractional_components.l,a2
 	moveq.l #15,d7
 	bsr.w add_rgb12_palette_components
 abs_0_00017DEE:
@@ -9493,14 +10049,15 @@ abs_0_00017E6E:
 	sub.w d3,d1
 	bpl.b abs_0_00017E74
 	neg.w d1
+    ; Near/far sequences use unsigned WORD distance after biases; flag 5 selects variant. Changes trigger audio, clear hold/clock and set hold-at-end; count persists.
 abs_0_00017E74:
 	add.w d1,d0
-	cmp.w #$2C,d0
+	cmp.w #WORLD_PROXIMITY_ANIMATION_DISTANCE,d0
 	bcc.b abs_0_00017EC2
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_5.l,a3
+	lea.l world_proximity_near_sequence_0_held.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017E90
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_19.l,a3
+	lea.l world_proximity_near_sequence_1_held.l,a3
 abs_0_00017E90:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
@@ -9509,18 +10066,18 @@ abs_0_00017E90:
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,$0006(a5)
-	bclr.b #0,$000A(a5)
-	bset.b #2,$000A(a5)
-	clr.w $0010(a5)
+	move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)
+	bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a5)
 	move.l a0,-(a7)
 	movea.l (a7)+,a0
 	bra.b abs_0_00017F02
 abs_0_00017EC2:
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_12.l,a3
+	lea.l world_proximity_far_sequence_0_held.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017ED6
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_26.l,a3
+	lea.l world_proximity_far_sequence_1_held.l,a3
 abs_0_00017ED6:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
@@ -9529,10 +10086,10 @@ abs_0_00017ED6:
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,$0006(a5)
-	bclr.b #0,$000A(a5)
-	bset.b #2,$000A(a5)
-	clr.w $0010(a5)
+	move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)
+	bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a5)
 abs_0_00017F02:
 	dbf.w d7,abs_0_00017E04
 abs_0_00017F06:
@@ -9636,15 +10193,15 @@ abs_0_0001800A:
 	rts
 abs_0_00018032:
 	movea.l a4,a5
-	lea.l abs_0_0005C6BA.l,a0
+	lea.l player_animated_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
 	lea.l entry_officer_animation_bank_2.l,a1
-	move.l a1,$0000(a0)
-	movea.l $0008(a0),a0
-	clr.w $0010(a0)
-	bclr.b #0,$000A(a0)
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w world_object_shared_prefix_hit_points(a5)
 	lea.l player_health_overlay.l,a4
@@ -9726,8 +10283,8 @@ incorrect_receptacle_item_message:
 	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
 advance_and_draw_player_attack_charge:
-	lea.l abs_0_0001335A.l,a5
-	tst.w $0006(a5)
+	lea.l hit_feedback_overlay.l,a5
+	tst.w ui_overlay_descriptor_state_flags(a5)
 	bpl.w abs_0_000182D2
 	subq.b #1,app_player_attack_charge_countdown(a6)
 	bne.w abs_0_000181B2
@@ -9743,8 +10300,8 @@ abs_0_000181A2:
 	bcc.b abs_0_000181B2
 	clr.w app_player_attack_charge(a6)
 abs_0_000181B2:
-	move.b $0000(a5),d0
-	move.b $0001(a5),d1
+	move.b ui_overlay_descriptor_x.w(a5),d0
+	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w set_text_cursor_in_overlay_plane
@@ -9884,13 +10441,14 @@ combat_charge_full_cell_patterns:
 	dc.l $00FEFE00	; lookup_table
 combat_charge_partial_cell_masks:
 	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF	; lookup_table
+    ; Scan NULL-terminated objects; sync descriptor XY, including player. WORD distance wraps. Changed candidates and queued messages overwrite D0; this is not a stable nearest-object reduction.
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1
 	lea.l player_world_object.l,a4
 	move.w world_object_shared_prefix_world_x(a4),d4
 	move.w world_object_shared_prefix_world_y(a4),d5
-	move.w #$5A,d0
-	bset.b #2,app_02A6(a6)
+	move.w #WORLD_PROXIMITY_INITIAL_THRESHOLD,d0
+	bset.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
@@ -9901,7 +10459,7 @@ scan_world_objects_for_proximity:
 	move.w d2,world_position_descriptor_prefix_world_x(a0)
 	move.w d3,world_position_descriptor_prefix_world_y(a0)
 	cmpa.l a5,a4
-	beq.w abs_0_000183AA
+	beq.w next_world_object_proximity_candidate
 	sub.w d4,d2
 	bpl.b abs_0_00018334
 	neg.w d2
@@ -9912,27 +10470,29 @@ abs_0_00018334:
 abs_0_0001833A:
 	add.w d2,d3
 	move.w d3,world_object_shared_prefix_proximity_distance(a5)
-	bclr.b #5,world_object_shared_prefix_world_object_flags(a5)
+	bclr.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,world_object_shared_prefix_world_object_flags(a5)
 	cmp.w d0,d3
-	bcc.b abs_0_000183AA
-	bclr.b #2,app_02A6(a6)
+	bcc.b next_world_object_proximity_candidate
+	bclr.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
-	bset.b #5,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,world_object_shared_prefix_world_object_flags(a5)
 	cmpa.l app_nearest_object_ptr(a6),a5
-	beq.b abs_0_000183AA
+	beq.b next_world_object_proximity_candidate
 	move.l a5,app_nearest_object_ptr(a6)
 	move.l a5,app_02D4(a6)
+    ; Changed candidate replaces D0 threshold with cooldown (decrement nonzero). Without a queued message later tests use this value; enqueue_status_message can overwrite it again.
 	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
-	beq.b abs_0_00018376
+	beq.b latch_changed_nearby_object_context
 	subq.w #1,d0
 	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
-abs_0_00018376:
-	bset.b #1,app_02A6(a6)
-	bset.b #2,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_000183AA
+latch_changed_nearby_object_context:
+	bset.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
+    ; Latch first context visit before inactive and NULL-message guards. Bit 2 does not prove a prompt was queued; bit 5 can remain set on multiple admitted objects.
+	bset.b #WORLD_OBJECT_CONTEXT_VISITED_BIT,world_object_shared_prefix_world_object_flags(a5)
+	bne.b next_world_object_proximity_candidate
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_000183AA
+	bne.b next_world_object_proximity_candidate
 	tst.l world_object_shared_prefix_context_message_ptr(a5)
 	beq.w scan_world_objects_for_proximity
 	movem.l a0-a3,-(a7)
@@ -9940,16 +10500,16 @@ abs_0_00018376:
 	movea.l world_object_shared_prefix_context_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	movem.l (a7)+,a0-a3
-abs_0_000183AA:
+next_world_object_proximity_candidate:
 	bra.w scan_world_objects_for_proximity
 update_nearby_object_context:
 	bsr.w partition_world_object_update_ptrs
 	bsr.w process_active_world_object_chains
 	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00018492
-	btst.b #1,app_02A6(a6)
+	btst.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
 	bne.w show_nearby_object_context_prompt
-	btst.b #2,app_02A6(a6)
+	btst.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
 	bne.b clear_nearby_object_context_prompt
 	movea.l app_nearest_object_ptr(a6),a5
 	btst.b #1,player_world_object_world_object_flags.l
@@ -9977,16 +10537,16 @@ abs_0_0001840E:
 	bne.b abs_0_0001848E
 	bra.b abs_0_00018492
 clear_nearby_object_context_prompt:
-	bset.b #3,app_02A6(a6)
+	bset.b #NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT,app_02A6(a6)
 	bne.b abs_0_00018492
-	lea.l abs_0_00013386.l,a5
+	lea.l nearby_character_overlay.l,a5
 	moveq.l #0,d0
 	bsr.w resolve_item_name
-	move.l a0,$000C(a5)
-	lea.l abs_0_000133B2.l,a5
-	move.l a0,$000C(a5)
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
+	lea.l nearby_carrying_overlay.l,a5
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
 	bsr.b render_context_prompt
-	lea.l abs_0_00013386.l,a5
+	lea.l nearby_character_overlay.l,a5
 	bsr.b render_context_prompt
 	clr.l app_nearest_object_ptr(a6)
 	clr.b app_nearby_object_prompt_countdown(a6)
@@ -9997,17 +10557,17 @@ show_nearby_object_context_prompt:
 	move.b #$3C,app_nearby_object_prompt_countdown(a6)
 	moveq.l #-11,d0
 	and.b d0,app_02A6(a6)
-	lea.l abs_0_00013386.l,a0
+	lea.l nearby_character_overlay.l,a0
 	movea.l app_nearest_object_ptr(a6),a5
-	move.l world_object_shared_prefix_item_name_ptr.w(a5),$000C(a0)
-	lea.l abs_0_000133B2.l,a1
+	move.l world_object_shared_prefix_item_name_ptr.w(a5),ui_overlay_descriptor_line_0_ptr(a0)
+	lea.l nearby_carrying_overlay.l,a1
 	moveq.l #0,d0
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	bsr.w resolve_item_name
-	move.l a0,$000C(a1)
+	move.l a0,ui_overlay_descriptor_line_0_ptr(a1)
 	movea.l a1,a5
 	bsr.b render_context_prompt
-	lea.l abs_0_00013386.l,a5
+	lea.l nearby_character_overlay.l,a5
 	bsr.b render_context_prompt
 abs_0_0001848E:
 	subq.b #1,app_nearby_object_prompt_countdown(a6)
@@ -10015,45 +10575,47 @@ abs_0_00018492:
 	rts
 render_context_prompt:
 	moveq.l #0,d0
-	bra.w abs_0_00016632
+	bra.w redraw_ui_overlay_selected_line_proportional
+    ; Bit6 wins over bit7: front keeps input order, back reverses it. Sort only deferred middle by unsigned world Y. Nonempty middle is required; universal reachability and tie stability unproved.
 partition_world_object_update_ptrs:
 	lea.l world_object_sort_source_ptrs(pc),a0
 	movea.l a0,a2
 	lea.l abs_0_0001318E(pc),a1
-	moveq.l #31,d7
+	moveq.l #WORLD_DEPTH_SORT_LAST_INDEX,d7
 	move.l d7,d6
-	lea.l abs_0_000131AA(pc),a3
+	lea.l world_depth_sort_copy_scratch(pc),a3
 	movea.l a3,a4
-abs_0_000184AE:
+copy_world_descriptor_ptr_snapshot:
 	move.l (a2)+,(a3)+
-	dbf.w d7,abs_0_000184AE
-	lea.l abs_0_0001322A(pc),a5
+	dbf.w d7,copy_world_descriptor_ptr_snapshot
+	lea.l world_depth_sort_deferred_scratch(pc),a5
 	move.l d6,d7
 	addq.w #1,d7
 	moveq.l #-1,d5
-abs_0_000184BE:
+partition_next_world_descriptor:
 	movea.l (a4)+,a3
-	movea.l $0000(a3),a2
-	btst.b #6,$0019(a2)
-	beq.b abs_0_000184D2
+    ; KNOWN: type A3=Target code-entry register seed:world_position_descriptor_prefix
+	movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2
+	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
+	beq.b partition_world_descriptor_check_back_group
 	move.l a3,(a0)+
 	subq.w #1,d7
-	bra.b abs_0_000184E4
-abs_0_000184D2:
-	btst.b #7,$0019(a2)
-	beq.b abs_0_000184E0
+	bra.b advance_world_descriptor_partition
+partition_world_descriptor_check_back_group:
+	btst.b #WORLD_POSITION_SECURITY_CHECKPOINT_BIT,world_position_state_record_world_object_flags(a2)
+	beq.b defer_world_descriptor_for_depth_sort
 	move.l a3,-(a1)
 	subq.w #1,d7
-	bra.b abs_0_000184E4
-abs_0_000184E0:
+	bra.b advance_world_descriptor_partition
+defer_world_descriptor_for_depth_sort:
 	move.l a3,(a5)+
 	addq.w #1,d5
-abs_0_000184E4:
-	dbf.w d6,abs_0_000184BE
+advance_world_descriptor_partition:
+	dbf.w d6,partition_next_world_descriptor
 	movea.l a0,a1
-abs_0_000184EA:
+reverse_copy_deferred_world_descriptors:
 	move.l -(a5),(a1)+
-	dbf.w d5,abs_0_000184EA
+	dbf.w d5,reverse_copy_deferred_world_descriptors
 	move.w d7,d3
 	subq.l #4,a0
 	moveq.l #1,d0
@@ -10065,7 +10627,7 @@ abs_0_000184F6:
 	add.w d0,d0
 	add.w d3,d3
 	add.w d3,d3
-abs_0_00018504:
+reduce_world_descriptor_sort_gap:
 	lsr.w #2,d0
 	subq.w #1,d0
 	lsr.w #1,d0
@@ -10076,24 +10638,25 @@ abs_0_00018504:
 	sub.w d0,d4
 abs_0_00018514:
 	move.w d7,d2
-abs_0_00018516:
+compare_world_descriptor_depth_pair:
 	move.w d2,d1
 	add.w d0,d1
 	movea.l $0(a0,d1.w),a1
 	movea.l $0(a0,d2.w),a2
-	move.w $0006(a1),d5
-	cmp.w $0006(a2),d5
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix; type A2=Target code-entry register seed:world_position_descriptor_prefix
+	move.w world_position_descriptor_prefix_world_y(a1),d5
+	cmp.w world_position_descriptor_prefix_world_y(a2),d5
 	bcc.b abs_0_0001853A
 	move.l a2,$0(a0,d1.w)
 	move.l a1,$0(a0,d2.w)
 	sub.w d0,d2
 	bmi.b abs_0_0001853A
-	bne.b abs_0_00018516
+	bne.b compare_world_descriptor_depth_pair
 abs_0_0001853A:
 	addq.w #4,d7
 	cmp.w d7,d4
 	bcc.b abs_0_00018514
-	bra.b abs_0_00018504
+	bra.b reduce_world_descriptor_sort_gap
 abs_0_00018542:
 	rts
     ; Render DIRE/POOR/FAIR/GOOD/DEAD from word hit points; zero means DEAD and nonzero values clamp to 95. Update the overlay's RGB12 palette color and text plane. Known input records only.
@@ -10118,7 +10681,7 @@ abs_0_00018572:
 	move.b health_grade_index_table(pc,d0.w),d5
 	move.w d5,d4
 	add.w d4,d4
-	lea.l abs_0_000134C2.l,a0
+	lea.l gameplay_current_rgb12_palette.l,a0
 	move.w health_grade_rgb12_table(pc,d4.w),$0(a0,d6.w)
 	lsr.w #2,d5
 	move.w d5,d3
@@ -10178,13 +10741,14 @@ weapon_combat_charge_reload_table:
 	dc.b $04,$05,$02,$01,$04,$03,$02	; lookup_table
 weapon_combat_damage_table:
 	dc.b $23,$15,$09,$07,$19,$0E,$08	; lookup_table
+    ; Exchange active and saved states and restart the incoming node; a second call exchanges them back. Requires valid state/node pointers and a disjoint call stack.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
-restore_world_object_position_state:
+exchange_world_object_position_states:
 	move.l a0,-(a7)
 	movea.l world_object_shared_prefix_saved_position_state_ptr(a5),a0
 	move.l a0,-(a7)
 	movea.l world_position_state_record_state_node_ptr(a0),a0
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a0),world_object_shared_prefix_saved_position_state_ptr(a5)
@@ -10206,21 +10770,23 @@ abs_0_000186B0:
 abs_0_000186C4:
 	movem.l (a7)+,d1/a0/a5
 	rts
+    ; Movement recheck accepts IDs 48..55 in selected item, four carried or four pocket slots. Preserve D0-D7/A0-A5 and consume the pending bit; failure stages player defeat.
+    ; KNOWN: type A4=Target code-entry register seed:world_object_shared_prefix
 enforce_id_card_requirement:
 	movem.l d0-d7/a0-a5,-(a7)
-	moveq.l #48,d1
-	moveq.l #8,d2
-	move.b $0046(a4),d0
+	moveq.l #ITEM_ID_ID_COMMANDER,d1
+	moveq.l #ID_POSSESSION_VARIANT_COUNT,d2
+	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b abs_0_0001874E
+	bcs.b finish_id_possession_recheck
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
 abs_0_000186E2:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b abs_0_0001874E
+	bcs.b finish_id_possession_recheck
 	dbf.w d7,abs_0_000186E2
 	moveq.l #3,d7
 	lea.l app_pocket_item_ids(a6),a0
@@ -10228,28 +10794,29 @@ abs_0_000186F4:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
-	bcs.b abs_0_0001874E
+	bcs.b finish_id_possession_recheck
 	dbf.w d7,abs_0_000186F4
 	movea.l a4,a5
-	lea.l abs_0_0005C6BA.l,a0
-	move.l a0,$004E(a5)
+	lea.l player_animated_defeat_state.l,a0
+	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
 	lea.l entry_officer_animation_bank_2.l,a1
-	move.l a1,$0000(a0)
-	movea.l $0008(a0),a0
-	clr.w $0010(a0)
-	bclr.b #0,$000A(a0)
-	bset.b #1,$0048(a5)
-	bsr.w restore_world_object_position_state
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
-	clr.w $003C(a5)
+	clr.w world_object_shared_prefix_hit_points(a5)
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
 	jsr abs_0_0005D31A.l
-abs_0_0001874E:
-	bclr.b #4,app_02A6(a6)
+finish_id_possession_recheck:
+	bclr.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
+    ; Use (X+12)/48 and (Y+24)/48 to index 30 macrocell columns. Four selector intervals map to tiers 0..3; FF means unrestricted. Original map only: no coordinate or selector-table bounds guard.
 update_player_security_zone:
 	lea.l row_selector_ids(pc),a0
 	lea.l player_world_object.l,a4
@@ -10260,8 +10827,8 @@ update_player_security_zone:
 	move.w world_object_shared_prefix_world_y(a4),d1
 	addi.w #12,d0
 	addi.w #24,d1
-	divu.w #$30,d1
-	divu.w #$30,d0
+	divu.w #SECURITY_MACROCELL_PIXELS,d1
+	divu.w #SECURITY_MACROCELL_PIXELS,d0
 	add.w d1,d1
 	move.w d1,d2
 	lsl.w #4,d1
@@ -10270,151 +10837,160 @@ update_player_security_zone:
 	add.w d0,d0
 	move.w $0(a0,d0.w),d0
 	move.w d0,d1
-	cmp.w #$45,d0
-	bcs.b abs_0_000187D4
-	cmp.w #$13A,d0
-	bcc.b abs_0_000187D4
-	cmp.w #$51,d0
+	cmp.w #SECURITY_ZONE_0_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_3_END_SELECTOR,d0
+	bcc.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_0_END_SELECTOR,d0
 	bcc.b abs_0_000187AA
 	moveq.l #0,d0
-	bra.b abs_0_000187D6
+	bra.b store_player_security_zone_tier
 abs_0_000187AA:
-	cmp.w #$9C,d0
-	bcs.b abs_0_000187D4
-	cmp.w #$A9,d0
+	cmp.w #SECURITY_ZONE_1_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_1_END_SELECTOR,d0
 	bcc.b abs_0_000187BA
 	moveq.l #1,d0
-	bra.b abs_0_000187D6
+	bra.b store_player_security_zone_tier
 abs_0_000187BA:
-	cmp.w #$B0,d0
-	bcs.b abs_0_000187D4
-	cmp.w #$B7,d0
+	cmp.w #SECURITY_ZONE_2_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
+	cmp.w #SECURITY_ZONE_2_END_SELECTOR,d0
 	bcc.b abs_0_000187CA
 	moveq.l #2,d0
-	bra.b abs_0_000187D6
+	bra.b store_player_security_zone_tier
 abs_0_000187CA:
-	cmp.w #$133,d0
-	bcs.b abs_0_000187D4
+	cmp.w #SECURITY_ZONE_3_FIRST_SELECTOR,d0
+	bcs.b select_unrestricted_security_zone
 	moveq.l #3,d0
-	bra.b abs_0_000187D6
-abs_0_000187D4:
+	bra.b store_player_security_zone_tier
+select_unrestricted_security_zone:
 	moveq.l #-1,d0
-abs_0_000187D6:
-	move.b d0,app_02CD(a6)
+store_player_security_zone_tier:
+	move.b d0,app_player_security_zone_tier(a6)
 	rts
-clearance_tier:
+selected_id_card_clearance_tiers:
 	dc.b $04	; lookup_table
 	dc.b $03,$01,$03,$00,$02
+    ; Only selected IDs 48..53 index the six clearance bytes. Admit strictly greater than zone tier, not equal. Carry set rejects; the wider eight-ID possession/display domains do not authorize.
 check_selected_id_card_security_clearance:
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
-	subi.b #48,d0
-	cmp.b #$6,d0
-	bcc.b abs_0_00018802
-	move.b clearance_tier(pc,d0.w),d0
-	cmp.b app_02CD(a6),d0
-	bls.b abs_0_00018802
+	subi.b #ITEM_ID_ID_COMMANDER,d0
+	cmp.b #SECURITY_CLEARANCE_VARIANT_COUNT,d0
+	bcc.b reject_selected_id_clearance
+	move.b selected_id_card_clearance_tiers(pc,d0.w),d0
+	cmp.b app_player_security_zone_tier(a6),d0
+	bls.b reject_selected_id_clearance
 	move.w d0,d0
 	bra.b abs_0_00018806
-abs_0_00018802:
+reject_selected_id_clearance:
 	move #$1,ccr
 abs_0_00018806:
 	rts
 clear_security_checkpoint_state:
-	clr.b app_02CF(a6)
+	clr.b app_security_checkpoint_response_active(a6)
 	jsr clear_security_checkpoint_audio_state.l
 	rts
+    ; Inactive player freezes service. An existing flash bypasses combat/checkpoint tests. Missing checkpoint clears response; unrestricted zone or valid selected ID pauses it without clearing.
 process_security_checkpoint_response:
 	lea.l player_world_object.l,a4
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
-	bne.b abs_0_0001884E
-	tst.b app_02CE(a6)
-	bne.b abs_0_00018896
+	bne.b return_from_security_checkpoint_service
+	tst.b app_security_damage_flash_ticks_remaining(a6)
+	bne.b service_security_damage_palette_flash
 	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_0001884E
+	bne.b return_from_security_checkpoint_service
 	move.l app_nearest_object_ptr(a6),d0
-	beq.b abs_0_00018848
+	beq.b clear_security_response_if_checkpoint_missing
 	movea.l d0,a5
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-	btst.b #7,world_position_state_record_world_object_flags(a0)
+	btst.b #WORLD_POSITION_SECURITY_CHECKPOINT_BIT,world_position_state_record_world_object_flags(a0)
 	bne.b abs_0_00018850
-abs_0_00018848:
-	tst.b app_02CF(a6)
+clear_security_response_if_checkpoint_missing:
+	tst.b app_security_checkpoint_response_active(a6)
 	bne.b clear_security_checkpoint_state
-abs_0_0001884E:
+return_from_security_checkpoint_service:
 	rts
 abs_0_00018850:
 	bsr.w update_player_security_zone
-	bmi.b abs_0_0001884E
+	bmi.b return_from_security_checkpoint_service
 	bsr.b check_selected_id_card_security_clearance
-	bcc.b abs_0_0001884E
-	tst.b app_02CF(a6)
-	bne.b abs_0_00018864
+	bcc.b return_from_security_checkpoint_service
+	tst.b app_security_checkpoint_response_active(a6)
+	bne.b tick_security_checkpoint_damage
 	bsr.w begin_security_checkpoint_response
-abs_0_00018864:
-	subq.w #1,app_02D0(a6)
-	bne.b abs_0_00018896
+    ; Only decrement-to-zero damages: subtract 51 from the HP low byte, clamp signed-negative result, then reload 50 service steps and 31 flash steps. Zero input counter wraps instead of expiring.
+tick_security_checkpoint_damage:
+	subq.w #1,app_security_damage_service_countdown(a6)
+	bne.b service_security_damage_palette_flash
 	lea.l player_world_object.l,a5
 	move.b world_object_shared_prefix_hit_points+1(a5),d0
-	subi.b #51,d0
-	bpl.b abs_0_0001887C
+	subi.b #SECURITY_CHECKPOINT_HEALTH_DAMAGE,d0
+	bpl.b store_security_damage_health_byte
 	clr.b d0
-abs_0_0001887C:
+store_security_damage_health_byte:
 	move.b d0,world_object_shared_prefix_hit_points+1(a5)
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	move.b #$1F,app_02CE(a6)
-	move.w #$32,app_02D0(a6)
-abs_0_00018896:
+	move.b #SECURITY_DAMAGE_FLASH_SERVICE_STEPS,app_security_damage_flash_ticks_remaining(a6)
+	move.w #SECURITY_DAMAGE_PERIOD_SERVICE_STEPS,app_security_damage_service_countdown(a6)
+    ; Flash advances without rechecking clearance. Its last step restores the saved palette color and tests the HP low byte for death; logical response and damage countdown are separate state.
+service_security_damage_palette_flash:
 	lea.l player_world_object.l,a5
-	move.w app_02D2(a6),d0
-	tst.b app_02CE(a6)
-	beq.b abs_0_00018918
-	subq.b #1,app_02CE(a6)
-	bne.b abs_0_0001890C
-	move.w app_02D2(a6),abs_0_00010772.l
+	move.w app_security_saved_palette_color(a6),d0
+	tst.b app_security_damage_flash_ticks_remaining(a6)
+	beq.b store_security_flash_palette_color
+	subq.b #1,app_security_damage_flash_ticks_remaining(a6)
+	bne.b select_security_flash_palette_color
+	move.w app_security_saved_palette_color(a6),abs_0_00010772.l
 	tst.b world_object_shared_prefix_hit_points+1(a5)
-	bmi.b abs_0_000188BC
-	bne.b abs_0_0001884E
-abs_0_000188BC:
+	bmi.b finish_security_checkpoint_player_death
+	bne.b return_from_security_checkpoint_service
+finish_security_checkpoint_player_death:
 	lea.l player_world_object.l,a4
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	jsr enqueue_game_outcome_and_rank_messages.l
-	lea.l abs_0_0005C5B6.l,a0
+	lea.l player_static_defeat_state.l,a0
 	move.l a0,$004E(a4)
-	lea.l abs_0_0005C592.l,a1
-	move.l a1,$0000(a0)
-	move.l a1,$0004(a0)
+	lea.l player_final_pose_geometry_frames.l,a1
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a0)
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	jsr restore_world_object_position_state.l
+    ; With the initialized static defeat state (NULL node), exchange clears bit 0 at absolute $A and WORD at $10. No NULL guard exists; these original low-memory writes are not owned-node accesses.
+	jsr exchange_world_object_position_states.l
 	bset.b #1,$0048(a5)
-	bra.w abs_0_0001884E
-abs_0_0001890C:
-	moveq.l #31,d0
-	sub.b app_02CE(a6),d0
+	bra.w return_from_security_checkpoint_service
+    ; A normal flash reload of 31 uses palette indices 1..30, then restores the saved color. All 32 WORDs remain physical data; the endpoints are not normal flash outputs.
+select_security_flash_palette_color:
+	moveq.l #SECURITY_DAMAGE_FLASH_SERVICE_STEPS,d0
+	sub.b app_security_damage_flash_ticks_remaining(a6),d0
 	add.w d0,d0
-	move.w rgb12_color(pc,d0.w),d0
-abs_0_00018918:
+	move.w security_checkpoint_damage_flash_rgb12_colors(pc,d0.w),d0
+store_security_flash_palette_color:
 	move.w d0,abs_0_00010772.l
 	rts
-rgb12_color:
+security_checkpoint_damage_flash_rgb12_colors:
 	dc.w $0000,$0EEE,$0000,$0EEE,$0000,$0EEE,$0000,$0EEE	; security_checkpoint_alert_palette
 	dc.w $0000,$0666,$0AAA,$0EEE,$0000,$0666,$0AAA,$0EEE	; security_checkpoint_alert_palette
 	dc.w $0000,$0222,$0444,$0666,$0888,$0AAA,$0CCC,$0EEE	; security_checkpoint_alert_palette
 	dc.w $0EEE,$0CCC,$0AAA,$0888,$0666,$0444,$0222,$0000	; security_checkpoint_alert_palette
+    ; Save the current palette color, start paired feedback, increment response-active, and reselect the checkpoint actor first live inventory byte. The inventory slot itself is not consumed.
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 begin_security_checkpoint_response:
 	move.l a5,d0
 	beq.b abs_0_00018982
-	move.w abs_0_00010772.l,app_02D2(a6)
+	move.w abs_0_00010772.l,app_security_saved_palette_color(a6)
 	jsr start_paired_feedback_audio_sequences.l
-	addq.b #1,app_02CF(a6)
-	movea.l $0014(a5),a0
-	move.b (a0),$0046(a5)
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
+	addq.b #1,app_security_checkpoint_response_active(a6)
+	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
+	move.b (a0),world_object_shared_prefix_selected_item_id(a5)	; operand 1: inventory_item_slot_item_id at (a0)
 	bsr.w display_current_item_name
 abs_0_00018982:
 	rts
@@ -10444,14 +11020,14 @@ abs_0_000189C4:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #$2,d0
 	bcs.b abs_0_00018A16
-	lea.l app_02DA(a6),a0
+	lea.l app_terminal_deposited_item_ids(a6),a0
 abs_0_000189DA:
 	tst.b (a0)+
 	bne.b abs_0_000189DA
 	move.b d0,-(a0)
 	clr.b world_object_shared_prefix_selected_item_id(a4)
-	bset.b #4,app_02A6(a6)
-	lea.l abs_0_0001A813.l,a0
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	lea.l salvage_item_eligibility_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
 	beq.b abs_0_000189FA
 	addq.b #1,app_salvage_item_count(a6)
@@ -10510,73 +11086,121 @@ tile_pointers:
 	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
 	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
 	dc.l $0002DC28,$0002DBA8,$0002DBA8,$0002DCA8	; Modal 20 by 8 tile pointer grid
-terminal_proximity_object_ptrs:
-	dc.l $00018D54,$00018DA6,$00018DE0,$00018E2C	; terminal_proximity_object_pointer_table
-	dc.l $00018E7E,$00018EBC,$00018F0C,$00018F26	; terminal_proximity_object_pointer_table
-	dc.l $00018F52,$00018FA8	; terminal_proximity_object_pointer_table
-	dc.b $00,$00,$00,$00
+terminal_proximity_object_table:
+	dc.l terminal_message_earth_warning	; message_ptr
+	dc.l terminal_message_orange_freak	; message_ptr
+	dc.l terminal_message_bank_instructions	; message_ptr
+	dc.l terminal_message_product_teaser	; message_ptr
+	dc.l terminal_message_ice_sound_hint	; message_ptr
+	dc.l terminal_message_ship_rankings	; message_ptr
+	dc.l terminal_message_margin_stain	; message_ptr
+	dc.l terminal_message_sonicdriver_hint	; message_ptr
+	dc.l terminal_message_captains_log	; message_ptr
+	dc.l terminal_message_escape_claim	; message_ptr
+terminal_location_message_table_end:
+	dc.l $00000000	; NULL terminates location message scan
 abs_0_00018CCC:
 	dc.b "CLEARANCE:",$00
 abs_0_00018CD7:
 	dc.b "CARD NAME:",$00
 abs_0_00018CE2:
 	dc.b "ENTRY:",$00
-	dc.b "None ",$00
-	dc.b "Alpha",$00
-	dc.b "Delta",$00
-	dc.b "Pi   ",$00
-	dc.b "Omega",$00
+terminal_clearance_none:
+	dc.b 'N','o','n','e',' ',$00	; Terminal clearance display text
+terminal_clearance_alpha:
+	dc.b 'A','l','p','h','a',$00	; Terminal clearance display text
+terminal_clearance_delta:
+	dc.b 'D','e','l','t','a',$00	; Terminal clearance display text
+terminal_clearance_pi:
+	dc.b 'P','i',' ',' ',' ',$00	; Terminal clearance display text
+terminal_clearance_omega:
+	dc.b 'O','m','e','g','a',$00	; Terminal clearance display text
 	dcb.b $20,$20
 	dc.b $00
 	dc.b "Terminal mode",$00
 abs_0_00018D36:
 	dc.b "ACCESS DENIED...",$00
 	dc.b "ID REQUIRED",$00
-	dc.b $00,$00,$F0,$00,$D0,$63,$6F,$6D,$70,$75,$74,$65,$72,$20,$70,$6C
-	dc.b $61,$6E,$73,$20,$74,$6F,$20,$64,$72,$6F,$70,$0D,$67,$65,$6E,$65
-	dc.b $74,$69,$63,$20,$70,$6F,$64,$73,$20,$68,$6F,$6C,$64,$69,$6E,$67
-	dc.b $0D,$69,$6E,$76,$61,$73,$69,$6F,$6E,$20,$66,$6F,$72,$63,$65,$2E
-	dc.b $20,$6D,$75,$73,$74,$0D
+	dc.b $00
+terminal_message_earth_warning:
+	dc.w $00F0	; world_x
+	dc.w $00D0	; world_y
+terminal_message_earth_warning_text:
+	dc.b "computer plans to drop",$0D
+	dc.b "genetic pods holding",$0D
+	dc.b "invasion force. must",$0D
 	dc.b "warn earth.",$00
-	dc.b $00,$01,$B0,$00,$D0,$73,$6F,$6D,$65,$6F,$6E,$65,$20,$73,$68,$6F
-	dc.b $75,$6C,$64,$20,$63,$6F,$6E,$74,$72,$6F,$6C,$0D,$74,$68,$61,$74
-	dc.b $20,$72,$69,$64,$69,$63,$75,$6C,$6F,$75,$73,$20,$6F,$72,$61,$6E
-	dc.b $67,$65,$0D,$66,$72,$65,$61,$6B,$2E,$00,$00,$01,$B0,$01,$B0,$49
-	dc.b $6E,$73,$74,$72,$75,$63,$74,$69,$6F,$6E,$73,$3A,$0D,$64,$65,$66
-	dc.b $72,$61,$75,$64,$20,$61,$6C,$6C,$20,$63,$75,$73,$74,$6F,$6D,$65
-	dc.b $72,$73,$0D,$77,$69,$74,$68,$20,$69,$6C,$6C,$65,$67,$61,$6C,$6C
-	dc.b $79,$20,$68,$69,$67,$68,$0D
+	dc.b $00
+terminal_message_orange_freak:
+	dc.w $01B0	; world_x
+	dc.w $00D0	; world_y
+terminal_message_orange_freak_text:
+	dc.b "someone should control",$0D
+	dc.b "that ridiculous orange",$0D
+	dc.b "freak.",$00
+	dc.b $00
+terminal_message_bank_instructions:
+	dc.w $01B0	; world_x
+	dc.w $01B0	; world_y
+terminal_message_bank_instructions_text:
+	dc.b "Instructions:",$0D
+	dc.b "defraud all customers",$0D
+	dc.b "with illegally high",$0D
 	dc.b "interest rates.",$00
-	dc.b $02,$D0,$01,$C0,$6D,$6F,$72,$65,$20,$74,$61,$73,$74,$79,$20,$70
-	dc.b $72,$6F,$64,$75,$63,$74,$20,$62,$79,$0D,$50,$2E,$53,$2E,$49,$2E
-	dc.b $20,$69,$6E,$20,$74,$68,$65,$20,$6E,$6F,$74,$20,$74,$6F,$6F,$0D
-	dc.b $64,$69,$73,$74,$61,$6E,$74,$20,$66,$75,$74,$75,$72,$65,$2C,$20
-	dc.b $6C,$6F,$6F,$6B,$0D
+terminal_message_product_teaser:
+	dc.w $02D0	; world_x
+	dc.w $01C0	; world_y
+terminal_message_product_teaser_text:
+	dc.b "more tasty product by",$0D
+	dc.b "P.S.I. in the not too",$0D
+	dc.b "distant future, look",$0D
 	dc.b "out for it.",$00
-	dc.b $00,$03,$90,$02,$10,$6D,$75,$74,$61,$6E,$74,$20,$69,$63,$65,$20
-	dc.b $63,$72,$65,$61,$74,$75,$72,$65,$0D,$73,$65,$65,$6D,$73,$20,$74
-	dc.b $6F,$20,$62,$65,$20,$73,$65,$6E,$73,$69,$74,$69,$76,$65,$0D
+	dc.b $00
+terminal_message_ice_sound_hint:
+	dc.w $0390	; world_x
+	dc.w $0210	; world_y
+terminal_message_ice_sound_hint_text:
+	dc.b "mutant ice creature",$0D
+	dc.b "seems to be sensitive",$0D
 	dc.b "to sound waves.",$00
-	dc.b $04,$50,$01,$C0,$50,$61,$6E,$64,$6F,$72,$61,$20,$73,$68,$69,$70
-	dc.b $20,$72,$61,$6E,$6B,$69,$6E,$67,$3A,$0D,$31,$2E,$20,$43,$61,$70
-	dc.b $74,$61,$69,$6E,$0D,$32,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64,$65
-	dc.b $72,$0D,$33,$2E,$20,$4C,$74,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64
-	dc.b $65,$72,$0D
+terminal_message_ship_rankings:
+	dc.w $0450	; world_x
+	dc.w $01C0	; world_y
+terminal_message_ship_rankings_text:
+	dc.b "Pandora ship ranking:",$0D
+	dc.b "1. Captain",$0D
+	dc.b "2. Commander",$0D
+	dc.b "3. Lt. Commander",$0D
 	dc.b "4. Engineer",$00
-	dc.b $00,$05,$10,$01,$F0
-	dc.b "Ah, a margins stain.",$00
-	dc.b $00,$02,$A0,$02,$E0,$4D,$79,$20,$73,$6F,$6E,$69,$63,$64,$72,$69
-	dc.b $76,$65,$72,$20,$73,$75,$72,$65,$20,$69,$73,$0D
-	dc.b "a flexible tool.",$00
-	dc.b $02,$A0,$03,$D0,$43,$61,$70,$74,$61,$69,$6E,$27,$73,$20,$6C,$6F
-	dc.b $67,$3A,$0D,$49,$20,$62,$65,$6C,$69,$65,$76,$65,$20,$49,$20,$68
-	dc.b $61,$76,$65,$20,$6C,$6F,$73,$74,$0D,$63,$6F,$6E,$74,$72,$6F,$6C
-	dc.b $20,$6F,$66,$20,$74,$68,$69,$73,$20,$73,$68,$69,$70,$2E,$0D
+	dc.b $00
+terminal_message_margin_stain:
+	dc.w $0510	; world_x
+	dc.w $01F0	; world_y
+terminal_message_margin_stain_text:
+	dc.b 'A','h',',',' ','a',' ','m','a','r','g','i','n','s',' ','s','t'	; XY then inline NUL message
+	dc.b 'a','i','n','.',$00
+	dc.b $00
+terminal_message_sonicdriver_hint:
+	dc.w $02A0	; world_x
+	dc.w $02E0	; world_y
+terminal_message_sonicdriver_hint_text:
+	dc.b 'M','y',' ','s','o','n','i','c','d','r','i','v','e','r',' ','s'	; XY then inline NUL message
+	dc.b 'u','r','e',' ','i','s',$0D,'a',' ','f','l','e','x','i','b','l'
+	dc.b 'e',' ','t','o','o','l','.',$00
+terminal_message_captains_log:
+	dc.w $02A0	; world_x
+	dc.w $03D0	; world_y
+terminal_message_captains_log_text:
+	dc.b "Captain's log:",$0D
+	dc.b "I believe I have lost",$0D
+	dc.b "control of this ship.",$0D
 	dc.b "must destroy pandora..",$00
-	dc.b $03,$C0,$07,$00,$49,$20,$68,$61,$76,$65,$20,$64,$69,$73,$63,$6F
-	dc.b $76,$65,$72,$65,$64,$20,$74,$68,$61,$74,$0D,$49,$20,$61,$6C,$6F
-	dc.b $6E,$65,$20,$68,$61,$76,$65,$20,$74,$68,$65,$20,$6D,$65,$61,$6E
-	dc.b $73,$0D
+terminal_message_escape_claim:
+	dc.w $03C0	; world_x
+	dc.w $0700	; world_y
+terminal_message_escape_claim_text:
+	dc.b "I have discovered that",$0D
+	dc.b "I alone have the means",$0D
 	dc.b "to escape from Pandora",$00
 	dc.b $00
     ; Swap to the terminal backdrop and service inventory, messages and the Earth deadline. Main world-update and self-destruct countdown services are omitted; exit requests a camera redraw.
@@ -10602,7 +11226,7 @@ abs_0_00019024:
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
-	bsr.w abs_0_00019A48
+	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
@@ -10642,7 +11266,7 @@ abs_0_000190C6:
 redraw_terminal_selected_item:
 	moveq.l #2,d0
 	move.w d0,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.w #$17F,d7
 	moveq.l #0,d0
 abs_0_000190D6:
@@ -10657,6 +11281,7 @@ abs_0_000190D6:
 	clr.w (a1)+
 	lea.l $0028(a0),a0
 	dbf.w d7,abs_0_000190D6
+    ; Only item IDs 48..55 reach the eight-entry clearance-label selector; BYTE subtraction normalizes the ID. This display domain is separate from the six-entry security table.
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
 	move.b d0,app_modal_last_selected_item_id(a6)
@@ -10667,31 +11292,33 @@ abs_0_000190D6:
 	move.b #$E,app_text_plane_mask(a6)
 	moveq.l #3,d0
 	move.w d0,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CCC(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #5,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CD7(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #7,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l abs_0_00018CE2(pc),a3
 	bsr.w draw_compact_text_string
-	lea.l terminal_proximity_object_ptrs(pc),a0
+    ; NULL-terminated XY/text scan; strict WORD-distance improvement keeps first ties. abs/sub/add wrap at 16 bits. On update A2=record+4; no ten-entry count or empty-table guard.
+	lea.l terminal_proximity_object_table(pc),a0
 	lea.l player_world_object.l,a4
 	move.w world_object_shared_prefix_world_x(a4),d0
 	move.w world_object_shared_prefix_world_y(a4),d1
 	moveq.l #-1,d4
-	movea.l (a0),a2
+	movea.l (a0),a2	; operand 1: terminal_location_message_reference_message_ptr at (a0)
 abs_0_00019156:
 	move.l (a0)+,d5
 	beq.b abs_0_0001917A
 	movea.l d5,a1
-	move.w (a1)+,d2
-	move.w (a1)+,d3
+    ; KNOWN: type A1=Target code-entry register seed:terminal_location_message_header
+	move.w (a1)+,d2	; operand 1: terminal_location_message_header_world_x at (a1)+
+	move.w (a1)+,d3	; operand 1: terminal_location_message_header_world_y at (a1)+
 	sub.w d0,d2
 	bpl.b abs_0_00019166
 	neg.w d2
@@ -10711,21 +11338,21 @@ abs_0_00019176:
 abs_0_0001917A:
 	moveq.l #3,d0
 	moveq.l #9,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b #$A,app_text_plane_mask(a6)
 	movea.l a2,a3
 	bsr.w draw_compact_text_string
 	move.w (a7)+,d0
 	lsl.w #2,d0
-	movea.l abs_0_000191CC(pc,d0.w),a3
+	movea.l terminal_card_clearance_label_table(pc,d0.w),a3
 	moveq.l #14,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b #$7,app_text_plane_mask(a6)
 	bsr.w draw_compact_text_string
 	moveq.l #14,d0
 	moveq.l #5,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b player_world_object_selected_item_id.l,d0
 	bsr.w resolve_item_name
 	movea.l a0,a3
@@ -10733,19 +11360,25 @@ abs_0_0001917A:
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	rts
-abs_0_000191CC:
-	dc.l $00018D01,$00018CFB,$00018CEF,$00018CFB	; lookup_table
-	dc.l $00018CE9,$00018CF5,$00018CE9,$00018CE9	; lookup_table
+terminal_card_clearance_label_table:
+	dc.l terminal_clearance_omega	; label_ptr
+	dc.l terminal_clearance_pi	; label_ptr
+	dc.l terminal_clearance_alpha	; label_ptr
+	dc.l terminal_clearance_pi	; label_ptr
+	dc.l terminal_clearance_none	; label_ptr
+	dc.l terminal_clearance_delta	; label_ptr
+	dc.l terminal_clearance_none	; label_ptr
+	dc.l terminal_clearance_none	; label_ptr
 abs_0_000191EC:
 	moveq.l #10,d0
 	moveq.l #5,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.b #$5,app_text_plane_mask(a6)
 	lea.l abs_0_00018D36(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #10,d0
 	moveq.l #7,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	bsr.w draw_compact_text_string
 	move.w #$216,d0
 	jsr start_feedback_audio_sequence.l
@@ -10766,35 +11399,35 @@ swap_tilemap_context:
 	move.w d1,-(a0)
 	move.w d0,-(a0)
 	rts
-initial_cooldown_ticks:
-	dc.b $05,$01	; selected_item_effect_cooldown_initial_values
-cooldown_ticks:
-	dc.b $00,$00	; selected_item_effect_cooldown_array
-update_active_world_object_positions:
-	btst.b #1,player_world_object_world_object_flags.l
+initial_ranged_weapon_ammunition:
+	dc.b $05,$01	; ranged_weapon_initial_ammunition
+ranged_weapon_ammunition_remaining:
+	dc.b $00,$00	; ranged_weapon_ammunition
+service_selected_ranged_weapon_fire:
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	bne.w abs_0_000193D8
-	tst.w app_0320(a6)
+	tst.w app_ranged_hit_visual_ticks_remaining(a6)
 	beq.b abs_0_0001926E
-	subq.w #1,app_0320(a6)
+	subq.w #1,app_ranged_hit_visual_ticks_remaining(a6)
 	bne.b abs_0_0001926E
-	clr.l abs_0_000585BA.l
+	clr.l ranged_hit_visual_state_state_node_ptr.l
 abs_0_0001926E:
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
 	bne.w abs_0_000193D8
 	tst.b app_input_fire_pressed_ff(a6)
 	beq.w abs_0_000193D4
-	tst.b app_031B(a6)
+	tst.b app_ranged_weapon_fire_latched(a6)
 	bne.w abs_0_000193D8
-	addq.b #1,app_031B(a6)
+	addq.b #1,app_ranged_weapon_fire_latched(a6)
 	lea.l player_world_object.l,a4
 	clr.w d0
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	subi.b #18,d0
 	cmp.b #$2,d0
 	bcc.w abs_0_000193D8
-	move.w d0,app_0322(a6)
-	lea.l cooldown_ticks(pc),a0
+	move.w d0,app_ranged_weapon_variant_index(a6)
+	lea.l ranged_weapon_ammunition_remaining(pc),a0
 	tst.b $0(a0,d0.w)
 	beq.w abs_0_000193D8
 	subq.b #1,$0(a0,d0.w)
@@ -10810,7 +11443,8 @@ abs_0_0001926E:
 	asl.w #1,d3
 	add.w d2,d0
 	add.w d3,d1
-abs_0_000192DE:
+    ; Hardcoded 90-column grid; byte offset wraps at 64KiB. No range counter or map clamp: NULL hit scans resume sampling. A zero step repeats the point unless another condition changes.
+advance_ranged_effect_ray_point:
 	add.w d2,d0
 	add.w d3,d1
 	move.w d0,d5
@@ -10826,28 +11460,29 @@ abs_0_000192DE:
 	swap.w d0
 	movea.l app_tilemap_base(a6),a0
 	move.l $0(a0,d0.l),d0
-	subi.l #118952,d0
+	subi.l #world_tile_pixels_000_through_011,d0
 	lsr.l #7,d0
 	lea.l tile_movement_block_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
-	bne.w abs_0_00019410
+	bne.w handle_ranged_effect_blocked_tile
 	move.w d5,d0
 	move.w d6,d1
 	movea.l app_active_world_object_ptr_table(a6),a0
-abs_0_00019320:
+    ; Descriptor order then attachments; flag 6 skips the descriptor, flag 3 skips a state. Half-open bounds use WORD arithmetic. NULL resumes ray stepping; active count does not bound this scan.
+scan_ranged_effect_position_descriptors:
 	move.l (a0)+,d4
-	beq.b abs_0_000192DE
+	beq.b advance_ranged_effect_ray_point
 	movea.l d4,a1
 	cmpa.l #player_position_descriptor,a1
-	beq.b abs_0_00019320
-	cmpa.l #$5859A,a1
-	beq.b abs_0_00019320
+	beq.b scan_ranged_effect_position_descriptors
+	cmpa.l #ranged_hit_visual_descriptor,a1
+	beq.b scan_ranged_effect_position_descriptors
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a2
-abs_0_0001933A:
-	btst.b #6,world_position_state_record_world_object_flags(a2)
-	bne.b abs_0_00019320
+test_ranged_effect_state_chain:
+	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
+	bne.b scan_ranged_effect_position_descriptors
 	btst.b #3,world_position_state_record_world_object_flags(a2)
-	bne.w abs_0_000193DA
+	bne.w next_ranged_effect_attachment_state
 	move.w world_position_descriptor_prefix_world_x(a1),d4
 	move.w world_position_descriptor_prefix_world_y(a1),d5
 	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
@@ -10858,99 +11493,104 @@ abs_0_0001933A:
 	move.w d0,d6
 	move.w d1,d7
 	sub.w d4,d6
-	bmi.b abs_0_000193DA
+	bmi.b next_ranged_effect_attachment_state
 	sub.w d5,d7
-	bmi.b abs_0_000193DA
+	bmi.b next_ranged_effect_attachment_state
 	cmp.w world_position_collision_bounds_world_x_extent(a3),d6
-	bcc.b abs_0_000193DA
+	bcc.b next_ranged_effect_attachment_state
 	cmp.w world_position_collision_bounds_world_y_extent(a3),d7
-	bcc.b abs_0_000193DA
-	lea.l active_world_object_static_ptr_table.l,a4
-abs_0_00019386:
+	bcc.b next_ranged_effect_attachment_state
+	lea.l world_object_ptr_table_object_ptr_1.l,a4
+match_ranged_hit_descriptor_to_world_object:
 	move.l (a4)+,d4
-	beq.w abs_0_0001941E
+	beq.w handle_ranged_hit_without_world_object
 	movea.l d4,a5
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 	cmpa.l world_object_shared_prefix_position_descriptor_ptr(a5),a1
-	bne.b abs_0_00019386
+	bne.b match_ranged_hit_descriptor_to_world_object
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #0,world_position_state_record_interaction_flags(a0)
 	bne.b abs_0_000193A4
-	bsr.w abs_0_00019486
+	bsr.w activate_ranged_hit_visual_and_return_descriptor
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
 abs_0_000193A4:
-	move.w d0,$0004(a1)
-	move.w d1,$0006(a1)
-	move.w app_0322(a6),d0
-	move.b $004C(a5),d1
-	sub.b abs_0_000193EA(pc,d0.w),d1
+	move.w d0,world_position_descriptor_prefix_world_x(a1)
+	move.w d1,world_position_descriptor_prefix_world_y(a1)
+	move.w app_ranged_weapon_variant_index(a6),d0
+	move.b world_object_shared_prefix_item_state(a5),d1
+	sub.b ranged_weapon_item_state_damage(pc,d0.w),d1
 	bpl.b abs_0_000193BC
 	clr.b d1
 abs_0_000193BC:
-	move.b d1,$004C(a5)
-	move.b $003D(a5),d1
-	sub.b abs_0_000193E8(pc,d0.w),d1
-	bmi.b abs_0_000193EC
-	beq.b abs_0_000193EC
-	move.b d1,$003D(a5)
-	move.b app_031B(a6),d0
+	move.b d1,world_object_shared_prefix_item_state(a5)
+	move.b world_object_shared_prefix_hit_points+1(a5),d1
+	sub.b ranged_weapon_health_damage(pc,d0.w),d1
+	bmi.b finish_ranged_hit_object_defeat
+	beq.b finish_ranged_hit_object_defeat
+	move.b d1,world_object_shared_prefix_hit_points+1(a5)
+	move.b app_ranged_weapon_fire_latched(a6),d0
 abs_0_000193D4:
-	move.b d0,app_031B(a6)
+	move.b d0,app_ranged_weapon_fire_latched(a6)
 abs_0_000193D8:
 	rts
-abs_0_000193DA:
+next_ranged_effect_attachment_state:
 	move.l world_position_state_record_attachment_state_ptr(a2),d4
-	beq.w abs_0_00019320
+	beq.w scan_ranged_effect_position_descriptors
 	movea.l d4,a2
-	bra.w abs_0_0001933A
-abs_0_000193E8:
+	bra.w test_ranged_effect_state_chain
+ranged_weapon_health_damage:
 	dc.b $1E,$5A	; lookup_table
-abs_0_000193EA:
+ranged_weapon_item_state_damage:
 	dc.b $32,$64	; lookup_table
-abs_0_000193EC:
-	move.l $0008(a5),d0
+finish_ranged_hit_object_defeat:
+	move.l world_object_shared_prefix_interaction_completion_callback(a5),d0
 	beq.b abs_0_000193F6
 	movea.l d0,a0
     ; This path does not save A5 around the call. The four known initial targets preserve A5 on normal returns. Memory/escape effects and later target mutation remain unknown.
 	jsr (a0)
 abs_0_000193F6:
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 	bset.b #1,$0048(a5)
 	addq.b #1,app_defeated_object_count(a6)
 	move.w #$11B,d0
 	jsr start_feedback_audio_sequence.l
 	rts
-abs_0_00019410:
-	bsr.w abs_0_00019486
-	move.w d5,$0004(a1)
-	move.w d6,$0006(a1)
+handle_ranged_effect_blocked_tile:
+	bsr.w activate_ranged_hit_visual_and_return_descriptor
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
+	move.w d5,world_position_descriptor_prefix_world_x(a1)
+	move.w d6,world_position_descriptor_prefix_world_y(a1)
 	rts
-abs_0_0001941E:
+handle_ranged_hit_without_world_object:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #0,world_position_state_record_interaction_flags(a0)
 	bne.b abs_0_0001942E
-	bsr.w abs_0_00019486
+	bsr.w activate_ranged_hit_visual_and_return_descriptor
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
 abs_0_0001942E:
-	move.w d0,$0004(a1)
-	move.w d1,$0006(a1)
+	move.w d0,world_position_descriptor_prefix_world_x(a1)
+	move.w d1,world_position_descriptor_prefix_world_y(a1)
 	btst.b #4,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_0001944A
-	lea.l abs_0_0001944C(pc),a0
+	lea.l ranged_force_field_resistance_message(pc),a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 abs_0_0001944A:
 	rts
-abs_0_0001944C:
+ranged_force_field_resistance_message:
 	dc.b "P.S.I. say 'nice try, but force fields are impregnable.'",$00
 	dc.b $00
-abs_0_00019486:
-	lea.l abs_0_000585B2.l,a0
-	lea.l abs_0_00058688.l,a1
-	move.l a1,$0008(a0)
-	bclr.b #0,$000A(a1)
-	clr.w $0010(a1)
-	movea.l $0010(a0),a1
-	move.w #$19,app_0320(a6)
+    ; When activated, all three callers write through the visual's loaded descriptor. Its 25 eligible service visits expire independently of animation, unbinding the node while preserving geometry.
+activate_ranged_hit_visual_and_return_descriptor:
+	lea.l ranged_hit_visual_state.l,a0
+	lea.l ranged_hit_visual_animation.l,a1
+	move.l a1,world_position_render_state_prefix_state_node_ptr(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	movea.l world_position_render_state_prefix_position_descriptor_ptr(a0),a1
+	move.w #$19,app_ranged_hit_visual_ticks_remaining(a6)
 	rts
-abs_0_000194AC:
+snapshot_inventory_cursor_and_clear_hidden_latch:
 	bclr.b #0,app_020A(a6)
 	move.w app_inventory_cursor_x(a6),app_0218(a6)
 	move.w app_inventory_cursor_y(a6),app_021A(a6)
@@ -10974,7 +11614,7 @@ bind_cursor_sprites_and_palette:
 	move.l a0,app_cursor_sprite0_dma_ptr(a6)
 	lea.l $0044(a0),a0
 	move.l a0,app_cursor_sprite1_dma_ptr(a6)
-	lea.l abs_0_000134C2.l,a0
+	lea.l gameplay_current_rgb12_palette.l,a0
 	lea.l _custom+color+$20.l,a1
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
@@ -10986,7 +11626,7 @@ bind_cursor_sprites_and_palette:
 	move.l (a0)+,(a1)+
 	movem.l (a7)+,a0-a1
 	rts
-    ; Animate frames and XY offsets with a byte phase clock. A negative wrapped phase advances the cycle. Headers supply the held pose; mode flags choose chaining, holding or looping at the end.
+    ; Held record then count active records; stride 4, no sentinel. Wrap reads held XY then active zero. Hold-at-end loads held XY on the next visit.
 advance_entity_animation:
 	tst.l world_position_state_record_state_node_ptr(a4)
 	beq.w abs_0_000195E0
@@ -11000,8 +11640,8 @@ advance_entity_animation:
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d0
 	beq.w abs_0_000195E0
 	movea.l d0,a1
-	move.w (a1)+,world_position_state_record_world_x_offset(a4)
-	move.w (a1),world_position_state_record_world_y_offset(a4)
+	move.w (a1)+,world_position_state_record_world_x_offset(a4)	; operand 1: WorldPositionXYOffset_x_offset at (a1)+
+	move.w (a1),world_position_state_record_world_y_offset(a4)	; operand 1: WorldPositionXYOffset_y_offset at (a1)
 	bra.w abs_0_000195E0
 abs_0_00019556:
 	move.b WorldPositionStateNode_frame_index_and_phase+1(a0),d0
@@ -11018,10 +11658,12 @@ abs_0_00019568:
 	bcs.b abs_0_000195BE
 	btst.b #ANIM_MODE_CHAIN_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019596
-    ; Chained mode uses an extended node: its next-node pointer at +$12 lies beyond the 18-byte basic record.
-	movea.l $0012(a0),a0
-	clr.w $0010(a0)
-	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,$000A(a0)
+    ; Chain once through absolute LONG next_node_ptr. Reset successor clock and clear only hold bit, then install and return. No NULL/sentinel guard; NULL writes WORD $10 and BYTE $0A.
+    ; KNOWN: type A0=Target code-entry register seed:WorldPositionChainedStateNode
+chain_to_next_animation_node:
+	movea.l WorldPositionChainedStateNode_next_node_ptr(a0),a0
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.l a0,world_position_state_record_state_node_ptr(a4)
 	bra.b abs_0_000195E0
 abs_0_00019596:
@@ -11034,20 +11676,20 @@ abs_0_000195AA:
 	tst.l WorldPositionStateNode_xy_sequence_ptr(a0)
 	beq.b abs_0_000195BC
 	movea.l WorldPositionStateNode_xy_sequence_ptr(a0),a2
-	move.w (a2)+,world_position_state_record_world_x_offset(a4)
-	move.w (a2),world_position_state_record_world_y_offset(a4)
+	move.w (a2)+,world_position_state_record_world_x_offset(a4)	; operand 1: WorldPositionXYOffset_x_offset at (a2)+
+	move.w (a2),world_position_state_record_world_y_offset(a4)	; operand 1: WorldPositionXYOffset_y_offset at (a2)
 abs_0_000195BC:
 	clr.b d0
 abs_0_000195BE:
 	move.b d0,WorldPositionStateNode_frame_index_and_phase(a0)
 	add.w d0,d0
 	add.w d0,d0
-	move.l $4(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)
+	move.l ANIM_ACTIVE_FRAME_OFFSET(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d2
 	beq.b abs_0_000195E0
 	movea.l d2,a2
-	move.w $4(a2,d0.w),world_position_state_record_world_x_offset(a4)
-	move.w $6(a2,d0.w),world_position_state_record_world_y_offset(a4)
+	move.w ANIM_ACTIVE_X_OFFSET(a2,d0.w),world_position_state_record_world_x_offset(a4)
+	move.w ANIM_ACTIVE_Y_OFFSET(a2,d0.w),world_position_state_record_world_y_offset(a4)
 abs_0_000195E0:
 	rts
     ; Scale input to axis-only requests (X*7, Y*4), test candidate geometry against tile restrictions, then commit position and choose animation. Accepted requests supply item-effect direction.
@@ -11077,7 +11719,7 @@ abs_0_0001962A:
 	or.w d0,d2
 	beq.w hold_player_movement_animation
 	lea.l player_world_object.l,a4
-	btst.b #4,app_02A6(a6)
+	btst.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	beq.b abs_0_00019644
 	bsr.w enforce_id_card_requirement
     ; Probe candidate frame bounds: X motion samples its chosen X edge at maxY-4; Y motion samples left+3, midpoint and right-4 at maxY-3 for negative Y, or maxY for positive Y.
@@ -11086,16 +11728,16 @@ abs_0_00019644:
 	add.w world_object_shared_prefix_world_y(a4),d1
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a4),a1
 	lea.l player_position_state.l,a2
-	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
-	add.w world_position_state_record_world_x_offset(a2),d0
-	add.w world_position_collision_bounds_world_x_origin_offset(a3),d0
+	movea.l world_position_render_state_prefix_current_geometry_ptr.w(a2),a3
+	add.w world_position_render_state_prefix_world_x_offset(a2),d0
+	add.w WorldPositionAnimationFrame_x_offset(a3),d0
 	move.w d0,d2
-	add.w world_position_collision_bounds_world_x_extent(a3),d0
+	add.w WorldPositionAnimationFrame_frame_width(a3),d0
 	move.w d0,d3
-	add.w world_position_state_record_world_y_offset(a2),d1
-	add.w world_position_collision_bounds_world_y_origin_offset(a3),d1
+	add.w world_position_render_state_prefix_world_y_offset(a2),d1
+	add.w WorldPositionAnimationFrame_y_offset(a3),d1
 	move.w d1,d4
-	add.w world_position_collision_bounds_world_y_extent(a3),d1
+	add.w WorldPositionAnimationFrame_frame_height(a3),d1
 	move.w d1,d5
 	tst.w app_player_move_request_x_step(a6)
 	beq.b abs_0_000196A2
@@ -11190,7 +11832,7 @@ abs_0_00019770:
 	cmp.w #$EC,d0
 	bne.b abs_0_000197D0
 	bset.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	move.l #$5C5A4,player_position_state.l
+	move.l #player_escape_geometry,player_position_state.l
 	clr.l player_position_state_state_node_ptr.l
 	lea.l initialize_audio_player.l,a0
 	clr.b $0EBD(a0)
@@ -11252,7 +11894,7 @@ select_player_movement_animation:
 	bset.b #2,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019862:
-	lea.l player_position_state_interaction_data_ptr.l,a1
+	lea.l player_move_positive_x_animation.l,a1
 	bset.b #3,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019870:
@@ -11266,11 +11908,11 @@ abs_0_00019884:
 	lea.l player_move_positive_y_animation.l,a1
 	bset.b #1,world_object_shared_prefix_movement_direction_flags(a4)
 abs_0_00019890:
-	movea.l world_position_state_record_state_node_ptr(a0),a2
+	movea.l world_position_render_state_prefix_state_node_ptr(a0),a2
 	cmpa.l a2,a1
 	beq.b abs_0_000198A2
 	movea.l a1,a2
-	move.l a2,world_position_state_record_state_node_ptr(a0)
+	move.l a2,world_position_render_state_prefix_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a2)
 abs_0_000198A2:
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a2)
@@ -11345,7 +11987,7 @@ abs_0_0001996A:
     ; Hold the current animation header after idle or blocked movement: reset index/phase, set held-header mode and clear skip-update. This node dereference has no local null guard.
 hold_player_movement_animation:
 	lea.l player_position_state_state_node_ptr.l,a0
-	movea.l (a0),a0	; operand 1: world_position_state_record_state_node_ptr at (a0)
+	movea.l (a0),a0	; operand 1: world_position_render_state_prefix_state_node_ptr at (a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
@@ -11353,7 +11995,7 @@ hold_player_movement_animation:
 	bclr.b #6,app_status_flags(a6)
 abs_0_000199AA:
 	rts
-abs_0_000199AC:
+measure_status_message_spacing_units:
 	move.l a0,-(a7)
 	moveq.l #0,d0
 	clr.w d3
@@ -11384,15 +12026,15 @@ enqueue_status_message:
 	beq.b abs_0_000199F2
 	lea.l app_scrolling_message_queue_head(a6),a1
 	move.l a1,app_scrolling_message_queue_tail(a6)
-	bsr.w abs_0_00019AB2
+	bsr.w clear_status_message_band
 abs_0_000199F2:
-	bsr.b abs_0_000199AC
+	bsr.b measure_status_message_spacing_units
 	add.w d0,d0
 	movea.w d0,a2
 	add.w d0,d0
 	add.w d0,d0
 	add.w a2,d0
-	move.w d0,app_0324(a6)
+	move.w d0,app_status_message_service_ticks_remaining(a6)
 	movea.l app_scrolling_message_queue_tail(a6),a1
 	lea.l app_0272(a6),a2
 	cmpa.l a2,a1
@@ -11403,7 +12045,7 @@ abs_0_000199F2:
 	bset.b #5,app_02A6(a6)
 	bne.b abs_0_00019A24
 	movea.l a0,a3
-	bsr.w abs_0_00019A96
+	bsr.w draw_status_message_line
 abs_0_00019A24:
 	move.w d0,d0
 	bra.b abs_0_00019A2C
@@ -11411,7 +12053,7 @@ abs_0_00019A28:
 	move #$1,ccr
 abs_0_00019A2C:
 	rts
-abs_0_00019A2E:
+dequeue_status_message:
 	lea.l app_scrolling_message_queue_head(a6),a0
 	lea.l app_0272(a6),a1
 abs_0_00019A36:
@@ -11421,35 +12063,35 @@ abs_0_00019A36:
 	subq.l #4,app_scrolling_message_queue_tail(a6)
 	tst.l app_scrolling_message_queue_head(a6)
 	rts
-abs_0_00019A48:
+service_status_message_duration:
 	movem.l d0-d1/a0-a3,-(a7)
 	btst.b #5,app_02A6(a6)
 	beq.b abs_0_00019A90
-	subq.w #1,app_0324(a6)
+	subq.w #1,app_status_message_service_ticks_remaining(a6)
 	bne.b abs_0_00019A90
-	bsr.b abs_0_00019A2E
+	bsr.b dequeue_status_message
 	beq.b abs_0_00019A82
-	bsr.w abs_0_00019AB2
+	bsr.w clear_status_message_band
 	movea.l app_scrolling_message_queue_head(a6),a0
-	bsr.w abs_0_000199AC
+	bsr.w measure_status_message_spacing_units
 	add.w d0,d0
 	movea.w d0,a2
 	add.w d0,d0
 	add.w d0,d0
 	add.w a2,d0
-	move.w d0,app_0324(a6)
+	move.w d0,app_status_message_service_ticks_remaining(a6)
 	movea.l a0,a3
-	bsr.w abs_0_00019A96
+	bsr.w draw_status_message_line
 	move.w d0,d0
 	bra.b abs_0_00019A90
 abs_0_00019A82:
-	bsr.w abs_0_00019AB2
+	bsr.w clear_status_message_band
 	bclr.b #5,app_02A6(a6)
 	move #$1,ccr
 abs_0_00019A90:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
-abs_0_00019A96:
+draw_status_message_line:
 	move.b #$8,app_text_plane_mask(a6)
 	moveq.l #0,d0
 	moveq.l #24,d1
@@ -11458,7 +12100,7 @@ abs_0_00019A96:
 	clr.b app_proportional_text_pixel_shift(a6)
 	bsr.w draw_proportional_ui_text_string
 	rts
-abs_0_00019AB2:
+clear_status_message_band:
 	movea.l #$77800,a2
 	moveq.l #0,d0
 	move.w #$3F,d7
@@ -11514,7 +12156,7 @@ abs_0_00019C38:
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
 	bsr.w handle_inventory_panel_input
-	bsr.w abs_0_00019A48
+	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
@@ -11592,7 +12234,7 @@ abs_0_00019D60:
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
 	st.b app_self_destruct_state(a6)
-	bra.w abs_0_00019DAA
+	bra.w validate_self_destruct_qualifying_card_count
 abs_0_00019D76:
 	cmp.b #ITEM_ID_SDI_DISK,d0
 	bne.b abs_0_00019DA8
@@ -11609,7 +12251,7 @@ abs_0_00019DA4:
 abs_0_00019DA8:
 	rts
     ; Validate three submissions by qualifying count==3 (blue/scarlet/ochre), without order or duplicate checks. Provisional FF becomes rejected (2) on failure.
-abs_0_00019DAA:
+validate_self_destruct_qualifying_card_count:
 	move.b app_self_destruct_qualifying_card_count(a6),d0
 	cmp.b #$3,d0
 	bne.b abs_0_00019DBA
@@ -11621,7 +12263,7 @@ abs_0_00019DBA:
 render_self_destruct_card_sequence:
 	moveq.l #2,d0
 	move.w d0,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	move.w #$17F,d7
 	moveq.l #0,d0
 abs_0_00019DD0:
@@ -11643,7 +12285,7 @@ abs_0_00019DD0:
 	move.b #$F,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_insert_disk_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
@@ -11654,7 +12296,7 @@ abs_0_00019E18:
 	move.b #$E,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_insert_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	move.b #$D,app_text_plane_mask(a6)
@@ -11670,7 +12312,7 @@ abs_0_00019E18:
 abs_0_00019E52:
 	move.w d6,d1
 	moveq.l #5,d0
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	movea.l (a4)+,a3
 	bsr.w draw_compact_text_string
 	addq.w #1,d6
@@ -11680,7 +12322,7 @@ abs_0_00019E52:
 	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #10,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 abs_0_00019E82:
@@ -11691,7 +12333,7 @@ abs_0_00019E84:
 	move.b #$5,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #6,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_rejected_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
@@ -11699,7 +12341,7 @@ abs_0_00019EA2:
 	move.b #$A,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
-	bsr.w abs_0_00016108
+	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 abs_0_00019EB8:
@@ -11708,12 +12350,13 @@ initialize_world_tilemap_state:
 	bsr.w seed_pseudorandom_state_from_beam_position
 	moveq.l #0,d0
 	moveq.l #0,d1
-	move.w #$C7,d7
-abs_0_00019EC6:
+	move.w #FRAMEBUFFER_LAST_RASTER_ROW,d7
+    ; Populate 200 WORD raster offsets, 160*y, at the workspace prefix. Text helpers select every eighth row; masked y>=25 can read beyond this 400-byte table.
+fill_raster_row_byte_offsets:
 	move.w d0,$0(a6,d1.l)
-	addi.w #160,d0
+	addi.w #FRAMEBUFFER_RASTER_ROW_BYTES,d0
 	addq.l #2,d1
-	dbf.w d7,abs_0_00019EC6
+	dbf.w d7,fill_raster_row_byte_offsets
 	move.w #$5A,app_tilemap_width(a6)
 	move.w #$81,app_tilemap_height(a6)
 	move.l #$4000,app_tilemap_base(a6)
@@ -11732,16 +12375,16 @@ abs_0_00019F06:
 	move.w d3,(a2)+
 	addq.l #8,a0
 	dbf.w d7,abs_0_00019F06
-	bsr.w abs_0_00017244
-	move.l #$70000,$01E0(a6)
+	bsr.w initialize_scene_and_animation_mask_banks
+	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	rts
 initialize_world_state:
 	move.l a5,-(a7)
-	move.w initial_cooldown_ticks.l,cooldown_ticks.l
+	move.w initial_ranged_weapon_ammunition.l,ranged_weapon_ammunition_remaining.l
 	move.w #$BB8,app_self_destruct_service_ticks_remaining(a6)
 	move.l #$24C28,$64C0.w
 	move.w #$2710,d0
-	move.w d0,abs_0_0005859E.l
+	move.w d0,ranged_hit_visual_descriptor_world_x.l
 	move.w d0,abs_0_000585AA.l
 	move.w #$AAA,abs_0_00010772.l
 	lea.l absolute_slot_0000397C.l,a0
@@ -11772,20 +12415,20 @@ abs_0_00019F82:
 	clr.b app_self_destruct_state(a6)
 	clr.b app_defeated_object_count(a6)
 	clr.b app_salvage_item_count(a6)
-	clr.b app_031B(a6)
+	clr.b app_ranged_weapon_fire_latched(a6)
 	clr.l app_nearest_object_ptr(a6)
 	clr.l app_02D4(a6)
 	clr.l app_cursor_sprite0_dma_ptr(a6)
 	clr.l app_cursor_sprite1_dma_ptr(a6)
 	moveq.l #15,d7
-	lea.l app_02DA(a6),a0
+	lea.l app_terminal_deposited_item_ids(a6),a0
 abs_0_00019FC4:
 	clr.l (a0)+
 	dbf.w d7,abs_0_00019FC4
 	clr.b app_player_movement_commit_inhibited(a6)
-	clr.b app_02CE(a6)
-	clr.b app_02CF(a6)
-	move.w #$32,app_02D0(a6)
+	clr.b app_security_damage_flash_ticks_remaining(a6)
+	clr.b app_security_checkpoint_response_active(a6)
+	move.w #SECURITY_DAMAGE_PERIOD_SERVICE_STEPS,app_security_damage_service_countdown(a6)
 	clr.b app_020A(a6)
 	move.l #abs_0_0001A7E2,app_font_glyph_bitmap_table_ptr(a6)
 	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)
@@ -11801,29 +12444,30 @@ abs_0_00019FC4:
 	move.w d0,world_object_shared_prefix_world_y(a4)
 	move.w #$F1,world_object_shared_prefix_world_x(a4)
 	bsr.w clear_overlay_pointer_storage
-	lea.l abs_0_000134C2.l,a0
-	lea.l abs_0_000134E2.l,a1
-	lea.l abs_0_00013462.l,a2
+	lea.l gameplay_current_rgb12_palette.l,a0
+	lea.l gameplay_palette_increment_rgb12.l,a1
+	lea.l gameplay_palette_fractional_components.l,a2
 	moveq.l #15,d7
 	bsr.w clear_rgb12_palette_components
 	moveq.l #0,d0
 	move.l d0,app_carried_item_ids(a6)
 	move.l d0,app_pocket_item_ids(a6)
 	clr.b player_world_object_selected_item_id.l
-	lea.l abs_0_00013416.l,a0
-	lea.l abs_0_00013442.l,a1
+	lea.l backpack_inventory_overlay_line_0_ptr.l,a0
+	lea.l pocket_inventory_overlay_line_0_ptr.l,a1
 	moveq.l #3,d7
 abs_0_0001A056:
 	move.l d0,(a0)+
 	move.l d0,(a1)+
 	dbf.w d7,abs_0_0001A056
-	lea.l abs_0_000132B6.l,a0
-	move.l d0,(a0)
-	move.w #$EEE,app_0230(a6)
+	lea.l player_holding_overlay_line_0_ptr.l,a0
+	move.l d0,(a0)	; operand 2: ui_overlay_descriptor_line_0_ptr at (a0)
+	move.w #$EEE,app_ticker_highlight_rgb12(a6)
 	clr.b app_ui_flags(a6)
 	clr.b app_status_flags(a6)
 	clr.b app_02A6(a6)
 	clr.b app_game_event_flags(a6)
+    ; Reset all interaction latches, including diabetic advice; this can rearm its hint independently of the installed pose controller.
 	clr.b app_world_interaction_flags(a6)
 	clr.b app_world_interaction_audio_flags(a6)
 	lea.l app_scrolling_message_queue_head(a6),a0
@@ -11835,20 +12479,21 @@ abs_0_0001A056:
 	bsr.w configure_camera_scroll_triggers
 	move.l #active_world_object_ptr_table,app_active_world_object_ptr_table(a6)
 	move.w #$43,active_world_object_count(a6)
+    ; Restart exchanges states only when the current/initial inactive bits differ, then restores initial flags and script state. The saved state/node must be valid when exchanged.
 	lea.l world_object_ptr_table.l,a1
 abs_0_0001A0B8:
 	move.l (a1)+,d0
 	beq.b abs_0_0001A12E
 	movea.l d0,a5
-	move.b world_object_shared_prefix_initial_world_object_flags(a5),d0
-	move.b world_object_shared_prefix_world_object_flags(a5),d1
+	move.b $0049(a5),d0
+	move.b $0048(a5),d1
 	eor.b d0,d1
-	btst #1,d1
+	btst #WORLD_OBJECT_INACTIVE_BIT,d1
 	beq.b abs_0_0001A0D2
-	bsr.w restore_world_object_position_state
+	bsr.w exchange_world_object_position_states
 abs_0_0001A0D2:
 	move.b d0,$0048(a5)
-	btst.b #1,$0048(a5)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,$0048(a5)
 	beq.b abs_0_0001A0E2
 	bsr.w copy_world_object_xy_to_position_descriptor
 abs_0_0001A0E2:
@@ -11857,27 +12502,27 @@ abs_0_0001A0E2:
 	bsr.w resolve_item_name
 	move.l d0,$0000(a5)
 	movea.l $001C(a5),a2
-	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a3
+	movea.l $0014(a5),a3
 	moveq.l #7,d7
 abs_0_0001A0FA:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A0FA
-	movea.l world_object_shared_prefix_initial_trade_offer_table_ptr(a5),a2
-	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a3
+	movea.l $0020(a5),a2
+	movea.l $0018(a5),a3
 	moveq.l #7,d7
 abs_0_0001A10A:
 	move.b (a2)+,(a3)+
 	dbf.w d7,abs_0_0001A10A
-	move.b world_object_shared_prefix_initial_selected_item_id(a5),world_object_shared_prefix_selected_item_id(a5)
-	move.b world_object_shared_prefix_initial_item_state(a5),world_object_shared_prefix_item_state(a5)
-	move.w world_object_shared_prefix_initial_hit_points(a5),world_object_shared_prefix_hit_points(a5)
-	move.l world_object_shared_prefix_initial_behavior_script_ptr(a5),world_object_shared_prefix_behavior_script_ptr(a5)
-	clr.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
+	move.b $0047(a5),$0046(a5)
+	move.b $004D(a5),$004C(a5)
+	move.w $003E(a5),$003C(a5)
+	move.l $0028(a5),$0024(a5)
+	clr.w $0044(a5)
 	bra.b abs_0_0001A0B8
 abs_0_0001A12E:
 	move.l #player_position_state,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
-	bset.b #4,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
 	movea.l (a7)+,a5
 	rts
 camera_scroll_profiles:
@@ -11973,11 +12618,11 @@ abs_0_0001A1B4:
 	move.w app_tilemap_width(a6),d0
 	add.w d0,d0
 	add.w d0,d0
-	move.l d0,app_02A2(a6)
+	move.l d0,app_tile_pointer_grid_row_stride_bytes(a6)
 	mulu.w app_tilemap_height(a6),d0
-	move.l d0,app_029A(a6)
+	move.l d0,app_tile_pointer_grid_byte_size(a6)
 	adda.l d0,a0
-	move.l a0,app_029E(a6)
+	move.l a0,app_tile_pointer_grid_end(a6)
 	movea.l (a7)+,a5
 	rts
 item_name_string_table:
@@ -12315,10 +12960,8 @@ abs_0_0001A7EA:
 	dc.b $2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
 item_pocket_restriction_bits_bytes:
 	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80	; data
-abs_0_0001A813:
-	dc.b $00,$00,$01,$D8
-	dcb.b $9,$00
-	dc.b $DD,$80
+salvage_item_eligibility_bits:
+	dc.b %00000000,%00000000,%00000001,%11011000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%11011101,%10000000	; msb_first_item_eligibility_bitset
 tile_movement_block_bits:
 	dc.b %11111111,%11111111,%11111111,%11111111,%11111111,%11110000,%00001100,%00000000,%11000010,%00001100,%00001001,%00010010,%00000110,%11000000,%00000000,%00000000
 	dc.b $00,$00,$1C,$0F,$C5,$03,$F0,$3F,$03,$F7,$C7,$FF,$FF,$07,$FF,$FF
@@ -12378,14 +13021,23 @@ eight_row_glyph_records:
 	dc.b $00,$7E,$0E,$1C,$38,$7E,$7E,$00
 abs_0_0001AABA:
 	dc.b "LIFE",$00
+abs_0_0001AABF:
 	dc.b "DIST",$00
+abs_0_0001AAC4:
 	dc.b "CHAR",$00
+abs_0_0001AAC9:
 	dc.b "CARRYING",$00
+abs_0_0001AAD2:
 	dc.b "BACKPACK",$00
+abs_0_0001AADB:
 	dc.b "POCKETS",$00
+abs_0_0001AAE3:
 	dc.b "9999",$00
+abs_0_0001AAE8:
 	dc.b "BODY",$00
+abs_0_0001AAED:
 	dc.b "HOLDING",$00
+abs_0_0001AAF5:
 	dc.b $48,$49,$54,$00
 abs_0_0001AAF9:
 	dc.b $45,$4E,$4D,$59,$00
@@ -13005,7 +13657,7 @@ captain_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-pianist_inventory_slots:
+secdroid_alpha_1_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13014,7 +13666,7 @@ pianist_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-pianist_initial_inventory_slots:
+secdroid_alpha_1_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13023,7 +13675,7 @@ pianist_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-flight_controller_inventory_slots:
+secdroid_alpha_2_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13032,7 +13684,7 @@ flight_controller_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-flight_controller_initial_inventory_slots:
+secdroid_alpha_2_initial_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13132,7 +13784,7 @@ resource_officer_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-defence_controller_inventory_slots:
+secdroid_delta_1_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13141,7 +13793,7 @@ defence_controller_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-defence_controller_initial_inventory_slots:
+secdroid_delta_1_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13150,7 +13802,7 @@ defence_controller_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-wackobrain_inventory_slots:
+secdroid_delta_2_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13159,7 +13811,7 @@ wackobrain_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-wackobrain_initial_inventory_slots:
+secdroid_delta_2_initial_inventory_slots:
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13168,7 +13820,7 @@ wackobrain_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-glass_inventory_slots:
+secdroid_pi_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13177,7 +13829,7 @@ glass_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-glass_initial_inventory_slots:
+secdroid_pi_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13348,7 +14000,7 @@ robomechanic_initial_inventory_slots:
 	dc.b $1E	; trade_value
 	dc.b ITEM_ID_SHOCKWHIP	; item_id
 	dc.b $64	; trade_value
-kwik_kleen_inventory_slots:
+secdroid_omega_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13357,7 +14009,7 @@ kwik_kleen_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-kwik_kleen_initial_inventory_slots:
+secdroid_omega_initial_inventory_slots:
 	dc.b ITEM_ID_ELECTRUNCHON	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13475,7 +14127,7 @@ commander_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_CODE_SCARLET	; item_id
 	dc.b $00	; trade_value
-kriptonite_inventory_slots:
+wackobrain_actor_inventory_slots:
 	dc.b ITEM_ID_BROKEN_ORAK	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_SANDWORM_SHELL	; item_id
@@ -13484,7 +14136,7 @@ kriptonite_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-kriptonite_initial_inventory_slots:
+wackobrain_actor_initial_inventory_slots:
 	dc.b ITEM_ID_BROKEN_ORAK	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_SANDWORM_SHELL	; item_id
@@ -13493,7 +14145,7 @@ kriptonite_initial_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-megabio_feed_inventory_slots:
+pianist_actor_inventory_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13502,7 +14154,7 @@ megabio_feed_inventory_slots:
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
-megabio_feed_initial_inventory_slots:
+pianist_actor_initial_inventory_slots:
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_value
 	dc.b ITEM_ID_EMPTY	; item_id
@@ -13902,7 +14554,7 @@ title_glyph_A:
 	dc.l $0FFFEFF0,$0FFFEFF0,$1FFFE7F8,$1FFFE7F8	; data
 	dc.l $3FE003FC,$3FC003FC,$7FC003FE,$7F8001FE	; data
 	dc.l $7F8001FE,$7F0000FE,$00000000,$00000000	; data
-four_byte_rows:
+title_glyph_B:
 	dc.l $00000000,$00000000,$0FFFF800,$0FFFFE00	; data
 	dc.l $0FFFFF00,$0FFFFF00,$0FC0FF80,$0FC07F80	; data
 	dc.l $0FC03F80,$0FC01F80,$0FC03F80,$0FC07F80	; data
@@ -13911,7 +14563,7 @@ four_byte_rows:
 	dc.l $0FC0FFC0,$0FC03FC0,$0FC01FC0,$0FC01FC0	; data
 	dc.l $0FC03FC0,$0FC07FC0,$0FDFFF80,$0FDFFF80	; data
 	dc.l $0FDFFF00,$0FDFF800,$00000000,$00000000	; data
-four_byte_rows_2:
+title_glyph_C:
 	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
 	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
 	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
@@ -13929,7 +14581,7 @@ title_glyph_D:
 	dc.l $0FE007FC,$0FE00FF8,$0FE01FF8,$0FE07FF8	; data
 	dc.l $0FE7FFF0,$0FEFFFE0,$0FFFFFE0,$0FFFFFC0	; data
 	dc.l $0FFFFF80,$0FEFFE00,$0FE7F000,$00000000	; data
-four_byte_rows_3:
+title_glyph_E:
 	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
@@ -13938,7 +14590,7 @@ four_byte_rows_3:
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FE00000,$1FFFFF80,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
-four_byte_rows_4:
+title_glyph_F:
 	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
@@ -13947,7 +14599,7 @@ four_byte_rows_4:
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
-four_byte_rows_5:
+title_glyph_G:
 	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
 	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
 	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
@@ -13956,7 +14608,7 @@ four_byte_rows_5:
 	dc.l $3FE003FC,$1FF001FC,$1FF801FC,$1FFE03FC	; data
 	dc.l $0FFF8FFC,$07FFFFFC,$07FFFFFC,$03FFFFFC	; data
 	dc.l $01FFFFFC,$007FFFF8,$000FFFE0,$00000000	; data
-four_byte_rows_6:
+title_glyph_H:
 	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
@@ -13965,7 +14617,7 @@ four_byte_rows_6:
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$0F8001F0,$00000000	; data
-four_byte_rows_7:
+title_glyph_I:
 	dc.l $00000000,$00000000,$007FFE00,$00FFFF00	; data
 	dc.l $00FFFF00,$00FFFF00,$007FFE00,$000FF000	; data
 	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
@@ -13974,7 +14626,7 @@ four_byte_rows_7:
 	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
 	dc.l $000FF000,$000FF000,$007FFE00,$00FFFF00	; data
 	dc.l $00FFFF00,$00FFFF00,$007FFE00,$00000000	; data
-four_byte_rows_8:
+title_glyph_J:
 	dc.l $00000000,$00000000,$000007C0,$00000FE0	; data
 	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
 	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
@@ -13983,7 +14635,7 @@ four_byte_rows_8:
 	dc.l $00000FE0,$00001FE0,$07E03FE0,$0FF87FE0	; data
 	dc.l $0FFFFFE0,$0FFFFFE0,$0FFFFFC0,$07FFFFC0	; data
 	dc.l $03FFFF80,$01FFFE00,$003FF000,$00000000	; data
-four_byte_rows_9:
+title_glyph_K:
 	dc.l $00000000,$00000000,$0F800F80,$1FC01FC0	; data
 	dc.l $1FC03FC0,$1FC07FC0,$1FC0FF80,$1FC1FF00	; data
 	dc.l $1FC3FE00,$1FC7FC00,$1FCFF800,$1FDFF000	; data
@@ -13992,7 +14644,7 @@ four_byte_rows_9:
 	dc.l $1FFFC000,$1FFFE000,$1FDFF000,$1FCFF800	; data
 	dc.l $1FC7FC00,$1FC3FE00,$1FC1FF00,$1FC0FF80	; data
 	dc.l $1FC07F80,$1FC03F80,$0F801F00,$00000000	; data
-four_byte_rows_10:
+title_glyph_L:
 	dc.l $00000000,$00000000,$0F800000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
@@ -14001,7 +14653,7 @@ four_byte_rows_10:
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
 	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
-four_byte_rows_11:
+title_glyph_M:
 	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
 	dc.l $FF0001FE,$FF8003FE,$FFC007FE,$FFE00FFE	; data
 	dc.l $FFF01FFE,$FFF83FFE,$FFFC7FFE,$FFFFFFFE	; data
@@ -14037,7 +14689,7 @@ title_glyph_P:
 	dc.l $1FFFF800,$1FDFE000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
 	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
-four_byte_rows_12:
+title_glyph_Q:
 	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80	; data
 	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8	; data
 	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE	; data
@@ -14055,7 +14707,7 @@ title_glyph_R:
 	dc.l $1FDFF800,$1FDFE000,$1FDFC000,$1FCFE000	; data
 	dc.l $1FC7F000,$1FC3F800,$1FC1FC00,$1FC0FE00	; data
 	dc.l $1FC07F00,$1FC03F80,$0F801F00,$00000000	; data
-four_byte_rows_13:
+title_glyph_S:
 	dc.l $00000000,$000FFC00,$00FFFF80,$03FFFFE0	; data
 	dc.l $07FFFFF0,$0FFFFFF8,$1FFE3FF8,$1FF80FF8	; data
 	dc.l $1FF007F8,$1FE001F0,$1FF00000,$1FF80000	; data
@@ -14064,7 +14716,7 @@ four_byte_rows_13:
 	dc.l $00000FFC,$000007FC,$0F8003FC,$1FE007FC	; data
 	dc.l $3FF00FFC,$3FFE3FF8,$3FFFFFF8,$1FFFFFF0	; data
 	dc.l $0FFFFFE0,$03FFFF80,$003FF800,$00000000	; data
-four_byte_rows_14:
+title_glyph_T:
 	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
 	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFF8	; data
 	dc.l $000FF800,$0007F000,$0007F000,$0007F000	; data
@@ -14073,7 +14725,7 @@ four_byte_rows_14:
 	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
 	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
 	dc.l $0007F000,$0007F000,$0003E000,$00000000	; data
-four_byte_rows_15:
+title_glyph_U:
 	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
 	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
@@ -14082,7 +14734,7 @@ four_byte_rows_15:
 	dc.l $1FC003F8,$1FE007F8,$1FE007F8,$0FF00FF0	; data
 	dc.l $0FFC3FF0,$0FFFFFF0,$07FFFFE0,$07FFFFE0	; data
 	dc.l $03FFFFC0,$00FFFF00,$003FFC00,$00000000	; data
-four_byte_rows_16:
+title_glyph_V:
 	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
 	dc.l $7F8001FE,$7F8001FE,$3FC003FC,$3FC003FC	; data
 	dc.l $1FE007F8,$1FE007F8,$0FF00FF0,$0FF00FF0	; data
@@ -14091,7 +14743,7 @@ four_byte_rows_16:
 	dc.l $007FFE00,$007FFE00,$003FFC00,$003FFC00	; data
 	dc.l $001FF800,$001FF800,$000FF000,$000FF000	; data
 	dc.l $0007E000,$0003C000,$00000000,$00000000	; data
-four_byte_rows_17:
+title_glyph_W:
 	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
 	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
 	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
@@ -14100,7 +14752,7 @@ four_byte_rows_17:
 	dc.l $FFFFFFFE,$FFFFFFFE,$FFFFFFFE,$FFFE7FFE	; data
 	dc.l $FFFC3FFE,$FFF81FFE,$FFF00FFE,$FFE007FE	; data
 	dc.l $FFC003FE,$FF8001FE,$7E00007C,$00000000	; data
-four_byte_rows_18:
+title_glyph_X:
 	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
 	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
 	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
@@ -14109,7 +14761,7 @@ four_byte_rows_18:
 	dc.l $01FFFF80,$03FFFFC0,$07FE7FE0,$0FFC3FF0	; data
 	dc.l $1FF81FF8,$3FF00FFC,$3FE007FC,$3FC003FC	; data
 	dc.l $3F8001FC,$1F0000F8,$00000000,$00000000	; data
-four_byte_rows_19:
+title_glyph_Y:
 	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
 	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
 	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
@@ -14118,7 +14770,7 @@ four_byte_rows_19:
 	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
 	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
 	dc.l $0007E000,$0007E000,$0003C000,$00000000	; data
-four_byte_rows_20:
+title_glyph_Z:
 	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
 	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFFC	; data
 	dc.l $00001FF8,$00003FF0,$00007FE0,$0000FFC0	; data
@@ -14338,526 +14990,44 @@ world_tile_pixels_096_through_101:
 	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$BF,$FB,$FF,$FF,$BF,$FB
 	dc.b $00,$00,$BF,$FB,$FF,$FF,$BF,$FB,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
 world_tile_pixels_103:
-	dc.b $08,$00,$FF,$FF,$1F,$F8,$17,$E8,$04,$00,$FF,$FF,$0F,$FC,$0B,$F4
+	dc.b $08,$00,$FF,$FF,$1F,$F8,$17,$E8,$04,$00,$FF,$FF,$0F,$FC,$0B,$F4	; bitmap
 	dc.b $02,$00,$FF,$FF,$07,$FE,$05,$FA,$01,$00,$FF,$FF,$03,$FF,$02,$FD
-	dc.b $00,$80,$FF,$FF,$01,$FF,$01,$7E,$00,$40,$FF,$FF,$00,$FF
-abs_0_00020456:
-	dc.b $00,$BF,$00,$20,$FF,$FF,$00,$7F,$00,$5F,$00,$10,$FF,$FF,$00,$3F
-	dc.b $00,$2F,$00,$08,$FF,$FF,$00,$1F,$00,$17,$00,$04,$FF,$FF,$00,$0F
-	dc.b $00,$0B,$00,$02,$FF,$FF,$00,$07,$00,$05,$00,$01,$FF,$FF,$00,$03
-	dc.b $00,$02,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$1F,$E0
-	dc.b $1F,$E0,$00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$00,$10,$FF,$EF,$FF,$EF
-	dc.b $FF,$EF,$00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$1F,$F0,$E0,$0F,$E0,$0F
-	dc.b $E0,$0F,$01,$08,$FE,$F7,$F0,$87,$F0,$87,$20,$04,$DF,$FB,$CE,$73
-	dc.b $CE,$73,$0A,$77,$FD,$E8,$E9,$E8,$E9,$E8,$AB,$F8,$DC,$67,$98,$67
-	dc.b $98,$67,$88,$D8,$FF,$67,$9B,$47,$9B,$47,$89,$59,$FE,$E6,$9A,$C6
-	dc.b $9A,$C6,$88,$D8,$FF,$67,$9B,$47,$9B,$47,$88,$DB,$FF,$64,$9B,$44
-	dc.b $9B,$44,$88,$D8,$FF,$67,$9B,$47,$9B,$47,$89,$59,$FE,$E6,$9A,$C6
-	dc.b $9A,$C6
+	dc.b $00,$80,$FF,$FF,$01,$FF,$01,$7E,$00,$40,$FF,$FF,$00,$FF,$00,$BF
+	dc.b $00,$20,$FF,$FF,$00,$7F,$00,$5F,$00,$10,$FF,$FF,$00,$3F,$00,$2F
+	dc.b $00,$08,$FF,$FF,$00,$1F,$00,$17,$00,$04,$FF,$FF,$00,$0F,$00,$0B
+	dc.b $00,$02,$FF,$FF,$00,$07,$00,$05,$00,$01,$FF,$FF,$00,$03,$00,$02
+	dc.b $00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF,$00,$00,$00,$00
+	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
+	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$1F,$E0,$1F,$E0
+	dc.b $00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$00,$10,$FF,$EF,$FF,$EF,$FF,$EF
+	dc.b $00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$1F,$F0,$E0,$0F,$E0,$0F,$E0,$0F
+	dc.b $01,$08,$FE,$F7,$F0,$87,$F0,$87,$20,$04,$DF,$FB,$CE,$73,$CE,$73
+	dc.b $0A,$77,$FD,$E8,$E9,$E8,$E9,$E8,$AB,$F8,$DC,$67,$98,$67,$98,$67
+	dc.b $88,$D8,$FF,$67,$9B,$47,$9B,$47,$89,$59,$FE,$E6,$9A,$C6,$9A,$C6
+	dc.b $88,$D8,$FF,$67,$9B,$47,$9B,$47,$88,$DB,$FF,$64,$9B,$44,$9B,$44
+	dc.b $88,$D8,$FF,$67,$9B,$47,$9B,$47,$89,$59,$FE,$E6,$9A,$C6,$9A,$C6
 world_tile_pixels_105_through_119:
-	dc.b $00,$02,$FF,$FD,$BF,$FD,$BF,$FD,$1F,$FA,$E0,$05,$A0,$05,$A0,$05
-	dc.b $1F,$FA,$E0,$05,$A0,$05,$A0,$05,$00,$02,$FF,$FD,$BC,$1D,$BC,$1D
-	dc.b $1B,$DA,$E4,$25,$A0,$25,$A0,$25,$11,$8A,$EE,$75,$A0,$05,$A0,$05
-	dc.b $20,$06,$DF,$F9,$8E,$71,$8E,$71,$0A,$76,$FD,$E9,$E9,$E9,$E9,$E9
-	dc.b $AB,$F8,$DC,$67,$98,$67,$98,$67,$88,$D8,$FF,$67,$9B,$47,$9B,$47
-	dc.b $89,$59,$FE,$E6,$9A,$C6,$9A,$C6,$88,$D8,$FF,$67,$9B,$47,$9B,$47
-	dc.b $88,$DB,$FF,$64,$9B,$44,$9B,$44,$88,$D8,$FF,$67,$9B,$47,$9B,$47
-	dc.b $89,$59,$FE,$E6,$9A,$C6,$9A,$C6,$6B,$D4,$94,$2B,$94,$2B,$94,$2B
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$83,$C0,$7F,$FF,$03,$C0,$03,$C0
-	dc.b $84,$20,$7F,$FF,$07,$E0,$07,$E0,$8B,$D0,$7F,$FF,$0F,$F0,$0F,$F0
-	dc.b $94,$28,$7F,$FF,$1C,$38,$1F,$F8,$A8,$14,$7C,$3F,$3B,$DC,$3F,$FC
-	dc.b $D3,$CA,$78,$1F,$77,$EE,$7C,$3E,$D2,$4A,$79,$9F,$76,$6E,$7D,$BE
-	dc.b $D2,$4A,$79,$9F,$76,$6E,$7D,$BE,$D3,$CA,$78,$1F,$77,$EE,$7C,$3E
-	dc.b $A8,$14,$7C,$3F,$3B,$DC,$3F,$FC,$94,$28,$7F,$FF,$1C,$38,$1F,$F8
-	dc.b $8B,$D0,$7F,$FF,$0F,$F0,$0F,$F0,$84,$20,$7F,$FF,$07,$E0,$07,$E0
-	dc.b $83,$C0,$7F,$FF,$03,$C0,$03,$C0,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$90,$04,$6F,$FB,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$90,$04,$6F,$FB,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $59,$01,$EE,$FE,$48,$80,$48,$80,$59,$00,$EE,$FF,$48,$80,$48,$80
-	dc.b $59,$00,$EE,$FF,$48,$CC,$48,$FF,$59,$00,$EE,$7F,$48,$E6,$48,$FF
-	dc.b $59,$00,$EE,$7F,$48,$B3,$48,$FF,$59,$00,$EE,$FF,$48,$80,$48,$80
-	dc.b $59,$FF,$EF,$FF,$49,$FF,$49,$FF,$58,$00,$EF,$FF,$48,$00,$48,$00
-	dc.b $58,$00,$EF,$FF,$48,$00,$48,$00,$4F,$FF,$F0,$00,$40,$00,$40,$00
-	dc.b $40,$00,$FF,$FF,$47,$FF,$47,$FF,$20,$00,$DF,$FF,$00,$00,$00,$00
-	dc.b $10,$00,$EF,$FF,$00,$00,$00,$00,$0F,$FF,$F0,$00,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $F4,$20,$0F,$DF,$04,$10,$04,$10,$04,$BC,$FF,$43,$04,$00,$04,$00
-	dc.b $04,$34,$FF,$DB,$CC,$12,$FC,$12,$05,$F4,$FE,$1B,$64,$12,$FC,$12
-	dc.b $05,$FC,$FE,$E3,$34,$E2,$FC,$E2,$05,$F4,$FE,$1B,$04,$12,$04,$12
-	dc.b $FC,$34,$FF,$DB,$FC,$12,$FC,$12,$00,$BC,$FF,$43,$00,$02,$00,$02
-	dc.b $00,$40,$FF,$BF,$00,$3E,$00,$3E,$FF,$80,$00,$7F,$00,$7E,$00,$7E
-	dc.b $00,$04,$FF,$FB,$FF,$C0,$FF,$C0,$00,$08,$FF,$F7,$00,$00,$00,$00
-	dc.b $00,$10,$FF,$EF,$00,$00,$00,$00,$FF,$E0,$00,$1F,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00
-abs_0_000207F0:
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FE,$00,$01,$FF,$FE,$7F,$FE
-	dc.b $FF,$FD,$00,$02,$FF,$FC,$7F,$FC,$FF,$FB,$00,$05,$FF,$F9,$7F,$F9
-	dc.b $FF,$F6,$00,$0B,$FF,$F2,$7F,$F2,$FF,$EC,$00,$17,$FF,$E4,$7F,$E4
-	dc.b $FF,$D8,$00,$2F,$FF,$C8,$7F,$C8,$80,$01,$7F,$FE,$80,$01,$80,$00
-	dc.b $80,$01,$7F,$FE,$80,$01,$80,$00,$FF,$FF,$00,$00,$80,$01,$80,$00
-	dc.b $FF,$FF,$7F,$FE,$FF,$FF,$FF,$FE,$C0,$01,$7F,$FE,$C0,$01,$C0,$00
-	dc.b $C0,$01,$7F,$FE,$C0,$01,$C0,$00,$C0,$01,$7F,$FE,$C0,$01,$C0,$00
-	dc.b $C0,$01,$7F,$FE,$C0,$01,$C0,$00,$C0,$01,$7F,$FE,$C0,$01,$C0,$00
-	dc.b $7F,$FE,$80,$01,$00,$00,$00,$00,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$7F,$FF,$80,$00,$7F,$FF,$7F,$FF
-	dc.b $BF,$FF,$40,$00,$3F,$FF,$3F,$FF,$5F,$FF,$A0,$00,$1F,$FF,$1F,$FF
-	dc.b $2F,$FF,$D0,$00,$0F,$FF,$0F,$FF,$17,$FF,$E8,$00,$07,$FF,$07,$FF
-	dc.b $0B,$FF,$F4,$00,$03,$FF,$03,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$01,$FF,$FE,$00,$00,$00,$00,$80,$02,$FF,$FD,$00,$00,$00,$00
-	dc.b $80,$05,$FF,$FA,$00,$00,$00,$00,$80,$0B,$FF,$F5,$00,$01,$00,$01
-	dc.b $80,$16,$FF,$EB,$00,$02,$00,$02,$80,$2C,$FF,$D7,$00,$04,$00,$04
-	dc.b $80,$58,$FF,$AF,$00,$08,$00,$08,$80,$01,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$00,$01,$00,$00,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$7F,$FE,$7F,$FE,$C0,$01,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$01,$7F,$FF,$40,$00,$40,$00,$C0,$01,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$01,$7F,$FF,$40,$00,$40,$00,$C0,$01,$7F,$FF,$40,$00,$40,$00
-	dc.b $7F,$FE,$80,$01,$00,$00,$00,$00,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$7F,$FE,$00,$00,$00,$00,$40,$01,$BF,$FE,$00,$00,$00,$00
-	dc.b $A0,$01,$5F,$FE,$00,$00,$00,$00,$50,$01,$AF,$FE,$00,$00,$00,$00
-	dc.b $28,$01,$D7,$FE,$00,$00,$00,$00,$14,$01,$EB,$FE,$00,$00,$00,$00
-	dc.b $0A,$01,$F5,$FE
-	dcb.b $A,$00
-	dc.b $FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FE,$00,$01,$00,$00
-	dc.b $FF,$FE,$7F,$FD,$00,$02,$00,$00,$FF,$FC,$7F,$FB,$00,$05,$00,$01
-	dc.b $FF,$F9,$7F,$F6,$00,$0B,$00,$02,$FF,$F2,$7F,$EC,$00,$17,$00,$04
-	dc.b $FF,$E4,$7F,$D8,$00,$2F,$00,$08,$FF,$C8,$80,$00,$7F,$FE,$00,$00
-	dc.b $80,$01,$80,$00,$7F,$FE,$00,$00,$80,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $80,$01,$FF,$FE,$7F,$FE,$7F,$FE,$FF,$FF,$C0,$00,$7F,$FE,$40,$00
-	dc.b $C0,$01,$C0,$00,$7F,$FE,$40,$00,$C0,$01,$C0,$00,$7F,$FE,$40,$00
-	dc.b $C0,$01,$C0,$00,$7F,$FE,$40,$00,$C0,$01,$C0,$00,$7F,$FE,$40,$00
-	dc.b $C0,$01,$7F,$FE,$80,$01,$00,$00,$00,$00,$FF,$FF,$7F,$FE,$7F,$FE
-	dc.b $7F,$FE,$80,$00,$FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF
-	dcb.b $A,$00
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF,$80,$00,$00,$00
-	dc.b $7F,$FF,$BF,$FF,$40,$00,$00,$00,$3F,$FF,$5F,$FF,$A0,$00,$00,$00
-	dc.b $1F,$FF,$2F,$FF,$D0,$00,$00,$00,$0F,$FF,$17,$FF,$E8,$00,$00,$00
-	dc.b $07,$FF,$0B,$FF,$F4,$00,$00,$00,$03,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF
-	dc.b $7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF
-	dc.b $7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF
-	dc.b $7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF
-	dc.b $7F,$FF,$7F,$FF,$FF,$FE,$FF,$FE,$7F,$FE,$7F,$FE,$FF,$FD,$FF,$FC
-	dc.b $7F,$FC,$7F,$FD,$FF,$FA,$FF,$F8,$7F,$F8,$7F,$FB,$FF,$F5,$FF,$F1
-	dc.b $7F,$F1,$7F,$F6,$FF,$EB,$FF,$E2,$7F,$E2,$7F,$EC,$FF,$D7,$FF,$C4
-	dc.b $7F,$C4,$7F,$D8,$FF,$AF,$FF,$88,$7F,$88
+	INCBIN "assets/world_tile_pixels_105_through_119.bin"
+; bitmap
+	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
+	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
+	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
+	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
+	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FE,$FF,$FE,$7F,$FE
+	dc.b $7F,$FE,$FF,$FD,$FF,$FC,$7F,$FC,$7F,$FD,$FF,$FA,$FF,$F8,$7F,$F8
+	dc.b $7F,$FB,$FF,$F5,$FF,$F1,$7F,$F1,$7F,$F6,$FF,$EB,$FF,$E2,$7F,$E2
+	dc.b $7F,$EC,$FF,$D7,$FF,$C4,$7F,$C4,$7F,$D8,$FF,$AF,$FF,$88,$7F,$88
 world_tile_pixels_121_through_164:
-	dc.b $80,$00,$7F,$FF,$00,$01,$00,$00,$80,$00,$7F,$FF,$00,$01,$00,$00
-	dc.b $FF,$FE,$00,$01,$00,$01,$00,$00,$FF,$FE,$7F,$FF,$7F,$FF,$7F,$FE
-	dc.b $C0,$00,$7F,$FF,$40,$01,$40,$00,$C0,$00,$7F,$FF,$40,$01,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$01,$40,$00,$C0,$00,$7F,$FF,$40,$01,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$01,$40,$00,$7F,$FE,$80,$01,$00,$00,$00,$00
-	dc.b $FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE
-	dc.b $7F,$FF,$BF,$FE,$3F,$FE,$3F,$FE,$BF,$FF,$5F,$FE,$1F,$FE,$1F,$FE
-	dc.b $5F,$FF,$AF,$FE,$0F,$FE,$0F,$FE,$2F,$FF,$D7,$FE,$07,$FE,$07,$FE
-	dc.b $17,$FF,$EB,$FE,$03,$FE,$03,$FE,$0B,$FF,$F5,$FE,$01,$FE,$01,$FE
-	dc.b $FF,$B0,$00,$5F,$FF,$90,$FF,$90,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BE,$10,$21,$10,$21
-	dc.b $30,$61,$DF,$BC,$10,$22,$10,$22,$30,$62,$DF,$B9,$10,$25,$10,$25
-	dc.b $30,$62,$DF,$B9,$10,$25,$10,$25,$30,$64,$DF,$B3,$10,$2B,$10,$2B
-	dc.b $30,$64,$DF,$B3,$10,$2B,$10,$2B,$30,$69,$DF,$A6,$10,$36,$10,$36
-	dc.b $30,$68,$DF,$A7,$10,$37,$10,$37,$30,$64,$DF,$B3,$10,$2B,$10,$2B
-	dc.b $30,$63,$DF,$B8,$10,$24,$10,$24,$30,$60,$DF,$BC,$10,$23,$10,$23
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$FF,$A0,$00,$5F,$FF,$80,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$80,$FF,$7F,$00,$7F,$00
-	dc.b $7F,$00,$00,$7E,$80,$81,$80,$81,$80,$81,$7F,$38,$7F,$46,$7F,$46
-	dc.b $00,$46,$FF,$91,$FF,$A9,$FF,$A9,$7E,$28,$81,$C7,$81,$D7,$81,$D7
-	dc.b $41,$11,$80,$EE,$BE,$EE,$BE,$EE,$80,$8E,$3E,$70,$41,$71,$41,$71
-	dc.b $03,$44,$00,$B9,$FC,$BA,$FC,$BA,$FC,$22,$03,$DC,$03,$DD,$03,$DD
-	dc.b $00,$D1,$FF,$0E,$FF,$2E,$FF,$2E,$03,$08,$FC,$27,$FC,$D7,$FC,$D7
-	dc.b $FC,$07,$00,$F0,$03,$08,$03,$08,$00,$00,$03,$F8,$FC,$07,$FC,$07
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $05,$FF,$FA,$00,$01,$FF,$01,$FF,$03,$FC,$8D,$FB,$71,$F8,$71,$F8
-	dc.b $73,$04,$05,$FB,$89,$00,$89,$00,$93,$04,$65,$FB,$69,$00,$69,$00
-	dc.b $13,$04,$E5,$FB,$E9,$00,$E9,$00,$43,$04,$8D,$FB,$B1,$00,$B1,$00
-	dc.b $83,$04,$3D,$FB,$41,$00,$41,$00,$03,$04,$7D,$FB,$81,$00,$81,$00
-	dc.b $03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00
-	dc.b $03,$04,$7D,$FB,$81,$00,$81,$00,$83,$04,$3D,$FB,$41,$00,$41,$00
-	dc.b $83,$04,$3D,$FB,$41,$00,$41,$00,$03,$04,$7D,$FB,$81,$00,$81,$00
-	dc.b $03,$04,$FD,$FB,$01,$00,$01,$00,$05,$FF,$FA,$00,$01,$FF,$00,$00
-	dc.b $FF,$B0,$00,$5F,$00,$10,$00,$10,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20
-	dc.b $30,$60,$DF,$BC,$10,$23,$10,$20,$30,$63,$DF,$B8,$10,$24,$10,$20
-	dc.b $30,$64,$DF,$B3,$10,$2B,$10,$23,$30,$68,$DF,$A7,$10,$37,$10,$27
-	dc.b $30,$6F,$DF,$A0,$10,$30,$10,$20,$30,$60,$DF,$A0,$10,$3F,$10,$20
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$FF,$A0,$FF,$DF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$F0,$00,$0F,$FF,$00,$00
-	dc.b $0F,$FF,$E0,$00,$10,$00,$00,$00,$10,$00,$CF,$FF,$2F,$FF,$0F,$FF
-	dc.b $20,$00,$9F,$FF,$5F,$FF,$1F,$FF,$43,$F8,$3C,$07,$BC,$07,$3C,$07
-	dc.b $46,$04,$38,$03,$B9,$FB,$38,$03,$44,$08,$39,$E7,$BA,$17,$38,$07
-	dc.b $44,$10,$39,$CF,$BA,$2F,$38,$0F,$C2,$21,$3C,$9E,$3D,$5E,$3C,$1E
-	dc.b $02,$40,$FC,$3F,$FD,$BF,$FC,$3F,$02,$40,$FC,$3F,$FD,$BF,$FC,$3F
-	dc.b $FE,$7F,$00,$00,$01,$80,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $05,$FF,$FA,$00,$00,$00,$00,$00,$03,$FC,$7D,$FB,$81,$F8,$01,$F8
-	dc.b $83,$04,$3D,$FB,$41,$00,$01,$00,$43,$04,$9D,$FB,$A1,$00,$81,$00
-	dc.b $23,$04,$CD,$FB,$D1,$00,$C1,$00,$23,$04,$CD,$FB,$D1,$00,$C1,$00
-	dc.b $23,$04,$CD,$FB,$D1,$00,$C1,$00,$43,$04,$9D,$FB,$A1,$00,$81,$00
-	dc.b $83,$04,$3D,$FB,$41,$00,$01,$00,$C3,$04,$1D,$FB,$21,$00,$01,$00
-	dc.b $23,$04,$CD,$FB,$D1,$00,$C1,$00,$13,$04,$E5,$FB,$E9,$00,$E1,$00
-	dc.b $F3,$04,$05,$FB,$09,$00,$01,$00,$03,$04,$05,$FB,$F9,$00,$01,$00
-	dc.b $03,$04,$FD,$FB,$01,$00,$01,$00,$05,$FF,$FB,$FF,$00,$00,$00,$00
-	dc.b $FF,$B0,$00,$5F,$00,$10,$FF,$90,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$60,$DF,$BF,$10,$20,$10,$20
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$30,$61,$DF,$BE,$10,$20,$10,$21
-	dc.b $30,$67,$DF,$B8,$10,$20,$10,$26,$30,$7E,$DF,$A1,$10,$21,$10,$39
-	dc.b $30,$78,$DF,$A7,$10,$27,$10,$37,$30,$78,$DF,$A7,$10,$27,$10,$37
-	dc.b $30,$7F,$DF,$A0,$10,$20,$10,$30,$30,$7F,$DF,$A0,$10,$20,$10,$3F
-	dc.b $30,$60,$DF,$BF,$10,$20,$10,$20,$00,$20,$00,$5F,$00,$00,$FF,$80
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$18,$FF,$E7,$00,$00,$00,$18
-	dc.b $00,$7C,$FF,$83,$00,$00,$00,$64,$01,$E6,$FE,$19,$00,$18,$01,$9A
-	dc.b $07,$83,$F8,$7C,$00,$7C,$06,$7D,$1E,$01,$E1,$FE,$01,$FE,$19,$FE
-	dc.b $78,$30,$87,$CF,$07,$CF,$67,$CF,$E0,$F8,$1F,$07,$1F,$07,$9F,$37
-	dc.b $83,$FC,$7C,$03,$7C,$03,$7C,$FB,$0F,$FE,$F0,$01,$F0,$01,$F0,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$05,$FF
-	dc.b $FA,$00,$00,$00,$01,$FF,$03,$FC,$FD,$FB,$01,$F8,$01,$F8,$03,$04
-	dc.b $FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04
-	dc.b $FD,$FB,$01,$00,$01,$00,$83,$04,$7D,$FB,$01,$00,$81,$00,$C3,$04
-	dc.b $3D,$FB,$01,$00,$41,$00,$63,$04,$9D,$FB,$81,$00,$A1,$00,$33,$04
-	dc.b $CD,$FB,$C1,$00,$D1,$00,$1B,$04,$E5,$FB,$E1,$00,$E9,$00,$0F,$04
-	dc.b $F1,$FB,$F1,$00,$F5,$00,$0F,$04,$F1,$FB,$F1,$00,$F5,$00,$FF,$04
-	dc.b $01,$FB,$01,$00,$05,$00,$FF,$04,$01,$FB,$01,$00,$FD,$00,$03,$04
-	dc.b $FD,$FB,$01,$00,$01,$00,$04,$00,$FA,$00,$00,$00,$01,$FF,$FF,$B0
-	dc.b $00,$5F,$00,$10,$00,$10,$3F,$E0,$DF,$BF,$1F,$A0,$1F,$A0,$30,$60
-	dc.b $DF,$BF,$10,$20,$10,$20,$30,$61,$DF,$BF,$10,$21,$10,$21,$30,$63
-	dc.b $DF,$BE,$10,$22,$10,$22,$30,$67,$DF,$BC,$10,$24,$10,$24,$30,$67
-	dc.b $DF,$BF,$10,$27,$10,$27,$30,$60,$DF,$BF,$10,$20,$10,$20,$30,$61
-	dc.b $DF,$BF,$10,$21,$10,$21,$30,$63,$DF,$BE,$10,$22,$10,$22,$30,$66
-	dc.b $DF,$BD,$10,$25,$10,$25,$30,$6C,$DF,$BB,$10,$2B,$10,$2B,$30,$6F
-	dc.b $DF,$B8,$10,$28,$10,$28,$30,$6F,$DF,$BF,$10,$2F,$10,$2F,$30,$60
-	dc.b $DF,$BF,$10,$20,$10,$20,$00,$20,$FF,$DF,$FF,$80,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$7F,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF
-	dc.b $80,$00,$80,$00,$80,$00,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$F1,$E3,$0E,$1C,$0E,$1C,$0E,$1C,$E3,$E3
-	dc.b $DD,$DD,$DD,$DD,$DD,$DD,$C6,$63,$BB,$DD,$BA,$5D,$BA,$5D,$8C,$63
-	dc.b $77,$DD,$74,$5D,$74,$5D,$18,$63,$EF,$DD,$E8,$5D,$E8,$5D,$30,$63
-	dc.b $DF,$DD,$D0,$5D,$D0,$5D,$60,$63,$BF,$DD,$A0,$5D,$A0,$5D,$C0,$7F
-	dc.b $7F,$C1,$40,$41,$40,$41,$80,$7F,$FF,$FF,$80,$7F,$80,$7F,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$05,$FF
-	dc.b $FA,$00,$00,$00,$00,$00,$FB,$FC,$FD,$FB,$F9,$F8,$F9,$F8,$FB,$04
-	dc.b $0D,$FB,$09,$00,$09,$00,$1B,$04,$ED,$FB,$E9,$00,$E9,$00,$1B,$04
-	dc.b $ED,$FB,$E9,$00,$E9,$00,$FB,$04,$0D,$FB,$09,$00,$09,$00,$FB,$04
-	dc.b $FD,$FB,$F9,$00,$F9,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04
-	dc.b $FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB
-abs_0_000213F4:
-	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB
-	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$03,$04,$FD,$FB
-	dc.b $01,$00,$01,$00,$03,$04,$FD,$FB,$01,$00,$01,$00,$04,$00,$FB,$FF
-	dc.b $01,$FF,$00,$00,$FF,$D0,$00,$2F,$FF,$C0,$7F,$C0,$FF,$E8,$00,$17
-	dc.b $FF,$E0,$7F,$E0,$FF,$F4,$00,$0B,$FF,$F0,$7F,$F0,$FF,$FA,$00,$05
-	dc.b $FF,$F8,$7F,$F8,$FF,$FD,$00,$02,$FF,$FC,$7F,$FC,$FF,$FE,$00,$01
-	dc.b $FF,$FE,$7F,$FE,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$80,$01,$7F,$FE
-	dc.b $00,$00,$00,$00,$7F,$FE,$80,$01,$00,$00,$00,$00,$FF,$FF,$7F,$FE
-	dc.b $FF,$FF,$FF,$FE,$C0,$01,$7F,$FE,$C0,$01,$C0,$00,$C0,$01,$7F,$FE
-	dc.b $C0,$01,$C0,$00,$C0,$01,$7F,$FE,$C0,$01,$C0,$00,$C0,$01,$7F,$FE
-	dc.b $C0,$01,$C0,$00,$C0,$01,$7F,$FE,$C0,$01,$C0,$00,$FF,$FF,$00,$00
-	dc.b $80,$01,$80,$00,$80,$01,$7F,$FE,$80,$01,$80,$00,$80,$01,$7F,$FE
-	dc.b $80,$01,$80,$01,$0B,$FF,$F4,$00,$03,$FF,$01,$FF,$17,$FF,$E8,$00
-	dc.b $07,$FF,$03,$FF,$2F,$FF,$D0,$00,$0F,$FF,$07,$FF,$5F,$FF,$A0,$00
-	dc.b $1F,$FF,$0F,$FF,$BF,$FF,$40,$00,$3F,$FF,$1F,$FF,$7F,$FF,$80,$00
-	dc.b $7F,$FF,$3F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$80,$50,$FF,$AF,$00,$00,$00,$00,$80,$28,$FF,$D7
-	dc.b $00,$00,$00,$00,$80,$14,$FF,$EB,$00,$00,$00,$00,$80,$0A,$FF,$F5
-	dc.b $00,$00,$00,$00,$80,$05,$FF,$FA,$00,$00,$00,$00,$80,$02,$FF,$FD
-	dc.b $00,$00,$00,$00,$80,$01,$FF,$FE,$00,$00,$00,$00,$80,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$7F,$FE
-	dc.b $80,$01,$00,$00,$00,$00,$FF,$FF,$7F,$FF,$7F,$FE,$7F,$FE,$C0,$01
-	dc.b $7F,$FF,$40,$00,$40,$00,$C0,$01,$7F,$FF,$40,$00,$40,$00,$C0,$01
-	dc.b $7F,$FF,$40,$00,$40,$00,$C0,$01,$7F,$FF,$40,$00,$40,$00,$C0,$01
-	dc.b $7F,$FF,$40,$00,$40,$00,$FF,$FF,$00,$01,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FF,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$0A,$01
-	dc.b $F7,$FE,$00,$00,$00,$00,$14,$01,$EF,$FE,$00,$00,$00,$00,$28,$01
-	dc.b $DF,$FE,$00,$00,$00,$00,$50,$01,$BF,$FE,$00,$00,$00,$00,$A0,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$40,$01,$FF,$FE,$00,$00,$00,$00,$80,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$7F,$D0
-	dc.b $00,$2F,$00,$00,$FF,$C0,$7F,$E8,$00,$17,$00,$00,$FF,$E0,$7F,$F4
-	dc.b $00,$0B,$00,$00,$FF,$F0,$7F,$FA,$00,$05,$00,$00,$FF,$F8,$7F,$FD
-	dc.b $00,$02,$00,$00,$FF,$FC,$7F,$FE,$00,$01,$00,$00,$FF,$FE,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$7F,$FE
-	dc.b $80,$01,$00,$00,$00,$00,$FF,$FE,$7F,$FE,$7F,$FE,$FF,$FF,$C0,$00
-	dc.b $7F,$FE,$40,$00,$C0,$01,$C0,$00,$7F,$FE,$40,$00,$C0,$01,$C0,$00
-	dc.b $7F,$FE,$40,$00,$C0,$01,$C0,$00,$7F,$FE,$40,$00,$C0,$01,$C0,$00
-	dc.b $7F,$FE,$40,$00,$C0,$01,$FF,$FE,$00,$00,$00,$00,$80,$01,$80,$00
-	dc.b $7F,$FE,$00,$00,$80,$01,$80,$01,$7F,$FE,$00,$00,$80,$01,$09,$FF
-	dc.b $F4,$00,$00,$00,$03,$FF,$13,$FF,$E8,$00,$00,$00,$07,$FF,$27,$FF
-	dc.b $D0,$00,$00,$00,$0F,$FF,$4F,$FF,$A0,$00,$00,$00,$1F,$FF,$9F,$FF
-	dc.b $40,$00,$00,$00,$3F,$FF,$3F,$FF,$80,$00,$00,$00,$7F,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$D0
-	dc.b $FF,$AF,$FF,$80,$7F,$80,$7F,$E8,$FF,$D7,$FF,$C0,$7F,$C0,$7F,$F4
-	dc.b $FF,$EB,$FF,$E0,$7F,$E0,$7F,$FA,$FF,$F5,$FF,$F0,$7F,$F0,$7F,$FD
-	dc.b $FF,$FA,$FF,$F8,$7F,$F8,$7F,$FE,$FF,$FD,$FF,$FC,$7F,$FC,$7F,$FF
-	dc.b $FF,$FE,$FF,$FE,$7F,$FE,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF
-	dc.b $FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF
-	dc.b $FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF
-	dc.b $FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF
-	dc.b $FF,$FF,$FF,$FF,$7F,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$7F,$FE
-	dc.b $80,$01,$00,$00,$00,$00,$FF,$FE,$7F,$FF,$7F,$FF,$7F,$FE,$C0,$00
-	dc.b $7F,$FF,$40,$01,$40,$00,$C0,$00,$7F,$FF,$40,$01,$40,$00,$C0,$00
-	dc.b $7F,$FF,$40,$01,$40,$00,$C0,$00,$7F,$FF,$40,$01,$40,$00,$C0,$00
-	dc.b $7F,$FF,$40,$01,$40,$00,$FF,$FE,$00,$01,$00,$01,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$01,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$09,$FF
-	dc.b $F7,$FE,$03,$FE,$01,$FE,$13,$FF,$EF,$FE,$07,$FE,$03,$FE,$27,$FF
-	dc.b $DF,$FE,$0F,$FE,$07,$FE,$4F,$FF,$BF,$FE,$1F,$FE,$0F,$FE,$9F,$FF
-	dc.b $7F,$FE,$3F,$FE,$1F,$FE,$3F,$FF,$FF,$FE,$7F,$FE,$3F,$FE,$7F,$FF
-	dc.b $FF,$FE,$FF,$FE,$7F,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$1F,$FF,$1F,$FF,$1F,$FF,$FF,$FF,$3F,$FF,$3F,$FF,$DF,$FF
-	dc.b $20,$00,$20,$00,$20,$00,$E0,$00,$7F,$FF,$7F,$FF,$7F,$FF,$C4,$00
-	dc.b $7B,$FF,$4B,$00,$4B,$00,$C6,$00,$7D,$FF,$4D,$00,$4D,$00,$C0,$00
-	dc.b $7F,$FF,$47,$80,$47,$80,$C0,$00,$7F,$FF,$43,$C0,$43,$C0,$C0,$00
-	dc.b $7F,$FF,$43,$FF,$43,$FF,$C0,$FF,$7F,$FF,$47,$FF,$47,$FF,$C0,$FF
-	dc.b $7F,$FF,$46,$FF,$46,$FF,$C0,$7F,$7F,$FF,$42,$7F,$42,$7F,$C0,$FF
-	dc.b $7F,$57,$42,$57,$42,$57,$C0,$97,$7F,$6F,$42,$05,$42,$07,$C0,$AF
-	dc.b $7F,$55,$42,$07,$42,$07,$C0,$97,$7F,$6F,$42,$05,$42,$07,$00,$00
-	dcb.b $10,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00
-	dc.b $FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF,$00,$E0,$00,$E0,$00,$80
-	dc.b $FF,$FF,$01,$A0,$01,$A0,$01,$80,$FF,$FF,$FF,$BF,$FF,$BF,$02,$80
-	dc.b $FF,$FF,$FF,$BF,$FF,$BF,$04,$80,$FF,$FF,$FF,$BF,$FF,$BF,$0A,$80
-	dc.b $FF,$FF,$9F,$A0,$9D,$A0,$12,$80,$FF,$FF,$BF,$A0,$B9,$A0,$2E,$80
-	dc.b $FF,$FF,$FF,$A0,$F9,$A0,$5E,$80,$FF,$FF,$FF,$A0,$F1,$A0,$5E,$80
-	dc.b $FF,$FF,$FF,$A0,$F1,$A0,$00,$00,$FF,$FF,$FF,$00,$FF,$00,$FE,$00
-	dc.b $FF,$FF,$FE,$80,$FE,$80,$FD,$BF,$03,$40,$01,$40,$01,$40,$01,$BF
-	dc.b $FF,$7E,$FD,$7E,$FD,$7E,$83,$81,$7F,$7E,$67,$40,$67,$40,$C3,$81
-	dc.b $BF,$7E,$A7,$40,$A7,$40,$03,$81,$FF,$7E,$F7,$40,$F7,$40,$03,$81
-	dc.b $FF,$7E,$7F,$40,$7F,$40,$03,$81,$FF,$7E,$FF,$70,$FF,$70,$03,$81
-	dc.b $FF,$7E,$FF,$78,$FF,$78,$03,$81,$FF,$7E,$FF,$7C,$FF,$7C,$03,$81
-	dc.b $FF,$7E,$07,$7C,$07,$7C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$18,$FF,$EF,$00,$08,$00,$08,$00,$30
-	dc.b $FF,$DF,$00,$10,$00,$10,$00,$60,$FF,$BF,$00,$20,$00,$20,$00,$C1
-	dc.b $FF,$7F,$00,$41,$00,$40,$01,$83,$FE,$FE,$00,$82,$00,$80,$03,$07
-	dc.b $FD,$FC,$01,$04,$01,$00,$06,$0F,$FB,$F8,$02,$08,$02,$00,$0C,$1F
-	dc.b $F7,$F0,$04,$10,$04,$00,$18,$3F,$EF,$E0,$08,$20,$08,$00,$30,$7F
-	dc.b $DF,$C0,$10,$40,$10,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$3F,$00,$E1,$FF,$21,$00,$00,$00,$7F,$00
-	dc.b $C1,$FF,$41,$00,$00,$00,$FF,$00,$81,$FF,$81,$00,$00,$00,$FF,$00
-	dc.b $01,$FF,$01,$00,$00,$00,$FF,$00,$01,$FF,$01,$00,$00,$00,$FF,$00
-	dc.b $01,$FF,$01,$00,$00,$00,$FF,$00,$01,$FF,$01,$00,$00,$00,$FF,$00
-	dc.b $01,$FF,$01,$00,$00,$00,$FF,$FF,$01,$FF,$01,$FF,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FE
-	dc.b $FF,$FF,$FF,$FE,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$E0,$FF
-	dc.b $3F,$80,$20,$80,$20,$00,$C1,$FF,$FF,$00,$C1,$00,$C0,$00,$03,$FF
-	dc.b $FE,$00,$02,$00,$00,$00,$07,$FF,$FC,$00,$04,$00,$00,$00,$0F,$FF
-	dc.b $F8,$00,$08,$00,$00,$00,$1F,$FF,$F0,$00,$10,$00,$00,$00,$3F,$FF
-	dc.b $E0,$00,$20,$00,$00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF
-	dc.b $C0,$00,$C0,$00,$00,$00,$3F,$FF,$E0,$00,$20,$00,$00,$00,$1F,$FF
-	dc.b $F0,$00,$10,$00,$00,$00,$0F,$FF,$F8,$00,$08,$00,$00,$00,$07,$FF
-	dc.b $FC,$00,$04,$00,$00,$00,$03,$FF,$FE,$00,$02,$00,$00,$00,$01,$FF
-	dc.b $FF,$00,$01,$00,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$C0,$FE
-	dc.b $7F,$01,$43,$01,$43,$01,$C0,$00,$7F,$FF,$43,$FF,$43,$FF,$C0,$00
-	dc.b $7F,$FF,$40,$FF,$40,$FF,$C0,$18,$7F,$EF,$40,$2F,$40,$27,$C0,$0C
-	dc.b $7F,$F7,$40,$17,$40,$13,$C0,$00,$7F,$FF,$5F,$FF,$5F,$FF,$DF,$FF
-	dc.b $7F,$FC,$7F,$FC,$7F,$FC,$DF,$FF,$60,$00,$60,$00,$60,$00,$C0,$00
-	dc.b $7F,$FF,$5F,$FF,$5F,$FF,$C4,$00,$7B,$FF,$4B,$01,$4B,$01,$C6,$00
-	dc.b $7D,$FF,$4D,$00,$4D,$00,$C0,$00,$7F,$FF,$47,$80,$47,$80,$C0,$00
-	dc.b $7F,$FF,$43,$C0,$43,$C0,$C0,$00,$7F,$FF,$47,$FF,$47,$FF,$C0,$00
-	dc.b $7F,$FF,$47,$FF,$47,$FF,$FC,$00,$03,$FF,$03,$FF,$03,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$00,$00
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$00,$00
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$00,$00
-	dcb.b $8,$FF
-	dc.b $07,$EF,$07,$EF,$07,$EF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$C0,$00,$7F,$FF,$7F,$FE,$3F,$FE,$00,$00
-	dc.b $FF,$FF,$FF,$BE,$FF,$BE,$00,$00,$FF,$FF,$FF,$8E,$FF,$8E,$00,$00
-	dc.b $FF,$FF,$FF,$86,$FF,$86,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$FF,$5C,$FF,$5C,$FC,$81
-	dc.b $FF,$7E,$FC,$5C,$FC,$5C,$FF,$01,$00,$FE,$00,$9C,$00,$9C,$00,$01
-	dc.b $FF,$FE,$FF,$1C,$FF,$1C,$40,$01,$BF,$FE,$B0,$1C,$B0,$1C,$60,$01
-	dc.b $DF,$FE,$D0,$1C,$D0,$1C,$00,$01,$FF,$FE,$78,$1C,$78,$1C,$00,$01
-	dc.b $FF,$FE,$3C,$3C,$3C,$3C,$00,$01,$FF,$FE,$FF,$FC,$FF,$FC,$00,$01
-	dc.b $FF,$FE,$FF,$F8,$FF,$F8,$00,$0F,$FF,$F0,$FF,$F0,$FF,$F0,$C0,$AF
-	dc.b $7F,$55,$42,$07,$42,$07,$C0,$95,$7F,$6F,$42,$05,$42,$07,$C0,$AD
-	dc.b $7F,$55,$42,$07,$42,$07,$C0,$95,$7F,$6D,$42,$05,$42,$07,$C0,$AF
-	dc.b $7F,$55,$42,$05,$42,$07,$C0,$95,$7F,$6D,$42,$05,$42,$07,$C0,$AF
-	dc.b $7F,$55,$42,$05,$42,$07,$C0,$97,$7F,$6D,$42,$07,$42,$05,$C0,$FF
-	dc.b $7F,$D7,$42,$D5,$42,$D7,$C0,$FF,$7F,$FD,$42,$FF,$42,$FF,$C0,$03
-	dc.b $7F,$FF,$42,$03,$42,$03,$C0,$57,$7F,$AB,$42,$03,$42,$03,$C0,$03
-	dc.b $7F,$FF,$42,$03,$42,$03,$C0,$57,$7F,$AB,$42,$03,$42,$03,$C0,$7F
-	dc.b $7F,$FF,$42,$7F,$42,$7F,$C0,$00,$7F,$FF,$42,$FF,$42,$FF,$5E,$80
-	dc.b $FF,$FF,$FF,$A0,$E1,$A0,$5E,$80,$FF,$FF,$FF,$A0,$E1,$A0,$5E,$80
-	dc.b $FF,$FF,$FF,$A0,$E1,$A0,$5E,$80,$FF,$FF,$FF,$A0,$E1,$A0,$5D,$00
-	dc.b $FF,$FF,$FF,$E0,$E3,$E0,$5A,$80,$FF,$7F,$FF,$40,$E7,$40,$55,$00
-	dc.b $FE,$FF,$FE,$C0,$EE,$C0,$4A,$00,$FD,$FF,$FD,$C0,$FD,$C0,$54,$00
-	dc.b $FB,$FF,$FB,$C0,$FB,$C0,$68,$00,$F7,$FF,$F7,$E0,$F7,$E0,$50,$00
-	dc.b $EF,$FF,$EF,$F8,$EF,$F8,$20,$00,$DF,$FF,$DF,$FE,$DF,$FE,$60,$00
-	dc.b $9F,$FF,$9F,$FE,$9F,$FE,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$00,$00
-	dc.b $FF,$FF,$FF,$FE,$FF,$FE,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$7C,$07,$7C,$03,$81,$FF,$7E,$07,$7C,$07,$7C,$03,$81
-	dc.b $FF,$7E,$07,$7C,$07,$7C,$03,$81,$FF,$7E,$07,$7C,$07,$7C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$03,$81
-	dc.b $FF,$7E,$07,$5C,$07,$5C,$03,$81,$FF,$7E,$07,$5C,$07,$5C,$E0,$7F
-	dc.b $1F,$C0,$00,$40,$00,$00,$10,$3F,$EF,$E0,$00,$20,$00,$00,$08,$1F
-	dc.b $F7,$F0,$00,$10,$00,$00,$04,$0F,$FB,$F8,$00,$08,$00,$00,$02,$07
-	dc.b $FD,$FC,$00,$04,$00,$00,$01,$03,$FE,$FE,$00,$02,$00,$00,$00,$81
-	dc.b $FF,$7F,$00,$01,$00,$00,$00,$40,$FF,$BF,$00,$00,$00,$00,$00,$20
-	dc.b $FF,$DF,$00,$00,$00,$00,$00,$10,$FF,$EF,$00,$00,$00,$00,$00,$08
-	dc.b $FF,$F7,$00,$00,$00,$00,$00,$04,$FF,$FB,$00,$00,$00,$00,$00,$02
-	dc.b $FF,$FD,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$01,$FF,$01,$FF,$00,$00,$FF,$00
-	dc.b $01,$FF,$01,$00,$00,$00,$FF,$00,$01,$FF,$01,$00,$00,$00,$FF,$00
-	dc.b $01,$FF,$01,$00,$00,$00,$FF,$00,$01,$FF,$01,$00,$00,$00,$FF,$00
-	dc.b $01,$FF,$01,$00,$00,$00,$FF,$00,$81,$FF,$81,$00,$00,$00,$7F,$00
-	dc.b $C1,$FF,$41,$00,$00,$00,$3F,$00,$E1,$FF,$21,$00,$00,$00,$1F,$00
-	dc.b $F9,$FF,$19,$00,$00,$00,$07,$00,$FF,$FF,$07,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$00,$FF,$FE,$FF,$FF,$FF,$FE,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$C3
-	dc.b $00,$00,$FF,$FF,$07,$3C,$0F,$80,$00,$00,$FF,$FF,$FF,$FF,$FF,$C3
-	dc.b $00,$00,$FF,$FF,$07,$3C,$FF,$E7,$00,$00,$FF,$FF,$07,$18,$FF,$FF
-	dc.b $10,$00,$EF,$FF,$12,$18,$FF,$FF,$28,$00,$D7,$FF,$3A,$7E,$EF,$FF
-	dc.b $44,$00,$BB,$FF,$FF,$FF,$FF,$FF,$28,$00,$D7,$FF,$3A,$7E,$FF,$FF
-	dc.b $10,$00,$EF,$FF,$17,$18,$FF,$FF,$00,$18,$FF,$E7,$0F,$98,$FF,$FF
-	dc.b $E0,$3F,$1F,$C0,$FF,$FF,$FF,$FF,$00,$18,$FF,$E7,$0F,$98,$FF,$E7
-	dc.b $00,$00,$FF,$FF,$07,$18,$FF,$E7,$00,$00,$FF,$FF,$02,$18,$FF,$E7
-	dc.b $00,$00,$FF,$FF,$02,$18,$FF,$E7,$00,$00,$FF,$FF,$02,$18
+	INCBIN "assets/world_tile_pixels_121_through_164.bin"
+; bitmap
+	dc.b $FF,$C3,$00,$00,$FF,$FF,$07,$3C,$0F,$80,$00,$00,$FF,$FF,$FF,$FF
+	dc.b $FF,$C3,$00,$00,$FF,$FF,$07,$3C,$FF,$E7,$00,$00,$FF,$FF,$07,$18
+	dc.b $FF,$FF,$10,$00,$EF,$FF,$12,$18,$FF,$FF,$28,$00,$D7,$FF,$3A,$7E
+	dc.b $EF,$FF,$44,$00,$BB,$FF,$FF,$FF,$FF,$FF,$28,$00,$D7,$FF,$3A,$7E
+	dc.b $FF,$FF,$10,$00,$EF,$FF,$17,$18,$FF,$FF,$00,$18,$FF,$E7,$0F,$98
+	dc.b $FF,$FF,$E0,$3F,$1F,$C0,$FF,$FF,$FF,$FF,$00,$18,$FF,$E7,$0F,$98
+	dc.b $FF,$E7,$00,$00,$FF,$FF,$07,$18,$FF,$E7,$00,$00,$FF,$FF,$02,$18
+	dc.b $FF,$E7,$00,$00,$FF,$FF,$02,$18,$FF,$E7,$00,$00,$FF,$FF,$02,$18
 world_tile_pixels_166:
 	dc.b $14,$00,$1C,$00,$FB,$FF,$08,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF	; bitmap
 	dc.b $01,$40,$01,$C0,$FF,$BF,$00,$80,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
@@ -14876,1214 +15046,19 @@ world_tile_pixels_166:
 	dc.b $DB,$DA,$B4,$37,$B4,$37,$B4,$37,$D0,$0A,$AF,$FF,$AF,$FF,$AF,$FF
 	dc.b $FF,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 world_tile_pixels_168_through_176:
-	dcb.b $8,$FF
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$02,$FF,$FD,$80,$00,$80,$01,$80,$00,$FF,$FF,$80,$7F,$80,$7F
-	dc.b $80,$00,$FF,$FF,$80,$40,$80,$40,$80,$7F,$FF,$C0,$80,$C0,$80,$C0
-	dc.b $80,$60,$FF,$DF,$80,$DF,$80,$DF,$80,$EA,$FF,$9F,$81,$9F,$81,$99
-	dc.b $80,$EE,$FF,$9F,$81,$9F,$81,$91,$81,$EE,$FF,$1F,$83,$1F,$83,$11
-	dc.b $81,$80,$FF,$7F,$83,$7F,$83,$7F,$83,$AA,$FE,$7F,$86,$7F,$86,$66
-	dc.b $83,$BB,$FE,$7F,$86,$7F,$86,$44
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$40,$FF,$BF,$00,$00,$00,$00
-	dc.b $FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$3C,$3C,$FF,$FF,$00,$00,$FF,$FF,$78,$78,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$00,$0F,$FF,$F0,$FF,$F0,$FF,$F0,$AA,$AF
-	dc.b $FF,$F0,$FF,$F0,$99,$90,$EE,$EE,$FF,$F1,$FF,$F1,$11,$11,$EE,$EE
-	dc.b $FF,$F1,$FF,$F0,$11,$10,$00,$03,$FF,$FC,$FF,$FC,$FF,$FC,$AA,$AB
-	dc.b $FF,$FC,$FF,$FC,$66,$64,$BB,$BB,$FF,$FC,$FF,$FC,$44,$44,$FF,$FF
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FF,$00,$01,$00,$01,$FF,$FE,$00,$01,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$3C,$3E,$FF,$FE,$00,$00,$FF,$FF,$78,$7A,$FF,$FA,$00,$00
-	dc.b $FF,$FF,$FE,$F4
-abs_0_000225DE:
-	dc.b $FF,$F4,$00,$00,$FF,$FF,$07,$E8,$03,$E8,$FC,$00,$07,$FF,$07,$D0
-	dc.b $03,$D0,$FE,$00,$03,$FF,$03,$A0,$01,$A0,$FF,$F8
-abs_0_000225FA:
-	dc.b $01,$FF,$01,$F8,$00,$00,$7F,$FC,$80,$07,$80,$04,$80,$00,$3F,$FE
-	dc.b $C0,$03,$40,$02,$40,$00,$9F,$FF,$60,$01
-abs_0_00022614:
-	dc.b $20,$01,$20,$00,$CF,$FF,$30,$00,$10,$00,$10,$00,$87,$FF,$78,$00
-	dc.b $78,$00,$78,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00
-	dcb.b $8,$FF
-abs_0_00022640:
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$42,$FF,$BD,$6D,$AD,$6D,$AD
-	dc.b $10,$00,$EF,$FF
-abs_0_00022664:
-	dc.b $69,$8C,$69,$8C,$10,$42,$EF,$BD,$61,$AD,$61,$AD,$10,$00,$EF,$FF
-	dc.b $69,$8C,$69,$8C,$00,$42,$FF,$BD,$6D,$AD,$6D,$AD,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $01,$C0,$FF,$FF,$01,$C0,$00,$00,$01,$F0,$FF,$3F,$01,$30,$00,$00
-	dc.b $01,$F8,$FF,$0F,$01,$08,$00,$00,$11,$FC,$EF,$07,$69,$04,$68,$00
-	dc.b $01,$FE,$FF,$03,$69,$02,$68,$00,$11,$FF,$EF,$01,$69,$01,$68,$00
-	dc.b $01,$FF,$FF,$00,$61,$00,$60,$00,$01,$FF,$FF,$00,$61,$00,$60,$00
-	dc.b $01,$FF,$FF,$00,$01,$00,$00,$00,$01,$FF,$FF,$00,$01,$00,$00,$00
-	dc.b $FF,$FF,$FF,$00,$FF,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00
-	dc.b $40,$01,$BF,$FE,$00,$00,$00,$00,$20,$01,$DF,$FE,$00,$00,$00,$00
-	dc.b $10,$01,$EF,$FE,$00,$00,$00,$00,$08,$01,$F7,$FE,$00,$00,$00,$00
-	dc.b $04,$01,$FB,$FE,$00,$00,$00,$00,$02,$01,$FD,$FE,$00,$00,$00,$00
-	dc.b $81,$01,$FE,$FE,$80,$00,$00,$00
-abs_0_00022778:
-	dc.b $C0,$81,$7F,$7E,$40,$00,$00,$00,$E0,$41,$3F,$BE,$20,$00,$00,$00
-	dc.b $F0,$21,$1F,$DE,$10,$00,$00,$00,$F8,$11,$0F,$EE,$08,$00,$00,$00
-	dc.b $FC,$0F,$07,$F0,$04,$00,$00,$00,$FE,$01,$03,$FE,$02,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$07,$FF,$07,$FF,$07,$FF,$FF,$FF,$3F,$FF,$3F,$FF
-	dc.b $3F,$FF,$F8,$00,$F8,$00,$F8,$00,$7F,$E0,$C0,$1F,$C0,$1F,$C0,$1F
-	dc.b $7F,$F0,$C0,$0F,$C0,$0F,$C0,$0F,$7F,$F8,$C0,$07,$C0,$07,$C0,$07
-	dc.b $78,$FC,$C7,$03,$C7,$03,$C7,$03,$7A,$7E,$C5,$81,$C7,$81,$C7,$81
-	dc.b $7A,$BF,$C5,$40,$C7,$C0,$C7,$C0,$7A,$DF,$C5,$20,$C7,$E0,$C5,$20
-	dc.b $7A,$CF,$C5,$30,$C7,$F0,$C5,$30,$7A,$C7,$C5,$38,$C7,$F8,$C5,$38
-	dc.b $78,$0F,$C7,$F0,$C0,$00,$C0,$00,$7F,$FF,$C0,$00,$C0,$00,$C0,$00
-	dc.b $3F,$FF,$C0,$00,$C0,$00,$C0,$00,$47,$FE,$F8,$01,$F8,$01,$F8,$01
-	dc.b $00,$00
-	dcb.b $10,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$AB,$B2
-	dc.b $FF,$FF,$FF,$FF,$54,$4D,$AB,$B2,$FF,$FF,$FF,$FF,$54,$4D,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$54,$4D,$00,$00,$FF,$FF,$FF,$FF,$54,$4D,$80,$00
-	dc.b $7F,$FF,$7F,$FF,$54,$4D,$C0,$00,$3F,$FF,$3F,$FF,$14,$4D,$E0,$00
-	dc.b $1F,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$65,$97
-	dc.b $9A,$68,$9A,$68,$9A,$68,$DA,$6F,$25,$90,$25,$90,$25,$90,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$E0,$FF,$E0,$FF,$E0
-	dc.b $FF,$FF,$FF,$FC,$FF,$FC,$FF,$FC,$00,$03,$00,$03,$00,$03,$00,$3E
-	dc.b $FF,$C1,$FF,$C1,$FF,$C1,$00,$1E,$FF,$E1,$FF,$E1,$FF,$E1,$5C,$8E
-	dc.b $FF,$F1,$FF,$E1,$A3,$61,$5C,$8E,$FF,$F1,$FF,$E1,$A3,$61,$00,$0E
-	dc.b $FF,$F1,$FF,$E1,$A3,$61,$00,$0E,$FF,$F1,$FF,$E1,$A3,$61,$00,$0E
-	dc.b $FF,$F1,$FF,$E1,$A3,$61,$00,$0E,$FF,$F1,$FF,$E1,$A3,$61,$00,$0E
-	dc.b $FF,$F1,$FF,$E1,$A3,$61,$00,$0E,$FF,$F1,$FF,$E1,$A3,$61,$80,$0E
-	dc.b $7F,$F1,$7F,$E1,$23,$61,$C0,$1C,$3F,$E3,$3F,$C3,$23,$43,$E0,$22
-	dc.b $1F,$DD,$00,$1D,$00,$1D,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$3F,$F8,$3F,$F8,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00
-	dc.b $FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00
-	dc.b $FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00
-	dc.b $FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00
-	dc.b $FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF
-world_tile_pixels_178_through_312:
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD,$FF,$FF,$FF,$FF,$60,$02
-	dc.b $98,$05,$E7,$FF
-abs_0_000229BC:
-	dc.b $FC,$FF,$47,$FA,$B8,$05,$E7,$FF,$FC,$FF,$47,$FA,$3F,$FC,$FF,$FF
-	dc.b $FF,$FF,$C0,$03,$30,$00,$DF,$FF,$90,$00,$90,$00,$A0,$00,$DF,$FF
-	dc.b $9F,$FF,$1F,$FF,$88,$08,$F7,$7F,$BF,$FF,$3F,$FF,$94,$40,$EA,$FF
-	dc.b $BF,$AF,$3F,$FF,$82,$20,$FD,$FF,$BF,$DF,$3F,$FF,$80,$00,$FF,$FF
-	dc.b $BF,$FF,$3F,$FF,$8A,$B5,$E0,$00,$A0,$00,$3F,$FF,$80,$00,$FF,$FF
-	dc.b $BF,$FF,$3F,$FF,$BF,$FF,$C0,$00,$C0,$00,$40,$00,$1F,$F8,$FF,$FB
-	dc.b $FF,$FF,$C0,$03,$00,$00,$C0,$03,$FF,$FF,$C0,$03,$00,$00,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$A1,$FD,$FF,$FF,$FF,$FF,$60,$02,$85,$BD,$E0,$07
-	dc.b $E0,$07,$5F,$FA,$A5,$BD,$E0,$07,$E0,$07,$5F,$FA,$3F,$FC,$FF,$FF
-	dc.b $FF,$FF,$C0,$03,$00,$00,$FF,$FF,$00,$0B,$00,$0B,$00,$13,$FF,$EF
-	dc.b $FF,$EB,$FF,$E8,$05,$43,$FA,$BF,$FF,$FF,$BA,$FC,$0F,$E7,$F0,$1B
-	dc.b $FF,$FB,$FA,$B8,$40,$07,$BF,$FB,$FF,$FB,$BF,$F8,$0D,$67,$F2,$9B
-	dc.b $FD,$7B,$FF,$F8,$02,$03,$7F,$FF,$7D,$FB,$FF,$F8,$00,$03,$FF,$FF
-	dc.b $FF,$FB,$FF,$F8,$FF,$F3,$00,$0F,$00,$0F,$00,$0C,$1F,$F8,$FF,$FB
-	dc.b $FF,$FF,$C0,$03,$00,$00,$C0,$03,$FF,$FF,$C0,$03,$87,$BB,$FC,$7F
-	dc.b $8C,$7F,$8C,$44,$86,$00,$FD,$FF,$8D,$FF,$8D,$FF,$8E,$AA,$F9,$FF
-	dc.b $99,$FF,$99,$99,$8E,$EE,$F9,$FF,$99,$FF,$99,$11,$9E,$EE,$F1,$FF
-	dc.b $B1,$FF,$B1,$11,$98,$00,$F7,$FF,$B7,$FF,$B7,$FF,$9A,$AA,$F7,$FF
-	dc.b $B7,$FF,$B6,$66,$9B,$BB,$F7,$FF,$B7,$FF,$B4,$44,$9B,$BB,$F7,$FF
-	dc.b $B7,$FF,$B4,$44,$98,$00,$F7,$FF,$B7,$FF,$B7,$FF,$9E,$AA,$F1,$FF
-	dc.b $B1,$FF,$B1,$99,$8E,$EE,$F1,$FF,$91,$FF,$91,$11,$8E,$EE,$F1,$FF
-	dc.b $91,$FF,$91,$11,$86,$00,$F9,$FF,$89,$FF,$89,$FF,$87,$AA,$F8,$7F
-	dc.b $88,$7F,$88,$66,$83,$BB,$FC,$7F,$84,$7F,$84,$44,$BB,$BB,$FF,$FC
-	dc.b $FF,$FC,$44,$44,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF
-	dc.b $FF,$FF,$99,$99,$EE,$EE,$FF,$FF,$FF,$FF,$11,$11,$EE,$EE,$FF,$FF
-	dc.b $FF,$FF,$11,$11,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF
-	dc.b $FF,$FF,$66,$66,$BB,$BB,$FF,$FF,$FF,$FF,$44,$44,$BB,$BB,$FF,$FF
-	dc.b $FF,$FF,$44,$44,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AA,$FF,$FF
-	dc.b $FF,$FF,$99,$99,$EE,$EE,$FF,$FF,$FF,$FF,$11,$11,$EE,$EE,$FF,$FF
-	dc.b $FF,$FF,$11,$11,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$AA,$AB,$FF,$FC
-	dc.b $FF,$FC,$66,$64,$BB,$BB,$FF,$FC,$FF,$FC,$44,$44,$83,$FF,$7C,$00
-	dc.b $04,$00,$04,$00,$F9,$FF,$06,$00,$02,$00,$02,$00,$FC,$FF,$03,$00
-	dc.b $01,$00,$01,$00,$E0,$7F,$1F,$80,$1F,$80,$1F,$80,$E0,$3F,$1F,$C0
-	dc.b $00,$40,$00,$40,$3F,$9F,$C0,$60,$C0,$20,$C0,$20,$BF,$CF,$C0,$30
-	dc.b $C0,$10,$40,$10,$B0,$00,$CF,$FF,$CF,$FF,$4F,$FF,$B0,$00,$CF,$FF
-	dc.b $C0,$10,$40,$10,$3F,$CF,$C0,$30,$C0,$20,$C0,$20,$FF,$9F,$00,$60
-	dc.b $00,$40,$00,$40,$E0,$3F,$1F,$C0,$1F,$80,$1F,$80,$E0,$7F,$1F,$80
-	dc.b $01,$00,$01,$00,$FC,$FF,$03,$00,$02,$00,$02,$00,$F9,$FF,$06,$00
-	dc.b $04,$00,$04,$00,$83,$FF,$7C,$00,$78,$00,$78,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$01,$01,$FE,$01,$00,$00,$00,$FF,$81
-	dc.b $00,$FE,$00,$80,$00,$00,$FD,$C1,$02,$7E,$02,$40,$02,$00,$FC,$E1
-	dc.b $03,$3E,$03,$20,$03,$00,$FC,$71,$03,$9E,$02,$90,$02,$80,$FC,$39
-	dc.b $03,$CE,$02,$48,$02,$40,$FC,$9D,$03,$66,$02,$24,$02,$20,$00,$CD
-	dc.b $FF,$36,$FE,$14,$FE,$10,$00,$CD,$FF,$36,$02,$24,$02,$20,$FC,$99
-	dc.b $03,$6E,$02,$48,$02,$40,$FC,$31,$03,$DE,$02,$90,$02,$80,$FC,$61
-	dc.b $03,$BE,$03,$20,$03,$00,$FC,$C1,$03,$7E,$02,$40,$02,$00,$FF,$81
-	dc.b $00,$FE,$00,$80,$00,$00,$FF,$01,$01,$FE,$01,$00,$00,$00,$FE,$01
-	dc.b $03,$FE,$02,$00,$00,$00,$00,$00,$00,$80,$FF,$FF,$00,$80,$00,$40
-	dc.b $FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$00,$80,$FF,$FF,$00,$80,$20,$00
-	dc.b $FF,$FF,$DF,$FF,$DF,$FF,$00,$00,$40,$01,$FF,$FF,$40,$01,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$0F,$FD,$F0,$07,$00,$05,$00,$00
-	dc.b $F8,$07,$F7,$FF,$F0,$07,$00,$00,$18,$05,$F7,$FF,$10,$05,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$04,$01,$FF,$FF,$04,$01,$02,$00
-	dc.b $FF,$FF,$FD,$FF,$FD,$FF,$00,$00,$00,$80,$FF,$FF,$00,$80,$00,$40
-	dc.b $FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$00,$80,$FF,$FF,$00,$80,$00,$40
-	dc.b $FF,$FF,$FF,$BF,$FF,$BF,$38,$02,$E7,$FD,$E7,$FD,$E7,$FD,$47,$FE
-	dc.b $F8,$01,$F8,$01,$F8,$01,$48,$00,$F7,$FF,$C7,$FF,$C7,$FF,$5C,$E6
-	dc.b $E3,$19,$C2,$11,$C2,$11,$4C,$E6,$F3,$19,$C2,$11,$C2,$11,$5C,$E6
-	dc.b $E3,$19,$C2,$11,$C2,$11,$44,$E6,$FB,$19,$C2,$11,$C2,$11,$54,$E6
-	dc.b $EB,$19,$C2,$11,$C2,$11,$4C,$E6,$F3,$99,$C2,$91,$C2,$11,$5C,$26
-	dc.b $E3,$D9,$C3,$D1,$C3,$51,$4E,$A6,$F3,$F9,$C3,$F1,$C0,$91,$54,$26
-	dc.b $EB,$D9,$C3,$D1,$C3,$51,$54,$E6,$EB,$99,$C2,$91,$C2,$11,$5C,$E6
-	dc.b $E3,$19,$C2,$11,$C2,$11,$54,$E6,$EB,$19,$C2,$11,$C2,$11,$4C,$E6
-	dc.b $F3,$19,$C2,$11,$C2,$11,$08,$6A,$F7,$DD,$E5,$DD,$E5,$DD,$88,$6C
-	dc.b $77,$D7,$65,$D7,$65,$D7,$48,$66,$B7,$DB,$A5,$DB,$A5,$DB,$48,$60
-	dc.b $B7,$DF,$A5,$DF,$A5,$DF,$48,$68,$B7,$D7,$A5,$D7,$A5,$D7,$48,$16
-	dc.b $B7,$F9,$A5,$D9,$A5,$D9,$08,$1E,$F7,$EF,$E5,$EF,$E5,$EF,$08,$0E
-	dc.b $F7,$F1,$E5,$F1,$E5,$F1,$08,$00,$F7,$FF,$E5,$FF,$E5,$FF,$08,$34
-	dc.b $F7,$FF,$E5,$FF,$E5,$83,$08,$00,$F7,$FF,$E5,$FF,$E5,$FF,$08,$4C
-	dc.b $F7,$FF,$E5,$FF,$E5,$83,$00,$00,$FF,$FF,$F3,$FF,$F3,$FF,$00,$00
-	dc.b $FF,$FF,$F9,$FF,$F9,$FF,$00,$40,$FF,$BF,$FC,$83,$FC,$83,$00,$00
-	dc.b $FF,$FF,$FE,$FF,$FE,$FF,$80,$1C,$7F,$E3,$7F,$E3,$7F,$E3,$FF,$E2
-	dc.b $00,$1D,$00,$1D,$00,$1D,$00,$0A,$FF,$F5,$FF,$F5,$FF,$F5,$67,$28
-	dc.b $98,$D7,$10,$97,$10,$97,$67,$28,$98,$D7,$10,$97,$10,$97,$67,$28
-	dc.b $98,$D7,$10,$97,$10,$97,$67,$22,$98,$DD,$10,$9D,$10,$9D,$67,$22
-	dc.b $98,$DD,$10,$9D,$10,$9D,$67,$22,$98,$DD,$10,$9D,$10,$9D,$67,$2A
-	dc.b $98,$D5,$10,$95,$10,$95,$41,$2A,$BE,$D5,$00,$95,$00,$95,$5E,$28
-	dc.b $A1,$D7,$01,$97,$01,$97,$5E,$2A,$B1,$D5,$1B,$95,$15,$95,$5E,$20
-	dc.b $A1,$DF,$1B,$9F,$05,$9F,$5E,$2A,$B1,$D5,$1B,$95,$15,$95,$5E,$22
-	dc.b $A1,$DD,$07,$9D,$01,$9D,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$27,$FA,$D8,$05,$D0,$05,$D0,$05,$20,$02
-	dc.b $DF,$FD,$DF,$FD,$DF,$FD,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$07,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$07,$FF,$FF,$FF,$FF,$FF,$CF,$FF,$07,$F7
-	dc.b $FF,$FF,$FF,$F7,$CF,$F7,$07,$F9,$FF,$FF,$FF,$F9,$CF,$F9,$07,$8F
-	dc.b $FF,$FF,$FF,$8F,$CF,$8F
-abs_0_00022FD8:
-	dc.b $07,$F7,$FF,$FF,$FF,$F7,$CF,$F7,$07,$FF,$FF,$FF,$FF,$FF,$CF,$FF
-	dc.b $07,$F3,$FF,$FF,$FF,$F3,$CF,$F3,$07,$C9,$FF,$FF,$FF,$C9,$CF,$C9
-	dc.b $07,$FF,$FF,$FF,$FF,$FF,$CF,$FF,$07,$80,$FF,$FF,$FF,$80,$CF,$80
-	dc.b $04,$00,$FB,$FF,$F8,$00,$C8,$00,$07,$FE,$F8,$01,$F8,$01,$C8,$01
-	dc.b $08,$01,$FF,$FF,$FF,$FF,$C7,$FF,$07,$BF,$FF,$FF,$FF,$FF,$C0,$7F
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$FE,$00,$FF,$FF,$FE,$FF,$FE,$FF
-	dc.b $FE,$60,$FF,$FF,$FE,$FF,$FE,$9F,$BE,$60,$FF,$FF,$BE,$FF,$BE,$9F
-	dc.b $7E,$60,$FF,$FF,$7E,$FF,$7E,$9F,$FE,$60,$FF,$FF,$FE,$FF,$FE,$9F
-	dc.b $FE,$60,$FF,$FF,$FE,$F8,$FE,$98,$FE,$60,$FF,$FF,$FE,$FE,$FE,$9E
-	dc.b $BE,$60,$FF,$FF,$BE,$FF,$BE,$9F,$DE,$60,$FF,$FF,$DE,$FF,$DE,$9F
-	dc.b $FE,$60,$FF,$FF,$FE,$FF,$FE,$9F,$09,$60,$F6,$FF,$00,$FF,$01,$9F
-	dc.b $1F,$60,$E0,$FF,$00,$FF,$00,$9F,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $FF,$F0,$FF,$EF,$FF,$EF,$FF,$EF,$FF,$B0,$FF,$4F,$FF,$0F,$FF,$0F
-	dc.b $83,$BB,$FC,$7F,$84,$7F,$84,$44,$81,$80,$FE,$7F,$82,$7F,$82,$7F
-	dc.b $81,$EA,$FE,$1F,$82,$1F,$82,$19,$80,$EE,$FF,$1F,$81,$1F,$81,$11
-	dc.b $80,$EE,$FF,$1F,$81,$1F,$81,$11,$80,$60,$FF,$9F,$80,$9F,$80,$9F
-	dc.b $80,$7F,$FF,$80,$80,$80,$80,$80,$80,$3F,$FF,$C0,$80,$40,$80,$40
-	dc.b $80,$00,$FF,$FF,$80,$7F,$80,$7F,$80,$02,$FF,$FD,$80,$01,$80,$01
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00
-	dc.b $BB,$BB,$FF,$FC,$FF,$FC,$44,$44,$00,$03,$FF,$FC,$FF,$FC,$FF,$FC
-	dc.b $AA,$AF,$FF,$F0,$FF,$F0,$99,$90,$EE,$EE,$FF,$F1,$FF,$F1,$11,$11
-	dc.b $EE,$EE,$FF,$F1,$FF,$F0,$11,$10,$00,$0F,$FF,$F0,$FF,$F0,$FF,$F0
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$07,$87,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$0F,$0F,$FF,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$87,$FF
-	dc.b $78,$00,$10,$00,$10,$00,$CF,$FF,$30,$01,$20,$01,$20,$00,$9F,$FE
-	dc.b $60,$03,$40,$02,$40,$00,$3F,$FC,$C0,$07,$80,$04,$80,$00,$7F,$F8
-	dc.b $81,$FF,$01,$F9,$00,$01,$FE,$40,$03,$BF,$02,$A3,$01,$A3,$FC,$20
-	dc.b $07,$DF,$07,$D3,$03,$D3,$FC,$10,$07,$EF,$07,$EB,$03,$EB,$00,$08
-	dc.b $FF,$F7,$FF,$D5,$FF,$F5,$00,$04,$FF,$FB,$87,$8A,$FF,$FA,$00,$00
-	dc.b $FF,$FF,$0F,$0E,$FF,$FE,$FF,$FE,$00,$01,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$80,$24
-	dc.b $7F,$DB,$58,$D3,$58,$D3,$00,$00,$FF,$FF,$18,$C6,$18,$C6,$00,$20
-	dc.b $FF,$DF,$18,$D7,$18,$D7,$00,$00,$FF,$FF,$18,$C6,$18,$C6,$84,$20
-	dc.b $7B,$DF,$5A,$D6,$5A,$D6,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$00,$FF,$00,$00,$00,$01,$FF
-	dc.b $FF,$00,$01,$00,$00,$00,$01,$FF,$FF,$00,$01,$00,$00,$00,$85,$FF
-	dc.b $7B,$00,$39,$00,$38,$00,$01,$FF,$FF,$00,$B5,$00,$B4,$00,$05,$FF
-	dc.b $FB,$01,$B9,$01,$B8,$00,$01,$FE,$FF,$03,$B5,$02,$B4,$00,$01,$FC
-	dc.b $FF,$07,$B5,$04,$B4,$00,$01,$F8,$FF,$0F,$01,$08,$00,$00,$01,$F0
-	dc.b $FF,$3F,$01,$30,$00,$00,$01,$C0,$FF,$FF,$01,$C0,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FC,$01
-	dc.b $07,$FE,$04,$00,$00,$00,$F8,$1F,$0F,$E0,$08,$00,$00,$00,$F0,$21
-	dc.b $1F,$DE,$10,$00,$00,$00,$E0,$41,$3F,$BE,$20,$00,$00,$00,$C0,$81
-	dc.b $7F,$7E,$40,$00,$00,$00,$81,$01,$FE,$FE,$80,$00,$00,$00,$02,$01
-	dc.b $FD,$FE,$00,$00,$00,$00,$04,$01,$FB,$FE,$00,$00,$00,$00,$08,$01
-	dc.b $F7,$FE,$00,$00,$00,$00,$10,$01,$EF,$FE,$00,$00,$00,$00,$20,$01
-	dc.b $DF,$FE,$00,$00,$00,$00,$40,$01,$BF,$FE,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$5C,$E6
-	dc.b $E3,$19,$C2,$11,$C2,$11,$4C,$E6,$B3,$19,$82,$11,$82,$11,$7C,$E6
-	dc.b $C3,$19,$C2,$11,$C2,$11,$40,$E6,$BF,$19,$9E,$11,$9E,$11,$6C,$E6
-	dc.b $D3,$19,$C2,$11,$C2,$11,$40,$E6,$FF,$19,$DE,$11,$DE,$11,$54,$E6
-	dc.b $EB,$19,$C2,$11,$C2,$11,$4C,$E6,$F3,$19,$C2,$11,$C2,$11,$5C,$E6
-	dc.b $E3,$19,$C2,$11,$C2,$11,$4C,$E6,$F3,$19,$C2,$11,$C2,$11,$94,$E6
-	dc.b $6B,$19,$42,$11,$42,$11,$94,$E6,$6B,$19,$42,$11,$42,$11,$9C,$E6
-	dc.b $63,$19,$22,$11,$22,$11,$88,$E6,$77,$19,$32,$11,$32,$11,$80,$00
-	dc.b $7F,$FF,$1F,$FF,$1F,$FF,$90,$00,$6F,$FF,$0F,$FF,$0F,$FF,$00,$00
-	dc.b $FF,$FF,$FE,$FF,$FE,$FF,$10,$40,$EF,$BF,$E2,$81,$E2,$81,$00,$00
-	dc.b $FF,$FF,$FE,$FF,$FE,$FF,$10,$40,$EF,$BF,$E2,$81,$E2,$81,$00,$00
-	dc.b $FF,$FF,$FE,$FF,$FE,$FF,$10,$00,$EF,$FF,$E2,$81,$E2,$81,$1C,$7E
-	dc.b $E3,$81,$E2,$81,$E2,$81,$00,$00,$FF,$FF,$FE,$FF,$FE,$FF,$10,$00
-	dc.b $EF,$FF,$E2,$C1,$E2,$C1,$10,$00,$EF,$FF,$E6,$C1,$E6,$C1,$10,$00
-	dc.b $EF,$FF,$E6,$C1,$E6,$C1,$19,$7E,$E6,$81,$E6,$81,$E6,$81,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$5E,$2A
-	dc.b $A1,$D5,$07,$95,$01,$95,$5E,$2A,$A1,$D5,$01,$95,$01,$95,$5E,$2A
-	dc.b $A1,$D5,$01,$95,$01,$95,$52,$2A,$B9,$D5,$11,$95,$1D,$95,$5E,$22
-	dc.b $A1,$DD,$01,$9D,$01,$9D,$5E,$2E,$A1,$D1,$01,$91,$01,$91,$40,$3E
-	dc.b $BF,$C1,$3F,$81,$3F,$81,$67,$3E,$98,$C1,$10,$81,$10,$81,$67,$3E
-	dc.b $98,$C1,$10,$81,$10,$81,$67,$3E,$98,$C1,$10,$81,$10,$81,$67,$3E
-	dc.b $98,$C1,$10,$81,$10,$81,$67,$3E,$98,$C1,$10,$81,$10,$81,$67,$3C
-	dc.b $98,$C3,$10,$83,$10,$83,$67,$30,$98,$CF,$10,$8F,$10,$8F,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$20,$02
-	dc.b $DF,$FD,$D0,$05,$D0,$05,$27,$FA,$D8,$05,$D0,$05,$D0,$05,$20,$02
-	dc.b $DF,$FD,$DF,$FD,$DF,$FD,$3F,$FE,$C0,$01,$40,$01,$40,$01,$00,$00
-	dc.b $FF,$FF,$7F,$FF,$7F,$FF,$00,$00,$FF,$FF,$3F,$FF,$3F,$FF,$00,$00
-	dc.b $FF,$FF,$3F,$FF,$3F,$FF,$00,$00,$FF,$FF,$1F,$FF,$1F,$FF,$00,$00
-	dc.b $FF,$FF,$1F,$FF,$1F,$FF,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$05,$1F
-	dc.b $FF,$E7,$FF,$87,$C0,$87,$0B,$58,$FF,$E7,$FF,$E0,$C0,$E0,$16,$D9
-	dc.b $FF,$E6,$FF,$E0,$C1,$E0,$06,$9F,$FF,$E0,$FF,$C0,$C1,$C0,$0D,$B7
-	dc.b $FF,$C8,$FF,$C0,$C3,$C0,$3B,$B4,$FE,$CB,$FE,$CB,$C6,$CB,$32,$A0
-	dc.b $FD,$DF,$F8,$DF,$C8,$DF,$0C,$C5,$FB,$FA,$F8,$F8,$F8,$F8,$10,$6F
-	dc.b $FF,$F0,$F0,$70,$F0,$70,$80,$0E,$FF,$F1,$C0,$F0,$C0,$F0,$80,$0D
-	dc.b $FF,$F2,$FF,$F0,$FF,$F0,$0C,$0B,$F3,$F4,$F3,$F0,$F3,$F0,$3F,$E2
-	dc.b $C0,$1D,$C0,$00,$C0,$00,$1F,$6E,$E0,$91,$80,$00,$80,$00,$1E,$DC
-	dc.b $E1,$23,$80,$00,$80,$00,$7E,$B1,$A1,$4F,$A0,$01,$A0,$01,$FF,$30
-	dc.b $9C,$CF,$9C,$0F,$9C,$0F,$FA,$50,$37,$AF,$32,$0F,$32,$0F,$CC,$D1
-	dc.b $77,$2E,$44,$0E,$44,$0E,$D9,$D1,$6E,$2E,$48,$0E,$48,$0E,$07,$91
-	dc.b $F8,$6E,$F8,$0E,$F8,$0E,$00,$31,$FF,$CE,$FF,$CE,$FF,$CE,$1F,$11
-	dc.b $E0,$EE,$E0,$EE,$E0,$EE,$FF,$C1,$00,$3E,$00,$3E,$00,$3E,$50,$21
-	dc.b $AF,$DE,$00,$1E,$00,$1E,$88,$61,$77,$9E,$00,$1E,$00,$1E,$81,$E1
-	dc.b $7E,$5E,$00,$5E,$00,$5E,$0F,$E1,$FE,$9E,$0E,$9E,$0E,$9E,$1F,$A1
-	dc.b $FF,$DE,$1F,$9C,$1F,$9C,$3D,$21,$FB,$DE,$39,$1C,$39,$1C,$C6,$21
-	dc.b $FF,$DE,$C6,$1C,$C6,$1C,$8D,$61,$72,$DE,$00,$5C,$00,$5C,$00,$01
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$AF,$EB,$50,$15,$00,$01,$00,$01,$BD,$7B
-	dc.b $42,$85,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$01,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$FF,$FF
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$7F,$FE,$80,$01,$80,$00,$80,$00,$3F,$FC
-	dc.b $C0,$03,$C0,$00,$C0,$00,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$08,$88,$FF,$FF,$FF,$FC,$F5,$54,$13,$30
-	dc.b $FF,$FF,$FB,$B8,$E8,$88,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$0C,$CC
-	dc.b $FF,$FF,$EE,$EC,$E2,$20,$1F,$FE,$FF,$FF,$DF,$FE,$DF,$FE,$3F,$FE
-	dc.b $C0,$01,$C0,$00,$C0,$00,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$0C,$C8
-	dc.b $FF,$FF,$EE,$EC,$E2,$24,$1F,$FE,$FF,$FF,$DF,$FE,$DF,$FE,$3F,$FE
-	dc.b $C0,$01,$C0,$00,$C0,$00,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$1E,$FC
-	dc.b $FF,$FF,$FE,$FC,$FE,$FC,$22,$00,$DD,$FF,$C0,$00,$C0,$00,$22,$02
-	dc.b $DD,$FD,$C0,$00,$C0,$00,$1E,$FC,$E1,$03,$E1,$00,$E1,$00,$08,$88
-	dc.b $FF,$FF,$EE,$EC,$E6,$64,$00,$00
-	dcb.b $E,$FF
-	dc.b $7F,$FF,$80,$00,$80,$00,$80,$00,$3F,$FF,$C0,$00,$C0,$00,$C0,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$13,$33,$FF,$FF,$FB,$BB,$E8,$88
-	dc.b $02,$22,$FF,$FF,$FF,$FF,$F5,$55,$0C,$CC,$FF,$FF,$EE,$EE,$E2,$22
-	dc.b $08,$88,$FF,$FF,$FF,$FF,$F5,$55,$13,$33,$FF,$FF,$FB,$BB,$E8,$88
-	dc.b $02,$22,$FF,$FF,$FF,$FF,$F5,$55,$0C,$CC,$FF,$FF,$EE,$EE,$E2,$22
-	dc.b $08,$88,$FF,$FF,$FF,$FF,$F5,$55,$13,$33,$FF,$FF,$FB,$BB,$E8,$88
-	dc.b $02,$22,$FF,$FF,$FF,$FF,$F5,$55,$7F,$FF,$BF,$FF,$BF,$FF,$BF,$FF
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$02,$00,$02,$00,$02
-	dc.b $00,$03,$FF,$FE,$FF,$FE,$FF,$FE,$33,$33,$FF,$FE,$BB,$BE,$88,$8E
-	dc.b $22,$23,$FF,$FE,$FF,$FE,$55,$56,$CC,$CB,$FF,$FE,$EE,$EE,$22,$26
-	dc.b $88,$8B,$FF,$FE,$FF,$FE,$55,$56,$33,$33,$FF,$FE,$BB,$BE,$88,$8E
-	dc.b $22,$23,$FF,$FE,$FF,$FE,$55,$56,$CC,$CB,$FF,$FE,$EE,$EE,$22,$26
-	dc.b $88,$8B,$FF,$FE,$FF,$FE,$55,$56,$33,$33,$FF,$FE,$BB,$BE,$88,$8E
-	dc.b $22,$23,$FF,$FE,$FF,$FE,$55,$56,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$F0,$00,$0F,$FF,$0F,$FF,$0F,$FF
-	dc.b $00,$00,$FF,$FF,$0F,$FF,$0F,$FF,$00,$00,$FF,$FF,$07,$FF,$07,$FF
-	dc.b $00,$00,$FF,$FF,$07,$FF,$07,$FF,$00,$00,$FF,$FF,$03,$FF,$03,$FF
-	dc.b $00,$00,$FF,$FF,$03,$FF,$03,$FF,$00,$00,$FF,$FF,$01,$FF,$01,$FF
-	dc.b $00,$00,$FF,$FF,$01,$FF,$01,$FF,$00,$00,$FF,$FF,$00,$FF,$00,$FF
-	dc.b $00,$00,$FF,$FF,$00,$FF,$00,$FF,$00,$00,$FF,$FF,$00,$7F,$00,$7F
-	dc.b $00,$00,$FF,$FF,$00,$7F,$00,$7F,$00,$00,$FF,$FF,$00,$3F,$00,$3F
-	dc.b $00,$00,$FF,$FF,$00,$1F,$00,$1F,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
+	INCBIN "assets/world_tile_pixels_168_through_176.bin"
+; bitmap
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$03,$FF,$FC,$00,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$F8,$00,$F8,$00
-	dc.b $00,$00,$FF,$FF,$F8,$00,$F8,$00,$00,$00,$FF,$FF,$F0,$00,$F0,$00
-	dc.b $00,$00,$FF,$FF,$C0,$00,$C0,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00,$7F,$FE,$80,$01,$80,$01,$80,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$3F,$FE,$C0,$01,$C0,$01,$C0,$01
-	dc.b $20,$02,$DF,$FD,$DF,$FD,$DF,$FD,$2F,$FA,$D0,$05,$D0,$05,$D0,$05
-	dc.b $27,$FA,$D8,$05,$C8,$05,$C8,$05,$27,$CA,$D8,$35,$D8,$35,$D8,$35
-	dc.b $2F,$B2,$D0,$7D,$D0,$6D,$D0,$7D,$27,$B2,$D8,$7D,$C8,$4D,$C8,$7D
-	dc.b $27,$CA,$D8,$35,$D8,$35,$D8,$35,$2F,$FA,$D0,$05,$D0,$05,$D0,$05
-	dc.b $20,$02,$DF,$FD,$DF,$FD,$DF,$FD,$3F,$FE,$C0,$01,$C0,$01,$C0,$01
-	dc.b $20,$02,$DF,$FD,$DF,$FD,$DF,$FD,$27,$FA,$D8,$05,$D0,$05,$D0,$05
-	dc.b $20,$02,$DF,$FD,$DF,$FD,$DF,$FD,$7D,$78,$A2,$87,$A0,$00,$A0,$00
-	dc.b $5B,$FC,$B4,$03,$90,$00,$90,$00,$7F,$F9,$98,$06,$98,$00,$98,$00
-	dc.b $47,$FF,$BC,$30,$84,$30,$84,$30,$6B,$FF,$96,$00,$82,$00,$82,$00
-	dc.b $63,$FF,$9E,$80,$82,$80,$82,$80,$70,$B7,$8F,$F8,$80,$B0,$80,$B0
-	dc.b $79,$BE,$86,$79,$80,$38,$80,$38,$75,$CE,$BA,$3D,$B0,$0C,$B0,$0C
-	dc.b $40,$00,$BF,$FF,$95,$D5,$95,$D5,$3D,$DD,$C2,$22,$C2,$22,$C2,$22
-	dc.b $3D,$1A,$C2,$E5,$C2,$E5,$C2,$E5,$24,$7E,$DB,$81,$DB,$81,$DB,$81
-	dc.b $14,$38,$EB,$C7,$EB,$C7,$EB,$C7,$31,$C3,$CE,$3C,$CE,$3C,$CE,$3C
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$1E,$61,$E1,$DE,$00,$5C,$00,$5C
-	dc.b $7C,$A1,$83,$DE,$00,$9C,$00,$9C,$C3,$A1,$3C,$DE,$00,$9C,$00,$9C
-	dc.b $FF,$21,$00,$DE,$00,$1C,$00,$1C,$FE,$61,$07,$9E,$06,$1C,$06,$1C
-	dc.b $B6,$61,$49,$9E,$00,$1C,$00,$1C,$6F,$61,$90,$9E,$00,$1C,$00,$1C
-	dc.b $DF,$E1,$20,$1E,$00,$1C,$00,$1C,$FF,$E1,$04,$1E,$04,$1C,$04,$1C
-	dc.b $00,$21,$FF,$DE,$7A,$5C,$7A,$5C,$F7,$01,$08,$FE,$08,$FC,$08,$FC
-	dc.b $93,$41,$6C,$BE,$6C,$BC,$6C,$BC,$39,$E1,$C6,$1E,$C6,$1C,$C6,$1C
-	dc.b $05,$01,$FA,$FE,$FA,$FC,$FA,$FC,$F0,$41,$0F,$BE,$0F,$BC,$0F,$BC
-	dc.b $00,$01,$FF,$FE,$FF,$FC,$FF,$FC
-	dcb.b $A,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$33,$33,$FF,$FF,$BB,$BB,$88,$88,$22,$22
-	dc.b $FF,$FF,$FF,$FF,$55,$55,$CC,$CC,$FF,$FF,$EE,$EE,$22,$22,$88,$88
-	dc.b $FF,$FF,$FF,$FF,$55,$55,$33,$33,$FF,$FF,$BB,$BB,$88,$88,$22,$22
-	dc.b $FF,$FF,$FF,$FF,$55,$55,$CC,$CC,$FF,$FF,$EE,$EE,$22,$22,$88,$88
-	dc.b $FF,$FF,$FF,$FF,$55,$55,$33,$33,$FF,$FF,$BB,$BB,$88,$88,$22,$22
-	dc.b $FF,$FF,$FF,$FF,$55,$55
-	dcb.b $A,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$04,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$20
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$10,$00
-	dc.b $EF,$FF,$EF,$FF,$EF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$80
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$02
-	dc.b $FF,$FD,$DF,$FD,$DF,$FD,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$EF,$FF,$EF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$01,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$04,$00
-	dc.b $FB,$FF,$FB,$FF,$FB,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$04,$FF,$FB,$7F,$FB,$7F,$FB,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$40,$FF,$BF,$FF,$BF,$FF,$BF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$10,$00
-	dc.b $EF,$FF,$EF,$FF,$EF,$FF,$38,$00,$D7,$FF,$D7,$FF,$D7,$FF,$10,$00
-	dc.b $EF,$FF,$EF,$FF,$EF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$08,$00
-	dc.b $F7,$FF,$F7,$FF,$F7,$FF,$14,$00,$EB,$FF,$E3,$FF,$E3,$FF,$2A,$00
-	dc.b $DD,$FF,$C9,$FF,$C9,$FF,$14,$00,$EB,$FF,$E3,$FF,$E3,$FF,$08,$00
-	dc.b $F7,$FF,$F7,$FF,$F7,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$04,$00,$FB,$FF,$FB,$FF,$FB,$FF,$04,$00
-	dc.b $FB,$FF,$FB,$FF,$FB,$FF,$00,$00,$FF,$FF,$FB,$FF,$FB,$FF,$0A,$00
-	dc.b $F5,$FF,$F1,$FF,$F1,$FF,$15,$00,$EE,$FF,$EE,$FF,$EE,$FF,$64,$C0
-	dc.b $9F,$3F,$84,$3F,$84,$3F,$15,$00,$EE,$FF,$EE,$FF,$EE,$FF,$0A,$00
-	dc.b $F5,$FF,$F1,$FF,$F1,$FF,$00,$00,$FF,$FF,$FB,$FF,$FB,$FF,$04,$00
-	dc.b $FB,$FF,$FB,$FF,$FB,$FF,$04,$00,$FB,$FF,$FB,$FF,$FB,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$9F,$FF
-	dc.b $7F,$FF,$7F,$FF,$40,$00,$98,$00,$7F,$FF,$7F,$FF,$47,$FF,$98,$00
-	dc.b $7F,$FF,$7F,$FF,$47,$FF,$98,$00,$7F,$FF,$7F,$FF,$47,$FF,$B0,$00
-	dc.b $7F,$FF,$7F,$FF,$4F,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$C0,$00
-	dc.b $7F,$FF,$7F,$FF,$7F,$FF,$C0,$00,$7F,$FF,$7F,$FF,$7F,$FF,$C0,$00
-	dc.b $7F,$FF,$5F,$FF,$5F,$FF,$C0,$00,$7F,$FF,$5F,$FF,$5F,$FF,$C0,$00
-	dc.b $7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00
-	dc.b $7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00
-	dc.b $7F,$FF,$40,$00,$40,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$E1
-	dc.b $FF,$FE,$FF,$FC,$00,$1C,$00,$61,$FF,$FE,$FF,$FC,$FF,$1C,$00,$61
-	dc.b $FF,$FE,$FF,$FC,$FF,$1C,$00,$61,$FF,$FE,$FF,$FC,$FF,$1C,$00,$C1
-	dc.b $FF,$FE,$FF,$FC,$FF,$3C,$00,$01,$FF,$FE,$FF,$FC,$FF,$FC,$00,$01
-	dc.b $FF,$FE,$FF,$FC,$FF,$FC,$00,$01,$FF,$FE,$FF,$FC,$FF,$FC,$00,$01
-	dc.b $FF,$FE,$FF,$FC,$FF,$FC,$00,$01,$FF,$FE,$FF,$FC,$FF,$FC,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD,$7E,$02,$E0,$07,$60,$06,$80,$05
-	dc.b $7F,$FA,$DF,$FF,$5F,$FE,$A0,$05,$5F,$FA,$DF,$FF,$5F,$FE,$3F,$FC
-	dc.b $C0,$03,$DF,$FF,$DF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$FF,$FF,$3F,$F8,$C0,$07,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$20,$04
-	dc.b $E0,$03,$DF,$FF,$FF,$FF,$3F,$FC,$C0,$03,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD,$FF,$FF,$FF,$FF,$60,$02,$80,$05
-	dc.b $FF,$FF,$FF,$FF,$5F,$FA,$A0,$05,$FF,$FF,$FF,$FF,$5F,$FA,$3F,$FC
-	dc.b $FF,$FF,$FF,$FF,$C0,$03,$00,$00
-	dcb.b $C,$FF
-	dc.b $00,$00,$C0,$03,$FF,$FB,$FF,$FF,$00,$00,$DF,$FB,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$DF,$FB,$FF,$FB,$FF,$FF,$00,$00,$DF,$FB,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$DF,$FB,$FF,$FB,$FF,$FF,$00,$00,$DF,$FB,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$DF,$FB,$FF,$FB,$FF,$FF,$00,$00,$1F,$F8,$FF,$FB,$FF,$FF
-	dc.b $C0,$03,$00,$00,$C0,$03,$FF,$FF,$C0,$03,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$20,$04,$7E,$02,$60,$02,$FF,$FF,$00,$04,$7F,$FA,$5F,$FA
-	dc.b $FF,$FF,$00,$04,$5F,$FA,$5F,$FA,$FF,$FF,$1F,$FC,$C0,$03,$C0,$03
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$04,$3F,$F8,$00,$00,$FF,$FF,$00,$04,$20,$00,$00,$00
-	dc.b $FF,$FF,$00,$04,$20,$00,$00,$00,$FF,$FF,$00,$04,$20,$00,$00,$00
-	dc.b $FF,$FF,$00,$04,$20,$00,$00,$00,$FF,$FF,$00,$04,$20,$00,$00,$00
-	dc.b $FF,$FF,$00,$04,$20,$00,$00,$00,$FF,$FF,$00,$04,$E0,$03,$C0,$03
-	dc.b $FF,$FF,$3F,$FC,$C0,$03,$C0,$03,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$22,$2C,$FD,$D3,$21,$52,$21,$52,$02,$20,$FD,$DF,$D9,$5F
-	dc.b $D9,$5F,$22,$20,$DD,$DF,$19,$51,$19,$51,$3A,$2E,$C5,$D1,$C1,$51
-	dc.b $C1,$51,$02,$22,$FD,$DD,$F9,$5D,$F9,$5D,$FA,$22,$05,$DD,$01,$5D
-	dc.b $01,$5D,$C2,$22,$3D,$DD,$01,$45,$01,$45,$C0,$02,$3F,$FD,$18,$3D
-	dc.b $18,$3D,$CF,$F2,$30,$0D,$10,$0D,$10,$0D,$C8,$10,$37,$EF,$17,$EF
-	dc.b $17,$EF,$C8,$33,$37,$CC,$17,$CC,$17,$CC,$C8,$33,$37,$CC,$17,$CC
-	dc.b $17,$CC,$C8,$33,$37,$CC,$17,$CC,$17,$CC,$08,$30,$F7,$CF,$D7,$CF
-	dc.b $D7,$CF,$08,$30,$F7,$CF,$D7,$CF,$D7,$CF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$90,$04,$6F,$FB,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$7F,$FF
-	dc.b $7F,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$80,$00,$7F,$FF,$3F,$FF
-	dc.b $3F,$FF,$80,$00,$7F,$FF,$3F,$FF,$3F,$FF,$80,$00,$7F,$FF,$1F,$FF
-	dc.b $1F,$FF,$80,$00,$7F,$FF,$1F,$FF,$1F,$FF,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$90,$04,$6F,$FB,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$04,$FF,$FB,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$03,$FF,$FC,$00,$FC,$00
-	dc.b $FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$04,$FF,$FB,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$90,$04,$6F,$FB,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$C0,$00,$7F,$FF,$7F,$FD
-	dc.b $7F,$FD,$C5,$54,$7F,$FF,$7F,$FD,$7A,$A9,$C0,$00,$7F,$FF,$6F,$FD
-	dc.b $7A,$A9,$DD,$54,$67,$FF,$7F,$FD,$6F,$FD,$C8,$F8,$77,$07,$6F,$FD
-	dc.b $7F,$FD,$C7,$64,$6A,$FF,$75,$CD,$7A,$FD,$C6,$70,$71,$8B,$6E,$F9
-	dc.b $7D,$8D,$CD,$00,$62,$FB,$7D,$89,$7A,$FD,$C0,$F8,$7F,$07,$6F,$FD
-	dc.b $7F,$FD,$C5,$54,$6F,$FF,$7F,$FD,$7F,$FD,$C0,$04,$7F,$FF,$6F,$FD
-	dc.b $7A,$A9,$C5,$54,$7F,$FF,$7F,$FD,$7A,$A9,$C0,$00,$7F,$FF,$40,$01
-	dc.b $40,$01,$C0,$00,$3F,$FF,$3F,$FF,$3F,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$A1,$FD,$7E,$02,$E0,$07,$60,$06,$80,$05,$7F,$FA,$DF,$FF
-	dc.b $5F,$FE,$A0,$05,$5F,$FA,$DF,$FF,$5F,$FE,$3F,$FC,$C0,$03,$DF,$FF
-	dc.b $DF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$FF,$FF,$3F,$F8,$C0,$07,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$E0,$00
-	dc.b $23,$FF,$DF,$FF,$3F,$FF,$E1,$FF,$22,$00,$DE,$00,$3E,$00,$E1,$FF
-	dc.b $22,$00,$DE,$00,$3E,$00,$E1,$FF,$23,$FF,$DF,$FF,$3F,$FF,$21,$FF
-	dc.b $E3,$FF,$DF,$FF,$FF,$FF,$3D,$FF,$C3,$FF,$FF,$FF,$FF,$FF,$01,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$01,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$01,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$01,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$01,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$01,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$81,$FF
-	dc.b $7F,$FF,$03,$FF,$03,$FF,$81,$FF,$7E,$00,$02,$00,$02,$00,$80,$00
-	dc.b $7F,$FF,$02,$00,$02,$00,$80,$00,$7F,$FF,$03,$FF,$03,$FF,$80,$20
-	dc.b $7F,$DF,$00,$5F,$00,$5F,$80,$20,$7F,$DF,$00,$5F,$00,$5F,$80,$20
-	dc.b $7F,$DF,$00,$5F,$00,$5F,$90,$00,$6F,$FF,$00,$7F,$00,$7F,$80,$00
-	dc.b $7F,$FF,$00,$0F,$00,$0F,$80,$00,$7F,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD,$7E,$02,$E0,$07,$60,$06,$80,$05
-	dc.b $7F,$FA,$DF,$FF,$5F,$FE,$A0,$05,$5F,$FA,$DF,$FF,$5F,$FE,$3F,$FC
-	dc.b $C0,$03,$DF,$FF,$DF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$FF,$FF,$3F,$F8,$C0,$07,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$01,$C0
-	dc.b $FF,$FF,$FF,$DF,$FF,$DF,$CA,$03,$37,$FC,$37,$DC,$37,$DC,$D2,$3D
-	dc.b $3D,$CE,$3C,$0E,$3C,$0E,$D3,$E4,$EC,$1B,$E4,$19,$E4,$19,$D8,$0A
-	dc.b $E7,$F5,$F3,$F5,$E3,$F5,$EF,$EA,$F0,$1D,$FC,$3D,$F0,$3D,$F3,$EA
-	dc.b $FC,$1D,$FB,$DD,$F8,$1D,$F4,$2A,$FB,$DD,$FC,$3D,$F8,$3D,$F7,$E9
-	dc.b $F8,$1F,$FF,$DF,$F8,$1F,$F7,$E7,$F8,$1F,$FF,$DF,$F8,$1F,$F7,$DA
-	dc.b $F8,$27,$FF,$E7,$F8,$27,$F8,$05,$FF,$FF,$FF,$FF,$FF,$FF,$FE,$02
-	dcb.b $8,$FF
-	dc.b $00,$01,$00,$01,$00,$01,$00,$FE,$FF,$01,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FD,$FF,$FD,$00,$00,$FF,$FF,$FF,$FD,$FF,$FD,$00,$04
-	dc.b $FF,$FB,$FF,$FB,$FF,$FB,$00,$08,$FF,$F7,$FF,$F7,$FF,$F7,$08,$30
-	dc.b $F7,$CF,$F7,$CF,$F7,$CF,$07,$C0,$F8,$3F,$F8,$3F,$F8,$3F,$80,$00
-	dc.b $7F,$FF,$01,$C0,$01,$C0,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD
-	dc.b $7E,$02,$E0,$07,$60,$06,$80,$05,$7F,$FA,$DF,$FF,$5F,$FE,$A0,$05
-	dc.b $5F,$FA,$DF,$FF,$5F,$FE,$3F,$FC,$C0,$03,$DF,$FF,$DF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$FF,$FF,$3F,$F8,$C0,$07,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FC,$7F,$03,$80,$03,$80,$03,$80,$FB,$BF
-	dc.b $FC,$7F,$FC,$7F,$FF,$FF,$F7,$9F,$F8,$3F,$F8,$3F,$FF,$FF,$F7,$8F
-	dc.b $F8,$3F,$FB,$BF,$FF,$FF,$FB,$AF,$FC,$7F,$FF,$FF,$FF,$FF,$F8,$0F
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$F9,$9F,$FC,$7F,$FC,$7F,$FF,$FF,$FC,$1F
-	dc.b $FF,$E7,$FF,$E7,$FF,$E7,$FC,$1F,$FF,$F7,$FF,$F7,$FF,$F7,$FE,$3F
-	dc.b $FF,$CF,$FF,$CF,$FF,$CF
-	dcb.b $A,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$06,$FF,$F9,$FF,$F9,$FF,$F9,$00,$06
-	dc.b $FF,$F9,$FF,$F9,$FF,$F9,$00,$06,$FF,$F9,$FF,$F9,$FF,$F9,$00,$06
-	dc.b $FF,$F9,$FF,$F9,$FF,$F9,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD
-	dc.b $7E,$02,$E0,$07,$60,$06,$80,$05,$7F,$FA,$DF,$FF,$5F,$FE,$A0,$05
-	dc.b $5F,$FA,$DF,$FF,$5F,$FE,$3F,$FC,$C0,$03,$DF,$FF,$DF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$FF,$FF,$3F,$F8,$C0,$07,$3F,$FC,$E0,$07
-	dc.b $20,$00,$DF,$FF,$3F,$FC,$E0,$07,$20,$00,$DF,$FF,$3F,$FC,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $52,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $1F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$4F,$FF,$DF,$FF,$BF,$FF,$FF,$FF
-	dc.b $4F,$FF,$DF,$FF,$BF,$FF,$FF,$FF,$4F,$FF,$DF,$FF,$BF,$FF,$FF,$FF
-	dc.b $0F,$FF,$9F,$FF,$FF,$FF,$FF,$FF,$20,$0F,$9F,$FF,$FF,$FF,$FF,$FF
-	dc.b $2F,$F7,$9F,$F8,$F0,$08,$FF,$F8,$2F,$F8,$90,$07,$FF,$FC,$FF,$FC
-	dc.b $2F,$FC,$9F,$FF,$F0,$03,$FF,$FF,$00,$00,$F0,$03,$FF,$FF,$FF,$FF
-	dc.b $3F,$FC,$C0,$03,$DF,$FF,$DF,$FF,$3F,$FC,$DF,$FF,$C0,$03,$DF,$FF
-	dc.b $00,$00,$E0,$03,$FF,$FF,$FF,$FF,$3F,$FC,$C0,$03,$FF,$FF,$FF,$FF
-	dc.b $BF,$F8,$7F,$FF,$40,$06,$7F,$FE,$80,$05,$40,$0A,$7F,$FE,$7F,$FE
-	dc.b $80,$08,$7F,$F7,$7F,$FC,$7F,$FC,$BF,$F0,$40,$0F,$7F,$F8,$7F,$F8
-	dc.b $80,$00,$7F,$FF,$3F,$F0,$3F,$F0,$93,$E0,$6C,$1F,$2C,$10,$2C,$10
-	dc.b $80,$00,$7F,$FF,$2F,$F0,$2F,$F0,$80,$80,$7F,$7F,$2E,$7C,$2E,$7C
-	dc.b $80,$80,$7F,$7F,$2E,$7E,$2E,$7E,$80,$00,$7F,$FF,$2F,$FF,$2F,$FF
-	dc.b $8F,$80,$70,$7F,$20,$7F,$20,$7F,$80,$00,$7F,$FF,$3F,$FF,$3F,$FF
-	dc.b $80,$00,$7F,$FF,$2D,$FF,$2D,$FF,$8F,$E0,$70,$1F,$20,$1F,$20,$1F
-	dc.b $80,$00,$7F,$FF,$3F,$FE,$3F,$FE,$80,$00,$7F,$FF,$0F,$FC,$0F,$FC
-	dc.b $80,$00,$7F,$FF,$00,$00,$00,$00
-	dcb.b $BA,$FF
-	dc.b $00,$3F,$00,$3F,$00,$3F,$00,$3F,$FF,$FF,$00,$7F,$00,$7F,$00,$3F
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$3F,$FF,$FF,$FF,$FF,$FF,$FF,$00,$3F
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$3F,$FF,$FF,$FF,$FF,$FF,$FF,$00,$3F
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$3F,$FF,$FF,$FF,$FF,$FF,$FF,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$FF,$BF,$00,$7F,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$FF,$BE,$00,$7D,$00,$7D,$00,$7D,$80,$3F
-	dc.b $7F,$FB,$00,$79,$00,$7B,$80,$3F,$7F,$F7,$00,$73,$00,$77,$80,$3E
-	dc.b $7F,$EF,$00,$67,$00,$6F,$80,$3F,$7F,$DF,$00,$4F,$00,$5F,$80,$7F
-	dc.b $7F,$BF,$00,$1F,$00,$3F,$80,$FE,$7F,$75,$00,$75,$00,$75,$81,$EF
-	dc.b $7E,$FE,$00,$FE,$00,$FE,$83,$77,$7D,$CB,$00,$4B,$01,$4B,$81,$FF
-	dc.b $7E,$EF,$00,$6F,$00,$EF,$80,$FE,$7F,$77,$00,$37,$00,$77,$80,$7C
-	dc.b $7F,$BE,$00,$1F,$00,$3F,$80,$33,$7F,$D7,$00,$4C,$00,$5F,$80,$3F
-	dc.b $7F,$EE,$00,$60,$00,$6E,$80,$3E,$7F,$F5,$00,$71,$00,$75,$80,$3D
-	dc.b $7F,$FB,$00,$7B,$00,$7B,$FF,$FF,$CF,$FF,$CF,$FF,$CF,$FF,$7F,$FF
-	dc.b $97,$FF,$97,$FF,$97,$FF,$97,$FF,$6B,$FF,$4B,$FF,$4B,$FF,$2B,$FF
-	dc.b $D7,$FF,$C7,$FF,$C7,$FF,$41,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$93,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$F9,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7D,$FF
-	dc.b $BB,$FF,$B3,$FF,$BB,$FF,$FB,$FF,$D7,$FF,$C7,$FF,$D7,$FF,$F7,$FF
-	dc.b $2F,$FF,$0F,$FF,$2F,$FF,$6F,$FF,$5F,$FF,$9F,$FF,$DF,$FF,$DF,$FF
-	dc.b $BF,$FF,$3F,$FF,$BF,$FF,$BF,$FF,$7F,$FF,$7F,$FF,$7F,$FF,$72,$0F
-	dc.b $FF,$FF,$FF,$FF,$F0,$03,$FF,$FF,$FF,$FF,$FF,$FF,$F8,$0F
-	dcb.b $21,$FF
-	dc.b $BF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$1F,$FF,$FF,$FF,$FF,$FF,$FF,$FE
-	dc.b $2F,$FF,$DF,$FF,$DF,$FF,$DF,$FC,$47,$FF,$BF,$FF,$BF,$FF,$BF,$FE
-	dc.b $1F,$FF,$EF,$FF,$FF,$FF,$FF,$FF,$3F,$F8,$DF,$FF,$FF,$F8,$FF,$FF
-	dc.b $FF,$F8,$3F,$FF,$FF,$F8,$7F,$FF,$FF,$F8,$3F,$F8,$FF,$F8,$7F,$FF
-	dc.b $FF,$F8,$3F,$FF,$FF,$F8,$7F,$FF,$FF,$F8,$3F
-	dcb.b $1D,$FF
-	dc.b $BF,$00,$7C,$00,$7C,$00,$7C,$80,$3F,$7F,$FD,$00,$7D,$00,$7D,$80
-	dc.b $3F,$7F,$FD,$00,$7D,$00,$7D,$80,$3F,$7F,$FD,$00,$7D,$00,$7D,$80
-	dc.b $3F,$7F,$FD,$00,$7D,$00,$7D,$80,$3F,$7F,$FC,$00,$7C,$00,$7C,$80
-	dc.b $3F,$7F,$FD,$00,$7D,$00,$7D,$80,$3F,$7F,$FB,$00,$7B,$00,$7B,$80
-	dc.b $3E,$7F,$F7,$00,$77,$00,$77,$80,$3F,$7F,$FB,$00,$7B,$00,$7B,$80
-	dc.b $3F,$7F,$FD,$00,$7D,$00,$7D,$80,$3F,$7F,$FE,$00,$7E,$00,$7E,$80
-	dc.b $3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80
-	dc.b $3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$FF
-	dc.b $FF,$00,$3F,$00,$3F,$00,$3F,$FC,$FF,$FF,$BF,$FC,$BF,$FC,$BF,$FD
-	dc.b $FF,$5E,$BF,$5C,$BF,$5C,$BF,$FC,$FF,$2F,$9F,$2C,$9F,$2C,$9F,$FD
-	dc.b $FF,$76,$A7,$74,$A7,$74,$A7,$DF,$FF,$FA,$B7,$FA,$B7,$FA,$B7,$EF
-	dc.b $FF,$BC,$AF,$AC,$AF,$AC,$AF,$DB,$FF,$7E,$2F,$5E,$2F,$5E,$2F,$B7
-	dc.b $FF,$FB,$5F,$B3,$5F,$B3,$5F,$6D,$FF,$F7,$9F,$77,$9F,$77,$9F,$DB
-	dc.b $FF,$FF,$3F,$FF,$3F,$FF,$3F,$E7,$FF,$FE,$3F,$EE,$3F,$EE,$3F,$FF
-	dc.b $FF,$4D,$FF,$4D,$FF,$4D,$FF,$FF,$FF,$BB,$FF,$BB,$FF,$BB,$FF,$FF
-	dc.b $FF,$D7,$FF,$D7,$FF,$D7,$FF,$FF,$FF,$EF,$FF,$EF,$FF,$EF,$FF,$F8
-	dc.b $03,$FF,$FF,$FF,$FF,$F8,$01,$FB,$FF,$FF,$FF,$FF,$FF,$FB,$FD,$FB
-	dc.b $FF,$FC,$57,$FC,$57,$F8,$55,$FB,$FF,$FF,$47,$FF,$C7,$FB,$45,$FB
-	dc.b $BF,$FC,$67,$FF,$E7,$F8,$65,$FB,$FF,$FF,$FF,$FF,$FF,$FB,$FD,$FB
-	dc.b $FF,$FC,$03,$FC,$03,$F8,$01,$F8,$01,$FF,$FF,$FF,$FF,$FB,$FF,$F8
-	dc.b $01,$FF,$FF,$FC,$03,$F8,$03,$FA,$3F,$FF,$E3,$FF,$63,$FB,$E1,$FA
-	dc.b $5F,$FE,$E3,$FE,$43,$FB,$A1,$FA,$FF,$FE,$FF,$FE,$FF,$FB,$FD,$FB
-	dc.b $FF,$FC,$17,$FC,$17,$F8,$15,$FB,$FF,$FF,$FF,$FF,$FF,$FB,$FD,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$F8,$01
-	dcb.b $8,$FF
-	dc.b $03,$FF,$FC,$00,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$04,$FF,$FB,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00
-	dcb.b $8,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$F8,$00,$F8,$00,$F0,$00
-	dc.b $FF,$FF,$F8,$00,$F8,$00,$F0,$00,$FF,$FF,$F8,$00,$F8,$00,$F0,$00
-	dc.b $FF,$FF,$F8,$00,$F8,$00,$F0,$00,$FF,$FF,$F8,$00,$F8,$00,$F0,$00
-	dc.b $FF,$FF,$FC,$00,$FC,$00,$F0,$00,$FF,$FF,$FC,$00,$FC,$00,$F0,$00
-	dc.b $FF,$FF,$FC,$00,$FC,$00,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$5D,$47,$A2,$B0,$BF,$FF,$BF,$FF,$43,$23
-	dc.b $A0,$D0,$BF,$FF,$BF,$FF,$5E,$93,$A0,$68,$BF,$F7,$BF,$FF,$41,$53
-	dc.b $A2,$28,$BF,$F7,$BF,$FF,$40,$E3,$A3,$18,$BF,$F7,$BF,$FF,$43,$F3
-	dc.b $A0,$08,$BC,$77,$BC,$7F,$43,$F3,$A0,$08,$BC,$27,$BC,$2F,$40,$00
-	dc.b $BF,$FF,$BF,$FF,$BF,$FF,$5F,$FF,$A0,$00,$A0,$00,$A0,$00,$5F,$30
-	dc.b $A0,$CF,$BF,$FF,$A4,$EF
-	dcb.b $22,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$02,$A2,$FD,$7D,$ED,$75,$ED,$75,$03,$A2
-	dc.b $FC,$FD,$EC,$B5,$EC,$B5,$63,$A2,$9C,$FD,$8C,$A5,$8C,$A5,$E2,$A2
-	dc.b $3F,$FD,$2C,$A5,$2E,$A5,$E2,$A2,$BF,$FD,$AC,$A5,$AE,$A5,$EE,$A2
-	dc.b $B3,$FD,$A0,$A5,$A2,$A5,$EA,$A2,$B7,$FD,$A0,$A5,$A2,$A5,$00,$02
-	dc.b $FF,$FD,$FF,$FD,$FF,$FD,$FF,$FA,$00,$05,$00,$05,$00,$05,$00,$02
-	dc.b $FF,$FD,$FF,$FD,$FF,$FD,$5F,$70,$A0,$8F,$BF,$FF,$A4,$AF,$5F,$7F
-	dc.b $A0,$80,$BF,$F0,$A4,$A0,$5F,$F0,$A0,$0F,$BB,$50,$A0,$00,$40,$00
-	dc.b $BF,$FF,$BF,$FF,$BF,$FF,$5F,$FF,$A0,$00,$A0,$00,$A0,$00,$40,$00
-	dc.b $BF,$FF,$BF,$FF,$BF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00
-	dc.b $FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$04
-	dc.b $FF,$FB,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00
-	dc.b $FF,$FF,$FC,$00,$FC,$00,$00,$02,$FC,$05,$FF,$FD,$FF,$FD,$FF,$FA
-	dc.b $00,$05,$1F,$FD,$1F,$FD,$1F,$FA,$E0,$05,$1F,$FD,$1F,$FD,$00,$02
-	dc.b $FF,$FD,$FF,$FD,$FF,$FD,$FF,$FA,$00,$05,$00,$05,$00,$05,$00,$02
-	dc.b $FF,$FD,$FF,$FD,$FF,$FD,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$A0,$00
-	dc.b $5F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD
-	dc.b $FF,$FF,$FF,$FF,$60,$02,$80,$05,$FF,$FF,$FF,$FF,$5F,$FA,$A0,$05
-	dc.b $FF,$FF,$FF,$FF,$5F,$FA,$3F,$FC,$FF,$FF,$FF,$FF,$C0,$03,$00,$00
-	dcb.b $C,$FF
-	dc.b $00,$00,$C0,$03,$FF,$FB,$FF,$FF,$00,$00,$DF,$FB,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$DF,$FB,$FF,$FB,$FF,$FF,$00,$00,$01,$C0,$FF,$FF,$FF,$DF
-	dc.b $FF,$DF,$CA,$03,$37,$FC,$37,$DC,$37,$DC,$D2,$3D,$3D,$CE,$3C,$0E
-	dc.b $3C,$0E,$D3,$E4,$EC,$1B,$E4,$19,$E4,$19,$C8,$0A,$F7,$F5,$E3,$F5
-	dc.b $F3,$F5,$E3,$EA,$FC,$1D,$F0,$3D,$FC,$3D,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$A1,$FD,$FF,$FF,$FF,$FF,$60,$02,$80,$05,$FF,$FF,$FF,$FF
-	dc.b $5F,$FA,$A0,$05,$FF,$FF,$FF,$FF,$5F,$FA,$3F,$FC,$FF,$FF,$FF,$FF
-	dc.b $C0,$03,$00,$00
-	dcb.b $C,$FF
-	dc.b $00,$00,$C0,$03,$FF,$FB,$FF,$FF,$00,$00,$DF,$FB,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$DF,$FB,$FF,$FB,$FF,$FF,$00,$00,$DC,$00,$FF,$FF,$FF,$FF
-	dc.b $03,$FF,$DD,$FF,$FE,$00,$FE,$00,$02,$00,$DD,$FF,$FE,$00,$FE,$00
-	dc.b $02,$00,$DD,$FF,$FF,$FF,$FF,$FF,$03,$FF,$1D,$FF,$FF,$FF,$FF,$FF
-	dc.b $C3,$FF,$01,$FF,$C3,$FF,$FF,$FF,$C3,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$A1,$FD,$FF,$FF,$FF,$FF,$60,$02,$80,$05,$FF,$FF,$FF,$FF
-	dc.b $5F,$FA,$A0,$05,$FF,$FF,$FF,$FF,$5F,$FA,$3F,$FC,$FF,$FF,$FF,$FF
-	dc.b $C0,$03,$00,$00
-	dcb.b $C,$FF
-	dc.b $00,$00,$C0,$03,$FF,$FB,$FF,$FF,$00,$00,$DF,$FB,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$DF,$FB,$FF,$FB,$FF,$FF,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $19,$FF
-	dc.b $BF,$00,$7F,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80
-	dc.b $3F,$7F,$FF,$00,$7F,$00,$7F,$80,$00,$7F,$FF,$00,$7F,$00,$7F,$80
-	dc.b $3F,$7F,$E0,$00,$60,$00,$60,$80,$00,$7F,$FF,$00,$7F,$00,$7F,$80
-	dc.b $01,$7F,$FE,$00,$02,$00,$02,$80,$00,$7F,$FF,$00,$01,$00,$01,$80
-	dc.b $00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80
-	dc.b $00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80
-	dc.b $00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00,$80
-	dc.b $00,$7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dcb.b $18,$FF
-	dc.b $00,$00
-	dcb.b $8,$FF
-	dcb.b $8,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$80,$00,$FF,$FF,$80,$00,$80,$00,$40,$00
-	dc.b $FF,$FF,$C0,$00,$C0,$00,$40,$00,$FF,$FF,$C0,$00,$C0,$00,$40,$00
-	dc.b $FF,$FF,$C0,$00,$C0,$00,$40,$00,$FF,$FF,$C0,$00,$C0,$00,$40,$00
-	dc.b $FF,$FF,$C0,$00,$C0,$00,$40,$00,$FF,$FF,$C0,$00,$C0,$00,$40,$00
-	dc.b $FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$18
-	dc.b $FF,$E7,$FF,$E7,$FF,$E7,$FF,$E7,$0F,$C1,$0F,$C1,$0F,$D9,$FF,$CF
-	dc.b $0F,$80,$0F,$80,$0F,$BE,$FF,$8D,$0F,$06,$0F,$00,$0F,$7F,$FF,$6C
-	dc.b $0E,$0F,$0E,$10,$0E,$FF,$FE,$78,$0C,$0B,$0C,$04,$0D,$EF,$FC,$F0
-	dc.b $08,$01,$08,$1E,$0B,$FF,$F8,$18,$04,$1B,$04,$64,$03,$FF,$E3,$F1
-	dc.b $1D,$F2,$1E,$0C,$13,$FE,$DF,$AB,$3B,$A8,$38,$54,$27,$FC,$CC,$7B
-	dc.b $30,$79,$33,$85,$37,$FD,$FF,$77,$00,$52,$01,$AA,$01,$FA,$FF,$EF
-	dc.b $08,$64,$08,$14,$08,$74,$FF,$7F,$0F,$89,$0F,$A9,$0F,$A9,$FF,$BF
-	dc.b $0F,$D2,$0F,$D2,$0F,$D2,$FF,$DF,$0F,$FE,$0F,$FE,$0F,$FE,$0F,$FF
-	dc.b $F0,$00,$F0,$00,$F0,$00,$F0,$00,$FF,$FF,$F8,$00,$F8,$00,$F0,$00
-	dc.b $7F,$FF,$78,$00,$78,$00,$70,$00,$3F,$FF,$38,$00,$B8,$00,$B0,$00
-	dc.b $1F,$FF,$18,$00,$D8,$00,$B0,$00,$0F,$FF,$08,$00,$C8,$00,$FC,$00
-	dc.b $33,$FF,$30,$00,$B0,$00,$FA,$00,$5D,$FF,$58,$00,$58,$00,$F9,$00
-	dc.b $86,$FF,$80,$00,$80,$00,$F9,$00,$E6,$FF,$E0,$00,$E0,$00,$EB,$00
-	dc.b $34,$FF,$20,$C0,$20,$C0,$EB,$00,$54,$FF,$40,$C0,$40,$C0,$FA,$00
-	dc.b $85,$FF,$81,$C0,$81,$C0,$FE,$00,$01,$FF,$01,$C0,$01,$C0,$DC,$00
-	dc.b $33,$FF,$13,$E0,$13,$E0,$BC,$00,$63,$FF,$23,$F0,$23,$F0,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FE
-	dc.b $FC,$01,$FF,$FE,$FF,$FE,$03,$FD,$FC,$02,$FF,$FC,$FF,$FC,$03,$FB
-	dc.b $FC,$05,$FF,$F9,$FF,$F9,$03,$F6,$FC,$0B,$FF,$F2,$FF,$F2,$03,$EC
-	dc.b $FC,$17,$FF,$E4,$FF,$E4,$03,$D8,$FC,$2F,$FF,$C8,$FF,$C8,$03,$B0
-	dc.b $FC,$5F,$FF,$90,$FF,$90,$03,$E0,$FF,$BF,$FF,$A0,$FF,$A0,$00,$60
-	dc.b $FF,$BF,$FC,$20,$FC,$20,$00,$60,$FF,$BE,$FC,$21,$FC,$21,$00,$61
-	dc.b $FF,$BC,$FC,$22,$FC,$22,$00,$62,$FF,$B9,$FC,$25,$FC,$25,$00,$62
-	dc.b $FF,$B9,$FC,$25,$FC,$25,$00,$64,$FF,$B3,$FC,$2B,$FC,$2B,$00,$64
-	dc.b $FF,$B3,$FC,$2B,$FC,$2B,$00,$69,$FF,$A6,$FC,$36,$FC,$36,$00,$68
-	dc.b $FF,$A7,$FC,$37,$FC,$37,$00,$64,$FF,$B3,$FC,$2B,$FC,$2B,$00,$63
-	dc.b $FF,$B8,$FC,$24,$FC,$24,$00,$60,$FF,$BC,$FC,$23,$FC,$23,$00,$60
-	dc.b $FF,$BF,$FC,$20,$FC,$20,$03,$A0,$FC,$5F,$FF,$80,$FC,$00,$03,$D0
-	dc.b $FC,$2F,$FF,$C0,$FF,$C0,$03,$E8,$FC,$17,$FF,$E0,$FF,$E0,$03,$F4
-	dc.b $FC,$0B,$FF,$F0,$FF,$F0,$03,$FA,$FC,$05,$FF,$F8,$FF,$F8,$03,$FD
-	dc.b $FC,$02,$FF,$FC,$FF,$FC,$03,$FE,$FC,$01,$FF,$FE,$FF,$FE,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FC,$00,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FE
-	dc.b $FC,$01,$FF,$FE,$FF,$FE,$03,$FD,$FC,$02,$FF,$FC,$FF,$FC,$03,$FB
-	dc.b $FC,$05,$FF,$F9,$FF,$F9,$03,$F6,$FC,$0B,$FF,$F2,$FF,$F2,$03,$EC
-	dc.b $FC,$17,$FF,$E4,$FF,$E4,$03,$D8,$FC,$2F,$FF,$C8,$FF,$C8,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FC,$00,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FE
-	dc.b $00,$01,$FF,$FE,$7F,$FE,$FF,$FD,$00,$02,$FF,$FC,$7F,$FC,$FF,$FB
-	dc.b $00,$05,$FF,$F9,$7F,$F9,$FF,$F6,$00,$0B,$FF,$F2,$7F,$F2,$FF,$EC
-	dc.b $00,$17,$FF,$E4,$7F,$E4,$FF,$D8,$00,$2F,$FF,$C8,$7F,$C8,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FE
-	dc.b $00,$01,$FF,$FE,$7F,$FE,$FF,$FD,$00,$02,$FF,$FC,$7F,$FC,$FF,$FB
-	dc.b $00,$05,$FF,$F9,$7F,$F9,$FF,$F6,$00,$0B,$FF,$F2,$7F,$F2,$FF,$EC
-	dc.b $00,$17,$FF,$E4,$7F,$E4,$FF,$D8,$00,$2F,$FF,$C8,$7F,$C8,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$C0,$01
-	dc.b $7F,$FE,$C0,$01,$C0,$00,$C0,$01,$7F,$FE,$C0,$01,$C0,$00,$C0,$01
-	dc.b $7F,$FE,$C0,$01,$C0,$00,$7F,$FE,$80,$01,$00,$00,$00,$00,$FF,$FF
-	dc.b $7F,$FE,$7F,$FE,$7F,$FE,$80,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $80,$00,$7F,$FF,$7F,$FF,$BF,$FF,$40,$00,$3F,$FF,$3F,$FF,$5F,$FF
-	dc.b $A0,$00,$1F,$FF,$1F,$FF,$2F,$FF,$D0,$00,$0F,$FF,$0F,$FF,$17,$FF
-	dc.b $E8,$00,$07,$FF,$07,$FF,$0B,$FF,$F4,$00,$03,$FF,$03,$FF,$FF,$D0
-	dc.b $00,$2F,$FF,$C0,$7F,$C0,$FF,$E8,$00,$17,$FF,$E0,$7F,$E0,$7F,$F4
-	dc.b $80,$0B,$FF,$F0,$FF,$F0,$7F,$FA,$80,$05,$FF,$F8,$FF,$F8,$7F,$FD
-	dc.b $80,$02,$FF,$FC,$FF,$FC,$3F,$FE,$C0,$01,$FF,$FE,$FF,$FE,$3F,$FF
-	dc.b $C0,$00,$FF,$FF,$FF,$FF,$3F,$FF,$C0,$00,$FF,$FF,$FF,$FF,$1F,$FF
-	dc.b $E0,$00,$FF,$FF,$FF,$FF,$1F,$FF,$E0,$00,$FF,$FF,$FF,$FF,$0F,$FF
-	dc.b $F0,$00,$FF,$FF,$FF,$FF,$0F,$FF,$F0,$00,$FF,$FF,$FF,$FF,$0F,$FF
-	dc.b $F0,$00,$FF,$FF,$FF,$FF,$07,$FF,$F8,$00,$FF,$FF,$FF,$FF,$07,$FF
-	dc.b $F8,$00,$FF,$FF,$FF,$FF,$07,$FF,$F8,$00,$FF,$FF,$FF,$FF,$FF,$B0
-	dc.b $00,$5F,$FF,$90,$7F,$90,$3F,$E0,$DF,$BF,$9F,$A0,$9F,$A0,$30,$60
-	dc.b $DF,$BF,$90,$20,$90,$20,$30,$60,$DF,$BE,$90,$21,$90,$21,$30,$61
-	dc.b $DF,$BC,$D0,$22,$D0,$22,$30,$62,$DF,$B9,$D0,$25,$D0,$25,$30,$62
-	dc.b $DF,$B9,$D0,$25,$D0,$25,$10,$64,$FF,$B3,$F0,$2B,$F0,$2B,$10,$64
-	dc.b $FF,$B3,$F0,$2B,$F0,$2B,$10,$69,$FF,$A6,$F0,$36,$F0,$36,$00,$68
-	dc.b $FF,$A7,$F0,$37,$F0,$37,$00,$64,$FF,$B3,$F0,$2B,$F0,$2B,$00,$63
-	dc.b $FF,$B8,$F0,$24,$F0,$24,$00,$60,$FF,$BC,$F8,$23,$F8,$23,$00,$60
-	dc.b $FF,$BF,$F8,$20,$F8,$20,$07,$A0,$F8,$5F,$FF,$80,$F8,$00,$80,$00
-	dc.b $7F,$FF,$FF,$FF,$7F,$FF,$80,$00,$7F,$FF,$FF,$FF,$7F,$FF,$C0,$00
-	dc.b $3F,$FF,$FF,$FF,$7F,$FF,$C0,$00,$3F,$FF,$FF,$FF,$7F,$FF,$E0,$00
-	dc.b $1F,$FF,$FF,$FF,$7F,$FF,$E0,$00,$1F,$FF,$FF,$FF,$7F,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$7F,$FF,$FF,$FF,$00,$00,$FF,$FF,$7F,$FF,$FF,$FE
-	dc.b $00,$01,$FF,$FE,$7F,$FE,$FF,$FD,$00,$02,$FF,$FC,$7F,$FC,$FF,$FB
-	dc.b $00,$05,$FF,$F9,$7F,$F9,$FF,$F6,$00,$0B,$FF,$F2,$7F,$F2,$FF,$EC
-	dc.b $00,$17,$FF,$E4,$7F,$E4,$FF,$D8,$00,$2F,$FF,$C8,$7F,$C8
-	dcb.b $8,$FF
-	dc.b $7F,$FF,$80,$00,$80,$00,$80,$00,$3F,$FF,$C0,$00,$C0,$00,$C0,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$11,$11,$FF,$FF,$FB,$BB,$E8,$88
-	dc.b $02,$2A,$FF,$FF,$FF,$FF,$F5,$55,$0C,$C4,$FF,$FF,$EE,$EE,$E2,$22
-	dc.b $08,$88,$FF,$FF,$FF,$FF,$F5,$55,$13,$33,$FF,$FF,$FB,$BB,$E8,$88
-	dc.b $02,$22,$FF,$FF,$FF,$FF,$F5,$55,$0C,$CC,$FF,$FF,$EE,$EE,$E2,$22
-	dc.b $08,$88,$FF,$FF,$FF,$FF,$F5,$55,$13,$31,$FF,$FF,$FB,$BB,$E8,$8A
-	dc.b $02,$22,$FF,$FF,$FF,$FF,$F5,$55,$0C,$CF,$FF,$FF,$EE,$EF,$E2,$23
-	dc.b $08,$88,$FF,$FF,$FF,$FC,$F5,$54
-	dcb.b $9,$FF
-	dc.b $FE,$00,$01,$00,$00,$00,$00,$FF,$FC,$00,$03,$00,$00,$00,$00,$00
-	dc.b $00,$FF,$FF,$FF,$FC,$FF,$FC,$33,$30,$FF,$FF,$BB,$B8,$88,$88,$22
-	dc.b $20,$FF,$FF,$FF,$FC,$55,$54,$CC,$CC,$FF,$FF,$EE,$EC,$22,$20,$88
-	dc.b $88,$FF,$FF,$FF,$FC,$55,$54,$33,$30,$FF,$FF,$BB,$B8,$88,$88,$22
-	dc.b $20,$FF,$FF,$FF,$FC,$55,$54,$CC,$CC,$FF,$FF,$EE,$EC,$22,$20,$88
-	dc.b $88,$FF,$FF,$FF,$FC,$55,$54,$33,$30,$FF,$FF,$BB,$B8,$88,$88,$22
-	dc.b $20,$FF,$FF,$FF,$FC,$55,$54,$EC,$CC,$DF,$FF,$CE,$EC,$C2,$20,$88
-	dc.b $88,$7F,$FF,$7F,$FC,$75,$54,$13,$30,$FF,$FF,$FB,$B8,$E8,$88,$02
-	dc.b $20,$FF,$FF,$FF,$FD,$F5,$55,$0C,$CD,$FF,$FE,$EE,$EE,$E2,$22,$08
-	dc.b $88,$FF,$FF,$FF,$FF,$F5,$57,$13,$33,$FF,$FF,$FB,$BB,$E8,$88,$02
-	dc.b $22,$FF,$FF,$FF,$FF,$F5,$55,$0C,$CC,$FF,$FF,$EE,$EE,$E2,$22,$08
-	dc.b $88,$FF,$FF,$FF,$FF,$F5,$55,$13,$33,$FF,$FF,$FB,$BB,$E8,$88,$02
-	dc.b $22,$FF,$FF,$FF,$FF,$F5,$55,$0C,$CC,$FF,$FF,$EE,$EE,$E2,$22,$08
-	dc.b $88,$FF,$FF,$FF,$FF,$F5,$55,$13,$33,$FF,$FF,$FB,$BB,$E8,$88,$02
-	dc.b $22,$FF,$FF,$FF,$FF,$F5,$55,$7F
-	dcb.b $9,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$13,$30,$FF,$FF,$FB,$B8,$E8,$88,$82,$20
-	dc.b $7F,$FF,$7F,$FC,$75,$54,$CC,$CC,$3F,$FF,$2E,$EC,$22,$20,$08,$88
-	dc.b $FF,$FF,$FF,$FC,$F5,$54,$33,$30,$FF,$FF,$BB,$B8,$88,$88,$22,$20
-	dc.b $FF,$FF,$FF,$FC,$55,$54,$CC,$CC,$FF,$FF,$EE,$EC,$22,$20,$88,$88
-	dc.b $FF,$FF,$FF,$FC,$55,$54,$33,$30,$FF,$FF,$BB,$B8,$88,$88,$22,$20
-	dc.b $FF,$FF,$FF,$FC,$55,$54,$CC,$CC,$FF,$FF,$EE,$EC,$22,$20,$88,$88
-	dc.b $FF,$FF,$FF,$FC,$55,$54,$33,$30,$FF,$FF,$BB,$B8,$88,$88,$22,$20
-	dc.b $FF,$FF,$FF,$FC,$55,$54
-	dcb.b $A,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$0F,$FF,$F0,$00,$F0,$00,$F0,$00,$F8,$00
-	dc.b $17,$FF,$E7,$FF,$57,$FF,$08,$40,$E7,$FF,$17,$FF,$F7,$FF,$F8,$00
-	dc.b $07,$FF,$F7,$FF,$17,$FF,$F8,$00,$07,$FF,$F7,$FF,$17,$FF,$F8,$00
-	dc.b $07,$FF,$F7,$FF,$17,$FF,$F8,$01,$F7,$FF,$07,$FF,$F7,$FE,$08,$00
-	dc.b $F7,$FF,$F7,$FF,$F7,$FF,$08,$05,$F7,$FA,$F7,$FE,$F7,$FB,$F8,$00
-	dc.b $07,$FF,$F7,$FF,$F7,$FF,$08,$00,$F7,$FF,$F7,$FF,$F7,$FF,$0F,$FF
-	dc.b $F0,$00,$F0,$00,$F0,$00,$F8,$26,$07,$E8,$F0,$97,$A7,$FC,$F8,$26
-	dc.b $07,$E8,$F0,$97,$A7,$FC,$FF,$FF,$00,$00,$F0,$00,$A0,$00,$F8,$00
-	dc.b $07,$FF,$FF,$FF,$AF,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$13,$A0,$EC,$5F,$E0,$1F,$E0,$1F,$2D,$01
-	dc.b $F2,$FE,$F0,$FE,$D0,$FF,$40,$02,$FF,$FD,$FF,$FD,$BF,$FF,$80,$08
-	dc.b $FF,$F7,$FF,$F7,$7F,$FF,$00,$10,$FF,$EF,$FF,$EF,$FF,$FF,$00,$C0
-	dc.b $FF,$3F,$FF,$3F,$FF,$FF,$B6,$01,$49,$FF,$49,$FF,$FF,$FF,$00,$08
-	dc.b $FF,$F7,$FF,$F7,$FF,$F7,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$58,$FF,$61,$FF,$A1,$FF,$3F,$FF,$58,$FF
-	dc.b $61,$00,$A1,$FF,$3F,$00,$FF,$FF
-	dcb.b $8,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$00,$01,$FF,$FE,$FF,$FE,$FF,$FE,$00,$41
-	dc.b $FF,$BE,$FF,$BE,$FF,$BE,$00,$01,$FF,$FE,$FF,$FE,$FF,$FE,$08,$01
-	dc.b $F7,$FE,$F7,$FE,$F7,$FE,$00,$BD,$FF,$3A,$FF,$C6,$FF,$FE,$01,$8F
-	dc.b $FE,$80,$FF,$7E,$FF,$FE,$03,$3B,$FD,$04,$FE,$FE,$FF,$FE,$00,$69
-	dc.b $FC,$16,$FF,$FE,$FF,$FE,$12,$B1,$FE,$4E,$FD,$FE,$FF,$FE,$02,$D1
-	dc.b $FE,$2E,$FD,$FE
-abs_0_00025FFE:
-	dc.b $FF,$FE,$FF,$FF,$00,$00,$00,$00,$00,$00,$F8,$01,$FF,$FE,$FF,$FE
-	dc.b $FF,$FE,$80,$01,$7F,$FE,$FF,$FE,$7F,$FE,$FF,$FF
-	dcb.b $8,$00
-	dcb.b $8,$FF
-	dc.b $10,$10,$EF,$EF,$75,$75,$00,$00,$EF,$EF,$10,$10,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$10,$10,$FF,$FF,$00,$00,$FC,$00,$10,$00,$FE,$FF
-	dc.b $01,$3F,$FC,$3F,$10,$3F,$FC,$3F,$03,$CF,$F8,$0F,$10,$0F,$FD,$0F
-	dc.b $FA,$F3,$00,$03,$F8,$03,$08,$43,$F7,$BC,$F0,$40,$F0,$00,$0A,$11
-	dc.b $F5,$EE,$F0,$10,$F0,$00,$F2,$06,$0C,$79,$E0,$04,$E1,$80,$14,$04
-	dc.b $EA,$1B,$E0,$00,$E1,$E0,$24,$08,$DB,$97,$C0,$00,$C0,$60,$EC,$10
-	dc.b $53,$EF,$80,$00,$40,$00,$5F,$20,$A0,$DF,$80,$07,$80,$00,$47,$C7
-	dc.b $B8,$3F,$80,$0F,$80,$00,$01,$88,$FE,$7F,$C0,$1F,$C0,$07,$FF,$FF
-	dc.b $10,$10,$EF,$EF,$75,$75,$00,$00,$EF,$EF,$10,$10,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$10,$10,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $F8,$00,$F8,$00,$F8,$00,$FA,$00,$F5,$FF,$F0,$00,$F0,$00,$F1,$00
-	dc.b $EE,$FF,$E0,$00,$E0,$00,$E2,$80,$DD,$7F,$C0,$00,$C0,$00,$E3,$40
-	dc.b $1C,$BF,$00,$00,$00,$00,$F7,$A0,$68,$5F,$60,$00,$60,$00,$79,$D0
-	dc.b $B6,$2F,$30,$00,$30,$00,$3C,$E8,$DB,$17,$18,$00,$18,$00,$1E,$74
-	dc.b $ED,$8B,$0C,$00,$0C,$00,$0F,$22,$F6,$DD,$F6,$00,$06,$00,$FF,$81
-	dc.b $FB,$7E,$FB,$00,$03,$00,$2B,$C6,$FD,$B9,$F9,$81,$C1,$81,$3F,$FF
-	dc.b $DF,$FF,$DF,$FF,$DF,$FF,$1F,$FF,$EF,$FF,$CF,$FF,$CF,$FF,$0F,$FF
-	dc.b $F7,$FF,$E7,$FF,$E7,$FF,$07,$FF,$FB,$FF,$F3,$FF,$F3,$FF,$03,$FF
-	dc.b $FD,$FF,$F9,$FF,$F9,$FF,$01,$FF,$FE,$FF,$FC,$FF,$FC,$FF,$80,$FF
-	dc.b $7F,$7F,$02,$7F,$02,$7F,$80,$7F,$7F,$80,$01,$00,$01,$00,$80,$00
-	dc.b $7F,$FF,$00,$80,$00,$80,$80,$00,$7F,$FF,$00,$7F,$00,$7F,$80,$00
-	dc.b $7F,$FF,$00,$0F,$00,$0F,$80,$00,$7F,$FF,$00,$07,$00,$07,$80,$00
-	dc.b $7F,$FF,$00,$03,$00,$03,$90,$04,$6F,$FB,$00,$01,$00,$01,$80,$00
-	dc.b $7F,$FF,$00,$00,$00,$00,$80,$00,$7F,$FF,$00,$00,$00,$00
-	dcb.b $A,$FF
-	dc.b $D5,$57,$D5,$57,$D5,$57,$DD,$7F,$D5,$57,$D5,$77,$F7,$D7,$F7,$FF
-	dc.b $D5,$57,$D5,$57,$DD,$57,$FF,$FF,$D5,$57,$D5,$5F,$D5,$57,$FF,$FF
-	dc.b $FF,$D7,$FF,$D7,$FF,$D7
-	dcb.b $A,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$80,$00,$7F,$FF,$00,$00,$00,$00,$FF,$DF
-	dc.b $FF,$D7,$55,$5F,$FF,$F7
-	dcb.b $A,$FF
-	dc.b $55,$57,$55,$57,$55,$57,$FF,$FF,$AA,$AF,$AA,$AF,$AA,$AF,$FF,$FF
-	dc.b $55,$57,$55,$57,$55,$57
-	dcb.b $12,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$80,$00,$7F,$FF,$00,$00,$00,$00,$C1,$10
-	dc.b $FE,$FF,$F0,$3F,$F0,$0F,$F2,$30,$FD,$FF,$FC,$7F,$FC,$0F,$FC,$49
-	dc.b $FB,$FF,$F8,$FF,$F8,$36,$F8,$86,$F7,$FF,$F1,$FF,$F0,$79,$F0,$86
-	dc.b $EF,$FF,$E1,$FF,$E0,$79,$E0,$89,$DF,$FF,$C1,$FF,$C0,$76,$D0,$90
-	dc.b $EF,$FF,$C1,$FF,$C0,$6F,$E8,$A0,$77,$FF,$61,$FF,$60,$5F,$F4,$C0
-	dc.b $3B,$FF,$31,$FF,$30,$3E,$3A,$81,$DD,$FF,$99,$FF,$98,$00,$1D,$7E
-	dc.b $EE,$FF,$CC,$7E,$CC,$00,$0E,$80,$F7,$7F,$E6,$00,$E6,$00,$07,$40
-	dc.b $FB,$BF,$F3,$01,$F3,$01,$03,$A1,$FD,$DE,$F9,$82,$F9,$82,$01,$D3
-	dc.b $FE,$EC,$FC,$C4,$FC,$C4,$82,$E0,$7D,$7F,$00,$7F,$00,$7F,$49,$F9
-	dc.b $FE,$C6,$F8,$C6,$A0,$C6,$88,$E7,$FF,$78,$F8,$78,$60,$78,$08,$1D
-	dc.b $FF,$E2,$F8,$60,$E0,$60,$08,$55,$FF,$AA,$F8,$A0,$E0,$A0,$08,$DD
-	dc.b $FF,$22,$F9,$20,$E1,$20,$11,$DD,$FE,$22,$F2,$20,$C2,$20,$A3,$DD
-	dc.b $FC,$22,$E4,$20,$04,$20,$44,$4D,$FB,$B2,$C8,$30,$08,$30,$88,$41
-	dc.b $F7,$BE,$93,$B8,$13,$B8,$1B,$C3,$E4,$3C,$20,$3C,$20,$3C,$38,$41
-	dc.b $C7,$BE,$43,$BE,$43,$BE,$7B,$C0,$84,$3F,$80,$3F,$80,$3F,$F7,$E0
-	dc.b $0F,$DF,$0F,$DF,$0F,$DF,$E7,$F0,$1F,$CF,$1F,$CF,$1F,$CF,$D7,$F8
-	dc.b $3F,$C7,$3F,$C7,$3F,$C7,$37,$FC,$FF,$C3,$CF,$C3,$CF,$C3,$FF,$3F
-	dc.b $00,$F8,$00,$78,$00,$78,$80,$BF,$7F,$75,$00,$75,$00,$75,$80,$3F
-	dc.b $7F,$F2,$00,$72,$00,$72,$80,$3F,$7F,$F5,$00,$75,$00,$75,$80,$3F
-	dc.b $7F,$F2,$00,$72,$00,$72,$80,$3F,$7F,$F5,$00,$75,$00,$75,$80,$3F
-	dc.b $7F,$F2,$00,$72,$00,$72,$80,$3F,$7F,$F7,$00,$77,$00,$77,$80,$3F
-	dc.b $7F,$F0,$00,$70,$00,$70,$80,$38,$7F,$FF,$00,$7F,$00,$7F,$80,$31
-	dc.b $7F,$EE,$00,$60,$00,$60,$80,$30,$7F,$EF,$00,$63,$00,$63,$80,$33
-	dc.b $7F,$EE,$00,$66,$00,$66,$80,$33,$7F,$EC,$00,$64,$00,$64,$80,$30
-	dc.b $7F,$EF,$00,$63,$00,$63,$80,$3F,$7F,$E0,$00,$60,$00,$60,$D7,$C0
-	dc.b $1F,$FF,$2F,$FF,$4F,$FF,$D7,$C0,$9F,$FF,$AF,$FF,$CF,$FF,$D7,$C0
-	dc.b $9F,$FF,$AF,$FF,$CF,$FF,$C7,$C6,$0F,$FF,$3F,$FF,$4F,$FF,$C7,$C7
-	dc.b $0F,$FF,$3F,$FF,$4F,$FF,$C0,$07,$0F,$FF,$38,$3F,$48,$3F,$CF,$C7
-	dc.b $90,$3F,$B0,$3F,$D0,$3F,$DF,$C7,$A0,$3F,$A0,$3F,$E0,$3F,$BF,$C7
-	dc.b $40,$3F,$40,$3F,$40,$3F,$00,$07,$FF,$FF,$FF,$FF,$FF,$FF,$E0,$07
-	dc.b $1F,$FF,$1F,$FF,$1F,$FF,$10,$07,$EF,$FF,$8F,$FF,$8F,$FF,$1F,$FF
-	dc.b $ED,$FF,$CD,$FF,$CD,$FF,$1F,$FF,$E1,$FF,$C1,$FF,$C1,$FF,$1F,$FF
-	dc.b $EF,$FF,$8F,$FF,$8F,$FF,$EF,$FF,$1F,$FF,$1F,$FF,$1F,$FF,$FF,$BF
-	dc.b $00,$7F,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FC,$00,$7C,$00,$7C,$80,$3E
-	dc.b $7F,$FD,$00,$7C,$00,$7C,$80,$3E,$7F,$FD,$00,$7C,$00,$7C,$80,$3F
-	dc.b $7F,$FC,$00,$7C,$00,$7C,$80,$3E,$7F,$FD,$00,$7C,$00,$7C,$80,$3F
-	dc.b $7F,$FC,$00,$7C,$00,$7C,$80,$3E,$7F,$FD,$00,$7C,$00,$7C,$80,$3F
-	dc.b $7F,$FC,$00,$7C,$00,$7C,$80,$3E,$7F,$FD,$00,$7C,$00,$7C,$80,$3F
-	dc.b $7F,$FC,$00,$7C,$00,$7C,$80,$3E,$7F,$FD,$00,$7C,$00,$7C,$80,$3F
-	dc.b $7F,$FC,$00,$7C,$00,$7C,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$FF,$FF
-	dc.b $FE,$00,$FE,$00,$FE,$00,$FF,$FF,$F0,$BF,$F0,$BF,$F0,$BF,$F1,$7F
-	dc.b $8E,$BF,$80,$3F,$80,$BF,$8F,$7F,$7E,$3F,$02,$3F,$0E,$BF,$57,$7F
-	dc.b $BE,$3F,$02,$3F,$1E,$BF,$C7,$7F,$3E,$3F,$02,$3F,$1E,$BF,$47,$7F
-	dc.b $BE,$3F,$02,$3F,$1E,$BF,$EF,$7F,$36,$3F,$2A,$3F,$36,$BF,$77,$7F
-	dc.b $AE,$3F,$32,$3F,$2E,$BF,$C3,$7F,$32,$3F,$0E,$3F,$1E,$BF,$4F,$7F
-	dc.b $A6,$3F,$1E,$3F,$1E,$BF,$81,$FF,$7E,$00,$00,$00,$00,$00,$0F,$FF
-	dc.b $F0,$00,$00,$00,$00,$00,$7F,$FF,$80,$00,$00,$00,$00,$00,$80,$00
-	dc.b $7F,$FF,$7F,$FF,$7F,$FF,$F0,$00
-	dcb.b $8,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$E0,$00,$E0,$00,$40,$00,$DF,$FF,$B0,$00,$F0,$00,$40,$00
-	dc.b $DF,$FF,$B0,$00,$F0,$00,$40,$00,$DF,$FF,$B0,$00,$F0,$00,$00,$00
-	dc.b $9F,$FF,$F0,$00,$F0,$00,$20,$00,$9F,$FF,$FF,$F0,$FF,$F0,$2F,$F0
-	dc.b $9F,$FF,$F0,$08,$FF,$F8,$2F,$F8,$90,$07,$FF,$FC,$FF,$FC,$2F,$FC
-	dc.b $9F,$FF,$F0,$02,$FF,$FE,$00,$00,$F0,$03,$FF,$FE,$FF,$FE,$BF,$FC
-	dc.b $40,$03,$5F,$FE,$5F,$FE,$BF,$FC,$5F,$FF,$40,$02,$5F,$FE,$80,$00
-	dc.b $60,$03,$7F,$FE,$7F,$FE,$BF,$FC,$40,$03,$7F,$FE,$7F,$FE,$BF,$F8
-	dc.b $7F,$FF,$40,$06,$7F,$FE,$0F,$FF,$F0,$00,$F0,$00,$F0,$00,$8F,$FF
-	dc.b $77,$FF,$D7,$FF,$50,$00,$8C,$3C,$77,$C3,$D7,$FF,$50,$3F,$AC,$7C
-	dc.b $57,$83,$D7,$FF,$50,$7F,$2C,$7F,$D7,$80,$D7,$FF,$D0,$7F,$0C,$46
-	dc.b $F7,$B9,$F7,$FF,$F0,$7F,$EC,$48,$17,$19,$F7,$F7,$10,$FF,$EC,$7D
-	dc.b $77,$3D,$97,$C2,$70,$FF,$CC,$33,$57,$31,$B7,$CE,$70,$FF,$CC,$19
-	dc.b $57,$98,$B7,$E7,$70,$7F,$CC,$1C,$57,$D2,$B7,$EF,$70,$3F,$CC,$0D
-	dc.b $57,$CC,$B7,$F3,$70,$3F,$CC,$47,$57,$A0,$B7,$FF,$70,$7F,$CC,$FA
-	dc.b $57,$01,$B7,$FF,$70,$9F,$4F,$FF,$D0,$00,$B0,$00,$F0,$00,$40,$00
-	dc.b $DF,$FF,$BF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$80,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$C0,$00,$85,$F8,$7F,$FF,$FF,$FF,$C0,$00,$01,$06
-	dc.b $FF,$FF,$FF,$FF,$C0,$00,$20,$00,$5F,$FF,$FF,$FF,$E0,$00,$20,$00
-	dc.b $5F,$FF,$FF,$FF,$E0,$00,$A3,$DD,$5F,$FF,$FF,$FF,$E0,$00,$83,$DC
-	dc.b $7F,$FF,$FF,$FF,$80,$00,$83,$DD,$7F,$FF,$FF,$FF,$80,$00,$83,$C1
-	dc.b $7F,$FF,$FF,$FF,$80,$00,$63,$DC,$9F,$FF,$FF,$FF,$E0,$00,$F0,$00
-	dc.b $0F,$FF,$FF,$FF,$10,$00,$FF,$FF
-	dcb.b $8,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FE,$FF,$FE,$00,$00,$00,$01
-	dc.b $FF,$FE,$FF,$FE,$00,$00,$00,$01,$FF,$FE,$FF,$FE,$00,$00,$B4,$01
-	dc.b $FF,$FE,$FF,$FE,$00,$00,$02,$81,$FF,$FE,$FF,$FE,$00,$00,$00,$01
-	dc.b $FF,$FE,$FF,$FE,$00,$00,$00,$01,$FF,$FE,$FF,$FE,$00,$00,$CF,$01
-	dc.b $FF,$FE,$FF,$FE,$00,$00,$0F,$01,$FF,$FE,$FF,$FE,$00,$00,$EF,$01
-	dc.b $FF,$FE,$FF,$FE,$00,$00,$EF,$21,$FF,$FE,$FF,$FE,$00,$00,$0F,$79
-	dc.b $FF,$FE,$FF,$FE,$00,$00,$00,$01,$FF,$FE,$FF,$FE,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$80,$00,$7F,$FF
-	dc.b $FF,$7E,$FF,$7E,$FF,$7E,$7F,$FF,$FF,$7D,$FF,$7D,$FF,$7D,$7F,$FF
-	dc.b $FF,$7B,$FF,$7B,$FF,$7B,$7F,$FF,$FF,$77,$FF,$77,$FF,$77,$7F,$FF
-	dc.b $FF,$6F,$FF,$6F,$FF,$6F,$7F,$FF,$FF,$5B,$FF,$5B,$FF,$5B,$00,$3F
-	dc.b $FF,$F5,$FF,$F5,$FF,$F5,$70,$5F,$F0,$EE,$8F,$AE,$80,$AE,$00,$4F
-	dc.b $80,$DF,$FF,$BF,$80,$9F,$00,$67,$80,$EF,$FF,$9F,$80,$8F,$00,$63
-	dc.b $FF,$E7,$FF,$9F,$FF,$87,$40,$21,$FF,$E2,$FF,$DE,$FF,$C2,$40,$10
-	dc.b $FF,$F1,$FF,$EF,$FF,$E1,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$10,$FE
-	dc.b $FF,$01,$F0,$01,$F0,$01,$C0,$02,$3F,$FD,$2F,$FD,$2F,$FD,$E0,$02
-	dc.b $FF,$FD,$FF,$FD,$FF,$FD,$F7,$FE,$F8,$01,$F8,$01,$F8,$01,$F8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$FD,$FF,$FA,$00,$FB,$FF,$FA,$00,$FE,$03
-	dc.b $F7,$FC,$F7,$03,$F7,$FC,$FF,$03,$EF,$80,$EF,$FD,$EF,$FE,$FF,$83
-	dc.b $DF,$C0,$DF,$FD,$DF,$FE,$FF,$C3,$BF,$E0,$BF,$FD,$BF,$FE,$FF,$E3
-	dc.b $7E,$F0,$7E,$FD,$7E,$FE,$FF,$F3,$BD,$F8,$BD,$FD,$BD,$FE,$FF,$FB
-	dc.b $7A,$FC,$7A,$FD,$7A,$FE,$FF,$FC,$F5,$7F,$F5,$7F,$F5,$7F,$FF,$FE
-	dc.b $FB,$BF,$FB,$BF,$FB,$BF,$FF,$88,$FF,$78,$FF,$77,$FF,$70,$FF,$D6
-	dc.b $FE,$EE,$FE,$E9,$FE,$E8,$FF,$EA,$FD,$F6,$FD,$F5,$FD,$F4,$FF,$F5
-	dc.b $FB,$9B,$FB,$9A,$FB,$9A,$FF,$DA,$F5,$6D,$F5,$6D,$F5,$0D,$FF,$FD
-	dc.b $F7,$76,$F7,$76,$F7,$06,$FF,$FE,$F2,$AF,$F2,$AF,$F2,$8F,$FF,$FF
-	dc.b $79,$55,$79,$55,$79,$55,$FF,$FF,$3C,$AA,$3C,$AA,$3C,$AA,$3F,$FF
-	dc.b $DE,$77,$9E,$77,$9E,$77,$1F,$FC,$EF,$3B,$CF,$3B,$CF,$3B,$0F,$F3
-	dc.b $F7,$8C,$E7,$8C,$E7,$8C,$07,$E0,$FB,$DF,$F3,$DF,$F3,$DF,$03,$F0
-	dc.b $FD,$EF,$F9,$EF,$F9,$EF,$01,$FF,$FE,$FF,$FC,$FF,$FC,$FF,$82,$FF
-	dc.b $7D,$7F,$00,$7F,$00,$7F,$7F,$F9,$F7,$7E,$F7,$7E,$F7,$7E,$3F,$E7
-	dc.b $7A,$F8,$FA,$F8,$7A,$F8,$1F,$9D,$3D,$E2,$FD,$E0,$3D,$E0,$0E,$35
-	dc.b $1F,$CA,$FF,$C0,$1F,$C0,$C7,$DD,$C8,$22,$38,$20,$08,$20,$67,$DD
-	dc.b $FF,$E2,$9F,$E0,$9F,$E0,$A7,$DD,$7F,$E2,$5F,$E0,$5F,$E0,$57,$C0
-	dc.b $BF,$FF,$AF,$FF,$AF,$FF,$97,$C0,$FF,$FF,$EF,$FF,$EF,$FF,$37,$C0
-	dc.b $FF,$FF,$CF,$FF,$CF,$FF,$B7,$C4,$7F,$FF,$4F,$FF,$4F,$FF,$F7,$C7
-	dc.b $3F,$FF,$0F,$FF,$4F,$FF,$77,$C7,$BF,$FF,$8F,$FF,$CF,$FF,$77,$C7
-	dc.b $BF,$FF,$8F,$FF,$CF,$FF,$F7,$C7,$BF,$FF,$8F,$FF,$CF,$FF,$F7,$C7
-	dc.b $BF,$FF,$8F,$FF,$CF,$FF,$FF,$BF,$00,$7F,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$F8,$00,$78,$00,$78,$80,$3F
-	dc.b $7F,$F3,$00,$73,$00,$73,$80,$3E,$7F,$EB,$00,$6B,$00,$6B,$80,$3E
-	dc.b $7F,$EB,$00,$6B,$00,$6B,$80,$3E,$7F,$EB,$00,$6B,$00,$6B,$80,$3E
-	dc.b $7F,$EB,$00,$6B,$00,$6B,$80,$3E,$7F,$EB,$00,$6B,$00,$6B,$80,$3E
-	dc.b $7F,$EB,$00,$6B,$00,$6B,$80,$3E,$7F,$EB,$00,$6B,$00,$6B,$80,$3E
-	dc.b $7F,$EB,$00,$6B,$00,$6B,$80,$3E,$7F,$EB,$00,$6B,$00,$6B,$80,$3E
-	dc.b $7F,$EB,$00,$6B,$00,$6B
-	dcb.b $12,$FF
-	dc.b $FB,$FF,$FB,$FF,$FB,$FF,$FF,$FF,$F3,$9F,$F3,$9F,$F3,$9F,$FF,$DF
-	dc.b $08,$6F,$08,$4F,$08,$4F,$FF,$5F,$EA,$EF,$EA,$4F,$EA,$4F,$1D,$C1
-	dc.b $EA,$FF,$EA,$CF,$EA,$CF,$DD,$C1,$2A,$FF,$2A,$C7,$0A,$C7,$9D,$C1
-	dc.b $6A,$FF,$6A,$C7,$0A,$C7,$1D,$C1,$EA,$FF,$EA,$C7,$CA,$C7,$5D,$C1
-	dc.b $2A,$FF,$2A,$C7,$AA,$C7,$5D,$C5,$2A,$FB,$2A,$C3,$EA,$C3,$5D,$C5
-	dc.b $2A,$FB,$2A,$C3,$EA,$C3,$59,$C5,$26,$FB,$26,$C3,$E6,$C3,$11,$65
-	dc.b $2E,$9B,$2E,$03,$EE,$03,$30,$8D,$CF,$73,$CF,$73,$EF,$73,$FF,$BC
-	dc.b $00,$6B,$00,$68,$00,$68,$80,$3F,$7F,$E0,$00,$60,$00,$60,$80,$38
-	dc.b $7F,$E7,$00,$60,$00,$60,$80,$38,$7F,$E3,$00,$60,$00,$64,$80,$3B
-	dc.b $7F,$E0,$00,$60,$00,$64,$80,$3B,$7F,$E0,$00,$60,$00,$64,$80,$3F
-	dc.b $7F,$E0,$00,$60,$00,$60,$80,$3F,$7F,$F0,$00,$70,$00,$70,$80,$3C
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3E,$7F,$FF,$00,$7F,$00,$7F,$80,$3F
-	dc.b $7F,$FF,$00,$7F,$00,$7F,$80,$3F,$7F,$FF,$00,$7F,$00,$7F,$80,$20
-	dc.b $7F,$FF,$00,$60,$00,$60,$80,$2F,$7F,$FF,$00,$6F,$00,$6F,$80,$28
-	dc.b $7F,$FF,$00,$68,$00,$68,$80,$28,$7F,$FF,$00,$68,$00,$68,$00,$15
-	dc.b $FF,$EB,$00,$03,$00,$03,$FF,$F5,$00,$0B,$00,$0B,$00,$0B,$0F,$F5
-	dc.b $F0,$0B,$10,$0B,$10,$0B,$CF,$F5,$73,$0B,$D2,$0B,$53,$0B,$EC,$75
-	dc.b $14,$8B,$13,$8B,$17,$8B,$ED,$75,$94,$8B,$93,$8B,$97,$8B,$6C,$F5
-	dc.b $93,$0B,$13,$8B,$13,$8B,$E0,$05,$1F,$FB,$1F,$FB,$1F,$FB,$00,$01
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$06,$03
-	dcb.b $16,$FF
-	dc.b $00,$07,$FF,$FF,$00,$07,$00,$07,$FF,$F7,$FF,$FF,$FF,$F7,$FF,$F7
-	dc.b $7B,$F7,$A4,$9F,$20,$97,$20,$97,$7B,$F7,$A4,$9F,$20,$97,$20,$97
-	dc.b $08,$00,$08,$08,$F7,$F7,$FF,$FF,$00,$80,$00,$38,$FE,$47,$FF,$FF
-	dc.b $22,$D8,$00,$36,$FC,$49,$FF,$E7,$0E,$DD,$00,$66,$8C,$19,$FF,$E7
-	dc.b $7F,$DB,$40,$18,$B8,$03,$FF,$FF,$24,$CF,$3B,$A6,$C4,$09,$FF,$FF
-	dc.b $19,$09,$26,$E6,$D9,$11,$E6,$FF,$19,$66,$37,$DD,$C8,$22,$E6,$99
-	dc.b $C2,$66,$B9,$99,$44,$66,$FF,$99,$73,$9B,$09,$E6,$C2,$01,$FF,$FF
-	dc.b $1E,$CF,$06,$01,$C0,$02,$FF,$FF,$17,$64,$19,$80,$E6,$03,$F9,$FF
-	dc.b $06,$47,$0D,$80,$F2,$03,$F9,$FF,$91,$C6,$0E,$40,$F1,$83,$FF,$FF
-	dc.b $01,$7E,$02,$00,$FD,$FF,$FF,$FF,$10,$0F,$10,$01,$EF,$FE,$FF,$FF
-	dc.b $09,$60,$00,$40,$F7,$9F,$FF,$FF,$B4,$7A,$80,$00,$63,$8F,$FF,$FF
-	dc.b $17,$5C,$01,$04,$E2,$8B,$FF,$FF,$95,$50,$01,$00,$E2,$8F,$FF,$FF
-	dc.b $77,$DA,$00,$00,$81,$07,$FF,$FF,$45,$D6,$00,$00,$80,$03,$FF,$FF
-	dc.b $AA,$C9,$00,$01,$E1,$86,$FF,$FF,$10,$50,$00,$00,$E3,$AF,$FF,$FF
-	dc.b $18,$10,$01,$00,$E7,$EF,$FF,$FF,$76,$A8,$20,$00,$C3,$C7,$FF,$FF
-	dc.b $55,$28,$00,$00,$E3,$C7,$FF,$FF,$37,$6E,$02,$46,$E1,$81,$FF,$FF
-	dc.b $77,$AF,$00,$00,$81,$42,$FF,$FF,$55,$AE,$00,$00,$80,$41,$FF,$FF
-	dc.b $33,$64,$00,$00,$C3,$83,$FF,$FF,$54,$0C,$40,$00,$A3,$E3,$FF,$FF
-	dc.b $E1,$E3,$00,$00,$1E,$1C,$FF,$FE,$8A,$23,$61,$80,$04,$1E,$FF,$FF
-	dc.b $84,$47,$11,$30,$00,$39,$FF,$FF,$C4,$5A,$09,$24,$00,$21,$FF,$FF
-	dc.b $52,$A2,$80,$58,$80,$41,$FF,$FF,$B1,$83,$4C,$60,$C0,$41,$FF,$FF
-	dc.b $48,$82,$32,$40,$F0,$01,$FF,$FF,$74,$81,$09,$46,$C0,$07,$FF,$FF
-	dc.b $40,$73,$0C,$0D,$84,$0E,$FF,$FF,$80,$10,$17,$E8,$07,$0F,$FF,$FF
-	dc.b $83,$0E,$20,$14,$00,$03,$FF,$FF,$85,$84,$42,$08,$02,$03,$FF,$FF
-	dc.b $0A,$43,$84,$84,$04,$80,$FF,$FF,$F0,$23,$0D,$C0,$0D,$C0,$FF,$FF
-	dc.b $88,$D8,$71,$22,$F1,$E3,$FF,$FF,$00,$01,$06,$1E,$FF,$FE,$FF,$FE
+	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$3F,$F8,$3F,$F8
+	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$80,$01,$80,$01
+	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
+	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
+	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
+	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
+	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
+world_tile_pixels_178_through_312:
+	INCBIN "assets/world_tile_pixels_178_through_312.bin"
+; bitmap
 	dc.b $01,$00,$00,$00,$FF,$FF,$FF,$FF,$20,$04,$20,$04,$DF,$FB,$FF,$FF
 	dc.b $08,$41,$00,$40,$FF,$BF,$FF,$FF,$80,$40,$00,$00,$FF,$FF,$FF,$FF
 	dc.b $08,$24,$08,$00,$F7,$FF,$FF,$FF,$02,$00,$00,$00,$FF,$FF,$FF,$FF
@@ -16093,482 +15068,27 @@ abs_0_00025FFE:
 	dc.b $40,$04,$40,$04,$BF,$FB,$FF,$FF,$08,$28,$00,$08,$FF,$F7,$FF,$FF
 	dc.b $41,$02,$01,$00,$FE,$FD,$FF,$FF,$08,$04,$08,$00,$F7,$FF,$FF,$FF
 world_tile_pixels_314_through_366:
-	dc.b $22,$0C,$02,$00,$FD,$F3,$FF,$FF,$10,$1B,$10,$00,$EF,$E0,$FF,$FF
-	dc.b $40,$56,$40,$00,$BF,$E0,$FF,$FF,$20,$F2,$20,$0C,$DF,$0C,$FF,$FF
-	dc.b $0B,$A8,$00,$06,$FE,$06,$FF,$FF,$02,$AC,$00,$03,$FC,$03,$FF,$FF
-	dc.b $44,$A8,$00,$00,$F8,$00,$FF,$FF,$04,$06,$03,$F8,$FB,$F8,$FF,$FF
-	dc.b $20,$E1,$24,$1E,$DF,$1E,$FF,$FF,$01,$21,$04,$1E,$FE,$1E,$FF,$FF
-	dc.b $12,$E4,$10,$03,$EC,$03,$FF,$FF,$45,$3C,$00,$00,$F8,$00,$FF,$FF
-	dc.b $0A,$A4,$00,$03,$F0,$03,$FF,$FF,$0A,$A0,$00,$1F,$F0,$1F,$FF,$FF
-	dc.b $08,$1E,$03,$E1,$F3,$E1,$FF,$FF,$01,$FE,$05,$01,$FE,$01,$FF,$FF
-	dc.b $0F,$E0,$00,$00,$F0,$1F,$FF,$FF,$15,$90,$00,$00,$E0,$0F,$FF,$FF
-	dc.b $B6,$0C,$00,$74,$40,$7B,$FF,$FF,$56,$00,$00,$90,$00,$FF,$FF,$FF
-	dc.b $56,$00,$00,$80,$00,$FF,$FF,$FF,$35,$00,$00,$80,$00,$FF,$FF,$FF
-	dc.b $1A,$E1,$C1,$00,$C1,$1F,$FF,$FF,$08,$50,$63,$00,$63,$0F,$FF,$FF
-	dc.b $28,$5A,$43,$00,$43,$07,$FF,$FF,$28,$C8,$47,$00,$47,$07,$FF,$FF
-	dc.b $40,$F8,$9F,$00,$9F,$07,$FF,$FF,$82,$2C,$38,$C0,$38,$C3,$FF,$FF
-	dc.b $9E,$CE,$60,$32,$60,$31,$FF,$FF,$0F,$44,$C0,$38,$C0,$3B,$FF,$FF
-	dc.b $38,$A0,$C0,$14,$C0,$1F,$FF,$FF,$4E,$58,$B0,$08,$B0,$07,$FF,$FF
-	dc.b $00,$C1,$04,$00,$FF,$00,$FF,$FF,$83,$7F,$00,$00,$FE,$00,$FF,$FF
-	dc.b $15,$83,$14,$00,$EA,$00,$FF,$FF,$01,$FE,$00,$01,$FE,$01,$FF,$FF
-	dc.b $07,$08,$00,$07,$FC,$07,$FF,$FF,$8C,$00,$81,$FF,$79,$FF,$FF,$FF
-	dc.b $04,$61,$02,$5E,$FB,$9E,$FF,$FF,$04,$E1,$02,$9E,$FB,$1E,$FF,$FF
-	dc.b $24,$E0,$00,$07,$FB,$07,$FF,$FF,$85,$7E,$84,$01,$7A,$01,$FF,$FF
-	dc.b $42,$C3,$04,$00,$FC,$00,$FF,$FF,$13,$FE,$10,$01,$EC,$01,$FF,$FF
-	dc.b $03,$1C,$00,$03,$FC,$03,$FF,$FF,$23,$38,$2C,$07,$DC,$07,$FF,$FF
-	dc.b $42,$00,$00,$FF,$FC,$FF,$FF,$FF,$02,$00,$01,$7C,$FD,$FF,$FF,$FF
-	dc.b $57,$31,$A8,$00,$A8,$0F,$FF,$FF,$00,$D4,$FF,$04,$FF,$0B,$FF,$FF
-	dc.b $1A,$30,$E0,$C0,$E1,$CF,$FF,$FF,$1E,$50,$E0,$60,$E1,$AF,$FF,$FF
-	dc.b $75,$80,$80,$10,$80,$7F,$FF,$FF,$DF,$40,$00,$10,$00,$3F,$FF,$FF
-	dc.b $AF,$A2,$00,$02,$00,$1D,$FF,$FF,$AB,$A0,$00,$00,$00,$1F,$FF,$FF
-	dc.b $EA,$E0,$00,$00,$00,$1F,$FF,$FF,$7A,$E3,$80,$02,$80,$1D,$FF,$FF
-	dc.b $0F,$B0,$F0,$00,$F0,$1F,$FF,$FF,$00,$20,$FE,$90,$FF,$9F,$FF,$FF
-	dc.b $00,$20,$FE,$90,$FF,$9F,$FF,$FF,$00,$A4,$FF,$04,$FF,$1B,$FF,$FF
-	dc.b $00,$41,$FE,$00,$FF,$BF,$FF,$FF,$00,$14,$73,$84,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$D5,$55,$AA,$AA,$AA,$AA,$AA,$AA
-	dc.b $C5,$27,$BA,$DA,$88,$02,$88,$02,$92,$5A,$6D,$AD,$00,$08,$00,$08
-	dc.b $E5,$8B,$9A,$F6,$80,$92,$80,$92,$D8,$A7,$AF,$5A,$89,$02,$89,$02
-	dc.b $CA,$4B,$B5,$B6,$90,$02,$90,$02,$A4,$B2,$5B,$5D,$00,$10,$00,$10
-	dc.b $CB,$17,$B5,$EA,$81,$22,$81,$22,$F1,$4B,$9E,$B6,$92,$02,$92,$02
-	dc.b $FF,$FF,$EE,$EE,$EE,$EE,$EE,$EE,$EE,$EF,$11,$10,$00,$00,$00,$00
-	dc.b $FF,$FF,$EE,$EE,$EE,$EE,$EE,$EE,$EE,$EF,$91,$12,$91,$12,$91,$12
-	dc.b $E2,$93,$BD,$6E,$A4,$02,$A4,$02,$29,$2E,$D6,$D5,$C0,$04,$C0,$04
-	dc.b $52,$C7,$AD,$7A,$80,$4A,$80,$4A,$0C,$53,$F7,$AE,$E4,$82,$E4,$82
-	dc.b $05,$27,$FA,$DA,$C8,$02,$C8,$02,$02,$5A,$FD,$AD,$F0,$08,$F0,$08
-	dc.b $05,$8B,$FA,$F6,$E0,$92,$E0,$92,$00,$A7,$FF,$5A,$F9,$02,$F9,$02
-	dc.b $0A,$4B,$F5,$B6,$F0,$02,$F0,$02,$00,$B2,$FF,$5D,$FC,$10,$FC,$10
-	dc.b $03,$17,$FD,$EA,$F9,$22,$F9,$22,$01,$4B,$FE,$B6,$FE,$02,$FE,$02
-	dc.b $07,$FF,$FE,$EE,$FE,$EE,$FE,$EE,$02,$EF,$FD,$10,$FC,$00,$FC,$00
-	dc.b $07,$FF,$FE,$EE,$FE,$EE,$FE,$EE,$06,$EF,$F9,$12,$F9,$12,$F9,$12
-	dc.b $02,$93,$FD,$6E,$FC,$02,$FC,$02,$01,$2E,$FE,$D5,$F8,$04,$F8,$04
-	dc.b $02,$C7,$FD,$7A,$FC,$4A,$FC,$4A,$04,$53,$FF,$AE,$FC,$82,$FC,$82
-	dc.b $01,$27,$FE,$DA,$FC,$02,$FC,$02,$02,$5A,$FD,$AD,$F8,$08,$F8,$08
-	dc.b $01,$8B,$FE,$F6,$FC,$92,$FC,$92,$00,$A7,$FF,$5A,$F9,$02,$F9,$02
-	dc.b $02,$4B,$FD,$B6,$FC,$02,$FC,$02,$04,$B2,$FB,$5D,$F8,$10,$F8,$10
-	dc.b $03,$17,$FD,$EA,$FD,$22,$FD,$22,$01,$4B,$FE,$B6,$FA,$02,$FA,$02
-	dc.b $03,$FF,$FE,$EE,$FE,$EE,$FE,$EE,$02,$EF,$FD,$10,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FC,$00,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FE,$FF,$FE,$FF,$FE
-	dc.b $03,$FE,$FF,$FD,$FF,$FC,$FF,$FC,$03,$FD,$FF,$FA,$FF,$F8,$FF,$F8
-	dc.b $03,$FB,$FF,$F5,$FF,$F1,$FF,$F1,$03,$F6,$FF,$EB,$FF,$E2,$FF,$E2
-	dc.b $03,$EC,$FF,$D7,$FF,$C4,$FF,$C4,$03,$D8,$FF,$AF,$FF,$88,$FF,$88
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$0F,$E0,$0F,$E0,$FF,$FF
-	dc.b $10,$00,$EF,$EF,$EF,$EF,$FF,$FF,$10,$00,$EF,$EF,$EF,$EF,$FF,$FF
-	dc.b $10,$00,$EF,$EF,$EF,$E0,$FF,$F0,$10,$00,$EF,$FF,$EF,$EF,$FF,$EF
-	dc.b $10,$20,$E0,$3F,$E0,$3F,$FF,$FF,$10,$40,$EF,$FF,$EF,$FE,$FF,$FE
-	dc.b $10,$02,$EF,$FF,$EF,$BE,$FF,$BE,$10,$02,$EF,$FF,$EF,$BE,$FF,$BE
-	dc.b $0F,$82,$F0,$7F,$F0,$3E,$FF,$BE,$00,$02,$FF,$FF,$FF,$BE,$FF,$BE
-	dc.b $FF,$82,$00,$7F,$00,$3E,$FF,$BE,$05,$01,$FA,$FE,$FA,$BC,$FF,$BC
-	dc.b $05,$0D,$FA,$FE,$FA,$BC,$FF,$B0,$FF,$DD,$00,$3E,$00,$3C,$00,$20
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$0F,$E0,$0F,$E0,$FF,$FF
-	dc.b $10,$00,$EF,$EF,$EF,$EF,$FF,$FF,$10,$00,$EF,$EF,$EF,$EF,$FF,$FF
-	dc.b $10,$00,$EF,$EF,$0F,$EF,$1F,$FF,$10,$00,$EF,$EF,$EF,$EF,$EF,$FF
-	dc.b $08,$00,$F0,$0F,$F0,$0F,$F7,$FF,$80,$00,$7F,$EF,$7F,$EF,$7F,$FF
-	dc.b $80,$00,$7F,$EF,$7F,$EF,$7F,$FF,$80,$00,$7F,$EF,$7F,$EF,$7F,$FF
-	dc.b $83,$E0,$7C,$1F,$7C,$1F,$7F,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $83,$FF,$7C,$00,$7C,$00,$7F,$FF,$81,$02,$7E,$FD,$7E,$FD,$7F,$FF
-	dc.b $B1,$02,$7E,$FD,$7E,$FD,$4F,$FF,$BB,$FF,$7C,$00,$7C,$00,$44,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$C7,$1C,$FF,$FF,$FF,$FF
-	dc.b $20,$08,$00,$08,$FF,$F7,$FF,$FF,$10,$21,$10,$01,$EF,$FE,$FF,$FF
-	dc.b $41,$00,$40,$00,$BF,$FF,$FF,$FF,$89,$12,$01,$02,$FE,$FD,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$21,$82,$01,$00,$FE,$FF,$FF,$FF
-	dc.b $40,$04,$40,$04,$BF,$FB,$FF,$FF,$08,$28,$00,$08,$FF,$F7,$FF,$FF
-	dc.b $41,$02,$01,$00,$FE,$FD,$FF,$FF,$08,$04,$08,$00,$F7,$FF,$FF,$FF
-	dc.b $B0,$23,$00,$44,$0F,$DC,$FF,$FF,$43,$09,$88,$04,$8C,$98,$FF,$FF
-	dc.b $08,$81,$45,$00,$CC,$08,$FF,$FF,$81,$2A,$20,$10,$20,$15,$FF,$FF
-	dc.b $1A,$78,$00,$34,$00,$3D,$FF,$F7,$26,$3A,$9B,$E4,$1B,$FD,$FF,$E7
-	dc.b $CF,$38,$24,$C6,$2F,$FF,$FC,$C7,$37,$01,$88,$BC,$0F,$BC,$F8,$FF
-	dc.b $B6,$58,$01,$00,$03,$00,$FD,$FF,$51,$04,$22,$79,$92,$38,$FF,$FF
-	dc.b $11,$73,$40,$EC,$C0,$FC,$FF,$EF,$16,$70,$28,$CC,$A8,$FF,$FF,$CF
-	dc.b $1C,$72,$00,$84,$00,$F5,$FF,$8F,$29,$08,$80,$F4,$10,$F0,$FF,$FF
-	dc.b $C2,$4C,$01,$00,$31,$30,$FF,$FF,$00,$06,$0C,$C1,$FF,$F9,$FF,$FF
-	dc.b $C0,$C0,$00,$00,$3F,$1F,$FF,$FF,$21,$08,$00,$00,$3E,$0F,$FF,$FF
-	dc.b $02,$0C,$81,$F0,$81,$FF,$FF,$FF,$60,$10,$0F,$FC,$0E,$1F,$FF,$FF
-	dc.b $88,$01,$7F,$6C,$78,$96,$FF,$FF,$18,$A8,$BD,$AC,$BA,$50,$FF,$FF
-	dc.b $12,$AE,$BE,$AE,$B1,$50,$FF,$FF,$76,$A0,$3E,$A2,$B1,$5E,$FF,$FF
-	dc.b $66,$80,$36,$BC,$A9,$7C,$FF,$FF,$6A,$3B,$3A,$44,$E5,$C5,$FF,$FF
-	dc.b $7A,$45,$3A,$82,$25,$82,$FF,$FF,$54,$FC,$35,$00,$0B,$03,$FF,$FF
-	dc.b $40,$1E,$B3,$00,$AF,$01,$FF,$FF,$78,$61,$07,$00,$A7,$00,$FF,$FF
-	dc.b $23,$22,$00,$C0,$C1,$C1,$FF,$FF,$1C,$3E,$02,$00,$C3,$C1,$FF,$FF
-	dc.b $04,$07,$04,$00,$FB,$F8,$FF,$FF,$11,$F0,$10,$00,$EE,$00,$FF,$FF
-	dc.b $37,$00,$20,$00,$D8,$00,$FF,$FF,$04,$00,$00,$00,$F8,$00,$FF,$FF
-	dc.b $0D,$02,$00,$00,$F0,$00,$FF,$FF,$00,$80,$00,$00,$E0,$00,$FF,$FF
-	dc.b $10,$82,$00,$00,$E0,$00,$FF,$FF,$20,$8C,$00,$01,$C0,$01,$FF,$FF
-	dc.b $28,$48,$00,$03,$C0,$03,$FF,$FF,$28,$00,$00,$00,$E0,$00,$FF,$FF
-	dc.b $00,$04,$00,$00,$C0,$00,$FF,$FF,$50,$00,$00,$00,$80,$00,$FF,$FF
-	dc.b $1A,$42,$00,$21,$C0,$21,$FF,$FF,$45,$CA,$00,$01,$80,$01,$FF,$FF
-	dc.b $54,$7A,$00,$00,$80,$00,$FF,$FF,$5C,$2A,$00,$10,$80,$10,$FF,$FF
-	dc.b $FE,$02,$00,$02,$01,$FD,$FF,$FF,$03,$8A,$00,$0A,$00,$75,$FF,$FF
-	dc.b $01,$82,$00,$00,$00,$3F,$FF,$FF,$00,$34,$00,$04,$00,$0B,$FF,$FF
-	dc.b $00,$53,$00,$03,$00,$0C,$FF,$FF,$22,$8A,$00,$02,$00,$05,$FF,$FF
-	dc.b $74,$28,$00,$00,$00,$07,$FF,$FF,$08,$25,$80,$00,$80,$03,$FF,$FF
-	dc.b $00,$04,$00,$00,$00,$03,$FF,$FF,$40,$D7,$20,$03,$20,$00,$FF,$FF
-	dc.b $00,$34,$40,$00,$40,$01,$FF,$FF,$00,$3B,$00,$00,$00,$01,$FF,$FF
-	dc.b $01,$02,$00,$20,$00,$21,$FF,$FF,$0B,$40,$00,$20,$00,$21,$FF,$FF
-	dc.b $0F,$11,$00,$C0,$00,$C3,$FF,$FF,$18,$32,$03,$82,$03,$81,$FF,$FF
-	dc.b $2C,$02,$10,$5D,$90,$5D,$FF,$FF,$22,$0F,$1C,$00,$DC,$00,$FF,$FF
-	dc.b $01,$A0,$04,$01,$E4,$01,$FF,$FF,$0F,$C0,$00,$38,$E0,$38,$FF,$FF
-	dc.b $31,$04,$00,$E2,$E0,$E2,$FF,$FF,$18,$E0,$00,$1F,$E0,$1F,$FF,$FF
-	dc.b $4E,$F6,$00,$00,$F0,$00,$FF,$FF,$07,$E3,$00,$1C,$F8,$1C,$FF,$FF
-	dc.b $22,$17,$2C,$00,$DE,$00,$FF,$FF,$43,$DC,$00,$20,$FF,$E0,$FF,$FF
-	dc.b $0B,$FE,$08,$00,$F7,$E0,$FF,$FF,$00,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $42,$7F,$40,$00,$BF,$FF,$FF,$FF,$04,$5F,$04,$00,$FB,$FF,$FF,$FF
-	dc.b $90,$8F,$00,$80,$FF,$7F,$FF,$FF,$00,$13,$00,$10,$FF,$EF,$FF,$FF
-	dc.b $74,$00,$83,$00,$83,$07,$FF,$FF,$9C,$78,$02,$00,$02,$0F,$FF,$FF
-	dc.b $03,$EA,$00,$00,$00,$0F,$FF,$FF,$92,$8E,$01,$02,$01,$0D,$FF,$FF
-	dc.b $98,$9C,$07,$00,$07,$1F,$FF,$FF,$02,$3F,$14,$00,$14,$1F,$FF,$FF
-	dc.b $46,$BE,$10,$00,$10,$3F,$FF,$FF,$A9,$EF,$54,$10,$54,$7F,$FF,$FF
-	dc.b $60,$FE,$00,$00,$00,$7F,$FF,$FF,$C1,$FF,$00,$00,$01,$FF,$FF,$FF
-	dc.b $0F,$7E,$30,$80,$3F,$FF,$FF,$FF,$FF,$FE,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FC,$00,$00,$FF,$FF,$FF,$FF,$FF,$F2,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$E3,$00,$02,$FF,$FD,$FF,$FF,$FF,$08,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FE,$00,$01,$FF,$01,$FF,$FE,$00,$03,$80,$00,$7F,$00,$7F,$FF,$80
-	dc.b $01,$80,$00,$3F,$00,$3F,$FF,$C0,$00,$30,$00,$0F,$00,$0F,$FF,$F0
-	dc.b $00,$50,$00,$0F,$00,$0F,$FF,$F0,$22,$88,$00,$07,$00,$07,$FF,$F8
-	dc.b $74,$28,$00,$07,$00,$07,$FF,$F8,$08,$24,$80,$03,$80,$03,$FF,$FC
-	dc.b $00,$04,$00,$03,$00,$03,$FF,$FC,$40,$D4,$20,$03,$20,$03,$FF,$FC
-	dc.b $00,$34,$40,$01,$40,$01,$FF,$FE,$00,$3A,$00,$01,$00,$01,$FF,$FE
-	dc.b $01,$02,$00,$21,$00,$21,$FF,$FE,$0B,$40,$00,$21,$00,$21,$FF,$FE
-	dc.b $0F,$10,$00,$C3,$00,$C3,$FF,$FC,$18,$30,$03,$83,$03,$83,$FF,$FC
-	dc.b $74,$00,$83,$07,$83,$07,$FF,$F8,$9C,$70,$02,$0F,$02,$0F,$FF,$F0
-	dc.b $03,$E8,$00,$0F,$00,$0F,$FF,$F0,$92,$88,$01,$0F,$01,$0F,$FF,$F0
-	dc.b $98,$9C,$07,$1F,$07,$1F,$FF,$E0,$02,$3E,$14,$1F,$14,$1F,$FF,$E0
-	dc.b $46,$BE,$10,$3F,$10,$3F,$FF,$C0,$A9,$FE,$54,$7F,$54,$7F,$FF,$80
-	dc.b $60,$FE,$00,$7F,$00,$7F,$FF,$80,$C1,$FC,$01,$FC,$01,$FC,$FE,$03
-	dc.b $0F,$FB,$30,$F8,$3F,$F8,$FF,$07,$FF,$FA,$00,$FB,$FF,$FB,$FF,$04
-	dc.b $FF,$FF,$00,$7F,$FF,$FF,$FF,$80,$FF,$F3,$00,$3F,$FF,$FF,$FF,$C0
-	dc.b $FF,$E4,$00,$04,$FF,$FA,$FF,$FF,$FF,$00,$00,$00,$FF,$FE,$FF,$FF
-	dc.b $03,$FD,$FF,$FF,$FF,$FD,$FC,$01,$0F,$FF,$FF,$FE,$FF,$FE,$F0,$00
-	dc.b $1F,$FF,$FF,$FF,$FF,$FF,$E0,$00,$1F,$FF,$FF,$FF,$FF,$FF,$E0,$00
-	dc.b $5F,$FF,$3F,$FF,$FF,$FF,$E0,$00,$38,$00,$1F,$FF,$FF,$FF,$E0,$00
-	dc.b $90,$00,$1F,$FF,$FF,$FF,$E0,$00,$50,$00,$5F,$FF,$BF,$FF,$E0,$00
-	dc.b $10,$00,$1F,$FF,$FF,$FF,$E0,$00,$08,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $58,$00,$1F,$FF,$FF,$FF,$E0,$00,$10,$00,$1F,$FF,$FF,$FF,$E0,$00
-	dc.b $A0,$00,$3F,$FF,$FF,$FF,$C0,$00,$20,$00,$3F,$FF,$FF,$FF,$C0,$00
-	dc.b $20,$00,$3F,$FF,$FF,$FF,$C0,$00,$20,$00,$3F,$FF,$FF,$FF,$C0,$00
-	dc.b $BF,$C0,$7F,$FF,$7F,$FF,$40,$3F,$FF,$F0,$7F,$FF,$7F,$FF,$00,$0F
-	dc.b $FF,$F8,$FF,$FF,$FF,$FF,$00,$07,$FF,$F8,$FF,$FF,$FF,$FF,$00,$07
-	dc.b $FF,$FA,$FF,$FC,$FF,$FF,$00,$07,$3C,$00,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $3C,$05,$FF,$FC,$FF,$FB,$00,$07,$3C,$04,$FF,$FC,$FF,$FB,$00,$07
-	dc.b $3C,$00,$FF,$F8,$FF,$FF,$00,$07,$3C,$00,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $18,$04,$FF,$F0,$FF,$FF,$00,$0F,$00,$00,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $00,$00,$FF,$F0,$FF,$FF,$00,$0F,$00,$03,$FF,$F2,$FF,$FD,$00,$0F
-	dc.b $00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$00,$FF,$F8,$FF,$FF,$00,$07
-	dc.b $00,$04,$FF,$E4,$FF,$FB,$00,$1F,$00,$00,$FF,$E0,$FF,$FF,$00,$1F
-	dc.b $00,$01,$FF,$E0,$FF,$FF,$00,$1F,$00,$01,$E1,$C0,$E1,$E7,$1E,$3F
-	dc.b $0C,$00,$E0,$80,$E0,$83,$1F,$7F,$00,$B8,$84,$80,$84,$83,$7B,$7F
-	dc.b $30,$09,$00,$01,$00,$3E,$FF,$FF,$DC,$78,$20,$00,$20,$7F,$DF,$FF
-	dc.b $1E,$40,$F8,$00,$F8,$41,$07,$FF,$06,$1E,$00,$00,$00,$01,$FF,$FF
-	dc.b $D2,$20,$00,$00,$00,$1F,$FF,$FF,$70,$02,$C0,$00,$C0,$03,$3F,$FF
-	dc.b $00,$78,$00,$00,$00,$01,$FF,$FF,$6C,$F4,$00,$00,$00,$79,$FF,$FF
-	dc.b $0D,$FF,$00,$00,$64,$FF,$FF,$FF,$E5,$C0,$00,$00,$6C,$FF,$FF,$FF
-	dc.b $01,$00,$00,$00,$FF,$FF,$FF,$FF,$20,$04,$20,$04,$DF,$FB,$FF,$FF
-	dc.b $08,$41,$00,$40,$FF,$BF,$FF,$FF,$9C,$40,$1C,$00,$FF,$FF,$E3,$FF
-	dc.b $00,$24,$3C,$00,$FF,$FF,$C3,$FF,$02,$00,$06,$00,$FF,$FF,$F9,$FF
-	dc.b $30,$8B,$3F,$8B,$FF,$F7,$C0,$7C,$00,$7C,$F1,$FF,$FF,$FF,$0E,$00
-	dc.b $41,$00,$41,$FF,$BF,$FF,$FE,$00,$8A,$12,$03,$82,$FF,$FD,$FC,$7F
-	dc.b $04,$00,$07,$00,$FF,$FF,$F8,$FF,$28,$02,$0F,$00,$FF,$FF,$F0,$FF
-	dc.b $72,$04,$7B,$84,$BF,$FB,$C4,$7F,$09,$28,$01,$88,$FF,$F7,$FE,$7F
-	dc.b $41,$02,$01,$80,$FF,$FD,$FE,$7F,$08,$04,$08,$00,$F7,$FF,$FF,$FF
-	dc.b $0F,$FE,$3F,$E1,$FD,$81,$FD,$9F,$20,$03,$12,$60,$DF,$E0,$F2,$7F
-	dc.b $21,$0D,$03,$00,$C6,$00,$FA,$FF,$00,$00,$3D,$6E,$FF,$6F,$FD,$FF
-	dc.b $00,$40,$00,$60,$FE,$3F,$FF,$FF,$F8,$1F,$F9,$9F,$FF,$FF,$07,$E0
-	dc.b $06,$30,$FE,$3F,$FF,$FF,$01,$C0,$01,$C0,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$0F,$F8,$FF,$FF,$F0,$07
-	dc.b $40,$00,$03,$E0,$FF,$FF,$FC,$1F,$00,$00,$00,$00,$FF,$FE,$FF,$FE
-	dc.b $20,$00,$20,$00,$DF,$FF,$FF,$FF,$00,$84,$00,$80,$FF,$7F,$FF,$FF
-	dc.b $06,$20,$00,$20,$FF,$DF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $08,$00,$0F,$FF,$FF,$FF,$F0,$00,$28,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $10,$00,$1F,$FF,$FF,$FF,$E0,$00,$60,$00,$7F,$FF,$FF,$FF,$80,$00
-	dc.b $80,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $08,$00,$0F,$FF,$FF,$FF,$F0,$00,$08,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $10,$00,$1F,$FF,$FF,$FF,$E0,$00,$90,$00,$1F,$FF,$FF,$FF,$E0,$00
-	dc.b $10,$00,$1F,$FF,$FF,$FF,$E0,$00,$10,$00,$1F,$FF,$FF,$FF,$E0,$00
-	dc.b $10,$00,$1F,$FF,$FF,$FF,$E0,$00,$10,$00,$1F,$FF,$FF,$FF,$E0,$00
-	dc.b $08,$00,$0F,$FF,$FF,$FF,$F0,$00,$28,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $08,$00,$0F,$FF,$FF,$FF,$F0,$00,$04,$00,$07,$FF,$FF,$FF,$F8,$00
-	dc.b $44,$00,$47,$FF,$BF,$FF,$F8,$00,$04,$00,$07,$FF,$FF,$FF,$F8,$00
-	dc.b $14,$00,$17,$FF,$EF,$FF,$F8,$00,$04,$00,$07,$FF,$FF,$FF,$F8,$00
-	dc.b $84,$00,$07,$FF,$FF,$FF,$F8,$00,$08,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $08,$00,$0F,$FF,$FF,$FF,$F0,$00,$08,$00,$0F,$FF,$FF,$FF,$F0,$00
-	dc.b $90,$00,$9F,$FF,$7F,$FF,$E0,$00,$10,$00,$1F,$FF,$FF,$FF,$E0,$00
-	dc.b $00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$00,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $00,$00,$FF,$F0,$FF,$FF,$00,$0F,$00,$04,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $00,$01,$FF,$F0,$FF,$FF,$00,$0F,$00,$00,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $00,$00,$FF,$F0,$FF,$FF,$00,$0F,$00,$00,$FF,$F8,$FF,$FF,$00,$07
-	dc.b $00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$00,$FF,$F8,$FF,$FF,$00,$07
-	dc.b $00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$01,$FF,$F1,$FF,$FE,$00,$0F
-	dc.b $00,$02,$FF,$F0,$FF,$FF,$00,$0F,$00,$02,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $00,$00,$FF,$F0,$FF,$FF,$00,$0F,$00,$00,$FF,$F0,$FF,$FF,$00,$0F
-	dc.b $00,$00,$FF,$F0,$FF,$FF,$00,$0F,$00,$05,$FF,$F1,$FF,$FE,$00,$0F
-	dc.b $00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$00,$FF,$FE,$FF,$FF,$00,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$F8,$FF,$FF,$00,$07
-	dc.b $00,$04,$FF,$F4,$FF,$FB,$00,$0F,$00,$00,$FF,$F0,$FF,$FF
-abs_0_00027B86:
-	dc.b $00,$0F,$00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$01,$FF,$F8,$FF,$FF
-	dc.b $00,$07,$00,$00,$FF,$F8,$FF,$FF,$00,$07,$00,$00,$FF,$F8,$FF,$FF
-	dc.b $00,$07,$00,$00,$00,$00,$FC,$FF,$FF,$FF,$38,$24,$20,$04,$C0,$5B
-	dc.b $FF,$FF,$3C,$01,$02,$00,$C1,$0F,$FE,$FF,$CC,$68,$00,$80,$83,$97
-	dc.b $FC,$FF,$47,$54,$17,$00,$8C,$0F,$F4,$FF,$01,$98,$03,$80,$FF,$07
-	dc.b $E3,$7F,$2E,$D8,$06,$C0,$E5,$A7,$FC,$BF,$1B,$E9,$0B,$C1,$EE,$B6
-	dc.b $FA,$BF,$58,$06,$5D,$40,$97,$C1,$F5,$7F,$85,$EF,$09,$E0,$FB,$00
-	dc.b $ED,$1F,$36,$1E,$02,$E2,$C3,$E3,$FE,$FF,$2F,$FE,$43,$FF,$C2,$A5
-	dc.b $FE,$A5,$04,$04,$79,$5E,$FB,$FB,$FD,$5B,$0F,$7E,$03,$FE,$F2,$D9
-	dc.b $FE,$D9,$2C,$D0,$1D,$F6,$DB,$BF,$F9,$B7,$03,$22,$05,$6C,$8D,$DD
-	dc.b $F7,$4F,$01,$00,$00,$00,$FF,$FF,$FF,$FF,$21,$FC,$20,$00,$DE,$03
-	dc.b $FF,$FF,$09,$23,$00,$00,$FE,$01,$FF,$FF,$80,$A1,$00,$00,$FF,$00
-	dc.b $FF,$FF,$08,$52,$08,$00,$F7,$80,$FF,$FF,$03,$AC,$00,$01,$FC,$41
-	dc.b $FF,$FF,$2C,$68,$00,$03,$F0,$03,$FF,$FF,$18,$2A,$10,$01,$E0,$01
-	dc.b $FF,$FF,$4F,$A5,$40,$00,$B0,$00,$FF,$FF,$88,$52,$00,$00,$F0,$00
-	dc.b $FF,$FF,$0B,$10,$00,$21,$F0,$21,$FF,$FF,$25,$E0,$01,$19,$FA,$19
-	dc.b $FF,$FF,$40,$C5,$40,$0A,$BF,$0A,$FF,$FF,$09,$76,$00,$01,$FE,$01
-	dc.b $FF,$FF,$41,$80,$00,$7F,$FE,$7F,$FF,$FF,$0B,$0D,$08,$02,$F4,$02
-	dc.b $FF,$FF,$01,$00,$00,$00,$FF,$FF,$FF,$FF,$60,$04,$20,$04,$9F,$FB
-	dc.b $FF,$FF,$A8,$41,$00,$40,$1F,$BF,$FF,$FF,$23,$C0,$00,$00,$1C,$7F
-	dc.b $FF,$FF,$7C,$64,$00,$00,$00,$3F,$FF,$FF,$08,$20,$80,$00,$80,$1F
-	dc.b $FF,$FF,$30,$F8,$0F,$08,$0F,$07,$FF,$FF,$47,$B1,$38,$01,$38,$6E
-	dc.b $FF,$FF,$81,$C0,$40,$00,$40,$3F,$FF,$FF,$8C,$72,$00,$02,$00,$1D
-	dc.b $FF,$FF,$50,$A0,$00,$00,$00,$1F,$FF,$FF,$28,$52,$80,$00,$80,$0F
-	dc.b $FF,$FF,$3F,$34,$80,$04,$80,$0B,$FF,$FF,$00,$D8,$FC,$08,$FF,$07
-	dc.b $FF,$FF,$1B,$32,$E1,$00,$E0,$CD,$FF,$FF,$D1,$94,$20,$00,$20,$6F
-	dc.b $FF,$FF,$05,$FD,$00,$00,$F8,$00,$FF,$FF,$26,$21,$20,$1E,$D9,$DE
-	dc.b $FF,$FF,$0C,$FA,$00,$05,$FB,$05,$FF,$FF,$81,$C6,$00,$01,$FE,$01
-	dc.b $FF,$FF,$0A,$D2,$0C,$01,$F4,$01,$FF,$FF,$02,$50,$00,$0F,$FC,$0F
-	dc.b $FF,$FF,$22,$38,$0C,$07,$FC,$07,$FF,$FF,$12,$C0,$10,$3F,$EC,$3F
-	dc.b $FF,$FF,$41,$00,$40,$7C,$BE,$FF,$FF,$FF,$89,$12,$01,$02,$FE,$FD
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$21,$82,$01,$00,$FE,$FF
-	dc.b $FF,$FF,$40,$04,$40,$04,$BF,$FB,$FF,$FF,$08,$28,$00,$08,$FF,$F7
-	dc.b $FF,$FF,$41,$02,$01,$00,$FE,$FD,$FF,$FF,$08,$04,$08,$00,$F7,$FF
-	dc.b $FF,$FF,$C3,$50,$1C,$00,$1C,$2F,$FF,$FF,$81,$A4,$00,$04,$00,$1B
-	dc.b $FF,$FF,$80,$E1,$00,$00,$00,$1F,$FF,$FF,$70,$60,$80,$00,$80,$1F
-	dc.b $FF,$FF,$0F,$24,$F0,$00,$F0,$1F,$FF,$FF,$00,$20,$FE,$90,$FF,$9F
-	dc.b $FF,$FF,$00,$A8,$FF,$08,$FF,$17,$FF,$FF,$00,$61,$FE,$01,$FF,$BE
-	dc.b $FF,$FF,$00,$00,$73,$80,$FF,$FF,$FF,$FF,$89,$12,$01,$02,$FE,$FD
-	dc.b $FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$21,$82,$01,$00,$FE,$FF
-	dc.b $FF,$FF,$40,$04,$40,$04,$BF,$FB,$FF,$FF,$08,$28,$00,$08,$FF,$F7
-	dc.b $FF,$FF,$41,$02,$01,$00,$FE,$FD,$FF,$FF,$08,$04,$08,$00,$F7,$FF
-	dc.b $FF,$FF,$20,$02,$20,$02,$DF,$FD,$FF,$FF,$00,$14,$04,$04,$FB,$FB
-	dc.b $FF,$FF,$20,$81,$1C,$80,$E3,$7E,$FF,$FF,$0C,$82,$1B,$00,$E4,$7F
-	dc.b $F3,$FF,$2E,$C0,$33,$00,$CC,$27,$F3,$FF,$3D,$8A,$0C,$02,$80,$05
-	dc.b $FF,$FF,$E7,$BC,$12,$00,$84,$07,$FF,$FF,$84,$E0,$73,$00,$88,$03
-	dc.b $FF,$FF,$33,$72,$6E,$80,$91,$0F,$CC,$FF,$33,$66,$4C,$80,$B3,$07
-	dc.b $CC,$FF,$41,$DC,$77,$04,$88,$03,$FF,$FF,$FF,$BC,$80,$00,$70,$3B
-	dc.b $FF,$FF,$0D,$C0,$00,$00,$00,$4F,$FF,$FF,$7D,$BD,$00,$01,$F8,$FE
-	dc.b $FF,$FF,$01,$00,$00,$00,$FC,$FF,$FF,$FF,$10,$01,$10,$01,$EF,$FE
-	dc.b $FF,$FF,$00,$80,$00,$00,$FF,$FF,$FF,$FF,$20,$04,$20,$04,$DF,$FB
-	dc.b $FF,$FF,$82,$10,$02,$00,$FD,$FF,$FF,$FF,$02,$39,$00,$38,$FF,$FF
-	dc.b $FF,$C7,$24,$00,$00,$3C,$FF,$FF,$FF,$C3,$00,$40,$00,$60,$FF,$FF
-	dc.b $FF,$9F,$D1,$0C,$D1,$FC,$EF,$FF,$3E,$03,$3E,$00,$FF,$8F,$FF,$FF
-	dc.b $00,$70,$00,$82,$FF,$82,$FF,$FD,$00,$7F,$48,$51,$41,$C0,$BF,$FF
-	dc.b $FE,$3F,$00,$20,$00,$E0,$FF,$FF,$FF,$1F,$40,$14,$00,$F0,$FF,$FF
-	dc.b $FF,$0F,$20,$4E,$21,$DE,$DF,$FD,$FE,$23,$14,$90,$11,$80,$EF,$FF
-	dc.b $FE,$7F,$40,$82,$01,$80,$BF,$FF,$FE,$7F,$20,$10,$00,$10,$FF,$EF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF
-	dc.b $7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FE,$FF,$FE
-	dc.b $7F,$FE,$7F,$FE,$FF,$FD,$FF,$FC,$7F,$FC,$7F,$FD,$FF,$FA,$FF,$F8
-	dc.b $7F,$F8,$7F,$FB,$FF,$F5,$FF,$F1,$7F,$F1,$7F,$F6,$FF,$EB,$FF,$E2
-	dc.b $7F,$E2,$7F,$EC,$FF,$D7,$FF,$C4,$7F,$C4,$7F,$D8,$FF,$AF,$FF,$88
-	dc.b $7F,$88,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$C0,$00,$7F,$FF,$40,$01,$40,$00,$C0,$00,$7F,$FF,$40,$01
-	dc.b $40,$00,$C0,$00,$7F,$FF,$40,$01,$40,$00,$7F,$FE,$80,$01,$00,$00
-	dc.b $00,$00,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$80,$00,$FF,$FF,$80,$00
-	dc.b $80,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dcb.b $9,$FF
-	dc.b $FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF,$FE,$FF,$FE,$FF,$FE,$FF,$FF,$FF
-	dc.b $FE,$FF,$FE,$FF,$FE,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$7F,$FF,$BF
-	dc.b $FE,$3F,$FE,$3F,$FE,$BF,$FF,$5F,$FE,$1F,$FE,$1F,$FE,$5F,$FF,$AF
-	dc.b $FE,$0F,$FE,$0F,$FE,$2F,$FF,$D7,$FE,$07,$FE,$07,$FE,$17,$FF,$EB
-	dc.b $FE,$03,$FE,$03,$FE,$0B,$FF,$F5,$FE,$01,$FE,$01,$FE,$03,$D0,$FF
-	dc.b $AF,$FF,$80,$FF,$80,$03,$E8,$FF,$D7,$FF,$C0,$FF,$C0,$03,$F4,$FF
-	dc.b $EB,$FF,$E0,$FF,$E0,$03,$FA,$FF,$F5,$FF,$F0,$FF,$F0,$03,$FD,$FF
-	dc.b $FA,$FF,$F8,$FF,$F8,$03,$FE,$FF,$FD,$FF,$FC,$FF,$FC,$03,$FF,$FF
-	dc.b $FE,$FF,$FE,$FF,$FE,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FC,$00,$03,$B0,$FC
-	dc.b $5F,$FC,$10,$FC,$10,$03,$E0,$FF,$BF,$FF,$A0,$FF,$A0,$00,$60,$FF
-	dc.b $BF,$FC,$20,$FC,$20,$00,$61,$FF,$BF,$FC,$21,$FC,$21,$00,$63,$FF
-	dc.b $BE,$FC,$22,$FC,$22,$00,$67,$FF,$BC,$FC,$24,$FC,$24,$00,$67,$FF
-	dc.b $BF,$FC,$27,$FC,$27,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$00,$61,$FF
-	dc.b $BF,$FC,$21,$FC,$21,$00,$63,$FF,$BE,$FC,$22,$FC,$22,$00,$66,$FF
-	dc.b $BD,$FC,$25,$FC,$25,$00,$6C,$FF,$BB,$FC,$2B,$FC,$2B,$00,$6F,$FF
-	dc.b $B8,$FC,$28,$FC,$28,$00,$6F,$FF,$BF,$FC,$2F,$FC,$2F,$00,$60,$FF
-	dc.b $BF,$FC,$20,$FC,$20,$00,$20,$FF,$DF,$FF,$80,$FC,$00,$00,$00,$FF
-	dc.b $FF,$FF,$FF,$FC,$00,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$03,$FF,$FF
-	dc.b $FF,$FF,$FF,$FF,$FF,$03,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$FF
-	dc.b $FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF
-	dc.b $FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FE,$FF,$FE,$7F,$FE,$7F,$FE,$FF
-	dc.b $FD,$FF,$FC,$7F,$FC,$7F,$FD,$FF,$FA,$FF,$F8,$7F,$F8,$7F,$FB,$FF
-	dc.b $F5,$FF,$F1,$7F,$F1,$7F,$F6,$FF,$EB,$FF,$E2,$7F,$E2,$7F,$EC,$FF
-	dc.b $D7,$FF,$C4,$7F,$C4,$7F,$D8,$FF,$AF,$FF,$88,$7F,$88,$17,$74,$FF
-	dc.b $FF,$FF,$FC,$EC,$CC,$02,$20,$FF,$FF,$FF,$FC,$F5,$54,$9D,$DD,$7F
-	dc.b $FE,$7F,$FC,$73,$30,$08,$88,$FF,$FF,$FF,$FF,$F5,$57,$33,$33,$FF
-	dc.b $FF,$BB,$BB,$88,$88,$22,$22,$FF,$FF,$FF,$FF,$55,$55,$CC,$CC,$FF
-	dc.b $FF,$EE,$EE,$22,$22,$88,$88,$FF,$FF,$FF,$FF,$55,$55,$33,$33,$FF
-	dc.b $FF,$BB,$BB,$88,$88,$22,$22,$FF,$FF,$FF,$FF,$55,$55,$CC,$CC,$FF
-	dc.b $FF,$EE,$EE,$22,$22,$88,$88,$FF,$FF,$FF,$FF,$55,$55,$33,$33,$FF
-	dc.b $FF,$BB,$BB,$88,$88,$22,$22,$FF,$FF,$FF,$FF,$55,$55
-	dcb.b $A,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FE
-	dc.b $00,$01,$00,$00,$FF,$FE,$7F,$FD,$00,$02,$00,$00,$FF,$FC,$7F,$FB
-	dc.b $00,$05,$00,$01,$FF,$F9,$7F,$F6,$00,$0B,$00,$02,$FF,$F2,$7F,$EC
-	dc.b $00,$17,$00,$04,$FF,$E4,$7F,$D8,$00,$2F,$00,$08,$FF,$C8,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$C0,$00
-	dc.b $7F,$FE,$40,$00,$C0,$01,$C0,$00,$7F,$FE,$40,$00,$C0,$01,$C0,$00
-	dc.b $7F,$FE,$40,$00,$C0,$01,$7F,$FE,$80,$01,$00,$00,$00,$00,$FF,$FF
-	dc.b $7F,$FE,$7F,$FE,$7F,$FE,$80,$00,$FF,$FF,$80,$00,$80,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $80,$00,$00,$00,$7F,$FF,$BF,$FF,$40,$00,$00,$00,$3F,$FF,$5F,$FF
-	dc.b $A0,$00,$00,$00,$1F,$FF,$2F,$FF,$D0,$00,$00,$00,$0F,$FF,$17,$FF
-	dc.b $E8,$00,$00,$00,$07,$FF,$0B,$FF,$F4,$00,$00,$00,$03,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$FF,$FF,$7F,$FF
-	dc.b $80,$00,$80,$00,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$FF,$FF,$3F,$FF
-	dc.b $C0,$00,$C0,$00,$FF,$FF,$3F,$FF,$C0,$00,$C0,$00,$FF,$FF,$3F,$FF
-	dc.b $C0,$00,$C0,$00,$FF,$FF,$1F,$FF,$E0,$00,$E0,$00,$FF,$FF,$1F,$FF
-	dc.b $E0,$00,$E0,$00,$FF,$FF,$1F,$FF,$E0,$00,$E0,$00,$FF,$FF,$0F,$FE
-	dc.b $F0,$01,$F0,$00,$FF,$FE,$0F,$FD,$F0,$02,$F0,$00,$FF,$FC,$0F,$FB
-	dc.b $F0,$05,$F0,$01,$FF,$F9,$07,$F6,$F8,$0B,$F8,$02,$FF,$F2,$07,$EC
-	dc.b $F8,$17,$F8,$04,$FF,$E4,$07,$D8,$F8,$2F,$F8,$08,$FF,$C8,$03,$D0
-	dc.b $FC,$2F,$FC,$00,$FF,$C0,$03,$E8,$FC,$17,$FC,$00,$FF,$E0,$03,$F4
-	dc.b $FC,$0B,$FC,$00,$FF,$F0,$03,$FA,$FC,$05,$FC,$00,$FF,$F8,$03,$FD
-	dc.b $FC,$02,$FC,$00,$FF,$FC,$03,$FE,$FC,$01,$FC,$00,$FF,$FE,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$B0
-	dc.b $FC,$5F,$FC,$10,$FF,$90,$03,$E0,$FF,$BF,$FF,$A0,$FF,$A0,$00,$60
-	dc.b $FF,$BF,$FC,$20,$FC,$20,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$00,$60
-	dc.b $FF,$BF,$FC,$20,$FC,$20,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$00,$60
-	dc.b $FF,$BF,$FC,$20,$FC,$20,$00,$61,$FF,$BE,$FC,$20,$FC,$21,$00,$67
-	dc.b $FF,$B8,$FC,$20,$FC,$26,$00,$7E,$FF,$A1,$FC,$21,$FC,$39,$00,$78
-	dc.b $FF,$A7,$FC,$27,$FC,$37,$00,$78,$FF,$A7,$FC,$27,$FC,$37,$00,$7F
-	dc.b $FF,$A0,$FC,$20,$FC,$30,$00,$7F,$FF,$A0,$FC,$20,$FC,$3F,$00,$60
-	dc.b $FF,$BF,$FC,$20,$FC,$20,$00,$20,$FC,$5F,$FC,$00,$FF,$80,$00,$00
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$7F,$FF,$00,$00,$00,$00,$FF,$FF,$7F,$FE
-	dc.b $00,$01,$00,$00,$FF,$FE,$7F,$FD,$00,$02,$00,$00,$FF,$FC,$7F,$FB
-	dc.b $00,$05,$00,$01,$FF,$F9,$7F,$F6,$00,$0B,$00,$02,$FF,$F2,$7F,$EC
-	dc.b $00,$17,$00,$04,$FF,$E4,$7F,$D8,$00,$2F,$00,$08,$FF,$C8,$00,$00
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FF
-	dc.b $FC,$00,$FC,$00,$FF,$FF,$03,$FF,$FC,$00,$FC,$00,$FF,$FF,$03,$FE
-	dc.b $FC,$01,$FC,$00
-abs_0_0002867E:
-	dc.b $FF,$FE,$03,$FD,$FC,$02,$FC,$00,$FF,$FC,$03,$FB,$FC,$05,$FC,$01
-	dc.b $FF,$F9,$03,$F6,$FC,$0B,$FC,$02,$FF,$F2,$03,$EC,$FC,$17,$FC,$04
-	dc.b $FF,$E4,$03,$D8,$FC,$2F,$FC,$08
-abs_0_000286A6:
-	dc.b $FF,$C8,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$01,$FF,$FE,$00,$00
-	dc.b $00,$00,$80,$02,$FF,$FD,$00,$00,$00,$00,$80,$05,$FF,$FA,$00,$00
-	dc.b $00,$00,$80,$0B,$FF,$F5,$00,$01,$00,$01,$80,$16,$FF,$EB,$00,$02
-	dc.b $00,$02,$80,$2C,$FF,$D7,$00,$04,$00,$04,$80,$58,$FF,$AF,$00,$08
-	dc.b $00,$08,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$C0,$01,$7F,$FF,$40,$00,$40,$00,$C0,$01,$7F,$FF,$40,$00
-	dc.b $40,$00,$C0,$01,$7F,$FF,$40,$00,$40,$00,$7F,$FE,$80,$01,$00,$00
-	dc.b $00,$00,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$80,$00,$FF,$FF,$80,$00
-	dc.b $80,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00
-	dc.b $00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00
-	dc.b $00,$00,$40,$01,$BF,$FE,$00,$00,$00,$00,$A0,$01,$5F,$FE,$00,$00
-	dc.b $00,$00,$50,$01,$AF,$FE,$00,$00,$00,$00,$28,$01,$D7,$FE
-abs_0_00028814:
-	dc.b $00,$00,$00,$00,$14,$01,$EB,$FE,$00,$00,$00,$00,$0A,$01,$F5,$FE
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF
-	dc.b $80,$00,$80,$00,$00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF
-	dc.b $C0,$00,$C0,$00,$00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF
-	dc.b $E0,$00,$E0,$00,$00,$00,$FF,$FF,$E0,$00,$E0,$00,$00,$01,$FF,$FE
-	dc.b $E0,$00,$E0,$00,$00,$02,$FF,$FD,$F0,$00,$F0,$00,$00,$05,$FF,$FA
-	dc.b $F0,$00,$F0,$00,$00,$0B,$FF,$F5,$F0,$01,$F0,$01,$00,$16,$FF,$EB
-	dc.b $F8,$02,$F8,$02,$00,$2C,$FF,$D7,$F8,$04,$F8,$04,$00,$58,$FF,$AF
-	dc.b $F8,$08,$F8,$08
+	INCBIN "assets/world_tile_pixels_314_through_366.bin"
+; bitmap
+	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$80,$00,$80,$00
+	dc.b $00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00
+	dc.b $00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF,$C0,$00,$C0,$00
+	dc.b $00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF,$E0,$00,$E0,$00
+	dc.b $00,$00,$FF,$FF,$E0,$00,$E0,$00,$00,$01,$FF,$FE,$E0,$00,$E0,$00
+	dc.b $00,$02,$FF,$FD,$F0,$00,$F0,$00,$00,$05,$FF,$FA,$F0,$00,$F0,$00
+	dc.b $00,$0B,$FF,$F5,$F0,$01,$F0,$01,$00,$16,$FF,$EB,$F8,$02,$F8,$02
+	dc.b $00,$2C,$FF,$D7,$F8,$04,$F8,$04,$00,$58,$FF,$AF,$F8,$08,$F8,$08
 world_tile_pixels_368_through_370:
-	dc.b $80,$00,$FF,$FF,$7F,$FF,$7F,$FF,$80,$00,$FF,$FF,$7F,$FF,$7F,$FF
-	dc.b $80,$00,$FF,$FF,$3F,$FF,$3F,$FF,$80,$00,$FF,$FF,$3F,$FF,$3F,$FF
-	dc.b $80,$00,$FF,$FF,$1F,$FF,$1F,$FF,$80,$00,$FF,$FF,$1F,$FF,$1F,$FF
+	INCBIN "assets/world_tile_pixels_368_through_370.bin"
+; bitmap
+	dc.b $03,$FF,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
+	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
+	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
 	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00
 	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$01,$FF,$FE,$00,$00,$00,$00
 	dc.b $80,$02,$FF,$FD,$00,$00,$00,$00,$80,$05,$FF,$FA,$00,$00,$00,$00
 	dc.b $80,$0B,$FF,$F5,$00,$01,$00,$01,$80,$16,$FF,$EB,$00,$02,$00,$02
 	dc.b $80,$2C,$FF,$D7,$00,$04,$00,$04,$80,$58,$FF,$AF,$00,$08,$00,$08
-	dc.b $00,$50,$FF,$AF,$FC,$00,$FC,$00,$00,$28,$FF,$D7,$FC,$00,$FC,$00
-	dc.b $00,$14,$FF,$EB,$FC,$00,$FC,$00,$00,$0A,$FF,$F5,$FC,$00,$FC,$00
-	dc.b $00,$05,$FF,$FA,$FC,$00,$FC,$00,$00,$02,$FF,$FD,$FC,$00,$FC,$00
-	dc.b $00,$01,$FF,$FE,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF
-abs_0_00028984:
-	dc.b $FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$03,$FF,$FC,$00
-	dc.b $FC,$00,$FC,$00,$03,$B0,$FC,$5F,$FC,$10,$FC,$10,$03,$E0,$FF,$BF
-	dc.b $FF,$A0,$FF,$A0,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$00,$60,$FF,$BF
-	dc.b $FC,$20,$FC,$20,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$00,$60,$FF,$BF
-	dc.b $FC,$20,$FC,$20,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$00,$60,$FF,$BF
-	dc.b $FC,$20,$FC,$20,$00,$60,$FF,$BC,$FC,$23,$FC,$20,$00,$63,$FF,$B8
-	dc.b $FC,$24,$FC,$20,$00,$64,$FF,$B3,$FC,$2B,$FC,$23,$00,$68,$FF,$A7
-	dc.b $FC,$37,$FC,$27,$00,$6F,$FF,$A0,$FC,$30,$FC,$20,$00,$60,$FF,$A0
-	dc.b $FC,$3F,$FC,$20,$00,$60,$FF,$BF,$FC,$20,$FC,$20,$03,$A0,$FF,$DF
-	dc.b $FC,$00,$FC,$00,$03,$FF,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$FC,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00,$80,$01,$FF,$FE
-	dc.b $00,$00,$00,$00,$80,$02,$FF,$FD,$00,$00,$00,$00,$80,$05,$FF,$FA
-	dc.b $00,$00,$00,$00,$80,$0B,$FF,$F5,$00,$01,$00,$01,$80,$16,$FF,$EB
-	dc.b $00,$02,$00,$02,$80,$2C,$FF,$D7,$00,$04,$00,$04,$80,$58,$FF,$AF
-	dc.b $00,$08,$00,$08
 world_tile_pixels_372_through_380:
 	INCBIN "assets/world_tile_pixels_372_through_380.bin"
 ; bitmap
@@ -16588,675 +15108,8 @@ world_tile_pixels_372_through_380:
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF
 world_tile_pixels_383_through_464:
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$A1,$FD,$FF,$FF,$FF,$FF,$60,$02
-	dc.b $80,$05,$FF,$FF,$FF,$FF,$5F,$FA,$A0,$05,$FF,$FF,$FF,$FF,$5F,$FA
-	dc.b $3F,$FE,$FF,$FD,$FF,$FD,$FF,$FD,$2F,$FE,$FF,$FD,$EF,$FD,$EF,$FD
-	dc.b $EF,$FF,$FF,$FD,$EF,$FD,$2F,$FC,$EF,$FF,$FF,$FD,$EF,$FD,$2F,$FC
-	dc.b $E0,$03,$FF,$FD,$E0,$01,$20,$00,$C0,$03,$FF,$FD,$DF,$FD,$1F,$FC
-	dc.b $09,$FE,$FF,$FD,$DF,$FD,$D8,$05,$C7,$FF,$3F,$FC,$1F,$FC,$10,$04
-	dc.b $C7,$FF,$3F,$FC,$1F,$FC,$10,$04,$CF,$FF,$FF,$FD,$DF,$FD,$D0,$05
-	dc.b $CF,$FF,$FF,$FD,$DF,$FD,$D0,$05,$C0,$01,$BF,$FF,$80,$03,$80,$03
-	dc.b $E7,$F6,$7F,$F9,$67,$F1,$67,$F1,$E0,$06,$7F,$F9,$6F,$79,$6F,$79
-	dc.b $8F,$FE,$70,$01,$00,$01,$00,$01,$FE,$AA,$2B,$55,$2B,$55,$2B,$55
-	dc.b $FF,$FC,$55,$53,$55,$53,$55,$53,$80,$06,$7F,$F9,$00,$01,$00,$01
-	dc.b $FF,$FE,$7F,$FF,$7F,$FF,$7F,$FF,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$80,$00,$7F,$FF,$00,$00,$00,$00,$F1,$FF
-	dc.b $FE,$00,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00,$F0,$00
-	dc.b $FF,$FF,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00,$F0,$00
-	dc.b $FF,$FF,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00,$F0,$00
-	dc.b $FF,$FF,$FE,$00,$FE,$00,$FC,$00,$FB,$FF,$FA,$00,$FA,$00,$FE,$00
-	dc.b $FD,$FF,$FC,$00,$FC,$00,$FF,$00,$FE,$FF,$FE,$00,$FE,$00,$FF,$80
-	dc.b $FF,$7F,$FF,$00,$FF,$00,$FF,$FF,$FF,$80,$FF,$80,$FF,$80
-	dcb.b $22,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$1F,$0F,$1F,$0F,$1F,$FF,$9F,$0E,$E7,$0E,$C7,$0E,$87,$FF,$07
-	dc.b $0D,$F9,$0D,$A9,$0D,$29,$FE,$01,$0B,$FE,$0B,$54,$0A,$54,$FB,$81
-	dc.b $0C,$7E,$0C,$28,$0C,$28,$FC,$E6,$0F,$19,$0F,$11,$0F,$11,$FF,$3D
-	dc.b $0F,$C3,$0F,$C3,$0F,$C3,$FF,$C3,$0F,$FF,$0F,$EF,$0F,$E7,$FF,$E7
-	dc.b $0F,$FF,$0F,$EB,$0F,$E7,$FF,$23,$0F,$FB,$0F,$4F,$0F,$27,$FF,$33
-	dc.b $0F,$F3,$0F,$4F,$0F,$3F,$FC,$23,$0F,$EB,$0D,$5F,$0C,$37,$FC,$83
-	dc.b $0F,$9B,$0D,$6F,$0C,$E7,$FC,$A3,$0F,$BB,$0D,$6F,$0C,$E7,$F8,$23
-	dc.b $08,$7B,$0F,$EF,$0F,$A7,$FA,$BB,$0A,$E7,$0D,$5F,$0F,$BF,$F8,$A3
-	dc.b $0A,$EF,$0D,$5F,$0D,$BF,$F8,$C1,$0A,$9F,$0D,$7F,$0D,$FF,$FA,$8F
-	dc.b $0A,$BF,$0D,$7F,$0F,$FF
-abs_0_00029250:
-	dc.b $F9,$07,$08,$7F,$0F,$FF,$0F,$FF,$FC,$3F,$0F,$FF,$0F,$FF,$0F,$FF
-	dc.b $7F,$1F,$8F,$FF,$8F,$FF,$8F,$FF,$3F,$FF,$CF,$FF,$CF,$FF,$CF,$FF
-	dc.b $8F,$FF,$7F,$F8,$7F,$F8,$7F,$F8,$E3,$F8,$13,$F7,$1F,$F0,$1F,$F0
-	dc.b $F8,$FF,$08,$EF,$0F,$EF,$0F,$EF,$FC,$3F,$0E,$0F,$0F,$CF,$0F,$CF
-	dc.b $FE,$DA,$0F,$2F,$0F,$2A,$0F,$0A,$FF,$39,$0E,$EF,$0E,$E9,$0E,$29
-	dc.b $FE,$D8,$0D,$EF,$0D,$E8,$0C,$C8,$E7,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $EF,$FF,$F7,$FF,$E7,$FF,$E7,$FF,$EF,$FF,$F7,$FF,$E7,$FF,$E7,$FF
-	dc.b $EF,$FF,$F7,$FF,$E7,$FF,$E7,$FF,$EF,$FF,$D3,$FF,$C3,$FF,$C3,$FF
-	dc.b $CB,$FF,$B5,$FF,$91,$FF,$91,$FF,$8D,$FF,$72,$FF,$00,$FF,$00,$FF
-	dc.b $85,$FF,$7A,$7F,$00,$7F,$00,$7F,$DA,$7F,$A5,$FF,$81,$FF,$81,$FF
-	dc.b $EC,$7F,$C3,$FF,$D3,$FF,$D3,$FF,$80,$FF,$4F,$FF,$3F,$FF,$3F,$FF
-	dc.b $46,$7F,$9F,$FF,$3F,$FF,$3F,$FF,$7F,$3F,$87,$FF,$07,$FF,$07,$FF
-	dc.b $C7,$FF,$39,$FF,$39,$FF,$01,$FF,$C1,$FF,$BE,$7F,$BE,$7F,$80,$7F
-	dc.b $60,$7F,$DF,$BF,$5F,$BF,$40,$3F,$FE,$6D,$05,$F6,$05,$F4,$04,$64
-	dc.b $FE,$2D,$05,$F7,$05,$F5,$04,$25,$FE,$0D,$05,$F7,$05,$F5,$04,$05
-	dc.b $FE,$C8,$05,$F7,$05,$F1,$04,$C0,$FE,$08,$05,$F7,$05,$F3,$04,$00
-	dc.b $FE,$7F,$05,$80,$05,$80,$04,$00,$FF,$FF,$06,$79,$06,$79,$06,$79
-	dc.b $FF,$27,$06,$FC,$06,$25,$06,$25,$FF,$A7,$06,$7C,$06,$25,$06,$25
-	dc.b $FF,$7F,$06,$80,$06,$01,$06,$01,$FF,$27,$06,$FD,$06,$24,$06,$25
-	dc.b $FF,$7B,$06,$FA,$06,$7A,$06,$7E,$FF,$AB,$06,$A8,$06,$A9,$06,$FD
-	dc.b $FF,$23,$06,$20,$06,$21,$06,$FD,$FF,$A3,$06,$20,$06,$21,$06,$FD
-	dc.b $FF,$C3,$06,$00,$06,$01,$06,$FD,$98,$1F,$77,$EF,$17,$EF,$10,$0F
-	dc.b $EC,$1F,$1B,$EF,$0B,$EF,$08,$0F,$F6,$17,$CD,$EF,$A5,$EF,$E4,$0F
-	dc.b $FE,$17,$15,$EF,$35,$EF,$34,$0F,$EE,$17,$DD,$EF,$9D,$EF,$CC,$0F
-	dc.b $E0,$17,$1F,$EF,$3F,$EF,$20,$0F,$E0,$13,$5F,$EF,$1F,$EF,$40,$0F
-	dc.b $60,$23,$9F,$DF,$3F,$DF,$20,$1F,$60,$43,$DF,$BF,$1F,$BF,$40,$3F
-	dc.b $67,$83,$98,$7C,$38,$7C,$20,$7C,$78,$21,$C7,$FE,$07,$E0,$47,$E0
-	dc.b $E0,$35,$9F,$EA,$3F,$F0,$BF,$E0,$E0,$E9,$5F,$A6,$1F,$B0,$5F,$A0
-	dc.b $EF,$F5,$1F,$BA,$BF,$A0,$BF,$A0,$4F,$F9,$BF,$B6,$FF,$B0,$FF,$A0
-	dc.b $07,$E5,$FF,$BA,$FF,$A0,$FF,$B0,$03,$FF,$FE,$EE,$FE,$EE,$FE,$EE
-	dc.b $02,$EF,$FD,$12,$FD,$12,$FD,$12,$02,$93,$FD,$6E,$FC,$02,$FC,$02
-	dc.b $01,$2E,$FE,$D5,$FC,$04,$FC,$04,$02,$C7,$FD,$7A,$FC,$4A,$FC,$4A
-	dc.b $00,$53,$FF,$AE,$FC,$82,$FC,$82,$C5,$27,$BA,$DA,$88,$02,$88,$02
-	dc.b $92,$5A,$6D,$AD,$40,$08,$40,$08,$E5,$8B,$9A,$F6,$80,$92,$80,$92
-	dc.b $D8,$A7,$A7,$5A,$81,$02,$81,$02,$CA,$4B,$B5,$B6,$90,$02,$90,$02
-	dc.b $E4,$B2,$1B,$5D,$00,$10,$00,$10,$8B,$17,$F5,$EA,$C1,$22,$C1,$22
-	dc.b $F1,$4B,$8E,$B6,$82,$02,$82,$02,$FF,$FF,$AE,$EE,$AE,$EE,$AE,$EE
-	dc.b $EE,$EF,$91,$10,$80,$00,$80,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FD,$F0,$07,$F0,$05
-	dc.b $00,$00,$F8,$07,$F7,$FF,$F0,$07,$00,$00,$F8,$05,$F7,$FF,$F0,$05
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$01,$FF,$FF,$F8,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$01,$FF,$FF,$F8,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FD,$F0,$07,$F0,$05
-	dc.b $00,$00,$F8,$07,$F7,$FF,$F0,$07,$00,$00,$F0,$05,$FF,$FF,$F0,$05
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$01,$FF,$FF,$F8,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$1F,$FD,$F0,$07,$10,$05
-	dc.b $00,$00,$F8,$07,$F7,$FF,$F0,$07,$00,$00,$18,$05,$F7,$FF,$10,$05
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$01,$FF,$FF,$00,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$80,$FF,$FF,$00,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$00,$80,$FF,$FF,$00,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$80,$80,$FF,$FF,$80,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$C0,$80,$FF,$FF,$C0,$80
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$E0,$01,$FF,$FF,$E0,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FD,$F0,$07,$F0,$05
-	dc.b $00,$00,$F8,$07,$F7,$FF,$F0,$07,$00,$00,$F8,$05,$F7,$FF,$F0,$05
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$01,$FF,$FF,$F8,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$F8,$80,$FF,$FF,$F8,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$F9,$01,$FF,$FF,$F9,$01
-	dc.b $00,$80,$FF,$FF,$FF,$7F,$FF,$7F,$00,$00,$F9,$00,$FF,$FF,$F9,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$F8,$03,$FF,$FF,$F8,$03
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$1F,$FA,$E0,$0F,$00,$0A
-	dc.b $00,$00,$F0,$0E,$EF,$FF,$E0,$0E,$00,$00,$30,$0A,$EF,$FF,$20,$0A
-	dc.b $00,$00,$FF,$FE,$FF,$FF,$FF,$FE,$00,$00,$08,$02,$FF,$FF,$08,$02
-	dc.b $04,$00,$FF,$FE,$FB,$FF,$FB,$FE,$00,$00,$01,$00,$FF,$FF,$01,$00
-	dc.b $00,$80,$FF,$FE,$FF,$7F,$FF,$7E,$00,$00,$01,$00,$FF,$FF,$01,$00
-	dc.b $00,$80,$FF,$FE,$FF,$7F,$FF,$7E,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$1F,$FF,$FF,$FF,$1F,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$81,$FF,$FF,$FF,$81,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$1F,$FD,$F0,$07,$10,$05
-	dc.b $00,$00,$F8,$07,$F7,$FF,$F0,$07,$00,$00,$18,$05,$F7,$FF,$10,$05
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$01,$FF,$FF,$00,$01
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$80,$FF,$FF,$00,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$00,$80,$FF,$FF,$00,$80
-	dc.b $00,$00,$FF,$FF,$FF,$BF,$FF,$BF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $22,$2C,$FD,$D3,$21,$52,$21,$52,$02,$20,$FD,$DF,$D9,$5F,$D9,$5F
-	dc.b $22,$20,$DD,$DF,$19,$51,$19,$51,$3A,$2E,$C5,$D1,$C1,$51,$C1,$51
-	dc.b $02,$22,$FD,$DD,$F9,$5D,$F9,$5D,$FA,$22,$05,$DD,$01,$5D,$01,$5D
-	dc.b $C2,$22,$3D,$DD,$01,$45,$01,$45,$C0,$00,$3F,$FF,$3F,$FF,$3F,$FF
-	dc.b $8E,$01,$7F,$FE,$4E,$00,$4E,$00,$0F,$01,$FD,$FE,$8F,$00,$8D,$00
-	dc.b $0F,$81,$F8,$F2,$8F,$8C,$88,$8C,$3F,$C5,$C8,$72,$8F,$CC,$88,$48
-	dc.b $4F,$E5,$B8,$32,$8F,$EC,$88,$28,$0F,$C5,$F8,$72,$8F,$CC,$88,$48
-	dc.b $3F,$85,$C8,$F2,$8F,$8C,$88,$88,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $29,$F4,$D6,$0B,$56,$0F,$56,$0B,$2B,$EC,$D4,$13,$D4,$1F,$D4,$13
-	dc.b $27,$DC,$D8,$23,$58,$3F,$58,$2B,$2F,$BC,$D0,$43,$D0,$7F,$D0,$4B
-	dc.b $1F,$7C,$E0,$83,$E0,$FF,$E0,$8B,$BE,$BC,$41,$03,$41,$FF,$41,$4B
-	dc.b $7D,$3C,$82,$03,$83,$FF,$82,$CB,$00,$3C,$FE,$03,$FF,$FF,$FF,$CB
-	dc.b $7C,$3D,$82,$02,$03,$FF,$03,$CB,$64,$BB,$82,$04,$03,$FF,$1B,$47
-	dc.b $7C,$B7,$82,$08,$03,$FF,$03,$4F,$6C,$AD,$82,$16,$03,$FD,$13,$5F
-	dc.b $7C,$DD,$82,$2E,$03,$FD,$03,$3F,$6C,$BD,$92,$4E,$13,$FD,$13,$7F
-	dc.b $7D,$35,$82,$DE,$03,$F5,$02,$FF,$4F,$05,$BD,$F2,$8F,$0C,$8D,$08
-	dc.b $0E,$05,$FF,$F2,$8E,$0C,$8E,$08,$00,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $01,$F9,$FE,$06,$80,$00,$80,$00,$39,$AD,$C6,$FE,$B8,$FC,$88,$04
-	dc.b $3D,$55,$C2,$FE,$B8,$FC,$88,$04,$3D,$AD,$C2,$FE,$B8,$FC,$B8,$04
-	dc.b $1D,$5D,$E2,$F6,$80,$FC,$80,$04,$07,$BF,$F8,$EC,$80,$FC,$80,$04
-	dc.b $05,$74,$FA,$DF,$80,$F4,$80,$0C,$3D,$EC,$C2,$BF,$80,$EC,$80,$14
-	dc.b $44,$FC,$BB,$FF,$80,$FC,$80,$FC,$04,$00,$FB,$FF,$80,$00,$80,$00
-	dc.b $04,$00,$FB,$FF,$80,$1E,$80,$1E,$06,$0E,$F9,$FF,$80,$1E,$80,$1E
-	dc.b $02,$0E,$FD,$F7,$80,$16,$80,$16,$6C,$A4,$93,$DF,$13,$E7,$13,$7F
-	dc.b $7D,$A5,$83,$DE,$03,$E6,$02,$FE,$7A,$A9,$87,$DE,$07,$E2,$04,$FE
-	dc.b $7B,$38,$87,$DF,$07,$E3,$04,$7F,$7B,$31,$87,$DE,$07,$E1,$04,$7F
-	dc.b $7B,$23,$87,$DE,$07,$E1,$04,$7F,$7B,$A5,$87,$DE,$07,$E1,$04,$7F
-	dc.b $7B,$A9,$87,$DE,$07,$E1,$04,$7F,$FB,$BD,$07,$DE,$07,$E1,$04,$7F
-	dc.b $7B,$B9,$87,$DE,$07,$E1,$04,$7F,$7B,$B1,$87,$DE,$07,$E1,$04,$7F
-	dc.b $7A,$00,$85,$FF,$05,$FF,$05,$FF,$70,$FE,$8F,$01,$0F,$01,$0F,$01
-	dc.b $6F,$FC,$90,$03,$10,$03,$10,$03,$5F,$F0,$A0,$0F,$20,$0F,$20,$0F
-	dc.b $3F,$CB,$C0,$34,$40,$30,$40,$30,$00,$0E,$FF,$F7,$FF,$F7,$FF,$F7
-	dc.b $7F,$EE,$80,$13,$80,$12,$80,$12,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $DF,$FF,$20,$00,$20,$00,$20,$00,$C0,$00,$3F,$FF,$3F,$FF,$3F,$FF
-	dc.b $DE,$07,$21,$F8,$21,$F8,$21,$F8,$BE,$F7,$41,$08,$41,$08
-abs_0_000299DE:
-	dc.b $41,$08,$BE,$F7,$41,$08,$41,$08,$41,$08,$BE,$F7,$41,$08,$41,$08
-	dc.b $41,$08,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$A0,$00,$5F,$FF,$1F,$FF
-	dc.b $1F,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$B8,$00,$47,$FF,$07,$FF
-	dc.b $07,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$FE,$00,$01,$FF,$01,$FF
-	dc.b $01,$FF,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$7F,$00,$80,$FF,$80,$FF
-	dc.b $80,$FF,$78,$DF,$87,$20,$07,$00,$07,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$FC,$00,$13,$FF,$13,$FF,$13,$FF
-abs_0_00029A48:
-	dc.b $0C,$00,$F3,$FF,$E3,$FF,$E3,$FF,$0C,$FF,$F3,$00,$E3,$00,$E3,$00
-	dc.b $0C,$78,$F3,$87,$E3,$87,$E3,$87,$0F,$CF,$F0,$30,$E0,$30,$E0,$30
-	dc.b $0C,$00,$F3,$FF,$F3,$FF,$F3,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$BF,$FF,$BF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$7F,$FF,$FF,$BF,$7F,$BF
-	dc.b $00,$01,$FF,$FE,$FF,$FE,$FF,$FE,$AF,$EB,$50,$15,$00,$01,$00,$01
-	dc.b $BD,$7B,$42,$85,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$05,$00,$01,$00,$01,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$07,$00,$07,$00,$07,$80,$02,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $FF,$FA,$00,$07,$00,$07,$00,$07,$FF,$FB,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$AF,$EA,$50,$15,$00,$01,$00,$01
-	dc.b $BD,$7D,$42,$83,$00,$03,$00,$03,$80,$02,$7F,$FF,$7F,$FE,$7F,$FE
-	dc.b $BF,$F6,$40,$0B,$00,$0A,$00,$0A,$80,$06,$7F,$FB,$7F,$FA,$7F,$FA
-	dc.b $BC,$06,$43,$FB,$03,$FA,$03,$FA,$83,$F6,$7F,$FB,$7F,$FA,$7F,$FA
-	dc.b $BB,$F6,$46,$0B,$06,$0A,$06,$0A,$83,$76,$7E,$8B,$7E,$8A,$7E,$8A
-	dc.b $BB,$F6,$46,$0B,$06,$0A,$06,$0A,$03,$F6,$FE,$0B,$FE,$0A,$FE,$0A
-	dc.b $F3,$F6,$FE,$0B,$FE,$0A,$FE,$0A,$03,$74,$FE,$8B,$FE,$88,$FE,$88
-	dc.b $0B,$F7,$FE,$0A,$FE,$0A,$FE,$0A,$F0,$02,$FF,$FD,$FF,$F8,$FF,$F8
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$CF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $58,$00,$EF,$FF,$68,$00,$68,$00,$59,$FF,$EF,$00,$69,$00,$69,$00
-	dc.b $59,$00,$EF,$FF,$69,$00,$69,$00,$59,$00,$EF,$FF,$69,$40,$69,$40
-	dc.b $69,$00,$DF,$FF,$59,$00,$59,$00,$49,$00,$FF,$FF,$79,$00,$79,$00
-	dc.b $59,$00,$EF,$FF,$69,$00,$69,$00,$69,$00,$DF,$FF,$59,$00,$59,$00
-	dc.b $59,$00,$EF,$FF,$69,$40,$69,$40,$69,$00,$DF,$FF,$59,$00,$59,$00
-	dc.b $59,$00,$EF,$FF,$69,$FF,$69,$FF,$58,$00,$EF,$FF,$68,$00,$68,$00
-	dc.b $58,$02,$EF,$FD,$68,$00,$68,$00,$8C,$0B,$7B,$F4,$38,$00,$38,$00
-	dc.b $00,$56,$FF,$AB,$FF,$83,$FF,$83,$FE,$76,$FF,$8B,$FF,$83,$FF,$83
-	dc.b $00,$02,$FF,$FF,$01,$FF,$01,$FF,$F8,$76,$07,$8B,$01,$83,$01,$83
-	dc.b $00,$02,$FF,$FF,$09,$FF,$09,$FF,$00,$76,$FF,$8B,$29,$83,$29,$83
-	dc.b $00,$02,$FF,$FF,$09,$FF,$09,$FF,$00,$76,$FF,$8B,$09,$83,$09,$83
-	dc.b $00,$02,$FF,$FF,$09,$FF,$09,$FF,$00,$76,$FF,$8B,$09,$83,$09,$83
-	dc.b $00,$00,$FF,$FF,$29,$FF,$29,$FF,$00,$23,$FF,$FF,$09,$F7,$09,$F7
-	dc.b $00,$22,$FF,$FF,$F1,$F6,$F1,$F6,$00,$09,$FF,$F6,$01,$D4,$01,$D4
-	dc.b $80,$09,$7F,$F6,$01,$D4,$01,$D4,$52,$29,$AD,$D6,$01,$D4,$01,$D4
-	dc.b $5F,$80,$A0,$7F,$00,$7F,$00,$7F,$60,$3F,$BF,$FF,$3F,$FF,$3F,$FF
-	dc.b $04,$3F,$FF,$F0,$EC,$70,$EC,$70,$25,$B8,$FA,$77,$68,$77,$68,$77
-	dc.b $25,$B8,$FA,$77,$E8,$77,$E8,$77,$27,$38,$F8,$F7,$68,$F7,$68,$F7
-	dc.b $24,$B8,$FB,$77,$E9,$77,$E9,$77,$27,$38,$F8,$F7,$68,$F7,$68,$F7
-	dc.b $24,$BF,$FB,$7F,$E9,$7F,$E9,$7F,$27,$BF,$F8,$7F,$68,$7F,$68,$7F
-	dc.b $45,$80,$FA,$7F,$E8,$40,$E8,$40,$45,$80,$FA,$7F,$E8,$7F,$E8,$7F
-	dc.b $45,$C0,$FA,$3F,$E8,$20,$E8,$20,$15,$C0,$EA,$3F,$A8,$3F,$A8,$3F
-	dc.b $15,$F0,$EA,$0F,$A8,$0F,$A8,$0F,$14,$48,$EB,$B7,$A8,$07,$A8,$07
-	dc.b $00,$D6,$FF,$2B,$FF,$03,$FF,$03,$FE,$02,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $FE,$12,$0F,$EF,$0F,$0F,$0F,$0F,$0E,$32,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $0E,$32,$FF,$CF,$FF,$CF,$FF,$CF,$0E,$32,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $0E,$32,$FF,$CF,$FF,$CF,$FF,$CF,$0E,$32,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $FE,$32,$FF,$CF,$FF,$CF,$FF,$CF,$FE,$32,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $00,$32,$FF,$CF,$01,$CF,$01,$CF,$00,$32,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $00,$32,$FF,$CF,$03,$CF,$03,$CF,$00,$32,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $00,$32,$FF,$CD,$FF,$CD,$FF,$CD,$00,$30,$FF,$CF,$FF,$CF,$FF,$CF
-	dc.b $00,$02,$FF,$FF,$FF,$FE,$FF,$FE,$AF,$E5,$50,$1F,$00,$0F,$00,$0F
-	dc.b $BD,$76,$42,$8D,$00,$0D,$00,$0D,$80,$06,$7F,$FD,$7F,$FC,$7F,$FC
-	dc.b $BF,$F6,$4F,$ED,$0F,$EC,$0F,$EC,$90,$06,$7F,$FD,$70,$1C,$70,$1C
-	dc.b $B7,$12,$5C,$ED,$15,$0C,$10,$8C,$86,$00,$7D,$FF,$6C,$1F,$64,$1F
-	dc.b $AB,$1A,$5C,$67,$0D,$06,$00,$86,$8E,$22,$7D,$DF,$6C,$1E,$60,$1E
-	dc.b $AA,$7A,$5D,$BF,$08,$3E,$00,$3E,$84,$C2,$7B,$3F,$60,$06,$60,$06
-	dc.b $BF,$C2,$4F,$BF,$0F,$86,$0F,$86,$90,$03,$7F,$FE,$7F,$86,$7F,$86
-	dc.b $E0,$23,$3F,$DE,$3F,$DE,$3F,$DE,$E0,$22,$7F,$DF,$7F,$DE,$7F,$DE
-	dc.b $30,$07,$CF,$FA,$08,$0A,$08,$0A,$B7,$F2,$CF,$FD,$8F,$F8,$8F,$F8
-	dc.b $04,$05,$FB,$FA,$FB,$F8,$FB,$F8,$04,$05,$FB,$FB,$3B,$F9,$3B,$F9
-	dc.b $4D,$F2,$B2,$0D,$02,$08,$02,$08,$4D,$F0,$B2,$0F,$02,$08,$02,$08
-	dc.b $4D,$C6,$B2,$09,$02,$38,$02,$38,$49,$C7,$B6,$08,$06,$38,$06,$38
-	dc.b $01,$F7,$FE,$08,$FE,$28,$FE,$18,$41,$F7,$BE,$08,$3E,$28,$3E,$18
-	dc.b $47,$F5,$B8,$0A,$38,$2A,$38,$1A,$47,$F8,$B8,$0F,$38,$4F,$38,$1F
-	dc.b $47,$D9,$B8,$26,$38,$66,$38,$36,$47,$D8,$B8,$27,$38,$A7,$38,$37
-	dc.b $0F,$EA,$F0,$15,$FF,$15,$06,$35,$07,$AC,$F8,$53,$FE,$53,$08,$73
-	dc.b $CC,$B7,$3B,$48,$38,$00,$38,$00,$4F,$76,$F8,$89,$78,$00,$78,$00
-	dc.b $5D,$AD
-abs_0_00029EBA:
-	dc.b $AA,$52,$28,$00,$28,$00,$9A,$D6,$6D,$29,$28,$00,$28,$00,$8F,$EF
-	dc.b $78,$10,$38,$00,$38,$00,$89,$94,$7E,$6B,$38,$00,$38,$00,$8F,$FB
-	dc.b $78,$04,$38,$00,$38,$00,$CF,$EE,$3C,$11,$3C,$10,$3C,$10,$8F,$BF
-	dc.b $7C,$40,$3C,$40,$3C,$40,$8F,$EE,$78,$11,$38,$11,$38,$11,$4D,$BB
-	dc.b $B2,$44,$B2,$44,$B2,$44,$82,$C2,$7D,$3D,$7D,$3D,$7D,$3D,$44,$2D
-	dc.b $BB,$D2,$BB,$D2,$BB,$D2,$05,$40,$FA,$BF,$7A,$BF,$7A,$BF,$02,$8A
-	dc.b $FD,$75,$FD,$75,$FD,$75,$88,$03,$77,$FC,$77,$FC
-abs_0_00029F26:
-	dc.b $77,$FC,$EE,$29,$11,$D6,$01,$D4,$01,$D4,$D6,$29,$29,$D6,$01,$D4
-	dc.b $01,$D4,$7C,$0B,$83,$F4,$01,$F4,$01,$F4,$EC,$2B,$13,$D4,$01,$D4
-	dc.b $01,$D4,$D6,$02,$29,$FD,$01,$FD,$01,$FD,$EA,$0B,$15,$F4,$01,$F4
-	dc.b $01,$F4,$DE,$0A,$21,$F5,$01,$F5,$01,$F5,$FE,$02,$01,$FD,$01,$FD
-	dc.b $01,$FD,$CA,$02,$35,$FD,$35,$FD,$35,$FD,$F6,$02,$09,$FD,$09,$FD
-	dc.b $09,$FD,$A6,$00,$59,$FF,$59,$FF,$59,$FF,$32,$00,$CD,$FF,$CD,$FF
-	dc.b $CD,$FF,$5E,$00,$A1,$FF,$A1,$FF,$A1,$FF,$72,$00,$8D,$FF,$8D,$FF
-	dc.b $8D,$FF,$24,$00,$DB,$FF,$DB,$FF,$DB,$FF,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$17,$BB,$EB,$FF,$AB,$BB,$AB,$BB,$15,$BB,$EA,$44,$A8,$00
-	dc.b $A8,$00,$57,$77,$A8,$88,$A8,$00,$A8,$00,$57,$FF,$A8,$00,$A8,$00
-	dc.b $A8,$00,$56,$AA,$A9,$55,$A8,$00,$A8,$00,$57,$FF,$A8,$00,$A8,$00
-	dc.b $A8,$00,$50,$00,$AF,$FF,$AF,$FF,$AF,$FF,$50,$00,$AF,$FF,$AF,$FF
-	dc.b $AF,$FF,$53,$6B,$AC,$94,$AC,$94,$AC,$94,$50,$00,$AF,$FF,$AF,$FF
-	dc.b $AF,$FF,$50,$00,$AF,$FF,$A8,$00,$A8,$00,$53,$FF,$AC,$00,$A8,$00
-	dc.b $A8,$00,$51,$FF,$AF,$FF,$A9,$FF,$A9,$FF,$52,$06,$AD,$F9,$A8,$00
-	dc.b $A8,$00,$50,$3F,$AF,$C0,$A8,$00,$A8,$00,$52,$22,$AD,$DD,$A8,$00
-	dc.b $A8,$00,$BB,$B0,$FF,$CF,$BB,$8F,$BB,$8F,$BB,$B0,$44,$4F,$00,$0F
-	dc.b $00,$0F,$77,$70,$88,$8F,$00,$0F,$00,$0F,$FF,$F0,$00,$0F,$00,$0F
-	dc.b $00,$0F,$AA,$B0,$55,$4F,$00,$0F,$00,$0F,$FF,$F0,$00,$0F,$00,$0F
-	dc.b $00,$0F,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$01,$F0,$FE,$0F,$FE,$0F
-	dc.b $FE,$0F,$ED,$B0,$12,$4F,$12,$4F,$12,$4F,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$04,$FF,$FB,$00,$03,$00,$03,$FF,$F4,$00,$0B,$00,$03
-	dc.b $00,$03,$FF,$FC,$FF,$FB,$FF,$FB,$FF,$FB,$10,$5C,$EF,$A3,$00,$03
-	dc.b $00,$03,$A0,$04,$5F,$FB,$00,$0B,$00,$0B,$60,$04,$9F,$FB,$1F,$FB
-	dc.b $1F,$FB,$20,$2A,$FF,$DF,$FF,$DE,$FF,$DE,$A0,$2A,$7F,$DF,$3F,$DE
-	dc.b $3F,$DE,$80,$0E,$7F,$FF,$2F,$BE,$2F,$BE,$90,$07,$6F,$FC,$60,$7C
-	dc.b $60,$7C,$9F,$D7,$60,$2C,$20,$2C,$20,$2C,$8F,$81,$70,$7E,$70,$7E
-	dc.b $70,$7E,$B0,$7B,$4F,$84,$0F,$84,$0F,$84,$80,$02,$7F,$FF,$7F,$FE
-	dc.b $7F,$FE,$BF,$FA,$40,$07,$00,$06,$00,$06,$80,$02,$7F,$FF,$7F,$FE
-	dc.b $7F,$FE,$BF,$FA,$40,$07,$00,$06,$00,$06,$80,$02,$7F,$FF,$7F,$FE
-	dc.b $7F,$FE,$BF,$FB,$40,$06,$00,$06,$00,$06,$80,$00,$7F,$FF,$7F,$FF
-	dc.b $7F,$FF,$FF,$F8,$00,$07,$00,$07,$00,$07,$FF,$FF,$7F,$FE,$7F,$FE
-	dc.b $7F,$FE,$0B,$98,$DC,$67,$DC,$67,$24,$67,$2D,$9C,$EA,$63,$EA,$63
-	dc.b $12,$63,$E6,$18,$E9,$E7,$E9,$E7,$19,$E7,$EF,$38,$10,$87,$10,$87
-	dc.b $18,$C7,$E0,$78,$18,$07,$18,$07,$1F,$87,$E0,$08
-abs_0_0002A152:
-	dc.b $1F,$F7,$1F,$F7,$1F,$F7,$E0,$00,$1F,$FF,$1F,$FF,$1F,$FF,$20,$00
-	dc.b $DF,$FF,$1F,$FF,$1F,$FF,$20,$00,$DF,$FF,$1F,$FF,$1F,$FF,$20,$00
-	dc.b $DF,$FF,$1F,$FF,$1F,$FF,$20,$00,$DF,$FF,$1F,$FF,$1F,$FF,$2F,$F0
-	dc.b $D0,$0F,$10,$0F,$10,$0F,$E0,$00,$1F,$FF,$1F,$FF,$1F,$FF,$0F,$F0
-	dc.b $F0,$0F,$F0,$0F,$F0,$0F,$0F,$F0,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$60,$20,$9F,$DF,$9F,$DF,$9F,$DF,$00,$04
-	dc.b $FF,$FB,$FF,$FB,$FF,$FB,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$49,$B6
-	dc.b $B6,$49,$B6,$49,$B6,$49,$49,$B6,$B6,$49,$B6,$49,$B6,$49,$49,$B6
-	dc.b $B6,$49,$B6,$49,$B6,$49,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$80,$2A
-	dc.b $7F,$D5,$7F,$D5,$7F,$D5,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$02
-	dc.b $FF,$FD,$FF,$FD,$FF,$FD,$00,$02,$FF,$FD,$FF,$FD,$FF,$FD,$41,$80
-	dc.b $BE,$7F,$BE,$7F,$BE,$7F,$40,$00,$BF,$FF,$BF,$FF,$BF,$FF,$41,$80
-	dc.b $BE,$7F,$BE,$7F,$BE,$7F,$00,$02,$FF,$FF,$FF,$FF,$FF,$FF,$00,$76
-	dc.b $FF,$8B,$FF,$83,$FF,$83,$00,$42,$FF,$BF,$FF,$BF,$FF,$BF,$00,$7E
-	dc.b $FF,$83,$FF,$83,$FF,$83,$00,$7E,$FF,$BD,$FF,$BD,$FF,$BD,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$43,$8C,$BC,$73,$B8,$00,$B8,$00,$41,$EB
-	dc.b $BE,$14,$B8,$00,$B8,$00,$4E,$74,$B1,$8B,$B0,$00,$B0,$00,$4E,$49
-	dc.b $B1,$B7,$B0,$01,$B0,$01,$4F,$8C,$B0,$73,$B0,$01,$B0,$00,$0C,$1E
-	dc.b $F3,$E1,$F3,$C1,$F3,$C0,$0C,$1F,$F3,$E0,$F3,$C0,$F3,$C0,$0C,$30
-	dc.b $F3,$CF,$F0,$0F,$F0,$0F,$0F,$E0,$F0,$1F,$F0,$1F,$F0,$1F,$0F,$C5
-	dc.b $F0,$3A,$F0,$3F,$F0,$3F,$0F,$C3,$F0,$3C,$F0,$3F,$F0,$3F,$4F,$C1
-	dc.b $B0,$3E,$30,$3F,$30,$3F,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$80,$00
-	dc.b $7F,$FF,$7F,$FF,$7F,$FF,$80,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$3F,$FC,$C0,$03,$00,$03,$00,$03,$2E,$FC
-	dc.b $D1,$03,$00,$03,$00,$03,$85,$7C,$FA,$83,$F8,$03,$80,$03,$07,$FC
-	dc.b $FC,$03,$FC,$03,$78,$03,$7B,$BC,$86,$43,$FE,$03,$FC,$03,$66,$04
-	dc.b $AF,$FB,$DF,$F3,$F9,$F3,$E6,$04,$ED,$FB,$DD,$F3,$39,$F3,$26,$04
-	dc.b $E9,$FB,$D8,$03,$F8,$03,$23,$FC,$EC,$03,$DC,$03,$FC,$03,$29,$FC
-	dc.b $A6,$03,$D6,$03,$F6,$03,$D1,$FC,$4E,$03,$AE,$03,$EE,$03,$81,$FC
-	dc.b $BE,$03,$7E,$03,$FE,$03,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$02,$FF,$FD,$FF,$FD,$FF,$FD,$DF,$D7
-	dc.b $20,$2A,$00,$02,$00,$02,$7A,$F7,$85,$0A,$80,$02,$80,$02,$80,$03
-	dc.b $7F,$FE,$7F,$FE,$7F,$FE,$1F,$F7,$E0,$0A,$A0,$02,$A0,$02,$40,$03
-	dc.b $BF,$FE,$9F,$FE,$9F,$FE,$61,$F7,$9E,$0A,$8E,$02,$8E,$02,$72,$FF
-	dc.b $8F,$FF,$87,$FF,$87,$FF,$BA,$00,$47,$FF,$07,$00,$07,$FF,$C8,$67
-	dc.b $37,$FF,$05,$00,$05,$FF,$90,$FF,$6F,$EF,$05,$FF,$05,$EF,$60,$FF
-	dc.b $9F,$FF,$85,$FF,$85,$FF,$78,$40,$87,$FF,$85,$00,$85,$FF,$7A,$4F
-	dc.b $85,$FF,$85,$0F,$85,$FF,$7A,$FF,$85,$FF,$85,$FF,$85,$FF,$7A,$F8
-	dc.b $85,$FF,$85,$F8,$85,$FF,$80,$08,$7F,$BF,$05,$40,$05,$FF,$2A,$2D
-	dc.b $D5,$5E,$D5,$A1,$D5,$DE,$52,$26,$AD,$F6,$AD,$09,$AD,$FF,$7A,$66
-	dc.b $85,$DF,$85,$20,$85,$DF,$7A,$3E,$85,$F1,$85,$0E,$85,$F1,$72,$FC
-	dc.b $8D,$B8,$8D,$47,$8D,$BB,$2A,$FF,$D5,$BF,$D5,$40,$D5,$BF,$52,$FF
-	dc.b $AD,$1F,$AD,$00,$AD,$1F,$2A,$FF,$D5,$00,$D5,$00,$D5,$00,$52,$FF
-	dc.b $AD,$00,$AD,$00,$AD,$00,$2A,$00,$D5,$FF,$D5,$00,$D5,$00,$50,$00
-	dc.b $AF,$FF,$AF,$FF,$AF,$FF,$20,$00,$DF,$FF,$DF,$FF,$DF,$FF,$40,$00
-	dc.b $BF,$FF,$BF,$FF,$BF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$07,$F7,$F8,$0A,$F8,$02,$F8,$02,$00,$03
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$0F,$F7,$F0,$0A,$F0,$02,$F0,$02,$00,$03
-	dc.b $FF,$FE,$FF,$FE,$FF,$FE,$3F,$F7,$C0,$0A,$C0,$02,$C0,$02,$00,$07
-	dc.b $FF,$FA,$FF,$FA,$FF,$FA,$7F,$FF,$80,$02,$80,$02,$80,$02,$7F,$FF
-	dc.b $FF,$FC,$FF,$FC,$FF,$FC,$00,$01,$FF,$FE,$FF,$FE,$FF,$FE,$AF,$EB
-	dc.b $50,$15,$00,$01,$00,$01,$BD,$7B,$42,$85,$00,$01,$00,$01,$80,$01
-	dc.b $7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB,$40,$05,$00,$01,$00,$01,$80,$01
-	dc.b $7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB,$40,$05,$00,$01,$00,$01
-	dcb.b $8,$FF
-	dc.b $18,$00,$FF,$FF,$00,$00,$FF,$FF,$90,$C4,$FF,$FF,$00,$00,$FF,$FF
-	dc.b $F0,$24,$FF,$B7,$F0,$48,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$F3,$FF,$FF
-	dc.b $1F,$FF,$FF,$FF,$1F,$FF,$FF,$FF,$F0,$61,$F7,$FF,$F8,$01,$FF,$FF
-	dc.b $3F,$FF,$FF,$FF,$3F,$3F,$FF,$FF,$7F,$FE,$FF,$FF,$7F,$FE,$FF,$FF
-	dc.b $00,$01,$FF,$FE,$FF,$FE,$FF,$FE,$AF,$EB,$50,$15,$00,$01,$00,$01
-	dc.b $BD,$7B,$42,$85,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $BF,$FB,$40,$05,$00,$01,$00,$01,$FF,$81,$FF,$FF,$FF,$FB,$FF,$FB
-	dc.b $00,$37,$FF,$F8,$00,$78,$FF,$F8,$13,$20,$FD,$FF,$02,$6F,$FD,$EF
-	dc.b $FF,$80,$FF,$FF,$FB,$C8,$FF,$C8,$FF,$90,$FF,$EF,$FF,$C8,$FF,$C8
-	dc.b $42,$30,$FF,$CF,$00,$48,$FF,$C8,$FF,$B0,$FF,$CF,$FF,$C8,$FF,$C8
-	dc.b $E0,$30,$FF,$CF,$E0,$48,$FF,$C8,$02,$07,$FD,$F8,$02,$48,$FD,$C8
-	dc.b $0D,$00,$FD,$FB,$02,$04,$FF,$FF,$4C,$C0,$FF,$FF,$00,$00,$FF,$FF
-	dc.b $00,$80,$FF,$FE,$00,$01,$FF,$FF,$82,$20,$7D,$EF,$82,$10,$7D,$FF
-	dc.b $18,$30,$E7,$FB,$18,$04,$E7,$FF,$3F,$FF,$DF,$FB,$20,$04,$DF,$FB
-	dc.b $FB,$BF,$FB,$BF,$04,$40,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$03,$20
-	dc.b $FD,$DF,$02,$4F,$FD,$CF,$10,$30,$ED,$CF,$12,$4F,$EF,$CF,$21,$10
-	dc.b $CE,$EF,$31,$6F,$DE,$EF,$04,$20,$FF,$DF,$00,$5F,$FF,$DF,$66,$11
-	dc.b $B7,$6E,$48,$EE,$BF,$EE,$46,$23,$EB,$DC,$14,$5C,$FB,$DC,$FF,$93
-	dc.b $7F,$EC,$80,$6C,$7F,$EC,$FF,$A2,$FF,$DD,$00,$5D,$FF,$DD,$FF,$91
-	dc.b $00,$6F,$00,$6F,$00,$6F,$FF,$A1,$00,$5F,$00,$5F,$00,$5F,$00,$17
-	dc.b $FF,$E9,$00,$69,$00,$69,$00,$01,$FF,$FF,$FF,$FF,$FF,$FF,$00,$01
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$BF,$FB
-	dc.b $40,$05,$00,$01,$00,$01,$80,$01,$7F,$FF,$7F,$FF,$7F,$FF,$FF,$FF
-	dc.b $00,$01,$00,$01,$00,$01,$FF,$FF,$7F,$FE,$7F,$FE,$7F,$FE,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$00,$03,$FF,$FC,$00,$00,$00,$00,$00,$0C
-	dc.b $FF,$F3,$00,$00,$00,$00,$00,$30,$FF,$CF,$00,$00,$00,$00,$00,$C0
-	dc.b $FF,$3F,$00,$00,$00,$00,$03,$00,$FC,$FF,$00,$00,$00,$00,$0C,$00
-	dc.b $F3,$FF,$00,$00,$00,$00,$30,$00,$CF,$FF,$00,$00,$00,$00,$C0,$00
-	dc.b $3F,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$BF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$BF,$FF,$FF,$00,$00,$00,$00,$FF,$BF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$BF,$FF,$FF,$00,$00,$00,$00,$FF,$BF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$BF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$FF,$FF,$00,$00,$00,$00,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FB,$FF,$FF,$00,$00,$00,$00,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FB,$FF,$FF,$00,$00,$00,$00,$FF,$FB,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FB,$00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04
-	dc.b $00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04
-	dc.b $00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04
-	dc.b $00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04
-	dc.b $00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04
-	dc.b $00,$04,$00,$04,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40
-	dc.b $00,$40,$00,$40,$FF,$FF,$00,$7F,$00,$7F,$00,$7F,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00
-	dc.b $00,$00,$00,$00
-	dcb.b $A,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$FF,$FC,$FF,$FC,$FF,$FC,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $80,$3F,$7F,$C0,$7F,$C0,$7F,$FF,$80,$3F,$7F,$C0,$3F,$C0,$3F,$FF
-	dc.b $80,$3F,$7F,$C0,$3F,$C0,$3F,$FF,$80,$3F,$7F,$C0,$1F,$C0,$1F,$FF
-	dc.b $80,$3F,$7F,$C0,$1F,$C0,$1F,$FF,$83,$20,$7D,$C0,$01,$00,$01,$3F
-	dc.b $83,$20,$7D,$C0,$01,$00,$01,$3F,$FF,$20,$01,$C0,$01,$00,$01,$3F
-	dc.b $83,$20,$7D,$C0,$01,$00,$01,$3F,$83,$20,$7D,$C0,$01,$00,$01,$3F
-	dc.b $83,$E0,$7C,$00,$00,$00,$00,$3F,$83,$E0,$7D,$C0,$01,$C0,$01,$FF
-	dc.b $83,$20,$7D,$C0,$01,$00,$01,$3F,$83,$20,$7D,$C0,$01,$00,$01,$3F
-	dc.b $83,$20,$7D,$C0,$01,$00,$01,$3F,$FC,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$00,$00,$00,$00,$FF,$FF,$FC,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $FC,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$80,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $80,$00,$00,$00,$00,$00,$FF,$FF,$C0,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $C0,$00,$00,$00,$00,$00,$FF,$FF,$E0,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $E0,$00,$00,$00,$00,$00,$FF,$FF,$F0,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $F0,$00,$00,$00,$00,$00,$FF,$FF,$F8,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $F8,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$7F,$00,$7F,$00,$7F,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$40,$00,$40,$00,$40,$FF,$FF
-	dc.b $00,$40,$00,$40,$00,$40,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00
-	dcb.b $A,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$FF,$FC,$FF,$FC,$FF,$FC,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$04,$00,$04,$00,$04,$FF,$FF
-	dc.b $00,$04,$00,$04,$00,$04,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $A,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF
-	dc.b $80,$00,$7F,$FF,$7F,$FF,$7F,$FF,$80,$00,$7F,$FF,$7F,$FF,$7F,$FF
-	dc.b $80,$00,$7F,$FF,$3F,$FF,$3F,$FF,$80,$00,$7F,$FF,$3F,$FF,$3F,$FF
-	dc.b $80,$00,$7F,$FF,$1F,$FF,$1F,$FF,$80,$00,$7F,$FF,$1F,$FF,$1F,$FF
-	dc.b $83,$00,$7D,$80,$01,$FF,$01,$80,$83,$C0,$7D,$FF,$00,$3F,$00,$3F
-	dc.b $FF,$00,$01,$80,$01,$FF,$01,$80,$83,$C0,$7D,$FF,$00,$3F,$00,$3F
-	dc.b $83,$00,$7D,$80,$01,$FF,$01,$80,$83,$C0,$7D,$FF,$00,$3F,$00,$3F
-	dc.b $83,$00,$7D,$80,$01,$FF,$01,$80,$83,$C0,$7D,$FF,$00,$3F,$00,$3F
-	dc.b $83,$00,$7D,$80,$01,$FF,$01,$80,$83,$C0,$7D,$FF,$00,$3F,$00,$3F
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$DF,$EF,$FF,$FF,$1F,$E0,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $6B,$5F,$CF,$CF,$B3,$30,$FF,$FF,$57,$AF,$9F,$E0,$E7,$9F,$FF,$FF
-	dc.b $2F,$D0,$BF,$F0,$CF,$CF,$FF,$FF,$1F,$EF,$FF,$FF,$DF,$E0,$FF,$FF
-	dc.b $2F,$D0,$FF,$F0,$CF,$CF,$FF,$FF,$17,$AF,$FF,$E0,$E7,$9F,$FF,$FF
-	dc.b $0B,$5F,$EF,$CF,$F3,$30,$FF,$FF,$04,$BF,$F7,$9F,$F8,$60,$FF,$FF
-	dc.b $0B,$7F,$F3,$3F,$FC,$C0,$FF,$FF,$03,$7F,$FB,$3F,$FC,$C0,$FF,$FF
-	dc.b $03,$7F,$FB,$3F,$FC,$C0,$FF,$FF,$03,$7F,$FF,$3F,$FC,$C0,$FF,$FF
-	dc.b $03,$7F,$FF,$3F,$FC,$C0,$FF,$FF,$03,$7F,$FF,$3F,$FC,$C0,$FF,$FF
-	dc.b $03,$7F,$FF,$3F,$FC,$C0,$FF,$FF,$00,$BF,$FF,$9F,$FC,$60,$FF,$FF
-	dc.b $03,$5F,$FF,$CF,$FF,$30,$FF,$FF,$03,$AF,$FF,$E0,$FF,$9F,$FF,$FF
-	dc.b $03,$D0,$FF,$F0,$FF,$CF,$FF,$FF,$03,$EF,$FF,$FF,$FF,$E0,$FF,$FF
-	dc.b $03,$D0,$FF,$F0,$FF,$CF,$FF,$FF,$03,$AF,$FF,$E0,$FF,$9F,$FF,$FF
-	dc.b $03,$5F,$FF,$CF,$FF,$30,$FF,$FF,$00,$BF,$FF,$9F,$FC,$60,$FF,$FF
-	dc.b $03,$7F,$FF,$3F,$FC,$C0,$FF,$FF,$03,$7F,$FF,$3F,$FC,$C0,$FF,$FF
-	dc.b $03,$7F,$FF,$3F,$FC,$C0,$FF,$FF,$03,$7F,$FF,$3F,$FC,$C0,$FF,$FF
-	dc.b $03,$7F,$FF,$3F,$FC,$C0,$FF,$FF,$03,$7F,$FF,$3F,$FC,$C0,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$F4,$BF,$E7,$9E,$18,$60,$FF,$FE
-	dc.b $EB,$5F,$CF,$CE,$33,$32,$FF,$FE,$D7,$AB,$1F,$E6,$E7,$9A,$FF,$FA
-	dc.b $2F,$DE,$3F,$F5,$CF,$C4,$FF,$F4,$DF,$E7,$FF,$FA,$1F,$EA,$FF,$EA
-	dc.b $2F,$D3,$3F,$EE,$CF,$C2,$FF,$C2,$D7,$A7,$1F,$DA,$E7,$82,$FF,$82
-	dc.b $EB,$5A,$CF,$AD,$33,$08,$FF,$08,$F5,$8B,$E6,$F6,$18,$92,$FE,$92
-	dc.b $F8,$A7,$F3,$5A,$0D,$02,$FD,$02,$FA,$4B,$F5,$B6,$08,$02,$F8,$02
-	dc.b $F4,$B2,$FB,$5D,$00,$10,$F0,$10,$EB,$17,$F5,$EA,$01,$22,$E1,$22
-	dc.b $F1,$4B,$CE,$B6,$02,$02,$C2,$02,$FF,$FF,$AE,$EE,$2E,$EE,$AE,$EE
-	dc.b $FF,$FF,$F0,$3F,$0F,$C0,$FF,$FF,$FF,$FF,$E0,$0F,$1F,$F0,$F8,$3F
-	dc.b $FF,$FF,$C0,$07,$3F,$F8,$E7,$CF,$FF,$FF,$00,$00,$FF,$FF,$D8,$37
-	dc.b $7F,$FC,$00,$00,$FF,$FF,$D0,$17,$FF,$FF,$00,$01,$FF,$FE,$A0,$0B
-	dc.b $FF,$FE,$00,$00,$FF,$FF,$A0,$0B,$FF,$FF,$00,$00,$FF,$FF,$A0,$0B
-	dc.b $FF,$FF,$00,$01,$FF,$FE,$A0,$0B,$FF,$FE,$00,$01,$FF,$FF,$A0,$0B
-	dc.b $FF,$FE,$80,$01,$7F,$FF,$D0,$17,$FF,$FE,$80,$01,$7F,$FF,$D8,$37
-	dc.b $FF,$FE,$80,$01,$7F,$FF,$E7,$CF,$FF,$FE,$80,$01,$7F,$FF,$F8,$3F
-	dc.b $FF,$F8,$C0,$07,$3F,$FF,$FF,$FF,$DF,$F0,$E0,$0F,$3F,$FF,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$DF,$EF,$FF,$FF,$1F,$E0,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$7B,$7F,$F3,$3F,$8C,$C0,$FF,$FF
-	dc.b $7B,$7F,$F3,$3F,$8C,$C0,$FF,$FF,$7B,$7F,$F3,$3F,$8C,$C0,$FF,$FF
-	dc.b $7B,$7F,$F3,$3F,$8C,$C0,$FF,$FF,$7B,$7F,$F3,$3F,$8C,$C0,$FF,$FF
-	dc.b $D7,$D0,$B8,$2F,$77,$EF,$F7,$EF,$D6,$10,$FD,$EF,$35,$EF,$F5,$EF
-	dc.b $F1,$10,$DE,$EF,$34,$EF,$F4,$EF,$CC,$20,$13,$DF,$F3,$DF,$F3,$DF
-	dc.b $37,$C0,$28,$3E,$D8,$3F,$F8,$3F,$D8,$03,$FF,$FF,$1F,$FC,$FF,$FF
-	dc.b $2E,$00,$3D,$F0,$CF,$FF,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $7B,$7F,$F3,$3F,$8C,$C0,$FF,$FF,$74,$BF,$E7,$9F,$98,$60,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$DF,$EF,$FF,$FF,$1F,$E0,$FF,$FF
-	dc.b $2F,$D0,$3F,$F0,$CF,$CF,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FF,$FF,$F0,$3F,$0F,$C0,$FF,$FF,$FF,$FF,$C0,$1F,$3F,$E0,$F0,$7F
-	dc.b $FF,$FF,$80,$0F,$7F,$F0,$CF,$9F,$FF,$FF,$00,$00,$FF,$FF,$B0,$6F
-	dc.b $FF,$F8,$00,$00,$FF,$FF,$A0,$2F,$FF,$FF,$00,$03,$FF,$FC,$40,$17
-	dc.b $FF,$FC,$00,$00,$FF,$FF,$40,$17,$FF,$FF,$00,$00,$FF,$FF,$40,$17
-	dc.b $FF,$FF,$00,$03,$FF,$FC,$40,$17,$FF,$FD,$00,$03,$FF,$FE,$40,$17
-	dc.b $FF,$FD,$00,$03,$FF,$FE,$A0,$2F,$FF,$FC,$00,$03,$FF,$FF,$B0,$6F
-	dc.b $FF,$FC,$00,$03,$FF,$FF,$CF,$9F,$FF,$FC,$00,$03,$FF,$FF,$F0,$7F
-	dc.b $7F,$F0,$80,$0F,$FF,$FF,$FF,$FF,$3F,$E0,$C0,$1F,$FF,$FF,$FF,$FF
-	dc.b $AF,$A0,$70,$5F,$EF,$DF,$EF,$DF,$2C,$20,$FB,$DF,$EB,$DF,$EB,$DF
-	dc.b $E2,$21,$FD,$DF,$29,$DE,$E9,$DF,$D8,$41,$27,$BE,$E7,$BF,$E7,$BF
-	dc.b $2F,$80,$10,$7C,$F0,$7F,$F0,$7F,$D0,$07,$FF,$FF,$1F,$F8,$FF,$FF
-	dc.b $2C,$10,$3B,$F0,$CF,$EF,$FF,$FF,$D7,$AF,$1F,$E0,$E7,$9F,$FF,$FF
-	dc.b $EB,$5F,$CF,$CF,$33,$30,$FF,$FF,$F4,$BF,$E7,$9F,$18,$60,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF,$FB,$7F,$F3,$3F,$0C,$C0,$FF,$FF
-	dc.b $FF,$FF,$E0,$00,$1F,$FF,$FF,$FF,$FF,$FF,$9F,$FF,$7D,$00,$FF,$FF
-	dc.b $E0,$00,$A0,$00,$7F,$FF,$FF,$FF,$C0,$00,$40,$00,$FF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$FF,$FF,$FF,$FF,$C0,$00,$40,$00,$FF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$FF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$FF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$FF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $FF,$FF,$00,$1F,$FF,$E0,$FF,$FF,$FF,$FF,$FF,$E7,$00,$18,$FF,$FF
-	dc.b $00,$0F,$00,$07,$FF,$F8,$FF,$FF,$00,$07,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$00,$FF,$FF,$FF,$FF,$00,$05,$00,$03,$FF,$FE,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$40,$00,$BF,$FF,$FF,$FF,$C0,$00,$40,$00,$BF,$FF,$FF,$FF
-	dc.b $C0,$00,$80,$00,$7F,$FF,$FF,$FF,$E0,$00,$80,$00,$7F,$FF,$FF,$FF
-	dc.b $FF,$FF,$E0,$00,$1F,$FF,$FF,$FF,$E0,$00,$FF,$FF,$1F,$FF,$FF,$FF
-	dc.b $F0,$00,$FF,$FF,$0F,$FF,$FF,$FF,$F8,$00,$F7,$FF,$0F,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$04,$00,$03,$FF,$FF,$FF,$FF,$00,$04,$00,$03,$FF,$FF,$FF,$FF
-	dc.b $00,$08,$00,$07,$FF,$FF,$FF,$FF,$00,$10,$00,$0F,$FF,$FF,$FF,$FF
-	dc.b $FF,$E0,$00,$1F,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$01,$FF,$FF,$FF,$FE,$FF,$FF,$00,$03,$FF,$FF,$FF,$FC,$FF,$FF
+	INCBIN "assets/world_tile_pixels_383_through_464.bin"
+; bitmap
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$15,$FF,$EA,$FF,$EA,$FF,$EA
@@ -17447,684 +15300,29 @@ scene_pixel_cells_for_mask_bank_46:
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_46.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_47:
-	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00
-	dc.b $00,$03,$00,$03,$00,$06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00
-	dc.b $00,$03,$00,$03,$00,$0C,$00,$0F,$B1,$80,$80,$00,$70,$00,$F0,$00
-	dc.b $00,$37,$00,$07,$00,$08,$00,$0F,$9F,$E0,$A1,$80,$71,$80,$F1,$80
-	dc.b $00,$E3,$00,$33,$00,$2C,$00,$2F,$CB,$F0,$A7,$E0,$73,$E0,$F3,$E0
-	dc.b $01,$ED,$00,$FB,$00,$E6,$00,$EF,$9B,$F0,$67,$80,$F3,$80,$F3,$80
-	dc.b $01,$AF,$00,$F3,$00,$A4,$00,$A7,$CB,$B0,$37,$40,$F3,$00,$F3,$00
-	dc.b $01,$6E,$00,$B5,$00,$23,$00,$27,$1D,$80,$E6,$40,$E4,$40,$E4,$40
-	dc.b $03,$F7,$01,$3B,$01,$38,$01,$3B,$34,$80,$4F,$80,$C7,$40,$C7,$C0
-	dc.b $03,$73,$01,$BD,$01,$B4,$01,$B5,$08,$00,$FE,$00,$CA,$80,$CA,$80
-	dc.b $03,$5D,$01,$BE,$01,$9E,$01,$9E,$80,$00,$FC,$00,$C4,$00,$C4,$00
-	dc.b $03,$1E,$00,$FF,$00,$5F,$00,$5F,$04,$00,$F8,$00,$80,$00,$80,$00
-	dc.b $03,$1E,$01,$FF,$01,$5F,$01,$5F,$00,$00,$FC,$00,$04,$00,$04,$00
-	dc.b $03,$5C,$01,$BF,$01,$3D,$01,$3D,$00,$00,$FC,$00,$0C,$00,$0C,$00
-	dc.b $03,$61,$01,$BE,$01,$38,$01,$38,$42,$00,$BC,$00,$B0,$00,$B0,$00
-	dc.b $03,$68,$01,$BF,$01,$2F,$01,$2F,$2A,$00,$F4,$00,$C0,$00,$F0,$00
-	dc.b $03,$7B,$01,$B4,$01,$30,$01,$30,$F2,$00,$0C,$00,$00,$00,$00,$00
-	dc.b $03,$FF,$00,$1C,$00,$1C,$00,$1C,$72,$00,$DC,$00,$D0,$00,$D0,$00
-	dc.b $01,$3F,$01,$18,$02,$98,$03,$98,$7A,$00,$EC,$00,$E8,$00,$E8,$00
-	dc.b $01,$9E,$01,$80,$02,$00,$03,$80,$BA,$00,$74,$00,$30,$00,$30,$00
-	dc.b $01,$80,$01,$00,$02,$80,$03,$80,$BA,$00,$7C,$00,$38,$00,$38,$00
-	dc.b $01,$00,$01,$00,$02,$80,$03,$80,$BE,$00,$78,$00,$38,$00,$38,$00
-	dc.b $00,$00,$00,$00,$01,$00,$01,$00,$7A,$00,$3C,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $7A,$00,$1C,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $CA,$00,$74,$00,$40,$00,$40
-	dcb.b $9,$00
-	dc.b $EA,$00,$74,$00,$60,$00,$60
-	dcb.b $9,$00
-	dc.b $EE,$00,$70,$00,$60,$00,$60
-	dcb.b $9,$00
-	dc.b $6C,$00,$30,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $34,$00,$08
-	dcb.b $D,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $38
-	dcb.b $C,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$37,$00,$07,$00
-	dc.b $08,$00,$0F,$9C,$00,$A0,$00,$70,$00,$F0,$00,$00,$63,$00,$33,$00
-	dc.b $2C,$00,$2F,$CA,$00,$A4,$00,$70,$00,$F0,$00,$01,$ED,$00,$7B,$00
-	dc.b $66,$00,$6F,$9B,$00,$66,$00,$F2,$00,$F2,$00,$03,$EF,$01,$73,$01
-	dc.b $64,$01,$67,$CB,$80,$37,$00,$F3,$00,$F3,$00,$03,$EE,$01,$B5,$01
-	dc.b $A3,$01,$A7,$1F,$C0,$E7,$80,$E7,$80,$E7,$80,$07,$F7,$03,$BB,$03
-	dc.b $B8,$03,$BB,$37,$E0,$4D,$C0,$C5,$C0,$C5,$C0,$07,$F3,$02,$BD,$02
-	dc.b $B4,$02,$B5,$0A,$F0,$FD,$C0,$C8,$C0,$C8,$C0,$07,$9B,$03,$7E,$03
-	dc.b $5E,$03,$5E,$85,$78,$FA,$B0,$C2,$30,$C2,$30,$07,$9C,$03,$3F,$03
-	dc.b $3F,$03,$3F,$00,$B8,$FC,$70,$84,$30,$84,$30,$07,$9E,$03,$3F,$03
-	dc.b $3F,$03,$3F,$00,$78,$FC,$30,$04,$30,$04,$30,$07,$9D,$03,$3E,$03
-	dc.b $3E,$03,$3E,$80,$3C,$7C,$18,$0C,$18,$0C,$18,$07,$A1,$02,$3E,$02
-	dc.b $3A,$02,$3A,$CE,$10,$30,$00,$30,$0C,$30,$0C,$01,$20,$00,$3F,$07
-	dc.b $A7,$07,$A7,$16,$0C,$E8,$0C,$E0,$12,$E0,$1E,$03,$B3,$03,$BC,$04
-	dc.b $30,$07,$B0,$66,$08,$D8,$08,$80,$14,$C0,$1C,$02,$3D,$02,$1E,$05
-	dc.b $9C,$07,$9C,$52,$00,$BC,$00,$90,$08,$B0,$08,$03,$3D,$03,$1E,$04
-	dc.b $1C,$07,$1C,$7A,$00,$BC,$00,$B8,$00,$B8,$00,$00,$3F,$00,$1C,$03
-	dc.b $1C,$03,$1C,$52,$00,$3C,$00,$10,$00,$10,$00,$00,$3F,$00,$1C,$00
-	dc.b $1C,$00,$1C,$56,$00,$38,$00,$10,$00,$10,$00,$00,$3E,$00,$18,$00
-	dc.b $18,$00,$18,$7A,$00,$04,$00,$00,$00,$00,$00,$00,$1E,$00,$00,$00
-	dc.b $00,$00,$00,$62,$00,$3C,$00,$20,$00,$20,$00,$00,$1A,$00,$0C,$00
-	dc.b $08,$00,$08,$72,$00,$3C,$00,$30,$00,$30,$00,$00,$1C,$00,$00,$00
-	dc.b $00,$00,$00,$74,$00,$38,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $34,$00,$08
-	dcb.b $D,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $38
-	dcb.b $C,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$37,$00,$07,$00
-	dc.b $08,$00,$0F,$9C,$00,$A0,$00,$70,$00,$F0,$00,$00,$E3,$00,$33,$00
-	dc.b $2C,$00,$2F,$CA,$00,$A4,$00,$70,$00,$F0,$00,$01,$ED,$00,$FB,$00
-	dc.b $E6,$00,$EF,$9B,$00,$66,$00,$F2,$00,$F2,$00,$03,$AF,$01,$F3,$01
-	dc.b $A4,$01,$A7,$CB,$80,$36,$00,$F2,$00,$F2,$00,$07,$6E,$03,$F5,$03
-	dc.b $63,$03,$67,$1F,$80,$E7,$00,$E7,$00,$E7,$00,$0B,$F7,$07,$BB,$03
-	dc.b $B8,$03,$BB,$37,$C0,$4D,$00,$C5,$00,$C5,$00,$1F,$B3,$0D,$7D,$0D
-	dc.b $74,$0D,$75,$09,$C0,$FF,$80,$CB,$80,$CB,$80,$1F,$1B,$0E,$3E,$0E
-	dc.b $1E,$0E,$1E,$05,$C0,$FB,$80,$83,$80,$83,$80,$1E,$1C,$0C,$3F,$0C
-	dc.b $3F,$0C,$3F,$03,$E0,$FC,$40,$04,$40,$04,$40,$3A,$1E,$1C,$3F,$18
-	dc.b $3F,$18,$3F,$03,$E0,$FC,$C0,$04,$C0,$04,$C0,$0C,$1D,$00,$3E,$30
-	dc.b $3E,$30,$3E,$03,$E0,$7C,$C0,$0C,$C0,$0C,$C0,$30,$61,$30,$3E,$48
-	dc.b $3C,$78,$3C,$C3,$E0,$3C,$C0,$30,$C0,$30,$C0,$10,$60,$10,$3F,$28
-	dc.b $27,$38,$27,$0A,$80,$F4,$00,$E0,$60,$E0,$60,$00,$77,$00,$3C,$10
-	dc.b $30,$10,$34,$72,$60,$8C,$60,$80,$90,$80,$F0,$00,$79,$00,$3E,$00
-	dc.b $38,$00,$3C,$7A,$20,$8C,$20,$88,$50,$88,$70,$00,$7D,$00,$36,$00
-	dc.b $34,$00,$34,$7A,$20,$94,$20,$90,$50,$90,$70,$00,$7F,$00,$3C,$00
-	dc.b $3C,$00,$3C,$7A,$00,$1C,$00,$18,$20,$18,$20,$00,$7F,$00,$3C,$00
-	dc.b $3C,$00,$3C,$7C,$00,$18,$00,$18,$00,$18,$00,$00,$7D,$00,$2E,$00
-	dc.b $2C,$00,$2C,$3C
-	dcb.b $8,$00
-	dc.b $3F,$00,$18,$00,$18,$00,$18,$34,$00,$18,$00,$10,$00,$10,$00,$00
-	dc.b $3D,$00,$1A,$00,$18,$00,$18,$1C
-	dcb.b $8,$00
-	dc.b $3D,$00,$02
-	dcb.b $D,$00
-	dc.b $3A,$00,$04
-	dcb.b $D,$00
-	dc.b $1A,$00,$04
-	dcb.b $D,$00
-	dc.b $0F
-	dcb.b $F,$00
-	dc.b $0D,$00,$06,$00,$04,$00,$04
-	dcb.b $9,$00
-	dc.b $0F
-	dcb.b $F,$00
-	dc.b $0D,$00,$06,$00,$04,$00,$04
-	dcb.b $9,$00
-	dc.b $06
-	dcb.b $13,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$03,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$0F,$F7,$03,$07,$03
-	dc.b $08,$03,$0F,$9C,$00,$A0,$00,$70,$00,$F0,$00,$1F,$E3,$0F,$F3,$0F
-	dc.b $EC,$0F,$EF,$CA,$00,$A4,$00,$70,$00,$F0,$00,$1F,$ED,$0B,$FB,$0B
-	dc.b $E6,$0B,$EF,$9B,$00,$66,$00,$F2,$00,$F2,$00,$0F,$AF,$05,$F3,$05
-	dc.b $A4,$05,$A7,$C9,$80,$37,$00,$F1,$00,$F1,$00,$07,$AE,$00,$F5,$08
-	dc.b $A3,$08,$A7,$1D,$80,$E7,$00,$E5,$00,$E5,$00,$07,$B7,$06,$7B,$08
-	dc.b $78,$0E,$7B,$37,$C0,$4F,$80,$C7,$80,$C7,$80,$02,$F3,$02,$3D,$05
-	dc.b $34,$07,$35,$0B,$C0,$FD,$80,$C9,$80,$C9,$80,$00,$1B,$00,$3E,$02
-	dc.b $1E,$02,$1E,$07,$C0,$F9,$80,$81,$80,$81,$80,$00,$1C,$00,$3F,$00
-	dc.b $3F,$00,$3F,$03,$C0,$FC,$00,$04,$00,$04,$00,$00,$1C,$00,$3F,$00
-	dc.b $3E,$00,$3E,$01,$C0,$FE,$80,$06,$80,$06,$80,$00,$18,$00,$3F,$00
-	dc.b $3C,$00,$3C,$03,$C0,$7D,$80,$0D,$80,$0D,$80,$00,$61,$00,$3E,$00
-	dc.b $3C,$00,$3C,$43,$C0,$BD,$80,$B1,$80,$B1,$80,$00,$60,$00,$3F,$00
-	dc.b $3F,$00,$3F,$0B,$C0,$F5,$80,$E1,$80,$E1,$80,$00,$73,$00,$3C,$00
-	dc.b $10,$00,$30,$73,$C0,$8D,$80,$81,$80,$81,$80,$00,$3C,$00,$7B,$00
-	dc.b $39,$00,$79,$F7,$C0,$38,$00,$30,$00,$30,$00,$00,$7C,$00,$37,$00
-	dc.b $35,$00,$35,$FC,$00,$18,$00,$19,$C0,$19,$C0,$00,$79,$00,$2E,$00
-	dc.b $28,$00,$28,$79,$80,$01,$80,$02,$40,$03,$C0,$00,$7B,$00,$3C,$00
-	dc.b $38,$00,$38,$01,$80,$00,$80,$01,$40,$01,$C0,$00,$7B,$00,$3C,$00
-	dc.b $38,$00,$38,$00,$80,$00,$80,$01,$40,$01,$C0,$00,$7F,$00,$3C,$00
-	dc.b $3C,$00,$3C,$00,$00,$00,$00,$00,$80,$00,$80,$00,$5D,$00,$3A,$00
-	dc.b $18,$00,$18
-	dcb.b $9,$00
-	dc.b $79,$00,$26,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $7D,$00,$3A,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $69,$00,$1E,$00,$08,$00,$08
-	dcb.b $9,$00
-	dc.b $32,$00,$0C
-	dcb.b $D,$00
-	dc.b $3C,$00,$10,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $1C
-	dcb.b $13,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$37,$00,$07,$00
-	dc.b $08,$00,$0F,$9C,$00,$A0,$00,$70,$00,$F0,$00,$00,$63,$00,$33,$00
-	dc.b $2C,$00,$2F,$CA,$00,$A4,$00,$70,$00,$F0,$00,$00,$ED,$00,$7B,$00
-	dc.b $66,$00,$6F,$9B,$80,$66,$00,$F2,$00,$F2,$00,$01,$EF,$00,$F3,$00
-	dc.b $E4,$00,$E7,$C9,$C0,$36,$80,$F0,$80,$F0,$80,$03,$AE,$01,$F5,$01
-	dc.b $A3,$01,$A7,$1D,$C0,$E7,$80,$E5,$80,$E5,$80,$07,$F7,$03,$BB,$03
-	dc.b $B8,$03,$BB,$37,$E0,$4F,$C0,$C7,$C0,$C7,$C0,$0B,$33,$07,$FD,$03
-	dc.b $74,$03,$75,$0B,$E0,$FD,$40,$C9,$40,$C9,$40,$1E,$9D,$0D,$7E,$0C
-	dc.b $5E,$0C,$5E,$87,$E0,$F8,$C0,$C0,$C0,$C0,$C0,$1D,$1E,$0E,$3F,$0C
-	dc.b $3F,$0C,$3F,$03,$E0,$FC,$C0,$84,$C0,$84,$C0,$1A,$1E,$0C,$3F,$08
-	dc.b $3E,$08,$3E,$01,$E0,$FE,$C0,$86,$C0,$86,$C0,$3C,$1C,$18,$3F,$18
-	dc.b $3C,$18,$3C,$03,$E0,$FC,$C0,$4C,$C0,$4C,$C0,$08,$61,$10,$3E,$30
-	dc.b $38,$30,$38,$C3,$E0,$3C,$40,$30,$40,$30,$40,$30,$60,$30,$3F,$48
-	dc.b $27,$78,$27,$0A,$80,$F4,$80,$E1,$60,$E1,$E0,$10,$73,$10,$3C,$28
-	dc.b $30,$38,$30,$73,$C0,$CD,$C0,$80,$20,$C1,$E0,$00,$6A,$00,$3D,$10
-	dc.b $29,$10,$29,$74,$40,$B8,$40,$31,$A0,$B1,$E0,$00,$7A,$00,$3D,$00
-	dc.b $39,$00,$39,$F4,$C0,$38,$C0,$30,$20,$30,$E0,$00,$7A,$00,$3C,$00
-	dc.b $38,$00,$38,$7C,$00,$38,$00,$38,$C0,$38,$C0,$00,$7A,$00,$3C,$00
-	dc.b $38,$00,$38,$7C,$00,$38,$00,$38,$00,$38,$00,$00,$5E,$00,$38,$00
-	dc.b $18,$00,$18,$7C,$00,$18,$00,$18,$00,$18,$00,$00,$7A,$00,$04,$00
-	dc.b $00,$00,$00,$78
-	dcb.b $8,$00
-	dc.b $72,$00,$2C,$00,$20,$00,$20,$68,$00,$30,$00,$20,$00,$20,$00,$00
-	dc.b $32,$00,$0C,$00,$00,$00,$00,$38
-	dcb.b $8,$00
-	dc.b $3C,$00,$10,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $34,$00,$18,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $1C
-	dcb.b $13,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$37,$00,$07,$00
-	dc.b $08,$00,$0F,$9C,$00,$A0,$00,$70,$00,$F0,$00,$00,$63,$00,$33,$00
-	dc.b $2C,$00,$2F,$CB,$00,$A4,$00,$70,$00,$F0,$00,$00,$ED,$00,$7B,$00
-	dc.b $66,$00,$6F,$9B,$80,$67,$00,$F3,$00,$F3,$00,$01,$EF,$00,$73,$00
-	dc.b $64,$00,$67,$CA,$C0,$37,$80,$F2,$80,$F2,$80,$01,$EE,$00,$F5,$00
-	dc.b $E3,$00,$E7,$1D,$E0,$E7,$C0,$E5,$C0,$E5,$C0,$03,$F7,$00,$BB,$00
-	dc.b $B8,$00,$BB,$37,$D0,$4D,$E0,$C5,$C0,$C5,$C0,$03,$B3,$01,$FD,$01
-	dc.b $F4,$01,$F5,$09,$E8,$FE,$B0,$CA,$A0,$CA,$A0,$03,$1D,$01,$FE,$01
-	dc.b $5E,$01,$5E,$84,$F8,$FA,$70,$C2,$70,$C2,$70,$06,$9E,$03,$7F,$02
-	dc.b $7F,$02,$7F,$00,$74,$FC,$38,$84,$30,$84,$30,$07,$9F,$03,$7F,$03
-	dc.b $7F,$03,$7F,$00,$3C,$FC,$18,$84,$18,$84,$18,$07,$9C,$03,$7F,$03
-	dc.b $7C,$03,$7C,$00,$10,$FC,$00,$4C,$0C,$4C,$0C,$07,$A1,$03,$7E,$03
-	dc.b $78,$03,$78,$CA,$0C,$3C,$0C,$30,$12,$3C,$1E,$03,$60,$00,$3F,$04
-	dc.b $27,$04,$27,$0A,$08,$F4,$08,$E0,$14,$E0,$1C,$06,$73,$06,$3C,$09
-	dc.b $30,$0F,$30,$72,$00,$8C,$00,$80,$08,$80,$08,$04,$7A,$04,$35,$0A
-	dc.b $31,$0E,$31,$FA,$00,$5C,$00,$58,$00,$58,$00,$04,$7A,$04,$2D,$0A
-	dc.b $29,$0E,$29,$FA,$00,$6C,$00,$68,$00,$68,$00,$00,$7A,$00,$3C,$04
-	dc.b $38,$04,$38,$7A,$00,$3C,$00,$38,$00,$38,$00,$00,$3E,$00,$18,$00
-	dc.b $18,$00,$18,$7A,$00,$3C,$00,$38,$00,$38,$00,$00,$3C,$00,$00,$00
-	dc.b $00,$00,$00,$3A,$00,$34,$00,$30,$00,$30,$00,$00,$34,$00,$18,$00
-	dc.b $10,$00,$10,$74,$00,$18,$00,$10,$00,$10,$00,$00,$38,$00,$00,$00
-	dc.b $00,$00,$00,$F4,$00,$58,$00,$50,$00,$50
-	dcb.b $9,$00
-	dc.b $FC,$00,$40,$00,$40,$00,$40
-	dcb.b $9,$00
-	dc.b $7C,$00,$20,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $58,$00,$20
-	dcb.b $D,$00
-	dc.b $F0
-	dcb.b $F,$00
-	dc.b $D0,$00,$60,$00,$40,$00,$40
-	dcb.b $9,$00
-	dc.b $F0
-	dcb.b $F,$00
-	dc.b $D0,$00,$60,$00,$40,$00,$40
-	dcb.b $9,$00
-	dc.b $60
-	dcb.b $C,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$07,$00,$07,$00
-	dc.b $08,$00,$0F,$D0,$00,$C0,$00,$30,$00,$F0,$00,$00,$05,$00,$05,$00
-	dc.b $0A,$00,$0F,$90,$00,$80,$00,$70,$00,$F0,$00,$00,$02,$00,$02,$00
-	dc.b $0D,$00,$0F,$30,$00,$00,$00,$F0,$00,$F0,$00,$00,$05,$00,$0D,$00
-	dc.b $02,$00,$07,$20,$00,$10,$00,$E0,$00,$E0,$00,$00,$78,$00,$08,$00
-	dc.b $0F,$00,$0F,$7E,$00,$10,$00,$F0,$00,$F0,$00,$01,$FF,$00,$77,$00
-	dc.b $77,$00,$77,$FF,$80,$E6,$00,$E6,$00,$E6,$00,$01,$FF,$00,$F8,$00
-	dc.b $F8,$00,$F8,$F7,$C0,$1F,$80,$17,$80,$17,$80,$03,$BF,$01,$DF,$01
-	dc.b $9F,$01,$9F,$FF,$C0,$7B,$80,$7B,$80,$7B,$80,$03,$3E,$01,$DF,$01
-	dc.b $1E,$01,$1E,$BF,$C0,$78,$80,$38,$80,$38,$80,$07,$18,$03,$EF,$03
-	dc.b $28,$03,$28,$85,$C0,$7A,$80,$02,$80,$02,$80,$06,$5E,$03,$AF,$02
-	dc.b $2E,$02,$2E,$85,$C0,$7B,$80,$03,$80,$03,$80,$0E,$8E,$07,$35,$06
-	dc.b $34,$06,$34,$A3,$80,$5C,$00,$0C,$00,$0C,$00,$0F,$83,$00,$3C,$00
-	dc.b $3C,$00,$3C,$C1,$00,$3C,$00,$3E,$00,$3E,$00,$09,$B0,$06,$1F,$00
-	dc.b $1F,$00,$1F,$0E,$00,$F8,$00,$F8,$00,$F8,$00,$07,$1F,$00,$0F,$00
-	dc.b $8F,$00,$8F,$7A,$00,$FC,$00,$F8,$00,$F8,$00,$03,$17,$03,$0F,$04
-	dc.b $8F,$07,$8F,$EA,$00,$74,$00,$60,$00,$60,$00,$00,$19,$00,$06,$03
-	dc.b $06,$03,$06,$F2,$00,$0C,$00,$00,$00,$00,$00,$00,$1E,$00,$00,$00
-	dc.b $00,$00,$00,$FA,$00,$7C,$00,$78,$00,$78,$00,$00,$0E,$00,$00,$00
-	dc.b $00,$00,$00,$FA,$00,$7C,$00,$78,$00,$78,$00,$00,$1A,$00,$0C,$00
-	dc.b $08,$00,$08,$FA,$00,$7C,$00,$78,$00,$78,$00,$00,$1E,$00,$00,$00
-	dc.b $00,$00,$00,$F4,$00,$58,$00,$50,$00,$50
-	dcb.b $9,$00
-	dc.b $74,$00,$38,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7C
-	dcb.b $F,$00
-	dc.b $74,$00,$08
-	dcb.b $D,$00
-	dc.b $72,$00,$3C,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7A,$00,$2C,$00,$28,$00,$28
-	dcb.b $9,$00
-	dc.b $7A,$00,$24,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $7C,$00,$38,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $74,$00,$38,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7C
-	dcb.b $C,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$07,$00,$07,$00
-	dc.b $08,$00,$0F,$D0,$00,$C0,$00,$30,$00,$F0,$00,$00,$05,$00,$05,$00
-	dc.b $0A,$00,$0F,$90,$00,$80,$00,$70,$00,$F0,$00,$00,$02,$00,$02,$00
-	dc.b $0D,$00,$0F,$30,$00,$00,$00,$F0,$00,$F0,$00,$00,$05,$00,$0D,$00
-	dc.b $02,$00,$07,$20,$00,$10,$00,$E0,$00,$E0,$00,$00,$78,$00,$08,$00
-	dc.b $0F,$00,$0F,$7E,$00,$10,$00,$F0,$00,$F0,$00,$01,$FF,$00,$77,$00
-	dc.b $77,$00,$77,$FB,$80,$E6,$00,$E2,$00,$E2,$00,$01,$FF,$00,$F8,$00
-	dc.b $F8,$00,$F8,$F3,$80,$1F,$00,$13,$00,$13,$00,$03,$BF,$01,$DF,$01
-	dc.b $9F,$01,$9F,$FB,$C0,$7D,$80,$79,$80,$79,$80,$03,$3E,$01,$DF,$01
-	dc.b $1E,$01,$1E,$BB,$C0,$7D,$80,$39,$80,$39,$80,$07,$18,$03,$EF,$03
-	dc.b $28,$03,$28,$80,$E0,$7F,$C0,$04,$C0,$04,$C0,$06,$5E,$03,$AF,$02
-	dc.b $2E,$02,$2E,$8A,$60,$75,$C0,$04,$40,$04,$40,$0E,$8E,$07,$35,$06
-	dc.b $34,$06,$34,$A1,$C0,$5E,$00,$0E,$00,$0E,$00,$0E,$83,$07,$3C,$06
-	dc.b $7C,$06,$7C,$C3,$00,$3D,$00,$3C,$80,$3D,$80,$0D,$B0,$06,$9F,$04
-	dc.b $5F,$04,$DF,$0A,$00,$FC,$00,$F9,$00,$F9,$00,$07,$1F,$00,$0F,$00
-	dc.b $8F,$00,$8F,$7A,$00,$FC,$00,$F8,$00,$F8,$00,$00,$1E,$00,$01,$00
-	dc.b $01,$00,$01,$FA,$00,$3C,$00,$38,$00,$38,$00,$00,$10,$00,$0E,$00
-	dc.b $0E,$00,$0E,$FA,$00,$04,$00,$00,$00,$00,$00,$00,$1A,$00,$0C,$00
-	dc.b $08,$00,$08,$52,$00,$2C,$00,$00,$00,$00,$00,$00,$0E,$00,$00,$00
-	dc.b $00,$00,$00,$72,$00,$3C,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7A,$00,$3C,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $7C,$00,$38,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $7C,$00,$20,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $6C,$00,$10
-	dcb.b $D,$00
-	dc.b $72,$00,$1C,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $7A,$00,$3C,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $7A,$00,$3C,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $1C,$00,$02
-	dcb.b $D,$00
-	dc.b $32,$00,$1C,$00,$10,$00,$10
-	dcb.b $9,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $1C
-	dcb.b $C,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$07,$00,$07,$00
-	dc.b $08,$00,$0F,$D0,$00,$C0,$00,$30,$00,$F0,$00,$00,$05,$00,$05,$00
-	dc.b $0A,$00,$0F,$90,$00,$80,$00,$70,$00,$F0,$00,$00,$02,$00,$02,$00
-	dc.b $0D,$00,$0F,$30,$00,$00,$00,$F0,$00,$F0,$00,$00,$05,$00,$0D,$00
-	dc.b $02,$00,$07,$20,$00,$10,$00,$E0,$00,$E0,$00,$00,$78,$00,$08,$00
-	dc.b $0F,$00,$0F,$7E,$00,$10,$00,$F0,$00,$F0,$00,$00,$FF,$00,$77,$00
-	dc.b $77,$00,$77,$FF,$80,$E6,$00,$E6,$00,$E6,$00,$01,$FF,$00,$F8,$00
-	dc.b $F8,$00,$F8,$F7,$80,$1F,$00,$17,$00,$17,$00,$01,$6F,$00,$FF,$00
-	dc.b $6F,$00,$6F,$FB,$C0,$7D,$80,$79,$80,$79,$80,$03,$4E,$01,$FF,$01
-	dc.b $4E,$01,$4E,$BB,$C0,$7D,$80,$39,$80,$39,$80,$03,$58,$01,$BF,$01
-	dc.b $38,$01,$38,$84,$E0,$7B,$C0,$02,$C0,$02,$C0,$07,$5E,$03,$BF,$03
-	dc.b $3E,$03,$3E,$85,$60,$7A,$C0,$02,$40,$02,$40,$06,$4E,$03,$B5,$02
-	dc.b $34,$02,$34,$A3,$70,$5C,$E0,$0C,$60,$0C,$60,$06,$C3,$03,$3C,$02
-	dc.b $3C,$02,$3C,$C3,$30,$3C,$E0,$3C,$20,$3C,$20,$03,$70,$00,$3F,$00
-	dc.b $BF,$00,$BF,$03,$B0,$FD,$60,$F0,$20,$F1,$20,$00,$FF,$00,$3F,$00
-	dc.b $3F,$00,$3F,$6E,$E0,$F0,$00,$E1,$00,$E1,$00,$00,$7F,$00,$30,$00
-	dc.b $30,$00,$30,$FC
-	dcb.b $8,$00
-	dc.b $39,$00,$3E,$00,$38,$00,$38,$FC
-	dcb.b $8,$00
-	dc.b $39,$00,$1E,$00,$18,$00,$18,$4C,$00,$30,$00,$00,$00,$00,$00,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18,$62,$00,$1C,$00,$00,$00,$00,$00,$00
-	dc.b $36,$00,$08,$00,$00,$00,$00,$6A,$00,$3C,$00,$28,$00,$28,$00,$00
-	dc.b $3E,$00,$10,$00,$10,$00,$10,$72,$00,$3C,$00,$30,$00,$30,$00,$00
-	dc.b $7A,$00,$34,$00,$30,$00,$30,$7E,$00,$20,$00,$20,$00,$20,$00,$00
-	dc.b $6A,$00,$34,$00,$20,$00,$20,$72,$00,$0C,$00,$00,$00,$00,$00,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18,$30,$00,$1C,$00,$1C,$00,$1C,$00,$00
-	dc.b $22,$00,$1C,$00,$1C,$00,$1C,$00,$00,$1E,$00,$1E,$00,$1E,$00,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18,$00,$00,$1E,$00,$1E,$00,$1E,$00,$00
-	dc.b $1E
-	dcb.b $8,$00
-	dc.b $1E,$00,$1E,$00,$1E
-	dcb.b $B,$00
-	dc.b $1E,$00,$1E,$00,$1E
-	dcb.b $B,$00
-	dc.b $1C,$00,$1C,$00,$1C,$00,$00,$00,$00,$00,$00,$03,$00,$03,$00,$00
-	dc.b $00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00,$06,$00,$07,$80,$00
-	dc.b $80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00,$0C,$00,$0F,$B0,$00
-	dc.b $80,$00,$70,$00,$F0,$00,$00,$07,$00,$07,$00,$08,$00,$0F,$D0,$00
-	dc.b $C0,$00,$30,$00,$F0,$00,$00,$05,$00,$05,$00,$0A,$00,$0F,$90,$00
-	dc.b $80,$00,$70,$00,$F0,$00,$00,$02,$00,$02,$00,$0D,$00,$0F,$30,$00
-	dc.b $00,$00,$F0,$00,$F0,$00,$00,$05,$00,$0D,$00,$02,$00,$07,$20,$00
-	dc.b $10,$00,$E0,$00,$E0,$00,$00,$78,$00,$08,$00,$0F,$00,$0F,$7E,$00
-	dc.b $10,$00,$F0,$00,$F0,$00,$01,$FF,$00,$77,$00,$77,$00,$77,$FF,$80
-	dc.b $E6,$00,$E6,$00,$E6,$00,$03,$FF,$01,$F8,$01,$F8,$01,$F8,$F7,$80
-	dc.b $1F,$00,$17,$00,$17,$00,$03,$CF,$01,$FF,$01,$CF,$01,$CF,$FB,$C0
-	dc.b $7D,$80,$79,$80,$79,$80,$03,$DE,$01,$3F,$01,$1E,$01,$1E,$BB,$C0
-	dc.b $7D,$80,$39,$80,$39,$80,$03,$D8,$01,$3F,$01,$38,$01,$38,$84,$E0
-	dc.b $7B,$C0,$02,$C0,$02,$C0,$03,$DE,$01,$BF,$01,$BE,$01,$BE,$85,$E0
-	dc.b $7A,$C0,$02,$C0,$02,$C0,$01,$CE,$00,$35,$00,$34,$00,$34,$A1,$70
-	dc.b $5C,$E0,$0C,$60,$0C,$60,$00,$83,$00,$3C,$00,$7C,$00,$7C,$C1,$F0
-	dc.b $3C,$00,$3C,$00,$3C,$00,$00,$70,$00,$1F,$00,$1F,$00,$1F,$05,$90
-	dc.b $F8,$60,$F0,$00,$F0,$00,$00,$7F,$00,$3F,$00,$3F,$00,$3F,$48,$E0
-	dc.b $F0,$00,$C1,$00,$C1,$00,$00,$7F,$00,$38,$00,$38,$00,$38,$78,$C0
-	dc.b $80,$C0,$81,$20,$81,$E0,$00,$7F,$00,$30,$00,$30,$00,$30,$08,$00
-	dc.b $70,$00,$70,$C0,$70,$C0,$00,$79,$00,$3E,$00,$38,$00,$38,$78
-	dcb.b $8,$00
-	dc.b $7D,$00,$3E,$00,$3C,$00,$3C,$70
-	dcb.b $8,$00
-	dc.b $79,$00,$3E,$00,$38,$00,$38,$68,$00,$30,$00,$20,$00,$20,$00,$00
-	dc.b $3D,$00,$1A,$00,$18,$00,$18,$78
-	dcb.b $8,$00
-	dc.b $3E,$00,$1C,$00,$1C,$00,$1C
-	dcb.b $9,$00
-	dc.b $3E
-	dcb.b $F,$00
-	dc.b $2E,$00,$10
-	dcb.b $D,$00
-	dc.b $72,$00,$3C,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7A,$00,$34,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7A,$00,$24,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $22,$00,$1C
-	dcb.b $D,$00
-	dc.b $3C
-	dcb.b $F,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $3E
-	dcb.b $13,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$07,$00,$07,$00
-	dc.b $08,$00,$0F,$D0,$00,$C0,$00,$30,$00,$F0,$00,$00,$05,$00,$05,$00
-	dc.b $0A,$00,$0F,$90,$00,$80,$00,$70,$00,$F0,$00,$00,$02,$00,$02,$00
-	dc.b $0D,$00,$0F,$30,$00,$00,$00,$F0,$00,$F0,$00,$00,$05,$00,$0D,$00
-	dc.b $02,$00,$07,$20,$00,$10,$00,$E0,$00,$E0,$00,$00,$78,$00,$08,$00
-	dc.b $0F,$00,$0F,$7E,$00,$10,$00,$F0,$00,$F0,$00,$01,$FF,$00,$77,$00
-	dc.b $77,$00,$77,$FF,$80,$E6,$00,$E6,$00,$E6,$00,$01,$FF,$00,$F8,$00
-	dc.b $F8,$00,$F8,$F7,$80,$1F,$00,$17,$00,$17,$00,$03,$BF,$01,$DF,$01
-	dc.b $9F,$01,$9F,$FB,$C0,$7D,$80,$79,$80,$79,$80,$03,$3E,$01,$CF,$01
-	dc.b $0E,$01,$0E,$BB,$C0,$7D,$80,$39,$80,$39,$80,$07,$18,$03,$EF,$03
-	dc.b $28,$03,$28,$84,$E0,$7B,$C0,$02,$C0,$02,$C0,$06,$5E,$03,$AF,$02
-	dc.b $2E,$02,$2E,$85,$E0,$7A,$C0,$02,$C0,$02,$C0,$03,$CE,$00,$35,$00
-	dc.b $34,$00,$34,$A1,$70,$5C,$E0,$0C,$60,$0C,$60,$00,$C3,$00,$BC,$01
-	dc.b $3C,$01,$BC,$C1,$70,$3C,$E0,$3E,$60,$3E,$60,$00,$70,$00,$3F,$00
-	dc.b $BF,$00,$BF,$05,$B0,$F9,$60,$F2,$20,$F3,$20,$00,$7F,$00,$3F,$00
-	dc.b $3F,$00,$3F,$48,$E0,$F0,$00,$C1,$00,$C1,$00,$00,$7F,$00,$3C,$00
-	dc.b $3C,$00,$3C,$78,$00,$80,$00,$80,$00,$80,$00,$00,$7F,$00,$20,$00
-	dc.b $20,$00,$20,$08,$00,$70,$00,$70,$00,$70,$00,$00,$6A,$00,$34,$00
-	dc.b $20,$00,$20,$68,$00,$30,$00,$20,$00,$20,$00,$00,$7A,$00,$3C,$00
-	dc.b $38,$00,$38,$70
-	dcb.b $8,$00
-	dc.b $7A,$00,$3C,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $3A,$00,$1C,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $3A,$00,$04
-	dcb.b $D,$00
-	dc.b $2E,$00,$10
-	dcb.b $D,$00
-	dc.b $76,$00,$38,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $72,$00,$3C,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $7A,$00,$3C,$00,$38,$00,$38
-	dcb.b $9,$00
-	dc.b $74,$00,$38,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $38,$00,$40
-	dcb.b $D,$00
-	dc.b $74,$00,$38,$00,$30,$00,$30
-	dcb.b $9,$00
-	dc.b $64,$00,$38,$00,$20,$00,$20
-	dcb.b $9,$00
-	dc.b $38
-	dcb.b $13,$00
-	dc.b $03,$00,$03,$00,$00,$00,$00,$C0,$00,$C0,$00,$00,$03,$00,$03,$00
-	dc.b $06,$00,$07,$80,$00,$80,$00,$60,$00,$E0,$00,$00,$03,$00,$03,$00
-	dc.b $0C,$00,$0F,$B0,$00,$80,$00,$70,$00,$F0,$00,$00,$07,$00,$07,$00
-	dc.b $08,$00,$0F,$D0,$00,$C0,$00,$30,$00,$F0,$00,$00,$05,$00,$05,$00
-	dc.b $0A,$00,$0F,$90,$00,$80,$00,$70,$00,$F0,$00,$00,$02,$00,$02,$00
-	dc.b $0D,$00,$0F,$30,$00,$00,$00,$F0,$00,$F0,$00,$00,$05,$00,$0D,$00
-	dc.b $02,$00,$07,$20,$00,$10,$00,$E0,$00,$E0,$00,$00,$78,$00,$08,$00
-	dc.b $0F,$00,$0F,$7E,$00,$10,$00,$F0,$00,$F0,$00,$01,$FF,$00,$77,$00
-	dc.b $77,$00,$77,$FF,$00,$E6,$00,$E6,$00,$E6,$00,$01,$FF,$00,$F8,$00
-	dc.b $F8,$00,$F8,$F7,$80,$1F,$00,$17,$00,$17,$00,$03,$FF,$01,$BF,$01
-	dc.b $BF,$01,$BF,$FB,$80,$7F,$00,$7B,$00,$7B,$00,$03,$FE,$01,$9F,$01
-	dc.b $9E,$01,$9E,$BB,$C0,$7E,$80,$3A,$80,$3A,$80,$07,$58,$03,$AF,$03
-	dc.b $28,$03,$28,$85,$C0,$7B,$80,$03,$80,$03,$80,$07,$5E,$03,$AF,$03
-	dc.b $2E,$03,$2E,$84,$E0,$7B,$C0,$02,$C0,$02,$C0,$0E,$CE,$07,$35,$06
-	dc.b $34,$06,$34,$A2,$60,$5D,$C0,$0C,$40,$0C,$40,$0E,$C3,$07,$3C,$06
-	dc.b $3C,$06,$3C,$C3,$60,$3C,$C0,$3C,$40,$3C,$40,$0F,$F0,$06,$BF,$06
-	dc.b $3F,$06,$BF,$02,$C0,$FC,$00,$F1,$00,$F1,$00,$07,$7F,$00,$0F,$00
-	dc.b $8F,$00,$8F,$73,$00,$FC,$00,$F0,$00,$F0,$00,$00,$2F,$00,$17,$00
-	dc.b $17,$00,$17,$8A,$00,$74,$00,$00,$00,$00,$00,$00,$31,$00,$0E,$00
-	dc.b $0E,$00,$0E,$F2,$00,$0C,$00,$00,$00,$00,$00,$00,$32,$00,$0C,$00
-	dc.b $04,$00,$04,$F4,$00,$78,$00,$70,$00,$70,$00,$00,$76,$00,$38,$00
-	dc.b $30,$00,$30,$74,$00,$38,$00,$30,$00,$30,$00,$00,$72,$00,$3C,$00
-	dc.b $30,$00,$30,$6C,$00,$10,$00,$00,$00,$00,$00,$00,$72,$00,$3C,$00
-	dc.b $30,$00,$30,$74,$00,$08,$00,$00,$00,$00,$00,$00,$7A,$00,$04,$00
-	dc.b $00,$00,$00,$72,$00,$2C,$00,$20,$00,$20,$00,$00,$7E,$00,$30,$00
-	dc.b $30,$00,$30,$7A,$00,$24,$00,$20,$00,$20,$00,$00,$04,$00,$38,$00
-	dc.b $30,$00,$30,$64,$00,$38,$00,$20,$00,$20,$00,$00,$00,$00,$78,$00
-	dc.b $78,$00,$78,$7C
-	dcb.b $A,$00
-	dc.b $78,$00,$78,$00,$78,$74,$00,$38,$00,$30,$00,$30,$00,$00,$00,$00
-	dc.b $78,$00,$78,$00,$78,$78
-	dcb.b $A,$00
-	dc.b $78
-	dc.b $00,$78,$00,$78
-	dcb.b $B,$00
-	dc.b $38,$00,$38,$00,$38
-	dcb.b $D,$00
-	dc.b $07,$00,$07,$00,$00,$00,$00,$80,$00,$80,$00,$00,$07,$00,$07,$00
-	dc.b $0C,$00,$0F,$80,$00,$80,$00,$40,$00,$C0,$00,$00,$0F,$00,$0F,$00
-	dc.b $10,$00,$1F
-	dc.b $80,$00,$80,$00,$60,$00,$E0,$00,$00,$0D,$00,$0D,$00,$12,$00,$1F
-	dc.b $00,$00,$00,$00,$E0,$00,$E0,$00,$00,$0A,$00,$0A,$00,$15,$00,$1F
-	dc.b $A0,$00,$60,$00,$C0,$00,$E0,$00,$00,$0E,$00,$0A,$00,$15,$00,$1F
-	dc.b $40,$00,$40,$00,$A0,$00,$E0,$00,$00,$06,$00,$04,$00,$0B,$00,$0F
-	dc.b $A0,$00,$40,$00,$E0,$00,$E0,$00,$00,$08,$00,$00,$00,$07,$00,$07
-	dc.b $20,$00,$00,$00,$C0,$00,$C0,$00,$00,$1F,$00,$08,$00,$08,$00,$08
-	dc.b $E0,$00,$80,$00,$00,$00,$80,$00,$00,$3C,$00,$1F,$00,$1C,$00,$1C
-	dc.b $D0,$00,$20,$00,$00,$00,$00,$00,$00,$78,$00,$1F,$00,$18,$00,$18
-	dc.b $18,$00,$E0,$00,$40,$00,$40,$00,$00,$7A,$00,$1D,$00,$18,$00,$18
-	dc.b $18,$00,$E0,$00,$20,$00,$20,$00,$00,$7D,$00,$1A,$00,$18,$00,$18
-	dc.b $08,$00,$F0,$00,$10,$00,$10,$00,$00,$71,$00,$1E,$00,$10,$00,$10
-	dc.b $08,$00,$F0,$00,$10,$00,$10,$00,$00,$75,$00,$1E,$00,$14,$00,$14
-	dc.b $00,$00,$F8,$00,$08,$00,$08,$00,$00,$1D,$00,$3E,$00,$3C,$00,$3C
-	dc.b $00,$00,$F8,$00,$08,$00,$08,$00,$00,$0E,$00,$3D,$00,$3D,$00,$3D
-	dc.b $00,$00,$F8,$00,$88,$00,$88,$00,$00,$1F,$00,$0C,$00,$0C,$00,$0C
-	dc.b $60,$00,$98,$00,$98,$00,$98,$00,$00,$3D,$00,$0A,$00,$08,$00,$08
-	dc.b $00,$00,$F0,$00,$10,$00,$10,$00,$00,$3D,$00,$0E,$00,$0C,$00,$0C
-	dc.b $00,$00,$E0,$00,$20,$00,$20,$00,$00,$3D,$00,$0E,$00,$0C,$00,$0C
-	dc.b $A0,$00,$C0,$00,$80,$00,$80,$00,$00,$3D,$00,$0E,$00,$0C,$00,$0C
-	dc.b $A0,$00,$C0,$00,$80,$00,$80,$00,$00,$1F,$00,$0C,$00,$0C,$00,$0C
-	dc.b $20,$00,$C0,$00,$00,$00,$00,$00,$00,$1F,$00,$02,$00,$00,$00,$02
-	dc.b $40,$00,$80,$00,$00,$00,$00,$00,$00,$17,$00,$07,$00,$08,$00,$0F
-	dc.b $70,$00,$00,$00,$80,$00,$80,$00,$00,$16,$00,$06,$00,$09,$00,$0F
-	dc.b $50,$00,$A0,$00,$00,$00,$00,$00,$00,$18,$00,$08,$00,$0F,$00,$0F
-	dc.b $70,$00,$80,$00,$00,$00,$00,$00,$00,$1F,$00,$00,$00,$00,$00,$00
-	dc.b $C0
-	dcb.b $8,$00
-	dc.b $1D,$00,$0A,$00,$08,$00,$08,$20,$00,$C0,$00,$00,$00,$00,$00,$00
-	dc.b $1F,$00,$00,$00,$00,$00,$00,$E0
-	dcb.b $C,$00
-	dc.b $07,$00,$07,$00,$00,$00,$00,$80,$00,$80,$00
-	dc.b $00,$07,$00,$07,$00,$0C,$00,$0F,$80,$00,$80,$00,$40,$00,$C0,$00
-	dc.b $00,$0F,$00,$0F,$00,$10,$00,$1F,$80,$00,$80,$00,$60,$00,$E0,$00
-	dc.b $00,$0D,$00,$0D,$00,$12,$00,$1F,$00,$00,$00,$00,$E0,$00,$E0,$00
-	dc.b $00,$0A,$00,$0A,$00,$15,$00,$1F,$A0,$00,$60,$00,$C0,$00,$E0,$00
-	dc.b $00,$0E,$00,$0A,$00,$15,$00,$1F,$40,$00,$40,$00,$A0,$00,$E0,$00
-	dc.b $00,$06,$00,$04,$00,$0B,$00,$0F,$A0,$00,$40,$00,$E0,$00,$E0,$00
-	dc.b $00,$08,$00,$00,$00,$07,$00,$07,$20,$00,$00,$00,$C0,$00,$C0,$00
-	dc.b $00,$1F,$00,$08,$00,$08,$00,$08,$E0,$00,$80,$00,$00,$00,$80,$00
-	dc.b $00,$3C,$00,$1F,$00,$1C,$00,$1C,$D0,$00,$20,$00,$00,$00,$00,$00
-	dc.b $00,$7E,$00,$1F,$00,$1E,$00,$1E,$1F,$80,$EE,$00,$4E,$00,$4E,$00
-	dc.b $00,$7F,$00,$0E,$00,$0E,$00,$0E,$11,$80,$EF,$00,$21,$60,$21,$60
-	dc.b $00,$7F,$00,$17,$00,$17,$00,$17,$88,$C0,$77,$40,$10,$30,$10,$70
-	dc.b $00,$7F,$00,$17,$00,$17,$00,$17,$8F,$A0,$70,$20,$10,$50,$10,$70
-	dc.b $00,$7F,$00,$1B,$00,$1B,$00,$1B,$E0,$40,$98,$00,$88,$70,$88,$70
-	dc.b $00,$1F,$00,$3D,$00,$3D,$00,$3D,$FC,$00,$E0,$00,$E0,$00,$E0,$00
-	dc.b $00,$01,$00,$3E,$00,$3E,$00,$3E,$FE,$00,$F8,$00,$F8,$00,$F8,$00
-	dc.b $00,$1C,$00,$03,$00,$03,$00,$03,$FC,$80,$3C,$00,$3F,$80,$3F,$80
-	dc.b $00,$3F,$00,$18,$00,$18,$00,$18
-	dc.b $FF,$60,$07,$00,$04,$C0,$07,$C0,$00,$3F,$00,$1F,$00,$1F,$00,$1F
-	dc.b $25,$78,$D9,$00,$02,$C0,$03,$C0,$00,$3F,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$A4,$FE,$58,$01,$00,$01,$00,$00,$17,$00,$0F,$00,$07,$00,$07
-	dc.b $E1,$FC,$FE,$00,$E0,$00,$E0,$00,$00,$0F,$00,$00,$00,$00,$00,$00
-	dc.b $F8,$80,$1F,$00,$18,$00,$18
-	dcb.b $9,$00
-	dc.b $1E,$40,$03,$80,$02,$00,$02
-	dcb.b $9,$00
-	dc.b $0F,$20,$07,$C0,$07,$00,$07
-	dcb.b $9,$00
-	dc.b $07,$F8,$02,$00,$02,$00,$02
-	dcb.b $9,$00
-	dc.b $03,$D4,$00,$A8,$00,$80,$00,$80
-	dcb.b $8,$00
-	dc.b $01,$FC,$00,$00,$00,$00,$00,$00
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_47.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_48:
-	dc.b $01,$80,$00,$00,$07,$00,$07,$80,$09,$40,$00,$80,$01,$40,$0E,$C0
-	dc.b $1E,$80,$01,$20,$1E,$E0,$11,$60,$01,$00,$0E,$20,$11,$E0,$1E,$E0
-	dc.b $1E,$00,$00,$C0,$1F,$E0,$11,$E0,$10,$20,$01,$20,$01,$D0,$1F,$F0
-	dc.b $00,$20,$1F,$C0,$1F,$F0,$1F,$F0,$00,$00,$0F,$E0,$0F,$E0,$0F,$E0
-	dc.b $00,$80,$0F,$60,$0F,$E0,$0F,$E0,$00,$80,$0B,$40,$0B,$40,$0B,$40
-	dc.b $00,$00,$01,$C0,$01,$C0,$01,$C0,$01,$80,$00,$00,$07,$00,$07,$80
-	dc.b $09,$40,$00,$80,$01,$40,$0E,$C0
-	dc.b $1E,$80,$01,$20,$1E,$E0,$11,$60,$01,$00,$0E,$20,$11,$E0,$1E,$E0
-	dc.b $1E,$00,$00,$C0,$1F,$E0,$11,$E0,$10,$60,$01,$60,$01,$D0,$1F,$F0
-	dc.b $00,$20,$1F,$C0,$1F,$F0,$1F,$F0,$00,$00,$0F,$E0,$0F,$E0,$0F,$E0
-	dc.b $00,$80,$0F,$60,$0F,$E0,$0F,$E0,$00,$80,$0B,$40,$0B,$40,$0B,$40
-	dc.b $00,$00,$01,$C0,$01,$C0,$01,$C0
+	dc.w $0180,$0000,$0700,$0780,$0940,$0080,$0140,$0EC0	; bitmap
+	dc.w $1E80,$0120,$1EE0,$1160,$0100,$0E20,$11E0,$1EE0	; bitmap
+	dc.w $1E00,$00C0,$1FE0,$11E0,$1020,$0120,$01D0,$1FF0	; bitmap
+	dc.w $0020,$1FC0,$1FF0,$1FF0,$0000,$0FE0,$0FE0,$0FE0	; bitmap
+	dc.w $0080,$0F60,$0FE0,$0FE0,$0080,$0B40,$0B40,$0B40	; bitmap
+	dc.w $0000,$01C0,$01C0,$01C0,$0180,$0000,$0700,$0780	; bitmap
+	dc.w $0940,$0080,$0140,$0EC0,$1E80,$0120,$1EE0,$1160	; bitmap
+	dc.w $0100,$0E20,$11E0,$1EE0,$1E00,$00C0,$1FE0,$11E0	; bitmap
+	dc.w $1060,$0160,$01D0,$1FF0,$0020,$1FC0,$1FF0,$1FF0	; bitmap
+	dc.w $0000,$0FE0,$0FE0,$0FE0,$0080,$0F60,$0FE0,$0FE0	; bitmap
+	dc.w $0080,$0B40,$0B40,$0B40,$0000,$01C0,$01C0,$01C0	; bitmap
 scene_pixel_cells_for_mask_bank_49:
-	dc.b $3C,$00,$DF,$FF,$1C,$7F,$1C,$7F,$BF,$00,$CC,$FF,$8C,$7F,$8C,$7F
-	dc.b $DF,$00,$E3,$C0,$C3,$F0,$C3,$F0,$FE,$F0,$E7,$70,$E7,$A8,$E7,$F8
-	dc.b $F5,$48,$EE,$48,$E7,$B4,$E7,$FC,$DA,$B0,$E6,$30,$C5,$CC,$C7,$FC
-	dc.b $25,$78,$D8,$78,$1F,$84,$1F,$FC,$04,$00,$F8,$00,$FF,$F8,$FF,$F8
-	dc.b $02,$08,$FC,$04,$FF,$FC,$FF,$FC,$11,$F0,$CE,$0C,$CF,$FC,$CF,$FC
-	dc.b $00,$00,$0F,$F8,$0F,$F8,$0F,$F8,$00,$00,$07,$E0,$07,$E0,$07,$E0
-	dcb.b $20,$00
-	dc.b $3C,$00,$DF,$FF,$1C,$7F,$1C,$7F,$BF,$00,$CC,$FF,$8C,$7F,$8C,$7F
-	dc.b $DF,$30,$E3,$C0,$C3,$F0,$C3,$F0,$FE,$D8,$E7,$00,$E7,$C8,$E7,$38
-	dc.b $F5,$3C,$EE,$00,$E7,$3C,$E6,$C4,$DB,$64,$E4,$1C,$C7,$60,$C4,$9C
-	dc.b $26,$CE,$D8,$30,$1E,$C8,$1D,$36
-	dc.b $06,$96,$F8,$60,$FE,$96,$FD,$6E,$03,$EA,$FC,$44,$FE,$AA,$FF,$5E
-	dc.b $11,$BE,$CE,$00,$CF,$EE,$CF,$FE,$00,$00,$0F,$F8,$0F,$F8,$0F,$F8
-	dc.b $00,$00,$07,$E0,$07,$E0,$07,$E0
-	dcb.b $20,$00
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_49.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_50:
-	dc.b $00,$40,$00,$00,$00,$40,$00,$00,$00,$C0,$00,$00,$00,$C0,$00,$00
-	dc.b $80,$C0,$00,$00,$80,$C0,$00,$00,$61,$C0,$00,$80,$61,$C0,$00,$80
-	dc.b $7B,$E0,$21,$C0,$7B,$E0,$21,$C0,$3F,$E0,$19,$C0,$3F,$E0,$19,$C0
-	dc.b $3F,$F0,$1B,$C0,$3F,$F0,$1B,$C0,$1F,$FC,$0F,$F0,$1F,$FC,$0F,$F0
-	dc.b $1F,$FF,$0F,$FC,$1F,$FF,$0F,$FC,$0F,$F8,$07,$C0,$0F,$F8,$07,$C0
-	dc.b $1F,$F0,$0C,$E0,$1F,$F0,$0C,$E0,$3D,$F0,$10,$60,$3D,$F0,$10,$60
-	dc.b $30,$78,$00,$10,$30,$78,$00,$10,$40,$18,$00,$00,$40,$18
-	dcb.b $13,$00
-	dc.b $40,$00,$00,$00,$40,$00,$00,$00,$C0,$00,$00,$00,$C0,$00,$00,$80
-	dc.b $C0,$00,$00,$80,$C0,$00,$00,$61,$C0,$00,$80,$61,$C0,$00,$80,$7B
-	dc.b $60,$21,$C0,$7B,$E0,$21,$C0,$2F,$20,$19,$C0,$3F,$E0,$19,$C0,$3E
-	dc.b $70,$1B,$C0,$3F,$F0,$1B,$C0
-	dc.b $19,$9C,$0F,$F0,$1F,$FC,$0F,$F0,$16,$EF,$0F,$FC,$1F,$FF,$0F,$FC
-	dc.b $0B,$B8,$07,$C0,$0F,$F8,$07,$C0,$17,$B0,$0C,$E0,$1F,$F0,$0C,$E0
-	dc.b $3D,$D0,$10,$60,$3D,$F0,$10,$60,$30,$78,$00,$10,$30,$78,$00,$10
-	dc.b $40,$18,$00,$00,$40,$18
-	dcb.b $15,$00
-	dc.b $40,$00,$00,$00,$40,$00,$00,$00,$C0,$00,$00,$00,$C0,$00,$00,$80
-	dc.b $C0,$00,$00,$80,$C0,$00,$80,$61,$C0,$00,$80,$61,$C0,$21,$40,$7B
-	dc.b $E0,$21,$C0,$7B,$E0,$09,$00,$3F,$E0,$19,$C0,$3F,$E0,$1A,$40,$3F
-	dc.b $F0,$1B,$C0,$3F,$F0,$09,$90,$1F,$FC,$0F,$F0,$1F,$FC,$06,$EC,$1F
-	dc.b $FF,$0F,$FC,$1F,$FF,$03,$80,$0F,$F8,$07,$C0,$0F,$F8,$04,$A0,$1F
-	dc.b $F0,$0C,$E0,$1F,$F0,$10,$40,$3D,$F0,$10,$60,$3D,$F0,$00,$10,$30
-	dc.b $78,$00,$10,$30,$78,$00,$00,$40,$18,$00,$00,$40,$18
-	dcb.b $13,$00
-	dc.b $40,$00,$00,$00,$40,$00,$00,$00,$C0,$00,$00,$00,$C0,$00,$00,$80
-	dc.b $C0,$00,$00,$80,$C0,$00,$00,$61,$C0,$00,$80,$61,$C0,$01,$40,$7B
-	dc.b $E0,$21,$C0,$7B,$E0,$00,$00,$3F,$E0,$19,$C0,$3F,$E0,$12,$00,$3F
-	dc.b $F0,$1B,$C0,$3F,$F0
-	dc.b $08,$90,$1F,$FC,$0F,$F0,$1F,$FC,$00,$28,$1F,$FF,$0F,$FC,$1F,$FF
-	dc.b $02,$00,$0F,$F8,$07,$C0,$0F,$F8,$04,$80,$1F,$F0,$0C,$E0,$1F,$F0
-	dc.b $10,$40,$3D,$F0,$10,$60,$3D,$F0,$00,$10,$30,$78,$00,$10,$30,$78
-	dc.b $00,$00,$40,$18,$00,$00,$40,$18
-	dcb.b $2B,$00
-	dc.b $80,$00,$80,$00,$80,$00,$40,$20,$C0,$20,$C0,$20,$C0,$00,$00,$19
-	dc.b $C0,$19,$C0,$19,$C0,$12,$00,$1B,$C0,$1B,$C0,$1B,$C0,$08,$80,$0F
-	dc.b $E0,$0F,$E0,$0F,$E0,$00,$28,$0F,$FC,$0F,$FC,$0F,$FC,$02,$00,$07
-	dc.b $C0,$07,$C0,$07,$C0,$04,$80,$0C,$E0,$0C,$E0,$0C,$E0,$10,$40,$10
-	dc.b $60,$10,$60,$10,$60,$00,$10,$00,$10,$00,$10,$00,$10
-	dcb.b $33,$00
-	dc.b $80,$00,$80,$00,$80,$00,$00,$00,$C0,$00,$C0,$00,$C0,$00,$00,$19
-	dc.b $80,$19,$80,$19,$80,$00,$00,$02,$80,$02,$80,$02,$80,$00,$00,$02
-	dc.b $40,$02,$40,$02,$40,$00,$00,$0E,$D0,$0E,$D0,$0E,$D0,$00,$00,$05
-	dc.b $40,$05,$40,$05,$40,$00,$00,$04,$E0,$04,$E0,$04,$E0,$00,$00,$10
-	dc.b $40,$10,$40,$10,$40
-	dcb.b $A0,$00
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_50.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_51:
-	dc.b $08,$00,$04,$00,$0C,$00,$0C,$00,$00,$00,$0C,$00,$0C,$00,$0C,$00
-	dc.b $10,$00,$0C,$00,$1C,$00,$1C,$00,$10,$00,$0C,$00,$1C,$00,$1C,$00
-	dc.b $10,$00,$0C,$00,$1C,$00,$1C,$00,$10,$00,$0C,$00,$1C,$00,$1C,$00
-	dc.b $14,$00,$08,$00,$18,$00,$18,$00
-	dc.b $00,$00,$1C,$00,$1C,$00,$1C,$00,$08,$00,$34,$00,$34,$00,$34,$00
-	dc.b $00,$00,$2C,$00,$2C,$00,$2C,$00,$08,$00,$04,$00,$04,$00,$04,$00
-	dc.b $00,$00,$1C,$00,$1C,$00,$1C,$00,$28,$00,$14,$00,$34,$00,$34,$00
-	dc.b $28,$00,$14,$00,$34,$00,$34,$00,$28,$00,$04,$00,$24,$00,$24,$00
-	dc.b $08,$00,$04,$00,$04,$00,$04,$00,$08,$00,$04,$00,$04,$00,$04,$00
-	dc.b $08,$00,$04,$00,$04,$00,$04,$00,$0C,$00,$0C,$00,$0C,$00,$00,$00
-	dc.b $08,$00,$0C,$00,$0C,$00,$08,$00,$0C,$00,$0C,$00,$0C,$00,$00,$00
-	dc.b $08,$00,$0C,$00,$0C,$00,$08,$00,$0C,$00,$0C,$00,$0C,$00,$00,$00
-	dc.b $08,$00,$0C,$00,$0C,$00,$08,$00,$C0,$00,$C0,$00,$C0,$00,$80,$00
-	dc.b $20,$00,$60,$00,$60,$00,$00,$00,$60,$00,$60,$00,$60,$00,$40,$00
-	dc.b $10,$00,$30,$00,$30,$00,$00,$00,$30,$00,$30,$00,$30,$00,$20,$00
-	dc.b $20,$00,$10,$00,$10,$00,$00,$00,$20,$00,$10,$00,$10,$00,$10,$00
-	dc.b $10,$00,$08,$00,$08,$00,$08,$00,$10,$00,$08,$00,$08,$00,$08,$00
-	dc.b $10,$00,$08,$00,$08,$00,$08,$00,$28,$00,$14,$00,$34,$00,$34,$00
-	dc.b $20,$00,$1C,$00,$3C,$00,$3C,$00,$00,$00,$0C,$00,$0C,$00,$0C,$00
-	dc.b $00,$00,$06,$00,$06,$00,$06,$00,$00,$00,$1E,$00,$1E,$00,$1E,$00
-	dc.b $00,$00,$1E,$00,$1E,$00,$1E,$00,$04,$00,$03,$00,$07,$00,$07,$00
-	dc.b $04,$00,$03,$00,$07,$00,$07,$00,$04,$00,$03,$00,$07,$00,$07,$00
-	dc.b $04,$00,$03,$00,$07,$00,$07,$00,$00,$00,$03,$00,$03,$00,$03,$00
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_51.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_52:
 	dc.w $5400,$FFFF,$FFFF,$03FF,$4000,$BFF0,$BFF0,$BFF0	; bitmap
 	dc.w $FFF7,$FC08,$FC08,$A808,$8000,$7FF0,$7FF0,$7FF0	; bitmap
@@ -18135,36 +15333,8 @@ scene_pixel_cells_for_mask_bank_52:
 	dc.w $03C0,$7C31,$7FF1,$7FF1,$0000,$C000,$C000,$C000	; bitmap
 	dc.w $000C,$0010,$001C,$001C,$E000,$0000,$E000,$E000	; bitmap
 scene_pixel_cells_for_mask_bank_53:
-	dc.b $00,$00,$01,$E0,$01,$E0,$01,$E0,$00,$00,$07,$F8,$07,$18,$07,$18
-	dc.b $02,$78,$0D,$84,$09,$04,$09,$04,$07,$38,$08,$C4,$08,$C4,$08,$C4
-	dc.b $00,$C8,$07,$34,$07,$34,$07,$34,$0E,$00,$04,$F8,$0B,$F8,$0F,$F8
-	dc.b $07,$70,$03,$08,$04,$F8,$07,$F8,$06,$B0,$0E,$0C,$09,$E4,$0F,$E4
-	dc.b $03,$80,$1C,$1C,$17,$64,$17,$64,$00,$C8,$1F,$04,$16,$CC,$16,$34
-	dc.b $01,$88,$1E,$74,$15,$8C,$14,$74,$02,$F8,$1D,$04,$16,$FC,$14,$04
-	dc.b $0A,$00,$15,$FC,$13,$FC,$11,$FC,$10,$78,$0F,$84,$0F,$04,$0F,$04
-	dc.b $14,$98,$0B,$64,$08,$04,$08,$04,$1C,$98,$03,$64,$00,$04,$00,$04
-	dc.b $10,$D0,$0F,$28,$0C,$08,$0C,$08,$0C,$90,$03,$68,$03,$48,$03,$48
-	dc.b $0A,$B0,$05,$48,$00,$08,$00,$08,$05,$90,$02,$68,$00,$08,$00,$08
-	dc.b $04,$90,$03,$68,$00,$08,$00,$08,$04,$90,$03,$68,$00,$08,$00,$08
-	dc.b $04,$D0,$03,$28,$00,$08,$00,$08,$04,$C0,$03,$78,$00,$38,$00,$78
-	dc.b $02,$E0,$04,$E8,$05,$18,$05,$F8,$05,$60,$0E,$68,$0E,$98,$0E,$F8
-	dc.b $01,$10,$0E,$08,$0E,$E8,$0E,$E8,$00,$00,$03,$F8,$03,$F8,$03,$F8
-	dc.b $03,$00,$06,$F8,$06,$F8,$06,$F8,$00,$00,$07,$F8,$07,$F8,$07,$F8
-	dc.b $00,$00,$01,$E0,$01,$E0,$01,$E0,$00,$00,$07,$F8,$07,$18,$07,$18
-	dc.b $02,$78,$0D,$84,$09,$04,$09,$04,$07,$38,$08,$C4,$08,$C4,$08,$C4
-	dc.b $00,$C8,$07,$34,$07,$34,$07,$34,$0E,$00,$06,$F8,$0B,$F8,$0F,$F8
-	dc.b $07,$70,$03,$08,$04,$F8,$07,$F8,$06,$B0,$0E,$0C,$09,$E4,$0F,$E4
-	dc.b $03,$80,$1C,$1C,$17,$64,$17,$64,$00,$C8,$1F,$04,$16,$CC,$16,$34
-	dc.b $01,$88,$1E,$74,$15,$8C,$14,$74,$02,$F8,$1D,$04,$16,$FC,$14,$04
-	dc.b $0A,$00,$15,$FC,$13,$FC,$11,$FC,$10,$78,$0F,$84,$0F,$04,$0F,$04
-	dc.b $14,$98,$0B,$64,$08,$04,$08,$04,$1C,$98,$03,$64,$00,$04,$00,$04
-	dc.b $10,$D0,$0F,$28,$0C,$08,$0C,$08,$0C,$90,$03,$68,$03,$48,$03,$48
-	dc.b $0A,$B0,$05,$48,$00,$08,$00,$08,$05,$90,$02,$68,$00,$08,$00,$08
-	dc.b $04,$90,$03,$68,$00,$08,$00,$08,$04,$90,$03,$68,$00,$08,$00,$08
-	dc.b $04,$D0,$03,$28,$00,$08,$00,$08,$04,$C0,$03,$78,$00,$38,$00,$78
-	dc.b $02,$E0,$04,$E8,$05,$18,$05,$F8,$05,$60,$0E,$68,$0E,$98,$0E,$F8
-	dc.b $01,$10,$0E,$08,$0E,$E8,$0E,$E8,$00,$00,$03,$F8,$03,$F8,$03,$F8
-	dc.b $03,$00,$06,$F8,$06,$F8,$06,$F8,$00,$00,$07,$F8,$07,$F8,$07,$F8
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_53.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_54:
 	dc.w $0000,$0780,$0780,$0780,$0600,$0DE0,$0DE0,$0DE0	; bitmap
 	dc.w $0400,$1BF0,$1BF0,$1BF0,$1000,$2FF0,$2FF0,$2FF0	; bitmap
@@ -18182,684 +15352,138 @@ scene_pixel_cells_for_mask_bank_54:
 	dc.w $0880,$1070,$1FF0,$1FF0,$0000,$1FC0,$1FC0,$1FC0	; bitmap
 	dc.w $08C0,$1F20,$1D20,$1D20,$0000,$1FE0,$1FE0,$1FE0	; bitmap
 scene_pixel_cells_for_mask_bank_57:
-	dc.b $00,$00,$00,$03,$00,$03,$00,$03,$00,$00,$C0,$00,$C0,$00,$C0,$00
-	dc.b $00,$00,$00,$07,$00,$07,$00,$07,$00,$00,$E0,$00,$E0,$00,$E0,$00
-	dc.b $00,$00,$00,$0F,$00,$0F,$00,$0F,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$00,$00,$0F,$00,$0F,$00,$0F,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$70,$00,$7F,$00,$7F,$00,$0F,$04,$00,$FC,$00,$FC,$00,$F8,$00
-	dc.b $00,$81,$00,$FC,$00,$FF,$00,$0F,$12,$00,$FE,$00,$FE,$00,$E0,$00
-	dc.b $01,$0F,$01,$FA,$01,$FA,$00,$02,$F1,$00,$5F,$00,$FF,$00,$E0,$00
-	dc.b $01,$09,$01,$FD,$01,$FE,$00,$07,$D0,$80,$3F,$80,$FF,$80,$E0,$00
-	dc.b $02,$4A,$03,$FC,$03,$FF,$00,$07,$50,$40,$BF,$C0,$FF,$C0,$E0,$00
-	dc.b $04,$44,$07,$FF,$07,$FF,$00,$03,$2C,$20,$FF,$E0,$FF,$E0,$C8,$00
-	dc.b $09,$42,$0F,$FF,$0F,$FF,$00,$09,$06,$10,$FF,$F0,$FF,$F0,$D0,$00
-	dc.b $0A,$A7,$0F,$FF,$0F,$FF,$00,$4F,$EE,$10,$FF,$F0,$FF,$F0,$F8,$00
-	dc.b $10,$A0,$1F,$FC,$1F,$FC,$00,$4F,$04,$30,$3F,$F0,$3F,$F0,$F2,$00
-	dc.b $17,$70,$1F,$7C,$1F,$7C,$00,$0B,$3D,$F0,$3F,$F0,$3F,$F0,$CA,$00
-	dc.b $21,$5F,$3F,$7C,$3F,$7C,$00,$03,$EE,$90,$3F,$F0,$3F,$F0,$C9,$00
-	dc.b $22,$60,$3E,$7F,$3E,$7F,$00,$00,$02,$D0,$FE,$F0,$FE,$F0,$00,$00
-	dc.b $26,$60,$3E,$7F,$3E,$7F,$00,$00,$1E,$90,$FE,$90,$FE,$F0,$10,$60
-	dc.b $24,$4C,$24,$7F,$3C,$7F,$18,$03,$32,$30,$FE,$30,$FE,$48,$C0,$78
-	dc.b $18,$92,$18,$FF,$24,$FF,$3C,$01,$4A,$28,$FE,$20,$FE,$50,$80,$70
-	dc.b $10,$8E,$10,$FF,$28,$FF,$38,$01,$71,$10,$FF,$00,$FF,$20,$80,$20
-	dc.b $18,$84,$18,$FF,$24,$FF,$3C,$01,$21,$00,$FF,$00,$FF,$00,$80,$00
-	dc.b $00,$82,$00,$FE,$18,$FE,$18,$00,$51,$00,$7F,$00,$7F,$00,$00,$00
-	dc.b $00,$8A,$00,$FE,$00,$FE,$00,$00,$61,$00,$7F,$00,$7F,$00,$00,$00
-	dc.b $00,$46,$00,$7E,$00,$7E,$00,$00,$69,$00,$7F,$00,$7F,$00,$00,$00
-	dc.b $00,$A4,$00,$FC,$00,$FC,$00,$00,$65,$00,$7F,$00,$7F,$00,$00,$00
-	dc.b $00,$94,$00,$FC,$00,$FC,$00,$00,$2A,$00,$3E,$00,$3E,$00,$00,$00
-	dc.b $00,$84,$00,$FC,$00,$FC,$00,$00,$32,$00,$3E,$00,$3E,$00,$00,$00
-	dc.b $00,$78,$00,$78,$00,$78,$00,$00,$1C,$00,$1C,$00,$1C,$00,$00,$00
-	dc.b $00,$88,$00,$40,$00,$00,$00,$F8,$22,$00,$10,$00,$00,$00,$3E,$00
-	dc.b $00,$F8,$00,$00,$00,$00,$00,$F8,$3E,$00,$00,$00,$00,$00,$3E,$00
-	dc.b $00,$C8,$00,$40,$00,$40,$00,$F8,$32,$00,$10,$00,$10,$00,$3E,$00
-	dc.b $00,$70,$00,$00,$00,$00,$00,$70,$1C,$00,$00,$00,$00,$00,$1C,$00
-	dc.b $00,$00,$00,$0F,$00,$0F,$00,$0F,$00,$00,$C0,$00,$C0,$00,$C0,$00
-	dc.b $00,$00,$00,$1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00
-	dc.b $00,$00,$00,$1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00
-	dc.b $00,$00,$00,$1F,$00,$1F,$00,$1F,$10,$00,$E0,$00,$F0,$00,$F0,$00
-	dc.b $00,$00,$00,$1F,$00,$1F,$00,$1F,$30,$00,$B0,$00,$E0,$00,$F0,$00
-	dc.b $00,$00,$00,$1F,$00,$1F,$00,$1F,$00,$00,$C0,$00,$F0,$00,$F0,$00
-	dc.b $00,$01,$00,$1F,$00,$1E,$00,$1F,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$0F,$00,$1F,$00,$1F,$00,$10,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$30,$00,$3F,$00,$3F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$30,$00
-	dc.b $00,$2F,$00,$3F,$00,$3F,$00,$00,$10,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$60,$00,$7F,$00,$7F,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$10,$00,$F8,$00,$F8,$00,$18,$00
-	dc.b $00,$50,$00,$7F,$00,$7F,$00,$00,$B0,$00,$F8,$00,$F8,$00,$78,$00
-	dc.b $00,$50,$00,$7F,$00,$7F,$00,$00,$A0,$00,$E8,$00,$E8,$00,$78,$00
-	dc.b $00,$50,$00,$7F,$00,$7F,$00,$00,$4C,$00,$E4,$00,$E4,$00,$38,$00
-	dc.b $00,$48,$00,$7F,$00,$7F,$00,$20,$7A,$00,$CE,$00,$CE,$00,$30,$00
-	dc.b $00,$48,$00,$7F,$00,$7F,$00,$30,$59,$00,$FF,$00,$FF,$00,$20,$00
-	dc.b $00,$40,$00,$7F,$00,$7F,$00,$18,$9C,$00,$FC,$00,$FF,$00,$03,$00
-	dc.b $00,$46,$00,$7F,$00,$7F,$00,$00,$07,$00,$FF,$00,$FC,$80,$03,$80
-	dc.b $00,$21,$00,$3F,$00,$3F,$00,$00,$8D,$00,$FD,$00,$FA,$80,$07,$80
-	dc.b $00,$41,$00,$7F,$00,$7F,$00,$00,$F8,$00,$F8,$00,$FF,$00,$07,$00
-	dc.b $00,$42,$00,$7E,$00,$7E,$00,$00,$32,$00,$1E,$00,$1E,$00,$20,$00
-	dc.b $00,$C4,$00,$FC,$00,$FC,$00,$00,$74,$00,$2C,$00,$2C,$00,$70,$00
-	dc.b $03,$28,$03,$F8,$03,$F8,$00,$00,$6E,$00,$10,$00,$00,$00,$7E,$00
-	dc.b $0C,$10,$0F,$F0,$0F,$F0,$00,$00,$35,$00,$00,$00,$00,$00,$3F,$00
-	dc.b $10,$60,$0F,$E0,$0F,$E0,$10,$00,$0F,$00,$00,$00,$00,$00,$0F,$00
-	dc.b $38,$C0,$17,$C0,$17,$C0,$38
-	dcb.b $9,$00
-	dc.b $37,$80,$08,$00,$00,$00,$3F,$80
-	dcb.b $8,$00
-	dc.b $1D,$40,$00,$00,$00,$00,$1F,$C0
-	dcb.b $8,$00
-	dc.b $0F,$C0,$00,$00,$00,$00,$0F,$C0
-	dcb.b $B,$00
-	dc.b $0F,$00,$0F,$00,$0F,$00,$00,$C0,$00,$C0,$00,$C0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$10,$00,$E0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$30,$00,$B0,$00,$E0,$00,$F0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$00,$01,$00
-	dc.b $1F,$00,$1E,$00,$1F,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$0F,$00
-	dc.b $1F,$00,$1F,$00,$10,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$30,$00
-	dc.b $3F,$00,$3F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$30,$00,$00,$2F,$00
-	dc.b $3F,$00,$3F,$00,$00,$10,$00,$F0,$00,$F0,$00,$00,$00,$00,$60,$00
-	dc.b $7F,$00,$7F,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00,$61,$00
-	dc.b $7F,$00,$7F,$00,$00,$10,$00,$F8,$00,$F8,$00,$18,$00,$00,$51,$00
-	dc.b $7F,$00,$7F,$00,$00,$30,$00,$F8,$00,$F8,$00,$78,$00,$00,$50,$00
-	dc.b $7F,$00,$7F,$00,$00,$A0,$00,$E8,$00,$E8,$00,$78,$00,$00,$50,$00
-	dc.b $7F,$00,$7F,$00,$00,$88,$00,$E0,$00,$E0,$00,$78,$00,$00,$50,$00
-	dc.b $7F,$00,$7F,$00,$20,$B8,$00,$C8,$00,$C8,$00,$70,$00,$00,$50,$00
-	dc.b $7F,$00,$7F,$00,$20,$84,$00,$FC,$00,$FC,$00,$60,$00,$00,$69,$00
-	dc.b $7F,$00,$7F,$00,$10,$4A,$00,$FE,$00,$FE,$00,$20,$00,$00,$36,$00
-	dc.b $3F,$00,$3F,$00,$00,$31,$00,$FF,$00,$FF,$00,$00,$00,$00,$1A,$00
-	dc.b $1F,$00,$1F,$00,$00,$20,$80,$FF,$80,$FF,$80,$00,$00,$00,$11,$00
-	dc.b $1F,$00,$1F,$00,$00,$1C,$4C,$FF,$C0,$FF,$C0,$00,$0C,$07,$E2,$07
-	dc.b $FF,$07,$FF,$00,$00,$9C,$3A,$EF,$E0,$FF,$E0,$10,$1E,$1E,$23,$03
-	dc.b $FF,$03,$FF,$1C,$00,$73,$24,$13,$C0,$6B,$C0,$78,$3C,$1C,$04,$0B
-	dc.b $FC,$0B,$FC,$1C,$00,$38,$D8,$38,$00,$44,$00,$7C,$F8,$1E,$08,$03
-	dc.b $F8,$03,$F8,$1C,$00,$00,$50,$00,$00,$38,$00,$38,$70,$17,$F0,$03
-	dc.b $F0,$03,$F0,$1C,$00,$00,$20,$00,$00,$00,$00,$00,$20,$1E,$00,$00
-	dc.b $00,$00,$00,$1E
-	dcb.b $9,$00
-	dc.b $12,$00,$00,$00,$00,$00,$1E
-	dcb.b $9,$00
-	dc.b $0E,$00,$00,$00,$00,$00,$0E
-	dcb.b $C,$00
-	dc.b $0F,$00,$0F,$00,$0F,$00,$00,$C0,$00,$C0,$00,$C0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$10,$00,$E0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$30,$00,$B0,$00,$E0,$00,$F0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$00,$01,$00
-	dc.b $1F,$00,$1E,$00,$1F,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$0F,$00
-	dc.b $1F,$00,$1F,$00,$10,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$30,$00
-	dc.b $3F,$00,$3F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$30,$00,$00,$2F,$00
-	dc.b $3F,$00,$3F,$00,$00,$10,$00,$F0,$00,$F0,$00,$00,$00,$00,$60,$00
-	dc.b $7F,$00,$7F,$00,$00,$F4,$00,$FC,$00,$FA,$00,$0E,$00,$00,$61,$00
-	dc.b $7F,$00,$7F,$00,$00,$10,$00,$F8,$00,$FE,$00,$1E,$00,$00,$61,$00
-	dc.b $7F,$00,$7F,$00,$00,$30,$00,$F8,$00,$F8,$00,$78,$00,$00,$62,$00
-	dc.b $7F,$00,$7F,$00,$00,$A0,$00,$E8,$00,$E8,$00,$78,$00,$00,$60,$00
-	dc.b $7F,$00,$7F,$00,$00,$88,$00,$E0,$00,$E0,$00,$78,$00,$00,$60,$00
-	dc.b $7F,$00,$7F,$00,$00,$B8,$00,$C8,$00,$C8,$00,$70,$00,$00,$60,$00
-	dc.b $7F,$00,$7F,$00,$10,$88,$00,$F8,$00,$F8,$00,$60,$00,$00,$31,$00
-	dc.b $3F,$00,$3F,$00,$00,$38,$00,$F8,$00,$F8,$00,$C0,$00,$00,$09,$00
-	dc.b $0F,$00,$0F,$00,$00,$C4,$00,$FC,$00,$FC,$00,$00,$00,$00,$0A,$00
-	dc.b $0F,$00,$0F,$00,$00,$74,$00,$FC,$00,$FC,$00,$00,$00,$00,$06,$00
-	dc.b $07,$00,$07,$00,$00,$24,$00,$FC,$00,$FC,$00,$00,$00,$00,$02,$00
-	dc.b $03,$00,$03,$00,$00,$14,$00,$E4,$00,$FC,$00,$18,$00,$00,$03,$00
-	dc.b $03,$00,$03,$00,$00,$BA,$00,$D8,$00,$E6,$00,$3E,$00,$00,$0C,$00
-	dc.b $0F,$00,$0F,$00,$00,$7B,$80,$F8,$00,$C4,$00,$3F,$80,$00,$18,$00
-	dc.b $07,$00,$07,$00,$18,$02,$80,$C0,$00,$F8,$00,$3F,$80,$00,$38,$00
-	dc.b $17,$00,$17,$00,$38,$7F,$80,$C0,$00,$C0,$00,$3F,$80,$00,$34,$00
-	dc.b $03,$00,$03,$00,$3C,$80,$00,$00,$00,$00,$00,$80,$00,$00,$0E,$00
-	dc.b $00,$00,$00,$00,$0F,$80,$00,$00,$00,$00,$00,$80,$00,$00,$03,$00
-	dc.b $00,$00,$00,$00,$03,$80,$00,$00,$00,$00,$00,$80,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$00,$00,$C0,$00,$C0,$00,$C0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$10,$00,$E0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$30,$00,$B0,$00,$E0,$00,$F0,$00,$00,$00,$00
-	dc.b $1F,$00,$1F,$00,$1F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$00,$01,$00
-	dc.b $1F,$00,$1E,$00,$1F,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$0F,$00,$1F,$00,$1F,$00,$10,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$30,$00,$3F,$00,$3F,$00,$00,$C0,$00,$F0,$00,$F0,$00,$30,$00
-	dc.b $00,$2F,$00,$3F,$00,$3F,$00,$00,$10,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$60,$00,$7F,$00,$7F,$00,$00,$FE,$00,$FE,$00,$FE,$00,$00,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$12,$00,$FE,$00,$FD,$00,$5B,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$35,$00,$F9,$00,$FE,$80,$7F,$80
-	dc.b $00,$62,$00,$7F,$00,$7F,$00,$00,$A7,$00,$EB,$00,$EC,$80,$7F,$80
-	dc.b $00,$60,$00,$7F,$00,$7F,$00,$00,$88,$00,$E0,$00,$E3,$00,$7B,$00
-	dc.b $00,$60,$00,$7F,$00,$7F,$00,$00,$B8,$00,$C8,$00,$C8,$00,$70,$00
-	dc.b $00,$50,$00,$7F,$00,$7F,$00,$20,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$21,$00,$3F,$00,$3F,$00,$10,$40,$00,$F0,$00,$F0,$00,$B0,$00
-	dc.b $00,$17,$00,$1F,$00,$1F,$00,$00,$80,$00,$E0,$00,$E0,$00,$20,$00
-	dc.b $00,$30,$00,$3F,$00,$3F,$00,$00,$9C,$00,$FC,$00,$FC,$00,$20,$00
-	dc.b $00,$68,$00,$7F,$00,$7F,$00,$00,$43,$80,$FF,$80,$FF,$80,$20,$00
-	dc.b $00,$54,$00,$7F,$00,$7F,$00,$00,$60,$40,$DF,$C0,$DF,$C0,$00,$00
-	dc.b $00,$86,$00,$FF,$00,$FF,$00,$00,$C4,$40,$5F,$C0,$BF,$C0,$E0,$00
-	dc.b $00,$E6,$00,$7E,$00,$7F,$00,$81,$D8,$40,$DF,$C0,$3F,$C0,$E0,$00
-	dc.b $00,$FC,$00,$7C,$00,$7C,$00,$C0,$08,$80,$0F,$80,$EF,$80,$E0,$00
-	dc.b $00,$EA,$00,$00,$00,$00,$00,$FE,$18,$80,$07,$80,$07,$80,$18,$00
-	dc.b $00,$3E,$00,$00,$00,$00,$00,$3E,$1F,$80,$0F,$80,$0F,$80,$18
-	dcb.b $9,$00
-	dc.b $1A,$C0,$00,$00,$00,$00,$1F,$C0
-	dcb.b $8,$00
-	dc.b $07,$40,$00,$00,$00,$00,$07,$C0
-	dcb.b $8,$00
-	dc.b $01,$C0,$00,$00,$00,$00,$01,$C0,$00,$00,$00,$0F,$00,$0F,$00,$0F
-	dc.b $00,$00,$C0,$00,$C0,$00,$C0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $10,$00,$E0,$00,$F0,$00,$F0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $30,$00,$B0,$00,$E0,$00,$F0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$00,$C0,$00,$F0,$00,$F0,$00,$00,$01,$00,$1F,$00,$1E,$00,$1F
-	dc.b $00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$0F,$00,$1F,$00,$1F,$00,$10
-	dc.b $00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$30,$00,$3F,$00,$3F,$00,$00
-	dc.b $C8,$00,$F8,$00,$F8,$00,$30,$00,$00,$2F,$00,$3F,$00,$3F,$00,$00
-	dc.b $16,$00,$FE,$00,$FE,$00,$00,$00,$00,$64,$00,$7F,$00,$7F,$00,$00
-	dc.b $31,$80,$FF,$80,$FF,$80,$C0,$00,$00,$45,$00,$7F,$00,$7F,$00,$00
-	dc.b $10,$80,$FF,$80,$FF,$E0,$58,$60,$00,$45,$00,$7F,$00,$7F,$00,$00
-	dc.b $34,$C0,$FF,$C0,$FF,$B0,$78,$70,$00,$42,$00,$7F,$00,$7F,$00,$00
-	dc.b $A3,$A0,$EB,$20,$EB,$D0,$78,$F0,$00,$85,$00,$FF,$00,$FF,$00,$00
-	dc.b $80,$40,$E8,$00,$E8,$70,$78,$70,$00,$92,$00,$FF,$00,$FF,$00,$00
-	dc.b $30,$00,$C8,$00,$C8,$00,$F8,$00,$00,$8C,$00,$FF,$00,$FF,$00,$03
-	dc.b $00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$84,$00,$FF,$00,$FF,$00,$03
-	dc.b $C0,$00,$F0,$00,$F0,$00,$30,$00,$00,$84,$00,$FF,$00,$FF,$00,$00
-	dc.b $80,$00,$E0,$00,$E0,$00,$20,$00,$00,$89,$00,$FF,$00,$FF,$00,$00
-	dc.b $78,$00,$F8,$00,$F8,$00,$00,$00,$07,$88,$07,$FF,$07,$FF,$00,$00
-	dc.b $06,$00,$FE,$00,$FE,$00,$00,$00,$18,$88,$1F,$FF,$1F,$FF,$00,$00
-	dc.b $01,$00,$FF,$00,$FF,$00,$00,$00,$38,$FE,$0F,$FF,$0F,$FF,$30,$00
-	dc.b $04,$80,$FF,$80,$FF,$80,$00,$00,$3F,$31,$17,$31,$17,$C9,$38,$F8
-	dc.b $F8,$98,$FF,$80,$FF,$80,$00,$18,$13,$10,$00,$10,$00,$68,$1F,$78
-	dc.b $10,$28,$1F,$C0,$1F,$C0,$00,$78,$0D,$00,$00,$00,$00,$30,$0F,$30
-	dc.b $08,$50,$0F,$80,$0F,$80,$00,$70,$07,$00,$00,$00,$00,$00,$07,$00
-	dc.b $04,$B0,$07,$00,$07,$00,$00,$F0
-	dcb.b $8,$00
-	dc.b $03,$60,$02,$00,$02,$00,$01,$E0
-	dcb.b $9,$00
-	dc.b $C0,$00,$00,$00,$00,$00,$C0,$00,$00,$00,$0F,$00,$0F,$00,$0F,$00
-	dc.b $00,$C0,$00,$C0,$00,$C0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F,$00
-	dc.b $00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F,$00
-	dc.b $00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F,$10
-	dc.b $00,$E0,$00,$F0,$00,$F0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F,$30
-	dc.b $00,$B0,$00,$E0,$00,$F0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F,$00
-	dc.b $00,$C0,$00,$F0,$00,$F0,$00,$00,$01,$00,$1F,$00,$1E,$00,$1F,$00
-	dc.b $00,$F0,$00,$F0,$00,$F0,$00,$00,$0F,$00,$1F,$00,$1F,$00,$10,$00
-	dc.b $00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$30,$00,$3F,$00,$3F,$00,$00,$C8,$00,$F8,$00,$F8,$00,$30,$00
-	dc.b $00,$2F,$00,$3F,$00,$3F,$00,$00,$1C,$00,$FC,$00,$FC,$00,$00,$00
-	dc.b $00,$62,$00,$7F,$00,$7F,$00,$00,$F6,$00,$FE,$00,$FE,$00,$00,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$12,$00,$FA,$00,$FD,$00,$5F,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$34,$00,$F8,$00,$FF,$00,$7F,$00
-	dc.b $00,$63,$00,$7F,$00,$7F,$00,$00,$A6,$00,$EA,$00,$ED,$00,$7F,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$88,$00,$E0,$00,$E3,$00,$7B,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$00,$B8,$00,$C8,$00,$C8,$00,$70,$00
-	dc.b $00,$61,$00,$7F,$00,$7F,$00,$10,$18,$00,$F8,$00,$F8,$00,$E0,$00
-	dc.b $00,$33,$00,$3F,$00,$3F,$00,$00,$60,$00,$F0,$00,$F0,$00,$90,$00
-	dc.b $00,$11,$00,$1F,$00,$1F,$00,$00,$90,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $00,$71,$00,$7F,$00,$7F,$00,$00,$10,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $03,$D1,$00,$7F,$00,$7F,$03,$80,$10,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $03,$D1,$01,$7F,$01,$7F,$03,$80,$10,$00,$F0,$00,$F0,$00,$00,$00
-	dc.b $03,$D1,$00,$7F,$00,$7F,$03,$80,$48,$00,$F8,$00,$F8,$00,$00,$00
-	dc.b $02,$FF,$00,$7F,$00,$7F,$03,$80,$88,$00,$F8,$00,$F8,$00,$00,$00
-	dc.b $03,$87,$00,$07,$00,$09,$03,$8E,$84,$00,$FC,$00,$FC,$00,$00,$00
-	dc.b $02,$86,$00,$06,$00,$09,$03,$8F,$84,$00,$FC,$00,$FC,$00,$00,$00
-	dc.b $03,$06,$00,$06,$00,$09,$03,$0F,$84,$00,$FC,$00,$FC
-	dcb.b $8,$00
-	dc.b $07,$00,$07,$FF,$00,$00,$00,$00,$00,$FF
-	dcb.b $9,$00
-	dc.b $EA,$80,$40,$00,$40,$00,$FF,$80
-	dcb.b $8,$00
-	dc.b $FF,$80,$00,$00,$00,$00,$FF,$80,$00,$00,$00,$0F,$00,$0F,$00,$0F
-	dc.b $00,$00,$C0,$00,$C0,$00,$C0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$00,$E0,$00,$E0,$00,$E0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $10,$00,$E0,$00,$F0,$00,$F0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $30,$00,$B0,$00,$E0,$00,$F0,$00,$00,$00,$00,$1F,$00,$1F,$00,$1F
-	dc.b $00,$00,$C0,$00,$F0,$00,$F0,$00,$00,$01,$00,$1F,$00,$1E,$00,$1F
-	dc.b $00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$0F,$00,$1F,$00,$1F,$00,$10
-	dc.b $00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$30,$00,$3F,$00,$3F,$00,$00
-	dc.b $C0,$00,$F0,$00,$F0,$00,$30,$00,$00,$2F,$00,$3F,$00,$3F,$00,$00
-	dc.b $10,$00,$F0,$00,$F0,$00,$00,$00,$00,$60,$00,$7F,$00,$7F,$00,$00
-	dc.b $F0,$00,$F0,$00,$F0,$00,$00,$00,$00,$61,$00,$7F,$00,$7F,$00,$00
-	dc.b $10,$00,$F8,$00,$F8,$00,$18,$00,$00,$61,$00,$7F,$00,$7F,$00,$00
-	dc.b $30,$00,$F8,$00,$F8,$00,$78,$00,$00,$62,$00,$7F,$00,$7F,$00,$00
-	dc.b $A0,$00,$E8,$00,$EC,$00,$7C,$00,$00,$60,$00,$7F,$00,$7F,$00,$00
-	dc.b $8C,$00,$E4,$00,$E2,$00,$7E,$00,$00,$60,$00,$7F,$00,$7F,$00,$00
-	dc.b $BA,$00,$CA,$00,$CD,$00,$77,$00,$00,$60,$00,$7F,$00,$7F,$00,$10
-	dc.b $8C,$00,$F8,$00,$FF,$00,$77,$00,$00,$31,$00,$3F,$00,$3F,$00,$00
-	dc.b $08,$00,$F8,$00,$F8,$00,$D0,$00,$00,$17,$00,$1F,$00,$1F,$00,$00
-	dc.b $04,$00,$FC,$00,$FC,$00,$10,$00,$00,$10,$00,$1F,$00,$1F,$00,$00
-	dc.b $84,$00,$FC,$00,$FC,$00,$20,$00,$00,$18,$00,$1F,$00,$1F,$00,$00
-	dc.b $44,$00,$FC,$00,$FC,$00,$00,$00,$00,$14,$00,$1F,$00,$1F,$00,$00
-	dc.b $64,$00,$DC,$00,$FC,$00,$20,$00,$00,$2A,$00,$3F,$00,$3F,$00,$00
-	dc.b $D8,$00,$D8,$00,$B8,$00,$60,$00,$00,$42,$00,$7E,$00,$7F,$00,$01
-	dc.b $C0,$00,$C0,$00,$20,$00,$E0,$00,$00,$83,$00,$FF,$00,$FF,$00,$00
-	dc.b $00,$00,$00,$00,$E0,$00,$E0,$00,$01,$C6,$00,$7C,$00,$7C,$01,$83
-	dc.b $80,$00,$00,$00,$00,$00,$80,$00,$01,$C7,$00,$BC,$00,$BC,$01,$C3
-	dcb.b $8,$00
-	dc.b $01,$BC,$00,$00,$00,$00,$01,$FC
-	dcb.b $9,$00
-	dc.b $D4,$00,$00,$00,$00,$00,$FC
-	dcb.b $9,$00
-	dc.b $7C,$00,$00,$00,$00,$00,$7C
-	dcb.b $B,$00
-	dc.b $03,$00,$03,$00,$03,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00
-	dc.b $07,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00
-	dc.b $0D,$00,$07,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $03,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$80,$00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$F0,$00,$F8,$00,$F8,$00,$08,$00,$00,$03,$00
-	dc.b $0F,$00,$0F,$00,$0C,$0C,$00,$FC,$00,$FC,$00,$00,$00,$00,$08,$00
-	dc.b $0F,$00,$0F,$00,$00,$F4,$00,$FC,$00,$FC,$00,$00,$00,$00,$0F,$00
-	dc.b $0F,$00,$0F,$00,$00,$06,$00,$FE,$00,$FE,$00,$00,$00,$00,$09,$00
-	dc.b $1F,$00,$1F,$00,$19,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$0D,$00
-	dc.b $1F,$00,$1F,$00,$1E,$0A,$00,$FE,$00,$FE,$00,$00,$00,$00,$05,$00
-	dc.b $17,$00,$17,$00,$1E,$0A,$00,$FE,$00,$FE,$00,$00,$00,$00,$32,$00
-	dc.b $27,$00,$27,$00,$1C,$0A,$00,$FE,$00,$FE,$00,$00,$00,$00,$5E,$00
-	dc.b $73,$00,$73,$00,$0C,$12,$00,$FE,$00,$FE,$00,$04,$00,$00,$9A,$00
-	dc.b $FF,$00,$FF,$00,$04,$12,$00,$FE,$00,$FE,$00,$0C,$00,$00,$39,$00
-	dc.b $3F,$00,$FF,$00,$C0,$02,$00,$FE,$00,$FE,$00,$18,$00,$00,$E0,$00
-	dc.b $FF,$01,$3F,$01,$C0,$62,$00,$FE,$00,$FE,$00,$00,$00,$00,$B1,$00
-	dc.b $BF,$01,$5F,$01,$E0,$84,$00,$FC,$00,$FC,$00,$00,$00,$00,$1F,$00
-	dc.b $1F,$00,$FF,$00,$E0,$82,$00,$FE,$00,$FE,$00,$00,$00,$00,$4C,$00
-	dc.b $78,$00,$78,$00,$04,$42,$00,$7E,$00,$7E,$00,$00,$00,$00,$2A,$00
-	dc.b $30,$00,$30,$00,$0E,$23,$00,$3F,$00,$3F,$00,$00,$00,$00,$76,$00
-	dc.b $00,$00,$00,$00,$7E,$14,$C0,$1F,$C0,$1F,$C0,$00,$00,$00,$EC,$00
-	dc.b $40,$00,$40,$00,$FC,$08,$30,$0F,$F0,$0F,$F0,$00,$00,$00,$F0,$00
-	dc.b $00,$00,$00,$00,$F0,$06,$08,$07,$F0,$07,$F0,$00,$08
-	dcb.b $8,$00
-	dc.b $03,$14,$03,$E0,$03,$E0,$00,$1C
-	dcb.b $8,$00
-	dc.b $01,$EC,$00,$00,$00,$00,$01,$FC
-	dcb.b $8,$00
-	dc.b $03,$B8,$01,$00,$01,$00,$03,$F8
-	dcb.b $8,$00
-	dc.b $03,$F0,$00,$00,$00,$00,$03,$F0,$00,$00,$00,$03,$00,$03,$00,$03
-	dc.b $00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00,$07,$00,$07,$00,$07
-	dc.b $00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$07,$00,$07,$00,$07
-	dc.b $00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00,$07,$00,$0F,$00,$0F
-	dc.b $00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00,$0D,$00,$07,$00,$0F
-	dc.b $00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$03,$00,$0F,$00,$0F
-	dc.b $00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F
-	dc.b $80,$00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F
-	dc.b $F0,$00,$F8,$00,$F8,$00,$08,$00,$00,$03,$00,$0F,$00,$0F,$00,$0C
-	dc.b $0C,$00,$FC,$00,$FC,$00,$00,$00,$00,$08,$00,$0F,$00,$0F,$00,$00
-	dc.b $F4,$00,$FC,$00,$FC,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F,$00,$00
-	dc.b $06,$00,$FE,$00,$FE,$00,$00,$00,$00,$08,$00,$1F,$00,$1F,$00,$18
-	dc.b $86,$00,$FE,$00,$FE,$00,$00,$00,$00,$0C,$00,$1F,$00,$1F,$00,$1E
-	dc.b $8A,$00,$FE,$00,$FE,$00,$00,$00,$00,$05,$00,$17,$00,$17,$00,$1E
-	dc.b $0A,$00,$FE,$00,$FE,$00,$00,$00,$00,$11,$00,$07,$00,$07,$00,$1E
-	dc.b $0A,$00,$FE,$00,$FE,$00,$00,$00,$00,$1D,$00,$13,$00,$13,$00,$0E
-	dc.b $0A,$00,$FE,$00,$FE,$00,$04,$00,$00,$21,$00,$3F,$00,$3F,$00,$06
-	dc.b $0A,$00,$FE,$00,$FE,$00,$04,$00,$00,$52,$00,$7F,$00,$7F,$00,$04
-	dc.b $96,$00,$FE,$00,$FE,$00,$08,$00,$00,$8C,$00,$FF,$00,$FF,$00,$00
-	dc.b $6C,$00,$FC,$00,$FC,$00,$00,$00,$01,$04,$01,$FF,$01,$FF,$00,$00
-	dc.b $58,$00,$F8,$00,$F8,$00,$00,$00,$32,$38,$03,$FF,$03,$FF,$30,$00
-	dc.b $88,$00,$F8,$00,$F8,$00,$00,$00,$5C,$39,$07,$F7,$07,$FF,$78,$08
-	dc.b $47,$E0,$FF,$E0,$FF,$E0,$00,$00,$24,$CE,$03,$C8,$03,$D6,$3C,$1E
-	dc.b $C4,$78,$FF,$C0,$FF,$C0,$00,$38,$1B,$1C,$00,$1C,$00,$22,$1F,$3E
-	dc.b $20,$38,$3F,$D0,$3F,$D0,$00,$38,$0A,$00,$00,$00,$00,$1C,$0E,$1C
-	dc.b $10,$78,$1F,$C0,$1F,$C0,$00,$38,$04,$00,$00,$00,$00,$00,$04,$00
-	dc.b $0F,$E8,$0F,$C0,$0F,$C0,$00,$38
-	dcb.b $9,$00
-	dc.b $78,$00,$00,$00,$00,$00,$78
-	dcb.b $9,$00
-	dc.b $48,$00,$00,$00,$00,$00,$78
-	dcb.b $9,$00
-	dc.b $70,$00,$00,$00,$00,$00,$70,$00,$00,$00,$03,$00,$03,$00,$03,$00
-	dc.b $00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00,$07,$00,$07,$00,$07,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$07,$00,$07,$00,$07,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00,$07,$00,$0F,$00,$0F,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00,$0D,$00,$07,$00,$0F,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$03,$00,$0F,$00,$0F,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F,$80
-	dc.b $00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F,$F0
-	dc.b $00,$F8,$00,$F8,$00,$08,$00,$00,$03,$00,$0F,$00,$0F,$00,$0C,$0C
-	dc.b $00,$FC,$00,$FC,$00,$00,$00,$00,$08,$00,$0F,$00,$0F,$00,$00,$F4
-	dc.b $00,$FC,$00,$FC,$00,$00,$00,$00,$2F,$00,$3F,$00,$5F,$00,$70,$06
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$08,$00,$1F,$00,$7F,$00,$78,$86
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$0C,$00,$1F,$00,$1F,$00,$1E,$86
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$05,$00,$17,$00,$17,$00,$1E,$46
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$11,$00,$07,$00,$07,$00,$1E,$06
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$1D,$00,$13,$00,$13,$00,$0E,$06
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$11,$00,$1F,$00,$1F,$00,$06,$06
-	dc.b $00,$FE,$00,$FE,$00,$08,$00,$00,$1C,$00,$1F,$00,$1F,$00,$03,$8C
-	dc.b $00,$FC,$00,$FC,$00,$00,$00,$00,$23,$00,$3F,$00,$3F,$00,$00,$90
-	dc.b $00,$F0,$00,$F0,$00,$00,$00,$00,$2E,$00,$3F,$00,$3F,$00,$00,$50
-	dc.b $00,$F0,$00,$F0,$00,$00,$00,$00,$24,$00,$3F,$00,$3F,$00,$00,$60
-	dc.b $00,$E0,$00,$E0,$00,$00,$00,$00,$28,$00,$27,$00,$3F,$00,$18,$40
-	dc.b $00,$C0,$00,$C0,$00,$00,$00,$00,$5D,$00,$1B,$00,$67,$00,$7C,$C0
-	dc.b $00,$C0,$00,$C0,$00,$00,$00,$01,$DE,$00,$1F,$00,$23,$01,$FC,$30
-	dc.b $00,$F0,$00,$F0,$00,$00,$00,$01,$40,$00,$03,$00,$1F,$01,$FC,$18
-	dc.b $00,$E0,$00,$E0,$00,$18,$00,$01,$FE,$00,$03,$00,$03,$01,$FC,$1C
-	dc.b $00,$E8,$00,$E8,$00,$1C,$00,$00,$01,$00,$00,$00,$00,$00,$01,$2C
-	dc.b $00,$C0,$00,$C0,$00,$3C,$00,$00,$01,$00,$00,$00,$00,$00,$01,$70
-	dc.b $00,$00,$00,$00,$00,$F0,$00,$00,$01,$00,$00,$00,$00,$00,$01,$C0
-	dc.b $00,$00,$00,$00,$00,$C0,$00,$00,$00,$00,$03,$00,$03,$00,$03,$00
-	dc.b $00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00,$07,$00,$07,$00,$07,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$07,$00,$07,$00,$07,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00,$07,$00,$0F,$00,$0F,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00,$0D,$00,$07,$00,$0F,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$03,$00,$0F,$00,$0F,$00
-	dc.b $00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F,$80
-	dc.b $00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F,$F0
-	dc.b $00,$F8,$00,$F8,$00,$08,$00,$00,$03,$00,$0F,$00,$0F,$00,$0C,$0C
-	dc.b $00,$FC,$00,$FC,$00,$00,$00,$00,$08,$00,$0F,$00,$0F,$00,$00,$F4
-	dc.b $00,$FC,$00,$FC,$00,$00,$00,$00,$7F,$00,$7F,$00,$7F,$00,$00,$06
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$48,$00,$7F,$00,$BF,$00,$DA,$86
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$AC,$00,$9F,$01,$7F,$01,$FE,$86
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$E5,$00,$D7,$01,$37,$01,$FE,$46
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$11,$00,$07,$00,$C7,$00,$DE,$06
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$1D,$00,$13,$00,$13,$00,$0E,$06
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$00,$00,$00,$0F,$00,$0F,$00,$0F,$0A
-	dc.b $00,$FE,$00,$FE,$00,$04,$00,$00,$02,$00,$0F,$00,$0F,$00,$0D,$84
-	dc.b $00,$FC,$00,$FC,$00,$08,$00,$00,$01,$00,$07,$00,$07,$00,$04,$E8
-	dc.b $00,$F8,$00,$F8,$00,$00,$00,$00,$39,$00,$3F,$00,$3F,$00,$04,$0C
-	dc.b $00,$FC,$00,$FC,$00,$00,$00,$01,$C2,$01,$FF,$01,$FF,$00,$04,$16
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$02,$06,$03,$FB,$03,$FB,$00,$00,$2A
-	dc.b $00,$FE,$00,$FE,$00,$00,$00,$02,$23,$03,$FA,$03,$FD,$00,$07,$61
-	dc.b $00,$FF,$00,$FF,$00,$00,$00,$02,$1B,$03,$FB,$03,$FC,$00,$07,$67
-	dc.b $00,$7E,$00,$FE,$00,$81,$00,$01,$10,$01,$F0,$01,$F7,$00,$07,$3F
-	dc.b $00,$3E,$00,$3E,$00,$03,$00,$01,$18,$01,$E0,$01,$E0,$00,$18,$57
-	dc.b $00,$00,$00,$00,$00,$7F,$00,$01,$F8,$01,$F0,$01,$F0,$00,$18,$7C
-	dc.b $00,$00,$00,$00,$00,$7C,$00,$03,$58,$00,$00,$00,$00,$03,$F8
-	dcb.b $8,$00
-	dc.b $02,$E0,$00,$00,$00,$00,$03,$E0
-	dcb.b $8,$00
-	dc.b $03,$80,$00,$00,$00,$00,$03,$80
-	dcb.b $B,$00
-	dc.b $03,$00,$03,$00,$03,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00
-	dc.b $07,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00
-	dc.b $0D,$00,$07,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $03,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$80,$00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$F0,$00,$F8,$00,$F8,$00,$08,$00,$00,$13,$00
-	dc.b $1F,$00,$1F,$00,$0C,$0C,$00,$FC,$00,$FC,$00,$00,$00,$00,$68,$00
-	dc.b $7F,$00,$7F,$00,$00,$F4,$00,$FC,$00,$FC,$00,$00,$00,$01,$8C,$01
-	dc.b $FF,$01,$FF,$00,$03,$26,$00,$FE,$00,$FE,$00,$00,$00,$01,$08,$01
-	dc.b $FF,$07,$FF,$06,$1A,$A2,$00,$FE,$00,$FE,$00,$00,$00,$03,$2C,$03
-	dc.b $FF,$0D,$FF,$0E,$1E,$A2,$00,$FE,$00,$FE,$00,$00,$00,$05,$C5,$04
-	dc.b $D7,$0B,$D7,$0F,$1E,$42,$00,$FE,$00,$FE,$00,$00,$00,$02,$01,$00
-	dc.b $17,$0E,$17,$0E,$1E,$A1,$00,$FF,$00,$FF,$00,$00,$00,$00,$0C,$00
-	dc.b $13,$00,$13,$00,$1F,$49,$00,$FF,$00,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$31,$00,$FF,$00,$FF,$00,$C0,$00,$00,$03,$00
-	dc.b $0F,$00,$0F,$00,$0C,$21,$00,$FF,$00,$FF,$00,$C0,$00,$00,$01,$00
-	dc.b $07,$00,$07,$00,$04,$21,$00,$FF,$00,$FF,$00,$00,$00,$00,$1E,$00
-	dc.b $1F,$00,$1F,$00,$00,$91,$00,$FF,$00,$FF,$00,$00,$00,$00,$60,$00
-	dc.b $7F,$00,$7F,$00,$00,$11,$E0,$FF,$E0,$FF,$E0,$00,$00,$00,$80,$00
-	dc.b $FF,$00,$FF,$00,$00,$11,$18,$FF,$F8,$FF,$F8,$00,$00
-	dc.b $01,$20,$01,$FF,$01,$FF,$00,$00,$7F,$1C,$FF,$F0,$FF,$F0,$00,$0C
-	dc.b $19,$1F,$01,$FF,$01,$FF,$18,$00,$8C,$FC,$8C,$E8,$93,$E8,$1F,$1C
-	dc.b $14,$08,$03,$F8,$03,$F8,$1E,$00,$08,$C8,$08,$00,$16,$00,$1E,$F8
-	dc.b $0A,$10,$01,$F0,$01,$F0,$0E,$00,$00,$B0,$00,$00,$0C,$00,$0C,$F0
-	dc.b $0D,$20,$00,$E0,$00,$E0,$0F,$00,$00,$E0,$00,$00,$00,$00,$00,$E0
-	dc.b $06,$C0,$00,$40,$00,$40,$07,$80
-	dcb.b $8,$00
-	dc.b $03,$00,$00,$00,$00,$00,$03
-	dcb.b $C,$00
-	dc.b $03,$00,$03,$00,$03,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00
-	dc.b $07,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00
-	dc.b $0D,$00,$07,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $03,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$80,$00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$F0,$00,$F8,$00,$F8,$00,$08,$00,$00,$13,$00
-	dc.b $1F,$00,$1F,$00,$0C,$0C,$00,$FC,$00,$FC,$00,$00,$00,$00,$38,$00
-	dc.b $3F,$00,$3F,$00,$00,$F4,$00,$FC,$00,$FC,$00,$00,$00,$00,$6F,$00
-	dc.b $7F,$00,$7F,$00,$00,$46,$00,$FE,$00,$FE,$00,$00,$00,$00,$48,$00
-	dc.b $5F,$00,$BF,$00,$FA,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$2C,$00
-	dc.b $1F,$00,$FF,$00,$FE,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$65,$00
-	dc.b $57,$00,$B7,$00,$FE,$C6,$00,$FE,$00,$FE,$00,$00,$00,$00,$11,$00
-	dc.b $07,$00,$C7,$00,$DE,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$1D,$00
-	dc.b $13,$00,$13,$00,$0E,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$18,$00
-	dc.b $1F,$00,$1F,$00,$07,$86,$00,$FE,$00,$FE,$00,$08,$00,$00,$06,$00
-	dc.b $0F,$00,$0F,$00,$09,$CC,$00,$FC,$00,$FC,$00,$00,$00,$00,$09,$00
-	dc.b $0F,$00,$0F,$00,$00,$88,$00,$F8,$00,$F8,$00,$00,$00,$00,$08,$00
-	dc.b $0F,$00,$0F,$00,$00,$8E,$00,$FE,$00,$FE,$00,$00,$00,$00,$08,$00
-	dc.b $0F,$00,$0F,$00,$00,$8B,$C0,$FE,$00,$FE,$00,$01,$C0,$00,$08,$00
-	dc.b $0F,$00,$0F,$00,$00,$8B,$C0,$FE,$80,$FE,$80,$01,$C0,$00,$12,$00
-	dc.b $1F,$00,$1F,$00,$00,$8B,$C0,$FE,$00,$FE,$00,$01,$C0,$00,$11,$00
-	dc.b $1F,$00,$1F,$00,$00,$FF,$40,$FE,$00,$FE,$00,$01,$C0,$00,$21,$00
-	dc.b $3F,$00,$3F,$00,$00,$E1,$C0,$E0,$00,$90,$00,$71,$C0,$00,$21,$00
-	dc.b $3F,$00,$3F,$00,$00,$61,$40,$60,$00,$90,$00,$F1,$C0,$00,$21,$00
-	dc.b $3F,$00,$3F,$00,$00,$60,$C0,$60,$00,$90,$00,$F0,$C0,$00,$FF,$00
-	dc.b $00,$00,$00,$00,$FF,$00,$00,$00,$00,$E0,$00,$E0,$00,$01,$57,$00
-	dc.b $02,$00,$02,$01,$FF
-	dcb.b $8,$00
-	dc.b $01,$FF,$00,$00,$00,$00,$01,$FF
-	dcb.b $B,$00
-	dc.b $03,$00,$03,$00,$03,$00,$00,$F0,$00,$F0,$00,$F0,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $07,$00,$07,$00,$07,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$08,$00
-	dc.b $07,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$0C,$00
-	dc.b $0D,$00,$07,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $03,$00,$0F,$00,$0F,$00,$00,$F8,$00,$F8,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$80,$00,$F8,$00,$78,$00,$F8,$00,$00,$00,$00
-	dc.b $0F,$00,$0F,$00,$0F,$F0,$00,$F8,$00,$F8,$00,$08,$00,$00,$03,$00
-	dc.b $0F,$00,$0F,$00,$0C,$0C,$00,$FC,$00,$FC,$00,$00,$00,$00,$08,$00
-	dc.b $0F,$00,$0F,$00,$00,$F4,$00,$FC,$00,$FC,$00,$00,$00,$00,$0F,$00
-	dc.b $0F,$00,$0F,$00,$00,$06,$00,$FE,$00,$FE,$00,$00,$00,$00,$08,$00
-	dc.b $1F,$00,$1F,$00,$18,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$0C,$00
-	dc.b $1F,$00,$1F,$00,$1E,$86,$00,$FE,$00,$FE,$00,$00,$00,$00,$05,$00
-	dc.b $17,$00,$37,$00,$3E,$46,$00,$FE,$00,$FE,$00,$00,$00,$00,$31,$00
-	dc.b $27,$00,$47,$00,$7E,$06,$00,$FE,$00,$FE,$00,$00,$00,$00,$5D,$00
-	dc.b $53,$00,$B3,$00,$EE,$06,$00,$FE,$00,$FE,$00,$00,$00,$00,$31,$00
-	dc.b $1F,$00,$FF,$00,$EE,$06,$00,$FE,$00,$FE,$00,$08,$00,$00,$10,$00
-	dc.b $1F,$00,$1F,$00,$0B,$8C,$00,$FC,$00,$FC,$00,$00,$00,$00,$20,$00
-	dc.b $3F,$00,$3F,$00,$08,$E8,$00,$F8,$00,$F8,$00,$00,$00,$00,$21,$00
-	dc.b $3F,$00,$3F,$00,$04,$08,$00,$F8,$00,$F8,$00,$00,$00,$00,$22,$00
-	dc.b $3F,$00,$3F,$00,$00,$18,$00,$F8,$00,$F8,$00,$00,$00,$00,$26,$00
-	dc.b $3B,$00,$3F,$00,$04,$28,$00,$F8,$00,$F8,$00,$00,$00,$00,$1B,$00
-	dc.b $1B,$00,$1D,$00,$06,$54,$00,$FC,$00,$FC,$00,$00,$00,$00,$03,$00
-	dc.b $03,$00,$04,$00,$07,$42,$00,$7E,$00,$FE,$00,$80,$00,$00,$00,$00
-	dc.b $00,$00,$07,$00,$07,$C1,$00,$FF,$00,$FF,$00,$00,$00,$00,$01,$00
-	dc.b $00,$00,$00,$00,$01,$63,$80,$3E,$00,$3E,$00,$C1,$80
-	dcb.b $8,$00
-	dc.b $E3,$80,$3D,$00,$3D,$00,$C3,$80
-	dcb.b $8,$00
-	dc.b $3D,$80,$00,$00,$00,$00,$3F,$80
-	dcb.b $8,$00
-	dc.b $2B,$00,$00,$00,$00,$00,$3F
-	dcb.b $9,$00
-	dc.b $3E,$00,$00,$00,$00,$00,$3E,$00
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_57.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_56:
-	dcb.b $30,$00
-	dc.b $01,$EE,$01,$F0,$01,$F0,$00,$1E
-	dcb.b $18,$00
-	dc.b $06,$16,$07,$FD,$07,$FD,$00,$0F
-	dcb.b $18,$00
-	dc.b $18,$66,$1F,$F1,$1F,$F1,$00,$1F
-	dcb.b $18,$00
-	dc.b $71,$A4,$7F,$F3,$7F,$F3,$00,$1F
-	dcb.b $18,$00
-	dc.b $82,$7C,$FF,$E2,$FF,$E2,$00,$1E
-	dcb.b $11,$00
-	dc.b $03,$00,$03,$00,$03,$00,$00,$1A,$80,$FF,$FF,$FF,$FF,$00,$7F,$00
-	dc.b $00,$C0,$00,$C0,$00,$C0
-	dcb.b $A,$00
-	dc.b $04,$00,$07,$00,$07,$00,$00,$0B,$00,$FF,$FF,$FF,$FF,$00,$FF,$00
-	dc.b $00,$80,$00,$80,$00,$80
-	dcb.b $A,$00
-	dc.b $08,$00,$0F,$00,$0F,$00,$00,$04,$00,$FF,$80,$FF,$80,$03,$80
-	dcb.b $11,$00
-	dc.b $31,$00,$3F,$00,$3F,$00,$00,$08,$00,$FF,$00,$FF,$00,$07
-	dcb.b $A,$00
-	dc.b $F8,$00,$F8,$00,$F8,$00,$00,$00,$E0,$00,$DF,$00,$DF,$00,$90,$A0
-	dc.b $00,$FC,$00,$FC,$00,$1C
-	dcb.b $9,$00
-	dc.b $03,$04,$03,$FC,$03,$FC,$00,$00,$03,$60,$03,$FF,$03,$FF,$00,$18
-	dc.b $C0,$00,$F8,$00,$F8,$00,$38
-	dcb.b $9,$00
-	dc.b $0C,$02,$0F,$FE,$0F,$FE,$00,$00,$05,$11,$07,$FF,$07,$FF,$00,$0C
-	dc.b $18,$00,$F8,$00,$F8
-	dcb.b $B,$00
-	dc.b $30,$21,$3F,$FF,$3F,$FF,$00,$00,$99,$38,$9F,$FF,$9F,$FF,$00,$06
-	dc.b $0C,$00,$FC,$00,$FC
-	dcb.b $B,$00
-	dc.b $40,$31,$7F,$FF,$7F,$FF,$00,$00,$60,$C8,$FF,$FF,$FF,$FF,$00,$07
-	dc.b $0B,$00,$FF,$00,$FF
-	dcb.b $B,$00
-	dc.b $33,$D1,$3F,$FF,$7F,$FF,$40,$28,$21,$04,$FF,$FF,$FF,$FF,$00,$03
-	dc.b $80,$80,$FF,$80,$FF,$80
-	dcb.b $A,$00
-	dc.b $2C,$08,$2F,$FF,$DF,$FF,$F3,$F6,$02,$38,$FF,$FF,$FF,$FF,$00,$07
-	dc.b $E0,$40,$FF,$E0,$FF,$E0,$00,$20
-	dcb.b $8,$00
-	dc.b $A0,$01,$AC,$07,$5C,$07,$FC,$06,$E0,$04,$FF,$FF,$FF,$FF,$00,$03
-	dc.b $10,$E0,$FF,$F8,$FF,$F8,$E0,$18
-	dcb.b $8,$00
-	dc.b $80,$00,$D0,$03,$70,$03,$F0,$03,$10,$10,$FF,$FF,$FF,$FF,$80,$0F
-	dc.b $0A,$D8,$FF,$FE,$FF,$FE,$F0,$06
-	dcb.b $9,$00
-	dc.b $01,$00,$03,$80,$03,$80,$02,$89,$E0,$FF,$FF,$FF,$FF,$00,$1F,$06
-	dc.b $06,$FF,$FF,$FF,$FF,$F8,$01,$00,$00,$80,$00,$80,$00,$80,$00,$00
-	dc.b $00,$00,$1D,$00,$1D,$00,$1D,$64,$00,$7F,$FF,$FF,$FF,$80,$7F,$01
-	dc.b $E1,$0F,$FF,$0F,$FF,$0E,$00,$80,$00,$E0,$00,$E0,$00,$60,$00,$00
-	dc.b $00,$00,$7F,$00,$7F,$00,$7F,$14,$B0,$1F,$FC,$FF,$FC,$E0,$0C,$00
-	dc.b $F0,$03,$FF,$03,$FF,$03,$00,$50,$00,$E8,$00,$E8,$00,$38,$00,$00
-	dc.b $00,$00,$FF,$00,$FF,$00,$FF,$3C,$0C,$DF,$FC,$FF,$FC,$E0,$00,$00
-	dc.b $1E,$00,$1F,$00,$1F,$00,$00,$58,$00,$F4,$00,$F4,$00,$3C,$00,$00
-	dc.b $00,$00,$FB,$00,$FF,$00,$FF,$06,$26,$FF,$FE
-	dc.b $FF,$FE,$F8,$00,$00,$03,$00,$03,$00,$03,$00,$00,$E8,$00,$C4,$00
-	dc.b $C4,$00,$3C,$00,$00,$04,$00,$FF,$00,$FD,$00,$FD,$01,$B3,$FF,$FF
-	dc.b $FF,$FF,$FE,$00,$00,$01,$00,$01,$00,$01,$00,$00,$E8,$00,$C4,$00
-	dc.b $C4,$00,$3C,$00,$00,$04,$00,$F6,$00,$FD,$00,$FD,$00,$60,$F3,$FF
-	dc.b $F3,$FF,$F3,$80,$80,$00,$80,$00,$80,$00,$00,$00,$38,$00,$47,$00
-	dc.b $47,$00,$7F,$00,$00,$07,$00,$F3,$00,$F8,$00,$FB,$00,$30,$60,$FF
-	dc.b $E0,$FF,$E0,$C0,$80,$00,$80,$00,$80,$00,$00,$00,$08,$00,$17,$00
-	dc.b $17,$00,$1F,$00,$00,$02,$00,$77,$00,$7B,$00,$7B,$00,$0B,$E0,$1F
-	dc.b $E0,$1F,$E0,$10,$80,$00,$80,$00,$80
-	dcb.b $E,$00
-	dc.b $0F,$00,$0F,$00,$0F,$00,$05,$C0,$0D,$C0,$0E,$C0,$0B,$00,$00,$00
-	dc.b $00,$80,$00,$80
-	dcb.b $12,$00
-	dc.b $01,$00,$05,$00,$06,$00,$07,$80,$00,$80,$00,$40,$00,$C0
-	dcb.b $12,$00
-	dc.b $02,$00,$0A,$00,$0D,$00,$0F,$A0,$00,$00,$00,$E0,$00,$E0
-	dcb.b $14,$00
-	dc.b $0A,$00,$0B,$00,$0B,$00,$00,$A0,$00,$E0,$00,$E0
-	dcb.b $9,$00
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_56.bin"
+; bitmap
 scene_pixel_cells_for_mask_bank_55:
-	dcb.b $22,$00
-	dc.b $01,$FC,$01,$FC,$01,$FC
-	dcb.b $19,$00
-	dc.b $34,$03,$CB,$03,$FF,$03,$FF
-	dcb.b $19,$00
-	dc.b $2B,$03,$D4,$03,$FF,$03,$FF,$00,$00,$C0,$00,$C0,$00,$C0
-	dcb.b $12,$00
-	dc.b $4D,$03,$B2,$03,$FF,$03,$FF,$C0,$00,$38,$00,$F8,$00,$F8
-	dcb.b $12,$00
-	dc.b $36,$00,$C9,$00,$FF,$00,$FF,$70,$00,$8E,$00,$FE,$00,$FE
-	dcb.b $12,$00
-	dc.b $03,$01,$FC,$01,$FF,$01,$FF,$9A,$00,$65,$00,$FF,$00,$FF
-	dcb.b $13,$00
-	dc.b $01,$FF,$01,$FF,$01,$FF,$6D,$00,$92,$9C
-	dc.b $FF,$9C,$FF,$9C
-	dcb.b $12,$00
-	dc.b $01,$80,$01,$80,$01,$80,$35,$8C,$CA,$73,$FF,$FF,$FF,$FF,$00,$00
-	dc.b $80,$00,$80,$00,$80
-	dcb.b $11,$00
-	dc.b $16,$33,$69,$CC,$7F,$FF,$7F,$FF,$00,$00,$C0,$00,$C0,$00,$C0
-	dcb.b $11,$00
-	dc.b $12,$5C,$2D,$A3,$3F,$FF,$3F,$FF,$C0,$00,$20,$3C,$E0,$3C,$E0,$3C
-	dcb.b $10,$00
-	dc.b $0B,$27,$14,$D8,$1F,$FF,$1F,$FF,$20,$30,$D8,$4F,$F8,$7F,$F8,$7F
-	dcb.b $10,$00
-	dc.b $01,$B9,$1E,$46,$1F,$FF,$1F,$FF,$C0,$49,$3D,$B6,$FD,$FF,$FD,$FF
-	dc.b $00,$00,$C0,$00,$C0,$00,$C0
-	dcb.b $9,$00
-	dc.b $10,$0E,$6F,$F1,$7F,$FF,$7F,$FF,$70,$B6,$8F,$49,$FF,$FF,$FF,$FF
-	dc.b $40,$00,$B0,$00,$F0,$00,$F0,$00,$00,$00,$00,$01,$00,$01,$00,$01
-	dc.b $54,$71,$AB,$8E,$FF,$FF,$FF,$FF,$9B,$61,$64,$9E,$FF,$FF,$FF,$FF
-	dc.b $10,$00,$E8,$00,$F8,$00,$F8,$00,$00,$00,$00,$07,$00,$07,$00,$07
-	dc.b $63,$9C,$9C,$63,$FF,$FF,$FF,$FF,$ED,$86,$12,$79,$FF,$FF,$FF,$FF
-	dc.b $60,$00,$9C,$00,$FC,$00,$FC,$00,$00,$01,$00,$1E,$00,$1F,$00,$1F
-	dc.b $94,$E6,$6B,$19,$FF,$FF,$FF,$FF,$30,$00,$CF,$FF,$FF,$FF,$FF,$FF
-	dc.b $48,$00,$A8,$00,$F7,$00,$FF,$00,$00,$16,$00,$69,$00,$7F,$00,$7F
-	dc.b $61,$3B,$9E,$C4,$FF,$FF,$FF,$FF,$87,$00,$78,$FF,$FF,$FF,$FF,$FF
-	dc.b $0A,$00,$EA,$00,$F5,$00,$FF,$00,$00,$0D,$01,$F2,$01,$FF,$01,$FF
-	dc.b $80,$4C,$7F,$B3,$FF,$FF,$FF,$FF,$CC,$60,$33,$80,$FF,$E0,$FF,$E0
-	dc.b $02,$00,$17,$00,$1D,$00,$1F,$00,$01,$33,$06,$CC,$07,$FF,$07,$FF
-	dc.b $40,$07,$BF,$F8
-	dc.b $FF,$FF,$FF,$FF,$59,$10,$A6,$60,$FF,$F0,$FF,$F0,$00,$00,$00,$00
-	dc.b $02,$00,$02,$00,$06,$4E,$19,$B1,$1F,$FF,$1F,$FF,$00,$02,$E7,$FD
-	dc.b $E7,$FF,$E7,$FF,$B2,$08,$4D,$B0,$FF,$F8,$FF,$F8
-	dcb.b $8,$00
-	dc.b $01,$B0,$FE,$4F,$FF,$FF,$FF,$FF,$00,$15,$87,$EA,$87,$FF,$87,$FF
-	dc.b $21,$60,$DE,$90,$FF,$F0,$FF,$F0
-	dcb.b $8,$00
-	dc.b $02,$60,$FD,$9C,$FF,$FC,$FF,$FC,$00,$15,$00,$EA,$00,$FF,$00,$FF
-	dc.b $44,$50,$BA,$A0,$FF,$F0,$FF,$F0
-	dcb.b $8,$00
-	dc.b $01,$00,$FE,$F0,$FF,$F0,$FF,$F0,$00,$6B,$01,$94,$01,$FF,$01,$FF
-	dc.b $0E,$20,$F1,$D8,$FF,$F8,$FF,$F8,$00,$00,$F0,$00,$F0,$00,$F0,$00
-	dc.b $00,$00,$3F,$80,$3F,$80,$3F,$80,$00,$D8,$01,$27,$01,$FF,$01,$FF
-	dc.b $00,$40,$FF,$39,$FF,$F9,$FF,$F9,$C0,$00,$B8,$00,$B8,$00,$B8,$00
-	dc.b $00,$00,$7E,$00,$7E,$00,$7E,$00,$01,$90,$02,$6F,$03,$FF,$03,$FF
-	dc.b $28,$00,$96,$FB,$9F,$FB,$9F,$FB,$80,$00,$7E,$00,$7E,$00,$7E,$00
-	dc.b $00,$00,$3E,$00,$3E,$00,$3E,$00,$01,$60,$02,$9E,$03,$FE,$03,$FE
-	dc.b $00,$02,$1D,$F9,$1F,$F9,$1F,$F9,$00,$00,$FF,$00,$FF,$00,$FF
-	dcb.b $9,$00
-	dc.b $03,$40,$04,$B0,$07,$F0,$07,$F0,$00,$02,$0F,$C5,$0F,$C5,$0F,$C5
-	dc.b $00,$00,$FF,$00,$FF,$00,$FF
-	dcb.b $B,$00
-	dc.b $07,$E0,$07,$E0,$07,$E0,$00,$01,$00,$02,$00,$02,$00,$02,$E0,$00
-	dc.b $1E,$00,$1E,$00,$1E
-	dcb.b $9,$00
-	dc.b $03,$00,$03,$E0,$04,$E0,$07,$E0
-	dc.b $00,$00,$00,$01,$00,$01,$00,$01,$00,$00,$FC,$00,$FC,$00,$FC
-	dcb.b $9,$00
-	dc.b $0A,$80,$00,$A0,$0F,$60,$0F,$E0
-	dcb.b $1A,$00
-	dc.b $0A,$A0,$0F,$A0,$0F,$A0
-	dcb.b $11,$00
-	dc.b $04,$3C,$78,$00,$06,$5A,$98,$00,$02,$00,$10,$00,$10,$00,$00,$00
-	dc.b $00,$00,$04,$3D,$78,$00,$06,$5A,$D8,$00,$02,$00,$10,$00,$10,$00
-	dc.b $00,$00,$00,$00,$04,$3E,$78,$00,$06,$5B,$18,$00,$02,$00,$10,$00
-	dc.b $10,$00,$00,$00,$00,$00,$04,$3F,$78,$00,$06,$5B,$58,$00,$02,$00
-	dc.b $10,$00,$10,$00,$00,$00,$00,$00,$04,$40,$78,$00,$06,$5B,$98,$00
-	dc.b $02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$41,$78,$00,$06,$5B
-	dc.b $D8,$00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$42,$78,$00
-	dc.b $06,$5C,$18,$00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$43
-	dc.b $78,$00,$06,$5C,$58,$00,$02
+	INCBIN "assets/scene_pixel_cells_for_mask_bank_55.bin"
+; bitmap
+	dc.b $00,$04,$3C,$78,$00,$06,$5A,$98,$00,$02,$00,$10,$00,$10,$00,$00
+	dc.b $00,$00,$00,$04,$3D,$78,$00,$06,$5A,$D8,$00,$02,$00,$10,$00,$10
+	dc.b $00,$00,$00,$00,$00,$04,$3E,$78,$00,$06,$5B,$18,$00,$02,$00,$10
+	dc.b $00,$10,$00,$00,$00,$00,$00,$04,$3F,$78,$00,$06,$5B,$58,$00,$02
+	dc.b $00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$40,$78,$00,$06,$5B,$98
+	dc.b $00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$41,$78,$00,$06
+	dc.b $5B,$D8,$00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$42,$78
+	dc.b $00,$06,$5C,$18,$00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04
+	dc.b $43,$78,$00,$06,$5C,$58,$00,$02
 	dc.b $00,$10,$00,$10,$00,$00,$00,$00
 abs_0_00058588:
 	dc.b $00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$10,$00,$20,$00,$00
 	dc.b $00,$00
-abs_0_0005859A:
-	dc.b $00,$05,$85,$B2
-abs_0_0005859E:
-	dcb.b $8,$00
+ranged_hit_visual_descriptor:
+	dc.l ranged_hit_visual_state	; position_state_ptr
+ranged_hit_visual_descriptor_world_x:
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
 abs_0_000585A6:
 	dc.b $00,$05,$85,$CC
 abs_0_000585AA:
 	dcb.b $8,$00
-abs_0_000585B2:
-	dcb.b $8,$00
-abs_0_000585BA:
-	dcb.b $9,$00
-	dc.b $05,$85,$9A,$00,$00,$00,$00,$00,$00
+ranged_hit_visual_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+ranged_hit_visual_state_state_node_ptr:
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l ranged_hit_visual_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
 abs_0_000585CC:
 	dcb.b $11,$00
 	dc.b $05,$85,$A6,$00,$00,$00,$00,$00,$00
 abs_0_000585E6:
 	dc.b $00,$05,$84,$F8,$00,$05,$85,$0A,$00,$05,$85,$1C,$00,$05,$85,$2E
 	dc.b $00,$05,$85,$40,$00,$05
-	dc.b $85,$52,$00,$05,$85,$64,$00,$05,$85,$76,$00,$05,$85,$88,$00,$05
-	dc.b $58,$E0,$00,$06,$9A,$32,$00,$01,$00,$10,$00,$10,$00,$00,$00,$00
-	dc.b $00,$05,$59,$60,$00,$06,$9A,$52,$00,$01,$00,$10,$00,$10,$00,$00
-	dc.b $00,$00,$00,$05,$59,$E0,$00,$06,$9A,$72,$00,$01,$00,$10,$00,$10
-	dc.b $00,$00,$00,$00,$00,$05,$5A,$60,$00,$06,$9A,$92,$00,$01,$00,$10
-	dc.b $00,$10,$00,$00,$00,$00,$00,$05,$5A,$E0,$00,$06,$9A,$B2,$00,$01
-	dc.b $00,$10,$00,$10,$00,$00,$00,$00,$00,$05,$5B,$60,$00,$06,$9A,$D2
-	dc.b $00,$01,$00,$10,$00,$10,$00,$00,$00,$00,$00,$05,$5B,$E0,$00,$06
-	dc.b $9A,$F2,$00,$01,$00,$10,$00,$10,$00,$00,$00,$00
-abs_0_00058688:
-	dc.b $00,$05,$85,$9A,$07,$80,$00,$05,$86,$9A,$04
-	dcb.b $8,$00
-	dc.b $05,$86,$76,$00,$05,$86,$0A,$00,$05,$86,$1C,$00,$05,$86,$2E,$00
-	dc.b $05,$86,$40,$00,$05,$86,$52,$00,$05,$86,$64,$00,$05,$86,$76
+	dc.b $85,$52,$00,$05,$85,$64,$00,$05,$85,$76,$00,$05,$85,$88
+ranged_hit_visual_geometry_frames:
+	dc.l scene_pixel_cells_for_mask_bank_50	; bitplane_data_ptr
+	dc.l scene_mask_bank_50	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_1:
+	dc.l scene_pixel_cells_for_mask_bank_50+$80	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$20	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_2:
+	dc.l scene_pixel_cells_for_mask_bank_50+$100	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$40	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_3:
+	dc.l scene_pixel_cells_for_mask_bank_50+$180	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$60	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_4:
+	dc.l scene_pixel_cells_for_mask_bank_50+$200	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$80	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_5:
+	dc.l scene_pixel_cells_for_mask_bank_50+$280	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$A0	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_geometry_frames_bitplane_data_ptr_6:
+	dc.l scene_pixel_cells_for_mask_bank_50+$300	; bitplane_data_ptr
+	dc.l scene_mask_bank_50+$C0	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+ranged_hit_visual_animation:
+	dc.l ranged_hit_visual_descriptor	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $80	; phase_step
+	dc.l ranged_hit_visual_frame_ptrs	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+ranged_hit_visual_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+ranged_hit_visual_frame_ptrs:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
+ranged_hit_visual_frame_ptrs_active:
+	dc.l ranged_hit_visual_geometry_frames	; frame_ptr
+ranged_hit_visual_frame_ptrs_active_frame_ptr_1:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_1	; frame_ptr
+ranged_hit_visual_frame_ptrs_active_frame_ptr_2:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_2	; frame_ptr
+ranged_hit_visual_frame_ptrs_active_frame_ptr_3:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_3	; frame_ptr
+ranged_hit_visual_frame_ptrs_active_frame_ptr_4:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_4	; frame_ptr
+ranged_hit_visual_frame_ptrs_active_frame_ptr_5:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_5	; frame_ptr
+ranged_hit_visual_frame_ptrs_active_frame_ptr_6:
+	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 world_object_musician:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_musician	; interaction_callback
@@ -18903,7 +15527,7 @@ musician_animation_bank:
 	dc.l musician_positions_4870E_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 musician_frames_4870E_1:
 	dc.l scene_pixel_cells_for_mask_bank_42	; bitplane_data_ptr
 	dc.l scene_mask_bank_42	; mask_data_ptr
@@ -18972,14 +15596,15 @@ musician_nodes_4870E_4:
 	dc.l musician_positions_4870E_2	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $1E	; phase_step
-	dc.l musician_sequence_4870E_5	; frame_sequence_ptr
+	dc.l musician_sequence_4870E_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 musician_nodes_4870E_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-musician_sequence_4870E_5:
+musician_sequence_4870E_5_held:
 	dc.l musician_frames_4870E_1	; frame_ptr
+musician_sequence_4870E_5_active:
 	dc.l musician_frames_4870E_1	; frame_ptr
 	dc.l musician_frames_4870E_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l musician_frames_4870E_1_bitplane_data_ptr_2	; frame_ptr
@@ -19224,14 +15849,15 @@ item_receptacle_4_attachment_animation_node:
 	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $28	; phase_step
-	dc.l item_receptacle_4_attachment_frame_sequence	; frame_sequence_ptr
+	dc.l item_receptacle_4_attachment_frame_sequence_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 item_receptacle_4_attachment_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-item_receptacle_4_attachment_frame_sequence:
+item_receptacle_4_attachment_frame_sequence_held:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+item_receptacle_4_attachment_frame_sequence_active:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 item_receptacle_5_primary_state:
@@ -19873,7 +16499,7 @@ world_position_state_nodes_position_descriptor_ptr_6:
 	dc.l world_position_descriptors	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
@@ -19883,7 +16509,7 @@ world_position_state_nodes_position_descriptor_ptr_7:
 	dc.l world_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
@@ -19893,7 +16519,7 @@ world_position_state_nodes_position_descriptor_ptr_8:
 	dc.l world_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
@@ -19903,7 +16529,7 @@ world_position_state_nodes_position_descriptor_ptr_9:
 	dc.l world_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
@@ -19913,18 +16539,17 @@ world_position_state_nodes_position_descriptor_ptr_10:
 	dc.l world_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
-	dc.w $0000	; xy_sequence_ptr (first 2 of 4 bytes)
-	dc.w $0000
+	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 world_position_state_nodes_position_descriptor_ptr_11:
 	dc.l world_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
@@ -19934,7 +16559,7 @@ world_position_state_nodes_position_descriptor_ptr_12:
 	dc.l world_position_descriptors_position_state_ptr_6	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_E3_12:
 	dc.b $00	; typed data block gap
@@ -19944,7 +16569,7 @@ world_position_state_nodes_position_descriptor_ptr_13:
 	dc.l world_position_descriptors_position_state_ptr_7	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_F5_13:
 	dc.b $00	; typed data block gap
@@ -19954,7 +16579,7 @@ world_position_state_nodes_position_descriptor_ptr_14:
 	dc.l world_position_descriptors_position_state_ptr_8	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_107_14:
 	dc.b $00	; typed data block gap
@@ -19964,7 +16589,7 @@ world_position_state_nodes_position_descriptor_ptr_15:
 	dc.l world_position_descriptors_position_state_ptr_9	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_119_15:
 	dc.b $00	; typed data block gap
@@ -19974,7 +16599,7 @@ world_position_state_nodes_position_descriptor_ptr_16:
 	dc.l world_position_descriptors_position_state_ptr_10	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_12B_16:
 	dc.b $00	; typed data block gap
@@ -19984,7 +16609,7 @@ world_position_state_nodes_position_descriptor_ptr_17:
 	dc.l world_position_descriptors_position_state_ptr_11	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_13D_17:
 	dc.b $00	; typed data block gap
@@ -19994,7 +16619,7 @@ world_position_state_nodes_position_descriptor_ptr_18:
 	dc.l world_position_descriptors_position_state_ptr_12	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_14F_18:
 	dc.b $00	; typed data block gap
@@ -20004,7 +16629,7 @@ world_position_state_nodes_position_descriptor_ptr_19:
 	dc.l world_position_descriptors_position_state_ptr_13	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_161_19:
 	dc.b $00	; typed data block gap
@@ -20014,7 +16639,7 @@ world_position_state_nodes_position_descriptor_ptr_20:
 	dc.l world_position_descriptors_position_state_ptr_14	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_173_20:
 	dc.b $00	; typed data block gap
@@ -20024,7 +16649,7 @@ world_position_state_nodes_position_descriptor_ptr_21:
 	dc.l world_position_descriptors_position_state_ptr_15	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_185_21:
 	dc.b $00	; typed data block gap
@@ -20034,7 +16659,7 @@ world_position_state_nodes_position_descriptor_ptr_22:
 	dc.l world_position_descriptors_position_state_ptr_16	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_197_22:
 	dc.b $00	; typed data block gap
@@ -20044,7 +16669,7 @@ world_position_state_nodes_position_descriptor_ptr_23:
 	dc.l world_position_descriptors_position_state_ptr_17	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_1A9_23:
 	dc.b $00	; typed data block gap
@@ -20052,43 +16677,48 @@ world_position_state_nodes_gap_1A9_23:
 	dc.w $0000	; frame_index_and_phase
 world_position_descriptor_sequence_ptrs:
 	dc.l $00000000	; frame_ptr
+world_position_descriptor_sequence_ptrs_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_18	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_19	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_20	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_21	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_5:
-	dc.b $00,$05	; frame_ptr (first 2 of 4 bytes)
-	dc.b $8A,$C6
+world_proximity_near_sequence_0_held:
+	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
+world_proximity_near_sequence_0_active:
 	dc.l world_position_animation_frames	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_3	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_4	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_12:
+world_proximity_far_sequence_0_held:
 	dc.l world_position_animation_frames	; frame_ptr
+world_proximity_far_sequence_0_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_4	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_3	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l world_position_animation_frames	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_19:
+world_proximity_near_sequence_1_held:
 	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
+world_proximity_near_sequence_1_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_7	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_8	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_9	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_10	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_26:
+world_proximity_far_sequence_1_held:
 	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+world_proximity_far_sequence_1_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_10	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_9	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_8	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_7	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+world_position_unassigned_frame_entries:
 	dc.l world_position_animation_frames_bitplane_data_ptr_17	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_12	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_13	; frame_ptr
@@ -20161,7 +16791,7 @@ squash_player_states_49268_1:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 squash_player_frames_49268_2:
 	dc.l scene_pixel_cells_for_mask_bank_17	; bitplane_data_ptr
 	dc.l scene_mask_bank_17	; mask_data_ptr
@@ -20310,14 +16940,15 @@ squash_player_nodes_49268_5:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l squash_player_sequence_49268_6	; frame_sequence_ptr
+	dc.l squash_player_sequence_49268_6_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 squash_player_nodes_49268_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-squash_player_sequence_49268_6:
+squash_player_sequence_49268_6_held:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_7	; frame_ptr
+squash_player_sequence_49268_6_active:
 	dc.l squash_player_frames_49268_2	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_2	; frame_ptr
@@ -20329,14 +16960,15 @@ squash_player_nodes_49268_7:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l squash_player_sequence_49268_8	; frame_sequence_ptr
+	dc.l squash_player_sequence_49268_8_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 squash_player_nodes_49268_7_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-squash_player_sequence_49268_8:
+squash_player_sequence_49268_8_held:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_15	; frame_ptr
+squash_player_sequence_49268_8_active:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_8	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_9	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_10	; frame_ptr
@@ -20344,27 +16976,27 @@ squash_player_sequence_49268_8:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_12	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_13	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_14	; frame_ptr
-world_object_kriptonite:
+world_object_wackobrain_actor:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_wackobrain	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l kriptonite_inventory_slots	; inventory_slots_ptr
+	dc.l wackobrain_actor_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l kriptonite_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l wackobrain_actor_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_kriptonite_behavior_script	; behavior_script_ptr
-	dc.l world_object_kriptonite_behavior_script	; initial_behavior_script_ptr
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+	dc.l world_object_wackobrain_actor_behavior_script	; behavior_script_ptr
+	dc.l world_object_wackobrain_actor_behavior_script	; initial_behavior_script_ptr
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_kriptonite_gap_36:
+world_object_wackobrain_actor_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
-world_object_kriptonite_gap_40:
+world_object_wackobrain_actor_gap_40:
 	dc.w $0064	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -20376,19 +17008,19 @@ world_object_kriptonite_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l kriptonite_animation_bank	; saved_position_state_ptr
+	dc.l wackobrain_actor_animation_bank	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-kriptonite_animation_bank:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; current_geometry_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; previous_geometry_ptr
-	dc.l kriptonite_nodes_49492_14	; state_node_ptr
+wackobrain_actor_animation_bank:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; current_geometry_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; previous_geometry_ptr
+	dc.l wackobrain_actor_nodes_49492_14	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-kriptonite_frames_49492_1:
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+wackobrain_actor_frames_49492_1:
 	dc.l scene_pixel_cells_for_mask_bank_18	; bitplane_data_ptr
 	dc.l scene_mask_bank_18	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20396,7 +17028,7 @@ kriptonite_frames_49492_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_1:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_18+$170	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$5C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20404,7 +17036,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_1:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_2:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_18+$300	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$C0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20412,7 +17044,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_3:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$134	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20420,7 +17052,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_3:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_4:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_18+$6D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$1B4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20428,7 +17060,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_4:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_5:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_18+$8D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$234	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20436,7 +17068,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_5:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_6:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_18+$AA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$2A8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20444,7 +17076,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_6:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_7:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_7:
 	dc.l scene_pixel_cells_for_mask_bank_18+$C40	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$310	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20452,7 +17084,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_7:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_8:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_8:
 	dc.l scene_pixel_cells_for_mask_bank_18+$DB0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$36C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20460,7 +17092,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_8:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_9:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_9:
 	dc.l scene_pixel_cells_for_mask_bank_18+$F20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$3C8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20468,7 +17100,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_9:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_10:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_10:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1090	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$424	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20476,7 +17108,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_10:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0005	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_11:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_11:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1220	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$488	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20484,7 +17116,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_11:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_12:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_12:
 	dc.l scene_pixel_cells_for_mask_bank_18+$13F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$4FC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20492,7 +17124,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_12:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_13:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_13:
 	dc.l scene_pixel_cells_for_mask_bank_18+$15F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$57C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20500,7 +17132,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_13:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_14:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_14:
 	dc.l scene_pixel_cells_for_mask_bank_18+$17F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$5FC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20508,7 +17140,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_14:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_15:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_15:
 	dc.l scene_pixel_cells_for_mask_bank_18+$19C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$670	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20516,7 +17148,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_15:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_16:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_16:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1B60	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$6D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20524,7 +17156,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_16:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_17:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_17:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1CD0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$734	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20532,7 +17164,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_17:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_18:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_18:
 	dc.l scene_pixel_cells_for_mask_bank_18+$1E50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$794	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20540,7 +17172,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_18:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_19:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_19:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2020	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$808	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20548,7 +17180,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_19:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_20:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_20:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2210	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$884	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20556,7 +17188,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_20:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_21:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_21:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2410	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$904	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20564,7 +17196,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_21:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_22:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_22:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2610	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$984	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20572,7 +17204,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_22:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_23:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_23:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2800	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$A00	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20580,7 +17212,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_23:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_24:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_24:
 	dc.l scene_pixel_cells_for_mask_bank_18+$29C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$A70	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20588,7 +17220,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_24:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0007	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_25:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_25:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2B40	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$AD0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20596,7 +17228,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_25:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_26:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_26:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2D00	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$B40	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20604,7 +17236,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_26:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_27:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_27:
 	dc.l scene_pixel_cells_for_mask_bank_18+$2EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$BBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20612,7 +17244,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_27:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_28:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_28:
 	dc.l scene_pixel_cells_for_mask_bank_18+$30F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$C3C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20620,7 +17252,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_28:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_29:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_29:
 	dc.l scene_pixel_cells_for_mask_bank_18+$32F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$CBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20628,7 +17260,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_29:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_30:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_30:
 	dc.l scene_pixel_cells_for_mask_bank_18+$34E0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$D38	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20636,7 +17268,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_30:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_31:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_31:
 	dc.l scene_pixel_cells_for_mask_bank_18+$36A0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$DA8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20644,7 +17276,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_31:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0002	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_32:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_32:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3870	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$E1C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20652,7 +17284,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_32:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_33:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_33:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3A50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$E94	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20660,7 +17292,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_33:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_34:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_34:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3C50	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F14	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20668,7 +17300,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_34:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_35:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_35:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3D20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F48	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20676,7 +17308,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_35:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_36:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_36:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3E20	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$F88	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20684,7 +17316,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_36:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0003	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_37:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_37:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3EF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$FBC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20692,7 +17324,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_37:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_38:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_38:
 	dc.l scene_pixel_cells_for_mask_bank_18+$3F60	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$FD8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20700,7 +17332,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_38:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_39:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_39:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4030	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$100C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20708,7 +17340,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_39:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_40:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_40:
 	dc.l scene_pixel_cells_for_mask_bank_18+$4130	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$104C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20716,7 +17348,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_40:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0006	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_41:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_41:
 	dc.l scene_pixel_cells_for_mask_bank_18+$42B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$10AC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20724,7 +17356,7 @@ kriptonite_frames_49492_1_bitplane_data_ptr_41:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000C	; y_offset
-kriptonite_frames_49492_1_bitplane_data_ptr_42:
+wackobrain_actor_frames_49492_1_bitplane_data_ptr_42:
 	dc.l scene_pixel_cells_for_mask_bank_18+$43B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_18+$10EC	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -20732,137 +17364,143 @@ kriptonite_frames_49492_1_bitplane_data_ptr_42:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0011	; y_offset
-kriptonite_positions_49492_2:
-	dc.l kriptonite_states_49492_3	; position_state_ptr
+wackobrain_actor_positions_49492_2:
+	dc.l wackobrain_actor_states_49492_3	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-kriptonite_states_49492_3:
+wackobrain_actor_states_49492_3:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-kriptonite_nodes_49492_4:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_nodes_49492_4:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_5	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_4_gap_B:
+wackobrain_actor_nodes_49492_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_5:
-	dc.l kriptonite_frames_49492_1	; frame_ptr
-	dc.l kriptonite_frames_49492_1	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_1	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_2	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_3	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_4	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_5	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_6	; frame_ptr
-kriptonite_nodes_49492_6:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_5:
+	dc.l wackobrain_actor_frames_49492_1	; frame_ptr
+wackobrain_actor_sequence_49492_5_active:
+	dc.l wackobrain_actor_frames_49492_1	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_6	; frame_ptr
+wackobrain_actor_nodes_49492_6:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_7	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_7	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_6_gap_B:
+wackobrain_actor_nodes_49492_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_7:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_8	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_9	; frame_ptr
-kriptonite_nodes_49492_8:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_7:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+wackobrain_actor_sequence_49492_7_active:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_8	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_9	; frame_ptr
+wackobrain_actor_nodes_49492_8:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_9	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_9	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_8_gap_B:
+wackobrain_actor_nodes_49492_8_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_9:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_11	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_12	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_13	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_14	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_15	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_16	; frame_ptr
-kriptonite_nodes_49492_10:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_9:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+wackobrain_actor_sequence_49492_9_active:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_11	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_12	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_13	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_14	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_15	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_16	; frame_ptr
+wackobrain_actor_nodes_49492_10:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_11	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_11	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_10_gap_B:
+wackobrain_actor_nodes_49492_10_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_11:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_18	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_19	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_20	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_21	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_22	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_23	; frame_ptr
-kriptonite_nodes_49492_12:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_11:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+wackobrain_actor_sequence_49492_11_active:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_18	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_19	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_20	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_21	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_22	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_23	; frame_ptr
+wackobrain_actor_nodes_49492_12:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l kriptonite_sequence_49492_13	; frame_sequence_ptr
+	dc.l wackobrain_actor_sequence_49492_13	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-kriptonite_nodes_49492_12_gap_B:
+wackobrain_actor_nodes_49492_12_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_13:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_25	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_26	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_27	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_28	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_29	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_30	; frame_ptr
-kriptonite_nodes_49492_14:
-	dc.l kriptonite_positions_49492_2	; position_descriptor_ptr
+wackobrain_actor_sequence_49492_13:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+wackobrain_actor_sequence_49492_13_active:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_25	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_26	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_27	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_28	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_29	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_30	; frame_ptr
+wackobrain_actor_nodes_49492_14:
+	dc.l wackobrain_actor_positions_49492_2	; position_descriptor_ptr
 	dc.b $0C	; frame_count
 	dc.b $2D	; phase_step
-	dc.l kriptonite_sequence_49492_15	; frame_sequence_ptr
-	dc.b $04	; mode_flags
-kriptonite_nodes_49492_14_gap_B:
+	dc.l wackobrain_actor_sequence_49492_15	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+wackobrain_actor_nodes_49492_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kriptonite_sequence_49492_15:
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_31	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_32	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_33	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_34	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_35	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_36	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_37	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_38	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_39	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_40	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_41	; frame_ptr
-	dc.l kriptonite_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
+wackobrain_actor_sequence_49492_15:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
+wackobrain_actor_sequence_49492_15_active:
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_31	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_32	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_33	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_34	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_35	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_36	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_37	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_38	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_39	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_40	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_41	; frame_ptr
+	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
 world_object_thief:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -20906,7 +17544,7 @@ thief_animation_bank:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 thief_frames_4995C_1:
 	dc.l scene_pixel_cells_for_mask_bank_23	; bitplane_data_ptr
 	dc.l scene_mask_bank_23	; mask_data_ptr
@@ -21063,14 +17701,15 @@ thief_nodes_4995C_4:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l thief_sequence_4995C_5	; frame_sequence_ptr
+	dc.l thief_sequence_4995C_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 thief_nodes_4995C_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-thief_sequence_4995C_5:
+thief_sequence_4995C_5_held:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_8	; frame_ptr
+thief_sequence_4995C_5_active:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_2	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_3	; frame_ptr
@@ -21082,14 +17721,15 @@ thief_nodes_4995C_6:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l thief_sequence_4995C_7	; frame_sequence_ptr
+	dc.l thief_sequence_4995C_7_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 thief_nodes_4995C_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-thief_sequence_4995C_7:
+thief_sequence_4995C_7_held:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_16	; frame_ptr
+thief_sequence_4995C_7_active:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_9	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_10	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_11	; frame_ptr
@@ -21114,8 +17754,7 @@ world_object_priest:
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
 world_object_priest_gap_36:
-	dc.b $00,$00,$00,$00
-	dc.w $0000
+	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0043	; hit_points
 	dc.w $0043	; initial_hit_points
 world_object_priest_gap_40:
@@ -21303,19 +17942,20 @@ priest_states_49B98_2_current_geometry_ptr_2:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 priest_nodes_49B98_3:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $08	; frame_count
 	dc.b $28	; phase_step
-	dc.l priest_sequence_49B98_4	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l priest_sequence_49B98_4_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 priest_nodes_49B98_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-priest_sequence_49B98_4:
+priest_sequence_49B98_4_held:
 	dc.l priest_animation_bank_bitplane_data_ptr_15	; frame_ptr
+priest_sequence_49B98_4_active:
 	dc.l priest_animation_bank_bitplane_data_ptr_7	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_8	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_9	; frame_ptr
@@ -21328,14 +17968,15 @@ priest_nodes_49B98_5:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $2B	; phase_step
-	dc.l priest_sequence_49B98_6	; frame_sequence_ptr
+	dc.l priest_sequence_49B98_6_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 priest_nodes_49B98_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-priest_sequence_49B98_6:
+priest_sequence_49B98_6_held:
 	dc.l priest_animation_bank	; frame_ptr
+priest_sequence_49B98_6_active:
 	dc.l priest_animation_bank	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -21554,20 +18195,20 @@ icelord_states_49DCE_2_current_geometry_ptr_1:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 icelord_nodes_49DCE_3:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.b $13	; frame_count
 	dc.b $2A	; phase_step
-	dc.b $00,$05	; frame_sequence_ptr (first 2 of 4 bytes)
-	dc.b $9F,$76
-	dc.b $04	; mode_flags
+	dc.l icelord_sequence_49DCE_4_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 icelord_nodes_49DCE_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-icelord_sequence_49DCE_4:
+icelord_sequence_49DCE_4_held:
 	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
+icelord_sequence_49DCE_4_active:
 	dc.l icelord_animation_bank	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -21591,14 +18232,15 @@ icelord_nodes_49DCE_5:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.b $13	; frame_count
 	dc.b $2A	; phase_step
-	dc.l icelord_sequence_49DCE_6	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l icelord_sequence_49DCE_6_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 icelord_nodes_49DCE_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-icelord_sequence_49DCE_6:
+icelord_sequence_49DCE_6_held:
 	dc.l icelord_animation_bank	; frame_ptr
+icelord_sequence_49DCE_6_active:
 	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_17	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_16	; frame_ptr
@@ -21620,7 +18262,7 @@ icelord_sequence_49DCE_6:
 	dc.l icelord_animation_bank	; frame_ptr
 world_object_hooligan:
 	dc.l $00000000	; item_name_ptr
-	dc.l interact_with_hooligan_or_robomechanic	; interaction_callback
+	dc.l request_world_object_context_message	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005D1F9	; context_message_ptr
 	dc.l abs_0_0005D220	; interaction_message_ptr
@@ -21933,7 +18575,7 @@ hooligan_states_4A07C_2_current_geometry_ptr_1:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 hooligan_frames_4A07C_3:
 	dc.l scene_pixel_cells_for_mask_bank_08	; bitplane_data_ptr
 	dc.l scene_mask_bank_08	; mask_data_ptr
@@ -21946,14 +18588,15 @@ hooligan_nodes_4A07C_4:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_5	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_5:
+hooligan_sequence_4A07C_5_held:
 	dc.l hooligan_animation_bank	; frame_ptr
+hooligan_sequence_4A07C_5_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_2	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_3	; frame_ptr
@@ -21964,14 +18607,15 @@ hooligan_nodes_4A07C_6:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_7	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_7_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_7:
+hooligan_sequence_4A07C_7_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_7	; frame_ptr
+hooligan_sequence_4A07C_7_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_8	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_9	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_10	; frame_ptr
@@ -21982,14 +18626,15 @@ hooligan_nodes_4A07C_8:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_9	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_9_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_8_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_9:
+hooligan_sequence_4A07C_9_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_21	; frame_ptr
+hooligan_sequence_4A07C_9_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_14	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_15	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_16	; frame_ptr
@@ -22001,14 +18646,15 @@ hooligan_nodes_4A07C_10:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_11	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_11_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_10_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_11:
+hooligan_sequence_4A07C_11_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+hooligan_sequence_4A07C_11_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_22	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_23	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_24	; frame_ptr
@@ -22020,28 +18666,30 @@ hooligan_nodes_4A07C_12:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $20	; phase_step
-	dc.l hooligan_sequence_4A07C_13	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l hooligan_sequence_4A07C_13_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 hooligan_nodes_4A07C_12_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_13:
+hooligan_sequence_4A07C_13_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+hooligan_sequence_4A07C_13_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_30	; frame_ptr
 hooligan_nodes_4A07C_14:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $20	; phase_step
-	dc.l hooligan_sequence_4A07C_15	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l hooligan_sequence_4A07C_15_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 hooligan_nodes_4A07C_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_15:
+hooligan_sequence_4A07C_15_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+hooligan_sequence_4A07C_15_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_31	; frame_ptr
 world_object_entry_officer:
@@ -22175,19 +18823,20 @@ entry_officer_states_4A45E_2_current_geometry_ptr_1:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 entry_officer_nodes_4A45E_3:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l entry_officer_sequence_4A45E_4	; frame_sequence_ptr
+	dc.l entry_officer_sequence_4A45E_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 entry_officer_nodes_4A45E_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-entry_officer_sequence_4A45E_4:
+entry_officer_sequence_4A45E_4_held:
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_8	; frame_ptr
+entry_officer_sequence_4A45E_4_active:
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_2	; frame_ptr
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_3	; frame_ptr
@@ -22199,14 +18848,15 @@ entry_officer_nodes_4A45E_5:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $09	; frame_count
 	dc.b $40	; phase_step
-	dc.l entry_officer_sequence_4A45E_6	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l entry_officer_sequence_4A45E_6_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 entry_officer_nodes_4A45E_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-entry_officer_sequence_4A45E_6:
+entry_officer_sequence_4A45E_6_held:
 	dc.l entry_officer_animation_bank_1	; frame_ptr
+entry_officer_sequence_4A45E_6_active:
 	dc.l entry_officer_animation_bank_2	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -22299,19 +18949,20 @@ death_fly_states_4A600_2_current_geometry_ptr_1:
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 death_fly_nodes_4A600_3:
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $80	; phase_step
-	dc.l death_fly_sequence_4A600_4	; frame_sequence_ptr
+	dc.l death_fly_sequence_4A600_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 death_fly_nodes_4A600_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-death_fly_sequence_4A600_4:
+death_fly_sequence_4A600_4_held:
 	dc.l death_fly_animation_bank_bitplane_data_ptr_1	; frame_ptr
+death_fly_sequence_4A600_4_active:
 	dc.l death_fly_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l death_fly_animation_bank_bitplane_data_ptr_2	; frame_ptr
 world_object_driffid:
@@ -22421,7 +19072,7 @@ driffid_states_4A6E8_2_current_geometry_ptr_1:
 	dc.l driffid_positions_4A6E8_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 driffid_frames_4A6E8_3:
 	dc.l scene_pixel_cells_for_mask_bank_41	; bitplane_data_ptr
 	dc.l scene_mask_bank_41	; mask_data_ptr
@@ -22434,14 +19085,15 @@ driffid_nodes_4A6E8_4:
 	dc.l driffid_positions_4A6E8_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l driffid_sequence_4A6E8_5	; frame_sequence_ptr
+	dc.l driffid_sequence_4A6E8_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 driffid_nodes_4A6E8_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-driffid_sequence_4A6E8_5:
+driffid_sequence_4A6E8_5_held:
 	dc.l driffid_animation_bank	; frame_ptr
+driffid_sequence_4A6E8_5_active:
 	dc.l driffid_animation_bank	; frame_ptr
 	dc.l driffid_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l driffid_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -22497,7 +19149,7 @@ captain_states_4A828_1:
 	dc.l captain_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 captain_frames_4A828_2:
 	dc.l scene_pixel_cells_for_mask_bank_09	; bitplane_data_ptr
 	dc.l scene_mask_bank_09	; mask_data_ptr
@@ -22555,7 +19207,7 @@ resource_officer_states_4A8B4_1:
 	dc.l resource_officer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 resource_officer_frames_4A8B4_2:
 	dc.l scene_pixel_cells_for_mask_bank_10	; bitplane_data_ptr
 	dc.l scene_mask_bank_10	; mask_data_ptr
@@ -22613,7 +19265,7 @@ engineer_states_4A940_1:
 	dc.l engineer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 engineer_frames_4A940_2:
 	dc.l scene_pixel_cells_for_mask_bank_11	; bitplane_data_ptr
 	dc.l scene_mask_bank_11	; mask_data_ptr
@@ -22671,7 +19323,7 @@ science_officer_states_4A9CC_1:
 	dc.l science_officer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 science_officer_frames_4A9CC_2:
 	dc.l scene_pixel_cells_for_mask_bank_12	; bitplane_data_ptr
 	dc.l scene_mask_bank_12	; mask_data_ptr
@@ -22729,7 +19381,7 @@ medic_states_4AA58_1:
 	dc.l medic_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 world_object_awol_officer:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -22779,7 +19431,7 @@ awol_officer_states_4AAD2_1:
 	dc.l awol_officer_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 awol_officer_frames_4AAD2_2:
 	dc.l scene_pixel_cells_for_mask_bank_10	; bitplane_data_ptr
 	dc.l scene_mask_bank_10	; mask_data_ptr
@@ -22837,7 +19489,7 @@ lieutenant_commander_states_4AB5E_1:
 	dc.l lieutenant_commander_animation_bank	; position_descriptor_ptr
 	dc.l lieutenant_commander_states_4AB5E_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_1	; current_geometry_ptr
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_1	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -22846,7 +19498,7 @@ lieutenant_commander_states_4AB5E_1:
 	dc.l lieutenant_commander_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 lieutenant_commander_frames_4AB5E_2:
 	dc.l scene_pixel_cells_for_mask_bank_35	; bitplane_data_ptr
 	dc.l scene_mask_bank_35	; mask_data_ptr
@@ -22922,7 +19574,7 @@ commander_states_4AC3A_1:
 	dc.l commander_animation_bank	; position_descriptor_ptr
 	dc.l commander_states_4AC3A_1+$1A	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_2	; current_geometry_ptr
 	dc.l lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_2	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -22931,7 +19583,7 @@ commander_states_4AC3A_1:
 	dc.l commander_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 world_object_menial_droid:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_menial_droid	; interaction_callback
@@ -22971,7 +19623,7 @@ menial_droid_animation_bank_1:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 menial_droid_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -22985,7 +19637,7 @@ menial_droid_states_4ACCE_1:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.b $00,$05,$2E,$E8,$00,$06,$8E,$0C,$00,$01,$00,$06,$00,$10,$00,$00
 	dc.b $00,$01,$00,$05,$2F,$18,$00,$06,$8E,$18,$00,$01,$00,$07,$00,$10
 	dc.b $00,$00,$00,$01,$00,$05,$2F,$50,$00,$06,$8E,$26,$00,$01,$00,$07
@@ -23076,14 +19728,15 @@ menial_droid_animation_bank_3:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $80	; phase_step
-	dc.l menial_droid_sequence_4AE50_1	; frame_sequence_ptr
+	dc.l menial_droid_sequence_4AE50_1_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 menial_droid_animation_bank_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-menial_droid_sequence_4AE50_1:
+menial_droid_sequence_4AE50_1_held:
 	dc.l menial_droid_animation_bank_2	; frame_ptr
+menial_droid_sequence_4AE50_1_active:
 	dc.l menial_droid_animation_bank_2	; frame_ptr
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -23130,7 +19783,7 @@ gardener_animation_bank_1:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 gardener_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -23144,7 +19797,7 @@ gardener_states_4AEF8_1:
 	dc.l gardener_positions_4AF7E_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.b $00,$05,$33,$10,$00,$06,$8F,$16,$00,$01,$00,$0D,$00,$20,$00,$00
 	dc.b $00,$01,$00,$05,$33,$E0,$00,$06,$8F,$4A,$00,$01,$00,$0F,$00,$20
 	dc.b $00,$00,$00,$00,$00,$05,$34,$D0,$00,$06,$8F,$86,$00,$01,$00,$10
@@ -23181,11 +19834,11 @@ gardener_states_4AF7E_2:
 	dcb.b $9,$00
 	dc.b $05,$AF,$24,$00,$05,$AF,$24,$00,$05,$AF,$36,$00,$05,$AF,$48,$00
 	dc.b $05,$AF,$5A,$00,$05,$AF,$6C
-    ; Install initial player/fixed animation nodes and coordinates. Positive-X shares a long with player state; scripts may replace frame sequences. No alias-lifetime or allocation guarantee.
+    ; Install the positive-X node after the 26-byte player render state. Movement selects directional nodes; idle holds the header pose. General allocation lifetime is not established.
 initialize_player_and_fixed_animation_nodes:
-	lea.l player_position_state_interaction_data_ptr.l,a0
+	lea.l player_move_positive_x_animation.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
-	move.l a0,(a4)	; operand 2: world_position_state_record_state_node_ptr at (a4)
+	move.l a0,(a4)	; operand 2: world_position_render_state_prefix_state_node_ptr at (a4)
 	lea.l combat_visual_position_descriptor.l,a0
 	move.w #$2710,d0
 	move.w d0,world_position_descriptor_prefix_world_x(a0)
@@ -23199,40 +19852,40 @@ initialize_player_and_fixed_animation_nodes:
 	lea.l priest_states_49B98_2_current_geometry_ptr_1.l,a4
 	move.l a0,(a4)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a4)
 	lea.l fixed_npc_geometry_headers(pc),a0
-	lea.l pianist_attachment_position_state(pc),a4
+	lea.l secdroid_alpha_1_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l pianist_primary_position_state(pc),a4
+	lea.l secdroid_alpha_1_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers(pc),a0
-	lea.l defence_controller_attachment_position_state(pc),a4
+	lea.l secdroid_delta_1_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l defence_controller_primary_position_state(pc),a4
+	lea.l secdroid_delta_1_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l wackobrain_attachment_position_state(pc),a4
+	lea.l secdroid_delta_2_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l wackobrain_primary_position_state(pc),a4
+	lea.l secdroid_delta_2_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l glass_attachment_position_state(pc),a4
+	lea.l secdroid_pi_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l glass_primary_position_state(pc),a4
+	lea.l secdroid_pi_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l kwik_kleen_attachment_position_state(pc),a4
+	lea.l secdroid_omega_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l kwik_kleen_primary_position_state(pc),a4
+	lea.l secdroid_omega_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_4(pc),a0
-	lea.l flight_controller_attachment_position_state(pc),a4
+	lea.l secdroid_alpha_2_attachment_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	lea.l fixed_npc_geometry_headers_bitplane_data_ptr_8(pc),a0
-	lea.l flight_controller_primary_position_state(pc),a4
+	lea.l secdroid_alpha_2_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	rts
 complete_priest_interaction:
@@ -23242,16 +19895,17 @@ decrease_active_world_object_item_state:
 	jsr enqueue_status_message.l
 	moveq.l #-15,d0
 	jmp adjust_active_world_object_item_state.l
-initialize_position_state_link:
+    ; This initialized pose node has no chain/hold-at-end mode. The diabetic hint callback leaves it installed; other mutations can break that invariant.
+start_diabetic_attachment_animation:
 	lea.l diabetic_states_4B7A0_1_state_node_ptr_1(pc),a0
-	lea.l abs_0_0005B814(pc),a1
+	lea.l diabetic_script_pose_controller(pc),a1
 	move.l a1,(a0)	; operand 2: world_position_render_state_prefix_state_node_ptr at (a0)
-	clr.w $0010(a1)
-	bclr.b #0,$000A(a1)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	rts
-toggle_position_state_active_flag:
-	lea.l abs_0_0005B81E(pc),a0
-	bchg.b #0,(a0)
+toggle_diabetic_attachment_hold:
+	lea.l diabetic_script_pose_controller_mode_flags(pc),a0
+	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,(a0)	; operand 2: WorldPositionStateNode_mode_flags at (a0)
 	rts
 complete_bank_manager_interaction:
 	moveq.l #15,d0
@@ -23259,6 +19913,7 @@ complete_bank_manager_interaction:
 complete_thief_interaction:
 	moveq.l #15,d0
 	jmp adjust_active_world_object_item_state.l
+    ; Player defeat skips the handoff; otherwise transfer the item, empty its slot, inhibit script dispatch and exchange states. Queue/UI/audio effects remain separate.
 collect_world_object_item:
 	btst.b #1,player_world_object_world_object_flags.l
 	bne.b abs_0_0005B184
@@ -23267,11 +19922,11 @@ collect_world_object_item:
 	move.b $0046(a5),d0
 	clr.b $0046(a5)
 	move.b d0,player_world_object_selected_item_id.l
-	bset.b #1,$0048(a5)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,$0048(a5)
 	movea.l $0014(a5),a0
 	clr.b (a0)
 	lea.l entry_officer_nodes_4A45E_5(pc),a0
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	btst.b #2,app_ui_flags(a6)
 	beq.b abs_0_0005B16C
@@ -23279,7 +19934,7 @@ collect_world_object_item:
 	jsr close_inventory_panel.l
 	movem.l (a7)+,d0/a0/a5
 abs_0_0005B16C:
-	jsr restore_world_object_position_state.l
+	jsr exchange_world_object_position_states.l
 	jsr display_current_item_name.l
 	jsr refresh_selected_item_name_display.l
 	jsr abs_0_0005D31A.l
@@ -23472,19 +20127,20 @@ technician_states_4B1DA_3:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 technician_nodes_4B1DA_4:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l technician_sequence_4B1DA_5	; frame_sequence_ptr
+	dc.l technician_sequence_4B1DA_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 technician_nodes_4B1DA_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-technician_sequence_4B1DA_5:
+technician_sequence_4B1DA_5_held:
 	dc.l technician_animation_bank_bitplane_data_ptr_1	; frame_ptr
+technician_sequence_4B1DA_5_active:
 	dc.l technician_animation_bank_bitplane_data_ptr_2	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_3	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_4	; frame_ptr
@@ -23496,14 +20152,15 @@ technician_nodes_4B1DA_6:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l technician_sequence_4B1DA_7	; frame_sequence_ptr
+	dc.l technician_sequence_4B1DA_7_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 technician_nodes_4B1DA_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-technician_sequence_4B1DA_7:
+technician_sequence_4B1DA_7_held:
 	dc.l technician_animation_bank_bitplane_data_ptr_1	; frame_ptr
+technician_sequence_4B1DA_7_active:
 	dc.l technician_animation_bank_bitplane_data_ptr_9	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_10	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_11	; frame_ptr
@@ -23513,7 +20170,7 @@ technician_sequence_4B1DA_7:
 	dc.l technician_animation_bank_bitplane_data_ptr_15	; frame_ptr
 world_object_robomechanic:
 	dc.l $00000000	; item_name_ptr
-	dc.l interact_with_hooligan_or_robomechanic	; interaction_callback
+	dc.l request_world_object_context_message	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l abs_0_0005CDC4	; context_message_ptr
 	dc.l abs_0_0005CDEA	; interaction_message_ptr
@@ -23550,7 +20207,7 @@ robomechanic_animation_bank_1:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 robomechanic_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -23564,7 +20221,7 @@ robomechanic_states_4B3F2_1:
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.b $00,$05,$37,$80,$00,$06,$90,$32,$00,$02,$00,$05,$00,$20,$00,$00
 	dc.b $00,$05,$00,$05,$37,$D0,$00,$06,$90,$46,$00,$02,$00,$05,$00,$20
 	dc.b $00,$00,$00,$05,$00,$05,$38,$20,$00,$06,$90,$5A,$00,$02,$00,$07
@@ -23630,14 +20287,15 @@ robomechanic_nodes_4B454_3:
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $28	; phase_step
-	dc.l robomechanic_sequence_4B454_4	; frame_sequence_ptr
+	dc.l robomechanic_sequence_4B454_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 robomechanic_nodes_4B454_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-robomechanic_sequence_4B454_4:
+robomechanic_sequence_4B454_4_held:
 	dc.l robomechanic_animation_bank_2	; frame_ptr
+robomechanic_sequence_4B454_4_active:
 	dc.l robomechanic_animation_bank_2	; frame_ptr
 	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -23828,7 +20486,7 @@ doctor_states_4B552_2_current_geometry_ptr_1:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.l doctor_states_4B552_2+$34	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l doctor_animation_bank_bitplane_data_ptr_14	; current_geometry_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_14	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -23837,19 +20495,20 @@ doctor_states_4B552_2_current_geometry_ptr_1:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 doctor_nodes_4B552_3:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l doctor_sequence_4B552_4	; frame_sequence_ptr
+	dc.l doctor_sequence_4B552_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 doctor_nodes_4B552_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-doctor_sequence_4B552_4:
+doctor_sequence_4B552_4_held:
 	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
+doctor_sequence_4B552_4_active:
 	dc.l doctor_animation_bank	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -23860,14 +20519,15 @@ doctor_nodes_4B552_5:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l doctor_sequence_4B552_6	; frame_sequence_ptr
+	dc.l doctor_sequence_4B552_6_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 doctor_nodes_4B552_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-doctor_sequence_4B552_6:
+doctor_sequence_4B552_6_held:
 	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
+doctor_sequence_4B552_6_active:
 	dc.l doctor_animation_bank_bitplane_data_ptr_6	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_7	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_8	; frame_ptr
@@ -23908,9 +20568,22 @@ world_object_diabetic_gap_40:
 	dc.b $32	; initial_item_state
 	dc.l diabetic_states_4B7A0_1_current_geometry_ptr_2	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-	dc.b $00,$05,$57,$30,$00,$06,$99,$C6,$00,$01,$00,$0B,$00,$10,$00,$00
-	dc.b $00,$00,$00,$05,$57,$88,$00,$06,$99,$DC,$00,$01,$00,$0B,$00,$10
-	dc.b $00,$00,$00,$00
+diabetic_script_pose_frames:
+	dc.l scene_pixel_cells_for_mask_bank_48	; bitplane_data_ptr
+	dc.l scene_mask_bank_48	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000B	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+diabetic_held_pose:
+	dc.l scene_pixel_cells_for_mask_bank_48+$58	; bitplane_data_ptr
+	dc.l scene_mask_bank_48+$16	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000B	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
 diabetic_animation_bank:
 	dc.l diabetic_states_4B7A0_1	; position_state_ptr
 	dc.w $0000	; world_x
@@ -23946,7 +20619,7 @@ diabetic_states_4B7A0_1_current_geometry_ptr_2:
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
 	dc.l diabetic_states_4B7A0_1+$4E	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 	dc.l doctor_animation_bank_bitplane_data_ptr_15	; current_geometry_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_15	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -23955,12 +20628,22 @@ diabetic_states_4B7A0_1_current_geometry_ptr_2:
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-abs_0_0005B814:
-	dc.b $00,$05,$B7,$A0,$01,$80,$00,$05,$B8,$26
-abs_0_0005B81E:
-	dcb.b $9,$00
-	dc.b $05,$B7,$8E,$00,$05,$B7,$7C
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+diabetic_script_pose_controller:
+	dc.l diabetic_animation_bank	; position_descriptor_ptr
+	dc.b $01	; frame_count
+	dc.b $80	; phase_step
+	dc.l diabetic_pose_frames_by_mode_held	; frame_sequence_ptr
+diabetic_script_pose_controller_mode_flags:
+	dc.b $00	; mode_flags
+diabetic_script_pose_controller_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+diabetic_pose_frames_by_mode_held:
+	dc.l diabetic_held_pose	; frame_ptr
+diabetic_pose_frames_by_mode_active:
+	dc.l diabetic_script_pose_frames	; frame_ptr
 world_object_security_officer:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_sec_officer	; interaction_callback
@@ -24036,19 +20719,20 @@ security_officer_states_4B882_3:
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 security_officer_nodes_4B882_4:
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l security_officer_sequence_4B882_5	; frame_sequence_ptr
+	dc.l security_officer_sequence_4B882_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 security_officer_nodes_4B882_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-security_officer_sequence_4B882_5:
+security_officer_sequence_4B882_5_held:
 	dc.l security_officer_animation_bank_bitplane_data_ptr_1	; frame_ptr
+security_officer_sequence_4B882_5_active:
 	dc.l security_officer_animation_bank	; frame_ptr
 world_object_bank_manager:
 	dc.l $00000000	; item_name_ptr
@@ -24125,7 +20809,7 @@ bank_manager_states_4B954_3:
 	dc.l bank_manager_positions_4B954_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 world_object_chemist:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_chemist	; interaction_callback
@@ -24185,41 +20869,42 @@ chemist_states_4BA0C_1_current_geometry_ptr_1:
 	dc.l chemist_animation_bank	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 chemist_nodes_4BA0C_2:
 	dc.l chemist_animation_bank	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l chemist_sequence_4BA0C_3	; frame_sequence_ptr
+	dc.l chemist_sequence_4BA0C_3_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 chemist_nodes_4BA0C_2_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-chemist_sequence_4BA0C_3:
+chemist_sequence_4BA0C_3_held:
 	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
+chemist_sequence_4BA0C_3_active:
 	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
-world_object_pianist:
+world_object_secdroid_alpha_1:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l pianist_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_alpha_1_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l pianist_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_alpha_1_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_pianist_behavior_script	; behavior_script_ptr
-	dc.l world_object_pianist_behavior_script	; initial_behavior_script_ptr
+	dc.l world_object_secdroid_alpha_1_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_alpha_1_behavior_script	; initial_behavior_script_ptr
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_pianist_gap_36:
+world_object_secdroid_alpha_1_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0041	; hit_points
 	dc.w $0041	; initial_hit_points
-world_object_pianist_gap_40:
+world_object_secdroid_alpha_1_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -24231,29 +20916,29 @@ world_object_pianist_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l pianist_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_alpha_1_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_defence_controller:
+world_object_secdroid_delta_1:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l defence_controller_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_delta_1_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l defence_controller_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_delta_1_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_defence_controller_behavior_script	; behavior_script_ptr
-	dc.l world_object_defence_controller_behavior_script	; initial_behavior_script_ptr
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_delta_1_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_delta_1_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_defence_controller_gap_36:
+world_object_secdroid_delta_1_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0055	; hit_points
 	dc.w $0055	; initial_hit_points
-world_object_defence_controller_gap_40:
+world_object_secdroid_delta_1_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -24265,29 +20950,29 @@ world_object_defence_controller_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l defence_controller_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_delta_1_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_wackobrain:
+world_object_secdroid_delta_2:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l wackobrain_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_delta_2_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l wackobrain_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_delta_2_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_wackobrain_behavior_script	; behavior_script_ptr
-	dc.l world_object_wackobrain_behavior_script	; initial_behavior_script_ptr
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_delta_2_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_delta_2_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_wackobrain_gap_36:
+world_object_secdroid_delta_2_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $004B	; hit_points
 	dc.w $004B	; initial_hit_points
-world_object_wackobrain_gap_40:
+world_object_secdroid_delta_2_gap_40:
 	dc.w $00BE	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -24299,29 +20984,29 @@ world_object_wackobrain_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l wackobrain_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_delta_2_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_glass:
+world_object_secdroid_pi:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l glass_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_pi_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l glass_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_pi_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_glass_behavior_script	; behavior_script_ptr
-	dc.l world_object_glass_behavior_script	; initial_behavior_script_ptr
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_pi_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_pi_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_glass_gap_36:
+world_object_secdroid_pi_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $004B	; hit_points
 	dc.w $004B	; initial_hit_points
-world_object_glass_gap_40:
+world_object_secdroid_pi_gap_40:
 	dc.w $00A0	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -24333,29 +21018,29 @@ world_object_glass_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l glass_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_pi_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_kwik_kleen:
+world_object_secdroid_omega:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l kwik_kleen_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_omega_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l kwik_kleen_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_omega_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_kwik_kleen_behavior_script	; behavior_script_ptr
-	dc.l world_object_kwik_kleen_behavior_script	; initial_behavior_script_ptr
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_omega_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_omega_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_kwik_kleen_gap_36:
+world_object_secdroid_omega_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
-world_object_kwik_kleen_gap_40:
+world_object_secdroid_omega_gap_40:
 	dc.w $00BE	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -24367,29 +21052,29 @@ world_object_kwik_kleen_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l kwik_kleen_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_omega_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-world_object_flight_controller:
+world_object_secdroid_alpha_2:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l flight_controller_inventory_slots	; inventory_slots_ptr
+	dc.l secdroid_alpha_2_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l flight_controller_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l secdroid_alpha_2_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_flight_controller_behavior_script	; behavior_script_ptr
-	dc.l world_object_flight_controller_behavior_script	; initial_behavior_script_ptr
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l world_object_secdroid_alpha_2_behavior_script	; behavior_script_ptr
+	dc.l world_object_secdroid_alpha_2_behavior_script	; initial_behavior_script_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_flight_controller_gap_36:
+world_object_secdroid_alpha_2_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $0037	; hit_points
 	dc.w $0037	; initial_hit_points
-world_object_flight_controller_gap_40:
+world_object_secdroid_alpha_2_gap_40:
 	dc.w $005A	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
@@ -24401,7 +21086,7 @@ world_object_flight_controller_gap_40:
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l flight_controller_saved_position_state	; saved_position_state_ptr
+	dc.l secdroid_alpha_2_saved_position_state	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 fixed_npc_geometry_headers:
 	dc.l scene_pixel_cells_for_mask_bank_06	; bitplane_data_ptr
@@ -24517,6 +21202,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_13:
 	dc.w $0000	; y_offset
 fixed_npc_saved_frame_sequence:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; frame_ptr
+fixed_npc_saved_frame_sequence_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_9	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_10	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_11	; frame_ptr
@@ -24527,12 +21213,12 @@ fixed_npc_saved_animation_states:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_saved_animation_states_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-pianist_saved_position_state:
+secdroid_alpha_1_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
 	dc.l fixed_npc_saved_animation_states	; state_node_ptr
@@ -24541,124 +21227,124 @@ pianist_saved_position_state:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-defence_controller_saved_animation_node:
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+secdroid_delta_1_saved_animation_node:
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
-defence_controller_saved_animation_node_gap_B:
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+secdroid_delta_1_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-defence_controller_saved_position_state:
+secdroid_delta_1_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l defence_controller_saved_animation_node	; state_node_ptr
+	dc.l secdroid_delta_1_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-wackobrain_saved_animation_node:
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+secdroid_delta_2_saved_animation_node:
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
-wackobrain_saved_animation_node_gap_B:
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+secdroid_delta_2_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-wackobrain_saved_position_state:
+secdroid_delta_2_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l wackobrain_saved_animation_node	; state_node_ptr
+	dc.l secdroid_delta_2_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-glass_saved_animation_node:
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+secdroid_pi_saved_animation_node:
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
-glass_saved_animation_node_gap_B:
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+secdroid_pi_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-glass_saved_position_state:
+secdroid_pi_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l glass_saved_animation_node	; state_node_ptr
+	dc.l secdroid_pi_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-kwik_kleen_saved_animation_node:
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+secdroid_omega_saved_animation_node:
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
-kwik_kleen_saved_animation_node_gap_B:
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+secdroid_omega_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-kwik_kleen_saved_position_state:
+secdroid_omega_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l kwik_kleen_saved_animation_node	; state_node_ptr
+	dc.l secdroid_omega_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-flight_controller_saved_animation_node:
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+secdroid_alpha_2_saved_animation_node:
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
-flight_controller_saved_animation_node_gap_B:
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+secdroid_alpha_2_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-flight_controller_saved_position_state:
+secdroid_alpha_2_saved_position_state:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; current_geometry_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; previous_geometry_ptr
-	dc.l flight_controller_saved_animation_node	; state_node_ptr
+	dc.l secdroid_alpha_2_saved_animation_node	; state_node_ptr
 	dc.w $0004	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 fixed_npc_position_states:
-	dc.l pianist_primary_position_state	; position_state_ptr
+	dc.l secdroid_alpha_1_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-pianist_primary_position_state:
+secdroid_alpha_1_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $000C	; world_x_offset
 	dc.w $0010	; world_y_offset
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
-	dc.l pianist_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_alpha_1_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
-pianist_attachment_position_state:
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
+secdroid_alpha_1_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
@@ -24668,153 +21354,160 @@ pianist_attachment_position_state:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-defence_controller_position_descriptor:
-	dc.l defence_controller_primary_position_state	; position_state_ptr
+secdroid_delta_1_position_descriptor:
+	dc.l secdroid_delta_1_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-defence_controller_primary_position_state:
+secdroid_delta_1_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $000C	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
-	dc.l defence_controller_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
-defence_controller_attachment_position_state:
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
+secdroid_delta_1_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-wackobrain_position_descriptor:
-	dc.l wackobrain_primary_position_state	; position_state_ptr
+secdroid_delta_2_position_descriptor:
+	dc.l secdroid_delta_2_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-wackobrain_primary_position_state:
+secdroid_delta_2_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
-	dc.l wackobrain_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
-wackobrain_attachment_position_state:
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
+secdroid_delta_2_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-glass_position_descriptor:
-	dc.l glass_primary_position_state	; position_state_ptr
+secdroid_pi_position_descriptor:
+	dc.l secdroid_pi_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-glass_primary_position_state:
+secdroid_pi_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l glass_position_descriptor	; position_descriptor_ptr
-	dc.l glass_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
-glass_attachment_position_state:
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
+secdroid_pi_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-kwik_kleen_position_descriptor:
-	dc.l kwik_kleen_primary_position_state	; position_state_ptr
+secdroid_omega_position_descriptor:
+	dc.l secdroid_omega_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-kwik_kleen_primary_position_state:
+secdroid_omega_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
-	dc.l kwik_kleen_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
-kwik_kleen_attachment_position_state:
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
+secdroid_omega_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-flight_controller_position_descriptor:
-	dc.l flight_controller_primary_position_state	; position_state_ptr
+secdroid_alpha_2_position_descriptor:
+	dc.l secdroid_alpha_2_primary_position_state	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-flight_controller_primary_position_state:
+secdroid_alpha_2_primary_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0008	; world_x_offset
 	dc.w $0010	; world_y_offset
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
-	dc.l flight_controller_attachment_position_state	; attachment_state_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_attachment_position_state	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $88	; world_object_flags
-flight_controller_attachment_position_state:
+	dc.b WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	; world_object_flags
+secdroid_alpha_2_attachment_position_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
 fixed_npc_frame_sequences_early:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_early_0_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_early_1_held:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_early_1_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+fixed_npc_frame_sequences_early_2_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_early_2_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+fixed_npc_frame_sequences_early_3_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_early_3_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
@@ -24825,40 +21518,57 @@ fixed_npc_frame_sequences_early:
 	dc.b $00,$05,$BC,$94,$00,$05,$BC,$A6,$00,$05,$BC,$B8
 fixed_npc_frame_sequences_late:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+fixed_npc_frame_sequences_late_0_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_late_1_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+fixed_npc_frame_sequences_late_1_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+fixed_npc_frame_sequences_late_2_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+fixed_npc_frame_sequences_late_2_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+fixed_npc_frame_sequences_late_3_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+fixed_npc_frame_sequences_late_3_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_late_4_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+fixed_npc_frame_sequences_late_4_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+fixed_npc_frame_sequences_late_5_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_late_5_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+fixed_npc_frame_sequences_late_6_held:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_late_6_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_late_7_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_late_7_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+fixed_npc_frame_sequences_late_8_held:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_late_8_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 fixed_npc_script_animation_nodes:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_B_0:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -24867,147 +21577,147 @@ fixed_npc_script_animation_nodes_gap_B_0:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_1D_1:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_2F_2:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l defence_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_41_3:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_53_4:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l wackobrain_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_65_5:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l glass_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l kwik_kleen_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-	dc.l flight_controller_position_descriptor	; position_descriptor_ptr
+	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-world_object_megabio_feed:
+world_object_pianist_actor:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l clear_security_checkpoint_audio_state	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
-	dc.l megabio_feed_inventory_slots	; inventory_slots_ptr
+	dc.l pianist_actor_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
-	dc.l megabio_feed_initial_inventory_slots	; initial_inventory_slots_ptr
+	dc.l pianist_actor_initial_inventory_slots	; initial_inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; initial_trade_offer_table_ptr
-	dc.l world_object_megabio_feed_behavior_script	; behavior_script_ptr
-	dc.l world_object_megabio_feed_behavior_script	; initial_behavior_script_ptr
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+	dc.l world_object_pianist_actor_behavior_script	; behavior_script_ptr
+	dc.l world_object_pianist_actor_behavior_script	; initial_behavior_script_ptr
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; world_z
-world_object_megabio_feed_gap_36:
+world_object_pianist_actor_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.w $001D	; hit_points
 	dc.w $001D	; initial_hit_points
-world_object_megabio_feed_gap_40:
+world_object_pianist_actor_gap_40:
 	dc.w $006E	; typed data block gap
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
 	dc.b ITEM_ID_EMPTY	; initial_selected_item_id
-world_object_megabio_feed_world_object_flags:
+world_object_pianist_actor_world_object_flags:
 	dc.b $00	; world_object_flags
 	dc.b $00	; initial_world_object_flags
 	dc.b $5D	; item_definition_id
 	dc.b $00	; movement_direction_flags
 	dc.b $20	; item_state
 	dc.b $20	; initial_item_state
-	dc.l megabio_feed_animation_bank	; saved_position_state_ptr
+	dc.l pianist_actor_animation_bank	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
-megabio_feed_animation_bank:
-	dc.l megabio_feed_frames_4C226_1	; current_geometry_ptr
-	dc.l megabio_feed_frames_4C226_1	; previous_geometry_ptr
+pianist_actor_animation_bank:
+	dc.l pianist_actor_frames_4C226_1	; current_geometry_ptr
+	dc.l pianist_actor_frames_4C226_1	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
-	dc.b $42	; world_object_flags
-megabio_feed_frames_4C226_1:
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+pianist_actor_frames_4C226_1:
 	dc.l scene_pixel_cells_for_mask_bank_27	; bitplane_data_ptr
 	dc.l scene_mask_bank_27	; mask_data_ptr
 	dc.w $0004	; row_stride_words
@@ -25015,7 +21725,7 @@ megabio_feed_frames_4C226_1:
 	dc.w $0040	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_1:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_1:
 	dc.l scene_pixel_cells_for_mask_bank_13	; bitplane_data_ptr
 	dc.l scene_mask_bank_13	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -25023,7 +21733,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_1:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_2:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_2:
 	dc.l scene_pixel_cells_for_mask_bank_13+$1B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$6C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -25031,7 +21741,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_2:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_3:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_3:
 	dc.l scene_pixel_cells_for_mask_bank_13+$360	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$D8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -25039,7 +21749,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_3:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_4:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_4:
 	dc.l scene_pixel_cells_for_mask_bank_13+$510	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$144	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -25047,7 +21757,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_4:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_5:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_5:
 	dc.l scene_pixel_cells_for_mask_bank_13+$6C0	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$1B0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -25055,7 +21765,7 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_5:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_frames_4C226_1_bitplane_data_ptr_6:
+pianist_actor_frames_4C226_1_bitplane_data_ptr_6:
 	dc.l scene_pixel_cells_for_mask_bank_13+$870	; bitplane_data_ptr
 	dc.l scene_mask_bank_13+$21C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -25063,40 +21773,41 @@ megabio_feed_frames_4C226_1_bitplane_data_ptr_6:
 	dc.w $0019	; frame_width
 	dc.w $0007	; x_offset
 	dc.w $0000	; y_offset
-megabio_feed_positions_4C226_2:
-	dc.l megabio_feed_states_4C226_3	; position_state_ptr
+pianist_actor_positions_4C226_2:
+	dc.l pianist_actor_states_4C226_3	; position_state_ptr
 	dc.w $0000	; world_x
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-megabio_feed_states_4C226_3:
+pianist_actor_states_4C226_3:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
 	dc.l $00000000	; state_node_ptr
 	dc.w $0000	; world_x_offset
 	dc.w $0000	; world_y_offset
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-megabio_feed_nodes_4C226_4:
-	dc.l megabio_feed_positions_4C226_2	; position_descriptor_ptr
+pianist_actor_nodes_4C226_4:
+	dc.l pianist_actor_positions_4C226_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $19	; phase_step
-	dc.l megabio_feed_sequence_4C226_5	; frame_sequence_ptr
+	dc.l pianist_actor_sequence_4C226_5	; frame_sequence_ptr
 	dc.b $00	; mode_flags
-megabio_feed_nodes_4C226_4_gap_B:
+pianist_actor_nodes_4C226_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-megabio_feed_sequence_4C226_5:
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_2	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_3	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_4	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_5	; frame_ptr
-	dc.l megabio_feed_frames_4C226_1_bitplane_data_ptr_6	; frame_ptr
+pianist_actor_sequence_4C226_5:
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+pianist_actor_sequence_4C226_5_active:
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_2	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_3	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_4	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_5	; frame_ptr
+	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_6	; frame_ptr
     ; Repeat player movement through an absolute call, mutable delay word and self jump. Delay loads the object interpreter countdown before the next loop pass.
 player_movement_script_loop:
 	dc.w WORLD_CMD_CALL_FUNCTION	; Player movement call-delay-jump loop; mutable delay operand
@@ -25384,14 +22095,32 @@ player_move_negative_y_geometry_frames_bitplane_data_ptr_6:
 	dc.w $0018	; frame_width
 	dc.w $0004	; x_offset
 	dc.w $0000	; y_offset
-abs_0_0005C592:
-	dc.b $00,$04,$76,$38,$00,$06,$5E,$98,$00,$04,$00,$20,$00,$40,$00,$00
-	dc.b $00,$00,$00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00
-abs_0_0005C5B6:
-	dc.b $00,$05,$C5,$92,$00,$05,$C5,$92
-	dcb.b $9,$00
-	dc.b $05,$C7,$1E,$00,$00,$00,$00,$00,$42
+player_final_pose_geometry_frames:
+	dc.l scene_pixel_cells_for_mask_bank_28	; bitplane_data_ptr
+	dc.l scene_mask_bank_28	; mask_data_ptr
+	dc.w $0004	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0040	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+player_escape_geometry:
+	dc.l blank_sprite_data	; bitplane_data_ptr
+	dc.l $0005D5DE	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+player_static_defeat_state:
+	dc.l player_final_pose_geometry_frames	; current_geometry_ptr
+	dc.l player_final_pose_geometry_frames	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 entry_officer_animation_bank_2:
 	dc.l scene_pixel_cells_for_mask_bank_30	; bitplane_data_ptr
 	dc.l scene_mask_bank_30	; mask_data_ptr
@@ -25424,26 +22153,114 @@ entry_officer_animation_bank_2_bitplane_data_ptr_3:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-	dc.b $00,$04,$91,$38,$00,$00,$34,$FC,$00,$02,$00,$20,$00,$20,$00,$00
-	dc.b $00,$00,$00,$04,$93,$38,$00,$00,$35,$7C,$00,$02,$00,$20,$00,$20
-	dc.b $00,$00,$00,$00,$00,$04,$95,$38,$00,$00,$35,$FC,$00,$02,$00,$1F
-	dc.b $00,$20,$00,$00,$00,$01,$00,$04,$97,$28,$00,$00,$36,$78,$00,$02
-	dc.b $00,$1B,$00,$20,$00,$00,$00,$04,$00,$04,$98,$D8,$00,$00,$36,$E4
-	dc.b $00,$02,$00,$15,$00,$20,$00,$00,$00,$0A,$00,$04,$9A,$28,$00,$00
-	dc.b $37,$38,$00,$02,$00,$12,$00,$20,$00,$00,$00,$0E,$00,$04,$9B,$48
-	dc.b $00,$00,$37,$80,$00,$02,$00,$0F,$00,$20,$00,$00,$00,$11,$00,$04
-	dc.b $9C,$38,$00,$00,$37,$BC,$00,$02,$00,$0D,$00,$20,$00,$00,$00,$13
-	dc.b $00,$04,$9D,$08,$00,$00,$37,$F0,$00,$02,$00,$0C,$00,$20,$00,$00
-	dc.b $00,$14
-abs_0_0005C6BA:
-	dc.b $00,$05,$C5,$D0,$00,$05,$C5,$D0,$00,$05,$C6,$D4,$00,$00,$00,$00
-	dc.b $00,$05,$C7,$1E,$00,$00,$00,$00,$00,$42,$00,$05,$C7,$1E,$0D,$28
-	dc.b $00,$05,$C6,$E6,$04
-	dcb.b $8,$00
-	dc.b $05,$C6,$A8,$00,$05,$C5,$D0,$00,$05,$C5,$E2,$00,$05,$C5,$F4,$00
-	dc.b $05,$C6,$06,$00,$05,$C6,$18,$00,$05,$C6,$2A,$00,$05,$C6,$3C,$00
-	dc.b $05,$C6,$4E,$00,$05,$C6,$60,$00,$05,$C6,$72,$00,$05,$C6,$84,$00
-	dc.b $05,$C6,$96,$00,$05,$C6,$A8
+shared_defeat_animation_extended_geometry_frames:
+	dc.l scene_pixel_cells_for_mask_bank_30+$800	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$200	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C62A:
+	dc.l scene_pixel_cells_for_mask_bank_30+$A00	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$280	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+abs_0_0005C63C:
+	dc.l scene_pixel_cells_for_mask_bank_30+$C00	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$300	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001F	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+abs_0_0005C64E:
+	dc.l scene_pixel_cells_for_mask_bank_30+$DF0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$37C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001B	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0004	; y_offset
+abs_0_0005C660:
+	dc.l scene_pixel_cells_for_mask_bank_30+$FA0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$3E8	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0015	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $000A	; y_offset
+abs_0_0005C672:
+	dc.l scene_pixel_cells_for_mask_bank_30+$10F0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$43C	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0012	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $000E	; y_offset
+abs_0_0005C684:
+	dc.l scene_pixel_cells_for_mask_bank_30+$1210	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$484	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $000F	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0011	; y_offset
+abs_0_0005C696:
+	dc.l scene_pixel_cells_for_mask_bank_30+$1300	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$4C0	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $000D	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0013	; y_offset
+abs_0_0005C6A8:
+	dc.l scene_pixel_cells_for_mask_bank_30+$13D0	; bitplane_data_ptr
+	dc.l scene_mask_bank_30+$4F4	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $000C	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0014	; y_offset
+player_animated_defeat_state:
+	dc.l entry_officer_animation_bank_2	; current_geometry_ptr
+	dc.l entry_officer_animation_bank_2	; previous_geometry_ptr
+	dc.l player_animated_defeat_node	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
+player_animated_defeat_node:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $0D	; frame_count
+	dc.b $28	; phase_step
+	dc.l player_animated_defeat_frame_refs	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
+player_animated_defeat_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+player_animated_defeat_frame_refs:
+	dc.l abs_0_0005C6A8	; frame_ptr
+player_animated_defeat_frame_refs_active:
+	dc.l entry_officer_animation_bank_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
+	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_3	; frame_ptr
+	dc.l shared_defeat_animation_extended_geometry_frames	; frame_ptr
+	dc.l abs_0_0005C62A	; frame_ptr
+	dc.l abs_0_0005C63C	; frame_ptr
+	dc.l abs_0_0005C64E	; frame_ptr
+	dc.l abs_0_0005C660	; frame_ptr
+	dc.l abs_0_0005C672	; frame_ptr
+	dc.l abs_0_0005C684	; frame_ptr
+	dc.l abs_0_0005C696	; frame_ptr
+	dc.l abs_0_0005C6A8	; frame_ptr
 player_position_descriptor:
 	dc.l player_position_state	; position_state_ptr
 	dc.w $0000	; world_x
@@ -25461,31 +22278,26 @@ player_position_state_state_node_ptr:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $02	; world_object_flags
-player_position_state_interaction_data_ptr:
-	dc.l player_position_descriptor	; interaction_data_ptr
-player_move_positive_x_animation_frame_count:
-	dc.b $07	; animation_node_suffix
-player_move_positive_x_animation_phase_step:
-	dc.b $40	; animation_node_suffix
-player_move_positive_x_animation_frame_sequence_ptr:
-	dc.l $0005C756	; animation_node_suffix
-player_move_positive_x_animation_mode_flags:
-	dc.b $00	; animation_node_suffix
-player_move_positive_x_animation_unknown_byte:
-	dc.b $00	; animation_node_suffix
-player_move_positive_x_animation_xy_sequence_ptr:
-	dc.l $00000000	; animation_node_suffix
-player_move_positive_x_animation_frame_index_and_phase:
-	dc.w $0000	; animation_node_suffix
+player_move_positive_x_animation:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $40	; phase_step
+	dc.l player_move_positive_x_frames	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+player_move_positive_x_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 player_move_positive_x_frames:
-	dc.l abs_0_0005C376	; animation_frame_pointers
-	dc.l player_move_positive_x_cycling_geometry_frames
-	dc.l abs_0_0005C39A
-	dc.l abs_0_0005C3AC
-	dc.l abs_0_0005C3BE
-	dc.l abs_0_0005C3D0
-	dc.l abs_0_0005C3E2
-	dc.l abs_0_0005C3F4
+	dc.l abs_0_0005C376	; frame_ptr
+player_move_positive_x_frames_sequence_0_active:
+	dc.l player_move_positive_x_cycling_geometry_frames	; frame_ptr
+	dc.l abs_0_0005C39A	; frame_ptr
+	dc.l abs_0_0005C3AC	; frame_ptr
+	dc.l abs_0_0005C3BE	; frame_ptr
+	dc.l abs_0_0005C3D0	; frame_ptr
+	dc.l abs_0_0005C3E2	; frame_ptr
+	dc.l abs_0_0005C3F4	; frame_ptr
 player_move_negative_x_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $07	; frame_count
@@ -25498,6 +22310,7 @@ player_move_negative_x_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_negative_x_frames:
 	dc.l player_move_negative_x_geometry_frames	; frame_ptr
+player_move_negative_x_frames_sequence_0_active:
 	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_3	; frame_ptr
@@ -25517,6 +22330,7 @@ player_move_positive_y_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_positive_y_frames:
 	dc.l player_move_positive_y_geometry_frames	; frame_ptr
+player_move_positive_y_frames_sequence_0_active:
 	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_3	; frame_ptr
@@ -25535,6 +22349,7 @@ player_move_negative_y_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_negative_y_frames:
 	dc.l player_move_negative_y_geometry_frames	; frame_ptr
+player_move_negative_y_frames_sequence_0_active:
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_3	; frame_ptr
@@ -25653,6 +22468,7 @@ combat_active_animation_node_gap_B:
 	dc.w $0000	; frame_index_and_phase
 combat_active_frame_sequence:
 	dc.l combat_encounter_geometry_headers	; frame_ptr
+combat_active_frame_sequence_active:
 	dc.l combat_encounter_geometry_headers	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_2	; frame_ptr
@@ -25664,13 +22480,14 @@ combat_exit_animation_node:
 	dc.b $06	; frame_count
 	dc.b $2B	; phase_step
 	dc.l combat_exit_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 combat_exit_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 combat_exit_frame_sequence:
 	dc.l $00000000	; frame_ptr
+combat_exit_frame_sequence_active:
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_7	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_8	; frame_ptr
@@ -25725,7 +22542,7 @@ abs_0_0005C9DC:
 	lea.l app_carried_item_ids(a6),a1
 	moveq.l #3,d7
 	moveq.l #0,d0
-	lea.l abs_0_0001A813.l,a0
+	lea.l salvage_item_eligibility_bits.l,a0
 abs_0_0005C9F0:
 	move.b (a1)+,d0
 	jsr test_msb_first_bitset_bit.l
@@ -25885,21 +22702,14 @@ abs_0_0005CF4C:
 abs_0_0005CF72:
 	dc.b $22,$48,$65,$6C,$70,$20,$6D,$65,$2C,$20,$49,$20,$6E,$65,$65,$64
 	dc.b $20,$61,$20,$73,$79,$72,$69,$6E,$67,$65,$22,$00
-abs_0_0005CF8E:
-	dc.b $22,$47,$65,$74,$20,$6D,$65,$20,$73,$6F,$6D,$65,$20,$69,$6E,$73
-	dc.b $75,$6C,$69,$6E,$2C,$20,$49,$20,$63,$61,$6E,$20,$68,$65,$6C,$70
-	dc.b $20,$79,$6F,$75,$22,$00
-abs_0_0005CFB4:
-	dc.b $22,$49,$20,$77,$61,$6E,$74,$20,$69,$6E,$73,$75,$6C,$69,$6E,$2C
-	dc.b $20,$62,$75,$74,$20,$49,$20,$6E,$65,$65,$64,$20,$61,$20,$6E,$65
-	dc.b $65,$64,$6C,$65,$20,$66,$69,$72,$73,$74,$22,$00
-abs_0_0005CFE0:
-	dc.b $22,$55,$73,$65,$20,$74,$68,$65,$20,$63,$61,$70,$74,$61,$69,$6E
-	dc.b $22
-	dc.b "s self destruct initiation disc",$00
-abs_0_0005D011:
-	dc.b " and the right code cards to destroy Pandora."
-	dc.b $22,$00
+diabetic_insulin_request_response:
+	dc.b $22,"Get me some insulin, I can help you",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+diabetic_missing_needle_response:
+	dc.b $22,"I want insulin, but I need a needle first",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+diabetic_self_destruct_hint_part_1:
+	dc.b $22,"Use the captain",$22,"s self destruct initiation disc",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+diabetic_self_destruct_hint_part_2:
+	dc.b " and the right code cards to destroy Pandora.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 abs_0_0005D040:
 	dc.b $22,$42,$7A,$7A,$7A,$7A,$20,$7A,$7A,$7A,$20,$7A,$7A,$20,$44,$49
 	dc.b $45,$20,$48,$55,$4D,$41,$4E,$20,$7A,$7A,$20,$7A,$7A,$20,$7A,$7A
@@ -26029,9 +22839,9 @@ interact_with_musician:
 abs_0_0005D39E:
 	move.w d0,d0
 	rts
-    ; Set the WORD cooldown to 250 and return carry set. This requests the +$10 message when nonzero; it does not report queue acceptance.
+    ; Request the current object context message with carry set and a 250-count cooldown. This shared tail changes neither inventory nor animation state.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
-interact_with_hooligan_or_robomechanic:
+request_world_object_context_message:
 	move.w #$FA,world_object_shared_prefix_context_prompt_cooldown(a5)
 	move #$1,ccr
 	rts
@@ -26040,7 +22850,7 @@ interact_with_hooligan_or_robomechanic:
 interact_with_sec_officer:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_LASER_RIFLE,d0
-	beq.b interact_with_hooligan_or_robomechanic
+	beq.b request_world_object_context_message
 	move.w d0,d0
 	rts
     ; Bible can set the one-time latch; Shakespeare on this object selects a PRNG response. Rewrite +$10 and use the cooldown/carry-set path; other paths clear carry.
@@ -26052,7 +22862,7 @@ interact_with_chemist:
 	bset.b #INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED,app_world_interaction_flags(a6)
 	bne.b abs_0_0005D3DC
 	move.l #abs_0_0005CF4C,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.b interact_with_hooligan_or_robomechanic
+	bra.b request_world_object_context_message
 abs_0_0005D3DC:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SHAKESPEARE,d0
@@ -26060,7 +22870,7 @@ abs_0_0005D3DC:
 	jsr advance_pseudorandom_state.l
 	andi.w #12,d0
 	move.l abs_0_0005D416(pc,d0.w),world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.b interact_with_hooligan_or_robomechanic
+	bra.b request_world_object_context_message
 abs_0_0005D3F8:
 	move.w d0,d0
 	rts
@@ -26074,7 +22884,7 @@ interact_with_bank_manager:
 	lea.l bank_manager_default_response(pc),a0
 abs_0_0005D410:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.b interact_with_hooligan_or_robomechanic
+	bra.b request_world_object_context_message
 abs_0_0005D416:
 	dc.l abs_0_0005CEB3	; mode=required, data_role=pointer_table, unit=pointer
 	dc.l abs_0_0005CEDC
@@ -26084,7 +22894,7 @@ abs_0_0005D416:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_priest:
 	tst.b app_defeated_object_count(a6)
-	bne.w interact_with_hooligan_or_robomechanic
+	bne.w request_world_object_context_message
 	move.w d0,d0
 	rts
     ; This object must hold the globe and the technician latch must be clear. Set the latch and use the shared cooldown/carry-set path; otherwise clear carry.
@@ -26094,7 +22904,7 @@ interact_with_technician:
 	cmp.b #ITEM_ID_GLOBE,d0
 	bne.b abs_0_0005D446
 	bset.b #INTERACTION_FLAG_TECHNICIAN_COMPLETED,app_world_interaction_flags(a6)
-	beq.w interact_with_hooligan_or_robomechanic
+	beq.w request_world_object_context_message
 abs_0_0005D446:
 	move.w d0,d0
 	rts
@@ -26111,15 +22921,15 @@ abs_0_0005D460:
 	move.w d0,d0
 	rts
 abs_0_0005D464:
-	movea.l kriptonite_positions_49492_2.l,a0
+	movea.l wackobrain_actor_positions_49492_2.l,a0
 	movea.l $0000(a0),a0
-	cmpa.l #kriptonite_frames_49492_1,a0
+	cmpa.l #wackobrain_actor_frames_49492_1,a0
 	beq.b abs_0_0005D48E
-	cmpa.l #kriptonite_frames_49492_1_bitplane_data_ptr_10,a0
+	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_10,a0
 	beq.b abs_0_0005D48E
-	cmpa.l #kriptonite_frames_49492_1_bitplane_data_ptr_17,a0
+	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_17,a0
 	beq.b abs_0_0005D48E
-	cmpa.l #kriptonite_frames_49492_1_bitplane_data_ptr_24,a0
+	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_24,a0
 	bne.b abs_0_0005D460
 abs_0_0005D48E:
 	bclr.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
@@ -26180,7 +22990,7 @@ interact_with_squash_player:
 	cmp.b #ITEM_ID_SQUASH_BALL,d0
 	bne.b abs_0_0005D534
 	bset.b #INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED,app_world_interaction_flags(a6)
-	beq.w interact_with_hooligan_or_robomechanic
+	beq.w request_world_object_context_message
 abs_0_0005D534:
 	move.w d0,d0
 	rts
@@ -26201,46 +23011,46 @@ interact_with_driffid:
 	rts
 abs_0_0005D560:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.w interact_with_hooligan_or_robomechanic
-    ; Response branches rewrite +$10 and set carry. Treatment checks range, sets the latch and attempts two queue calls, then clears carry; queue acceptance is ignored.
+	bra.w request_world_object_context_message
+    ; Insulin with the needle and strict range triggers one self-destruct hint; selected items and pose stay unchanged here. Queue refusal still leaves the advice latch set.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_diabetic:
 	btst.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
-	bne.b abs_0_0005D592
+	bne.b diabetic_return_without_context_prompt
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_HYPODERMIC,d0
-	beq.b abs_0_0005D596
-	lea.l abs_0_0005CFB4(pc),a0
+	beq.b diabetic_check_selected_insulin
+	lea.l diabetic_missing_needle_response(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_INSULIN,d0
-	bne.b abs_0_0005D592
+	bne.b diabetic_return_without_context_prompt
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.w interact_with_hooligan_or_robomechanic
-abs_0_0005D592:
+	bra.w request_world_object_context_message
+diabetic_return_without_context_prompt:
 	move.w d0,d0
 	rts
-abs_0_0005D596:
+diabetic_check_selected_insulin:
 	moveq.l #ITEM_ID_INSULIN,d0
 	cmp.b player_world_object_selected_item_id.l,d0
-	beq.b abs_0_0005D5BA
+	beq.b diabetic_try_self_destruct_hint
 	moveq.l #3,d7
 	lea.l app_carried_item_ids(a6),a0
-abs_0_0005D5A6:
+diabetic_scan_carried_insulin:
 	cmp.b (a0)+,d0
-	beq.b abs_0_0005D592
-	dbf.w d7,abs_0_0005D5A6
-	lea.l abs_0_0005CF8E(pc),a0
+	beq.b diabetic_return_without_context_prompt
+	dbf.w d7,diabetic_scan_carried_insulin
+	lea.l diabetic_insulin_request_response(pc),a0
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
-	bra.w interact_with_hooligan_or_robomechanic
-abs_0_0005D5BA:
+	bra.w request_world_object_context_message
+diabetic_try_self_destruct_hint:
 	jsr is_player_within_world_object_interaction_range.l
-	bcc.b abs_0_0005D592
+	bcc.b diabetic_return_without_context_prompt
 	bset.b #INTERACTION_FLAG_DIABETIC_TREATED,app_world_interaction_flags(a6)
-	lea.l abs_0_0005CFE0(pc),a0
+	lea.l diabetic_self_destruct_hint_part_1(pc),a0
 	jsr enqueue_status_message.l
-	lea.l abs_0_0005D011(pc),a0
+	lea.l diabetic_self_destruct_hint_part_2(pc),a0
 	jsr enqueue_status_message.l
-	bra.b abs_0_0005D592
+	bra.b diabetic_return_without_context_prompt
 blank_sprite_data:
 	dcb.b $200,$00
 initialize_audio_player:
@@ -26248,16 +23058,17 @@ initialize_audio_player:
 	lea.l initialize_audio_player(pc),a3
 	bsr.w reset_audio_channels
 	bsr.w initialize_audio_sample_metadata
-	sf.b $052A(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	sf.b audio_player_base_view_globals+10(a3)
 	lea.l audio_channel_state_records(pc),a1
 	ext.w d0
 	mulu.w #$A,d0
 	lea.l audio_player_initialization_presets(pc),a0
 	move.b $0(a0,d0.w),d1
 	ext.w d1
-	move.w d1,$0520(a3)
-	move.b $1(a0,d0.w),$0524(a3)
-	move.b audio_update_phase_increment(pc),$0525(a3)
+	move.w d1,audio_player_base_view_globals(a3)
+	move.b $1(a0,d0.w),audio_player_base_view_globals+4(a3)
+	move.b audio_player_globals_update_phase_increment(pc),audio_player_base_view_globals+5(a3)
 	moveq.l #0,d7
 abs_0_0005D81C:
 	move.w #$1,audio_channel_runtime_state_update_countdown(a1)
@@ -26280,20 +23091,21 @@ abs_0_0005D81C:
 	addq.w #1,d7
 	cmp.w #$4,d7
 	bne.b abs_0_0005D81C
-	st.b $0529(a3)
-	st.b $0527(a3)
+	st.b audio_player_base_view_globals+9(a3)
+	st.b audio_player_base_view_globals+7(a3)
 	rts
 reset_audio_channels:
 	lea.l initialize_audio_player(pc),a3
-	sf.b $0529(a3)
-	sf.b $0E30(a3)
-	sf.b $0E56(a3)
-	sf.b $0E7C(a3)
-	sf.b $0EA2(a3)
-	clr.w $0EBC(a3)
-	clr.w $0EC8(a3)
-	clr.w $0ED4(a3)
-	clr.w $0EE0(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	sf.b audio_player_base_view_globals+9(a3)
+	sf.b audio_player_base_view_playback_0_active(a3)
+	sf.b audio_player_base_view_playback_1_active(a3)
+	sf.b audio_player_base_view_playback_2_active(a3)
+	sf.b audio_player_base_view_playback_3_active(a3)
+	clr.w audio_player_base_view_dma_0_enabled_and_pending(a3)
+	clr.w audio_player_base_view_dma_1_enabled_and_pending(a3)
+	clr.w audio_player_base_view_dma_2_enabled_and_pending(a3)
+	clr.w audio_player_base_view_dma_3_enabled_and_pending(a3)
 	move.w #DMAF_AUDIO,_custom+dmacon.l
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	move.w #$0,_custom+aud0+ac_vol.l	; audio volume 0
@@ -26303,7 +23115,8 @@ reset_audio_channels:
 	rts
 enable_active_audio_channel_dma:
 	lea.l initialize_audio_player(pc),a3
-	tst.b $0527(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	tst.b audio_player_base_view_globals+7(a3)
 	beq.b abs_0_0005D8F4
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	move.w #$8200,d1
@@ -26312,7 +23125,7 @@ abs_0_0005D8E4:
 	bset d7,d1
 	dbf.w d7,abs_0_0005D8E4
 	move.w d1,_custom+dmacon.l
-	st.b $0529(a3)
+	st.b audio_player_base_view_globals+9(a3)
 abs_0_0005D8F4:
 	rts
 abs_0_0005D8F6:
@@ -26321,38 +23134,39 @@ abs_0_0005D8FA:
 	rts
 update_audio_channels:
 	lea.l initialize_audio_player(pc),a3
-	tst.b $0529(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	tst.b audio_player_base_view_globals+9(a3)
 	beq.b abs_0_0005D8F6
-	move.b audio_update_phase_increment(pc),d0
+	move.b audio_player_globals_update_phase_increment(pc),d0
 	ext.w d0
 	mulu.w #$10,d0
-	add.b d0,$0526(a3)
+	add.b d0,audio_player_base_view_globals+6(a3)
 	bcs.b abs_0_0005D8F6
-	tst.b $052C(a3)
+	tst.b audio_player_base_view_globals+12(a3)
 	beq.b abs_0_0005D92A
-	subq.b #1,$052B(a3)
+	subq.b #1,audio_player_base_view_globals+11(a3)
 	bne.b abs_0_0005D92A
-	move.b #$6,$052B(a3)
+	move.b #$6,audio_player_base_view_globals+11(a3)
 	bra.b abs_0_0005D8FA
     ; Sample 7: guarded init sets 0/32 after 64B fill; known updates cycle 12 states at even offsets 32..44. Raw 0/0 adds transient 0..30. Requires valid pointer/no other writers; phase unknown.
 abs_0_0005D92A:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
 	move.w audio_sample_7_word_write_offset(pc),d0
-	tst.w $0532(a3)
+	tst.w audio_player_base_view_sample_7_waveform_direction(a3)
 	bmi.b abs_0_0005D950
 	move.w #$C0C0,$0(a0,d0.w)
-	addq.w #2,$0534(a3)
-	cmpi.w #44,$0534(a3)
+	addq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
+	cmpi.w #44,audio_player_base_view_sample_7_word_write_offset(a3)
 	bne.b abs_0_0005D94E
-	not.w $0532(a3)
+	not.w audio_player_base_view_sample_7_waveform_direction(a3)
 abs_0_0005D94E:
 	bra.b abs_0_0005D966
 abs_0_0005D950:
 	move.w #$3F3F,$0(a0,d0.w)
-	subq.w #2,$0534(a3)
-	cmpi.w #32,$0534(a3)
+	subq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
+	cmpi.w #32,audio_player_base_view_sample_7_word_write_offset(a3)
 	bne.b abs_0_0005D966
-	not.w $0532(a3)
+	not.w audio_player_base_view_sample_7_waveform_direction(a3)
 abs_0_0005D966:
 	moveq.l #3,d7
 abs_0_0005D968:
@@ -26392,11 +23206,11 @@ abs_0_0005D968:
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
-	move.l audio_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.l audio_player_globals_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
 	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9EC
-	move.l audio_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,audio_channel_runtime_state_update_countdown(a0)
@@ -26414,47 +23228,48 @@ abs_0_0005DA12:
 	bra.w abs_0_0005DAAE
 abs_0_0005DA16:
 	clr.b audio_channel_runtime_state_channel_flags.w(a0)
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A5=Target code-entry register seed:audio_sample_metadata; type A3=Target code-entry register seed
 abs_0_0005DA1A:
 	moveq.l #0,d0
 	move.b (a1)+,d0
 	bmi.w abs_0_0005DBA8
-	move.b d0,$0002(a0)
-	add.b audio_global_note_offset(pc),d0
-	add.b $0003(a0),d0
-	movea.l $0022(a0),a2
+	move.b d0,audio_channel_runtime_state_current_note(a0)
+	add.b audio_player_globals_global_note_offset(pc),d0
+	add.b audio_channel_runtime_state_note_offset(a0),d0
+	movea.l audio_channel_runtime_state_volume_sequence_start_ptr(a0),a2
 	move.b (a2)+,d1
-	move.l a2,$0026(a0)
-	move.b $002A(a0),$002B(a0)
+	move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)
+	move.b audio_channel_runtime_state_volume_sequence_interval(a0),audio_channel_runtime_state_volume_sequence_countdown(a0)
 	ext.w d1
-	move.l $0000(a5),$0000(a4)
-	move.w $0008(a5),$0004(a4)
-	move.w audio_master_volume(pc),d2
+	move.l audio_sample_metadata_sample_ptr.w(a5),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.w audio_sample_metadata_sample_length(a5),audio_channel_dma_configuration_sample_length(a4)
+	move.w audio_player_globals_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
-	move.w d1,$0008(a4)
-	tst.b $000B(a4)
+	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA6E
-	move.l $0000(a5),aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w $0008(a5),aud0+ac_len(a6)
+	move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)
 	move.w d1,aud0+ac_vol(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
 	lea.l audio_pitch_scalars(pc),a2
-	move.w $000A(a5),d1
+	move.w audio_sample_metadata_sample_period(a5),d1
 	moveq.l #10,d2
 	add.w d0,d0
 	move.w $0(a2,d0.w),d0
 	mulu.w d1,d0
 	lsr.l d2,d0
-	move.w d0,$0006(a4)
-	tst.b $000B(a4)
+	move.w d0,audio_channel_dma_configuration_sample_period(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA94
 	move.w d0,aud0+ac_per(a6)	; audio period
 abs_0_0005DA94:
-	sf.b $0016(a0)
+	sf.b audio_channel_runtime_state_sample_start_pending(a0)
 abs_0_0005DA98:
-	move.l a1,$0004(a0)
-	move.w $001C(a0),$001E(a0)
+	move.l a1,audio_channel_runtime_state_program_cursor(a0)
+	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
 	move.w #$8200,d1
 	bset d7,d1
 	move.w d1,_custom+dmacon.l
@@ -26464,7 +23279,7 @@ abs_0_0005DAAE:
     ; Read a byte and apply its low seven bits. Bit 7 resets the stored cursor to the stream start; all 13 original streams end at that marker. Later stream or selector changes are not bounded.
 abs_0_0005DAB6:
 	move.b audio_channel_runtime_state_current_note(a0),d0
-	add.b audio_global_note_offset(pc),d0
+	add.b audio_player_globals_global_note_offset(pc),d0
 	add.b audio_channel_runtime_state_note_offset(a0),d0
 	movea.l audio_channel_runtime_state_pitch_sequence_cursor(a0),a1
 	move.b (a1)+,d1
@@ -26538,7 +23353,7 @@ abs_0_0005DB72:
 	move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)
 abs_0_0005DB8A:
 	andi.w #127,d1
-	move.w audio_master_volume(pc),d2
+	move.w audio_player_globals_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
@@ -26551,8 +23366,8 @@ abs_0_0005DBA8:
 	cmp.b #$E0,d0
 	blt.b abs_0_0005DBBE
 	subi.b #223,d0
-	mulu.w audio_duration_multiplier(pc),d0
-	move.w d0,$001C(a0)
+	mulu.w audio_player_globals(pc),d0
+	move.w d0,audio_channel_runtime_state_update_reload_countdown(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBBE:
 	cmp.b #$C0,d0
@@ -26561,7 +23376,7 @@ abs_0_0005DBBE:
 	lea.l audio_sample_metadata(pc),a5
 	mulu.w #$C,d0
 	adda.w d0,a5
-	move.l a5,$0018(a0)
+	move.l a5,audio_channel_runtime_state_sample_metadata_ptr(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBDA:
 	cmp.b #$B0,d0
@@ -26571,8 +23386,8 @@ abs_0_0005DBDA:
 	lea.l audio_volume_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
-	move.l a2,$0022(a0)
-	move.b -$0001(a2),$002A(a0)
+	move.l a2,audio_channel_runtime_state_volume_sequence_start_ptr(a0)
+	move.b -$0001(a2),audio_channel_runtime_state_volume_sequence_interval(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBFE:
 	cmp.b #$A0,d0
@@ -26582,87 +23397,127 @@ abs_0_0005DBFE:
 	lea.l audio_pitch_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
-	move.l a2,$000C(a0)
-	move.l a2,$0010(a0)
+	move.l a2,audio_channel_runtime_state_pitch_sequence_start_ptr(a0)
+	move.l a2,audio_channel_runtime_state_pitch_sequence_cursor(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DC20:
 	add.b d0,d0
-	lea.l opcode_80_through_8A_relative_words(pc),a2
+	lea.l audio_control_opcode_handler_offsets(pc),a2
 	movea.w $0(a2,d0.w),a2
 	jmp $0(a3,a2.w)
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 advance_audio_sequence_program:
-	move.w $000A(a0),d0
-	movea.w $0008(a0),a2
+	move.w audio_channel_runtime_state_channel_configuration_cursor_offset(a0),d0
+	movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2
 	adda.w d0,a2
 	addq.w #2,d0
 	tst.w $0(a3,a2.w)
 	bne.b abs_0_0005DC46
-	movea.w $0008(a0),a2
+	movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2
 	moveq.l #2,d0
 abs_0_0005DC46:
 	movea.w $0(a3,a2.w),a1
 	adda.l a3,a1
-	move.w d0,$000A(a0)
+	move.w d0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 enable_audio_pitch_delta:
-	clr.w $0020(a0)
-	move.b (a1)+,$0014(a0)
-	move.b (a1)+,$0015(a0)
-	bset.b #1,$0000(a0)
+	clr.w audio_channel_runtime_state_pitch_delta_accumulator(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_delta_step(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_delta_countdown(a0)
+	bset.b #1,audio_channel_runtime_state_channel_flags.w(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 start_audio_silence_sample:
-	move.w $001C(a0),$001E(a0)
-	move.l a1,$0004(a0)
-	move.l audio_silence_sample_ptr(pc),$0000(a4)
-	move.w #$20,$0004(a4)
-	tst.b $000B(a4)
+	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
+	move.l a1,audio_channel_runtime_state_program_cursor(a0)
+	move.l audio_player_globals_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
+	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DC92
-	move.l audio_silence_sample_ptr(pc),$00A0(a6)
-	move.w #$20,$00A4(a6)
+	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005DC92:
 	bra.w abs_0_0005DAAE
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 enable_audio_channel_dma_and_reload_duration:
 	bra.w abs_0_0005DA98
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 reset_audio_channels_command:
 	bra.w reset_audio_channels
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A3=Target code-entry register seed:audio_player_base_view
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_global_note_offset:
-	move.b (a1)+,$052A(a3)
+	move.b (a1)+,audio_player_base_view_globals+10(a3)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 enable_audio_pitch_modulation:
-	st.b $0001(a0)
-	move.b (a1)+,$002C(a0)
-	move.b (a1)+,$002E(a0)
-	clr.b $002D(a0)
+	st.b audio_channel_runtime_state_pitch_modulation_flags(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_modulation_step(a0)
+	move.b (a1)+,audio_channel_runtime_state_pitch_modulation_limit(a0)
+	clr.b audio_channel_runtime_state_pitch_modulation_value(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 disable_audio_pitch_modulation:
-	sf.b $0001(a0)
+	sf.b audio_channel_runtime_state_pitch_modulation_flags(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_channel_note_offset:
-	move.b (a1)+,$0003(a0)
+	move.b (a1)+,audio_channel_runtime_state_note_offset(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_channel_program_configuration:
-	move.b (a1)+,$0008(a0)
-	move.b (a1)+,$0009(a0)
-	move.w #$0,$000A(a0)
+	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset(a0)
+	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset+1(a0)
+	move.w #$0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
 	bra.w abs_0_0005DA1A
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A3=Target code-entry register seed:audio_player_base_view
+    ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_duration_multiplier_from_signed_byte:
 	move.b (a1)+,d0
 	ext.w d0
-	move.w d0,$0520(a3)
+	move.w d0,audio_player_base_view_globals(a3)
 	bra.w abs_0_0005DA1A
-opcode_80_through_8A_relative_words:
-	dc.w $0450,$0476,$048C,$04B8,$04BC,$04C0,$04C8,$04DC	; data
-	dc.w $04E4,$04EC,$04FE	; data
-audio_duration_multiplier:
-	dc.w $0000	; lookup_table
-audio_master_volume:
-	dc.w $0040	; lookup_table
-audio_update_phase_increment:
-	dc.b $00,$00,$00,$00,$00,$00	; lookup_table
-audio_global_note_offset:
-	dc.b $00,$06,$00,$00	; lookup_table
-audio_silence_sample_ptr:
-	dc.l $00000000	; lookup_table
+audio_control_opcode_handler_offsets:
+	dc.w advance_audio_sequence_program-initialize_audio_player	; data
+	dc.w enable_audio_pitch_delta-initialize_audio_player
+	dc.w start_audio_silence_sample-initialize_audio_player
+	dc.w enable_audio_channel_dma_and_reload_duration-initialize_audio_player
+	dc.w reset_audio_channels_command-initialize_audio_player
+	dc.w set_audio_global_note_offset-initialize_audio_player
+	dc.w enable_audio_pitch_modulation-initialize_audio_player
+	dc.w disable_audio_pitch_modulation-initialize_audio_player
+	dc.w set_audio_channel_note_offset-initialize_audio_player
+	dc.w set_audio_channel_program_configuration-initialize_audio_player
+	dc.w set_audio_duration_multiplier_from_signed_byte-initialize_audio_player
+audio_player_globals:
+	dc.w $0000	; duration_multiplier
+audio_player_globals_master_volume:
+	dc.w $0040	; master_volume
+audio_player_globals_update_phase_increment:
+	dc.b $00	; lookup_table
+	dc.b $00	; initial_phase_increment_copy
+	dc.b $00	; update_phase_accumulator
+	dc.b $00	; player_initialized
+	dc.b $00	; samples_initialized
+	dc.b $00	; primary_updates_enabled
+audio_player_globals_global_note_offset:
+	dc.b $00	; lookup_table
+	dc.b $06	; skip_gate_countdown
+	dc.b $00	; skip_gate_enabled
+audio_player_globals_gap_D:
+	dc.b $00	; typed data block gap
+audio_player_globals_silence_sample_ptr:
+	dc.l $00000000	; silence_sample_ptr
 direction_word:
 	dc.w $0000	; data
 audio_sample_7_word_write_offset:
@@ -26903,52 +23758,122 @@ program_offsets_with_wrap_zero_3:
 program_offsets_with_wrap_zero_4:
 	dc.w $0929,$0000	; data
 tokens_and_operands_with_advance_token:
-	dc.b $B2,$C7,$86,$04,$04,$E3	; data
+	dc.b $B2,$C7	; data
+audio_mode_0_program_00_command_0002:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_00_tokens_0005:
+	dc.b $E3	; data
 	dcb.b $8,$18	; data
-	dc.b $1B,$1B	; data
-	dc.b $1B,$1B,$1B,$1B,$1B,$1B
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B,$1B	; data
+	dc.b $1B
 	dcb.b $8,$18
-	dc.b $16,$16
-	dc.b $16,$16,$16,$16,$16,$16
+	dc.b $16,$16,$16,$16,$16,$16,$16
+	dc.b $16
 	dcb.b $8,$18
-	dc.b $1B,$1B
-	dc.b $1B,$1B,$1B,$1B,$1B,$1B
-	dcb.b $A,$1D
-	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$80
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B,$1B
+	dc.b $1B
+	dcb.b $F,$1D
+	dc.b $1D,$80
 tokens_and_operands_with_advance_token_2:
-	dc.b $B2,$C7,$86,$04,$04,$E3	; data
-	dcb.b $A,$18	; data
-	dc.b $18,$18,$18,$18,$18,$18
-	dcb.b $A,$1D
-	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$80
-set_note_offset_one_prefix:
-	dc.b $88,$01	; data
+	dc.b $B2,$C7	; data
+audio_mode_0_program_01_command_0002:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_01_tokens_0005:
+	dc.b $E3	; data
+	dcb.b $F,$18	; data
+	dc.b $18
+	dcb.b $F,$1D
+	dc.b $1D,$80
+audio_mode_0_program_02:
+	dc.b $88	; opcode
+	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token:
-	dc.b $B2,$C7,$86,$04,$04,$E3	; data
-	dcb.b $A,$1A	; data
-	dc.b $1A,$1A,$1A,$1A,$1A,$1A
-	dcb.b $A,$18
-	dc.b $18,$18,$18,$18,$18,$18,$88,$00,$80
+	dc.b $B2,$C7	; data
+audio_mode_0_program_02_command_0004:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_02_tokens_0007:
+	dc.b $E3	; data
+	dcb.b $F,$1A	; data
+	dc.b $1A
+	dcb.b $F,$18
+	dc.b $18
+audio_mode_0_program_02_command_0028:
+	dc.b $88	; opcode
+	dc.b $00	; note_offset_byte
+audio_mode_0_program_02_tokens_002A:
+	dc.b $80	; data
 tokens_and_operands_with_advance_token_3:
-	dc.b $C7,$B7,$86,$06,$06,$FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80	; data
+	dc.b $C7,$B7	; data
+audio_mode_0_program_03_command_0002:
+	dc.b $86	; opcode
+	dc.b $06	; step
+	dc.b $06	; limit
+audio_mode_0_program_03_tokens_0005:
+	dc.b $FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80	; data
 tokens_and_operands_with_advance_token_4:
-	dc.b $C7,$B7,$86,$06,$06,$FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80	; data
-set_note_offset_one_prefix_2:
-	dc.b $88,$01	; data
+	dc.b $C7,$B7	; data
+audio_mode_0_program_04_command_0002:
+	dc.b $86	; opcode
+	dc.b $06	; step
+	dc.b $06	; limit
+audio_mode_0_program_04_tokens_0005:
+	dc.b $FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80	; data
+audio_mode_0_program_05:
+	dc.b $88	; opcode
+	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_2:
-	dc.b $C0,$FF,$86,$01,$02,$BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26	; data
-	dc.b $26,$24,$24,$32,$32,$30,$30,$88,$00,$80
+	dc.b $C0,$FF	; data
+audio_mode_0_program_05_command_0004:
+	dc.b $86	; opcode
+	dc.b $01	; step
+	dc.b $02	; limit
+audio_mode_0_program_05_tokens_0007:
+	dc.b $BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26,$26,$24,$24,$32,$32	; data
+	dc.b $30,$30
+audio_mode_0_program_05_command_0019:
+	dc.b $88	; opcode
+	dc.b $00	; note_offset_byte
+audio_mode_0_program_05_tokens_001B:
+	dc.b $80	; data
 tokens_and_operands_with_advance_token_5:
-	dc.b $C7,$B7,$86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83	; data
-	dc.b $C6,$86,$04,$04,$F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7
-	dc.b $86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86
-	dc.b $02,$02,$F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80
+	dc.b $C7,$B7	; data
+audio_mode_0_program_06_command_0002:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_0_program_06_tokens_0005:
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6	; data
+audio_mode_0_program_06_command_0011:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_06_tokens_0014:
+	dc.b $F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7	; data
+audio_mode_0_program_06_command_0020:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_0_program_06_tokens_0023:
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6	; data
+audio_mode_0_program_06_command_002F:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_0_program_06_tokens_0032:
+	dc.b $F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80	; data
 tokens_and_operands_with_advance_token_6:
 	dc.b $C2,$BE,$87,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3	; data
 	dc.b $2B,$FF,$2D,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83
 	dc.b $80
-set_note_offset_one_prefix_3:
-	dc.b $88,$01	; data
+audio_mode_0_program_08:
+	dc.b $88	; opcode
+	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_3:
 	dc.b $E3,$83,$C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32	; data
 	dc.b $2B,$E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7
@@ -26956,7 +23881,11 @@ shared_tail_entry_with_advance_token_3:
 	dc.b $E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B
 	dc.b $BF,$FF
 	dcb.b $8,$82
-	dc.b $88,$00,$80
+audio_mode_0_program_08_command_004C:
+	dc.b $88	; opcode
+	dc.b $00	; note_offset_byte
+audio_mode_0_program_08_tokens_004E:
+	dc.b $80	; data
 tokens_and_operands_with_advance_token_7:
 	dc.b $87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3	; data
 	dc.b $24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5,$24,$E0,$BE,$C3,$24,$80
@@ -26972,9 +23901,15 @@ program_offsets_with_wrap_zero_8:
 	dc.w $0A4B,$0A4B,$0A4B,$0A4B,$0B7A,$0B83,$0A4B,$0A4B	; data
 	dc.w $0A4B,$0A4B,$0000	; data
 tokens_and_operands_with_advance_token_8:
-	dc.b $C7,$B3,$86,$02,$02,$E1	; data
-	dcb.b $A,$1F	; data
-	dc.b $1F,$1F,$1F,$1F,$1F,$1F,$80
+	dc.b $C7,$B3	; data
+audio_mode_1_program_00_command_0002:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_1_program_00_tokens_0005:
+	dc.b $E1	; data
+	dcb.b $F,$1F	; data
+	dc.b $1F,$80
 tokens_and_operands_with_advance_token_9:
 	dcb.b $10,$1D	; data
 	dc.b $80
@@ -26983,17 +23918,29 @@ tokens_and_operands_with_advance_token_10:
 	dc.b $37,$E9,$37,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$E5,$35,$EB,$35,$E3
 	dc.b $35,$E9,$35,$80
 tokens_and_operands_with_advance_token_11:
-	dc.b $B5,$86,$02,$02,$C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B	; data
-	dc.b $EB,$2B,$E3,$2B,$E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$C6
-	dc.b $E5,$29,$EB,$29,$E3,$29,$E9,$29,$80
+	dc.b $B5	; data
+audio_mode_1_program_03_command_0001:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_1_program_03_tokens_0004:
+	dc.b $C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B,$EB,$2B,$E3,$2B	; data
+	dc.b $E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$C6,$E5,$29,$EB,$29
+	dc.b $E3,$29,$E9,$29,$80
 tokens_and_operands_with_advance_token_12:
 	dc.b $B5,$87,$C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E	; data
 	dc.b $E3,$2F,$E9,$2E,$C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E
 	dc.b $EB,$2D,$E3,$2E,$E9,$30,$80
 tokens_and_operands_with_advance_token_13:
-	dc.b $B5,$86,$02,$02,$C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F	; data
-	dc.b $EB,$2E,$E3,$2F,$E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C6
-	dc.b $E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$80
+	dc.b $B5	; data
+audio_mode_1_program_05_command_0001:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_1_program_05_tokens_0004:
+	dc.b $C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F,$EB,$2E,$E3,$2F	; data
+	dc.b $E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C6,$E5,$2E,$EB,$2D
+	dc.b $E3,$2E,$E9,$2D,$80
 tokens_and_operands_with_advance_token_14:
 	dc.b $E1,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24	; data
 	dc.b $BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE
@@ -27007,46 +23954,93 @@ program_offsets_with_wrap_zero_11:
 program_offsets_with_wrap_zero_12:
 	dc.w $0B5C,$0000	; data
 tokens_and_operands_with_advance_token_15:
-	dc.b $C7,$B3,$86,$04,$04,$88,$03,$E1,$18,$24,$18,$24,$18,$24,$18,$24	; data
-	dc.b $18,$24,$18,$24,$18,$E0,$18,$24,$17,$23,$16,$22,$E1,$15,$21,$15
-	dc.b $21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$E0,$15,$21,$16,$22,$17
-	dc.b $23,$80
+	dc.b $C7,$B3	; data
+audio_mode_2_program_00_command_0002:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_2_program_00_command_0005:
+	dc.b $88	; opcode
+	dc.b $03	; note_offset_byte
+audio_mode_2_program_00_tokens_0007:
+	dc.b $E1,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$E0,$18	; data
+	dc.b $24,$17,$23,$16,$22,$E1,$15,$21,$15,$21,$15,$21,$15,$21,$15,$21
+	dc.b $15,$21,$15,$E0,$15,$21,$16,$22,$17,$23,$80
 tokens_and_operands_with_advance_token_16:
-	dc.b $C7,$88,$03,$B5,$86,$03,$03,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24	; data
-	dc.b $28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28
-	dc.b $25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28
-	dc.b $28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1
-	dc.b $28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$80
+	dc.b $C7	; data
+audio_mode_2_program_01_command_0001:
+	dc.b $88	; opcode
+	dc.b $03	; note_offset_byte
+audio_mode_2_program_01_tokens_0003:
+	dc.b $B5	; data
+audio_mode_2_program_01_command_0004:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_2_program_01_tokens_0007:
+	dc.b $E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8	; data
+	dc.b $28,$E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28
+	dc.b $E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28
+	dc.b $E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2
+	dc.b $28,$E1,$28,$E8,$2B,$80
 tokens_and_operands_with_advance_token_17:
-	dc.b $C7,$88,$03,$B5,$86,$03,$03,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28	; data
-	dc.b $2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B
-	dc.b $28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$C6,$E1,$28,$E3,$2B,$E1,$2B
-	dc.b $2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1
-	dc.b $2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$80
+	dc.b $C7	; data
+audio_mode_2_program_02_command_0001:
+	dc.b $88	; opcode
+	dc.b $03	; note_offset_byte
+audio_mode_2_program_02_tokens_0003:
+	dc.b $B5	; data
+audio_mode_2_program_02_command_0004:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_2_program_02_tokens_0007:
+	dc.b $E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8	; data
+	dc.b $2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D
+	dc.b $E8,$30,$C6,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B
+	dc.b $E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2
+	dc.b $2B,$E1,$2D,$E8,$30,$80
 tokens_and_operands_with_advance_token_18:
 	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18	; data
 	dc.b $A0,$80
-tokens_and_operands_with_advance_token_19:
-	dc.b $85,$FF,$80	; data
-tokens_and_operands_with_advance_token_20:
-	dc.b $85,$00,$80	; data
-tokens_and_operands_with_advance_token_21:
-	dc.b $85,$01,$80	; data
-tokens_and_operands_with_advance_token_22:
-	dc.b $85,$02,$80	; data
-tokens_and_operands_with_advance_token_23:
-	dc.b $85,$03,$80	; data
-tokens_and_operands_with_advance_token_24:
-	dc.b $88,$FF,$80	; data
-tokens_and_operands_with_advance_token_25:
-	dc.b $88,$FE,$80	; data
-tokens_and_operands_with_advance_token_26:
-	dc.b $88,$FD,$80	; data
+audio_global_transpose_minus1:
+	dc.b $85	; command_opcode
+	dc.b $FF	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_zero:
+	dc.b $85	; command_opcode
+	dc.b $00	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_plus1:
+	dc.b $85	; command_opcode
+	dc.b $01	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_plus2:
+	dc.b $85	; command_opcode
+	dc.b $02	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_global_transpose_plus3:
+	dc.b $85	; command_opcode
+	dc.b $03	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_channel_transpose_minus1:
+	dc.b $88	; command_opcode
+	dc.b $FF	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_channel_transpose_minus2:
+	dc.b $88	; command_opcode
+	dc.b $FE	; note_offset_byte
+	dc.b $80	; advance_opcode
+audio_channel_transpose_minus3:
+	dc.b $88	; command_opcode
+	dc.b $FD	; note_offset_byte
+	dc.b $80	; advance_opcode
 	dc.b $BF,$C0,$FF
 	dcb.b $10,$82
 	dc.b $80
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 initialize_audio_sample_metadata:
-	tst.b $0528(a3)
+	tst.b audio_player_base_view_globals+8(a3)
 	bne.w abs_0_0005E3EA
     ; Initialize 11 length/divisor/payload records; payloads are referenced directly, with no decompression on this path.
 	lea.l audio_sample_record_stream(pc),a0
@@ -27064,10 +24058,10 @@ abs_0_0005E38A:
 	move.w d2,audio_sample_metadata_sample_period(a5)
 	adda.w #$C,a5
 	dbf.w d1,abs_0_0005E38A
-	move.l a0,$052E(a3)
+	move.l a0,audio_player_base_view_globals+14(a3)
 	adda.w #$40,a0
-	move.l a0,$1160(a3)
-	st.b $0528(a3)
+	move.l a0,audio_player_base_view_secondary_sample_address_base(a3)
+	st.b audio_player_base_view_globals+8(a3)
     ; Sample 7's 64-byte payload becomes 32 bytes 0xC0 then 32 bytes 0x3F; later indexed-write bounds remain unproven.
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
 	move.w #$F,d1
@@ -27078,9 +24072,9 @@ abs_0_0005E3C6:
 abs_0_0005E3D2:
 	move.w #$3F3F,(a0)+
 	dbf.w d1,abs_0_0005E3D2
-	move.w #$20,$072E(a3)
-	move.w #$20,$0534(a3)
-	clr.w $0532(a3)
+	move.w #$20,audio_player_base_view_sample_7_length_words(a3)
+	move.w #$20,audio_player_base_view_sample_7_word_write_offset(a3)
+	clr.w audio_player_base_view_sample_7_waveform_direction(a3)
 abs_0_0005E3EA:
 	rts
 start_audio_sequence:
@@ -27089,10 +24083,11 @@ start_audio_sequence:
 	lea.l initialize_audio_player(pc),a3
 	bsr.w initialize_audio_sample_metadata
     ; Unchecked packed selector: high byte is channel 0..3; low byte is configuration 0..28. EXT.W sign-extends the low byte for the 22-byte lookup; the channel selects playback and DMA records.
-	move.w d0,$0EB0(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	move.w d0,audio_player_base_view_effect_channel_and_configuration(a3)
 	moveq.l #0,d7
 	lea.l audio_channel_dma_configurations(pc),a4
-	move.b voice_selector_byte(pc),d7
+	move.b audio_effect_channel_index(pc),d7
 	mulu.w #$C,d7
 	st.b $B(a4,d7.w)
 	ext.w d0
@@ -27100,7 +24095,7 @@ start_audio_sequence:
 	lea.l audio_channel_playback_states(pc),a1
 	moveq.l #1,d2
 	lea.l _custom+aud0+ac_len.l,a0
-	move.b voice_selector_byte(pc),d1
+	move.b audio_effect_channel_index(pc),d1
 abs_0_0005E430:
 	subq.b #1,d1
 	bmi.b abs_0_0005E440
@@ -27124,7 +24119,7 @@ abs_0_0005E458:
 	move.b audio_channel_playback_state_sequence_index(a2),d0
 	ext.w d0
 	add.w d0,d0
-	lea.l $1164(a3),a0
+	lea.l audio_player_base_view_secondary_volume_sequence_offsets(a3),a0
 	movea.w $0(a0,d0.w),a0
 	adda.l a3,a0
 	move.l a0,audio_channel_playback_state_volume_sequence_cursor(a2)
@@ -27133,19 +24128,20 @@ abs_0_0005E484:
 	dbf.w d0,abs_0_0005E484
 	st.b audio_channel_playback_state_active(a2)
 	rts
-abs_0_0005E48E:
+advance_audio_shift_state:
 	lea.l initialize_audio_player(pc),a3
-	move.b abs_0_0005E4AA(pc),d0
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	move.b audio_shift_state_words(pc),d0
 	andi.b #72,d0
 	addi.b #56,d0
 	lsl.b #2,d0
-	roxl $0CCE(a3)
-	roxl $0CCC(a3)
+	roxl audio_player_base_view_shift_state_low_word(a3)
+	roxl audio_player_base_view_shift_state_high_word(a3)
 	rts
-abs_0_0005E4AA:
-	dc.b $6F,$80,$1B,$34	; lookup_table
+audio_shift_state_words:
+	dc.w $6F80,$1B34	; mutable_audio_shift_state
 dispatch_audio_channel_updates:
-	bsr.b abs_0_0005E48E
+	bsr.b advance_audio_shift_state
 	lea.l audio_channel_playback_states(pc),a1
 	tst.b audio_channel_playback_state_active(a1)
 	beq.b abs_0_0005E4C8
@@ -27338,9 +24334,9 @@ audio_channel_playback_states_period_delta_3:
 	dc.l $00000000	; volume_sequence_cursor
 audio_channel_playback_states_gap_90_3:
 	dcb.b $8,$00	; typed data block gap
-voice_selector_byte:
+audio_effect_channel_index:
 	dc.b $00	; lookup_table
-parameter_selector_byte:
+audio_effect_configuration_index:
 	dc.b $00	; data
 audio_channel_dma_configurations:
 	dc.l $00000000	; sample_ptr
@@ -27875,203 +24871,8 @@ byte_length_2:
 period_divisor_2:
 	dc.w $2102	; data
 audio_sample_01_payload:
-	dc.b $FF,$F6,$EA,$E6,$F5,$14,$17,$EF,$D8,$DE,$D4,$D0,$F0,$FA,$FC,$35
-	dc.b $4C,$2F,$1A,$10,$07,$03,$E7,$DF,$FC,$14,$10,$FC,$FB,$EB,$D9,$F4
-	dc.b $28,$46,$34,$04,$D7,$CB,$DE,$01,$29,$1C,$FC,$F0,$E6,$E4,$F2,$18
-	dc.b $2E,$1C,$FB,$03,$19,$E8,$B4,$B0,$E6,$3B,$4A,$46,$37,$10,$FD,$C8
-	dc.b $AB,$D2,$FD,$18,$3C,$43,$3D,$D4,$A5,$AC,$D0,$46,$46,$42,$11,$B4
-	dc.b $AD,$B0,$C6,$46,$4C,$4A,$1D,$D0,$B0,$EC,$41,$2F,$1C,$2E,$0A,$DD
-	dc.b $FD,$E3,$BB,$E3,$08,$30,$43,$40,$EC,$A8,$A8,$E6,$4F,$32,$13,$DA
-	dc.b $AD,$AE,$FA,$01,$06,$4D,$3E,$19,$01,$E6,$0E,$FC,$D7,$0C,$43,$41
-	dc.b $3B,$F2,$A2,$C7,$41,$25,$CD,$AA,$FB,$4A,$26,$F1,$F3,$16,$F3,$A9
-	dc.b $C5,$19,$02,$25,$21,$FA,$FA,$25,$FA,$B3,$AE,$C7,$10,$19,$19,$35
-	dc.b $0C,$BD,$C0,$FA,$3E,$F6,$D6,$31,$4F,$4C,$43,$4B,$F0,$A8,$B6,$D8
-	dc.b $4D,$42,$44,$3B,$38,$D9,$9A,$29,$3A,$31,$39,$33,$2E,$2F,$AE,$8F
-	dc.b $A0,$9E,$AB,$A1,$0A,$53,$37,$4B,$E7,$9A,$B0,$AA,$B7,$B0,$1D,$62
-	dc.b $2C,$1F,$5B,$0C,$1A,$2F,$A7,$AE,$B4,$AE,$DE,$59,$4B,$4F,$D1,$AC
-	dc.b $BC,$B9,$C5,$BB,$11,$6E,$3C,$CB,$C2,$C8,$C7,$D5,$C3,$07,$32,$0C
-	dc.b $7B,$57,$DB,$D9,$FD,$C0,$41,$70,$5F,$61,$58,$57,$4C,$59,$06,$0E
-	dc.b $4F,$43,$26,$A3,$AE,$A4,$20,$54,$3C,$4D,$E6,$9C,$B2,$2E,$4B,$39
-	dc.b $46,$CC,$9B,$AA,$B4,$34,$52,$1C,$A1,$B4,$A4,$15,$52,$4B,$E9,$99
-	dc.b $27,$F8,$46,$F9,$A0,$B7,$B5,$BB,$3D,$59,$4C,$4B,$45,$42
-	dc.b $3E,$3A,$38,$31,$37,$10,$96,$99,$9E,$A1,$AC,$A3,$F8,$5E,$0A,$A4
-	dc.b $D1,$B5,$BC,$39,$60,$DA,$23,$54,$44,$3E,$4C,$DA,$BF,$4C,$2F,$47
-	dc.b $C4,$B2,$E6,$9A,$F1,$0B,$4B,$35,$44,$C8,$99,$AA,$A9,$B1,$B2,$BE
-	dc.b $B1,$F8,$65,$4E,$53,$4B,$47,$42,$42,$37,$43,$04,$91,$A7,$A3,$AC
-	dc.b $B0,$B3,$BC,$B5,$3B,$58,$58,$0A,$A7,$C4,$B1,$F0,$66,$50,$54,$4D
-	dc.b $46,$4B,$29,$AB,$A9,$B5,$A8,$F9,$56,$18,$55,$40,$4D,$06,$8D,$2E
-	dc.b $0C,$A0,$AC,$D2,$F5,$C7,$BD,$C2,$B9,$F2,$68,$58,$54,$5C,$17,$A8
-	dc.b $BF,$B7,$CF,$4F,$5B,$52,$50,$49,$4C,$2A,$AC,$AC,$B0,$B6,$B6,$D0
-	dc.b $4F,$58,$4B,$56,$03,$A1,$37,$4E,$3E,$4C,$11,$9B,$AD,$AC,$B2,$C2
-	dc.b $55,$CE,$DA,$55,$CD,$50,$14,$9E,$15,$5C,$41,$5B,$F1,$D0,$38,$9A
-	dc.b $3E,$21,$A1,$B6,$B0,$C6,$4B,$4C,$58,$C7,$DA,$56,$4A,$23,$A5,$B0
-	dc.b $BC,$42,$4C,$49,$33,$B3,$A7,$BA,$A3,$0E,$13,$CE,$62,$45,$4F,$40
-	dc.b $4D,$11,$98,$B3,$A4,$D8,$61,$0C,$A4,$C4,$AB,$E7,$4C,$E3,$56,$47
-	dc.b $F0,$5C,$1D,$AB,$B1,$1A,$62,$16,$A1,$25,$5F,$13,$22,$E1,$96,$E6
-	dc.b $55,$42,$47,$3B,$45,$16,$A1,$9C,$1D,$42,$42,$F6,$92,$AC,$A4,$C0
-	dc.b $56,$D6,$E9,$ED,$97,$E2,$0E,$EF,$62,$44,$4E,$3D,$4E,$10,$D2,$4E
-	dc.b $B5,$9F,$B1,$A1,$E0,$37,$B2,$B5,$CD,$4E,$52,$4E,$43,$52,$F5,$A8
-	dc.b $0E,$A9,$2E,$55,$BD,$E9,$5C,$22,$26,$4E,$FE,$97,$AB,$AA,$AE,$C2
-	dc.b $45,$4D,$4A,$3D,$4F,$B6,$FF,$11,$CF,$60,$01,$99,$B4,$9C,$E6,$26
-	dc.b $A3,$C3,$B2,$E0,$5C,$53,$56,$45,$58,$01,$D1,$57,$3A,$32,$16,$A8
-	dc.b $A7,$AC,$B2,$B3,$BE,$B2,$0B,$65,$4F,$53,$49,$41,$44,$3E,$04,$45
-	dc.b $F8,$8A,$FF,$45,$38,$C4,$8E,$25,$25,$9B,$B3,$9F,$E0,$1D,$CE,$50
-	dc.b $52,$D4,$2E,$E9,$99,$2C,$52,$41,$4A,$25,$A8,$A9,$AD,$B3,$B4,$BF
-	dc.b $B6,$28,$62,$50,$53,$4B,$47,$44,$41,$3C,$39,$16,$38,$1A,$9C,$9A
-	dc.b $A3,$A0,$00,$BC,$AD,$B1,$30,$C3,$E8,$60,$4A,$3C,$AE,$1E,$59,$BC
-	dc.b $30,$0E,$A9,$54,$C9,$CD,$66,$E1,$C9,$27,$B3,$AA,$3B,$03,$0F,$5F
-	dc.b $41,$26,$3C,$4A,$0E,$18,$42,$34,$2A,$A5,$9A,$A3,$A8,$AC,$B2,$B3
-	dc.b $C8,$4E,$4C,$5C,$D7,$E0,$29,$A4,$3E,$52,$41,$50,$07,$9B,$B3,$AD
-	dc.b $BC,$B0,$ED,$61,$4C,$50,$49,$47,$41,$42,$2B,$99,$08,$27,$9C,$AC
-	dc.b $B3,$34,$52,$C5,$B9,$41,$47,$C4,$A7,$B6,$B1,$CF,$52,$4F,$53,$2C
-	dc.b $9A,$22,$F2,$D7,$62,$3C,$54,$0B,$9E,$B3,$B0,$B6,$BB,$BE,$CE,$50
-	dc.b $5D,$54,$4F,$4F,$25,$3B,$46,$3D,$3C,$37,$34,$2B,$A9,$96,$A7,$9B
-	dc.b $ED,$C7,$A4,$BD,$AC,$FB,$62,$47,$53,$DE,$9F,$E8,$41,$B7,$C4,$3E
-	dc.b $5F,$CD,$28,$E3,$EA,$6D,$FD,$AA,$C2,$AE,$02,$64,$4E,$53,$47,$49
-	dc.b $3D,$4C,$E4,$B4,$41,$3E,$25,$A4,$A3,$A9,$AD,$B3,$B4,$BF,$B4,$33
-	dc.b $5C,$5C,$0F,$B0,$B6,$FC,$64,$4E,$4C,$54,$FF,$A3,$B6,$B7,$B5,$DA
-	dc.b $57,$54,$52,$4C,$49,$42,$41,$B5,$BB,$42,$40,$39,$BA,$9A,$14,$54
-	dc.b $07,$9B,$B5,$2E,$4F,$1C,$A3,$AC,$AB,$BE,$42,$49,$4E,$DF,$A1,$B7
-	dc.b $B2,$39,$53,$49,$42,$4C,$E7,$9C,$B1,$B0,$B4,$BE,$B3,$F6,$68,$4A
-	dc.b $5F,$CC,$DF,$5F,$44,$4B,$3E,$39,$44,$19,$A0,$A3,$AC,$A4,$D7,$57
-	dc.b $CF,$A7,$D4,$32,$3E,$30,$AB,$C0,$F9,$22,$55,$C3,$CD,$4C,$54,$0C
-	dc.b $A1,$D9,$4F,$4B,$45,$BF,$B1,$AB,$EC,$5E,$47,$4A,$46,$3D,$46,$06
-	dc.b $8D,$18,$44,$35,$35,$B0,$9A,$A7,$A8,$AE,$B0,$BB,$B2,$15,$67,$30
-	dc.b $C0,$B0,$08,$61,$4C,$4F,$47,$44,$3E,$BB,$A4,$B2,$B0,$BC,$B1,$EF
-	dc.b $61,$4F,$50,$4D,$3B,$30,$45,$35,$44,$DA,$99,$A0,$E8,$56,$E1,$9A
-	dc.b $C8,$42,$44,$3C,$BA,$A3,$B0,$B0,$FE,$1E,$44,$18,$52,$08,$98,$26
-	dc.b $4C,$41,$3B,$43,$D7,$97,$AA,$A9,$B0,$B5,$B5,$CD,$4F,$52,$55,$33
-	dc.b $E0,$4C,$44,$42,$3E,$38,$3C,$1D,$9F,$9F,$A1,$AC,$A4,$DD,$E9,$C4
-	dc.b $AD,$F3,$3B,$B6,$C5,$3E,$57,$BC,$13,$55,$BA,$34,$5E,$1F,$BD,$DB
-	dc.b $57,$4F,$41,$BB,$B6,$B1,$1F,$5D,$4B,$4C,$47,$40,$46,$E3,$90,$F8
-	dc.b $4C,$39,$3E,$2C,$AC,$9E,$A7,$AB,$AD,$B9,$AE,$E9,$66,$D4,$BC,$B7
-	dc.b $02,$68,$52,$55,$4E,$47,$47,$C6,$A7,$B6,$B3,$C0,$B4,$00,$66,$50
-	dc.b $53,$4C,$4A,$45,$41,$3D,$3A,$2E,$AB,$9F,$A3,$BC,$43,$C4,$B7,$45
-	dc.b $41,$4B,$DD,$9E,$B2,$AD,$BB,$C4,$B3,$3D,$45,$B1,$EA,$5F,$50,$52
-	dc.b $4D,$43,$4E,$F9,$9C,$B2,$B0,$B5,$BE,$B5,$2E,$60,$4F,$4F,$47,$46
-	dc.b $43,$3E,$3A,$3A,$2F,$3C,$F1,$8C,$9F,$A2,$9E,$CE,$46,$07,$B6,$AB
-	dc.b $B3,$B9,$B6,$10,$BF,$EB,$65,$50,$49,$C7,$C8,$1E,$40,$54,$47,$4C
-	dc.b $32,$B3,$AA,$B5,$B3,$37,$55,$47,$47,$41,$3E,$3A,$35,$33,$30,$30
-	dc.b $26,$31,$D6,$84,$99,$98,$9F,$A7,$A2,$C9,$47,$C6,$AA,$BC,$B0,$2F
-	dc.b $5C,$4B,$4D,$45,$44,$34,$B2,$A5,$B0,$AE,$BC,$AE,$FE,$56,$3C,$55
-	dc.b $49,$47,$42,$41,$38,$40,$13,$9E,$9A,$BE,$ED,$A7,$A9,$19,$50,$4B
-	dc.b $DB,$A2,$B5,$B3,$BC,$BD,$CF,$C8,$CD,$C3,$0A,$72,$5E,$60,$59,$54
-	dc.b $54,$39,$BA,$B4,$BB,$BB,$C6,$BB,$1A,$67,$5E,$29,$B2,$41,$5B,$4E
-	dc.b $4E,$47,$45,$3E,$3E,$BB,$A0,$AB,$B1,$AC,$D9,$53,$49,$50,$2B,$2C
-	dc.b $F2,$9A,$B7,$A8,$1C,$58,$D5,$A4,$EB,$58,$47,$4A,$44,$3E,$3D,$BD
-	dc.b $9E,$B1,$A8,$2B,$50,$42,$43,$3B,$39,$33,$33,$FD,$20,$32,$22,$32
-	dc.b $EA,$81,$97,$96,$9C,$A5,$9F,$CE,$55,$DF,$A2,$BA,$A8,$EA,$5D,$49
-	dc.b $4C,$47,$40,$45,$C5,$9F,$AE,$AE,$B4,$B9,$BC,$CB,$4B,$5C,$52,$50
-	dc.b $4B,$46,$43,$40,$37,$B1,$A5,$A1,$2A,$0D,$92,$E4,$4D,$4D,$E0,$A7
-	dc.b $AD,$D8,$59,$38,$BE,$B3,$B9,$C2,$B7,$17,$67,$53,$55,$50,$46,$52
-	dc.b $FD,$9F,$B5,$B0,$BE,$B2,$EC,$62,$4F,$ED,$A8,$FC,$62,$4E,$52,$49
-	dc.b $49,$3E,$49,$E1,$9A,$B0,$AB,$B5,$B4,$CE,$4D,$56,$4A,$53,$F0,$A5
-	dc.b $B7,$BD,$49,$40,$C2,$AC,$EF,$5E,$4B,$4D,$47,$43,$41,$C0,$A2,$B3
-	dc.b $AA,$2F,$53,$44,$44,$3E,$3C,$35,$38,$18,$20,$31,$2A,$25,$2B,$B6
-	dc.b $84,$97,$95,$A2,$99,$D5,$54,$CC,$A2,$AD,$B4,$AD,$E9,$5B,$4A,$4F
-	dc.b $42,$4E,$0D,$9C,$B1,$AE,$B6,$B9,$BE,$C2,$42,$5F,$53,$52,$45,$49
-	dc.b $44,$41,$37,$B2,$A7,$A3,$05,$F0,$9B,$1F,$52,$49,$CB,$AB,$B1,$31
-	dc.b $50,$50,$FE,$A3,$B9,$B4,$BE,$BB,$D8,$57,$59,$56,$4E,$52,$30,$B2
-	dc.b $B2,$B6,$BA,$C2,$BC,$31,$6A,$FE,$AE,$ED,$61,$56,$56,$4E,$4D,$45
-	dc.b $49,$26,$A9,$AA,$B0,$B1,$BC,$B2,$1F,$62,$49,$59,$15,$A4,$BE,$AA
-	dc.b $01,$4E,$BE,$BF,$C0,$43,$5E,$50,$52,$49,$49,$C6,$A9,$B4,$C2,$45
-	dc.b $52,$4A,$47,$42,$40,$37,$3C,$E3,$11,$3B,$2E,$2C,$2F,$0D,$90,$93
-	dc.b $97,$9F,$A0,$B7,$34,$47,$C5,$A1,$B0,$AE,$B7,$BA,$3D,$57,$4D,$46
-	dc.b $4E,$DA,$A2,$B4,$B2,$B9,$BD,$C4,$46,$5D,$50,$4F,$4B,$46,$45,$3B
-	dc.b $45,$E0,$95,$B0,$A0,$FC,$52,$3D,$43,$2E,$AC,$A9,$A2,$02,$54,$3C
-	dc.b $41,$BD,$A2,$B0,$B1,$B6,$BA,$C3,$46,$59,$50,$4B,$4F,$D0,$A8,$B9
-	dc.b $B5,$C2,$B7,$03,$6F,$17,$BE,$BC,$33,$65,$53,$54,$4D,$4B,$44,$43
-	dc.b $32,$B2,$A4,$AD,$B2,$B2,$CB,$4A,$54,$46,$53,$FC,$A3,$B3,$C3,$4B
-	dc.b $D1,$B5,$B5,$07,$64,$4C,$53,$45,$4C,$D0,$A8,$B0,$CC,$4C,$4C,$47
-	dc.b $43,$41,$3B,$3C,$21,$9C,$B7,$39,$38,$38,$2E,$38,$C3,$8D,$A1,$9E
-	dc.b $AA,$A4,$1F,$57,$13,$A2,$B1,$AE,$B7,$B5,$D1,$53,$55,$52,$49,$4D
-	dc.b $D2,$A7,$B7,$B4,$C2,$B5,$15,$65,$50,$53,$4C,$49,$47,$3C,$49,$01
-	dc.b $9B,$A3,$CB,$49,$40,$3B,$40,$17,$9C,$A9,$9E,$D4,$4F,$3C,$46,$20
-	dc.b $A7,$A7,$AC,$AD,$B9,$AE,$1A,$5D,$4D,$49,$50,$15,$A1,$B4,$B0,$BA
-	dc.b $B9,$D4,$5F,$FB,$BA,$BC,$05,$6B,$53,$57,$4F,$4C,$4B,$40,$4B,$04
-	dc.b $99,$AE,$AA,$B9,$AC,$EA,$5E,$4D,$4B,$4C,$F0,$97,$22,$34,$AC,$B7
-	dc.b $AE,$D6,$53,$4F,$4E,$44,$4D,$D9,$A3,$B2,$BD,$41,$4F,$3D,$3E,$42
-	dc.b $3C,$31,$B3,$A1,$A5,$28,$49,$3B,$3A,$3A,$21,$A2,$9E,$A2,$AC,$A2
-	dc.b $F3,$53,$47,$D0,$A4,$B6,$B3,$BF,$B3,$ED,$64,$54,$50,$56,$23,$AB
-	dc.b $B9,$B6,$C0,$BC,$DD,$58,$5E,$39,$42,$53,$4A,$47,$44,$37,$BC,$99
-	dc.b $E3,$4F,$3D,$41,$39,$33,$B2,$9C,$A9,$AB,$30,$4A,$3E,$3D,$34,$B5
-	dc.b $9E,$A8,$AE,$A9,$D8,$54,$47,$4B,$3E,$49,$DA,$9B,$B0,$AC,$B7,$B4
-	dc.b $41,$F0,$AE,$C5,$C0,$46,$5E,$50,$53,$4C,$4A,$45,$40,$3B,$BA,$A1
-	dc.b $AD,$AD,$B7,$B4,$38,$58,$4A,$4A,$45,$3B,$45,$0F,$9B,$A9,$AA,$AB
-	dc.b $C5,$43,$4D,$44,$45,$C8,$A2,$B7,$A8,$FD,$59,$3D,$4A,$44,$41,$37
-	dc.b $BF,$A5,$A3,$0A,$52,$3D,$43,$35,$43,$00,$92,$A5,$A5,$A9,$BF,$3C
-	dc.b $54,$EB,$A3,$B6,$B5,$BA,$C3,$BB,$3B,$62,$55,$50,$56,$EF,$A9,$BC
-	dc.b $B9,$C3,$C4,$4E,$38,$B2,$0D,$66,$53,$58,$4B,$54,$0A,$9B,$DF,$50
-	dc.b $45,$47,$3D,$43,$CD,$9A,$B1,$A4,$D6,$52,$45,$49,$3C,$45,$E3,$9A
-	dc.b $AB,$B0,$A9,$20,$55,$44,$46,$41,$35,$B3,$A2,$AB,$B1,$AE,$CB,$DA
-	dc.b $B6,$C9,$BA,$FB,$27,$C2,$52,$65,$59,$58,$52,$50,$3B,$BB,$B2,$B6
-	dc.b $BF,$B5,$06,$66,$50,$54,$4C,$4B,$41,$4A,$E1,$9B,$B4,$A7,$D5,$4E
-	dc.b $4B,$42,$4C,$04,$9E,$AE,$B2,$AB,$05,$58,$46,$4C,$3D,$4A,$0C,$A2
-	dc.b $A1,$E6,$52,$3C,$40,$3B,$32,$3C,$D0,$91,$A1,$A7,$A0,$F9,$53,$2E
-	dc.b $B6,$A7,$B2,$B1,$BE,$B2,$EF,$64,$52,$50,$50,$30,$B2,$B2,$B5,$BC
-	dc.b $BA,$DB,$DD,$C2,$49,$64,$57,$57,$50,$4D,$3C,$B0,$FB,$55,$3E,$44
-	dc.b $3A,$3E,$1A,$A1,$A0,$AB,$A0,$F5,$54,$3D,$44,$37,$42,$D6,$96,$A7
-	dc.b $AA,$A7,$23,$4F,$43,$3D,$46,$01,$96,$AB,$A8,$B0,$B3,$B9,$BD,$BF
-	dc.b $C5,$C5,$D0,$C4,$0E,$76,$5F,$62,$5B,$55,$55,$3A,$BB,$B5,$B9,$C3
-	dc.b $B7,$11,$68,$54,$56,$4F,$4A,$4B,$2F,$AD,$AE,$AA,$D2,$4F,$47,$49
-	dc.b $41,$42,$C6,$A0,$B1,$AB,$C7,$46,$4D,$46,$44,$40,$38,$B6,$A4,$A4
-	dc.b $1D,$4D,$3C,$3E,$3A,$32,$3A,$C6,$91,$A2,$A4,$A7,$22,$52,$03,$BA
-	dc.b $EB,$AE,$AE,$B9,$AE,$20,$5C,$4D,$49,$4E,$ED,$A1,$B5,$B3,$BA,$BC
-	dc.b $C3,$C3,$D7,$55,$60,$59,$57,$4F,$4F,$10,$34,$49,$3E,$3C,$3A,$31
-	dc.b $3B,$D8,$8F,$A1,$A5,$9F,$0E,$4D,$3C,$3E,$39,$2C,$AC,$9A,$A9,$A1
-	dc.b $C9,$47,$43,$44,$39,$43,$EA,$95,$A9,$A8,$AE,$B4,$BA,$BB,$BF,$C4
-	dc.b $C5,$CF,$C5,$26,$73,$5F,$61,$58,$56,$4F,$4A,$C9,$AE,$BB,$BA,$C4
-	dc.b $BE,$3A,$65,$54,$57,$4A,$55,$F4,$A4,$BA,$B7,$3B,$55,$4B,$45,$4E
-	dc.b $0C,$A0,$B0,$B4,$AE,$1F,$59,$46,$4B,$3E,$4A,$FB,$9B,$AC,$B9,$3D
-	dc.b $49,$42,$3E,$3B,$35,$34,$B4,$96,$A7,$A2,$BF,$46,$1E,$ED,$4E,$F3
-	dc.b $9C,$B3,$AA,$CB,$4A,$4D,$49,$45,$39,$BA,$A5,$B0,$B2,$B7,$BB,$BF
-	dc.b $C4,$CB,$4B,$64,$57,$56,$4F,$4A,$46,$44,$41,$3C,$3A,$33,$37,$17
-	dc.b $9A,$9B,$9E,$A9,$A0,$11,$4D,$3E,$3B,$42,$0D,$98,$A3,$AA,$A2,$02
-	dc.b $54,$40,$44,$39,$3D,$BD,$9B,$AA,$AA,$B1,$B5,$B9,$BD,$C2,$C6,$C8
-	dc.b $CF,$CD,$50,$6E,$5F,$5F,$59,$52,$56,$2C,$B3,$B6,$BA,$BC,$C6,$BC
-	dc.b $26,$6A,$56,$59,$4E,$53,$D6,$B1,$B1,$0B,$5D,$47,$4B,$47,$35,$B5
-	dc.b $A9,$B3,$B1,$CC,$4A,$50,$4C,$46,$49,$29,$AA,$AE,$A3,$FE,$57,$42
-	dc.b $45,$40,$38,$41,$0F,$97,$A3,$A3,$AC,$AC,$FD,$45,$4A,$31,$B2,$AA
-	dc.b $B7,$AC,$10,$5B,$4A,$47,$4C,$13,$A2,$B0,$B0,$B5,$BB,$BC,$C6,$BC
-	dc.b $06,$69,$58,$59,$52,$4D,$4A,$46,$42,$3E,$3A,$39,$2F,$3A,$D2,$8D
-	dc.b $A2,$9E,$AC,$A0,$E3,$53,$42,$40,$47,$00,$96,$AD,$A5,$C4,$43,$49
-	dc.b $45,$3C,$45,$11,$9C,$A5,$AD,$A3,$FC,$F5,$A8,$BE,$BB,$C0,$C8,$BF
-	dc.b $F2,$6B,$5E,$5E,$57,$53,$50,$46,$4C,$EB,$A2,$B5,$B0,$BE,$B3,$1A
-	dc.b $61,$4D,$52,$46,$4A,$DE,$A2,$BF,$1D,$15,$42,$45,$47,$CF,$A1,$B2
-	dc.b $B0,$BC,$B3,$21,$5E,$4E,$4A,$50,$EF,$A4,$B4,$C4,$47,$4F,$4A,$45
-	dc.b $43,$3A,$43,$0B,$97,$A5,$A7,$AA,$C0,$38,$47,$4A,$DA,$A1,$B7,$AB
-	dc.b $D7,$54,$4D,$4D,$43,$46,$E2,$A1,$B2,$B0,$B6,$BC,$BD,$C7,$BC,$10
-	dc.b $6B,$57,$59,$52,$4E,$4A,$46,$42,$3E,$3B,$38,$33,$2E,$AE,$95,$A2
-	dc.b $A1,$AD,$A3,$14,$53,$43,$3E,$46,$ED,$96,$B2,$9F,$F9,$55,$40,$46
-	dc.b $38,$43,$F6,$91,$AE,$9B,$F0,$44,$BA,$AD,$B4,$B7,$BA,$C5,$BA,$1E
-	dc.b $69,$55,$57,$4F,$4B,$4A,$40,$4A,$FC,$9B,$AE,$AA,$B9,$AD,$E8,$5D
-	dc.b $4B,$4F,$43,$4A,$F9,$B9,$FB,$D8,$0D,$49,$46,$14,$9F,$AC,$AD,$B2
-	dc.b $BC,$B2,$1A,$61,$4B,$55,$2F,$B1,$B9,$AC,$ED,$5F,$4B,$4E,$46,$46
-	dc.b $3C,$45,$08,$9A,$A8,$AA,$AB,$D1,$3C,$53,$18,$A8,$B3,$B7,$B5,$37
-	dc.b $59,$4B,$4C,$44,$41,$30,$CB,$A2,$AE,$B0,$B6,$B9,$BF,$BC,$DD,$5B
-	dc.b $5B,$55,$50,$4D,$4A,$45,$42,$3D,$3B,$35,$37,$1D,$A0,$99,$A1,$A3
-	dc.b $AE,$A4,$0F,$55,$43,$43,$3E,$C2,$A0,$B0,$B0,$34,$4E,$43,$43,$3C
-	dc.b $38,$B5,$A1,$A2,$D0,$4F,$F2,$A9,$B4,$B4,$BB,$BD,$C4,$C4,$47,$64
-	dc.b $56,$55,$4F,$4A,$4A,$3E,$47,$E7,$9B,$B0,$AB,$B6,$B3,$D1,$52,$53
-	dc.b $4E,$4A,$45,$3E,$40,$E4,$96,$CD,$3D,$49,$E6,$9C,$B1,$B0,$B4,$BE
-	dc.b $B3,$07,$66,$4C,$58,$E3,$AC,$C2,$B4,$31,$60,$4F,$52,$4A,$49,$40
-	dc.b $45,$11,$A0,$A9,$AA,$BC,$26,$50,$31,$B7,$AB,$B9,$AC,$FA,$5F,$4B
-	dc.b $4D,$46,$41,$41,$29,$B0,$A4,$AC,$AE,$B5,$B7,$BF,$BC,$DA,$56,$5B
-	dc.b $34,$42,$53,$49,$47,$43,$3E,$3D,$35,$39,$18,$9E,$9C,$A3,$A4,$B1
-	dc.b $A7,$16,$56,$42,$46,$33,$B4,$AA,$A4,$E0,$54,$42,$47,$3A,$45,$04
-	dc.b $97,$AC,$A2,$16,$4B,$3B,$37,$BB,$A2,$AD,$AD,$B7,$B3,$34,$58,$4A
-	dc.b $4B,$44,$42,$3D,$39,$33,$B7,$9A,$A7,$A9,$AE,$B3,$BA,$3D,$54,$47
-	dc.b $49,$3E,$47,$0E,$A3,$A1,$06,$55,$1A,$A9,$AC,$AE,$B5,$B6,$C2,$B6
-	dc.b $28,$60,$5B,$19,$B1,$C0,$C2,$C2,$43,$64,$55,$55,$4F,$4B,$47,$42
-	dc.b $3C,$01,$C2,$AC,$FB,$44,$34,$B9,$A5,$AE,$B4,$B1,$2F,$56,$47,$33
-	dc.b $3B,$43,$32,$BE,$A2,$AD,$AE,$B4,$B9,$BD,$C0,$C6,$C7,$DE,$0A,$54
-	dc.b $66,$5D,$59,$54,$4F,$4C,$46,$46,$3B,$45,$F1,$97,$AB,$A8,$B3,$B1
-	dc.b $34,$54,$46,$44,$3E,$CB,$A4,$AC,$26,$4E,$3E,$42,$38,$3C,$C6,$99
-	dc.b $A5,$B6,$38,$42,$40,$2C,$AC,$A3,$AB,$AC,$B7,$B0,$29,$59,$49,$4B
-	dc.b $44,$41,$40,$34,$3E,$DF,$91,$A7,$A5,$AA,$B4,$AA,$0B,$5B,$46,$4B
-	dc.b $40,$46,$F0,$90,$E6,$49,$43,$E7,$9B,$B0,$AD,$B5,$B7,$BF,$BF,$41
-	dc.b $5D,$4F,$DE,$B3,$C6,$BA,$E6,$61,$5B,$58,$53,$4E,$4B,$46,$42,$3C
-	dc.b $39,$19,$F9,$21,$33,$B5,$97,$A4,$A4,$AE,$AB,$25,$45,$E1
+	INCBIN "assets/audio_sample_01_payload.bin"
+; sound_sample
 byte_length_3:
 	dc.l $0000121A	; data
 period_divisor_3:
@@ -28154,12 +24955,12 @@ abs_0_000652DE:
 	beq.b abs_0_000652FC
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
-	move.b #$40,audio_master_volume.l
+	move.b #$40,audio_player_globals_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
 abs_0_000652FC:
 	rts
 update_player_proximity_audio:
-	btst.b #1,world_object_megabio_feed_world_object_flags.l
+	btst.b #1,world_object_pianist_actor_world_object_flags.l
 	bne.b abs_0_000652DE
 	lea.l player_world_object_world_x.l,a0
 	move.w (a0)+,d0	; operand 1: world_object_shared_prefix_world_x at (a0)+
@@ -28179,7 +24980,7 @@ abs_0_00065322:
 	beq.b abs_0_0006536E
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
-	move.w #$40,audio_master_volume.l
+	move.w #$40,audio_player_globals_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
 	bra.b abs_0_0006536E
 abs_0_0006534A:
@@ -28193,1746 +24994,9 @@ abs_0_00065362:
 	lsr.w #2,d1
 	moveq.l #64,d0
 	sub.b d1,d0
-	move.w d0,audio_master_volume.l
+	move.w d0,audio_player_globals_master_volume.l
 abs_0_0006536E:
 	rts
-	dc.b $05,$00,$04,$07,$05,$08,$04,$02,$07,$0A,$FE,$03,$03,$09,$05,$02
-	dc.b $05,$06,$01,$06,$0A,$FB,$01,$02,$03,$FF,$03,$00,$04,$00,$01,$01
-	dc.b $02,$03,$03,$FC,$FA,$FE,$00,$FF,$FB,$FD,$FE,$FB,$FC,$FC,$FA,$FA
-	dc.b $FC,$FC,$F9,$FC,$FE,$F9,$FC,$F6,$FE,$F8,$FD,$F9,$F9,$F8,$F6,$FD
-	dc.b $00,$FB,$F8,$FD,$FE,$FA,$FA,$FC,$00,$FC,$FA,$FA,$02,$FE,$FF,$FC
-	dc.b $F9,$04,$FC,$FE,$FB,$FF,$00,$04,$02,$FD,$FC,$01,$03,$06,$FD,$F9
-	dc.b $07,$02,$FA,$00,$07,$FF,$05,$FE,$00,$FB,$FE,$05,$04,$F7,$FE,$01
-	dc.b $04,$FF,$FF,$FC,$FA,$03,$02,$F8,$FC,$FC,$FE,$00,$FA,$F6,$01,$FC
-	dc.b $FB,$00,$02,$F9,$02,$F7,$FD,$05,$FD,$FD,$FD,$01,$FF,$FD,$00,$FE
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$5B,$00,$44,$6F,$5B,$01,$44,$6F,$5B,$02,$44,$6F,$5B,$03
-	dc.b $44,$6F,$5B,$04,$44,$6F,$5B,$05,$44,$6F,$5B,$06,$44,$6F,$5B,$07
-	dc.b $44,$6F,$5B,$08,$44,$6F,$5B,$09,$44,$6F,$5B,$0A,$44,$6F,$5B,$0B
-	dc.b $44,$6F,$5B,$0C,$44,$6F,$5B,$0D,$44,$6F,$5B,$0E,$44,$6F,$5B,$0F
-	dc.b $44,$6F,$5B,$10,$44,$6F,$5B,$11,$44,$6F,$5B,$12,$44,$6F,$5B,$13
-	dc.b $44,$6F,$5B,$14,$44,$6F,$5B,$15,$44,$6F,$5B,$16,$44,$6F,$5B,$17
-	dc.b $44,$6F,$5B,$18,$44,$6F,$5B,$19,$44,$6F,$5B,$1A,$44,$6F,$5B,$1B
-	dc.b $44,$6F,$5B,$1C,$44,$6F,$5B,$1D,$44,$6F,$5B,$1E,$44,$6F,$5B,$1F
-	dc.b $44,$6F,$5B,$20,$44,$6F,$5B,$21,$44,$6F,$5B,$22,$44,$6F,$5B,$23
-	dc.b $44,$6F,$5B,$24,$44,$6F,$5B,$25,$44,$6F,$5B,$26,$44,$6F,$5B,$27
-	dc.b $44,$6F,$5B,$28,$44,$6F,$5B,$29,$44,$6F,$5B,$2A,$44,$6F,$5B,$2B
-	dc.b $44,$6F,$5B,$2C,$44,$6F,$5B,$2D,$44,$6F,$5B,$2E,$44,$6F,$5B,$2F
-	dc.b $44,$6F,$5B,$30,$44,$6F,$5B,$31,$44,$6F,$5B,$32,$44,$6F,$5B,$33
-	dc.b $44,$6F,$5B,$34,$44,$6F,$5B,$35,$44,$6F,$5B,$36,$44,$6F,$5B,$37
-	dc.b $44,$6F,$5B,$38,$44,$6F,$5B,$39,$44,$6F,$5B,$3A,$44,$6F,$5B,$3B
-	dc.b $44,$6F,$5B,$3C,$44,$6F,$5B,$3D,$44,$6F,$5B,$3E,$44,$6F,$5B,$3F
-	dc.b $44,$6F,$5B,$40,$44,$6F,$5B,$41,$44,$6F,$5B,$42,$44,$6F,$5B,$43
-	dc.b $44,$6F,$5B,$44,$44,$6F,$5B,$45,$44,$6F,$5B,$46,$44,$6F,$5B,$47
-	dc.b $44,$6F,$5B,$48,$44,$6F,$5B,$49,$44,$6F,$5B,$4A,$44,$6F,$5B,$4B
-	dc.b $44,$6F,$5B,$4C,$44,$6F,$5B,$4D,$44,$6F,$5B,$4E,$44,$6F,$5B,$4F
-	dc.b $44,$6F,$5B,$50,$44,$6F,$5B,$51,$44,$6F,$5B,$52,$44,$6F,$5B,$53
-	dc.b $44,$6F,$5B,$54,$44,$6F,$5B,$55,$44,$6F,$5B,$56,$44,$6F,$5B,$57
-	dc.b $44,$6F,$5B,$58,$44,$6F,$5B,$59,$44,$6F,$5B,$5A,$44,$6F,$5B,$5B
-	dc.b $44,$6F,$5B,$5C,$44,$6F,$5B,$5D,$44,$6F,$5B,$5E,$44,$6F,$5B,$5F
-	dc.b $44,$6F,$5B,$60,$44,$6F,$5B,$61,$44,$6F,$5B,$62,$44,$6F,$5B,$63
-	dc.b $44,$6F,$5B,$64,$44,$6F,$5B,$65,$44,$6F,$5B,$66,$44,$6F,$5B,$67
-	dc.b $44,$6F,$5B,$68,$44,$6F,$5B,$69,$44,$6F,$5B,$6A,$44,$6F,$5B,$6B
-	dc.b $44,$6F,$5B,$6C,$44,$6F,$5B,$6D,$44,$6F,$5B,$6E,$44,$6F,$5B,$6F
-	dc.b $44,$6F,$5B,$70,$44,$6F,$5B,$71,$44,$6F,$5B,$72,$44,$6F,$5B,$73
-	dc.b $44,$6F,$5B,$74,$44,$6F,$5B,$75,$44,$6F,$5B,$76,$44,$6F,$5B,$77
-	dc.b $44,$6F,$5B,$78,$44,$6F,$5B,$79,$44,$6F,$5B,$7A,$44,$6F,$5B,$7B
-	dc.b $44,$6F,$5B,$7C,$44,$6F,$5B,$7D,$44,$6F,$5B,$7E,$44,$6F,$5B,$7F
-	dc.b $44,$6F,$5B,$80,$44,$6F,$5B,$81,$44,$6F,$5B,$82,$44,$6F,$5B,$83
-	dc.b $44,$6F,$5B,$84,$44,$6F,$5B,$85,$44,$6F,$5B,$86,$44,$6F,$5B,$87
-	dc.b $44,$6F,$5B,$88,$44,$6F,$5B,$89,$44,$6F,$5B,$8A,$44,$6F,$5B,$8B
-	dc.b $44,$6F,$5B,$8C,$44,$6F,$5B,$8D,$44,$6F,$5B,$8E,$44,$6F,$5B,$8F
-	dc.b $44,$6F,$5B,$90,$44,$6F,$5B,$91,$44,$6F,$5B,$92,$44,$6F,$5B,$93
-	dc.b $44,$6F,$5B,$94,$44,$6F,$5B,$95,$44,$6F,$5B,$96,$44,$6F,$5B,$97
-	dc.b $44,$6F,$5B,$98,$44,$6F,$5B,$99,$44,$6F,$5B,$9A,$44,$6F,$5B,$9B
-	dc.b $44,$6F,$5B,$9C,$44,$6F,$5B,$9D,$44,$6F,$5B,$9E,$44,$6F,$5B,$9F
-	dc.b $44,$6F,$5B,$A0,$44,$6F,$5B,$A1,$44,$6F,$5B,$A2,$44,$6F,$5B,$A3
-	dc.b $44,$6F,$5B,$A4,$44,$6F,$5B,$A5,$44,$6F,$5B,$A6,$44,$6F,$5B,$A7
-	dc.b $44,$6F,$5B,$A8,$44,$6F,$5B,$A9,$44,$6F,$5B,$AA,$44,$6F,$5B,$AB
-	dc.b $44,$6F,$5B,$AC,$44,$6F,$5B,$AD,$44,$6F,$5B,$AE,$44,$6F,$5B,$AF
-	dc.b $44,$6F,$5B,$B0,$44,$6F,$5B,$B1,$44,$6F,$5B,$B2,$44,$6F,$5B,$B3
-	dc.b $44,$6F,$5B,$B4,$44,$6F,$5B,$B5,$44,$6F,$5B,$B6,$44,$6F,$5B,$B7
-	dc.b $44,$6F,$5B,$B8,$44,$6F,$5B,$B9,$44,$6F,$5B,$BA,$44,$6F,$5B,$BB
-	dc.b $44,$6F,$5B,$BC,$44,$6F,$5B,$BD,$44,$6F,$5B,$BE,$44,$6F,$5B,$BF
-	dc.b $44,$6F,$5B,$C0,$44,$6F,$5B,$C1,$44,$6F,$5B,$C2,$44,$6F,$5B,$C3
-	dc.b $44,$6F,$5B,$C4,$44,$6F,$5B,$C5,$44,$6F,$5B,$C6,$44,$6F,$5B,$C7
-	dc.b $44,$6F,$5B,$C8,$44,$6F,$5B,$C9,$44,$6F,$5B,$CA,$44,$6F,$5B,$CB
-	dc.b $44,$6F,$5B,$CC,$44,$6F,$5B,$CD,$44,$6F,$5B,$CE,$44,$6F,$5B,$CF
-	dc.b $44,$6F,$5B,$D0,$44,$6F,$5B,$D1,$44,$6F,$5B,$D2,$44,$6F,$5B,$D3
-	dc.b $44,$6F,$5B,$D4,$44,$6F,$5B,$D5,$44,$6F,$5B,$D6,$44,$6F,$5B,$D7
-	dc.b $44,$6F,$5B,$D8,$44,$6F,$5B,$D9,$44,$6F,$5B,$DA,$44,$6F,$5B,$DB
-	dc.b $44,$6F,$5B,$DC,$44,$6F,$5B,$DD,$44,$6F,$5B,$DE,$44,$6F,$5B,$DF
-	dc.b $44,$6F,$5B,$E0,$44,$6F,$5B,$E1,$44,$6F,$5B,$E2,$44,$6F,$5B,$E3
-	dc.b $44,$6F,$5B,$E4,$44,$6F,$5B,$E5,$44,$6F,$5B,$E6,$44,$6F,$5B,$E7
-	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
-	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
-	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F,$5B,$F7
-	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
-	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
-	dc.b $44,$6F,$5B,$00,$44,$6F,$5B,$01,$44,$6F,$5B,$02,$44,$6F,$5B,$03
-	dc.b $44,$6F,$5B,$04,$44,$6F,$5B,$05,$44,$6F,$5B,$06,$44,$6F,$5B,$07
-	dc.b $44,$6F,$5B,$08,$44,$6F,$5B,$09,$44,$6F,$5B,$0A,$44,$6F,$5B,$0B
-	dc.b $44,$6F,$5B,$0C,$44,$6F,$5B,$0D,$44,$6F,$5B,$0E,$44,$6F,$5B,$0F
-	dc.b $44,$6F,$5B,$10,$44,$6F,$5B,$11,$44,$6F,$5B,$12,$44,$6F,$5B,$13
-	dc.b $44,$6F,$5B,$14,$44,$6F,$5B,$15,$44,$6F,$5B,$16,$44,$6F,$5B,$17
-	dc.b $44,$6F,$5B,$18,$44,$6F,$5B,$19,$44,$6F,$5B,$1A,$44,$6F,$5B,$1B
-	dc.b $44,$6F,$5B,$1C,$44,$6F,$5B,$1D,$44,$6F,$5B,$1E,$44,$6F,$5B,$1F
-	dc.b $44,$6F,$5B,$20,$44,$6F,$5B,$21,$44,$6F,$5B,$22,$44,$6F,$5B,$23
-	dc.b $44,$6F,$5B,$24,$44,$6F,$5B,$25,$44,$6F,$5B,$26,$44,$6F,$5B,$27
-	dc.b $44,$6F,$5B,$28,$44,$6F,$5B,$29,$44,$6F,$5B,$2A,$44,$6F,$5B,$2B
-	dc.b $44,$6F,$5B,$2C,$44,$6F,$5B,$2D,$44,$6F,$5B,$2E,$44,$6F,$5B,$2F
-	dc.b $44,$6F,$5B,$30,$44,$6F,$5B,$31,$44,$6F,$5B,$32,$44,$6F,$5B,$33
-	dc.b $44,$6F,$5B,$34,$44,$6F,$5B,$35,$44,$6F,$5B,$36,$44,$6F,$5B,$37
-	dc.b $44,$6F,$5B,$38,$44,$6F,$5B,$39,$44,$6F,$5B,$3A,$44,$6F,$5B,$3B
-	dc.b $44,$6F,$5B,$3C,$44,$6F,$5B,$3D,$44,$6F,$5B,$3E,$44,$6F,$5B,$3F
-	dc.b $44,$6F,$5B,$40,$44,$6F,$5B,$41,$44,$6F,$5B,$42,$44,$6F,$5B,$43
-	dc.b $44,$6F,$5B,$44,$44,$6F,$5B,$45,$44,$6F,$5B,$46,$44,$6F,$5B,$47
-	dc.b $44,$6F,$5B,$48,$44,$6F,$5B,$49,$44,$6F,$5B,$4A,$44,$6F,$5B,$4B
-	dc.b $44,$6F,$5B,$4C,$44,$6F,$5B,$4D,$44,$6F,$5B,$4E,$44,$6F,$5B,$4F
-	dc.b $44,$6F,$5B,$50,$44,$6F,$5B,$51,$44,$6F,$5B,$52,$44,$6F,$5B,$53
-	dc.b $44,$6F,$5B,$54,$44,$6F,$5B,$55,$44,$6F,$5B,$56,$44,$6F,$5B,$57
-	dc.b $44,$6F,$5B,$58,$44,$6F,$5B,$59,$44,$6F,$5B,$5A,$44,$6F,$5B,$5B
-	dc.b $44,$6F,$5B,$5C,$44,$6F,$5B,$5D,$44,$6F,$5B,$5E,$44,$6F,$5B,$5F
-	dc.b $44,$6F,$5B,$60,$44,$6F,$5B,$61,$44,$6F,$5B,$62,$44,$6F,$5B,$63
-	dc.b $44,$6F,$5B,$64,$44,$6F,$5B,$65,$44,$6F,$5B,$66,$44,$6F,$5B,$67
-	dc.b $44,$6F,$5B,$68,$44,$6F,$5B,$69,$44,$6F,$5B,$6A,$44,$6F,$5B,$6B
-	dc.b $44,$6F,$5B,$6C,$44,$6F,$5B,$6D,$44,$6F,$5B,$6E,$44,$6F,$5B,$6F
-	dc.b $44,$6F,$5B,$70,$44,$6F,$5B,$71,$44,$6F,$5B,$72,$44,$6F,$5B,$73
-	dc.b $44,$6F,$5B,$74,$44,$6F,$5B,$75,$44,$6F,$5B,$76,$44,$6F,$5B,$77
-	dc.b $44,$6F,$5B,$78,$44,$6F,$5B,$79,$44,$6F,$5B,$7A,$44,$6F,$5B,$7B
-	dc.b $44,$6F,$5B,$7C,$44,$6F,$5B,$7D,$44,$6F,$5B,$7E,$44,$6F,$5B,$7F
-	dc.b $44,$6F,$5B,$80,$44,$6F,$5B,$81,$44,$6F,$5B,$82,$44,$6F,$5B,$83
-	dc.b $44,$6F,$5B,$84,$44,$6F,$5B,$85,$44,$6F,$5B,$86,$44,$6F,$5B,$87
-	dc.b $44,$6F,$5B,$88,$44,$6F,$5B,$89,$44,$6F,$5B,$8A,$44,$6F,$5B,$8B
-	dc.b $44,$6F,$5B,$8C,$44,$6F,$5B,$8D,$44,$6F,$5B,$8E,$44,$6F,$5B,$8F
-	dc.b $44,$6F,$5B,$90,$44,$6F,$5B,$91,$44,$6F,$5B,$92,$44,$6F,$5B,$93
-	dc.b $44,$6F,$5B,$94,$44,$6F,$5B,$95,$44,$6F,$5B,$96,$44,$6F,$5B,$97
-	dc.b $44,$6F,$5B,$98,$44,$6F,$5B,$99,$44,$6F,$5B,$9A,$44,$6F,$5B,$9B
-	dc.b $44,$6F,$5B,$9C,$44,$6F,$5B,$9D,$44,$6F,$5B,$9E,$44,$6F,$5B,$9F
-	dc.b $44,$6F,$5B,$A0,$44,$6F,$5B,$A1,$44,$6F,$5B,$A2,$44,$6F,$5B,$A3
-	dc.b $44,$6F,$5B,$A4,$44,$6F,$5B,$A5,$44,$6F,$5B,$A6,$44,$6F,$5B,$A7
-	dc.b $44,$6F,$5B,$A8,$44,$6F,$5B,$A9,$44,$6F,$5B,$AA,$44,$6F,$5B,$AB
-	dc.b $44,$6F,$5B,$AC,$44,$6F,$5B,$AD,$44,$6F,$5B,$AE,$44,$6F,$5B,$AF
-	dc.b $44,$6F,$5B,$B0,$44,$6F,$5B,$B1,$44,$6F,$5B,$B2,$44,$6F,$5B,$B3
-	dc.b $44,$6F,$5B,$B4,$44,$6F,$5B,$B5,$44,$6F,$5B,$B6,$44,$6F,$5B,$B7
-	dc.b $44,$6F,$5B,$B8,$44,$6F,$5B,$B9,$44,$6F,$5B,$BA,$44,$6F,$5B,$BB
-	dc.b $44,$6F,$5B,$BC,$44,$6F,$5B,$BD,$44,$6F,$5B,$BE,$44,$6F,$5B,$BF
-	dc.b $44,$6F,$5B,$C0,$44,$6F,$5B,$C1,$44,$6F,$5B,$C2,$44,$6F,$5B,$C3
-	dc.b $44,$6F,$5B,$C4,$44,$6F,$5B,$C5,$44,$6F,$5B,$C6,$44,$6F,$5B,$C7
-	dc.b $44,$6F,$5B,$C8,$44,$6F,$5B,$C9,$44,$6F,$5B,$CA,$44,$6F,$5B,$CB
-	dc.b $44,$6F,$5B,$CC,$44,$6F,$5B,$CD,$44,$6F,$5B,$CE,$44,$6F,$5B,$CF
-	dc.b $44,$6F,$5B,$D0,$44,$6F,$5B,$D1,$44,$6F,$5B,$D2,$44,$6F,$5B,$D3
-	dc.b $44,$6F,$5B,$D4,$44,$6F,$5B,$D5,$44,$6F,$5B,$D6,$44,$6F,$5B,$D7
-	dc.b $44,$6F,$5B,$D8,$44,$6F,$5B,$D9,$44,$6F,$5B,$DA,$44,$6F,$5B,$DB
-	dc.b $44,$6F,$5B,$DC,$44,$6F,$5B,$DD,$44,$6F,$5B,$DE,$44,$6F,$5B,$DF
-	dc.b $44,$6F,$5B,$E0,$44,$6F,$5B,$E1,$44,$6F,$5B,$E2,$44,$6F,$5B,$E3
-	dc.b $44,$6F,$5B,$E4,$44,$6F,$5B,$E5,$44,$6F,$5B,$E6,$44,$6F,$5B,$E7
-	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
-	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
-	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F,$5B,$F7
-	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
-	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
-	dc.b $44,$6F,$5B,$00,$44,$6F,$5B,$01,$44,$6F,$5B,$02,$44,$6F,$5B,$03
-	dc.b $44,$6F,$5B,$04,$44,$6F,$5B,$05,$44,$6F,$5B,$06,$44,$6F,$5B,$07
-	dc.b $44,$6F,$5B,$08,$44,$6F,$5B,$09,$44,$6F,$5B,$0A,$44,$6F,$5B,$0B
-	dc.b $44,$6F,$5B,$0C,$44,$6F,$5B,$0D,$44,$6F,$5B,$0E,$44,$6F,$5B,$0F
-	dc.b $44,$6F,$5B,$10,$44,$6F,$5B,$11,$44,$6F,$5B,$12,$44,$6F,$5B,$13
-	dc.b $44,$6F,$5B,$14,$44,$6F,$5B,$15,$44,$6F,$5B,$16,$44,$6F,$5B,$17
-	dc.b $44,$6F,$5B,$18,$44,$6F,$5B,$19,$44,$6F,$5B,$1A,$44,$6F,$5B,$1B
-	dc.b $44,$6F,$5B,$1C,$44,$6F,$5B,$1D,$44,$6F,$5B,$1E,$44,$6F,$5B,$1F
-	dc.b $44,$6F,$5B,$20,$44,$6F,$5B,$21,$44,$6F,$5B,$22,$44,$6F,$5B,$23
-	dc.b $44,$6F,$5B,$24,$44,$6F,$5B,$25,$44,$6F,$5B,$26,$44,$6F,$5B,$27
-	dc.b $44,$6F,$5B,$28,$44,$6F,$5B,$29,$44,$6F,$5B,$2A,$44,$6F,$5B,$2B
-	dc.b $44,$6F,$5B,$2C,$44,$6F,$5B,$2D,$44,$6F,$5B,$2E,$44,$6F,$5B,$2F
-	dc.b $44,$6F,$5B,$30,$44,$6F,$5B,$31,$44,$6F,$5B,$32,$44,$6F,$5B,$33
-	dc.b $44,$6F,$5B,$34,$44,$6F,$5B,$35,$44,$6F,$5B,$36,$44,$6F,$5B,$37
-	dc.b $44,$6F,$5B,$38,$44,$6F,$5B,$39,$44,$6F,$5B,$3A,$44,$6F,$5B,$3B
-	dc.b $44,$6F,$5B,$3C,$44,$6F,$5B,$3D,$44,$6F,$5B,$3E,$44,$6F,$5B,$3F
-	dc.b $44,$6F,$5B,$40,$44,$6F,$5B,$41,$44,$6F,$5B,$42,$44,$6F,$5B,$43
-	dc.b $44,$6F,$5B,$44,$44,$6F,$5B,$45,$44,$6F,$5B,$46,$44,$6F,$5B,$47
-	dc.b $44,$6F,$5B,$48,$44,$6F,$5B,$49,$44,$6F,$5B,$4A,$44,$6F,$5B,$4B
-	dc.b $44,$6F,$5B,$4C,$44,$6F,$5B,$4D,$44,$6F,$5B,$4E,$44,$6F,$5B,$4F
-	dc.b $44,$6F,$5B,$50,$44,$6F,$5B,$51,$44,$6F,$5B,$52,$44,$6F,$5B,$53
-	dc.b $44,$6F,$5B,$54,$44,$6F,$5B,$55,$44,$6F,$5B,$56,$44,$6F,$5B,$57
-	dc.b $44,$6F,$5B,$58,$44,$6F,$5B,$59,$44,$6F,$5B,$5A,$44,$6F,$5B,$5B
-	dc.b $44,$6F,$5B,$5C,$44,$6F,$5B,$5D,$44,$6F,$5B,$5E,$44,$6F,$5B,$5F
-	dc.b $44,$6F,$5B,$60,$44,$6F,$5B,$61,$44,$6F,$5B,$62,$44,$6F,$5B,$63
-	dc.b $44,$6F,$5B,$64,$44,$6F,$5B,$65,$44,$6F,$5B,$66,$44,$6F,$5B,$67
-	dc.b $44,$6F,$5B,$68,$44,$6F,$5B,$69,$44,$6F,$5B,$6A,$44,$6F,$5B,$6B
-	dc.b $44,$6F,$5B,$6C,$44,$6F,$5B,$6D,$44,$6F,$5B,$6E,$44,$6F,$5B,$6F
-	dc.b $44,$6F,$5B,$70,$44,$6F,$5B,$71,$44,$6F,$5B,$72,$44,$6F,$5B,$73
-	dc.b $44,$6F,$5B,$74,$44,$6F,$5B,$75,$44,$6F,$5B,$76,$44,$6F,$5B,$77
-	dc.b $44,$6F,$5B,$78,$44,$6F,$5B,$79,$44,$6F,$5B,$7A,$44,$6F,$5B,$7B
-	dc.b $44,$6F,$5B,$7C,$44,$6F,$5B,$7D,$44,$6F,$5B,$7E,$44,$6F,$5B,$7F
-	dc.b $44,$6F,$5B,$80,$44,$6F,$5B,$81,$44,$6F,$5B,$82,$44,$6F,$5B,$83
-	dc.b $44,$6F,$5B,$84,$44,$6F,$5B,$85,$44,$6F,$5B,$86,$44,$6F,$5B,$87
-	dc.b $44,$6F,$5B,$88,$44,$6F,$5B,$89,$44,$6F,$5B,$8A,$44,$6F,$5B,$8B
-	dc.b $44,$6F,$5B,$8C,$44,$6F,$5B,$8D,$44,$6F,$5B,$8E,$44,$6F,$5B,$8F
-	dc.b $44,$6F,$5B,$90,$44,$6F,$5B,$91,$44,$6F,$5B,$92,$44,$6F,$5B,$93
-	dc.b $44,$6F,$5B,$94,$44,$6F,$5B,$95,$44,$6F,$5B,$96,$44,$6F,$5B,$97
-	dc.b $44,$6F,$5B,$98,$44,$6F,$5B,$99,$44,$6F,$5B,$9A,$44,$6F,$5B,$9B
-	dc.b $44,$6F,$5B,$9C,$44,$6F,$5B,$9D,$44,$6F,$5B,$9E,$44,$6F,$5B,$9F
-	dc.b $44,$6F,$5B,$A0,$44,$6F,$5B,$A1,$44,$6F,$5B,$A2,$44,$6F,$5B,$A3
-	dc.b $44,$6F,$5B,$A4,$44,$6F,$5B,$A5,$44,$6F,$5B,$A6,$44,$6F,$5B,$A7
-	dc.b $44,$6F,$5B,$A8,$44,$6F,$5B,$A9,$44,$6F,$5B,$AA,$44,$6F,$5B,$AB
-	dc.b $44,$6F,$5B,$AC,$44,$6F,$5B,$AD,$44,$6F,$5B,$AE,$44,$6F,$5B,$AF
-	dc.b $44,$6F,$5B,$B0,$44,$6F,$5B,$B1,$44,$6F,$5B,$B2,$44,$6F,$5B,$B3
-	dc.b $44,$6F,$5B,$B4,$44,$6F,$5B,$B5,$44,$6F,$5B,$B6,$44,$6F,$5B,$B7
-	dc.b $44,$6F,$5B,$B8,$44,$6F,$5B,$B9,$44,$6F,$5B,$BA,$44,$6F,$5B,$BB
-	dc.b $44,$6F,$5B,$BC,$44,$6F,$5B,$BD,$44,$6F,$5B,$BE,$44,$6F,$5B,$BF
-	dc.b $44,$6F,$5B,$C0,$44,$6F,$5B,$C1,$44,$6F,$5B,$C2,$44,$6F,$5B,$C3
-	dc.b $44,$6F,$5B,$C4,$44,$6F,$5B,$C5,$44,$6F,$5B,$C6,$44,$6F,$5B,$C7
-	dc.b $44,$6F,$5B,$C8,$44,$6F,$5B,$C9,$44,$6F,$5B,$CA,$44,$6F,$5B,$CB
-	dc.b $44,$6F,$5B,$CC,$44,$6F,$5B,$CD,$44,$6F,$5B,$CE,$44,$6F,$5B,$CF
-	dc.b $44,$6F,$5B,$D0,$44,$6F,$5B,$D1,$44,$6F,$5B,$D2,$44,$6F,$5B,$D3
-	dc.b $44,$6F,$5B,$D4,$44,$6F,$5B,$D5,$44,$6F,$5B,$D6,$44,$6F,$5B,$D7
-	dc.b $44,$6F,$5B,$D8,$44,$6F,$5B,$D9,$44,$6F,$5B,$DA,$44,$6F,$5B,$DB
-	dc.b $44,$6F,$5B,$DC,$44,$6F,$5B,$DD,$44,$6F,$5B,$DE,$44,$6F,$5B,$DF
-	dc.b $44,$6F,$5B,$E0,$44,$6F,$5B,$E1,$44,$6F,$5B,$E2,$44,$6F,$5B,$E3
-	dc.b $44,$6F,$5B,$E4,$44,$6F,$5B,$E5,$44,$6F,$5B,$E6,$44,$6F,$5B,$E7
-	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
-	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
-	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F
-	dc.b $5B,$F7
-	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
-	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F,$53,$FE,$44,$6F,$53,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F,$57,$02,$44,$6F,$57,$03
-	dc.b $44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F,$57,$06,$44,$6F,$57,$07
-	dc.b $44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F,$57,$0A,$44,$6F,$57,$0B
-	dc.b $44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F,$57,$0E,$44,$6F,$57,$0F
-	dc.b $44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F,$57,$12,$44,$6F,$57,$13
-	dc.b $44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F,$57,$16,$44,$6F,$57,$17
-	dc.b $44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F,$57,$1A,$44,$6F,$57,$1B
-	dc.b $44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F,$57,$1E,$44,$6F,$57,$1F
-	dc.b $44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F,$57,$22,$44,$6F,$57,$23
-	dc.b $44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F,$57,$26,$44,$6F,$57,$27
-	dc.b $44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F,$57,$2A,$44,$6F,$57,$2B
-	dc.b $44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F,$57,$2E,$44,$6F,$57,$2F
-	dc.b $44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F,$57,$32,$44,$6F,$57,$33
-	dc.b $44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F,$57,$36,$44,$6F,$57,$37
-	dc.b $44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F,$57,$3A,$44,$6F,$57,$3B
-	dc.b $44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F,$57,$3E,$44,$6F,$57,$3F
-	dc.b $44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F,$57,$42,$44,$6F,$57,$43
-	dc.b $44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F,$57,$46,$44,$6F,$57,$47
-	dc.b $44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F,$57,$4A,$44,$6F,$57,$4B
-	dc.b $44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F,$57,$4E,$44,$6F,$57,$4F
-	dc.b $44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F,$57,$52,$44,$6F,$57,$53
-	dc.b $44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F,$57,$56,$44,$6F,$57,$57
-	dc.b $44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F,$57,$5A,$44,$6F,$57,$5B
-	dc.b $44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F,$57,$5E,$44,$6F,$57,$5F
-	dc.b $44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F,$57,$62,$44,$6F,$57,$63
-	dc.b $44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F,$57,$66,$44,$6F,$57,$67
-	dc.b $44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F,$57,$6A,$44,$6F,$57,$6B
-	dc.b $44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F,$57,$6E,$44,$6F,$57,$6F
-	dc.b $44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F,$57,$72,$44,$6F,$57,$73
-	dc.b $44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F,$57,$76,$44,$6F,$57,$77
-	dc.b $44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F,$57,$7A,$44,$6F,$57,$7B
-	dc.b $44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F,$57,$7E,$44,$6F,$57,$7F
-	dc.b $44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F,$57,$82,$44,$6F,$57,$83
-	dc.b $44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F,$57,$86,$44,$6F,$57,$87
-	dc.b $44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F,$57,$8A,$44,$6F,$57,$8B
-	dc.b $44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F,$57,$8E,$44,$6F,$57,$8F
-	dc.b $44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F,$57,$92,$44,$6F,$57,$93
-	dc.b $44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F,$57,$96,$44,$6F,$57,$97
-	dc.b $44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F,$57,$9A,$44,$6F,$57,$9B
-	dc.b $44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F,$57,$9E,$44,$6F,$57,$9F
-	dc.b $44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F,$57,$A2,$44,$6F,$57,$A3
-	dc.b $44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F,$57,$A6,$44,$6F,$57,$A7
-	dc.b $44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F,$57,$AA,$44,$6F,$57,$AB
-	dc.b $44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F,$57,$AE,$44,$6F,$57,$AF
-	dc.b $44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F,$57,$B2,$44,$6F,$57,$B3
-	dc.b $44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F,$57,$B6,$44,$6F,$57,$B7
-	dc.b $44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F,$57,$BA,$44,$6F,$57,$BB
-	dc.b $44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F,$57,$BE,$44,$6F,$57,$BF
-	dc.b $44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F,$57,$C2,$44,$6F,$57,$C3
-	dc.b $44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F,$57,$C6,$44,$6F,$57,$C7
-	dc.b $44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F,$57,$CA,$44,$6F,$57,$CB
-	dc.b $44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F,$57,$CE,$44,$6F,$57,$CF
-	dc.b $44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F,$57,$D2,$44,$6F,$57,$D3
-	dc.b $44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F,$57,$D6,$44,$6F,$57,$D7
-	dc.b $44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F,$57,$DA,$44,$6F,$57,$DB
-	dc.b $44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F,$57,$DE,$44,$6F,$57,$DF
-	dc.b $44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F,$57,$E2,$44,$6F,$57,$E3
-	dc.b $44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F,$57,$E6,$44,$6F,$57,$E7
-	dc.b $44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F,$57,$EA,$44,$6F,$57,$EB
-	dc.b $44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F,$57,$EE,$44,$6F,$57,$EF
-	dc.b $44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F,$57,$F2,$44,$6F,$57,$F3
-	dc.b $44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F,$57,$F6,$44,$6F,$57,$F7
-	dc.b $44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F,$57,$FA,$44,$6F,$57,$FB
-	dc.b $44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F,$57,$FE,$44,$6F,$57,$FF
-	dc.b $44,$6F,$5B,$00,$44,$6F,$5B,$01,$44,$6F,$5B,$02,$44,$6F,$5B,$03
-	dc.b $44,$6F,$5B,$04,$44,$6F,$5B,$05,$44,$6F,$5B,$06,$44,$6F,$5B,$07
-	dc.b $44,$6F,$5B,$08,$44,$6F,$5B,$09,$44,$6F,$5B,$0A,$44,$6F,$5B,$0B
-	dc.b $44,$6F,$5B,$0C,$44,$6F,$5B,$0D,$44,$6F,$5B,$0E,$44,$6F,$5B,$0F
-	dc.b $44,$6F,$5B,$10,$44,$6F,$5B,$11,$44,$6F,$5B,$12,$44,$6F,$5B,$13
-	dc.b $44,$6F,$5B,$14,$44,$6F,$5B,$15,$44,$6F,$5B,$16,$44,$6F,$5B,$17
-	dc.b $44,$6F,$5B,$18,$44,$6F,$5B,$19,$44,$6F,$5B,$1A,$44,$6F,$5B,$1B
-	dc.b $44,$6F,$5B,$1C,$44,$6F,$5B,$1D,$44,$6F,$5B,$1E,$44,$6F,$5B,$1F
-	dc.b $44,$6F,$5B,$20,$44,$6F,$5B,$21,$44,$6F,$5B,$22,$44,$6F,$5B,$23
-	dc.b $44,$6F,$5B,$24,$44,$6F,$5B,$25,$44,$6F,$5B,$26,$44,$6F,$5B,$27
-	dc.b $44,$6F,$5B,$28,$44,$6F,$5B,$29,$44,$6F,$5B,$2A,$44,$6F,$5B,$2B
-	dc.b $44,$6F,$5B,$2C,$44,$6F,$5B,$2D,$44,$6F,$5B,$2E,$44,$6F,$5B,$2F
-	dc.b $44,$6F,$5B,$30,$44,$6F,$5B,$31,$44,$6F,$5B,$32,$44,$6F,$5B,$33
-	dc.b $44,$6F,$5B,$34,$44,$6F,$5B,$35,$44,$6F,$5B,$36,$44,$6F,$5B,$37
-	dc.b $44,$6F,$5B,$38,$44,$6F,$5B,$39,$44,$6F,$5B,$3A,$44,$6F,$5B,$3B
-	dc.b $44,$6F,$5B,$3C,$44,$6F,$5B,$3D,$44,$6F,$5B,$3E,$44,$6F,$5B,$3F
-	dc.b $44,$6F,$5B,$40,$44,$6F,$5B,$41,$44,$6F,$5B,$42,$44,$6F,$5B,$43
-	dc.b $44,$6F,$5B,$44,$44,$6F,$5B,$45,$44,$6F,$5B,$46,$44,$6F,$5B,$47
-	dc.b $44,$6F,$5B,$48,$44,$6F,$5B,$49,$44,$6F,$5B,$4A,$44,$6F,$5B,$4B
-	dc.b $44,$6F,$5B,$4C,$44,$6F,$5B,$4D,$44,$6F,$5B,$4E,$44,$6F,$5B,$4F
-	dc.b $44,$6F,$5B,$50,$44,$6F,$5B,$51,$44,$6F,$5B,$52,$44,$6F,$5B,$53
-	dc.b $44,$6F,$5B,$54,$44,$6F,$5B,$55,$44,$6F,$5B,$56,$44,$6F,$5B,$57
-	dc.b $44,$6F,$5B,$58,$44,$6F,$5B,$59,$44,$6F,$5B,$5A,$44,$6F,$5B,$5B
-	dc.b $44,$6F,$5B,$5C,$44,$6F,$5B,$5D,$44,$6F,$5B,$5E,$44,$6F,$5B,$5F
-	dc.b $44,$6F,$5B,$60,$44,$6F,$5B,$61,$44,$6F,$5B,$62,$44,$6F,$5B,$63
-	dc.b $44,$6F,$5B,$64,$44,$6F,$5B,$65,$44,$6F,$5B,$66,$44,$6F,$5B,$67
-	dc.b $44,$6F,$5B,$68,$44,$6F,$5B,$69,$44,$6F,$5B,$6A,$44,$6F,$5B,$6B
-	dc.b $44,$6F,$5B,$6C,$44,$6F,$5B,$6D,$44,$6F,$5B,$6E,$44,$6F,$5B,$6F
-	dc.b $44,$6F,$5B,$70,$44,$6F,$5B,$71,$44,$6F,$5B,$72,$44,$6F,$5B,$73
-	dc.b $44,$6F,$5B,$74,$44,$6F,$5B,$75,$44,$6F,$5B,$76,$44,$6F,$5B,$77
-	dc.b $44,$6F,$5B,$78,$44,$6F,$5B,$79,$44,$6F,$5B,$7A,$44,$6F,$5B,$7B
-	dc.b $44,$6F,$5B,$7C,$44,$6F,$5B,$7D,$44,$6F,$5B,$7E,$44,$6F,$5B,$7F
-	dc.b $44,$6F,$5B,$80,$44,$6F,$5B,$81,$44,$6F,$5B,$82,$44,$6F,$5B,$83
-	dc.b $44,$6F,$5B,$84,$44,$6F,$5B,$85,$44,$6F,$5B,$86,$44,$6F,$5B,$87
-	dc.b $44,$6F,$5B,$88,$44,$6F,$5B,$89,$44,$6F,$5B,$8A,$44,$6F,$5B,$8B
-	dc.b $44,$6F,$5B,$8C,$44,$6F,$5B,$8D,$44,$6F,$5B,$8E,$44,$6F,$5B,$8F
-	dc.b $44,$6F,$5B,$90,$44,$6F,$5B,$91,$44,$6F,$5B,$92,$44,$6F,$5B,$93
-	dc.b $44,$6F,$5B,$94,$44,$6F,$5B,$95,$44,$6F,$5B,$96,$44,$6F,$5B,$97
-	dc.b $44,$6F,$5B,$98,$44,$6F,$5B,$99,$44,$6F,$5B,$9A,$44,$6F,$5B,$9B
-	dc.b $44,$6F,$5B,$9C,$44,$6F,$5B,$9D,$44,$6F,$5B,$9E,$44,$6F,$5B,$9F
-	dc.b $44,$6F,$5B,$A0,$44,$6F,$5B,$A1,$44,$6F,$5B,$A2,$44,$6F,$5B,$A3
-	dc.b $44,$6F,$5B,$A4,$44,$6F,$5B,$A5,$44,$6F,$5B,$A6,$44,$6F,$5B,$A7
-	dc.b $44,$6F,$5B,$A8,$44,$6F,$5B,$A9,$44,$6F,$5B,$AA,$44,$6F,$5B,$AB
-	dc.b $44,$6F,$5B,$AC,$44,$6F,$5B,$AD,$44,$6F,$5B,$AE,$44,$6F,$5B,$AF
-	dc.b $44,$6F,$5B,$B0,$44,$6F,$5B,$B1,$44,$6F,$5B,$B2,$44,$6F,$5B,$B3
-	dc.b $44,$6F,$5B,$B4,$44,$6F,$5B,$B5,$44,$6F,$5B,$B6,$44,$6F,$5B,$B7
-	dc.b $44,$6F,$5B,$B8,$44,$6F,$5B,$B9,$44,$6F,$5B,$BA,$44,$6F,$5B,$BB
-	dc.b $44,$6F,$5B,$BC,$44,$6F,$5B,$BD,$44,$6F,$5B,$BE,$44,$6F,$5B,$BF
-	dc.b $44,$6F,$5B,$C0,$44,$6F,$5B,$C1,$44,$6F,$5B,$C2,$44,$6F,$5B,$C3
-	dc.b $44,$6F,$5B,$C4,$44,$6F,$5B,$C5,$44,$6F,$5B,$C6,$44,$6F,$5B,$C7
-	dc.b $44,$6F,$5B,$C8,$44,$6F,$5B,$C9,$44,$6F,$5B,$CA,$44,$6F,$5B,$CB
-	dc.b $44,$6F,$5B,$CC,$44,$6F,$5B,$CD,$44,$6F,$5B,$CE,$44,$6F,$5B,$CF
-	dc.b $44,$6F,$5B,$D0,$44,$6F,$5B,$D1,$44,$6F,$5B,$D2,$44,$6F,$5B,$D3
-	dc.b $44,$6F,$5B,$D4,$44,$6F,$5B,$D5,$44,$6F,$5B,$D6,$44,$6F,$5B,$D7
-	dc.b $44,$6F,$5B,$D8,$44,$6F,$5B,$D9,$44,$6F,$5B,$DA,$44,$6F,$5B,$DB
-	dc.b $44,$6F,$5B,$DC,$44,$6F,$5B,$DD,$44,$6F,$5B,$DE,$44,$6F,$5B,$DF
-	dc.b $44,$6F,$5B,$E0,$44,$6F,$5B,$E1,$44,$6F,$5B,$E2,$44,$6F,$5B,$E3
-	dc.b $44,$6F,$5B,$E4,$44,$6F,$5B,$E5,$44,$6F,$5B,$E6,$44,$6F,$5B,$E7
-	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
-	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
-	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F,$5B,$F7
-	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
-	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
-	dc.b $44,$6F,$5B,$00,$44,$6F,$5B,$01,$44,$6F,$5B,$02,$44,$6F,$5B,$03
-	dc.b $44,$6F,$5B,$04,$44,$6F,$5B,$05,$44,$6F,$5B,$06,$44,$6F,$5B,$07
-	dc.b $44,$6F,$5B,$08,$44,$6F,$5B,$09,$44,$6F,$5B,$0A,$44,$6F,$5B,$0B
-	dc.b $44,$6F,$5B,$0C,$44,$6F,$5B,$0D,$44,$6F,$5B,$0E,$44,$6F,$5B,$0F
-	dc.b $44,$6F,$5B,$10,$44,$6F,$5B,$11,$44,$6F,$5B,$12,$44,$6F,$5B,$13
-	dc.b $44,$6F,$5B,$14,$44,$6F,$5B,$15,$44,$6F,$5B,$16,$44,$6F,$5B,$17
-	dc.b $44,$6F,$5B,$18,$44,$6F,$5B,$19,$44,$6F,$5B,$1A,$44,$6F,$5B,$1B
-	dc.b $44,$6F,$5B,$1C,$44,$6F,$5B,$1D,$44,$6F,$5B,$1E,$44,$6F,$5B,$1F
-	dc.b $44,$6F,$5B,$20,$44,$6F,$5B,$21,$44,$6F,$5B,$22,$44,$6F,$5B,$23
-	dc.b $44,$6F,$5B,$24,$44,$6F,$5B,$25,$44,$6F,$5B,$26,$44,$6F,$5B,$27
-	dc.b $44,$6F,$5B,$28,$44,$6F,$5B,$29,$44,$6F,$5B,$2A,$44,$6F,$5B,$2B
-	dc.b $44,$6F,$5B,$2C,$44,$6F,$5B,$2D,$44,$6F,$5B,$2E,$44,$6F,$5B,$2F
-	dc.b $44,$6F,$5B,$30,$44,$6F,$5B,$31,$44,$6F,$5B,$32,$44,$6F,$5B,$33
-	dc.b $44,$6F,$5B,$34,$44,$6F,$5B,$35,$44,$6F,$5B,$36,$44,$6F,$5B,$37
-	dc.b $44,$6F,$5B,$38,$44,$6F,$5B,$39,$44,$6F,$5B,$3A,$44,$6F,$5B,$3B
-	dc.b $44,$6F,$5B,$3C,$44,$6F,$5B,$3D,$44,$6F,$5B,$3E,$44,$6F,$5B,$3F
-	dc.b $44,$6F,$5B,$40,$44,$6F,$5B,$41,$44,$6F,$5B,$42,$44,$6F,$5B,$43
-	dc.b $44,$6F,$5B,$44,$44,$6F,$5B,$45,$44,$6F,$5B,$46,$44,$6F,$5B,$47
-	dc.b $44,$6F,$5B,$48,$44,$6F,$5B,$49,$44,$6F,$5B,$4A,$44,$6F,$5B,$4B
-	dc.b $44,$6F,$5B,$4C,$44,$6F,$5B,$4D,$44,$6F,$5B,$4E,$44,$6F,$5B,$4F
-	dc.b $44,$6F,$5B,$50,$44,$6F,$5B,$51,$44,$6F,$5B,$52,$44,$6F,$5B,$53
-	dc.b $44,$6F,$5B,$54,$44,$6F,$5B,$55,$44,$6F,$5B,$56,$44,$6F,$5B,$57
-	dc.b $44,$6F,$5B,$58,$44,$6F,$5B,$59,$44,$6F,$5B,$5A,$44,$6F,$5B,$5B
-	dc.b $44,$6F,$5B,$5C,$44,$6F,$5B,$5D,$44,$6F,$5B,$5E,$44,$6F,$5B,$5F
-	dc.b $44,$6F,$5B,$60,$44,$6F,$5B,$61,$44,$6F,$5B,$62,$44,$6F,$5B,$63
-	dc.b $44,$6F,$5B,$64,$44,$6F,$5B,$65,$44,$6F,$5B,$66,$44,$6F,$5B,$67
-	dc.b $44,$6F,$5B,$68,$44,$6F,$5B,$69,$44,$6F,$5B,$6A,$44,$6F,$5B,$6B
-	dc.b $44,$6F,$5B,$6C,$44,$6F,$5B,$6D,$44,$6F,$5B,$6E,$44,$6F,$5B,$6F
-	dc.b $44,$6F,$5B,$70,$44,$6F,$5B,$71,$44,$6F,$5B,$72,$44,$6F,$5B,$73
-	dc.b $44,$6F,$5B,$74,$44,$6F,$5B,$75,$44,$6F,$5B,$76,$44,$6F,$5B,$77
-	dc.b $44,$6F,$5B,$78,$44,$6F,$5B,$79,$44,$6F,$5B,$7A,$44,$6F,$5B,$7B
-	dc.b $44,$6F,$5B,$7C,$44,$6F,$5B,$7D,$44,$6F,$5B,$7E,$44,$6F,$5B,$7F
-	dc.b $44,$6F,$5B,$80,$44,$6F,$5B,$81,$44,$6F,$5B,$82,$44,$6F,$5B,$83
-	dc.b $44,$6F,$5B,$84,$44,$6F,$5B,$85,$44,$6F,$5B,$86,$44,$6F,$5B,$87
-	dc.b $44,$6F,$5B,$88,$44,$6F,$5B,$89,$44,$6F,$5B,$8A,$44,$6F,$5B,$8B
-	dc.b $44,$6F,$5B,$8C,$44,$6F,$5B,$8D,$44,$6F,$5B,$8E,$44,$6F,$5B,$8F
-	dc.b $44,$6F,$5B,$90,$44,$6F,$5B,$91,$44,$6F,$5B,$92,$44,$6F,$5B,$93
-	dc.b $44,$6F,$5B,$94,$44,$6F,$5B,$95,$44,$6F,$5B,$96,$44,$6F,$5B,$97
-	dc.b $44,$6F,$5B,$98,$44,$6F,$5B,$99,$44,$6F,$5B,$9A,$44,$6F,$5B,$9B
-	dc.b $44,$6F,$5B,$9C,$44,$6F,$5B,$9D,$44,$6F,$5B,$9E,$44,$6F,$5B,$9F
-	dc.b $44,$6F,$5B,$A0,$44,$6F,$5B,$A1,$44,$6F,$5B,$A2,$44,$6F,$5B,$A3
-	dc.b $44,$6F,$5B,$A4,$44,$6F,$5B,$A5,$44,$6F,$5B,$A6,$44,$6F,$5B,$A7
-	dc.b $44,$6F,$5B,$A8,$44,$6F,$5B,$A9,$44,$6F,$5B,$AA,$44,$6F,$5B,$AB
-	dc.b $44,$6F,$5B,$AC,$44,$6F,$5B,$AD,$44,$6F,$5B,$AE,$44,$6F,$5B,$AF
-	dc.b $44,$6F,$5B,$B0,$44,$6F,$5B,$B1,$44,$6F,$5B,$B2,$44,$6F,$5B,$B3
-	dc.b $44,$6F,$5B,$B4,$44,$6F,$5B,$B5,$44,$6F,$5B,$B6,$44,$6F,$5B,$B7
-	dc.b $44,$6F,$5B,$B8,$44,$6F,$5B,$B9,$44,$6F,$5B,$BA,$44,$6F,$5B,$BB
-	dc.b $44,$6F,$5B,$BC,$44,$6F,$5B,$BD,$44,$6F,$5B,$BE,$44,$6F,$5B,$BF
-	dc.b $44,$6F,$5B,$C0,$44,$6F,$5B,$C1,$44,$6F,$5B,$C2,$44,$6F,$5B,$C3
-	dc.b $44,$6F,$5B,$C4,$44,$6F,$5B,$C5,$44,$6F,$5B,$C6,$44,$6F,$5B,$C7
-	dc.b $44,$6F,$5B,$C8,$44,$6F,$5B,$C9,$44,$6F,$5B,$CA,$44,$6F,$5B,$CB
-	dc.b $44,$6F,$5B,$CC,$44,$6F,$5B,$CD,$44,$6F,$5B,$CE,$44,$6F,$5B,$CF
-	dc.b $44,$6F,$5B,$D0,$44,$6F,$5B,$D1,$44,$6F,$5B,$D2,$44,$6F,$5B,$D3
-	dc.b $44,$6F,$5B,$D4,$44,$6F,$5B,$D5,$44,$6F,$5B,$D6,$44,$6F,$5B,$D7
-	dc.b $44,$6F,$5B,$D8,$44,$6F,$5B,$D9,$44,$6F,$5B,$DA,$44,$6F,$5B,$DB
-	dc.b $44,$6F,$5B,$DC,$44,$6F,$5B,$DD,$44,$6F,$5B,$DE,$44,$6F,$5B,$DF
-	dc.b $44,$6F,$5B,$E0,$44,$6F,$5B,$E1,$44,$6F,$5B,$E2,$44,$6F,$5B,$E3
-	dc.b $44,$6F,$5B,$E4,$44,$6F,$5B,$E5,$44,$6F,$5B,$E6,$44,$6F,$5B,$E7
-	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
-	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
-	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F,$5B,$F7
-	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
-	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
-	dc.b $44,$6F,$5B,$00,$44,$6F,$5B,$01,$44,$6F,$5B,$02,$44,$6F,$5B,$03
-	dc.b $44,$6F,$5B,$04,$44,$6F,$5B,$05,$44,$6F,$5B,$06,$44,$6F,$5B,$07
-	dc.b $44,$6F,$5B,$08,$44,$6F,$5B,$09,$44,$6F,$5B,$0A,$44,$6F,$5B,$0B
-	dc.b $44,$6F,$5B,$0C,$44,$6F,$5B,$0D,$44,$6F,$5B,$0E,$44,$6F,$5B,$0F
-	dc.b $44,$6F,$5B,$10,$44,$6F,$5B,$11,$44,$6F,$5B,$12,$44,$6F,$5B,$13
-	dc.b $44,$6F,$5B,$14,$44,$6F,$5B,$15,$44,$6F,$5B,$16,$44,$6F,$5B,$17
-	dc.b $44,$6F,$5B,$18,$44,$6F,$5B,$19,$44,$6F,$5B,$1A,$44,$6F,$5B,$1B
-	dc.b $44,$6F,$5B,$1C,$44,$6F,$5B,$1D,$44,$6F,$5B,$1E,$44,$6F,$5B,$1F
-	dc.b $44,$6F,$5B,$20,$44,$6F,$5B,$21,$44,$6F,$5B,$22,$44,$6F,$5B,$23
-	dc.b $44,$6F,$5B,$24,$44,$6F,$5B,$25,$44,$6F,$5B,$26,$44,$6F,$5B,$27
-	dc.b $44,$6F,$5B,$28,$44,$6F,$5B,$29,$44,$6F,$5B,$2A,$44,$6F,$5B,$2B
-	dc.b $44,$6F,$5B,$2C,$44,$6F,$5B,$2D,$44,$6F,$5B,$2E,$44,$6F,$5B,$2F
-	dc.b $44,$6F,$5B,$30,$44,$6F,$5B,$31,$44,$6F,$5B,$32,$44,$6F,$5B,$33
-	dc.b $44,$6F,$5B,$34,$44,$6F,$5B,$35,$44,$6F,$5B,$36,$44,$6F,$5B,$37
-	dc.b $44,$6F,$5B,$38,$44,$6F,$5B,$39,$44,$6F,$5B,$3A,$44,$6F,$5B,$3B
-	dc.b $44,$6F,$5B,$3C,$44,$6F,$5B,$3D,$44,$6F,$5B,$3E,$44,$6F,$5B,$3F
-	dc.b $44,$6F,$5B,$40,$44,$6F,$5B,$41,$44,$6F,$5B,$42,$44,$6F,$5B,$43
-	dc.b $44,$6F,$5B,$44,$44,$6F,$5B,$45,$44,$6F,$5B,$46,$44,$6F,$5B,$47
-	dc.b $44,$6F,$5B,$48,$44,$6F,$5B,$49,$44,$6F,$5B,$4A,$44,$6F,$5B,$4B
-	dc.b $44,$6F,$5B,$4C,$44,$6F,$5B,$4D,$44,$6F,$5B,$4E,$44,$6F,$5B,$4F
-	dc.b $44,$6F,$5B,$50,$44,$6F,$5B,$51,$44,$6F,$5B,$52,$44,$6F,$5B,$53
-	dc.b $44,$6F,$5B,$54,$44,$6F,$5B,$55,$44,$6F,$5B,$56,$44,$6F,$5B,$57
-	dc.b $44,$6F,$5B,$58,$44,$6F,$5B,$59,$44,$6F,$5B,$5A,$44,$6F,$5B,$5B
-	dc.b $44,$6F,$5B,$5C,$44,$6F,$5B,$5D,$44,$6F,$5B,$5E,$44,$6F,$5B,$5F
-	dc.b $44,$6F,$5B,$60,$44,$6F,$5B,$61,$44,$6F,$5B,$62,$44,$6F,$5B,$63
-	dc.b $44,$6F,$5B,$64,$44,$6F,$5B,$65,$44,$6F,$5B,$66,$44,$6F,$5B,$67
-	dc.b $44,$6F,$5B,$68,$44,$6F,$5B,$69,$44,$6F,$5B,$6A,$44,$6F,$5B,$6B
-	dc.b $44,$6F,$5B,$6C,$44,$6F,$5B,$6D,$44,$6F,$5B,$6E,$44,$6F,$5B,$6F
-	dc.b $44,$6F,$5B,$70,$44,$6F,$5B,$71,$44,$6F,$5B,$72,$44,$6F,$5B,$73
-	dc.b $44,$6F,$5B,$74,$44,$6F,$5B,$75,$44,$6F,$5B,$76,$44,$6F,$5B,$77
-	dc.b $44,$6F,$5B,$78,$44,$6F,$5B,$79,$44,$6F,$5B,$7A,$44,$6F,$5B,$7B
-	dc.b $44,$6F,$5B,$7C,$44,$6F,$5B,$7D,$44,$6F,$5B,$7E,$44,$6F,$5B,$7F
-	dc.b $44,$6F,$5B,$80,$44,$6F,$5B,$81,$44,$6F,$5B,$82,$44,$6F,$5B,$83
-	dc.b $44,$6F,$5B,$84,$44,$6F,$5B,$85,$44,$6F,$5B,$86,$44,$6F,$5B,$87
-	dc.b $44,$6F,$5B,$88,$44,$6F,$5B,$89,$44,$6F,$5B,$8A,$44,$6F,$5B,$8B
-	dc.b $44,$6F,$5B,$8C,$44,$6F,$5B,$8D,$44,$6F,$5B,$8E,$44,$6F,$5B,$8F
-	dc.b $44,$6F,$5B,$90,$44,$6F,$5B,$91,$44,$6F,$5B,$92,$44,$6F,$5B,$93
-	dc.b $44,$6F,$5B,$94,$44,$6F,$5B,$95,$44,$6F,$5B,$96,$44,$6F,$5B,$97
-	dc.b $44,$6F,$5B,$98,$44,$6F,$5B,$99,$44,$6F,$5B,$9A,$44,$6F,$5B,$9B
-	dc.b $44,$6F,$5B,$9C,$44,$6F,$5B,$9D,$44,$6F,$5B,$9E,$44,$6F,$5B,$9F
-	dc.b $44,$6F,$5B,$A0,$44,$6F,$5B,$A1,$44,$6F,$5B,$A2,$44,$6F,$5B,$A3
-	dc.b $44,$6F,$5B,$A4,$44,$6F,$5B,$A5,$44,$6F,$5B,$A6,$44,$6F,$5B,$A7
-	dc.b $44,$6F,$5B,$A8,$44,$6F,$5B,$A9,$44,$6F,$5B,$AA,$44,$6F,$5B,$AB
-	dc.b $44,$6F,$5B,$AC,$44,$6F,$5B,$AD,$44,$6F,$5B,$AE,$44,$6F,$5B,$AF
-	dc.b $44,$6F,$5B,$B0,$44,$6F,$5B,$B1,$44,$6F,$5B,$B2,$44,$6F,$5B,$B3
-	dc.b $44,$6F,$5B,$B4,$44,$6F,$5B,$B5,$44,$6F,$5B,$B6,$44,$6F,$5B,$B7
-	dc.b $44,$6F,$5B,$B8,$44,$6F,$5B,$B9,$44,$6F,$5B,$BA,$44,$6F,$5B,$BB
-	dc.b $44,$6F,$5B,$BC,$44,$6F,$5B,$BD,$44,$6F,$5B,$BE,$44,$6F,$5B,$BF
-	dc.b $44,$6F,$5B,$C0,$44,$6F,$5B,$C1,$44,$6F,$5B,$C2,$44,$6F,$5B,$C3
-	dc.b $44,$6F,$5B,$C4,$44,$6F,$5B,$C5,$44,$6F,$5B,$C6,$44,$6F,$5B,$C7
-	dc.b $44,$6F,$5B,$C8,$44,$6F,$5B,$C9,$44,$6F,$5B,$CA,$44,$6F,$5B,$CB
-	dc.b $44,$6F,$5B,$CC,$44,$6F,$5B,$CD,$44,$6F,$5B,$CE,$44,$6F,$5B,$CF
-	dc.b $44,$6F,$5B,$D0,$44,$6F,$5B,$D1,$44,$6F,$5B,$D2,$44,$6F,$5B,$D3
-	dc.b $44,$6F,$5B,$D4,$44,$6F,$5B,$D5,$44,$6F,$5B,$D6,$44,$6F,$5B,$D7
-	dc.b $44,$6F,$5B,$D8,$44,$6F,$5B,$D9,$44,$6F,$5B,$DA,$44,$6F,$5B,$DB
-	dc.b $44,$6F,$5B,$DC,$44,$6F,$5B,$DD,$44,$6F,$5B,$DE,$44,$6F,$5B,$DF
-	dc.b $44,$6F,$5B,$E0,$44,$6F,$5B,$E1,$44,$6F,$5B,$E2,$44,$6F,$5B,$E3
-	dc.b $44,$6F,$5B,$E4,$44,$6F,$5B,$E5,$44,$6F,$5B,$E6,$44,$6F,$5B,$E7
-	dc.b $44,$6F,$5B,$E8,$44,$6F,$5B,$E9,$44,$6F,$5B,$EA,$44,$6F,$5B,$EB
-	dc.b $44,$6F,$5B,$EC,$44,$6F,$5B,$ED,$44,$6F,$5B,$EE,$44,$6F,$5B,$EF
-	dc.b $44,$6F,$5B,$F0,$44,$6F,$5B,$F1,$44,$6F,$5B,$F2,$44,$6F,$5B,$F3
-	dc.b $44,$6F,$5B,$F4,$44,$6F,$5B,$F5,$44,$6F,$5B,$F6,$44,$6F,$5B,$F7
-	dc.b $44,$6F,$5B,$F8,$44,$6F,$5B,$F9,$44,$6F,$5B,$FA,$44,$6F,$5B,$FB
-	dc.b $44,$6F,$5B,$FC,$44,$6F,$5B,$FD,$44,$6F,$5B,$FE,$44,$6F,$5B,$FF
-	dc.b $44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F,$53,$02,$44,$6F,$53,$03
-	dc.b $44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F,$53,$06,$44,$6F,$53,$07
-	dc.b $44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F,$53,$0A,$44,$6F,$53,$0B
-	dc.b $44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F,$53,$0E,$44,$6F,$53,$0F
-	dc.b $44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F,$53,$12,$44,$6F,$53,$13
-	dc.b $44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F,$53,$16,$44,$6F,$53,$17
-	dc.b $44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F,$53,$1A,$44,$6F,$53,$1B
-	dc.b $44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F,$53,$1E,$44,$6F,$53,$1F
-	dc.b $44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F,$53,$22,$44,$6F,$53,$23
-	dc.b $44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F,$53,$26,$44,$6F,$53,$27
-	dc.b $44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F,$53,$2A,$44,$6F,$53,$2B
-	dc.b $44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F,$53,$2E,$44,$6F,$53,$2F
-	dc.b $44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F,$53,$32,$44,$6F,$53,$33
-	dc.b $44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F,$53,$36,$44,$6F,$53,$37
-	dc.b $44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F,$53,$3A,$44,$6F,$53,$3B
-	dc.b $44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F,$53,$3E,$44,$6F,$53,$3F
-	dc.b $44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F,$53,$42,$44,$6F,$53,$43
-	dc.b $44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F,$53,$46,$44,$6F,$53,$47
-	dc.b $44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F,$53,$4A,$44,$6F,$53,$4B
-	dc.b $44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F,$53,$4E,$44,$6F,$53,$4F
-	dc.b $44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F,$53,$52,$44,$6F,$53,$53
-	dc.b $44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F,$53,$56,$44,$6F,$53,$57
-	dc.b $44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F,$53,$5A,$44,$6F,$53,$5B
-	dc.b $44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F,$53,$5E,$44,$6F,$53,$5F
-	dc.b $44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F,$53,$62,$44,$6F,$53,$63
-	dc.b $44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F,$53,$66,$44,$6F,$53,$67
-	dc.b $44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F,$53,$6A,$44,$6F,$53,$6B
-	dc.b $44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F,$53,$6E,$44,$6F,$53,$6F
-	dc.b $44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F,$53,$72,$44,$6F,$53,$73
-	dc.b $44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F,$53,$76,$44,$6F,$53,$77
-	dc.b $44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F,$53,$7A,$44,$6F,$53,$7B
-	dc.b $44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F,$53,$7E,$44,$6F,$53,$7F
-	dc.b $44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F,$53,$82,$44,$6F,$53,$83
-	dc.b $44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F,$53,$86,$44,$6F,$53,$87
-	dc.b $44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F,$53,$8A,$44,$6F,$53,$8B
-	dc.b $44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F,$53,$8E,$44,$6F,$53,$8F
-	dc.b $44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F,$53,$92,$44,$6F,$53,$93
-	dc.b $44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F,$53,$96,$44,$6F,$53,$97
-	dc.b $44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F,$53,$9A,$44,$6F,$53,$9B
-	dc.b $44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F,$53,$9E,$44,$6F,$53,$9F
-	dc.b $44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F,$53,$A2,$44,$6F,$53,$A3
-	dc.b $44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F,$53,$A6,$44,$6F,$53,$A7
-	dc.b $44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F,$53,$AA,$44,$6F,$53,$AB
-	dc.b $44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F,$53,$AE,$44,$6F,$53,$AF
-	dc.b $44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F,$53,$B2,$44,$6F,$53,$B3
-	dc.b $44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F,$53,$B6,$44,$6F,$53,$B7
-	dc.b $44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F,$53,$BA,$44,$6F,$53,$BB
-	dc.b $44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F,$53,$BE,$44,$6F,$53,$BF
-	dc.b $44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F,$53,$C2,$44,$6F,$53,$C3
-	dc.b $44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F,$53,$C6,$44,$6F,$53,$C7
-	dc.b $44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F,$53,$CA,$44,$6F,$53,$CB
-	dc.b $44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F,$53,$CE,$44,$6F,$53,$CF
-	dc.b $44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F,$53,$D2,$44,$6F,$53,$D3
-	dc.b $44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F,$53,$D6,$44,$6F,$53,$D7
-	dc.b $44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F,$53,$DA,$44,$6F,$53,$DB
-	dc.b $44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F,$53,$DE,$44,$6F,$53,$DF
-	dc.b $44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F,$53,$E2,$44,$6F,$53,$E3
-	dc.b $44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F,$53,$E6,$44,$6F,$53,$E7
-	dc.b $44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F,$53,$EA,$44,$6F,$53,$EB
-	dc.b $44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F,$53,$EE,$44,$6F,$53,$EF
-	dc.b $44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F,$53,$F2,$44,$6F,$53,$F3
-	dc.b $44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F,$53,$F6,$44,$6F,$53,$F7
-	dc.b $44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F,$53,$FA,$44,$6F,$53,$FB
-	dc.b $44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F
-abs_0_0006AFFA:
-	dc.b $53,$FE,$44,$6F,$53,$FF,$44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F
-	dc.b $53,$02,$44,$6F,$53,$03,$44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F
-	dc.b $53,$06,$44,$6F,$53,$07,$44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F
-	dc.b $53,$0A,$44,$6F,$53,$0B,$44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F
-	dc.b $53,$0E,$44,$6F,$53,$0F,$44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F
-	dc.b $53,$12,$44,$6F,$53,$13,$44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F
-	dc.b $53,$16,$44,$6F,$53,$17,$44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F
-	dc.b $53,$1A,$44,$6F,$53,$1B,$44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F
-	dc.b $53,$1E,$44,$6F,$53,$1F,$44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F
-	dc.b $53,$22,$44,$6F,$53,$23,$44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F
-	dc.b $53,$26,$44,$6F,$53,$27,$44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F
-	dc.b $53,$2A,$44,$6F,$53,$2B,$44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F
-	dc.b $53,$2E,$44,$6F,$53,$2F,$44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F
-	dc.b $53,$32,$44,$6F,$53,$33,$44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F
-	dc.b $53,$36,$44,$6F,$53,$37,$44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F
-	dc.b $53,$3A,$44,$6F,$53,$3B,$44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F
-	dc.b $53,$3E,$44,$6F,$53,$3F,$44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F
-	dc.b $53,$42,$44,$6F,$53,$43,$44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F
-	dc.b $53,$46,$44,$6F,$53,$47,$44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F
-	dc.b $53,$4A,$44,$6F,$53,$4B,$44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F
-	dc.b $53,$4E,$44,$6F,$53,$4F,$44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F
-	dc.b $53,$52,$44,$6F,$53,$53,$44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F
-	dc.b $53,$56,$44,$6F,$53,$57,$44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F
-	dc.b $53,$5A,$44,$6F,$53,$5B,$44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F
-	dc.b $53,$5E,$44,$6F,$53,$5F,$44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F
-	dc.b $53,$62,$44,$6F,$53,$63,$44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F
-	dc.b $53,$66,$44,$6F,$53,$67,$44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F
-	dc.b $53,$6A,$44,$6F,$53,$6B,$44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F
-	dc.b $53,$6E,$44,$6F,$53,$6F,$44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F
-	dc.b $53,$72,$44,$6F,$53,$73,$44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F
-	dc.b $53,$76,$44,$6F,$53,$77,$44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F
-	dc.b $53,$7A,$44,$6F,$53,$7B,$44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F
-	dc.b $53,$7E,$44,$6F,$53,$7F,$44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F
-	dc.b $53,$82,$44,$6F,$53,$83,$44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F
-	dc.b $53,$86,$44,$6F,$53,$87,$44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F
-	dc.b $53,$8A,$44,$6F,$53,$8B,$44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F
-	dc.b $53,$8E,$44,$6F,$53,$8F,$44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F
-	dc.b $53,$92,$44,$6F,$53,$93,$44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F
-	dc.b $53,$96,$44,$6F,$53,$97,$44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F
-	dc.b $53,$9A,$44,$6F,$53,$9B,$44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F
-	dc.b $53,$9E,$44,$6F,$53,$9F,$44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F
-	dc.b $53,$A2,$44,$6F,$53,$A3,$44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F
-	dc.b $53,$A6,$44,$6F,$53,$A7,$44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F
-	dc.b $53,$AA,$44,$6F,$53,$AB,$44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F
-	dc.b $53,$AE,$44,$6F,$53,$AF,$44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F
-	dc.b $53,$B2,$44,$6F,$53,$B3,$44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F
-	dc.b $53,$B6,$44,$6F,$53,$B7,$44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F
-	dc.b $53,$BA,$44,$6F,$53,$BB,$44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F
-	dc.b $53,$BE,$44,$6F,$53,$BF,$44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F
-	dc.b $53,$C2,$44,$6F,$53,$C3,$44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F
-	dc.b $53,$C6,$44,$6F,$53,$C7,$44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F
-	dc.b $53,$CA,$44,$6F,$53,$CB,$44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F
-	dc.b $53,$CE,$44,$6F,$53,$CF,$44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F
-	dc.b $53,$D2,$44,$6F,$53,$D3,$44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F
-	dc.b $53,$D6,$44,$6F,$53,$D7,$44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F
-	dc.b $53,$DA,$44,$6F,$53,$DB,$44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F
-	dc.b $53,$DE,$44,$6F,$53,$DF,$44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F
-	dc.b $53,$E2,$44,$6F,$53,$E3,$44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F
-	dc.b $53,$E6,$44,$6F,$53,$E7,$44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F
-	dc.b $53,$EA,$44,$6F,$53,$EB,$44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F
-	dc.b $53,$EE,$44,$6F,$53,$EF,$44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F
-	dc.b $53,$F2,$44,$6F,$53,$F3,$44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F
-	dc.b $53,$F6,$44,$6F,$53,$F7,$44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F
-	dc.b $53,$FA,$44,$6F,$53,$FB,$44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F
-	dc.b $53,$FE,$44,$6F,$53,$FF,$44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F
-	dc.b $53,$02,$44,$6F,$53,$03,$44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F
-	dc.b $53,$06,$44,$6F,$53,$07,$44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F
-	dc.b $53,$0A,$44,$6F,$53,$0B,$44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F
-	dc.b $53,$0E,$44,$6F,$53,$0F,$44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F
-	dc.b $53,$12,$44,$6F,$53,$13,$44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F
-	dc.b $53,$16,$44,$6F,$53,$17,$44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F
-	dc.b $53,$1A,$44,$6F,$53,$1B,$44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F
-	dc.b $53,$1E,$44,$6F,$53,$1F,$44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F
-	dc.b $53,$22,$44,$6F,$53,$23,$44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F
-	dc.b $53,$26,$44,$6F,$53,$27,$44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F
-	dc.b $53,$2A,$44,$6F,$53,$2B,$44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F
-	dc.b $53,$2E,$44,$6F,$53,$2F,$44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F
-	dc.b $53,$32,$44,$6F,$53,$33,$44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F
-	dc.b $53,$36,$44,$6F,$53,$37,$44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F
-	dc.b $53,$3A,$44,$6F,$53,$3B,$44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F
-	dc.b $53,$3E,$44,$6F,$53,$3F,$44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F
-	dc.b $53,$42,$44,$6F,$53,$43,$44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F
-	dc.b $53,$46,$44,$6F,$53,$47,$44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F
-	dc.b $53,$4A,$44,$6F,$53,$4B,$44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F
-	dc.b $53,$4E,$44,$6F,$53,$4F,$44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F
-	dc.b $53,$52,$44,$6F,$53,$53,$44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F
-	dc.b $53,$56,$44,$6F,$53,$57,$44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F
-	dc.b $53,$5A,$44,$6F,$53,$5B,$44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F
-	dc.b $53,$5E,$44,$6F,$53,$5F,$44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F
-	dc.b $53,$62,$44,$6F,$53,$63,$44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F
-	dc.b $53,$66,$44,$6F,$53,$67,$44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F
-	dc.b $53,$6A,$44,$6F,$53,$6B,$44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F
-	dc.b $53,$6E,$44,$6F,$53,$6F,$44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F
-	dc.b $53,$72,$44,$6F,$53,$73,$44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F
-	dc.b $53,$76,$44,$6F,$53,$77,$44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F
-	dc.b $53,$7A,$44,$6F,$53,$7B,$44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F
-	dc.b $53,$7E,$44,$6F,$53,$7F,$44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F
-	dc.b $53,$82,$44,$6F,$53,$83,$44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F
-	dc.b $53,$86,$44,$6F,$53,$87,$44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F
-	dc.b $53,$8A,$44,$6F,$53,$8B,$44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F
-	dc.b $53,$8E,$44,$6F,$53,$8F,$44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F
-	dc.b $53,$92,$44,$6F,$53,$93,$44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F
-	dc.b $53,$96,$44,$6F,$53,$97,$44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F
-	dc.b $53,$9A,$44,$6F,$53,$9B,$44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F
-	dc.b $53,$9E,$44,$6F,$53,$9F,$44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F
-	dc.b $53,$A2,$44,$6F,$53,$A3,$44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F
-	dc.b $53,$A6,$44,$6F,$53,$A7,$44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F
-	dc.b $53,$AA,$44,$6F,$53,$AB,$44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F
-	dc.b $53,$AE,$44,$6F,$53,$AF,$44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F
-	dc.b $53,$B2,$44,$6F,$53,$B3,$44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F
-	dc.b $53,$B6,$44,$6F,$53,$B7,$44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F
-	dc.b $53,$BA,$44,$6F,$53,$BB,$44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F
-	dc.b $53,$BE,$44,$6F,$53,$BF,$44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F
-	dc.b $53,$C2,$44,$6F,$53,$C3,$44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F
-	dc.b $53,$C6,$44,$6F,$53,$C7,$44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F
-	dc.b $53,$CA,$44,$6F,$53,$CB,$44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F
-	dc.b $53,$CE,$44,$6F,$53,$CF,$44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F
-	dc.b $53,$D2,$44,$6F,$53,$D3,$44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F
-	dc.b $53,$D6,$44,$6F,$53,$D7,$44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F
-	dc.b $53,$DA,$44,$6F,$53,$DB,$44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F
-	dc.b $53,$DE,$44,$6F,$53,$DF,$44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F
-	dc.b $53,$E2,$44,$6F,$53,$E3,$44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F
-	dc.b $53,$E6,$44,$6F,$53,$E7,$44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F
-	dc.b $53,$EA,$44,$6F,$53,$EB,$44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F
-	dc.b $53,$EE,$44,$6F,$53,$EF,$44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F
-	dc.b $53,$F2,$44,$6F,$53,$F3,$44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F
-	dc.b $53,$F6,$44,$6F,$53,$F7,$44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F
-	dc.b $53,$FA,$44,$6F,$53,$FB,$44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F
-	dc.b $53,$FE,$44,$6F,$53,$FF,$44,$6F,$53,$00,$44,$6F,$53,$01,$44,$6F
-	dc.b $53,$02,$44,$6F,$53,$03,$44,$6F,$53,$04,$44,$6F,$53,$05,$44,$6F
-	dc.b $53,$06,$44,$6F,$53,$07,$44,$6F,$53,$08,$44,$6F,$53,$09,$44,$6F
-	dc.b $53,$0A,$44,$6F,$53,$0B,$44,$6F,$53,$0C,$44,$6F,$53,$0D,$44,$6F
-	dc.b $53,$0E,$44,$6F,$53,$0F,$44,$6F,$53,$10,$44,$6F,$53,$11,$44,$6F
-	dc.b $53,$12,$44,$6F,$53,$13,$44,$6F,$53,$14,$44,$6F,$53,$15,$44,$6F
-	dc.b $53,$16,$44,$6F,$53,$17,$44,$6F,$53,$18,$44,$6F,$53,$19,$44,$6F
-	dc.b $53,$1A,$44,$6F,$53,$1B,$44,$6F,$53,$1C,$44,$6F,$53,$1D,$44,$6F
-	dc.b $53,$1E,$44,$6F,$53,$1F,$44,$6F,$53,$20,$44,$6F,$53,$21,$44,$6F
-	dc.b $53,$22,$44,$6F,$53,$23,$44,$6F,$53,$24,$44,$6F,$53,$25,$44,$6F
-	dc.b $53,$26,$44,$6F,$53,$27,$44,$6F,$53,$28,$44,$6F,$53,$29,$44,$6F
-	dc.b $53,$2A,$44,$6F,$53,$2B,$44,$6F,$53,$2C,$44,$6F,$53,$2D,$44,$6F
-	dc.b $53,$2E,$44,$6F,$53,$2F,$44,$6F,$53,$30,$44,$6F,$53,$31,$44,$6F
-	dc.b $53,$32,$44,$6F,$53,$33,$44,$6F,$53,$34,$44,$6F,$53,$35,$44,$6F
-	dc.b $53,$36,$44,$6F,$53,$37,$44,$6F,$53,$38,$44,$6F,$53,$39,$44,$6F
-	dc.b $53,$3A,$44,$6F,$53,$3B,$44,$6F,$53,$3C,$44,$6F,$53,$3D,$44,$6F
-	dc.b $53,$3E,$44,$6F,$53,$3F,$44,$6F,$53,$40,$44,$6F,$53,$41,$44,$6F
-	dc.b $53,$42,$44,$6F,$53,$43,$44,$6F,$53,$44,$44,$6F,$53,$45,$44,$6F
-	dc.b $53,$46,$44,$6F,$53,$47,$44,$6F,$53,$48,$44,$6F,$53,$49,$44,$6F
-	dc.b $53,$4A,$44,$6F,$53,$4B,$44,$6F,$53,$4C,$44,$6F,$53,$4D,$44,$6F
-	dc.b $53,$4E,$44,$6F,$53,$4F,$44,$6F,$53,$50,$44,$6F,$53,$51,$44,$6F
-	dc.b $53,$52,$44,$6F,$53,$53,$44,$6F,$53,$54,$44,$6F,$53,$55,$44,$6F
-	dc.b $53,$56,$44,$6F,$53,$57,$44,$6F,$53,$58,$44,$6F,$53,$59,$44,$6F
-	dc.b $53,$5A,$44,$6F,$53,$5B,$44,$6F,$53,$5C,$44,$6F,$53,$5D,$44,$6F
-	dc.b $53,$5E,$44,$6F,$53,$5F,$44,$6F,$53,$60,$44,$6F,$53,$61,$44,$6F
-	dc.b $53,$62,$44,$6F,$53,$63,$44,$6F,$53,$64,$44,$6F,$53,$65,$44,$6F
-	dc.b $53,$66,$44,$6F,$53,$67,$44,$6F,$53,$68,$44,$6F,$53,$69,$44,$6F
-	dc.b $53,$6A,$44,$6F,$53,$6B,$44,$6F,$53,$6C,$44,$6F,$53,$6D,$44,$6F
-	dc.b $53,$6E,$44,$6F,$53,$6F,$44,$6F,$53,$70,$44,$6F,$53,$71,$44,$6F
-	dc.b $53,$72,$44,$6F,$53,$73,$44,$6F,$53,$74,$44,$6F,$53,$75,$44,$6F
-	dc.b $53,$76,$44,$6F,$53,$77,$44,$6F,$53,$78,$44,$6F,$53,$79,$44,$6F
-	dc.b $53,$7A,$44,$6F,$53,$7B,$44,$6F,$53,$7C,$44,$6F,$53,$7D,$44,$6F
-	dc.b $53,$7E,$44,$6F,$53,$7F,$44,$6F,$53,$80,$44,$6F,$53,$81,$44,$6F
-	dc.b $53,$82,$44,$6F,$53,$83,$44,$6F,$53,$84,$44,$6F,$53,$85,$44,$6F
-	dc.b $53,$86,$44,$6F,$53,$87,$44,$6F,$53,$88,$44,$6F,$53,$89,$44,$6F
-	dc.b $53,$8A,$44,$6F,$53,$8B,$44,$6F,$53,$8C,$44,$6F,$53,$8D,$44,$6F
-	dc.b $53,$8E,$44,$6F,$53,$8F,$44,$6F,$53,$90,$44,$6F,$53,$91,$44,$6F
-	dc.b $53,$92,$44,$6F,$53,$93,$44,$6F,$53,$94,$44,$6F,$53,$95,$44,$6F
-	dc.b $53,$96,$44,$6F,$53,$97,$44,$6F,$53,$98,$44,$6F,$53,$99,$44,$6F
-	dc.b $53,$9A,$44,$6F,$53,$9B,$44,$6F,$53,$9C,$44,$6F,$53,$9D,$44,$6F
-	dc.b $53,$9E,$44,$6F,$53,$9F,$44,$6F,$53,$A0,$44,$6F,$53,$A1,$44,$6F
-	dc.b $53,$A2,$44,$6F,$53,$A3,$44,$6F,$53,$A4,$44,$6F,$53,$A5,$44,$6F
-	dc.b $53,$A6,$44,$6F,$53,$A7,$44,$6F,$53,$A8,$44,$6F,$53,$A9,$44,$6F
-	dc.b $53,$AA,$44,$6F,$53,$AB,$44,$6F,$53,$AC,$44,$6F,$53,$AD,$44,$6F
-	dc.b $53,$AE,$44,$6F,$53,$AF,$44,$6F,$53,$B0,$44,$6F,$53,$B1,$44,$6F
-	dc.b $53,$B2,$44,$6F,$53,$B3,$44,$6F,$53,$B4,$44,$6F,$53,$B5,$44,$6F
-	dc.b $53,$B6,$44,$6F,$53,$B7,$44,$6F,$53,$B8,$44,$6F,$53,$B9,$44,$6F
-	dc.b $53,$BA,$44,$6F,$53,$BB,$44,$6F,$53,$BC,$44,$6F,$53,$BD,$44,$6F
-	dc.b $53,$BE,$44,$6F,$53,$BF,$44,$6F,$53,$C0,$44,$6F,$53,$C1,$44,$6F
-	dc.b $53,$C2,$44,$6F,$53,$C3,$44,$6F,$53,$C4,$44,$6F,$53,$C5,$44,$6F
-	dc.b $53,$C6,$44,$6F,$53,$C7,$44,$6F,$53,$C8,$44,$6F,$53,$C9,$44,$6F
-	dc.b $53,$CA,$44,$6F,$53,$CB,$44,$6F,$53,$CC,$44,$6F,$53,$CD,$44,$6F
-	dc.b $53,$CE,$44,$6F,$53,$CF,$44,$6F,$53,$D0,$44,$6F,$53,$D1,$44,$6F
-	dc.b $53,$D2,$44,$6F,$53,$D3,$44,$6F,$53,$D4,$44,$6F,$53,$D5,$44,$6F
-	dc.b $53,$D6,$44,$6F,$53,$D7,$44,$6F,$53,$D8,$44,$6F,$53,$D9,$44,$6F
-	dc.b $53,$DA,$44,$6F,$53,$DB,$44,$6F,$53,$DC,$44,$6F,$53,$DD,$44,$6F
-	dc.b $53,$DE,$44,$6F,$53,$DF,$44,$6F,$53,$E0,$44,$6F,$53,$E1,$44,$6F
-	dc.b $53,$E2,$44,$6F,$53,$E3,$44,$6F,$53,$E4,$44,$6F,$53,$E5,$44,$6F
-	dc.b $53,$E6,$44,$6F,$53,$E7,$44,$6F,$53,$E8,$44,$6F,$53,$E9,$44,$6F
-	dc.b $53,$EA,$44,$6F,$53,$EB,$44,$6F,$53,$EC,$44,$6F,$53,$ED,$44,$6F
-	dc.b $53,$EE,$44,$6F,$53,$EF,$44,$6F,$53,$F0,$44,$6F,$53,$F1,$44,$6F
-	dc.b $53,$F2,$44,$6F,$53,$F3,$44,$6F,$53,$F4,$44,$6F,$53,$F5,$44,$6F
-	dc.b $53,$F6,$44,$6F,$53,$F7,$44,$6F,$53,$F8,$44,$6F,$53,$F9,$44,$6F
-	dc.b $53,$FA,$44,$6F,$53,$FB,$44,$6F,$53,$FC,$44,$6F,$53,$FD,$44,$6F
-	dc.b $53,$FE,$44,$6F,$53,$FF,$44,$6F,$57,$00,$44,$6F,$57,$01,$44,$6F
-	dc.b $57,$02,$44,$6F,$57,$03,$44,$6F,$57,$04,$44,$6F,$57,$05,$44,$6F
-	dc.b $57,$06,$44,$6F,$57,$07,$44,$6F,$57,$08,$44,$6F,$57,$09,$44,$6F
-	dc.b $57,$0A,$44,$6F,$57,$0B,$44,$6F,$57,$0C,$44,$6F,$57,$0D,$44,$6F
-	dc.b $57,$0E,$44,$6F,$57,$0F,$44,$6F,$57,$10,$44,$6F,$57,$11,$44,$6F
-	dc.b $57,$12,$44,$6F,$57,$13,$44,$6F,$57,$14,$44,$6F,$57,$15,$44,$6F
-	dc.b $57,$16,$44,$6F,$57,$17,$44,$6F,$57,$18,$44,$6F,$57,$19,$44,$6F
-	dc.b $57,$1A,$44,$6F,$57,$1B,$44,$6F,$57,$1C,$44,$6F,$57,$1D,$44,$6F
-	dc.b $57,$1E,$44,$6F,$57,$1F,$44,$6F,$57,$20,$44,$6F,$57,$21,$44,$6F
-	dc.b $57,$22,$44,$6F,$57,$23,$44,$6F,$57,$24,$44,$6F,$57,$25,$44,$6F
-	dc.b $57,$26,$44,$6F,$57,$27,$44,$6F,$57,$28,$44,$6F,$57,$29,$44,$6F
-	dc.b $57,$2A,$44,$6F,$57,$2B,$44,$6F,$57,$2C,$44,$6F,$57,$2D,$44,$6F
-	dc.b $57,$2E,$44,$6F,$57,$2F,$44,$6F,$57,$30,$44,$6F,$57,$31,$44,$6F
-	dc.b $57,$32,$44,$6F,$57,$33,$44,$6F,$57,$34,$44,$6F,$57,$35,$44,$6F
-	dc.b $57,$36,$44,$6F,$57,$37,$44,$6F,$57,$38,$44,$6F,$57,$39,$44,$6F
-	dc.b $57,$3A,$44,$6F,$57,$3B,$44,$6F,$57,$3C,$44,$6F,$57,$3D,$44,$6F
-	dc.b $57,$3E,$44,$6F,$57,$3F,$44,$6F,$57,$40,$44,$6F,$57,$41,$44,$6F
-	dc.b $57,$42,$44,$6F,$57,$43,$44,$6F,$57,$44,$44,$6F,$57,$45,$44,$6F
-	dc.b $57,$46,$44,$6F,$57,$47,$44,$6F,$57,$48,$44,$6F,$57,$49,$44,$6F
-	dc.b $57,$4A,$44,$6F,$57,$4B,$44,$6F,$57,$4C,$44,$6F,$57,$4D,$44,$6F
-	dc.b $57,$4E,$44,$6F,$57,$4F,$44,$6F,$57,$50,$44,$6F,$57,$51,$44,$6F
-	dc.b $57,$52,$44,$6F,$57,$53,$44,$6F,$57,$54,$44,$6F,$57,$55,$44,$6F
-	dc.b $57,$56,$44,$6F,$57,$57,$44,$6F,$57,$58,$44,$6F,$57,$59,$44,$6F
-	dc.b $57,$5A,$44,$6F,$57,$5B,$44,$6F,$57,$5C,$44,$6F,$57,$5D,$44,$6F
-	dc.b $57,$5E,$44,$6F,$57,$5F,$44,$6F,$57,$60,$44,$6F,$57,$61,$44,$6F
-	dc.b $57,$62,$44,$6F,$57,$63,$44,$6F,$57,$64,$44,$6F,$57,$65,$44,$6F
-	dc.b $57,$66,$44,$6F,$57,$67,$44,$6F,$57,$68,$44,$6F,$57,$69,$44,$6F
-	dc.b $57,$6A,$44,$6F,$57,$6B,$44,$6F,$57,$6C,$44,$6F,$57,$6D,$44,$6F
-	dc.b $57,$6E,$44,$6F,$57,$6F,$44,$6F,$57,$70,$44,$6F,$57,$71,$44,$6F
-	dc.b $57,$72,$44,$6F,$57,$73,$44,$6F,$57,$74,$44,$6F,$57,$75,$44,$6F
-	dc.b $57,$76,$44,$6F,$57,$77,$44,$6F,$57,$78,$44,$6F,$57,$79,$44,$6F
-	dc.b $57,$7A,$44,$6F,$57,$7B,$44,$6F,$57,$7C,$44,$6F,$57,$7D,$44,$6F
-	dc.b $57,$7E,$44,$6F,$57,$7F,$44,$6F,$57,$80,$44,$6F,$57,$81,$44,$6F
-	dc.b $57,$82,$44,$6F,$57,$83,$44,$6F,$57,$84,$44,$6F,$57,$85,$44,$6F
-	dc.b $57,$86,$44,$6F,$57,$87,$44,$6F,$57,$88,$44,$6F,$57,$89,$44,$6F
-	dc.b $57,$8A,$44,$6F,$57,$8B,$44,$6F,$57,$8C,$44,$6F,$57,$8D,$44,$6F
-	dc.b $57,$8E,$44,$6F,$57,$8F,$44,$6F,$57,$90,$44,$6F,$57,$91,$44,$6F
-	dc.b $57,$92,$44,$6F,$57,$93,$44,$6F,$57,$94,$44,$6F,$57,$95,$44,$6F
-	dc.b $57,$96,$44,$6F,$57,$97,$44,$6F,$57,$98,$44,$6F,$57,$99,$44,$6F
-	dc.b $57,$9A,$44,$6F,$57,$9B,$44,$6F,$57,$9C,$44,$6F,$57,$9D,$44,$6F
-	dc.b $57,$9E,$44,$6F,$57,$9F,$44,$6F,$57,$A0,$44,$6F,$57,$A1,$44,$6F
-	dc.b $57,$A2,$44,$6F,$57,$A3,$44,$6F,$57,$A4,$44,$6F,$57,$A5,$44,$6F
-	dc.b $57,$A6,$44,$6F,$57,$A7,$44,$6F,$57,$A8,$44,$6F,$57,$A9,$44,$6F
-	dc.b $57,$AA,$44,$6F,$57,$AB,$44,$6F,$57,$AC,$44,$6F,$57,$AD,$44,$6F
-	dc.b $57,$AE,$44,$6F,$57,$AF,$44,$6F,$57,$B0,$44,$6F,$57,$B1,$44,$6F
-	dc.b $57,$B2,$44,$6F,$57,$B3,$44,$6F,$57,$B4,$44,$6F,$57,$B5,$44,$6F
-	dc.b $57,$B6,$44,$6F,$57,$B7,$44,$6F,$57,$B8,$44,$6F,$57,$B9,$44,$6F
-	dc.b $57,$BA,$44,$6F,$57,$BB,$44,$6F,$57,$BC,$44,$6F,$57,$BD,$44,$6F
-	dc.b $57,$BE,$44,$6F,$57,$BF,$44,$6F,$57,$C0,$44,$6F,$57,$C1,$44,$6F
-	dc.b $57,$C2,$44,$6F,$57,$C3,$44,$6F,$57,$C4,$44,$6F,$57,$C5,$44,$6F
-	dc.b $57,$C6,$44,$6F,$57,$C7,$44,$6F,$57,$C8,$44,$6F,$57,$C9,$44,$6F
-	dc.b $57,$CA,$44,$6F,$57,$CB,$44,$6F,$57,$CC,$44,$6F,$57,$CD,$44,$6F
-	dc.b $57,$CE,$44,$6F,$57,$CF,$44,$6F,$57,$D0,$44,$6F,$57,$D1,$44,$6F
-	dc.b $57,$D2,$44,$6F,$57,$D3,$44,$6F,$57,$D4,$44,$6F,$57,$D5,$44,$6F
-	dc.b $57,$D6,$44,$6F,$57,$D7,$44,$6F,$57,$D8,$44,$6F,$57,$D9,$44,$6F
-	dc.b $57,$DA,$44,$6F,$57,$DB,$44,$6F,$57,$DC,$44,$6F,$57,$DD,$44,$6F
-	dc.b $57,$DE,$44,$6F,$57,$DF,$44,$6F,$57,$E0,$44,$6F,$57,$E1,$44,$6F
-	dc.b $57,$E2,$44,$6F,$57,$E3,$44,$6F,$57,$E4,$44,$6F,$57,$E5,$44,$6F
-	dc.b $57,$E6,$44,$6F,$57,$E7,$44,$6F,$57,$E8,$44,$6F,$57,$E9,$44,$6F
-	dc.b $57,$EA,$44,$6F,$57,$EB,$44,$6F,$57,$EC,$44,$6F,$57,$ED,$44,$6F
-	dc.b $57,$EE,$44,$6F,$57,$EF,$44,$6F,$57,$F0,$44,$6F,$57,$F1,$44,$6F
-	dc.b $57,$F2,$44,$6F,$57,$F3,$44,$6F,$57,$F4,$44,$6F,$57,$F5,$44,$6F
-	dc.b $57,$F6,$44,$6F,$57,$F7,$44,$6F,$57,$F8,$44,$6F,$57,$F9,$44,$6F
-	dc.b $57,$FA,$44,$6F,$57,$FB,$44,$6F,$57,$FC,$44,$6F,$57,$FD,$44,$6F
-	dc.b $57,$FE,$44,$6F,$57,$FF
+preserved_uncopied_payload_tail:
+	INCBIN "assets/preserved_uncopied_payload_tail.bin"
+; opaque_data

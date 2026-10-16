@@ -263,7 +263,7 @@ def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_p
 
 
 def bind_derived_contract(contract: DirectPayloadContract, manifest_path: Path) -> tuple[DirectPayloadContract, Path, dict]:
-    from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
+    from amiga_reversing.tools.runtime_analysis import build_project_listing_artifact_profile
     from amiga_reversing.disasm.derived_artifact import validate_manifest, verify_native_binding
     manifest,payload_path=validate_manifest(manifest_path,contract.target_id)
     if manifest["original_sha256"]!=contract.payload_sha256:
@@ -275,6 +275,9 @@ def bind_derived_contract(contract: DirectPayloadContract, manifest_path: Path) 
             verify_materialization_binding(contract, artifact)
     finally:
         artifact.close()
+    if manifest.get('kind') == 'fixed_size_optional_patch':
+        validate_materialization(contract, payload_path.stat().st_size)
+        return replace(contract, payload_sha256=manifest['output_sha256']), payload_path, manifest
     placement=manifest["placement"]
     address,size=placement["runtime_address"],manifest["region"]["size"]
     reservation_size=(size+7)&~7
@@ -341,7 +344,10 @@ def build_for_target(contract_identifier: str, target_id: str, output_path: Path
     if manifest is not None:
         result["derived_manifest"]=str(derived_manifest.resolve())
         result["original_sha256"]=manifest["original_sha256"]
-        result["reservation"]=manifest["placement"] | {"size":manifest["region"]["size"]}
+        if manifest.get('kind') == 'fixed_size_optional_patch':
+            result['optional_patches'] = manifest['enabled']
+        else:
+            result["reservation"]=manifest["placement"] | {"size":manifest["region"]["size"]}
     return result
 
 

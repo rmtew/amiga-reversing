@@ -1,10 +1,59 @@
 #include "m68k_c_unit_test.h"
 #include "platform_file_decompression.h"
+#include "platform_common.h"
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void test_decompression_temp_path(char *path, size_t capacity, const char *stem) {
+#ifdef _WIN32
+  const char *directory = getenv("TEMP");
+  const char separator = '\\';
+#else
+  const char *directory = getenv("TMPDIR");
+  const char separator = '/';
+#endif
+  if (directory == NULL || directory[0] == '\0') directory = ".";
+  snprintf(path, capacity, "%s%camiga_%s_%u.bin", directory, separator, stem, (unsigned)(uint32_t)rand());
+}
+
+static int test_native_file_sha256_vectors_and_errors(void) {
+  FILE *file;
+  char path[256], digest[65], expected[65];
+  uint32_t size;
+  uint8_t bytes[17003];
+  size_t index;
+  test_decompression_temp_path(path, sizeof(path), "sha256");
+  file = fopen(path, "wb");
+  M68K_C_ASSERT(file != NULL);
+  fclose(file);
+  M68K_C_ASSERT_INT(0, m68k_platform_file_sha256_hex(path, &size, digest));
+  M68K_C_ASSERT_U32(0U, size);
+  M68K_C_ASSERT_STR("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", digest);
+  file = fopen(path, "wb");
+  M68K_C_ASSERT(file != NULL);
+  fputs("abc", file);
+  fclose(file);
+  M68K_C_ASSERT_INT(0, m68k_platform_file_sha256_hex(path, &size, digest));
+  M68K_C_ASSERT_U32(3U, size);
+  M68K_C_ASSERT_STR("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", digest);
+  for (index = 0U; index < sizeof(bytes); ++index) bytes[index] = (uint8_t)(index & 0xffU);
+  file = fopen(path, "wb");
+  M68K_C_ASSERT(file != NULL);
+  M68K_C_ASSERT_U32(sizeof(bytes), fwrite(bytes, 1U, sizeof(bytes), file));
+  fclose(file);
+  M68K_C_ASSERT_INT(0, m68k_platform_sha256_hex(bytes, sizeof(bytes), expected));
+  M68K_C_ASSERT_INT(0, m68k_platform_file_sha256_hex(path, &size, digest));
+  M68K_C_ASSERT_U32(sizeof(bytes), size);
+  M68K_C_ASSERT_STR(expected, digest);
+  remove(path);
+  M68K_C_ASSERT_INT(-1, m68k_platform_file_sha256_hex(path, &size, digest));
+  M68K_C_ASSERT_U32(0U, size);
+  M68K_C_ASSERT_STR("", digest);
+  return 0;
+}
 
 static int test_decompression_identify_rejects_unknown_provider(void) {
   PlatformDecompressionIdentifyResult result;
@@ -21,14 +70,19 @@ static int test_decompression_identify_reports_unknown_payload_without_failure(v
   char path[256];
   char error[128];
   PlatformDecompressionIdentifyResult result;
-  snprintf(path, sizeof(path), "%s\\amiga_depack_unknown_%u.bin", getenv("TEMP") != NULL ? getenv("TEMP") : ".",
-    (unsigned)(uint32_t)rand());
+#ifdef _WIN32
+  const char *provider = "ext\\tools\\ancient\\Ancient.exe";
+#else
+  /* This metadata/unknown-input test needs a readable executable, not Ancient. */
+  const char *provider = "/bin/false";
+#endif
+  test_decompression_temp_path(path, sizeof(path), "depack_unknown");
   file = fopen(path, "wb");
   M68K_C_ASSERT(file != NULL);
   fputs("not packed", file);
   fclose(file);
   error[0] = '\0';
-  M68K_C_ASSERT_INT(0, platform_decompression_identify_path_range("ancient-cli", "ext\\tools\\ancient\\Ancient.exe",
+  M68K_C_ASSERT_INT(0, platform_decompression_identify_path_range("ancient-cli", provider,
     path, 0U, 10U, &result, error, sizeof(error)));
   M68K_C_ASSERT_U32(0U, result.found);
   M68K_C_ASSERT_STR("ancient-cli", result.provider_id);
@@ -44,8 +98,7 @@ static int test_decompression_does_not_write_unknown_payload(void) {
   char output_path[256];
   char error[128];
   PlatformDecompressionIdentifyResult result;
-  snprintf(path, sizeof(path), "%s\\amiga_depack_unknown_%u.bin", getenv("TEMP") != NULL ? getenv("TEMP") : ".",
-    (unsigned)(uint32_t)rand());
+  test_decompression_temp_path(path, sizeof(path), "depack_unknown");
   snprintf(output_path, sizeof(output_path), "%s.out", path);
   remove(output_path);
   file = fopen(path, "wb");
@@ -112,6 +165,7 @@ static int test_decompression_result_json_exports_codec_support_id(void) {
 
 int m68k_c_platform_decompression_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"native_file_sha256_vectors_and_errors", test_native_file_sha256_vectors_and_errors},
     {"decompression_identify_rejects_unknown_provider", test_decompression_identify_rejects_unknown_provider},
     {"decompression_identify_reports_unknown_payload_without_failure",
       test_decompression_identify_reports_unknown_payload_without_failure},

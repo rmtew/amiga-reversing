@@ -522,9 +522,10 @@ def test_region_capture_resolves_native_identity_and_bounds(
         ]
 
 
-def test_custom_register_capture_is_bounded_and_names_only():
+def test_custom_register_capture_is_bounded_by_names_or_even_offsets():
     copperline_session.validate_capture({'custom_registers': ['AUD0VOL', 'DMACON']})
-    for names in [['AUD0VOL']*17, ['mem.write'], [12]]:
+    copperline_session.validate_capture({'custom_registers': [0, 2, 0x1C, 0x1E, 0x1FE]})
+    for names in [['AUD0VOL']*17, ['mem.write'], [True], [-2], [1], [0x200]]:
         with pytest.raises(ValueError, match='custom registers'):
             copperline_session.validate_capture({'custom_registers': names})
 

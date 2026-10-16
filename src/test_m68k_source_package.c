@@ -405,8 +405,28 @@ static int test_local_symbol_scope_blocks_new_alias_only(void) {
   return 0;
 }
 
+static int test_explicit_opaque_data_is_eligible_without_inventing_media_role(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kRenderPlan plan;
+  uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+  char *json = NULL;
+  package_fixture(&object, &section, bytes, &plan);
+  M68K_C_ASSERT(package_row(&plan, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA) != NULL);
+  M68K_C_ASSERT(package_row(&plan, 4U, 4U, 0U) != NULL);
+  M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+  M68K_C_ASSERT(strstr(json, "\"classification\":\"opaque_data\"") != NULL);
+  M68K_C_ASSERT(strstr(json, "\"data_hex\":\"01020304\"") != NULL);
+  M68K_C_ASSERT(strstr(json, "o00000004_n00000004.bin") == NULL);
+  M68K_C_ASSERT(strstr(json, "sound_sample") == NULL);
+  free(json);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 int m68k_c_source_package_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"explicit_opaque_data", test_explicit_opaque_data_is_eligible_without_inventing_media_role},
     {"local_symbol_scope_blocks_new_alias_only", test_local_symbol_scope_blocks_new_alias_only},
     {"full_native_basename_is_not_truncated", test_full_native_basename_is_not_truncated},
     {"native_names_and_stable_identity", test_native_names_and_stable_identity},

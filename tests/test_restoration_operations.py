@@ -143,13 +143,22 @@ def test_typed_pointer_query_uses_revision_bound_cursor_and_rejects_ignored_filt
     second = invoke("query", kind="typed_pointers", struct_name="Record", limit=1,
                     cursor=first["next_cursor"])
     assert second["items"][0]["source_offset"] == 4 and not second["has_more"]
+    ranged = invoke("query", kind="typed_pointers", struct_name="Record", section_index=0,
+                    source_offset=4, end_offset=8, limit=1)
+    assert ranged['total'] == ranged['population_total'] == 1
+    assert ranged['items'][0]['source_offset'] == 4
+    with pytest.raises(ValueError, match='stale_cursor'):
+        invoke("query", kind="typed_pointers", struct_name="Record", section_index=0,
+               source_offset=4, end_offset=8, limit=1, cursor=first['next_cursor'])
     monkeypatch.setattr(effective_metadata, "effective_target_metadata", original_effective)
     target.add()
     with pytest.raises(ValueError, match="stale_cursor"):
         invoke("query", kind="typed_pointers", struct_name="Record", limit=1,
                cursor=first["next_cursor"])
-    with pytest.raises(ValueError, match="only struct_name"):
+    with pytest.raises(ValueError, match="requires section_index"):
         invoke("query", kind="typed_pointers", source_offset=0)
+    with pytest.raises(ValueError, match="supports only"):
+        invoke("query", kind="typed_pointers", query='ignored')
 
 
 def test_reads_preserve_legacy_annotations_and_unknown_fields(target):

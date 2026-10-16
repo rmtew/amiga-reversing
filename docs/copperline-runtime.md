@@ -218,8 +218,8 @@ Pandora declares its native `$55370`-byte copy to `$10000`, ending before entry
 The volume's logical two bytes use an eight-byte lease. Accepted native owner
 regions, runtime equates and materialized views reject conflicting destinations.
 Keyboard's five pointer/frame obligations remain open. No original-disk-loader
-parity is implied. `capture.custom_registers` accepts at most sixteen names and
-uses Copperline's read-only `custom.read`, including the stored values of
+parity is implied. `capture.custom_registers` accepts at most sixteen names or even numeric offsets
+below `$200` and uses Copperline's read-only `custom.read`, including the stored values of
 write-only Paula registers; CPU memory reads of those addresses are insufficient.
 
 For the volume comparison, use the command above with
@@ -723,3 +723,190 @@ Final reload check: 42,219 Pandora rows, successful three-row listing API read.
 All 121 preserved-KB execution entries reproduce through the normal builder;
 only the seven documented access kinds differ from the previous commit. The
 previous global-project-index orphan-metadata error remains unrelated.
+
+### Snapshot lifecycle observation
+
+`runtime/scenarios/pandora-overlay-clear-order.json` stops around the initial
+panel clear and CPU border/text work. `custom_registers` numeric offsets `$002`,
+`$01C` and `$01E` obtain live DMACONR/INTENAR/INTREQR through `custom.read`.
+The pinned runtime refused the named DMACONR query, while debugger `memory_reads`
+of custom-register addresses returned `FFFF`; those memory values were discarded
+as hardware-status evidence. The narrow adapter addition accepts only names or
+even offsets below `$200`, with the existing sixteen-register limit.
+
+The initial clear run reaches every canonical stop and then gameplay with the
+original payload identity verified. BBUSY is clear and BLIT request set at the
+first stop after BLTSIZE, border entry/exit and READY marking. BLITHOG remains
+set. This observes completion in this initial panel case; it does not establish
+all geometry, gameplay-display contention or arbitrary CPU/DMA ordering.
+See `runtime/observations/pandora-snapshot-lifecycle.json` for the compact receipt
+and `docs/validation/pandora-snapshot-lifecycle.json` for conditional contracts.
+
+The connected gameplay probe composes snapshot stops into the existing successful
+Feed input route, without duplicating its full scenario or editing guest state:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario /tmp/pandora-snapshot.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --rom /workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom \
+  --copperline /workspace/copperline-assessment/squashfs-root/usr/bin/copperline \
+  --direct-payload-contract pandora \
+  --state-directory .runtime-state/pandora-snapshot-reproduction \
+  --scenario /tmp/pandora-snapshot.json --run > /tmp/pandora-snapshot-result.json
+```
+
+Use a fresh state directory. The recorded run is **partial**, not an all-phases
+success: hit capture, six Feed hits, combat-exit restore and return to gameplay
+are observed. Correction: the subsequent timeout watches `$27E0`, a trade
+announcement, rather than body entry `$27EA`; it is not negative body-entry
+evidence. Later scripted body phases do not run. Next capture nearest-object pointer, collision
+carry and object bit1 at inventory guards `$2736/$2748/$274A`; a timeout does not
+identify which guard failed. Second combat recapture and hit-tail palette reuse
+remain unobserved. Snapshot sample hashes and hardware values in the compact
+receipt are observations, not complete lifetime/alias guarantees.
+
+### Body inventory guard and recapture stages
+
+The snapshot scenario composer also supports `--stage root`, `--stage guards`
+and `--stage body`. Root replays the established Feed encounter and ends at
+post-combat `$5CA`; save it with `--checkpoint-save`. Guards resumes that root,
+uses key64, and stops after resolving the original descriptor/state/geometry
+pointers at `$26A4`; optionally save that diagnostic checkpoint separately.
+Body resumes the **root**, not the partly opened guard checkpoint. Direct up
+movement is terrain-blocked; the stage checks an 18-move local route to
+`(822,146)`, then probes canonical body entry `$27EA`, capture, restore and
+recapture. The route derives from the existing terrain model and is checked at
+each commit. The previous `$27E0` probe was a trade-announcement instruction.
+
+Generate each stage with the public composer:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage root /tmp/pandora-body-root.json
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage guards /tmp/pandora-body-guards.json
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage body /tmp/pandora-body-cycle.json
+```
+
+Use the same target/ROM/Copperline/direct-contract CLI arguments as above, with
+fresh state directories and these checkpoint arguments:
+
+| Scenario | Load receipt | Save receipt |
+| --- | --- | --- |
+| `/tmp/pandora-body-root.json` | none | a fresh local `post-combat.json` |
+| `/tmp/pandora-body-guards.json` | `post-combat.json` | optional fresh `geometry.json` |
+| `/tmp/pandora-body-cycle.json` | `post-combat.json` | a fresh local `body-recaptured.json` |
+
+Checkpoint hashes, guard inputs, phase outcomes and remaining limits are recorded
+in `runtime/observations/pandora-snapshot-body-guards.json`; no guest snapshots are
+published. The palette-stack witnesses are modeled original-CPU calls, separate
+from the normal Copperline gameplay observations.
+
+
+The corrected body stage completes all 37 source-row phases in the recorded run,
+including 18 coordinate-checked moves to `(822,146)`, body open at canonical
+`$27EA`, first capture, direct close restore and reopen/second capture. A verified
+successor is saved. Flags cycle `$40,$60,$E0,$40,$60,$E0`; before each capture
+BLIT request is clear and the first post-start stop shows completion and no
+BBUSY. Six sampled body chunks retain identical hashes through restore and
+second capture (384 of 2,304 bytes). These are bounded observations, not all-path
+allocation, alias exclusion or bus arbitration guarantees. Hit-family second
+capture and palette-tail entry/exclusion remain unresolved.
+
+### Version check, 2026-10-15
+
+The selected executable remains
+`/workspace/copperline-assessment/squashfs-root/usr/bin/copperline`.
+`--version` reports `copperline 1.0.0`; executable SHA256 is
+`e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c`.
+The retained official AppImage still hashes to
+`9ab3e2ecc89beb25344bd1b0d8aa3dcf9370ade8f3b08fdec2fb37e59461f55d`,
+matching the release checksum recorded above. The official
+[latest stable release](https://github.com/CopperlineHQ/Copperline/releases/tag/v1.0.0)
+is v1.0.0, published October 10 at commit `1a284cd`. Newer main commits are not
+evidence that a particular observed behavior is fixed; no upgrade was performed.
+
+The MOVEQ sign-extension defect was in this project's generated simulator and
+is fixed there. The CLR.W predecrement defect was also in that simulator; concrete execution
+is now fixed and the strict expected failure is a passing regression. Neither
+test executes Copperline. The subsequent five-defect follow-up also fixes
+abstract scalar EA updates and shared-register operand scheduling; see
+`docs/validation/framework-defects-2026-10-15.md`. The earlier
+negative body-open inference used the wrong source entry (`$27E0`); the corrected
+`$27EA` route completed body capture/restore/recapture in Copperline. The palette
+return issue is currently supported by modeled original-game stack/control-flow
+witnesses, separately from those runtime observations. It is not an observed
+Copperline CPU failure, nor is ordinary gameplay reachability of that spliced
+palette path established. Do not attribute it to emulator version without an
+isolated architectural discrepancy or a relevant upstream fix.
+
+## Replacement-worker checkpoint recreation and combat defeat
+
+On October 16 the pinned official Copperline 1.0.0 AppImage was downloaded again
+and verified against its published checksum. The existing legal ROM was reused;
+`ctennis` was not changed. The original corridor, west staging, flight crossing,
+rifle approach, pickup and fresh-process audit all passed, followed by the
+neutral observation, reverse staging and first-security-damage route. Local
+receipts and snapshots are in `.runtime-state/pandora-takeover`; guest snapshots
+are not committed. This recreation no longer depends on transferring the old
+worker's checkpoint archive.
+
+The original `pandora-security-null-node.json` again times out awaiting a second
+security hit. The new `pandora-security-eligibility-window.json` instead counts
+160 service entries after the first hit, retaining the first and last capture
+of each 32-call group. Combat flag bit 1 becomes set, the security countdown
+pauses at 33, and HP drops to 0. This contradicts the provisional lost-proximity
+explanation for that observed window: the sampled nearest object remains the
+flight controller.
+
+`pandora-combat-null-node.json`, loaded from the saved first-damage receipt,
+passes all seven canonical stops. It observes combat defeat `$79A8`, call site
+`$7A06`, A0=0 before the node writes at `$868A`, word `$10` changed from `$00FC`
+to zero after them at `$8694`, and the return at `$7A0A`. Byte `$A` remains `$08`
+because its cleared bit was already zero. No HP, pointer, predicate, or gameplay
+register was injected. The direct-payload boot contract remains the explicit
+original-loader limitation.
+
+Use the existing public checkpoint command with scenario
+`runtime/scenarios/pandora-combat-null-node.json`, load receipt
+`.runtime-state/pandora-takeover/damage.json`, and a fresh state directory.
+The damage receipt is recreated by the documented chain above; save it after
+`pandora-reverse-security-damage.json` completes at the pre-store stop.
+[Compact evidence](../runtime/observations/pandora-combat-null-node.json) records
+the chain, input cleanup, payload identity, captures and raw report hashes.
+[Optional correction](optional-patches.md) remains separate from default source.
+
+## Corrected-build combat comparison
+
+The opt-in NULL-node guard now completes a fresh corrected boot, the same
+corridor/rifle/return route, and combat defeat using only corrected-build
+checkpoints. All ten segments pass. Each snapshot binds the corrected payload
+`ee345a4a502415dd717509f834a05db5039fbcc0acc4e28b6f3b14c813a78535`,
+its artifact receipt, media, ROM and emulator. An original checkpoint is refused
+against that context. No guest HP, pointer or predicate was forced.
+
+All captured values in the eight shared west-through-first-damage segments
+match the original. Common combat registers, PC/SP and memory also match except
+for the intended vector preservation after exchange. Original `$10..$13`
+changes `$00FC081C`→`$0000081C`; corrected remains `$00FC081C`. The bus-error
+vector `$8..$B` remains `$00FC0818` in both: bit 0 of byte `$A` was already clear.
+These are exception vectors, not overwritten handler code.
+
+Eight following main-loop visits retain HP 0, the defeated flag, static defeat
+state and cleared combat mode, with vectors intact. The exit counter remains 70
+in this short window. No complete exit/title transition, visual comparison,
+exception-consequence test or player-visible improvement is claimed. This is a
+low-impact original bug used to prove explicit optional correction.
+
+The non-NULL entry-officer exchange matches original captured registers and
+object/state/node/vector bytes; only the declared four-byte extra stack scratch
+differs. Runtime admission rejects original instruction anchors inside replaced
+ranges and omits overlapping function symbols. One immutable canonical analysis
+snapshot is reused within each CLI invocation and closed on all exits; payload
+and checkpoint identity checks are unchanged. **127 focused framework tests pass.**
+The default binary and rendered-source hashes still match the prior C/vasm exact
+receipt `95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836`.
+
+[Evidence](../runtime/observations/pandora-corrected-combat-defeat.json) and
+[reproduction](optional-patches.md#reproduce-the-corrected-route) record the build,
+checkpoint lineage, captures and comparison limits. No guest snapshots are
+published. The corrected local chain is under `.runtime-state/pandora-corrected`.

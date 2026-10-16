@@ -98,7 +98,23 @@ typedef struct M68kRenderPlatformLocalBaseSlot {
   char library_name[64];
 } M68kRenderPlatformLocalBaseSlot;
 
+/* Closed low-WORD sets, capped to ensure loop convergence. Zero count is top.
+ * Relative hardware sets never assert a single absolute register identity. */
+#define M68K_HARDWARE_VALUE_LIMIT 8U
+typedef struct M68kHardwareWordSet {
+  uint16_t values[M68K_HARDWARE_VALUE_LIMIT];
+  uint8_t count;
+  uint8_t requires_input_contract;
+} M68kHardwareWordSet;
+
+typedef struct M68kHardwareRelativeBase {
+  M68kHardwareWordSet offsets;
+  uint16_t base_id;
+} M68kHardwareRelativeBase;
+
 typedef struct M68kRenderPlatformState {
+  M68kHardwareWordSet word_values[8];
+  M68kHardwareRelativeBase relative_hardware[8];
   uint32_t data_base_known;
   uint16_t data_base_id[8];
   char data_base_library[8][64];
@@ -107,6 +123,8 @@ typedef struct M68kRenderPlatformState {
   char address_base_library[8][64];
   uint32_t address_hardware_base_known;
   uint16_t address_hardware_base_id[8];
+  uint32_t data_hardware_base_known;
+  uint16_t data_hardware_base_id[8];
   uint32_t data_app_base_known;
   uint32_t address_app_base_known;
   uint32_t data_layout_base_known;
@@ -117,6 +135,11 @@ typedef struct M68kRenderPlatformState {
   int16_t data_lvo[8];
   M68kRenderPlatformLocalBaseSlot local_base_slots[32];
 } M68kRenderPlatformState;
+
+typedef struct M68kRenderHardwareAddressUse {
+  size_t section_index;
+  M68kPlatformAddressUseIR use;
+} M68kRenderHardwareAddressUse;
 
 typedef struct M68kRenderAmigaVectorResolution {
   const AmigaOsLibraryVectorInfo *platform_vector;
@@ -778,6 +801,9 @@ struct M68kRenderLookup {
   M68kRenderTypedAccess *typed_accesses;
   size_t typed_access_count;
   size_t typed_access_capacity;
+  M68kRenderHardwareAddressUse *hardware_address_uses;
+  size_t hardware_address_use_count;
+  size_t hardware_address_use_capacity;
   M68kRenderAffineAddressUse *affine_address_uses;
   size_t affine_address_use_count;
   size_t affine_address_use_capacity;

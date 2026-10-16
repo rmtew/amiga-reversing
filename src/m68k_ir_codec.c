@@ -451,6 +451,14 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
   if (operand->value.ea_mode == 5)
     return append_format(out_text, out_text_size, inout_used, operand->value.value == 0U ? "%s.w(a%u)" : "%s(a%u)",
       name, (unsigned)operand->value.ea_reg);
+  if (m68k_ir_operand_brief_index_displacement(operand, NULL)) {
+    if (append_format(out_text, out_text_size, inout_used, "%s(a%u,", name,
+        (unsigned)operand->value.ea_reg) != 0)
+      return -1;
+    if (append_index_register_text(out_text, out_text_size, inout_used, &operand->value) != 0)
+      return -1;
+    return append_text(out_text, out_text_size, inout_used, ")");
+  }
   if (operand->value.ea_mode == 2)
     /* A symbolic zero displacement changes mode 2 to mode 5 in external
      * assemblers. Keep the encoded addressing mode; the render plan retains

@@ -1,0 +1,295 @@
+{
+  "baseline_commit": "4dc8595e0b4be491a3c4bf14c85483b56613da1b",
+  "reviewed_indirect_sites": 22,
+  "sites_with_new_known_cfg_edges": 14,
+  "known_destination_edges_added": 58,
+  "sites_with_no_known_target": 8,
+  "unconditional_complete_target_sets_newly_proved": 0,
+  "all_22_sites_retain_unresolved_alternative": true,
+  "source_gains": {
+    "semantic_source_comments": 2,
+    "named_star_color_writers": 8,
+    "named_star_continuations": 2,
+    "shared_eight_entry_callback_input_contract": {
+      "table_offset": 3232,
+      "entry_count": 8,
+      "inputs": [
+        "A0 bitmap-byte pointer",
+        "A3 tail continuation pointer"
+      ],
+      "scalar_input_documented": "D1 pixel bit"
+    }
+  },
+  "tables": [
+    {
+      "offset": 3232,
+      "entries": 8,
+      "consumer": 3230,
+      "domain": "Clear index zero; render 1+((lifetime-16)>>3), valid original lifetime 17..64; AND #7 bounds D1 pixel bit only."
+    },
+    {
+      "offset": 5170,
+      "entries": 33,
+      "consumer": 5156,
+      "domain": "Unsigned opcode word <33 checked before scaling by four; existing A5 world-object input contract preserved."
+    },
+    {
+      "offset": 318696,
+      "entries": 11,
+      "consumer": 318506,
+      "domain": "Original primary-audio opcodes only; runtime 80..9F branch is wider. No new closure claim."
+    }
+  ],
+  "sites": [
+    {
+      "source_offset": 68,
+      "role": "relocated startup transfer",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        1130
+      ]
+    },
+    {
+      "source_offset": 80,
+      "role": "relocated startup transfer",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        1130
+      ]
+    },
+    {
+      "source_offset": 2306,
+      "role": "Copper IRQ callback",
+      "native_recovery_status": "jump_table",
+      "known_cfg_targets": [
+        2674,
+        2744,
+        3552,
+        3662
+      ]
+    },
+    {
+      "source_offset": 2330,
+      "role": "VBlank IRQ callback",
+      "native_recovery_status": "jump_table",
+      "known_cfg_targets": [
+        1872,
+        2382,
+        3924
+      ]
+    },
+    {
+      "source_offset": 2354,
+      "role": "Blitter IRQ callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Blitter callback slot has a named reader but no named producer; no target is invented from IRQ presence."
+    },
+    {
+      "source_offset": 3230,
+      "role": "star color dispatch",
+      "native_recovery_status": "jump_table",
+      "known_cfg_targets": [
+        3264,
+        3276,
+        3288,
+        3300,
+        3312,
+        3324,
+        3336,
+        3348
+      ]
+    },
+    {
+      "source_offset": 3274,
+      "role": "star color 0 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3286,
+      "role": "star color 1 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3298,
+      "role": "star color 2 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3310,
+      "role": "star color 3 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3322,
+      "role": "star color 4 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3334,
+      "role": "star color 5 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3346,
+      "role": "star color 6 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 3358,
+      "role": "star color 7 tail continuation",
+      "native_recovery_status": "backward_slice",
+      "known_cfg_targets": [
+        3502
+      ]
+    },
+    {
+      "source_offset": 4574,
+      "role": "absolute world-command callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Absolute command operand is mutable program data; original initialized fields do not close all A4 cursor values."
+    },
+    {
+      "source_offset": 4594,
+      "role": "relative world-command callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Signed relative command displacement depends on mutable A4 command data; retain dynamic target."
+    },
+    {
+      "source_offset": 5156,
+      "role": "world opcode handler dispatch",
+      "native_recovery_status": "jump_table",
+      "known_cfg_targets": [
+        4372,
+        4388,
+        4398,
+        4408,
+        4420,
+        4432,
+        4444,
+        4456,
+        4468,
+        4496,
+        4516,
+        4526,
+        4540,
+        4566,
+        4584,
+        4604,
+        4614,
+        4630,
+        4654,
+        4668,
+        4682,
+        4696,
+        4710,
+        4724,
+        4730,
+        4736,
+        4774,
+        4822,
+        4870,
+        4916,
+        4972,
+        5028,
+        5068
+      ]
+    },
+    {
+      "source_offset": 26260,
+      "role": "UI overlay update callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "UI queue descriptors carry mutable update callbacks; initialized NULL fields do not establish future targets."
+    },
+    {
+      "source_offset": 31232,
+      "role": "defeated-object completion callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Defeat callback comes from interaction-object offset 8; no closed producer set is established."
+    },
+    {
+      "source_offset": 33790,
+      "role": "nearby-object interaction callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Nearest-object interaction callback at offset 4 is mutable; null guard is not closure."
+    },
+    {
+      "source_offset": 37876,
+      "role": "ranged-interaction completion callback",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Interaction completion callback at offset 8 is mutable; null guard is not closure."
+    },
+    {
+      "source_offset": 318506,
+      "role": "primary audio opcode dispatch",
+      "native_recovery_status": "unresolved",
+      "known_cfg_targets": [],
+      "remaining_reason": "Eleven original audio opcode table entries are not a proof of the broader 80..9F runtime selector domain or fixed A3 under arbitrary entry."
+    }
+  ],
+  "native_cfg_edges_before": 3418,
+  "native_cfg_edges_after": 3476,
+  "native_function_candidates_after": 265,
+  "verification": {
+    "receipt_id": "3ad5a1de386597905593f9ba670d22911c144e4c5d5183b2345cb5b95f52680e",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "72510dc6502705e85939731417238c652ebf936ed4c082315739b797bcf43d6e",
+    "source_package_sha256": "9f31c05e280244bc8754c45dc560f9398138fe4e971be73cede55ca35f779818",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "tests": {
+    "native": 819,
+    "focused_framework_catalog_source_and_cpu": 283,
+    "new_generic_cfg": 10,
+    "original_star_and_world_dispatch_cpu": 26
+  },
+  "preservation": {
+    "assets_unchanged": 86,
+    "both_history_prefixes_preserved": true,
+    "all_prior_named_instruction_and_comment_lines_retained_modulo_ten_semantic_label_renames": true
+  },
+  "limits": [
+    "Known destination facts do not prove completeness. All indirect CFG sites retain their unresolved alternative.",
+    "The runtime-branch continuation regression is fixed generically, but Pandora star helpers still recover only DAE natively. Original D68/D9C/DAE continuation inputs are reviewed and CPU-tested; the native eight-instruction prefix/replay horizon remains insufficient for the longer original star selector.",
+    "Consumer-specific dispatch descriptors still stop at the first historical owner; they do not replace full declared table ranges. Accepted signatures retain eight/33 entries without rewriting historical owners.",
+    "No arbitrary stream replacement, callback effects, DMA timing or alias-safety admission is proved."
+  ],
+  "next_high_value_work": "Bounded interprocedural continuation propagation through the longer star selector and all eight color writers; then immutable initialized command callback domains with mutable-cursor limits."
+}

@@ -1,0 +1,846 @@
+{
+  "scope": "Original-code contracts plus bounded Copperline observations; no memory allocation or relocation-safety claim.",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+  "guard_observation": {
+    "status": "ok",
+    "registers": {
+      "a0": "0x0005c2be",
+      "a1": "0x0005c226",
+      "a2": "0x0005c240",
+      "a4": "0x0005c322",
+      "a5": "0x0005c1d2",
+      "a6": "0x000039fc",
+      "d0": "0x0000ffff",
+      "d1": "0x00078000",
+      "d2": "0x00000000",
+      "sr": "0x00002000"
+    },
+    "pointer_chain": {
+      "a0": "0x0005c2be",
+      "a1": "0x0005c226",
+      "a2": "0x0005c240",
+      "a5": "0x0005c1d2"
+    },
+    "nearest_object": "0x5c1d2",
+    "object_flags": "66",
+    "player_xy": [
+      829,
+      182
+    ],
+    "geometry_origin": [
+      832,
+      168
+    ],
+    "geometry_end_exclusive": [
+      896,
+      200
+    ],
+    "player_test_point": [
+      845,
+      213
+    ],
+    "predicate": "unsigned WORD origin.x < player.x+16 < end.x and origin.y < player.y+31 < end.y",
+    "derived_rejection": "Captured nearest pointer and object bit1 pass; original geometry predicate implies y upper failure:213 is not less than200. The probe stopped before CMP; this branch result is derived, not directly sampled.",
+    "directed_plan": {
+      "rejected_geometric_candidate": "Four up moves would fit the object rectangle but no first commit was observed within 10 seconds; original terrain model rejects up. No coordinate assertion was reached.",
+      "validated_route": "18 local terrain-model moves, each coordinate checked, reach player (822,146), tested point (838,177).",
+      "terrain_scope": "Original grid/block bits and 15 previously identified positive player frames; runtime verifies this route only, not all geometry or changed tiles."
+    },
+    "checkpoint": {
+      "load": {
+        "status": "restored",
+        "receipt_sha256": "4440cd862fcad2297f2f0a7844fea381c600d62f179d62c562e45f003658bb6a",
+        "snapshot_sha256": "816768df51551d602e36341815fba180baadb9fc601da0d975a209d17923d2ef",
+        "root_verification": "inherited_from_saved_execution",
+        "reverse_anchor": "after_state_load",
+        "replay_across_load": false
+      },
+      "save": {
+        "status": "saved",
+        "receipt": ".runtime-state/pandora-analysis/body-guards/geometry-checkpoint.json",
+        "receipt_sha256": "4425c1acba587074ef3e45bfb361d05148ea153fa08ce4c3b6f517e94ec52baa",
+        "snapshot_sha256": "e9ba70ba11e6574fee997ae7cf1b1809df6bd40d974891ea244ed77abf59b210",
+        "stable_key": "s0:000026A4:instruction"
+      }
+    }
+  },
+  "palette_control": {
+    "source_helper": "s0:000071A2:instruction",
+    "source_callers": [
+      "s0:000071E0:instruction",
+      "s0:000071EE:instruction",
+      "s0:00007220:instruction",
+      "s0:00007230:instruction"
+    ],
+    "formula": "For pre-BSR SP=S, helper returns with SP=S+2; PC=(return_low_WORD<<16)|WORD_at(S), bus target=PC&0xFFFFFF.",
+    "target_high_bus_bytes": [
+      "E2",
+      "F0",
+      "22",
+      "34"
+    ],
+    "limit": "All four targets leave the verified copied prefix; no instruction at those targets was executed by the focused CPU tests. This does not prove wrapper unreachability or a crash.",
+    "alias_limit": "Fade-out entry7216 unpacks A1=77FE0 before helper7220. Initial shared-tail read remains possible if that entry is reached; stack escape cannot establish exclusion. No normal runtime palette-wrapper entry observed.",
+    "uninterpreted_wrapper_literals": {
+      "filename_literal": "pandora1.pi1",
+      "A4": "0x77FDE",
+      "D7": "0x7D22",
+      "arithmetic_end": "0x7FD00",
+      "limit": "These source assignments do not establish an executed loader/write or allocation. Recover the actual entry/producer before assigning a shared-memory phase."
+    }
+  },
+  "body_observation": {
+    "status": "ok",
+    "entry": "s0:000027EA:instruction",
+    "movement": [
+      {
+        "name": "body_route_00_left",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "033600b6",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_01_left",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00b6",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_02_down",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "033600b6",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_03_down",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "033600ba",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_04_left",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00ba",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_05_right",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "033600ba",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_06_down",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00ba",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_07_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00b6",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_08_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00b2",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_09_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00ae",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_10_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00aa",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_11_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00a6",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_12_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f00a2",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_13_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f009e",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_14_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f009a",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_15_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f0096",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_16_up",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "032f0092",
+        "expectation_matched": true
+      },
+      {
+        "name": "body_route_17_right",
+        "status": "hit",
+        "pc": "0x00019844",
+        "player_xy_hex": "03360092",
+        "expectation_matched": true
+      }
+    ],
+    "phases": [
+      {
+        "name": "anchor",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00070000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          829,
+          182
+        ]
+      },
+      {
+        "name": "moved_idle",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00078000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_open",
+        "status": "hit",
+        "pc": "0x000127ea",
+        "registers": {
+          "a0": "0x0005e9a9",
+          "a1": "0x00058cf4",
+          "a5": "0x0005c1d2",
+          "a6": "0x000039fc",
+          "d1": "0x00070000",
+          "sr": "0x00002009"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_capture_before_start",
+        "status": "hit",
+        "pc": "0x00016392",
+        "registers": {
+          "a0": "0x00075518",
+          "a1": "0x000007f0",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00073006",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1928
+        },
+        "blitter_busy": false,
+        "blit_completion_request": false,
+        "body_descriptor": {
+          "state_flags": "0x60",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "45044cb82a9e78897ffe12a5833c2c3273becfe16e9909d4a0fd72f0c89d7284",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_capture_after_start",
+        "status": "hit",
+        "pc": "0x00016396",
+        "registers": {
+          "a0": "0x00075518",
+          "a1": "0x000007f0",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00073006",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x60",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_ready",
+        "status": "hit",
+        "pc": "0x0001281e",
+        "registers": {
+          "a0": "0x00077318",
+          "a1": "0x00075660",
+          "a5": "0x000133de",
+          "a6": "0x000039fc",
+          "d1": "0x00077300",
+          "sr": "0x00002004"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 10208,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_inventory_ready",
+        "status": "hit",
+        "pc": "0x000128d4",
+        "registers": {
+          "a0": "0x0001a152",
+          "a1": "0x00075000",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00000002",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2024,
+          "0x002": 2024,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_idle",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00078000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2024,
+          "0x002": 2024,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_idle_release",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00070000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2024,
+          "0x002": 2024,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_restore_call",
+        "status": "hit",
+        "pc": "0x000127c0",
+        "registers": {
+          "a0": "0x00003b96",
+          "a1": "0x00003b9a",
+          "a5": "0x000133de",
+          "a6": "0x000039fc",
+          "d1": "0x00078000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_restore_after_start",
+        "status": "hit",
+        "pc": "0x0001640c",
+        "registers": {
+          "a0": "0x00075518",
+          "a1": "0x000007f0",
+          "a5": "0x000133de",
+          "a6": "0x000039fc",
+          "d1": "0x00073006",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "following_clear_wait",
+        "status": "hit",
+        "pc": "0x00016478",
+        "registers": {
+          "a0": "0x00075516",
+          "a1": "0x000007f0",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00071806",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "closed_idle",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00070000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2024,
+          "0x002": 2024,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "closed_idle_release",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00078000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2024,
+          "0x002": 2024,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_reopen",
+        "status": "hit",
+        "pc": "0x000127ea",
+        "registers": {
+          "a0": "0x0005e9a9",
+          "a1": "0x00058cf4",
+          "a5": "0x0005c1d2",
+          "a6": "0x000039fc",
+          "d1": "0x00070000",
+          "sr": "0x00002009"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x40",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      },
+      {
+        "name": "body_second_capture_before_start",
+        "status": "hit",
+        "pc": "0x00016392",
+        "registers": {
+          "a0": "0x00075518",
+          "a1": "0x000007f0",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00073006",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1928
+        },
+        "blitter_busy": false,
+        "blit_completion_request": false,
+        "body_descriptor": {
+          "state_flags": "0x60",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_second_capture_after_start",
+        "status": "hit",
+        "pc": "0x00016396",
+        "registers": {
+          "a0": "0x00075518",
+          "a1": "0x000007f0",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00073006",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 2016,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0x60",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_second_ready",
+        "status": "hit",
+        "pc": "0x0001281e",
+        "registers": {
+          "a0": "0x00077318",
+          "a1": "0x00075660",
+          "a5": "0x000133de",
+          "a6": "0x000039fc",
+          "d1": "0x00077300",
+          "sr": "0x00002004"
+        },
+        "custom_registers": {
+          "DMACON": 2016,
+          "0x002": 10208,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ],
+        "body_sample_sha256": "6929f7e32258b244e380b893fe433b9dfa83f18e1fe2c02cc3062d23e7a9633b",
+        "sampled_bytes": 384
+      },
+      {
+        "name": "body_second_idle",
+        "status": "hit",
+        "pc": "0x000105ca",
+        "registers": {
+          "a0": "0x0000397c",
+          "a1": "0x00058cf4",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "d1": "0x00078000",
+          "sr": "0x00002000"
+        },
+        "custom_registers": {
+          "DMACON": 2024,
+          "0x002": 2024,
+          "0x01c": 16432,
+          "0x01e": 1992
+        },
+        "blitter_busy": false,
+        "blit_completion_request": true,
+        "body_descriptor": {
+          "state_flags": "0xe0",
+          "bitmap": "0x7f0"
+        },
+        "player_xy": [
+          822,
+          146
+        ]
+      }
+    ],
+    "checkpoint": {
+      "load": {
+        "status": "restored",
+        "receipt_sha256": "4440cd862fcad2297f2f0a7844fea381c600d62f179d62c562e45f003658bb6a",
+        "snapshot_sha256": "816768df51551d602e36341815fba180baadb9fc601da0d975a209d17923d2ef",
+        "root_verification": "inherited_from_saved_execution",
+        "reverse_anchor": "after_state_load",
+        "replay_across_load": false
+      },
+      "save": {
+        "status": "saved",
+        "receipt_sha256": "e574d747bbbb2cf2ea3fb8ae98a41f8c13a33ee6a735d2a531ab8b2727f051ab",
+        "snapshot_sha256": "4e7f476d1bf24ff76eec1285179aad8a7147cc5abc57494d3e613d3bf8d2c5c7",
+        "stable_key": "s0:000005CA:instruction"
+      }
+    },
+    "programmed_capture": {
+      "screen_source": "0x75518",
+      "snapshot_destination": "0x7F0",
+      "BLTSIZE_word": "0x3006",
+      "rows": 192,
+      "words_per_row": 6,
+      "packed_extent_bytes": 2304,
+      "evidence": "Live A0/A1/D1 before original BLTSIZE at6392; WORD write uses D1 low16bits. Prior original-CPU packet tests establish the geometry calculation."
+    },
+    "sample_contract": "384 sampled bytes change at first capture, remain stable through restore, and are identical after second capture. This is not a full 2304-byte equality or exclusive-allocation proof.",
+    "completion_contract": "Before each capture BLIT request is clear; at first post-start stop it is set and BBUSY clear. Flags follow 40->60->E0->40->60->E0. Source returns have no final software wait; observed completion does not prove all-path bus arbitration."
+  },
+  "canonical_actions": [
+    "manual-94d6cbb1cb044ddbbb70e28abcd089fd",
+    "manual-8d32b1236b3d4c66b86e9b41a9f710fd",
+    "manual-2b224a850c4f4112a78e7c441324490f"
+  ],
+  "verification": {
+    "exact": true,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "receipt_id": "825c8bc771a13ebb4f8692ba016da3866f183f8d017c92a5830d23ce414c0461",
+    "source_sha256": "842aebbab8d5a2d7b48c07da99e1cb0b9f7adb57a328ce97cd313d38f4d6f6de"
+  },
+  "tests": "120 focused cases pass; 17 new original-CPU geometry/stack cases. No simulator implementation changed.",
+  "remaining_gaps": [
+    "Runtime entry chain and phase exclusion for fade-out7216 and any interior palette reader; its initial unpack precedes the abnormal helper return.",
+    "Exclusive allocation and all indirect/interrupt aliases for body and hit storage; stable bytes cannot exclude reads.",
+    "Second hit-family capture remains unobserved; body-family second capture is now observed.",
+    "All-path CPU/DMA arbitration, arbitrary descriptor geometry and original-disk-loader parity are not established."
+  ],
+  "probe_correction": {
+    "wrong_instruction": "s0:000027E0:instruction is LEA announce_item_trade, not body entry.",
+    "canonical_entry": "s0:000027EA:instruction",
+    "native_evidence": "2750 BNE references open_nearby_object_inventory_panel at27EA.",
+    "effect": "Prior timeout at27E0 is invalid negative body-entry evidence; canonical labels were already correct. Scenario fixtures are corrected."
+  }
+}

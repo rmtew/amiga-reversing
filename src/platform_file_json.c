@@ -4768,6 +4768,13 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         for (result_index = 0U; result_index < summary->result_count; ++result_index) {
           const M68kFunctionSummaryResultIR *result = &summary->results[result_index];
           if (result_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE) {
+            if (json_builder_append(&builder, "{\"kind\":\"hardware_base\",\"location\":") != 0 ||
+                append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
+                json_builder_appendf(&builder, ",\"hardware_base_id\":%u}",
+                  (unsigned)result->hardware_base_id) != 0) goto oom;
+            continue;
+          }
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
             if (json_builder_append(&builder, "{\"kind\":\"identity_input\",\"location\":") != 0 ||
                 append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
@@ -4919,7 +4926,21 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       } else if (json_builder_appendf(&builder, "%u", (unsigned)use->operand_index) != 0) {
         goto oom;
       }
-      if (json_builder_appendf(&builder,
+      if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) {
+        uint8_t relative_index;
+        if (json_builder_appendf(&builder,
+            ",\"address\":null,\"effective_address\":null,\"use_shape_id\":%u,\"relative_base_id\":%u,"
+            "\"relative_register_offset\":%u,\"requires_indexed_input_contract\":%s,"
+            "\"proof_scope\":\"analysis_entry_contracts\",\"relative_base_offsets\":[",
+            (unsigned)use->use_shape, (unsigned)use->relative_base_id,
+            (unsigned)use->relative_register_offset, use->relative_requires_input_contract ? "true" : "false") != 0)
+          goto oom;
+        for (relative_index = 0U; relative_index < use->relative_base_offset_count; ++relative_index) {
+          if (json_builder_appendf(&builder, "%s%u", relative_index == 0U ? "" : ",",
+              (unsigned)use->relative_base_offsets[relative_index]) != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "],\"use_shape_name\":") != 0) goto oom;
+      } else if (json_builder_appendf(&builder,
           ",\"address\":%u,\"effective_address\":%u,\"use_shape_id\":%u,\"use_shape_name\":",
           (unsigned)use->address, (unsigned)use->effective_address, (unsigned)use->use_shape) != 0)
         goto oom;
@@ -6424,45 +6445,41 @@ static int append_listing_source_context(JsonBuilder *builder, const char *kind,
   return json_builder_append(builder, "{\"section\":\"c-backend\"}");
 }
 
+static int listing_structured_data_item_covers(const M68kAnalysisStructuredDataItem *item,
+    int section_index, uint32_t offset) {
+  if (item == NULL || item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset)
+    return 0;
+  if (item->has_section_index ? item->section_index != (uint32_t)section_index : section_index != 0) return 0;
+  return offset - item->offset < item->size;
+}
+
 static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_offset(
     const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy, int section_index,
     uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *best = NULL;
+  int best_is_policy = 0;
   size_t index;
-  size_t item_count;
+  size_t count;
   if (section_index < 0) return NULL;
-  item_count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
-  if (item_count != 0U) {
-    for (index = 0U; index < item_count; ++index) {
-      const M68kAnalysisStructuredDataItem *item =
-        m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
-      uint32_t end_offset;
-      if (item == NULL) continue;
-      if (item->has_section_index) {
-        if (item->section_index != (uint32_t)section_index) continue;
-      } else if (section_index != 0) {
-        continue;
+  count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
+  for (index = 0U; index < count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+    if (listing_structured_data_item_covers(item, section_index, offset) && (best == NULL || item->size < best->size))
+      best = item;
+  }
+  /* A covering inferred table must not hide an exact canonical field. On equal
+   * spans the explicit policy carries the user's domain/type contract. */
+  if (policy != NULL) {
+    for (index = 0U; index < policy->structured_data_item_count && index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+      if (listing_structured_data_item_covers(item, section_index, offset) &&
+          (best == NULL || item->size < best->size || (item->size == best->size && !best_is_policy))) {
+        best = item;
+        best_is_policy = 1;
       }
-      if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
-      end_offset = item->offset + item->size;
-      if (offset < end_offset) return item;
     }
-    return NULL;
   }
-  if (policy == NULL) return NULL;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    uint32_t end_offset;
-    if (item->has_section_index) {
-      if (item->section_index != (uint32_t)section_index) continue;
-    } else if (section_index != 0) {
-      continue;
-    }
-    if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
-    end_offset = item->offset + item->size;
-    if (offset < end_offset) return item;
-  }
-  return NULL;
+  return best;
 }
 
 static int append_listing_structured_data_json(JsonBuilder *builder, const M68kAnalysisStructuredDataItem *item) {
@@ -6918,14 +6935,25 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
     int is_immediate = listing_operand_is_immediate_value(operand, NULL);
     uint8_t shape = m68k_instruction_operand_decoded_ea_shape(operand);
     int is_absolute = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD || shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
+    int32_t indexed_displacement = 0;
+    int is_indexed_displacement = m68k_ir_operand_brief_index_displacement(operand, &indexed_displacement);
     unsigned width_bits = 0U;
     int32_t signed_value = (int32_t)operand->value.value;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
     int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
-    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !has_base_register) continue;
+    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !is_indexed_displacement && !has_base_register) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
-    if (is_absolute) {
+    if (is_indexed_displacement) {
+      if (json_builder_appendf(builder,
+          "{\"kind\":\"indexed_displacement\",\"operand_index\":%u,\"value\":%d,\"width_bytes\":1,\"width_bits\":8,\"base_register\":\"A%u\"",
+          (unsigned)operand_index, indexed_displacement, (unsigned)operand->value.ea_reg) != 0) return -1;
+      if (symbol_name != NULL && symbol_name[0] != '\0') {
+        if (json_builder_append(builder, ",\"symbol\":") != 0 ||
+            json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+      }
+      if (json_builder_append(builder, "}") != 0) return -1;
+    } else if (is_absolute) {
       unsigned width = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ? 2U : 4U;
       if (json_builder_appendf(builder,
           "{\"kind\":\"absolute_address\",\"operand_index\":%u,\"value\":%u,\"width_bytes\":%u,\"width_bits\":%u",
@@ -8834,6 +8862,7 @@ static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
     int16_t displacement = 0;
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
     if (listing_operand_is_immediate_value(operand, NULL)) return 1;
+    if (m68k_ir_operand_brief_index_displacement(operand, NULL)) return 1;
     if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ||
         m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG) return 1;
     if (operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U) return 1;

@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-security-null-node",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "first_damage_anchor",
+      "breakpoint_stable_key": "s0:0000887C:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 8,
+            "size": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "first_damage_applied",
+      "breakpoint_stable_key": "s0:00008896:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "002c"
+          },
+          {
+            "address": 8,
+            "size": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "second_damage_before_store",
+      "breakpoint_stable_key": "s0:0000887C:instruction",
+      "wait_seconds": 12,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "002c"
+          },
+          {
+            "address": 8,
+            "size": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "before_static_defeat_exchange",
+      "breakpoint_stable_key": "s0:000088FC:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "0000"
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378302,
+            "size": 4,
+            "expect_hex": "00000000"
+          },
+          {
+            "address": 377712,
+            "size": 4,
+            "expect_hex": "0005c5b6"
+          },
+          {
+            "address": 378654,
+            "size": 4,
+            "expect_hex": "0005c72a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null_node_before_writes",
+      "breakpoint_stable_key": "s0:0000868A:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378302,
+            "size": 4,
+            "expect_hex": "00000000"
+          },
+          {
+            "base_register": "a7",
+            "offset": 8,
+            "size": 8,
+            "expect_hex": "00018902000105f0"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null_node_after_writes",
+      "breakpoint_stable_key": "s0:00008694:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378302,
+            "size": 4,
+            "expect_hex": "00000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "static_defeat_exchange_returned",
+      "breakpoint_stable_key": "s0:00008902:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "0000"
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378654,
+            "size": 4,
+            "expect_hex": "0005c5b6"
+          },
+          {
+            "address": 377712,
+            "size": 4,
+            "expect_hex": "0005c72a"
+          }
+        ]
+      }
+    },
+    {
+      "name": "main_loop_after_defeat",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "0000"
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 377706,
+            "size": 1
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

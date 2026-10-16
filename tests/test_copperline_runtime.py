@@ -650,9 +650,16 @@ def test_named_custom_register_capture_uses_read_only_chipset_inspection():
     result = runtime.capture_scenario_state(c, {'custom_registers': ['AUD0VOL', 'DMACON']})
     assert list(result['custom_registers']) == ['AUD0VOL', 'DMACON']
     assert c.calls == [('custom.read', {'reg': 'AUD0VOL'}), ('custom.read', {'reg': 'DMACON'})]
-    for custom in [['AUD0VOL']*17, ['mem.write'], [12]]:
+    for custom in [['AUD0VOL']*17, ['mem.write'], [True], [-2], [1], [0x200]]:
         with pytest.raises(ValueError, match='custom registers'):
             runtime.capture_scenario_state(c, {'custom_registers': custom})
+
+
+def test_custom_status_offsets_use_chipset_read_instead_of_debugger_memory():
+    c = Client()
+    result = runtime.capture_scenario_state(c, {'custom_registers': [2, 0x1C, 0x1E, 0x1FE]})
+    assert list(result['custom_registers']) == ['0x002', '0x01c', '0x01e', '0x1fe']
+    assert c.calls == [('custom.read', {'reg': n}) for n in [2, 0x1C, 0x1E, 0x1FE]]
 
 
 def test_pc_identity_window_stays_inside_copy_view_at_final_instruction(tmp_path):

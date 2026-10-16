@@ -250,6 +250,32 @@ def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMeta
     )
 
 
+def _append_manual_label_declaration(declarations, declaration, label):
+    """An explicit row rename replaces that name at its exact address identity.
+
+    Older manual labels can have another durable ID. Keep unrelated aliases,
+    but place the renamed declaration first so native lookup sees the new name.
+    No runtime/source address arithmetic or cross-section matching is implied.
+    """
+    previous = set(label.get("previous_names", []))
+    if isinstance(label.get("previous_name"), str):
+        previous.add(label["previous_name"])
+    if not previous:
+        declarations.append(declaration)
+        return
+    kept = []
+    position = None
+    for item in declarations:
+        same_address = (getattr(item, "hunk", None) == getattr(declaration, "hunk", None)
+                        and item.addr == declaration.addr)
+        if same_address and position is None:
+            position = len(kept)
+        if not (same_address and item.name in previous):
+            kept.append(item)
+    kept.insert(len(kept) if position is None else position, declaration)
+    declarations[:] = kept
+
+
 def _manual_label_to_absolute_code_label(label: dict[str, object]) -> AbsoluteCodeLabelMetadata | None:
     if _manual_seed_text(label, "address_domain") != "runtime":
         return None
@@ -307,6 +333,8 @@ def _manual_representation_to_metadata(representation: dict[str, object]) -> Man
         element_kind=_manual_seed_text(representation, "element_kind"),
         operand_index=_manual_seed_int(representation, "operand_index"),
         symbol=_manual_seed_text(representation, "symbol"),
+        source_symbol=representation.get("source_symbol"),
+        hardware_offset=representation.get("hardware_offset"),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(representation, "representation_id"),
@@ -382,6 +410,8 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
         register=register,
         kind=kind,
         note=_manual_seed_text(register_seed, "note") or _manual_action_citation(register_seed, "register_seed_id"),
+        hardware_indexed=register_seed.get("hardware_indexed"),
+        hunk=_manual_seed_int(register_seed, "hunk") if kind is EntryRegisterSeedKind.HARDWARE_INDEXED else None,
         library_name=_manual_seed_text(register_seed, "library_name"),
         struct_name=_manual_seed_text(register_seed, "struct_name"),
         context_name=_manual_seed_text(register_seed, "context_name"),
@@ -645,7 +675,7 @@ def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetL
     if symbol is None:
         return None
     size = _manual_seed_int(region, "size")
-    if size is not None and (size <= 0 or size > 255):
+    if size is not None and (size <= 0 or size > 32767):
         return None
     storage_kind_text = _manual_seed_text(region, "storage_kind")
     try:
@@ -2115,10 +2145,10 @@ def _apply_manual_seed_projection(
     for label in labels:
         code_label = _manual_label_to_code_label(label)
         if code_label is not None:
-            seeded_code_labels.append(code_label)
+            _append_manual_label_declaration(seeded_code_labels, code_label, label)
         absolute_label = _manual_label_to_absolute_code_label(label)
         if absolute_label is not None:
-            absolute_code_labels.append(absolute_label)
+            _append_manual_label_declaration(absolute_code_labels, absolute_label, label)
     for comment in comments:
         entry_comment = _manual_comment_to_entry_comment(comment)
         if entry_comment is not None:
@@ -2275,16 +2305,32 @@ def _apply_manual_seed_projection(
             data_block_layouts.append(data_block_layout)
     merged_data_block_layouts = {layout.layout_id: layout for layout in data_block_layouts}
     effective_data_block_layouts = list(merged_data_block_layouts.values())
+    # A bound structure emits its fields, not the enclosing element's display
+    # representation. Preserve an explicit symbolic identity of an exact scalar
+    # field; broad/partial overlaps and pointer identities keep their owners.
+    typed_entities_by_element = {
+        (layout.layout_id, element.offset): _data_block_bound_struct_entities(layout, element, merged_custom_structs)
+        for layout in effective_data_block_layouts for element in layout.elements
+    }
+    scalar_field_spans = {
+        (entity.hunk, entity.addr, entity.end)
+        for entities in typed_entities_by_element.values() for entity in entities
+        if entity.field_name and entity.end is not None and entity.end - entity.addr in {1, 2, 4}
+        and entity.value_kind == "scalar" and not entity.pointer_struct
+    }
     data_block_representation_ranges = _data_block_element_representation_ranges(effective_data_block_layouts)
     if data_block_representation_ranges:
         manual_representations = [
             representation
             for representation in manual_representations
             if not _representation_overlaps_data_block_element(representation, data_block_representation_ranges)
+            or (representation.element_kind == "data_literal"
+                and representation.style is ManualRepresentationStyle.SYMBOL
+                and (representation.hunk, representation.addr, representation.end) in scalar_field_spans)
         ]
     for effective_layout in effective_data_block_layouts:
         for element in effective_layout.elements:
-            typed_entities = _data_block_bound_struct_entities(effective_layout, element, merged_custom_structs)
+            typed_entities = typed_entities_by_element[(effective_layout.layout_id, element.offset)]
             if typed_entities:
                 seeded_entities.extend(typed_entities)
             else:

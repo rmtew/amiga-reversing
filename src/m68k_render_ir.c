@@ -478,13 +478,60 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, Arena *scratch_
   return 1;
 }
 
+/* Emit dependencies before consumers while retaining alphabetical root order.
+ * Literal text must not be mistaken for a symbol dependency. */
+static int append_planned_equate(M68kRenderPlan *dest, const M68kRenderPlan *source,
+    size_t index, uint8_t *states, uint32_t row_kind, uint32_t *count) {
+  const M68kRenderPlannedDeclaration *item = &source->declarations[index];
+  const char *cursor = item->expression;
+  char line[224];
+  int length;
+  if (states[index] == 2U) return 1;
+  if (states[index] == 1U) return 0;
+  states[index] = 1U;
+  while (*cursor != '\0') {
+    const char *start;
+    size_t token_length, dependency;
+    if (*cursor == '\'' || *cursor == '"') {
+      char quote = *cursor++;
+      while (*cursor != '\0' && *cursor != quote) ++cursor;
+      if (*cursor != '\0') ++cursor;
+      continue;
+    }
+    if (*cursor == '$' || *cursor == '%' || (*cursor >= '0' && *cursor <= '9')) {
+      ++cursor;
+      while (ascii_char_is_symbol_local(*cursor, 0)) ++cursor;
+      continue;
+    }
+    if (!ascii_char_is_symbol_local(*cursor, 1)) { ++cursor; continue; }
+    start = cursor++;
+    while (ascii_char_is_symbol_local(*cursor, 0)) ++cursor;
+    token_length = (size_t)(cursor - start);
+    for (dependency = 0U; dependency < source->declaration_count; ++dependency) {
+      const M68kRenderPlannedDeclaration *candidate = &source->declarations[dependency];
+      if (candidate->kind == M68K_RENDER_PLANNED_DECLARATION_EQUATE && candidate->emits_header_text &&
+          strlen(candidate->name) == token_length && strncmp(start, candidate->name, token_length) == 0 &&
+          !append_planned_equate(dest, source, dependency, states, row_kind, count)) return 0;
+    }
+  }
+  length = snprintf(line, sizeof(line), "%s\tEQU\t%s\n", item->name, item->expression);
+  if (length <= 0 || (size_t)length >= sizeof(line) ||
+      m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+  states[index] = 2U;
+  ++*count;
+  return 1;
+}
+
 static int append_planned_header_declarations(M68kRenderPlan *dest, const M68kRenderPlan *source,
     uint8_t kind, uint32_t row_kind, uint32_t *out_count) {
   char previous_name[sizeof(source->declarations[0].name)];
   uint32_t count = 0U;
   int have_previous = 0;
+  uint8_t *states;
   if (out_count != NULL) *out_count = 0U;
   if (dest == NULL || source == NULL) return 0;
+  states = calloc(source->declaration_count + 1U, sizeof(*states));
+  if (states == NULL) return 0;
   for (;;) {
     const M68kRenderPlannedDeclaration *selected = NULL;
     size_t index;
@@ -499,19 +546,19 @@ static int append_planned_header_declarations(M68kRenderPlan *dest, const M68kRe
       char line[128];
       int length = snprintf(line, sizeof(line), "    INCLUDE \"%s\"\n", selected->name);
       if (length <= 0 || (size_t)length >= sizeof(line) ||
-          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) { free(states); return 0; }
+      ++count;
     } else if (kind == M68K_RENDER_PLANNED_DECLARATION_EQUATE) {
-      char line[224];
-      int length = snprintf(line, sizeof(line), "%s\tEQU\t%s\n", selected->name, selected->expression);
-      if (length <= 0 || (size_t)length >= sizeof(line) ||
-          m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+      if (!append_planned_equate(dest, source, (size_t)(selected - source->declarations),
+          states, row_kind, &count)) { free(states); return 0; }
     } else {
+      free(states);
       return 0;
     }
     snprintf(previous_name, sizeof(previous_name), "%s", selected->name);
     have_previous = 1;
-    ++count;
   }
+  free(states);
   if (out_count != NULL) *out_count = count;
   return 1;
 }
@@ -1369,6 +1416,8 @@ static void platform_state_clear_data_library(M68kRenderPlatformState *state, ui
   m68k_bitset_u32_clear(&state->data_base_known, reg_index);
   state->data_base_id[reg_index] = 0U;
   state->data_base_library[reg_index][0] = '\0';
+  m68k_bitset_u32_clear(&state->data_hardware_base_known, reg_index);
+  state->data_hardware_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   m68k_bitset_u32_clear(&state->data_layout_base_known, reg_index);
   state->data_layout_base_symbol[reg_index][0] = '\0';
   platform_state_clear_data_lvo(state, reg_index);
@@ -1377,6 +1426,8 @@ static void platform_state_clear_data_library(M68kRenderPlatformState *state, ui
 static void platform_state_clear_all_data_libraries(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   state->data_base_known = 0U;
+  state->data_hardware_base_known = 0U;
+  memset(state->data_hardware_base_id, 0, sizeof(state->data_hardware_base_id));
   memset(state->data_base_id, 0, sizeof(state->data_base_id));
   memset(state->data_base_library, 0, sizeof(state->data_base_library));
   state->data_layout_base_known = 0U;
@@ -1410,6 +1461,8 @@ static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *
 static void platform_state_clear_all_hardware_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   state->address_hardware_base_known = 0U;
+  state->data_hardware_base_known = 0U;
+  memset(state->data_hardware_base_id, 0, sizeof(state->data_hardware_base_id));
   memset(state->address_hardware_base_id, 0, sizeof(state->address_hardware_base_id));
 }
 
@@ -1491,6 +1544,8 @@ static void platform_state_set_data_library(M68kRenderPlatformState *state, uint
   const char *canonical_library_name = platform_library_name_from_base_id(base_id);
   if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
   if (canonical_library_name == NULL || canonical_library_name[0] == '\0') return;
+  m68k_bitset_u32_clear(&state->data_hardware_base_known, reg_index);
+  state->data_hardware_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   m68k_bitset_u32_set(&state->data_base_known, reg_index);
   state->data_base_id[reg_index] = base_id;
   snprintf(state->data_base_library[reg_index], sizeof(state->data_base_library[reg_index]), "%s",
@@ -1635,6 +1690,18 @@ static int platform_state_set_register_hardware_base(M68kRenderPlatformState *st
   return 1;
 }
 
+static void platform_state_set_data_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
+    const char *base_symbol) {
+  uint16_t base_id;
+  if (state == NULL || reg_index >= 8U || base_symbol == NULL ||
+      !platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_symbol, &base_id))
+    return;
+  platform_state_clear_data_library(state, reg_index);
+  platform_state_clear_data_app_base(state, reg_index);
+  m68k_bitset_u32_set(&state->data_hardware_base_known, reg_index);
+  state->data_hardware_base_id[reg_index] = base_id;
+}
+
 void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
     const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
   uint16_t index;
@@ -1654,6 +1721,9 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
      * leaving the old identity alive would mislabel its fields as registers. */
     if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
       platform_state_clear_register(state, seed->reg_index);
+    } else if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+      platform_state_clear_data_library(state, seed->reg_index);
+      platform_state_clear_data_app_base(state, seed->reg_index);
     }
     if (platform_state_name_is_app_base(seed->name)) {
       platform_state_set_register_app_base(state, seed->reg_kind, seed->reg_index);
@@ -1661,6 +1731,10 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
     }
     if (policy_has_layout_base_symbol(policy, seed->name)) {
       platform_state_set_register_layout_base(state, seed->reg_kind, seed->reg_index, seed->name);
+      continue;
+    }
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+      platform_state_set_data_hardware_base(state, seed->reg_index, seed->name);
       continue;
     }
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) continue;
@@ -1720,6 +1794,7 @@ static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *p
     } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_DATA && seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS) continue;
     if (seed->reg_index >= 8U || seed->name[0] == '\0') continue;
+    if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) continue;
     if (m68k_bitset_u32_has(emitted[seed->reg_kind - 1U], seed->reg_index)) continue;
     m68k_bitset_u32_set(&emitted[seed->reg_kind - 1U], seed->reg_index);
     snprintf(reg_name, sizeof(reg_name), "%c%u",
@@ -1743,15 +1818,49 @@ static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *p
   return used != 0U;
 }
 
+static int format_hardware_indexed_input_comment(const M68kAnalysisRegisterSeed *seed,
+    char *message, size_t message_size) {
+  size_t used = 0U;
+  uint8_t value_index;
+  size_t available = message_size - used;
+  int wrote = snprintf(message + used, available, "%sINPUT contract: A%u=%s+%u*D%u.w; D%u.w in {",
+    used == 0U ? "" : "; ", (unsigned)seed->reg_index, seed->name, (unsigned)seed->hardware_stride,
+    (unsigned)seed->hardware_index_register, (unsigned)seed->hardware_index_register);
+  if (wrote < 0) return 0;
+  used += (size_t)wrote < available ? (size_t)wrote : available - 1U;
+  for (value_index = 0U; value_index < seed->hardware_index_count && used + 1U < message_size; ++value_index) {
+    available = message_size - used;
+    wrote = snprintf(message + used, available, "%s%u", value_index == 0U ? "" : ",",
+      (unsigned)seed->hardware_index_values[value_index]);
+    if (wrote < 0) return 0;
+    used += (size_t)wrote < available ? (size_t)wrote : available - 1U;
+  }
+  if (used + 1U < message_size) {
+    message[used++] = '}';
+    message[used] = '\0';
+  }
+  return used != 0U;
+}
+
 static void render_asm_policy_register_seed_comment(M68kRenderIRPreview *preview, const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset) {
-  char comment[256];
-  char line[320];
-  if (preview == NULL) return;
-  if (!format_policy_register_seed_comment_local(policy, section_index, offset, comment, sizeof(comment))) return;
-  snprintf(line, sizeof(line), "    ; %s\n", comment);
-  hash_asm_text(preview, line);
-  ++preview->asm_source_lines;
+  char comment[256], line[320];
+  uint16_t index;
+  if (preview == NULL || policy == NULL) return;
+  if (format_policy_register_seed_comment_local(policy, section_index, offset, comment, sizeof(comment))) {
+    snprintf(line, sizeof(line), "    ; %s\n", comment);
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+  }
+  for (index = 0U; index < policy->register_seed_count; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED || !seed->has_entry_offset ||
+        seed->entry_offset != offset || (seed->has_section_index && seed->section_index != section_index)) continue;
+    if (!format_hardware_indexed_input_comment(seed, comment, sizeof(comment))) continue;
+    snprintf(line, sizeof(line), "    ; %s\n", comment);
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+  }
 }
 
 void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind,
@@ -2774,7 +2883,7 @@ static int lookup_any_runtime_address_source_offset(const M68kRenderLookup *look
 static int lookup_exact_pointer_value_label_offset(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t section_size, uint32_t value, uint8_t allow_in_section_source_offset, uint32_t *out_source_offset);
 static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLookup *lookup,
-    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe);
+    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe, int include_labels);
 static int accepted_byte_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset);
 
 static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *preview,
@@ -4210,6 +4319,11 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   uint32_t value = 0U;
   const char *base_symbol;
   if (operand == NULL) return NULL;
+  if (operand_is_data_register_local(operand, &reg) && reg < 8U && state != NULL &&
+      m68k_bitset_u32_has(state->data_hardware_base_known, reg)) {
+    return platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      state->data_hardware_base_id[reg]);
+  }
   if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
       state != NULL && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
     return platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
@@ -4256,11 +4370,17 @@ static int candidate_has_call_or_jump_flow(const M68kDecodeCandidate *candidate)
 }
 
 static void platform_state_update_hardware_base_after_instruction(M68kRenderPlatformState *state,
-    const M68kInstructionIR *instruction) {
+    const M68kInstructionIR *instruction, const char *source_base_symbol) {
   uint8_t dest_reg = 0U;
-  const char *source_base_symbol;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
   if (state == NULL || instruction == NULL) return;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
+    platform_state_clear_all_hardware_bases(state);
+    return;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL) {
     platform_state_clear_all_hardware_bases(state);
     return;
   }
@@ -4269,19 +4389,57 @@ static void platform_state_update_hardware_base_after_instruction(M68kRenderPlat
       for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
         if (reglist_contains_address_register_local(&instruction->operands[1], dest_reg))
           platform_state_clear_address_hardware_base(state, dest_reg);
+        if (reglist_contains_data_register_local(&instruction->operands[1], dest_reg)) {
+          m68k_bitset_u32_clear(&state->data_hardware_base_known, dest_reg);
+          state->data_hardware_base_id[dest_reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+        }
       }
+    }
+    for (operand_index = 0U; metadata != NULL && operand_index < instruction->operand_count &&
+         operand_index < 4U; ++operand_index) {
+      if (platform_operand_updates_address_register(instruction, operand_index) &&
+          instruction->operands[operand_index].value.ea_reg < 8U)
+        platform_state_clear_address_hardware_base(state, instruction->operands[operand_index].value.ea_reg);
     }
     return;
   }
+  /* Reading a hardware register is not loading the hardware base address. */
+  if (metadata != NULL && metadata->operand_access_kinds[0] == M68K_SIM_ACCESS_MEMORY_READ) {
+    const M68kOperandIR *source = &instruction->operands[0];
+    uint32_t immediate = 0U;
+    uint8_t source_reg = 0U;
+    if (!operand_is_data_register_local(source, &source_reg) &&
+        !operand_address_register_index_local(source, &source_reg) &&
+        !m68k_ir_operand_immediate_value(source, &immediate)) source_base_symbol = NULL;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    if (metadata == NULL || metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE ||
+        metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      if (operand_is_data_register_local(operand, &dest_reg)) {
+        m68k_bitset_u32_clear(&state->data_hardware_base_known, dest_reg);
+        state->data_hardware_base_id[dest_reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+      } else if (operand_address_register_index_local(operand, &dest_reg)) {
+        platform_state_clear_address_hardware_base(state, dest_reg);
+      }
+    }
+    if (platform_operand_updates_address_register(instruction, operand_index)) {
+      uint8_t base_reg = operand->value.ea_reg;
+      if (base_reg < 8U) platform_state_clear_address_hardware_base(state, base_reg);
+    }
+  }
   if (instruction->operand_count < 2U) return;
-  source_base_symbol = platform_state_operand_hardware_base_symbol(state, &instruction->operands[0]);
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA) {
     const M68kOperandIR *dest = &instruction->operands[instruction->operand_count - 1U];
+    /* A partial register write does not establish the full hardware address. */
+    if (instruction->size_suffix != 'l' && instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA) return;
     if (operand_address_register_index_local(dest, &dest_reg)) {
       if (source_base_symbol != NULL) platform_state_set_register_hardware_base(state, dest_reg, source_base_symbol);
       else platform_state_clear_address_hardware_base(state, dest_reg);
+    } else if (operand_is_data_register_local(dest, &dest_reg) && source_base_symbol != NULL) {
+      platform_state_set_data_hardware_base(state, dest_reg, source_base_symbol);
     }
   }
 }
@@ -4418,14 +4576,59 @@ static void platform_state_update_library_slots_after_instruction(M68kRenderPlat
   }
 }
 
+static void platform_state_copy_exchanged_register(M68kRenderPlatformState *state,
+    const M68kRenderPlatformState *previous, const M68kOperandIR *dest, const M68kOperandIR *source) {
+  uint8_t reg = 0U;
+  uint8_t source_reg = 0U;
+  int is_data = operand_is_data_register_local(dest, &reg);
+  const char *library = platform_state_operand_library(previous, source);
+  const char *hardware = platform_state_operand_hardware_base_symbol(previous, source);
+  const char *layout = platform_state_operand_layout_base_symbol(previous, source);
+  int app = platform_state_operand_is_app_base(previous, source);
+  uint8_t kind = is_data ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+  if (!is_data && !operand_address_register_index_local(dest, &reg)) return;
+  if (is_data) {
+    platform_state_clear_data_library(state, reg);
+    platform_state_clear_data_app_base(state, reg);
+  } else {
+    platform_state_clear_register(state, reg);
+  }
+  if (library != NULL) {
+    if (is_data) platform_state_set_data_library(state, reg, library);
+    else platform_state_set_register_library(state, reg, library);
+  }
+  if (app) platform_state_set_register_app_base(state, kind, reg);
+  if (layout != NULL) platform_state_set_register_layout_base(state, kind, reg, layout);
+  if (hardware != NULL) {
+    if (is_data) platform_state_set_data_hardware_base(state, reg, hardware);
+    else platform_state_set_register_hardware_base(state, reg, hardware);
+  }
+  if (is_data && operand_is_data_register_local(source, &source_reg) &&
+      m68k_bitset_u32_has(previous->data_lvo_known, source_reg)) {
+    m68k_bitset_u32_set(&state->data_lvo_known, reg);
+    state->data_lvo[reg] = previous->data_lvo[source_reg];
+  }
+}
+
 void platform_state_update_after_instruction(M68kRenderPlatformState *state, const M68kRenderLookup *lookup,
     const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  const char *hardware_source;
   if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP && instruction->operand_count == 2U) {
+    M68kRenderPlatformState previous = *state;
+    platform_state_copy_exchanged_register(state, &previous, &instruction->operands[0], &instruction->operands[1]);
+    platform_state_copy_exchanged_register(state, &previous, &instruction->operands[1], &instruction->operands[0]);
+    return;
+  }
+  hardware_source = instruction->operand_count != 0U
+    ? platform_state_operand_hardware_base_symbol(state, &instruction->operands[0]) : NULL;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_register(state, 6U);
     platform_state_clear_all_data_libraries(state);
     platform_state_clear_all_local_base_slots(state);
-    platform_state_update_hardware_base_after_instruction(state, instruction);
+    platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
     platform_state_update_app_base_after_instruction(state, instruction);
     platform_state_update_layout_base_after_instruction(state, instruction);
     return;
@@ -4442,7 +4645,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
           platform_state_clear_register(state, reg_index);
       }
     }
-    platform_state_update_hardware_base_after_instruction(state, instruction);
+    platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
     platform_state_update_app_base_after_instruction(state, instruction);
     platform_state_update_layout_base_after_instruction(state, instruction);
     return;
@@ -4496,7 +4699,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
       platform_state_clear_register(state, 6U);
     }
   }
-  platform_state_update_hardware_base_after_instruction(state, instruction);
+  platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
   platform_state_update_app_base_after_instruction(state, instruction);
   platform_state_update_layout_base_after_instruction(state, instruction);
 }
@@ -4596,9 +4799,12 @@ static int structured_data_item_is_render_candidate(const M68kRenderLookup *look
       ownership.structured_item != item) {
     return 0;
   }
+  /* Once labels are planned, only emitted declarations split presentation.
+   * Keep non-emitting analysis labels as evidence without making them hidden
+   * source boundaries. Relocations, code and structured owners still block. */
   for (probe = offset + 1U; probe < offset + item->size; ++probe) {
     if (accepted_byte_at(section, accepted_bytes, probe) ||
-        lookup_structured_item_probe_has_blocking_boundary(lookup, item, section->section_index, probe)) {
+        lookup_structured_item_probe_has_blocking_boundary(lookup, item, section->section_index, probe, plan == NULL)) {
       return 0;
     }
     if (plan != NULL && m68k_render_plan_find_label(plan, (uint32_t)section->section_index, probe) != NULL) {
@@ -5003,6 +5209,40 @@ static int plan_rendered_structured_pointer_expressions(M68kRenderLookup *lookup
       ++offset;
     }
   }
+  /* Plan explicit scalar pointer contracts independently of covering ranges.
+   * Anchors and inferred tables may advance the ownership walk past these
+   * fields, but must not erase their domain-aware resolution decisions. */
+  if (lookup->policy != NULL) {
+    size_t item_index;
+    for (item_index = 0U; item_index < lookup->policy->structured_data_item_count; ++item_index) {
+      const M68kAnalysisStructuredDataItem *field = &lookup->policy->structured_data_items[item_index];
+      const M68kDecodeSectionIR *section;
+      const M68kRenderPlannedExpression *existing;
+      M68kRenderPlannedExpression expression;
+      uint32_t field_section = field->has_section_index ? field->section_index : 0U;
+      uint32_t byte_index;
+      int code_overlap = 0;
+      if (!field->is_pointer || field->size != 4U || field_section >= decode->section_count) continue;
+      section = &decode->sections[field_section];
+      if (field->offset > section->size || section->size - field->offset < 4U ||
+          lookup_relocation_at(lookup, field_section, field->offset) != NULL) continue;
+      for (byte_index = 0U; byte_index < 4U; ++byte_index) {
+        if (accepted_byte_at(section, accepted_bytes[field_section], field->offset + byte_index)) code_overlap = 1;
+      }
+      if (code_overlap) continue;
+      if (resolve_rendered_data_pointer_expression(lookup, section, field, field->offset, 0U,
+          decode, accepted_start, &expression) == M68K_RENDER_PLANNED_EXPRESSION_INVALID) return -1;
+      existing = m68k_render_plan_find_expression(plan, field_section, field->offset, UINT32_MAX,
+        M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY);
+      if (existing == NULL) existing = m68k_render_plan_find_expression(plan, field_section, field->offset,
+        UINT32_MAX, M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER);
+      if (existing != NULL) {
+        size_t expression_index = (size_t)(existing - plan->expressions);
+        expression.kind = existing->kind;
+        plan->expressions[expression_index] = expression;
+      } else if (m68k_render_plan_append_expression(plan, &expression) != 0) return -1;
+    }
+  }
   return 0;
 }
 
@@ -5024,6 +5264,10 @@ static const M68kPlatformAddressUseIR *source_analysis_hardware_register_use_for
     const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
     uint16_t base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
     uint32_t register_offset = 0U;
+    if (use->offset == offset && use->operand_index == operand_index &&
+        use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY &&
+        use->relative_register_offset == displacement && use->relative_base_offset_count != 0U)
+      return use;
     if (use->offset != offset ||
         use->operand_index != operand_index ||
         use->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS ||
@@ -5157,27 +5401,72 @@ static const char *manual_representation_symbol_name(const M68kRenderLookup *loo
   return policy->target_equates[representation->target_equate_index - 1U].name;
 }
 
-static void apply_manual_operand_representations(const M68kRenderLookup *lookup, size_t section_index,
+static int apply_manual_operand_representations(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
-  if (instruction == NULL) return;
+  if (instruction == NULL) return -1;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kAnalysisManualRepresentation *representation;
     uint32_t value = 0U;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
+    int32_t indexed_displacement = 0;
+    int is_indexed_displacement = m68k_ir_operand_brief_index_displacement(operand, &indexed_displacement);
     int is_immediate = m68k_ir_operand_immediate_value(operand, &value);
     int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
     int is_absolute = operand_absolute_offset_local(operand, &value);
+    representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+    if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
+      char field[96];
+      const char *symbol;
+      if (!is_base_displacement || displacement < 0 ||
+          representation->hardware_offset_base_id > UINT16_MAX ||
+          (uint32_t)displacement != representation->hardware_register_offset) return -1;
+      symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        (uint16_t)representation->hardware_offset_base_id, representation->hardware_register_offset,
+        field, sizeof(field));
+      if (symbol == NULL) return -1;
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.has_name = 1U;
+      snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol);
+      continue;
+    }
+    if (representation != NULL && representation->has_source_symbol) {
+      uint32_t rendered_value = representation->source_symbol_offset;
+      uint32_t runtime_value = 0U;
+      int runtime_view;
+      if ((!is_immediate && !is_absolute) || lookup == NULL ||
+          representation->source_symbol_section >= lookup->section_count ||
+          representation->source_symbol_offset >= lookup->label_extents[representation->source_symbol_section]) return -1;
+      runtime_view = lookup_source_should_render_runtime_label(lookup, representation->source_symbol_section,
+        representation->source_symbol_offset, &runtime_value);
+      if (runtime_view) rendered_value = runtime_value;
+      if (!!runtime_view != !!representation->source_symbol_runtime_view ||
+          rendered_value != representation->source_symbol_value || value != rendered_value) return -1;
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.has_name = 1U;
+      operand->symbol_ref.has_section = 1U;
+      operand->symbol_ref.has_section_offset = 1U;
+      operand->symbol_ref.section_index = representation->source_symbol_section;
+      operand->symbol_ref.section_offset = representation->source_symbol_offset;
+      operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+      (void)format_rendered_asm_label_with_generation(lookup, operand->symbol_ref.name,
+        sizeof(operand->symbol_ref.name), representation->source_symbol_section, representation->source_symbol_offset);
+      continue;
+    }
     if ((operand->symbol_ref.has_name != 0U &&
           (!is_absolute || operand->symbol_ref.name_is_generated == 0U)) ||
-        (!is_immediate && !is_base_displacement && !is_absolute)) continue;
+        (!is_immediate && !is_base_displacement && !is_absolute && !is_indexed_displacement)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
     if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
       const char *symbol_name = manual_representation_symbol_name(lookup, representation);
       if (symbol_name == NULL || !asm_symbol_name_is_safe_local(symbol_name)) continue;
+      if (is_indexed_displacement && (lookup == NULL || lookup->policy == NULL ||
+          representation->target_equate_index == 0U ||
+          representation->target_equate_index > lookup->policy->target_equate_count ||
+          lookup->policy->target_equates[representation->target_equate_index - 1U].value != indexed_displacement)) return -1;
       if (is_absolute && (lookup == NULL || lookup->policy == NULL ||
           representation->target_equate_index == 0U ||
           representation->target_equate_index > lookup->policy->target_equate_count ||
@@ -5194,6 +5483,7 @@ static void apply_manual_operand_representations(const M68kRenderLookup *lookup,
     if (!is_immediate) continue;
     operand->manual_representation_style_id = representation->style_id;
   }
+  return 0;
 }
 
 static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id);
@@ -5533,10 +5823,15 @@ static int instruction_writes_data_unknown_for_state(const M68kInstructionIR *in
 
 void platform_state_update_data_lvo_after_instruction(M68kRenderPlatformState *state,
     const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
   int16_t lvo = 0;
   uint8_t reg = 0U;
   uint8_t reg_index;
   if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  /* The following platform-state transfer exchanges all register contexts
+   * together. Do not erase one source before that simultaneous transfer. */
+  if (metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP) return;
   if (instruction_loads_data_immediate(instruction, &reg, &lvo) && lvo < 0) {
     m68k_bitset_u32_set(&state->data_lvo_known, reg);
     state->data_lvo[reg] = lvo;
@@ -7785,14 +8080,14 @@ static int lookup_has_render_walk_data_split_boundary(const M68kRenderLookup *lo
 }
 
 static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLookup *lookup,
-    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe) {
+    const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe, int include_labels) {
   uint16_t boundary_flags = render_lookup_boundary_flags(lookup, section_index, probe);
   if ((boundary_flags & (M68K_RENDER_BOUNDARY_RELOCATION | M68K_RENDER_BOUNDARY_ANCHOR |
         (structured_data_item_is_multiline_text(structured_item) ? 0U : M68K_RENDER_BOUNDARY_STRING_SPAN))) != 0U)
     return 1;
   if (lookup_has_structured_data_start_boundary(lookup, section_index, probe, boundary_flags))
     return 1;
-  if ((boundary_flags & M68K_RENDER_BOUNDARY_LABEL) != 0U &&
+  if (include_labels && (boundary_flags & M68K_RENDER_BOUNDARY_LABEL) != 0U &&
       lookup_has_renderable_label(lookup, section_index, probe)) {
     int internal_copper_label =
       structured_data_item_is_copper_list(structured_item) &&
@@ -10311,7 +10606,7 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
       (void)attach_amiga_app_base_slot_symbols(lookup, &platform_state, section->section_index, candidate->offset,
         &instruction);
       (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
-      apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction);
+      if (apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction) != 0) return -1;
       if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return -1;
       apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
       if (!instruction_has_noncanonical_byte_immediate_extension(&instruction, section->data + candidate->offset,
@@ -10925,42 +11220,55 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
         representation->target_equate_index != 0U) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     }
-    relocation = candidate_relocation_for_operand(lookup, section_index, candidate, operand_index);
-    control_target = candidate_control_target_for_operand(candidate, operand_index);
-    if (control_target != NULL) {
-      access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
-      if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
-        access.target_section_index = (uint32_t)relocation->target_section_index;
-        access.target_offset = relocation->target_offset;
+    /* An EQU is a value identity, not a source-address assertion. In
+     * particular, runtime-only scratch aliases must not inherit the decoder's
+     * coincident numeric file offset from a suppressed load view. */
+    relocation = NULL;
+    if (access.access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE) {
+      relocation = candidate_relocation_for_operand(lookup, section_index, candidate, operand_index);
+      control_target = candidate_control_target_for_operand(candidate, operand_index);
+      if (control_target != NULL) {
+        access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
+        /* The attached operand has already resolved the execution view. Decode
+         * targets retain their original coordinates and must not re-project an
+         * encoded absolute address as a source offset in copied images. */
+        if (operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
+            operand->symbol_ref.section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
+          access.target_offset = operand->symbol_ref.section_offset;
+        } else if (relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)relocation->target_section_index;
+          access.target_offset = relocation->target_offset;
+        } else {
+          access.target_section_index = (uint32_t)control_target->section_index;
+          access.target_offset = control_target->offset;
+        }
+        access.has_target = 1U;
       } else {
-        access.target_section_index = (uint32_t)control_target->section_index;
-        access.target_offset = control_target->offset;
+        data_target = candidate_data_target_for_operand(candidate, operand_index);
+        if (data_target != NULL && data_target->section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)data_target->section_index;
+          access.target_offset = data_target->offset;
+          access.has_target = 1U;
+        }
+        if (!access.has_target && relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
+          access.target_section_index = (uint32_t)relocation->target_section_index;
+          access.target_offset = relocation->target_offset;
+          access.has_target = 1U;
+        }
       }
-      access.has_target = 1U;
-    } else {
-      data_target = candidate_data_target_for_operand(candidate, operand_index);
-      if (data_target != NULL && data_target->section_index <= UINT32_MAX) {
-        access.target_section_index = (uint32_t)data_target->section_index;
-        access.target_offset = data_target->offset;
+      if (!access.has_target && operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
+          operand->symbol_ref.section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
+        access.target_offset = operand->symbol_ref.section_offset;
         access.has_target = 1U;
       }
-      if (!access.has_target && relocation != NULL && relocation->target_section_index <= UINT32_MAX) {
-        access.target_section_index = (uint32_t)relocation->target_section_index;
-        access.target_offset = relocation->target_offset;
+      runtime_ref = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
+      if (!access.has_target && runtime_ref != NULL && runtime_ref->target_section_index <= UINT32_MAX) {
+        access.target_section_index = (uint32_t)runtime_ref->target_section_index;
+        access.target_offset = runtime_ref->target_offset;
         access.has_target = 1U;
       }
-    }
-    if (!access.has_target && operand->symbol_ref.has_section && operand->symbol_ref.has_section_offset &&
-        operand->symbol_ref.section_index <= UINT32_MAX) {
-      access.target_section_index = (uint32_t)operand->symbol_ref.section_index;
-      access.target_offset = operand->symbol_ref.section_offset;
-      access.has_target = 1U;
-    }
-    runtime_ref = lookup_runtime_address_ref_for_operand(lookup, section_index, candidate->offset, operand_index);
-    if (!access.has_target && runtime_ref != NULL && runtime_ref->target_section_index <= UINT32_MAX) {
-      access.target_section_index = (uint32_t)runtime_ref->target_section_index;
-      access.target_offset = runtime_ref->target_offset;
-      access.has_target = 1U;
     }
     if (append_rendered_instruction_expression(preview, section_index, candidate, source_analysis,
         &access, relocation != NULL) != 0)

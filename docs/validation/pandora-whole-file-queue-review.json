@@ -1,0 +1,450 @@
+{
+  "baseline_commit": "0f7c34b24c6f315e0db60ade2fa23071ce4f2070",
+  "prequeue_accepted": [
+    "P08",
+    "P09",
+    "P10",
+    "P11",
+    "P20",
+    "P21"
+  ],
+  "checkpoints": {
+    "frame-render": {
+      "proposals": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "A01",
+        "A02",
+        "A03",
+        "A04"
+      ],
+      "actions": 21,
+      "tests_passed": 31,
+      "receipt": "eb91ecd72b044faceceae766874e033a98b4aeca03e55bf73110d461987e5dbb",
+      "source_sha256": "66e6b10e4c697ab551ffbf50ddca9121ba83087d29e6ee0ad628992d156f8b21",
+      "original_size": 376832,
+      "C_and_vasm_exact": true,
+      "accepted_revision": "930667fbff78b4216a174f4f6d155209bf6a17e1cb5dced83235d5f1bc7829a7"
+    },
+    "security-status": {
+      "proposals": [
+        "P19",
+        "P22",
+        "P23",
+        "P24",
+        "P25",
+        "P26",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14"
+      ],
+      "actions": 19,
+      "tests_passed": 12,
+      "receipt": "74f57913663fe635ffaaa39f5cdf90acaa2ebc9755f0ada9c6e6ad5b5dd6d28a",
+      "source_sha256": "7ae6d083566977a5c57acc5ff9da07ac56b8b2c74d8f3ffad2785efb44c33930",
+      "original_size": 376832,
+      "C_and_vasm_exact": true,
+      "accepted_revision": "bdb2419de723c59bf3fc55397f1bc47d839c66e5c7a1adad6a74aebe7527ce58"
+    },
+    "audio": {
+      "proposals": [
+        "P30",
+        "P31",
+        "P32",
+        "P33",
+        "P27",
+        "P29",
+        "P28",
+        "P34"
+      ],
+      "actions": 38,
+      "tests_passed": 8,
+      "receipt": "8468e10602be39da44d6c5e5e8f1d5aadbad892da268de81768da64dd7082f40",
+      "source_sha256": "e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b",
+      "original_size": 376832,
+      "C_and_vasm_exact": true,
+      "accepted_revision": "b295d7fbd8cd67a87e325fe62dbc3d5df7ddb670247392ba58c9db2b1b882548"
+    }
+  },
+  "proposals": {
+    "P01": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "apply_gameplay_overlay_palette_and_arm_lower_split"
+      ]
+    },
+    "P02": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "apply_ticker_highlight_colors_and_arm_frame_end"
+      ]
+    },
+    "P03": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "latch_last_gameplay_copper_split"
+      ],
+      "unapplied_components": "Bit7 purpose retained in function identity; existing bit5/bit7 distinction preserved. No unused flag equate added."
+    },
+    "P04": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "update_title_frame_palette_and_rotate_gradient"
+      ]
+    },
+    "P05": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "run_title_starfield_until_fire"
+      ]
+    },
+    "P06": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "advance_active_descriptor_animation_chains"
+      ]
+    },
+    "P07": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "run_eligible_world_object_scripts"
+      ],
+      "unapplied_components": "Existing mask$42 retained; not split into newly asserted global semantic flags."
+    },
+    "P12": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "draw_ui_overlay_text_lines",
+        "entry A5:ui_overlay_descriptor"
+      ]
+    },
+    "P13": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "redraw_ui_overlay_selected_line_proportional",
+        "entry A5:ui_overlay_descriptor"
+      ]
+    },
+    "P14": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "blit_tile_pointer_rectangle_to_buffer"
+      ],
+      "unapplied_components": "Full register contracts and DMA/source bounds deferred: partial WORD saves and asynchronous device effects are not encoded as complete preservation claims."
+    },
+    "P15": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "blit_masked_frame_aligned_word_four_planes"
+      ],
+      "unapplied_components": "Full register contracts and DMA/source bounds deferred: partial WORD saves and asynchronous device effects are not encoded as complete preservation claims."
+    },
+    "P16": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "blit_masked_frame_shifted_two_words_four_planes"
+      ],
+      "unapplied_components": "Full register contracts and DMA/source bounds deferred: partial WORD saves and asynchronous device effects are not encoded as complete preservation claims."
+    },
+    "P17": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "initialize_scene_and_animation_mask_banks"
+      ]
+    },
+    "P18": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "draw_title_glyph_string",
+        "draw_title_glyph"
+      ]
+    },
+    "P19": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "selected_id_card_clearance_tiers"
+      ],
+      "unapplied_components": "Existing six-byte security table remains six entries, distinct from eight-card terminal display domain."
+    },
+    "P22": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "ranged_weapon_health_damage",
+        "ranged_weapon_item_state_damage"
+      ]
+    },
+    "P23": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "snapshot_inventory_cursor_and_clear_hidden_latch"
+      ]
+    },
+    "P24": {
+      "status": "accepted_supported_name",
+      "change_kind": "validated_spacing_measure_semantics",
+      "changes": [
+        "measure_status_message_spacing_units"
+      ],
+      "evidence": "12 bounded status/deposit cases: D0 counts space runs plus one if any nonspace precedes NUL/CR; not character count or ordinary word count.",
+      "unapplied_components": "No complete register contract or arbitrary-length/no-wrap guarantee."
+    },
+    "P25": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "dequeue_status_message",
+        "service_status_message_duration"
+      ]
+    },
+    "P26": {
+      "status": "accepted_supported_name",
+      "change_kind": "structured_naming_of_existing_behavior",
+      "changes": [
+        "draw_status_message_line",
+        "clear_status_message_band"
+      ],
+      "unapplied_components": "1280-byte clear ends at hit snapshot; no new exclusive bitmap allocation/lifetime region."
+    },
+    "P27": {
+      "status": "accepted_formalization",
+      "changes": [
+        "validate_self_destruct_qualifying_card_count"
+      ],
+      "change_kind": "already_documented_behavior_not_new_discovery",
+      "unapplied_components": "No card order, duplicate rejection or new validation behavior inferred."
+    },
+    "P28": {
+      "status": "already_known",
+      "reason": "Shared longword and positive-X overlay behavior already documented. Preserve both identities; no destructive field rename or unsupported overlapping layout added.",
+      "unapplied_components": "A separate non-destructive extended-node/alias view still needs supported representation and lifetime evidence; no new semantic discovery."
+    },
+    "P29": {
+      "status": "rejected",
+      "reason": "Literal-selector wrapper restyling adds no independently established sound/behavior meaning. Existing wrapper bodies already expose exact packed selectors; avoid mechanical hex-name churn."
+    },
+    "P30": {
+      "status": "accepted",
+      "changes": [
+        "audio_control_opcode_handler_offsets"
+      ],
+      "change_kind": "new_relative_handler_references",
+      "unapplied_components": "No total decoder bound beyond11 entries; no unused opcode equates added.",
+      "mechanism": "Eleven explicit per-member signed reference actions; array typing alone does not propagate reference intent."
+    },
+    "P31": {
+      "status": "accepted",
+      "changes": [
+        "audio_global_transpose_minus1",
+        "audio_global_transpose_zero",
+        "audio_global_transpose_plus1",
+        "audio_global_transpose_plus2",
+        "audio_global_transpose_plus3",
+        "audio_channel_transpose_minus1",
+        "audio_channel_transpose_minus2",
+        "audio_channel_transpose_minus3"
+      ],
+      "change_kind": "new_shared_command_schema_and_validated_signed_offset_roles",
+      "unapplied_components": "Raw opcode bytes remain exact; no broad program decoder or arbitrary replacement-stream bounds."
+    },
+    "P32": {
+      "status": "accepted",
+      "changes": [
+        "audio_effect_channel_index",
+        "audio_effect_configuration_index"
+      ],
+      "change_kind": "corrected_packed_selector_field_roles",
+      "unapplied_components": "Configuration byte is signed by EXT.W; channel/configuration domains are intended original selections, not runtime guards."
+    },
+    "P33": {
+      "status": "accepted_refined",
+      "changes": [
+        "advance_audio_shift_state",
+        "audio_shift_state_words"
+      ],
+      "change_kind": "mutable_WORD_shift_state",
+      "rejected_component": "Noise/PRNG/polynomial purpose unproved: no independent downstream consumer established."
+    },
+    "P34": {
+      "status": "already_known",
+      "reason": "Canonical source already has six explicit signed envelope-base expressions, named targets,29 selector-domain coverage and a bounds warning. Repeating that evidence or renaming only the table is not new restoration."
+    },
+    "A01": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ticker_highlight_rgb12"
+      ]
+    },
+    "A02": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_tile_pointer_grid_byte_size"
+      ]
+    },
+    "A03": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_tile_pointer_grid_end"
+      ]
+    },
+    "A04": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_tile_pointer_grid_row_stride_bytes"
+      ]
+    },
+    "A05": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_player_security_zone_tier"
+      ]
+    },
+    "A06": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_damage_flash_ticks_remaining"
+      ]
+    },
+    "A07": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_checkpoint_response_active"
+      ]
+    },
+    "A08": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_damage_service_countdown"
+      ]
+    },
+    "A09": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_security_saved_palette_color"
+      ]
+    },
+    "A10": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_terminal_deposited_item_ids"
+      ],
+      "limits": "64-byte reset extent is established; insertion scans until zero without a local bound and can write app+$31A. Existing adjacent modal-selection byte is preserved in the layout."
+    },
+    "A11": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ranged_weapon_fire_latched"
+      ]
+    },
+    "A12": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ranged_hit_visual_ticks_remaining"
+      ]
+    },
+    "A13": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_ranged_weapon_variant_index"
+      ]
+    },
+    "A14": {
+      "status": "accepted",
+      "change_kind": "new_durable_app_role",
+      "changes": [
+        "app_status_message_service_ticks_remaining"
+      ]
+    }
+  },
+  "counts": {
+    "accepted_supported_name": 20,
+    "accepted_formalization": 1,
+    "already_known": 2,
+    "rejected": 1,
+    "accepted": 17,
+    "accepted_refined": 1
+  },
+  "remaining_queue_outcome": {
+    "reviewed": 42,
+    "accepted_wholly_or_partly": 39,
+    "rejected": 1,
+    "already_known_no_change": 2,
+    "pending": 0
+  },
+  "overall_proposal_outcome": {
+    "reviewed": 48,
+    "accepted_wholly_or_partly": 45,
+    "rejected": 1,
+    "already_known_no_change": 2
+  },
+  "total_queue_actions": 78,
+  "formalization_note": "Accepted names often formalize previously visible/documented behavior. P27 is explicitly formalization, not discovery; P28/P34 remain known with no change. Counts measure proposal disposition, not new discoveries.",
+  "remaining_genuine_gaps": [
+    "Non-destructive typed positive-X node/field overlay and its alias lifetimes remain unmaterialized; preserve both identities.",
+    "Full blitter register contracts and asynchronous DMA/callback/framebuffer/snapshot phase ownership remain unproved.",
+    "Original empty-deferred, terminal first-zero scan, and audio out-of-domain selector paths have no general local bound; known storage extents are not safety proofs.",
+    "Noise/PRNG purpose for the two shift words lacks independent consumer evidence."
+  ],
+  "recommended_next_restoration_step": "Resume broad object-state/animation and selector/scan semantics through native ownership gaps. Preserve positive-X overlapping identities and source938E numeric effects. Shared-tail alias remains a relocation blocker; return when a concrete loader/indirect caller/callback reaches its palette prefix, rather than extending gameplay-route probes. Fix CLR predecrement separately before affected stack traces.",
+  "moveq_render_followup": {
+    "moveq": "Fixed general signed immediate normalization from existing KB metadata in abstract and concrete execution; no target byte changes.",
+    "cpu_tests": "49 passed, 1004 subtests; exhaustive MOVEQ loop covers 4096 register/byte/CCR combinations. Final combined Pandora suite 47 passed, including four rendering-order cases.",
+    "verification_receipt": "427ef725d9a438c6d4c8824cd6f97034b5e30491df15dc533ea35e6eb0241561",
+    "source_sha256": "e53a9c87ec70b043cb43f3d2823cd257c81bbb7c230719cd83ac2735785ccc7b",
+    "limits": "Explicit MMIO inputs, no DMA execution or cold-start reachability proof. Direct restore has three static callers; queue processor has no named direct references, which does not prove unreachability."
+  },
+  "shared_tail_followup": {
+    "contract": "docs/validation/pandora-shared-tail-contract.json",
+    "native_inventory": "docs/validation/pandora-shared-tail-native.json",
+    "scope": "2690 typed pointer fields and all10 named palette calls enumerated; three native pointer/frame obligations remain open. No new runtime probe or allocation proof.",
+    "validation": "49 focused passed,1 strict expected CLR-predecrement failure; C/vasm exact receipt2b9309586da1e127a81e515c9892e7b33bb4fddaa4ffea8aab42d7fea78c7b1a."
+  }
+}

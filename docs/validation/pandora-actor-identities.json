@@ -1,0 +1,3668 @@
+{
+  "input_head": "14bbb400fa11216f6e7da053daa0d61c65dd0b61",
+  "input_sha256": "838ca60c821fd56a04fe39852d12af9aa1fcc9f4c75870028f5d7594456639fc",
+  "corrections": [
+    {
+      "old": "pianist",
+      "new": "secdroid_alpha_1",
+      "object_source_offset": 309862,
+      "item_id": 83,
+      "display_name": "Secdroid ALPHA 1",
+      "name_source_offset": 42392,
+      "script_source_offset": 7866,
+      "linked_record_intervals": [
+        [
+          310906,
+          310918
+        ],
+        [
+          310660,
+          310686
+        ],
+        [
+          310642,
+          310660
+        ],
+        [
+          310918,
+          310944
+        ],
+        [
+          310944,
+          310970
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_pianist",
+          "start": 309862,
+          "end": 309946,
+          "role": "world_object_record"
+        },
+        {
+          "name": "pianist_inventory_slots",
+          "start": 45312,
+          "end": 45320,
+          "role": "data"
+        },
+        {
+          "name": "pianist_initial_inventory_slots",
+          "start": 45320,
+          "end": 45328,
+          "role": "data"
+        },
+        {
+          "name": "world_object_pianist_behavior_script",
+          "start": 7866,
+          "end": 8066,
+          "role": "world_behavior_script"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 7866,
+          "old": "world_object_pianist_behavior_script",
+          "new": "world_object_secdroid_alpha_1_behavior_script"
+        },
+        {
+          "source_offset": 7872,
+          "old": "pianist_script_command_0006",
+          "new": "secdroid_alpha_1_script_command_0006"
+        },
+        {
+          "source_offset": 7876,
+          "old": "pianist_script_command_000A",
+          "new": "secdroid_alpha_1_script_command_000A"
+        },
+        {
+          "source_offset": 7886,
+          "old": "pianist_script_command_0014",
+          "new": "secdroid_alpha_1_script_command_0014"
+        },
+        {
+          "source_offset": 7888,
+          "old": "pianist_script_command_0014_operand_word",
+          "new": "secdroid_alpha_1_script_command_0014_operand_word"
+        },
+        {
+          "source_offset": 7890,
+          "old": "pianist_script_command_0018",
+          "new": "secdroid_alpha_1_script_command_0018"
+        },
+        {
+          "source_offset": 7894,
+          "old": "pianist_script_command_001C",
+          "new": "secdroid_alpha_1_script_command_001C"
+        },
+        {
+          "source_offset": 7898,
+          "old": "pianist_script_command_0020",
+          "new": "secdroid_alpha_1_script_command_0020"
+        },
+        {
+          "source_offset": 7900,
+          "old": "pianist_script_command_0020_reload_count",
+          "new": "secdroid_alpha_1_script_command_0020_reload_count"
+        },
+        {
+          "source_offset": 7906,
+          "old": "pianist_script_command_0028",
+          "new": "secdroid_alpha_1_script_command_0028"
+        },
+        {
+          "source_offset": 7916,
+          "old": "pianist_script_command_0032",
+          "new": "secdroid_alpha_1_script_command_0032"
+        },
+        {
+          "source_offset": 7918,
+          "old": "pianist_script_command_0032_operand_word",
+          "new": "secdroid_alpha_1_script_command_0032_operand_word"
+        },
+        {
+          "source_offset": 7920,
+          "old": "pianist_script_command_0036",
+          "new": "secdroid_alpha_1_script_command_0036"
+        },
+        {
+          "source_offset": 7924,
+          "old": "pianist_script_command_003A",
+          "new": "secdroid_alpha_1_script_command_003A"
+        },
+        {
+          "source_offset": 7928,
+          "old": "pianist_script_command_003E",
+          "new": "secdroid_alpha_1_script_command_003E"
+        },
+        {
+          "source_offset": 7930,
+          "old": "pianist_script_command_003E_reload_count",
+          "new": "secdroid_alpha_1_script_command_003E_reload_count"
+        },
+        {
+          "source_offset": 7936,
+          "old": "pianist_script_command_0046",
+          "new": "secdroid_alpha_1_script_command_0046"
+        },
+        {
+          "source_offset": 7946,
+          "old": "pianist_script_command_0050",
+          "new": "secdroid_alpha_1_script_command_0050"
+        },
+        {
+          "source_offset": 7948,
+          "old": "pianist_script_command_0050_operand_word",
+          "new": "secdroid_alpha_1_script_command_0050_operand_word"
+        },
+        {
+          "source_offset": 7950,
+          "old": "pianist_script_command_0054",
+          "new": "secdroid_alpha_1_script_command_0054"
+        },
+        {
+          "source_offset": 7954,
+          "old": "pianist_script_command_0058",
+          "new": "secdroid_alpha_1_script_command_0058"
+        },
+        {
+          "source_offset": 7958,
+          "old": "pianist_script_command_005C",
+          "new": "secdroid_alpha_1_script_command_005C"
+        },
+        {
+          "source_offset": 7960,
+          "old": "pianist_script_command_005C_reload_count",
+          "new": "secdroid_alpha_1_script_command_005C_reload_count"
+        },
+        {
+          "source_offset": 7966,
+          "old": "pianist_script_command_0064",
+          "new": "secdroid_alpha_1_script_command_0064"
+        },
+        {
+          "source_offset": 7976,
+          "old": "pianist_script_command_006E",
+          "new": "secdroid_alpha_1_script_command_006E"
+        },
+        {
+          "source_offset": 7980,
+          "old": "pianist_script_command_0072",
+          "new": "secdroid_alpha_1_script_command_0072"
+        },
+        {
+          "source_offset": 7982,
+          "old": "pianist_script_command_0072_operand_word",
+          "new": "secdroid_alpha_1_script_command_0072_operand_word"
+        },
+        {
+          "source_offset": 7984,
+          "old": "pianist_script_command_0076",
+          "new": "secdroid_alpha_1_script_command_0076"
+        },
+        {
+          "source_offset": 7988,
+          "old": "pianist_script_command_007A",
+          "new": "secdroid_alpha_1_script_command_007A"
+        },
+        {
+          "source_offset": 7992,
+          "old": "pianist_script_command_007E",
+          "new": "secdroid_alpha_1_script_command_007E"
+        },
+        {
+          "source_offset": 7994,
+          "old": "pianist_script_command_007E_reload_count",
+          "new": "secdroid_alpha_1_script_command_007E_reload_count"
+        },
+        {
+          "source_offset": 8000,
+          "old": "pianist_script_command_0086",
+          "new": "secdroid_alpha_1_script_command_0086"
+        },
+        {
+          "source_offset": 8010,
+          "old": "pianist_script_command_0090",
+          "new": "secdroid_alpha_1_script_command_0090"
+        },
+        {
+          "source_offset": 8012,
+          "old": "pianist_script_command_0090_operand_word",
+          "new": "secdroid_alpha_1_script_command_0090_operand_word"
+        },
+        {
+          "source_offset": 8014,
+          "old": "pianist_script_command_0094",
+          "new": "secdroid_alpha_1_script_command_0094"
+        },
+        {
+          "source_offset": 8018,
+          "old": "pianist_script_command_0098",
+          "new": "secdroid_alpha_1_script_command_0098"
+        },
+        {
+          "source_offset": 8022,
+          "old": "pianist_script_command_009C",
+          "new": "secdroid_alpha_1_script_command_009C"
+        },
+        {
+          "source_offset": 8024,
+          "old": "pianist_script_command_009C_reload_count",
+          "new": "secdroid_alpha_1_script_command_009C_reload_count"
+        },
+        {
+          "source_offset": 8030,
+          "old": "pianist_script_command_00A4",
+          "new": "secdroid_alpha_1_script_command_00A4"
+        },
+        {
+          "source_offset": 8040,
+          "old": "pianist_script_command_00AE",
+          "new": "secdroid_alpha_1_script_command_00AE"
+        },
+        {
+          "source_offset": 8042,
+          "old": "pianist_script_command_00AE_operand_word",
+          "new": "secdroid_alpha_1_script_command_00AE_operand_word"
+        },
+        {
+          "source_offset": 8044,
+          "old": "pianist_script_command_00B2",
+          "new": "secdroid_alpha_1_script_command_00B2"
+        },
+        {
+          "source_offset": 8048,
+          "old": "pianist_script_command_00B6",
+          "new": "secdroid_alpha_1_script_command_00B6"
+        },
+        {
+          "source_offset": 8052,
+          "old": "pianist_script_command_00BA",
+          "new": "secdroid_alpha_1_script_command_00BA"
+        },
+        {
+          "source_offset": 8054,
+          "old": "pianist_script_command_00BA_reload_count",
+          "new": "secdroid_alpha_1_script_command_00BA_reload_count"
+        },
+        {
+          "source_offset": 8060,
+          "old": "pianist_script_command_00C2",
+          "new": "secdroid_alpha_1_script_command_00C2"
+        },
+        {
+          "source_offset": 45312,
+          "old": "pianist_inventory_slots",
+          "new": "secdroid_alpha_1_inventory_slots"
+        },
+        {
+          "source_offset": 45320,
+          "old": "pianist_initial_inventory_slots",
+          "new": "secdroid_alpha_1_initial_inventory_slots"
+        },
+        {
+          "source_offset": 309862,
+          "old": "world_object_pianist",
+          "new": "world_object_secdroid_alpha_1"
+        },
+        {
+          "source_offset": 309916,
+          "old": "world_object_pianist_gap_36",
+          "new": "world_object_secdroid_alpha_1_gap_36"
+        },
+        {
+          "source_offset": 309926,
+          "old": "world_object_pianist_gap_40",
+          "new": "world_object_secdroid_alpha_1_gap_40"
+        },
+        {
+          "source_offset": 310660,
+          "old": "pianist_saved_position_state",
+          "new": "secdroid_alpha_1_saved_position_state"
+        },
+        {
+          "source_offset": 310918,
+          "old": "pianist_primary_position_state",
+          "new": "secdroid_alpha_1_primary_position_state"
+        },
+        {
+          "source_offset": 310944,
+          "old": "pianist_attachment_position_state",
+          "new": "secdroid_alpha_1_attachment_position_state"
+        }
+      ]
+    },
+    {
+      "old": "wackobrain",
+      "new": "secdroid_delta_2",
+      "object_source_offset": 310030,
+      "item_id": 88,
+      "display_name": "Secdroid DELTA 2",
+      "name_source_offset": 42443,
+      "script_source_offset": 8266,
+      "linked_record_intervals": [
+        [
+          311034,
+          311046
+        ],
+        [
+          310748,
+          310774
+        ],
+        [
+          310730,
+          310748
+        ],
+        [
+          311046,
+          311072
+        ],
+        [
+          311072,
+          311098
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_wackobrain",
+          "start": 310030,
+          "end": 310114,
+          "role": "world_object_record"
+        },
+        {
+          "name": "wackobrain_inventory_slots",
+          "start": 45456,
+          "end": 45464,
+          "role": "data"
+        },
+        {
+          "name": "wackobrain_initial_inventory_slots",
+          "start": 45464,
+          "end": 45472,
+          "role": "data"
+        },
+        {
+          "name": "world_object_wackobrain_behavior_script",
+          "start": 8266,
+          "end": 8426,
+          "role": "world_behavior_script"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 8266,
+          "old": "world_object_wackobrain_behavior_script",
+          "new": "world_object_secdroid_delta_2_behavior_script"
+        },
+        {
+          "source_offset": 8272,
+          "old": "wackobrain_script_command_0006",
+          "new": "secdroid_delta_2_script_command_0006"
+        },
+        {
+          "source_offset": 8276,
+          "old": "wackobrain_script_command_000A",
+          "new": "secdroid_delta_2_script_command_000A"
+        },
+        {
+          "source_offset": 8286,
+          "old": "wackobrain_script_command_0014",
+          "new": "secdroid_delta_2_script_command_0014"
+        },
+        {
+          "source_offset": 8288,
+          "old": "wackobrain_script_command_0014_operand_word",
+          "new": "secdroid_delta_2_script_command_0014_operand_word"
+        },
+        {
+          "source_offset": 8290,
+          "old": "wackobrain_script_command_0018",
+          "new": "secdroid_delta_2_script_command_0018"
+        },
+        {
+          "source_offset": 8294,
+          "old": "wackobrain_script_command_001C",
+          "new": "secdroid_delta_2_script_command_001C"
+        },
+        {
+          "source_offset": 8298,
+          "old": "wackobrain_script_command_0020",
+          "new": "secdroid_delta_2_script_command_0020"
+        },
+        {
+          "source_offset": 8300,
+          "old": "wackobrain_script_command_0020_reload_count",
+          "new": "secdroid_delta_2_script_command_0020_reload_count"
+        },
+        {
+          "source_offset": 8306,
+          "old": "wackobrain_script_command_0028",
+          "new": "secdroid_delta_2_script_command_0028"
+        },
+        {
+          "source_offset": 8308,
+          "old": "wackobrain_script_command_0028_operand_word",
+          "new": "secdroid_delta_2_script_command_0028_operand_word"
+        },
+        {
+          "source_offset": 8310,
+          "old": "wackobrain_script_command_002C",
+          "new": "secdroid_delta_2_script_command_002C"
+        },
+        {
+          "source_offset": 8314,
+          "old": "wackobrain_script_command_0030",
+          "new": "secdroid_delta_2_script_command_0030"
+        },
+        {
+          "source_offset": 8318,
+          "old": "wackobrain_script_command_0034",
+          "new": "secdroid_delta_2_script_command_0034"
+        },
+        {
+          "source_offset": 8320,
+          "old": "wackobrain_script_command_0034_reload_count",
+          "new": "secdroid_delta_2_script_command_0034_reload_count"
+        },
+        {
+          "source_offset": 8326,
+          "old": "wackobrain_script_command_003C",
+          "new": "secdroid_delta_2_script_command_003C"
+        },
+        {
+          "source_offset": 8328,
+          "old": "wackobrain_script_command_003C_operand_word",
+          "new": "secdroid_delta_2_script_command_003C_operand_word"
+        },
+        {
+          "source_offset": 8330,
+          "old": "wackobrain_script_command_0040",
+          "new": "secdroid_delta_2_script_command_0040"
+        },
+        {
+          "source_offset": 8334,
+          "old": "wackobrain_script_command_0044",
+          "new": "secdroid_delta_2_script_command_0044"
+        },
+        {
+          "source_offset": 8338,
+          "old": "wackobrain_script_command_0048",
+          "new": "secdroid_delta_2_script_command_0048"
+        },
+        {
+          "source_offset": 8340,
+          "old": "wackobrain_script_command_0048_reload_count",
+          "new": "secdroid_delta_2_script_command_0048_reload_count"
+        },
+        {
+          "source_offset": 8346,
+          "old": "wackobrain_script_command_0050",
+          "new": "secdroid_delta_2_script_command_0050"
+        },
+        {
+          "source_offset": 8350,
+          "old": "wackobrain_script_command_0054",
+          "new": "secdroid_delta_2_script_command_0054"
+        },
+        {
+          "source_offset": 8360,
+          "old": "wackobrain_script_command_005E",
+          "new": "secdroid_delta_2_script_command_005E"
+        },
+        {
+          "source_offset": 8362,
+          "old": "wackobrain_script_command_005E_operand_word",
+          "new": "secdroid_delta_2_script_command_005E_operand_word"
+        },
+        {
+          "source_offset": 8364,
+          "old": "wackobrain_script_command_0062",
+          "new": "secdroid_delta_2_script_command_0062"
+        },
+        {
+          "source_offset": 8368,
+          "old": "wackobrain_script_command_0066",
+          "new": "secdroid_delta_2_script_command_0066"
+        },
+        {
+          "source_offset": 8372,
+          "old": "wackobrain_script_command_006A",
+          "new": "secdroid_delta_2_script_command_006A"
+        },
+        {
+          "source_offset": 8374,
+          "old": "wackobrain_script_command_006A_reload_count",
+          "new": "secdroid_delta_2_script_command_006A_reload_count"
+        },
+        {
+          "source_offset": 8380,
+          "old": "wackobrain_script_command_0072",
+          "new": "secdroid_delta_2_script_command_0072"
+        },
+        {
+          "source_offset": 8382,
+          "old": "wackobrain_script_command_0072_operand_word",
+          "new": "secdroid_delta_2_script_command_0072_operand_word"
+        },
+        {
+          "source_offset": 8384,
+          "old": "wackobrain_script_command_0076",
+          "new": "secdroid_delta_2_script_command_0076"
+        },
+        {
+          "source_offset": 8388,
+          "old": "wackobrain_script_command_007A",
+          "new": "secdroid_delta_2_script_command_007A"
+        },
+        {
+          "source_offset": 8392,
+          "old": "wackobrain_script_command_007E",
+          "new": "secdroid_delta_2_script_command_007E"
+        },
+        {
+          "source_offset": 8394,
+          "old": "wackobrain_script_command_007E_reload_count",
+          "new": "secdroid_delta_2_script_command_007E_reload_count"
+        },
+        {
+          "source_offset": 8400,
+          "old": "wackobrain_script_command_0086",
+          "new": "secdroid_delta_2_script_command_0086"
+        },
+        {
+          "source_offset": 8402,
+          "old": "wackobrain_script_command_0086_operand_word",
+          "new": "secdroid_delta_2_script_command_0086_operand_word"
+        },
+        {
+          "source_offset": 8404,
+          "old": "wackobrain_script_command_008A",
+          "new": "secdroid_delta_2_script_command_008A"
+        },
+        {
+          "source_offset": 8408,
+          "old": "wackobrain_script_command_008E",
+          "new": "secdroid_delta_2_script_command_008E"
+        },
+        {
+          "source_offset": 8412,
+          "old": "wackobrain_script_command_0092",
+          "new": "secdroid_delta_2_script_command_0092"
+        },
+        {
+          "source_offset": 8414,
+          "old": "wackobrain_script_command_0092_reload_count",
+          "new": "secdroid_delta_2_script_command_0092_reload_count"
+        },
+        {
+          "source_offset": 8420,
+          "old": "wackobrain_script_command_009A",
+          "new": "secdroid_delta_2_script_command_009A"
+        },
+        {
+          "source_offset": 45456,
+          "old": "wackobrain_inventory_slots",
+          "new": "secdroid_delta_2_inventory_slots"
+        },
+        {
+          "source_offset": 45464,
+          "old": "wackobrain_initial_inventory_slots",
+          "new": "secdroid_delta_2_initial_inventory_slots"
+        },
+        {
+          "source_offset": 310030,
+          "old": "world_object_wackobrain",
+          "new": "world_object_secdroid_delta_2"
+        },
+        {
+          "source_offset": 310084,
+          "old": "world_object_wackobrain_gap_36",
+          "new": "world_object_secdroid_delta_2_gap_36"
+        },
+        {
+          "source_offset": 310094,
+          "old": "world_object_wackobrain_gap_40",
+          "new": "world_object_secdroid_delta_2_gap_40"
+        },
+        {
+          "source_offset": 310730,
+          "old": "wackobrain_saved_animation_node",
+          "new": "secdroid_delta_2_saved_animation_node"
+        },
+        {
+          "source_offset": 310741,
+          "old": "wackobrain_saved_animation_node_gap_B",
+          "new": "secdroid_delta_2_saved_animation_node_gap_B"
+        },
+        {
+          "source_offset": 310748,
+          "old": "wackobrain_saved_position_state",
+          "new": "secdroid_delta_2_saved_position_state"
+        },
+        {
+          "source_offset": 311034,
+          "old": "wackobrain_position_descriptor",
+          "new": "secdroid_delta_2_position_descriptor"
+        },
+        {
+          "source_offset": 311046,
+          "old": "wackobrain_primary_position_state",
+          "new": "secdroid_delta_2_primary_position_state"
+        },
+        {
+          "source_offset": 311072,
+          "old": "wackobrain_attachment_position_state",
+          "new": "secdroid_delta_2_attachment_position_state"
+        }
+      ]
+    },
+    {
+      "old": "defence_controller",
+      "new": "secdroid_delta_1",
+      "object_source_offset": 309946,
+      "item_id": 87,
+      "display_name": "Secdroid DELTA 1",
+      "name_source_offset": 42426,
+      "script_source_offset": 8426,
+      "linked_record_intervals": [
+        [
+          310970,
+          310982
+        ],
+        [
+          310704,
+          310730
+        ],
+        [
+          310686,
+          310704
+        ],
+        [
+          310982,
+          311008
+        ],
+        [
+          311008,
+          311034
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_defence_controller",
+          "start": 309946,
+          "end": 310030,
+          "role": "world_object_record"
+        },
+        {
+          "name": "defence_controller_inventory_slots",
+          "start": 45440,
+          "end": 45448,
+          "role": "data"
+        },
+        {
+          "name": "defence_controller_initial_inventory_slots",
+          "start": 45448,
+          "end": 45456,
+          "role": "data"
+        },
+        {
+          "name": "world_object_defence_controller_behavior_script",
+          "start": 8426,
+          "end": 8586,
+          "role": "world_behavior_script"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 8426,
+          "old": "world_object_defence_controller_behavior_script",
+          "new": "world_object_secdroid_delta_1_behavior_script"
+        },
+        {
+          "source_offset": 8432,
+          "old": "defence_controller_script_command_0006",
+          "new": "secdroid_delta_1_script_command_0006"
+        },
+        {
+          "source_offset": 8436,
+          "old": "defence_controller_script_command_000A",
+          "new": "secdroid_delta_1_script_command_000A"
+        },
+        {
+          "source_offset": 8446,
+          "old": "defence_controller_script_command_0014",
+          "new": "secdroid_delta_1_script_command_0014"
+        },
+        {
+          "source_offset": 8448,
+          "old": "defence_controller_script_command_0014_operand_word",
+          "new": "secdroid_delta_1_script_command_0014_operand_word"
+        },
+        {
+          "source_offset": 8450,
+          "old": "defence_controller_script_command_0018",
+          "new": "secdroid_delta_1_script_command_0018"
+        },
+        {
+          "source_offset": 8454,
+          "old": "defence_controller_script_command_001C",
+          "new": "secdroid_delta_1_script_command_001C"
+        },
+        {
+          "source_offset": 8458,
+          "old": "defence_controller_script_command_0020",
+          "new": "secdroid_delta_1_script_command_0020"
+        },
+        {
+          "source_offset": 8460,
+          "old": "defence_controller_script_command_0020_reload_count",
+          "new": "secdroid_delta_1_script_command_0020_reload_count"
+        },
+        {
+          "source_offset": 8466,
+          "old": "defence_controller_script_command_0028",
+          "new": "secdroid_delta_1_script_command_0028"
+        },
+        {
+          "source_offset": 8468,
+          "old": "defence_controller_script_command_0028_operand_word",
+          "new": "secdroid_delta_1_script_command_0028_operand_word"
+        },
+        {
+          "source_offset": 8470,
+          "old": "defence_controller_script_command_002C",
+          "new": "secdroid_delta_1_script_command_002C"
+        },
+        {
+          "source_offset": 8474,
+          "old": "defence_controller_script_command_0030",
+          "new": "secdroid_delta_1_script_command_0030"
+        },
+        {
+          "source_offset": 8478,
+          "old": "defence_controller_script_command_0034",
+          "new": "secdroid_delta_1_script_command_0034"
+        },
+        {
+          "source_offset": 8480,
+          "old": "defence_controller_script_command_0034_reload_count",
+          "new": "secdroid_delta_1_script_command_0034_reload_count"
+        },
+        {
+          "source_offset": 8486,
+          "old": "defence_controller_script_command_003C",
+          "new": "secdroid_delta_1_script_command_003C"
+        },
+        {
+          "source_offset": 8488,
+          "old": "defence_controller_script_command_003C_operand_word",
+          "new": "secdroid_delta_1_script_command_003C_operand_word"
+        },
+        {
+          "source_offset": 8490,
+          "old": "defence_controller_script_command_0040",
+          "new": "secdroid_delta_1_script_command_0040"
+        },
+        {
+          "source_offset": 8494,
+          "old": "defence_controller_script_command_0044",
+          "new": "secdroid_delta_1_script_command_0044"
+        },
+        {
+          "source_offset": 8498,
+          "old": "defence_controller_script_command_0048",
+          "new": "secdroid_delta_1_script_command_0048"
+        },
+        {
+          "source_offset": 8500,
+          "old": "defence_controller_script_command_0048_reload_count",
+          "new": "secdroid_delta_1_script_command_0048_reload_count"
+        },
+        {
+          "source_offset": 8506,
+          "old": "defence_controller_script_command_0050",
+          "new": "secdroid_delta_1_script_command_0050"
+        },
+        {
+          "source_offset": 8510,
+          "old": "defence_controller_script_command_0054",
+          "new": "secdroid_delta_1_script_command_0054"
+        },
+        {
+          "source_offset": 8520,
+          "old": "defence_controller_script_command_005E",
+          "new": "secdroid_delta_1_script_command_005E"
+        },
+        {
+          "source_offset": 8522,
+          "old": "defence_controller_script_command_005E_operand_word",
+          "new": "secdroid_delta_1_script_command_005E_operand_word"
+        },
+        {
+          "source_offset": 8524,
+          "old": "defence_controller_script_command_0062",
+          "new": "secdroid_delta_1_script_command_0062"
+        },
+        {
+          "source_offset": 8528,
+          "old": "defence_controller_script_command_0066",
+          "new": "secdroid_delta_1_script_command_0066"
+        },
+        {
+          "source_offset": 8532,
+          "old": "defence_controller_script_command_006A",
+          "new": "secdroid_delta_1_script_command_006A"
+        },
+        {
+          "source_offset": 8534,
+          "old": "defence_controller_script_command_006A_reload_count",
+          "new": "secdroid_delta_1_script_command_006A_reload_count"
+        },
+        {
+          "source_offset": 8540,
+          "old": "defence_controller_script_command_0072",
+          "new": "secdroid_delta_1_script_command_0072"
+        },
+        {
+          "source_offset": 8542,
+          "old": "defence_controller_script_command_0072_operand_word",
+          "new": "secdroid_delta_1_script_command_0072_operand_word"
+        },
+        {
+          "source_offset": 8544,
+          "old": "defence_controller_script_command_0076",
+          "new": "secdroid_delta_1_script_command_0076"
+        },
+        {
+          "source_offset": 8548,
+          "old": "defence_controller_script_command_007A",
+          "new": "secdroid_delta_1_script_command_007A"
+        },
+        {
+          "source_offset": 8552,
+          "old": "defence_controller_script_command_007E",
+          "new": "secdroid_delta_1_script_command_007E"
+        },
+        {
+          "source_offset": 8554,
+          "old": "defence_controller_script_command_007E_reload_count",
+          "new": "secdroid_delta_1_script_command_007E_reload_count"
+        },
+        {
+          "source_offset": 8560,
+          "old": "defence_controller_script_command_0086",
+          "new": "secdroid_delta_1_script_command_0086"
+        },
+        {
+          "source_offset": 8562,
+          "old": "defence_controller_script_command_0086_operand_word",
+          "new": "secdroid_delta_1_script_command_0086_operand_word"
+        },
+        {
+          "source_offset": 8564,
+          "old": "defence_controller_script_command_008A",
+          "new": "secdroid_delta_1_script_command_008A"
+        },
+        {
+          "source_offset": 8568,
+          "old": "defence_controller_script_command_008E",
+          "new": "secdroid_delta_1_script_command_008E"
+        },
+        {
+          "source_offset": 8572,
+          "old": "defence_controller_script_command_0092",
+          "new": "secdroid_delta_1_script_command_0092"
+        },
+        {
+          "source_offset": 8574,
+          "old": "defence_controller_script_command_0092_reload_count",
+          "new": "secdroid_delta_1_script_command_0092_reload_count"
+        },
+        {
+          "source_offset": 8580,
+          "old": "defence_controller_script_command_009A",
+          "new": "secdroid_delta_1_script_command_009A"
+        },
+        {
+          "source_offset": 45440,
+          "old": "defence_controller_inventory_slots",
+          "new": "secdroid_delta_1_inventory_slots"
+        },
+        {
+          "source_offset": 45448,
+          "old": "defence_controller_initial_inventory_slots",
+          "new": "secdroid_delta_1_initial_inventory_slots"
+        },
+        {
+          "source_offset": 309946,
+          "old": "world_object_defence_controller",
+          "new": "world_object_secdroid_delta_1"
+        },
+        {
+          "source_offset": 310000,
+          "old": "world_object_defence_controller_gap_36",
+          "new": "world_object_secdroid_delta_1_gap_36"
+        },
+        {
+          "source_offset": 310010,
+          "old": "world_object_defence_controller_gap_40",
+          "new": "world_object_secdroid_delta_1_gap_40"
+        },
+        {
+          "source_offset": 310686,
+          "old": "defence_controller_saved_animation_node",
+          "new": "secdroid_delta_1_saved_animation_node"
+        },
+        {
+          "source_offset": 310697,
+          "old": "defence_controller_saved_animation_node_gap_B",
+          "new": "secdroid_delta_1_saved_animation_node_gap_B"
+        },
+        {
+          "source_offset": 310704,
+          "old": "defence_controller_saved_position_state",
+          "new": "secdroid_delta_1_saved_position_state"
+        },
+        {
+          "source_offset": 310970,
+          "old": "defence_controller_position_descriptor",
+          "new": "secdroid_delta_1_position_descriptor"
+        },
+        {
+          "source_offset": 310982,
+          "old": "defence_controller_primary_position_state",
+          "new": "secdroid_delta_1_primary_position_state"
+        },
+        {
+          "source_offset": 311008,
+          "old": "defence_controller_attachment_position_state",
+          "new": "secdroid_delta_1_attachment_position_state"
+        }
+      ]
+    },
+    {
+      "old": "glass",
+      "new": "secdroid_pi",
+      "object_source_offset": 310114,
+      "item_id": 89,
+      "display_name": "Secdroid PI",
+      "name_source_offset": 42460,
+      "script_source_offset": 6514,
+      "linked_record_intervals": [
+        [
+          311098,
+          311110
+        ],
+        [
+          310792,
+          310818
+        ],
+        [
+          310774,
+          310792
+        ],
+        [
+          311110,
+          311136
+        ],
+        [
+          311136,
+          311162
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_glass",
+          "start": 310114,
+          "end": 310198,
+          "role": "world_object_record"
+        },
+        {
+          "name": "glass_inventory_slots",
+          "start": 45472,
+          "end": 45480,
+          "role": "data"
+        },
+        {
+          "name": "glass_initial_inventory_slots",
+          "start": 45480,
+          "end": 45488,
+          "role": "data"
+        },
+        {
+          "name": "world_object_glass_behavior_script",
+          "start": 6514,
+          "end": 6770,
+          "role": "world_behavior_script"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 6514,
+          "old": "world_object_glass_behavior_script",
+          "new": "world_object_secdroid_pi_behavior_script"
+        },
+        {
+          "source_offset": 6520,
+          "old": "glass_script_command_0006",
+          "new": "secdroid_pi_script_command_0006"
+        },
+        {
+          "source_offset": 6530,
+          "old": "glass_script_command_0010",
+          "new": "secdroid_pi_script_command_0010"
+        },
+        {
+          "source_offset": 6534,
+          "old": "glass_script_command_0014",
+          "new": "secdroid_pi_script_command_0014"
+        },
+        {
+          "source_offset": 6536,
+          "old": "glass_script_command_0014_operand_word",
+          "new": "secdroid_pi_script_command_0014_operand_word"
+        },
+        {
+          "source_offset": 6538,
+          "old": "glass_script_command_0018",
+          "new": "secdroid_pi_script_command_0018"
+        },
+        {
+          "source_offset": 6542,
+          "old": "glass_script_command_001C",
+          "new": "secdroid_pi_script_command_001C"
+        },
+        {
+          "source_offset": 6546,
+          "old": "glass_script_command_0020",
+          "new": "secdroid_pi_script_command_0020"
+        },
+        {
+          "source_offset": 6548,
+          "old": "glass_script_command_0020_reload_count",
+          "new": "secdroid_pi_script_command_0020_reload_count"
+        },
+        {
+          "source_offset": 6554,
+          "old": "glass_script_command_0028",
+          "new": "secdroid_pi_script_command_0028"
+        },
+        {
+          "source_offset": 6564,
+          "old": "glass_script_command_0032",
+          "new": "secdroid_pi_script_command_0032"
+        },
+        {
+          "source_offset": 6568,
+          "old": "glass_script_command_0036",
+          "new": "secdroid_pi_script_command_0036"
+        },
+        {
+          "source_offset": 6570,
+          "old": "glass_script_command_0036_operand_word",
+          "new": "secdroid_pi_script_command_0036_operand_word"
+        },
+        {
+          "source_offset": 6572,
+          "old": "glass_script_command_003A",
+          "new": "secdroid_pi_script_command_003A"
+        },
+        {
+          "source_offset": 6576,
+          "old": "glass_script_command_003E",
+          "new": "secdroid_pi_script_command_003E"
+        },
+        {
+          "source_offset": 6580,
+          "old": "glass_script_command_0042",
+          "new": "secdroid_pi_script_command_0042"
+        },
+        {
+          "source_offset": 6582,
+          "old": "glass_script_command_0042_reload_count",
+          "new": "secdroid_pi_script_command_0042_reload_count"
+        },
+        {
+          "source_offset": 6588,
+          "old": "glass_script_command_004A",
+          "new": "secdroid_pi_script_command_004A"
+        },
+        {
+          "source_offset": 6590,
+          "old": "glass_script_command_004A_operand_word",
+          "new": "secdroid_pi_script_command_004A_operand_word"
+        },
+        {
+          "source_offset": 6592,
+          "old": "glass_script_command_004E",
+          "new": "secdroid_pi_script_command_004E"
+        },
+        {
+          "source_offset": 6596,
+          "old": "glass_script_command_0052",
+          "new": "secdroid_pi_script_command_0052"
+        },
+        {
+          "source_offset": 6600,
+          "old": "glass_script_command_0056",
+          "new": "secdroid_pi_script_command_0056"
+        },
+        {
+          "source_offset": 6602,
+          "old": "glass_script_command_0056_reload_count",
+          "new": "secdroid_pi_script_command_0056_reload_count"
+        },
+        {
+          "source_offset": 6608,
+          "old": "glass_script_command_005E",
+          "new": "secdroid_pi_script_command_005E"
+        },
+        {
+          "source_offset": 6610,
+          "old": "glass_script_command_005E_operand_word",
+          "new": "secdroid_pi_script_command_005E_operand_word"
+        },
+        {
+          "source_offset": 6612,
+          "old": "glass_script_command_0062",
+          "new": "secdroid_pi_script_command_0062"
+        },
+        {
+          "source_offset": 6616,
+          "old": "glass_script_command_0066",
+          "new": "secdroid_pi_script_command_0066"
+        },
+        {
+          "source_offset": 6620,
+          "old": "glass_script_command_006A",
+          "new": "secdroid_pi_script_command_006A"
+        },
+        {
+          "source_offset": 6622,
+          "old": "glass_script_command_006A_reload_count",
+          "new": "secdroid_pi_script_command_006A_reload_count"
+        },
+        {
+          "source_offset": 6628,
+          "old": "glass_script_command_0072",
+          "new": "secdroid_pi_script_command_0072"
+        },
+        {
+          "source_offset": 6632,
+          "old": "glass_script_command_0076",
+          "new": "secdroid_pi_script_command_0076"
+        },
+        {
+          "source_offset": 6642,
+          "old": "glass_script_command_0080",
+          "new": "secdroid_pi_script_command_0080"
+        },
+        {
+          "source_offset": 6646,
+          "old": "glass_script_command_0084",
+          "new": "secdroid_pi_script_command_0084"
+        },
+        {
+          "source_offset": 6656,
+          "old": "glass_script_command_008E",
+          "new": "secdroid_pi_script_command_008E"
+        },
+        {
+          "source_offset": 6658,
+          "old": "glass_script_command_008E_operand_word",
+          "new": "secdroid_pi_script_command_008E_operand_word"
+        },
+        {
+          "source_offset": 6660,
+          "old": "glass_script_command_0092",
+          "new": "secdroid_pi_script_command_0092"
+        },
+        {
+          "source_offset": 6664,
+          "old": "glass_script_command_0096",
+          "new": "secdroid_pi_script_command_0096"
+        },
+        {
+          "source_offset": 6668,
+          "old": "glass_script_command_009A",
+          "new": "secdroid_pi_script_command_009A"
+        },
+        {
+          "source_offset": 6670,
+          "old": "glass_script_command_009A_reload_count",
+          "new": "secdroid_pi_script_command_009A_reload_count"
+        },
+        {
+          "source_offset": 6676,
+          "old": "glass_script_command_00A2",
+          "new": "secdroid_pi_script_command_00A2"
+        },
+        {
+          "source_offset": 6678,
+          "old": "glass_script_command_00A2_operand_word",
+          "new": "secdroid_pi_script_command_00A2_operand_word"
+        },
+        {
+          "source_offset": 6680,
+          "old": "glass_script_command_00A6",
+          "new": "secdroid_pi_script_command_00A6"
+        },
+        {
+          "source_offset": 6684,
+          "old": "glass_script_command_00AA",
+          "new": "secdroid_pi_script_command_00AA"
+        },
+        {
+          "source_offset": 6688,
+          "old": "glass_script_command_00AE",
+          "new": "secdroid_pi_script_command_00AE"
+        },
+        {
+          "source_offset": 6690,
+          "old": "glass_script_command_00AE_reload_count",
+          "new": "secdroid_pi_script_command_00AE_reload_count"
+        },
+        {
+          "source_offset": 6696,
+          "old": "glass_script_command_00B6",
+          "new": "secdroid_pi_script_command_00B6"
+        },
+        {
+          "source_offset": 6698,
+          "old": "glass_script_command_00B6_operand_word",
+          "new": "secdroid_pi_script_command_00B6_operand_word"
+        },
+        {
+          "source_offset": 6700,
+          "old": "glass_script_command_00BA",
+          "new": "secdroid_pi_script_command_00BA"
+        },
+        {
+          "source_offset": 6704,
+          "old": "glass_script_command_00BE",
+          "new": "secdroid_pi_script_command_00BE"
+        },
+        {
+          "source_offset": 6708,
+          "old": "glass_script_command_00C2",
+          "new": "secdroid_pi_script_command_00C2"
+        },
+        {
+          "source_offset": 6710,
+          "old": "glass_script_command_00C2_reload_count",
+          "new": "secdroid_pi_script_command_00C2_reload_count"
+        },
+        {
+          "source_offset": 6716,
+          "old": "glass_script_command_00CA",
+          "new": "secdroid_pi_script_command_00CA"
+        },
+        {
+          "source_offset": 6726,
+          "old": "glass_script_command_00D4",
+          "new": "secdroid_pi_script_command_00D4"
+        },
+        {
+          "source_offset": 6730,
+          "old": "glass_script_command_00D8",
+          "new": "secdroid_pi_script_command_00D8"
+        },
+        {
+          "source_offset": 6732,
+          "old": "glass_script_command_00D8_operand_word",
+          "new": "secdroid_pi_script_command_00D8_operand_word"
+        },
+        {
+          "source_offset": 6734,
+          "old": "glass_script_command_00DC",
+          "new": "secdroid_pi_script_command_00DC"
+        },
+        {
+          "source_offset": 6738,
+          "old": "glass_script_command_00E0",
+          "new": "secdroid_pi_script_command_00E0"
+        },
+        {
+          "source_offset": 6742,
+          "old": "glass_script_command_00E4",
+          "new": "secdroid_pi_script_command_00E4"
+        },
+        {
+          "source_offset": 6744,
+          "old": "glass_script_command_00E4_reload_count",
+          "new": "secdroid_pi_script_command_00E4_reload_count"
+        },
+        {
+          "source_offset": 6750,
+          "old": "glass_script_command_00EC",
+          "new": "secdroid_pi_script_command_00EC"
+        },
+        {
+          "source_offset": 6760,
+          "old": "glass_script_command_00F6",
+          "new": "secdroid_pi_script_command_00F6"
+        },
+        {
+          "source_offset": 6764,
+          "old": "glass_script_command_00FA",
+          "new": "secdroid_pi_script_command_00FA"
+        },
+        {
+          "source_offset": 45472,
+          "old": "glass_inventory_slots",
+          "new": "secdroid_pi_inventory_slots"
+        },
+        {
+          "source_offset": 45480,
+          "old": "glass_initial_inventory_slots",
+          "new": "secdroid_pi_initial_inventory_slots"
+        },
+        {
+          "source_offset": 310114,
+          "old": "world_object_glass",
+          "new": "world_object_secdroid_pi"
+        },
+        {
+          "source_offset": 310168,
+          "old": "world_object_glass_gap_36",
+          "new": "world_object_secdroid_pi_gap_36"
+        },
+        {
+          "source_offset": 310178,
+          "old": "world_object_glass_gap_40",
+          "new": "world_object_secdroid_pi_gap_40"
+        },
+        {
+          "source_offset": 310774,
+          "old": "glass_saved_animation_node",
+          "new": "secdroid_pi_saved_animation_node"
+        },
+        {
+          "source_offset": 310785,
+          "old": "glass_saved_animation_node_gap_B",
+          "new": "secdroid_pi_saved_animation_node_gap_B"
+        },
+        {
+          "source_offset": 310792,
+          "old": "glass_saved_position_state",
+          "new": "secdroid_pi_saved_position_state"
+        },
+        {
+          "source_offset": 311098,
+          "old": "glass_position_descriptor",
+          "new": "secdroid_pi_position_descriptor"
+        },
+        {
+          "source_offset": 311110,
+          "old": "glass_primary_position_state",
+          "new": "secdroid_pi_primary_position_state"
+        },
+        {
+          "source_offset": 311136,
+          "old": "glass_attachment_position_state",
+          "new": "secdroid_pi_attachment_position_state"
+        }
+      ]
+    },
+    {
+      "old": "kwik_kleen",
+      "new": "secdroid_omega",
+      "object_source_offset": 310198,
+      "item_id": 91,
+      "display_name": "Secdroid OMEGA",
+      "name_source_offset": 42472,
+      "script_source_offset": 6770,
+      "linked_record_intervals": [
+        [
+          311162,
+          311174
+        ],
+        [
+          310836,
+          310862
+        ],
+        [
+          310818,
+          310836
+        ],
+        [
+          311174,
+          311200
+        ],
+        [
+          311200,
+          311226
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_kwik_kleen",
+          "start": 310198,
+          "end": 310282,
+          "role": "world_object_record"
+        },
+        {
+          "name": "kwik_kleen_inventory_slots",
+          "start": 45632,
+          "end": 45640,
+          "role": "data"
+        },
+        {
+          "name": "kwik_kleen_initial_inventory_slots",
+          "start": 45640,
+          "end": 45648,
+          "role": "data"
+        },
+        {
+          "name": "world_object_kwik_kleen_behavior_script",
+          "start": 6770,
+          "end": 6906,
+          "role": "world_behavior_script"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 6770,
+          "old": "world_object_kwik_kleen_behavior_script",
+          "new": "world_object_secdroid_omega_behavior_script"
+        },
+        {
+          "source_offset": 6776,
+          "old": "kwik_kleen_script_command_0006",
+          "new": "secdroid_omega_script_command_0006"
+        },
+        {
+          "source_offset": 6786,
+          "old": "kwik_kleen_script_command_0010",
+          "new": "secdroid_omega_script_command_0010"
+        },
+        {
+          "source_offset": 6790,
+          "old": "kwik_kleen_script_command_0014",
+          "new": "secdroid_omega_script_command_0014"
+        },
+        {
+          "source_offset": 6792,
+          "old": "kwik_kleen_script_command_0014_operand_word",
+          "new": "secdroid_omega_script_command_0014_operand_word"
+        },
+        {
+          "source_offset": 6794,
+          "old": "kwik_kleen_script_command_0018",
+          "new": "secdroid_omega_script_command_0018"
+        },
+        {
+          "source_offset": 6798,
+          "old": "kwik_kleen_script_command_001C",
+          "new": "secdroid_omega_script_command_001C"
+        },
+        {
+          "source_offset": 6802,
+          "old": "kwik_kleen_script_command_0020",
+          "new": "secdroid_omega_script_command_0020"
+        },
+        {
+          "source_offset": 6804,
+          "old": "kwik_kleen_script_command_0020_reload_count",
+          "new": "secdroid_omega_script_command_0020_reload_count"
+        },
+        {
+          "source_offset": 6810,
+          "old": "kwik_kleen_script_command_0028",
+          "new": "secdroid_omega_script_command_0028"
+        },
+        {
+          "source_offset": 6820,
+          "old": "kwik_kleen_script_command_0032",
+          "new": "secdroid_omega_script_command_0032"
+        },
+        {
+          "source_offset": 6822,
+          "old": "kwik_kleen_script_command_0032_operand_word",
+          "new": "secdroid_omega_script_command_0032_operand_word"
+        },
+        {
+          "source_offset": 6824,
+          "old": "kwik_kleen_script_command_0036",
+          "new": "secdroid_omega_script_command_0036"
+        },
+        {
+          "source_offset": 6828,
+          "old": "kwik_kleen_script_command_003A",
+          "new": "secdroid_omega_script_command_003A"
+        },
+        {
+          "source_offset": 6832,
+          "old": "kwik_kleen_script_command_003E",
+          "new": "secdroid_omega_script_command_003E"
+        },
+        {
+          "source_offset": 6834,
+          "old": "kwik_kleen_script_command_003E_reload_count",
+          "new": "secdroid_omega_script_command_003E_reload_count"
+        },
+        {
+          "source_offset": 6840,
+          "old": "kwik_kleen_script_command_0046",
+          "new": "secdroid_omega_script_command_0046"
+        },
+        {
+          "source_offset": 6850,
+          "old": "kwik_kleen_script_command_0050",
+          "new": "secdroid_omega_script_command_0050"
+        },
+        {
+          "source_offset": 6852,
+          "old": "kwik_kleen_script_command_0050_operand_word",
+          "new": "secdroid_omega_script_command_0050_operand_word"
+        },
+        {
+          "source_offset": 6854,
+          "old": "kwik_kleen_script_command_0054",
+          "new": "secdroid_omega_script_command_0054"
+        },
+        {
+          "source_offset": 6858,
+          "old": "kwik_kleen_script_command_0058",
+          "new": "secdroid_omega_script_command_0058"
+        },
+        {
+          "source_offset": 6862,
+          "old": "kwik_kleen_script_command_005C",
+          "new": "secdroid_omega_script_command_005C"
+        },
+        {
+          "source_offset": 6864,
+          "old": "kwik_kleen_script_command_005C_reload_count",
+          "new": "secdroid_omega_script_command_005C_reload_count"
+        },
+        {
+          "source_offset": 6870,
+          "old": "kwik_kleen_script_command_0064",
+          "new": "secdroid_omega_script_command_0064"
+        },
+        {
+          "source_offset": 6880,
+          "old": "kwik_kleen_script_command_006E",
+          "new": "secdroid_omega_script_command_006E"
+        },
+        {
+          "source_offset": 6882,
+          "old": "kwik_kleen_script_command_006E_operand_word",
+          "new": "secdroid_omega_script_command_006E_operand_word"
+        },
+        {
+          "source_offset": 6884,
+          "old": "kwik_kleen_script_command_0072",
+          "new": "secdroid_omega_script_command_0072"
+        },
+        {
+          "source_offset": 6888,
+          "old": "kwik_kleen_script_command_0076",
+          "new": "secdroid_omega_script_command_0076"
+        },
+        {
+          "source_offset": 6892,
+          "old": "kwik_kleen_script_command_007A",
+          "new": "secdroid_omega_script_command_007A"
+        },
+        {
+          "source_offset": 6894,
+          "old": "kwik_kleen_script_command_007A_reload_count",
+          "new": "secdroid_omega_script_command_007A_reload_count"
+        },
+        {
+          "source_offset": 6900,
+          "old": "kwik_kleen_script_command_0082",
+          "new": "secdroid_omega_script_command_0082"
+        },
+        {
+          "source_offset": 45632,
+          "old": "kwik_kleen_inventory_slots",
+          "new": "secdroid_omega_inventory_slots"
+        },
+        {
+          "source_offset": 45640,
+          "old": "kwik_kleen_initial_inventory_slots",
+          "new": "secdroid_omega_initial_inventory_slots"
+        },
+        {
+          "source_offset": 310198,
+          "old": "world_object_kwik_kleen",
+          "new": "world_object_secdroid_omega"
+        },
+        {
+          "source_offset": 310252,
+          "old": "world_object_kwik_kleen_gap_36",
+          "new": "world_object_secdroid_omega_gap_36"
+        },
+        {
+          "source_offset": 310262,
+          "old": "world_object_kwik_kleen_gap_40",
+          "new": "world_object_secdroid_omega_gap_40"
+        },
+        {
+          "source_offset": 310818,
+          "old": "kwik_kleen_saved_animation_node",
+          "new": "secdroid_omega_saved_animation_node"
+        },
+        {
+          "source_offset": 310829,
+          "old": "kwik_kleen_saved_animation_node_gap_B",
+          "new": "secdroid_omega_saved_animation_node_gap_B"
+        },
+        {
+          "source_offset": 310836,
+          "old": "kwik_kleen_saved_position_state",
+          "new": "secdroid_omega_saved_position_state"
+        },
+        {
+          "source_offset": 311162,
+          "old": "kwik_kleen_position_descriptor",
+          "new": "secdroid_omega_position_descriptor"
+        },
+        {
+          "source_offset": 311174,
+          "old": "kwik_kleen_primary_position_state",
+          "new": "secdroid_omega_primary_position_state"
+        },
+        {
+          "source_offset": 311200,
+          "old": "kwik_kleen_attachment_position_state",
+          "new": "secdroid_omega_attachment_position_state"
+        }
+      ]
+    },
+    {
+      "old": "flight_controller",
+      "new": "secdroid_alpha_2",
+      "object_source_offset": 310282,
+      "item_id": 84,
+      "display_name": "Secdroid ALPHA 2",
+      "name_source_offset": 42409,
+      "script_source_offset": 8066,
+      "linked_record_intervals": [
+        [
+          311226,
+          311238
+        ],
+        [
+          310880,
+          310906
+        ],
+        [
+          310862,
+          310880
+        ],
+        [
+          311238,
+          311264
+        ],
+        [
+          311264,
+          311290
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_flight_controller",
+          "start": 310282,
+          "end": 310366,
+          "role": "world_object_record"
+        },
+        {
+          "name": "flight_controller_inventory_slots",
+          "start": 45328,
+          "end": 45336,
+          "role": "data"
+        },
+        {
+          "name": "flight_controller_initial_inventory_slots",
+          "start": 45336,
+          "end": 45344,
+          "role": "data"
+        },
+        {
+          "name": "world_object_flight_controller_behavior_script",
+          "start": 8066,
+          "end": 8266,
+          "role": "world_behavior_script"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 8066,
+          "old": "world_object_flight_controller_behavior_script",
+          "new": "world_object_secdroid_alpha_2_behavior_script"
+        },
+        {
+          "source_offset": 8072,
+          "old": "flight_controller_script_command_0006",
+          "new": "secdroid_alpha_2_script_command_0006"
+        },
+        {
+          "source_offset": 8076,
+          "old": "flight_controller_script_command_000A",
+          "new": "secdroid_alpha_2_script_command_000A"
+        },
+        {
+          "source_offset": 8086,
+          "old": "flight_controller_script_command_0014",
+          "new": "secdroid_alpha_2_script_command_0014"
+        },
+        {
+          "source_offset": 8088,
+          "old": "flight_controller_script_command_0014_operand_word",
+          "new": "secdroid_alpha_2_script_command_0014_operand_word"
+        },
+        {
+          "source_offset": 8090,
+          "old": "flight_controller_script_command_0018",
+          "new": "secdroid_alpha_2_script_command_0018"
+        },
+        {
+          "source_offset": 8094,
+          "old": "flight_controller_script_command_001C",
+          "new": "secdroid_alpha_2_script_command_001C"
+        },
+        {
+          "source_offset": 8098,
+          "old": "flight_controller_script_command_0020",
+          "new": "secdroid_alpha_2_script_command_0020"
+        },
+        {
+          "source_offset": 8100,
+          "old": "flight_controller_script_command_0020_reload_count",
+          "new": "secdroid_alpha_2_script_command_0020_reload_count"
+        },
+        {
+          "source_offset": 8106,
+          "old": "flight_controller_script_command_0028",
+          "new": "secdroid_alpha_2_script_command_0028"
+        },
+        {
+          "source_offset": 8116,
+          "old": "flight_controller_script_command_0032",
+          "new": "secdroid_alpha_2_script_command_0032"
+        },
+        {
+          "source_offset": 8118,
+          "old": "flight_controller_script_command_0032_operand_word",
+          "new": "secdroid_alpha_2_script_command_0032_operand_word"
+        },
+        {
+          "source_offset": 8120,
+          "old": "flight_controller_script_command_0036",
+          "new": "secdroid_alpha_2_script_command_0036"
+        },
+        {
+          "source_offset": 8124,
+          "old": "flight_controller_script_command_003A",
+          "new": "secdroid_alpha_2_script_command_003A"
+        },
+        {
+          "source_offset": 8128,
+          "old": "flight_controller_script_command_003E",
+          "new": "secdroid_alpha_2_script_command_003E"
+        },
+        {
+          "source_offset": 8130,
+          "old": "flight_controller_script_command_003E_reload_count",
+          "new": "secdroid_alpha_2_script_command_003E_reload_count"
+        },
+        {
+          "source_offset": 8136,
+          "old": "flight_controller_script_command_0046",
+          "new": "secdroid_alpha_2_script_command_0046"
+        },
+        {
+          "source_offset": 8146,
+          "old": "flight_controller_script_command_0050",
+          "new": "secdroid_alpha_2_script_command_0050"
+        },
+        {
+          "source_offset": 8148,
+          "old": "flight_controller_script_command_0050_operand_word",
+          "new": "secdroid_alpha_2_script_command_0050_operand_word"
+        },
+        {
+          "source_offset": 8150,
+          "old": "flight_controller_script_command_0054",
+          "new": "secdroid_alpha_2_script_command_0054"
+        },
+        {
+          "source_offset": 8154,
+          "old": "flight_controller_script_command_0058",
+          "new": "secdroid_alpha_2_script_command_0058"
+        },
+        {
+          "source_offset": 8158,
+          "old": "flight_controller_script_command_005C",
+          "new": "secdroid_alpha_2_script_command_005C"
+        },
+        {
+          "source_offset": 8160,
+          "old": "flight_controller_script_command_005C_reload_count",
+          "new": "secdroid_alpha_2_script_command_005C_reload_count"
+        },
+        {
+          "source_offset": 8166,
+          "old": "flight_controller_script_command_0064",
+          "new": "secdroid_alpha_2_script_command_0064"
+        },
+        {
+          "source_offset": 8176,
+          "old": "flight_controller_script_command_006E",
+          "new": "secdroid_alpha_2_script_command_006E"
+        },
+        {
+          "source_offset": 8180,
+          "old": "flight_controller_script_command_0072",
+          "new": "secdroid_alpha_2_script_command_0072"
+        },
+        {
+          "source_offset": 8182,
+          "old": "flight_controller_script_command_0072_operand_word",
+          "new": "secdroid_alpha_2_script_command_0072_operand_word"
+        },
+        {
+          "source_offset": 8184,
+          "old": "flight_controller_script_command_0076",
+          "new": "secdroid_alpha_2_script_command_0076"
+        },
+        {
+          "source_offset": 8188,
+          "old": "flight_controller_script_command_007A",
+          "new": "secdroid_alpha_2_script_command_007A"
+        },
+        {
+          "source_offset": 8192,
+          "old": "flight_controller_script_command_007E",
+          "new": "secdroid_alpha_2_script_command_007E"
+        },
+        {
+          "source_offset": 8194,
+          "old": "flight_controller_script_command_007E_reload_count",
+          "new": "secdroid_alpha_2_script_command_007E_reload_count"
+        },
+        {
+          "source_offset": 8200,
+          "old": "flight_controller_script_command_0086",
+          "new": "secdroid_alpha_2_script_command_0086"
+        },
+        {
+          "source_offset": 8210,
+          "old": "flight_controller_script_command_0090",
+          "new": "secdroid_alpha_2_script_command_0090"
+        },
+        {
+          "source_offset": 8212,
+          "old": "flight_controller_script_command_0090_operand_word",
+          "new": "secdroid_alpha_2_script_command_0090_operand_word"
+        },
+        {
+          "source_offset": 8214,
+          "old": "flight_controller_script_command_0094",
+          "new": "secdroid_alpha_2_script_command_0094"
+        },
+        {
+          "source_offset": 8218,
+          "old": "flight_controller_script_command_0098",
+          "new": "secdroid_alpha_2_script_command_0098"
+        },
+        {
+          "source_offset": 8222,
+          "old": "flight_controller_script_command_009C",
+          "new": "secdroid_alpha_2_script_command_009C"
+        },
+        {
+          "source_offset": 8224,
+          "old": "flight_controller_script_command_009C_reload_count",
+          "new": "secdroid_alpha_2_script_command_009C_reload_count"
+        },
+        {
+          "source_offset": 8230,
+          "old": "flight_controller_script_command_00A4",
+          "new": "secdroid_alpha_2_script_command_00A4"
+        },
+        {
+          "source_offset": 8240,
+          "old": "flight_controller_script_command_00AE",
+          "new": "secdroid_alpha_2_script_command_00AE"
+        },
+        {
+          "source_offset": 8242,
+          "old": "flight_controller_script_command_00AE_operand_word",
+          "new": "secdroid_alpha_2_script_command_00AE_operand_word"
+        },
+        {
+          "source_offset": 8244,
+          "old": "flight_controller_script_command_00B2",
+          "new": "secdroid_alpha_2_script_command_00B2"
+        },
+        {
+          "source_offset": 8248,
+          "old": "flight_controller_script_command_00B6",
+          "new": "secdroid_alpha_2_script_command_00B6"
+        },
+        {
+          "source_offset": 8252,
+          "old": "flight_controller_script_command_00BA",
+          "new": "secdroid_alpha_2_script_command_00BA"
+        },
+        {
+          "source_offset": 8254,
+          "old": "flight_controller_script_command_00BA_reload_count",
+          "new": "secdroid_alpha_2_script_command_00BA_reload_count"
+        },
+        {
+          "source_offset": 8260,
+          "old": "flight_controller_script_command_00C2",
+          "new": "secdroid_alpha_2_script_command_00C2"
+        },
+        {
+          "source_offset": 45328,
+          "old": "flight_controller_inventory_slots",
+          "new": "secdroid_alpha_2_inventory_slots"
+        },
+        {
+          "source_offset": 45336,
+          "old": "flight_controller_initial_inventory_slots",
+          "new": "secdroid_alpha_2_initial_inventory_slots"
+        },
+        {
+          "source_offset": 310282,
+          "old": "world_object_flight_controller",
+          "new": "world_object_secdroid_alpha_2"
+        },
+        {
+          "source_offset": 310336,
+          "old": "world_object_flight_controller_gap_36",
+          "new": "world_object_secdroid_alpha_2_gap_36"
+        },
+        {
+          "source_offset": 310346,
+          "old": "world_object_flight_controller_gap_40",
+          "new": "world_object_secdroid_alpha_2_gap_40"
+        },
+        {
+          "source_offset": 310862,
+          "old": "flight_controller_saved_animation_node",
+          "new": "secdroid_alpha_2_saved_animation_node"
+        },
+        {
+          "source_offset": 310873,
+          "old": "flight_controller_saved_animation_node_gap_B",
+          "new": "secdroid_alpha_2_saved_animation_node_gap_B"
+        },
+        {
+          "source_offset": 310880,
+          "old": "flight_controller_saved_position_state",
+          "new": "secdroid_alpha_2_saved_position_state"
+        },
+        {
+          "source_offset": 311226,
+          "old": "flight_controller_position_descriptor",
+          "new": "secdroid_alpha_2_position_descriptor"
+        },
+        {
+          "source_offset": 311238,
+          "old": "flight_controller_primary_position_state",
+          "new": "secdroid_alpha_2_primary_position_state"
+        },
+        {
+          "source_offset": 311264,
+          "old": "flight_controller_attachment_position_state",
+          "new": "secdroid_alpha_2_attachment_position_state"
+        }
+      ]
+    },
+    {
+      "old": "kriptonite",
+      "new": "wackobrain_actor",
+      "object_source_offset": 300094,
+      "item_id": 98,
+      "display_name": "Wackobrain",
+      "name_source_offset": 42534,
+      "script_source_offset": 5830,
+      "linked_record_intervals": [
+        [
+          300978,
+          300990
+        ],
+        [
+          300178,
+          300204
+        ],
+        [
+          301250,
+          301268
+        ],
+        [
+          300990,
+          301016
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_kriptonite",
+          "start": 300094,
+          "end": 300178,
+          "role": "world_object_record"
+        },
+        {
+          "name": "kriptonite_inventory_slots",
+          "start": 45760,
+          "end": 45768,
+          "role": "data"
+        },
+        {
+          "name": "kriptonite_initial_inventory_slots",
+          "start": 45768,
+          "end": 45776,
+          "role": "data"
+        },
+        {
+          "name": "world_object_kriptonite_behavior_script",
+          "start": 5830,
+          "end": 6514,
+          "role": "world_behavior_script"
+        },
+        {
+          "name": "kriptonite_animation_bank",
+          "start": 300178,
+          "end": 301320,
+          "role": "rooted_npc_animation_records"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 5830,
+          "old": "world_object_kriptonite_behavior_script",
+          "new": "world_object_wackobrain_actor_behavior_script"
+        },
+        {
+          "source_offset": 5836,
+          "old": "kriptonite_script_command_0006",
+          "new": "wackobrain_actor_script_command_0006"
+        },
+        {
+          "source_offset": 5842,
+          "old": "kriptonite_script_command_000C",
+          "new": "wackobrain_actor_script_command_000C"
+        },
+        {
+          "source_offset": 5846,
+          "old": "kriptonite_script_command_0010",
+          "new": "wackobrain_actor_script_command_0010"
+        },
+        {
+          "source_offset": 5848,
+          "old": "kriptonite_script_command_0010_operand_word",
+          "new": "wackobrain_actor_script_command_0010_operand_word"
+        },
+        {
+          "source_offset": 5850,
+          "old": "kriptonite_script_command_0014",
+          "new": "wackobrain_actor_script_command_0014"
+        },
+        {
+          "source_offset": 5854,
+          "old": "kriptonite_script_command_0018",
+          "new": "wackobrain_actor_script_command_0018"
+        },
+        {
+          "source_offset": 5858,
+          "old": "kriptonite_script_command_001C",
+          "new": "wackobrain_actor_script_command_001C"
+        },
+        {
+          "source_offset": 5860,
+          "old": "kriptonite_script_command_001C_reload_count",
+          "new": "wackobrain_actor_script_command_001C_reload_count"
+        },
+        {
+          "source_offset": 5866,
+          "old": "kriptonite_script_command_0024",
+          "new": "wackobrain_actor_script_command_0024"
+        },
+        {
+          "source_offset": 5872,
+          "old": "kriptonite_script_command_002A",
+          "new": "wackobrain_actor_script_command_002A"
+        },
+        {
+          "source_offset": 5876,
+          "old": "kriptonite_script_command_002E",
+          "new": "wackobrain_actor_script_command_002E"
+        },
+        {
+          "source_offset": 5882,
+          "old": "kriptonite_script_command_0034",
+          "new": "wackobrain_actor_script_command_0034"
+        },
+        {
+          "source_offset": 5884,
+          "old": "kriptonite_script_command_0034_operand_word",
+          "new": "wackobrain_actor_script_command_0034_operand_word"
+        },
+        {
+          "source_offset": 5886,
+          "old": "kriptonite_script_command_0038",
+          "new": "wackobrain_actor_script_command_0038"
+        },
+        {
+          "source_offset": 5890,
+          "old": "kriptonite_script_command_003C",
+          "new": "wackobrain_actor_script_command_003C"
+        },
+        {
+          "source_offset": 5894,
+          "old": "kriptonite_script_command_0040",
+          "new": "wackobrain_actor_script_command_0040"
+        },
+        {
+          "source_offset": 5896,
+          "old": "kriptonite_script_command_0040_reload_count",
+          "new": "wackobrain_actor_script_command_0040_reload_count"
+        },
+        {
+          "source_offset": 5902,
+          "old": "kriptonite_script_command_0048",
+          "new": "wackobrain_actor_script_command_0048"
+        },
+        {
+          "source_offset": 5908,
+          "old": "kriptonite_script_command_004E",
+          "new": "wackobrain_actor_script_command_004E"
+        },
+        {
+          "source_offset": 5910,
+          "old": "kriptonite_script_command_004E_operand_word",
+          "new": "wackobrain_actor_script_command_004E_operand_word"
+        },
+        {
+          "source_offset": 5912,
+          "old": "kriptonite_script_command_0052",
+          "new": "wackobrain_actor_script_command_0052"
+        },
+        {
+          "source_offset": 5916,
+          "old": "kriptonite_script_command_0056",
+          "new": "wackobrain_actor_script_command_0056"
+        },
+        {
+          "source_offset": 5920,
+          "old": "kriptonite_script_command_005A",
+          "new": "wackobrain_actor_script_command_005A"
+        },
+        {
+          "source_offset": 5922,
+          "old": "kriptonite_script_command_005A_reload_count",
+          "new": "wackobrain_actor_script_command_005A_reload_count"
+        },
+        {
+          "source_offset": 5928,
+          "old": "kriptonite_script_command_0062",
+          "new": "wackobrain_actor_script_command_0062"
+        },
+        {
+          "source_offset": 5934,
+          "old": "kriptonite_script_command_0068",
+          "new": "wackobrain_actor_script_command_0068"
+        },
+        {
+          "source_offset": 5938,
+          "old": "kriptonite_script_command_006C",
+          "new": "wackobrain_actor_script_command_006C"
+        },
+        {
+          "source_offset": 5944,
+          "old": "kriptonite_script_command_0072",
+          "new": "wackobrain_actor_script_command_0072"
+        },
+        {
+          "source_offset": 5946,
+          "old": "kriptonite_script_command_0072_operand_word",
+          "new": "wackobrain_actor_script_command_0072_operand_word"
+        },
+        {
+          "source_offset": 5948,
+          "old": "kriptonite_script_command_0076",
+          "new": "wackobrain_actor_script_command_0076"
+        },
+        {
+          "source_offset": 5952,
+          "old": "kriptonite_script_command_007A",
+          "new": "wackobrain_actor_script_command_007A"
+        },
+        {
+          "source_offset": 5956,
+          "old": "kriptonite_script_command_007E",
+          "new": "wackobrain_actor_script_command_007E"
+        },
+        {
+          "source_offset": 5958,
+          "old": "kriptonite_script_command_007E_reload_count",
+          "new": "wackobrain_actor_script_command_007E_reload_count"
+        },
+        {
+          "source_offset": 5964,
+          "old": "kriptonite_script_command_0086",
+          "new": "wackobrain_actor_script_command_0086"
+        },
+        {
+          "source_offset": 5970,
+          "old": "kriptonite_script_command_008C",
+          "new": "wackobrain_actor_script_command_008C"
+        },
+        {
+          "source_offset": 5972,
+          "old": "kriptonite_script_command_008C_operand_word",
+          "new": "wackobrain_actor_script_command_008C_operand_word"
+        },
+        {
+          "source_offset": 5974,
+          "old": "kriptonite_script_command_0090",
+          "new": "wackobrain_actor_script_command_0090"
+        },
+        {
+          "source_offset": 5978,
+          "old": "kriptonite_script_command_0094",
+          "new": "wackobrain_actor_script_command_0094"
+        },
+        {
+          "source_offset": 5982,
+          "old": "kriptonite_script_command_0098",
+          "new": "wackobrain_actor_script_command_0098"
+        },
+        {
+          "source_offset": 5984,
+          "old": "kriptonite_script_command_0098_reload_count",
+          "new": "wackobrain_actor_script_command_0098_reload_count"
+        },
+        {
+          "source_offset": 5990,
+          "old": "kriptonite_script_command_00A0",
+          "new": "wackobrain_actor_script_command_00A0"
+        },
+        {
+          "source_offset": 5996,
+          "old": "kriptonite_script_command_00A6",
+          "new": "wackobrain_actor_script_command_00A6"
+        },
+        {
+          "source_offset": 5998,
+          "old": "kriptonite_script_command_00A6_operand_word",
+          "new": "wackobrain_actor_script_command_00A6_operand_word"
+        },
+        {
+          "source_offset": 6000,
+          "old": "kriptonite_script_command_00AA",
+          "new": "wackobrain_actor_script_command_00AA"
+        },
+        {
+          "source_offset": 6004,
+          "old": "kriptonite_script_command_00AE",
+          "new": "wackobrain_actor_script_command_00AE"
+        },
+        {
+          "source_offset": 6008,
+          "old": "kriptonite_script_command_00B2",
+          "new": "wackobrain_actor_script_command_00B2"
+        },
+        {
+          "source_offset": 6010,
+          "old": "kriptonite_script_command_00B2_reload_count",
+          "new": "wackobrain_actor_script_command_00B2_reload_count"
+        },
+        {
+          "source_offset": 6016,
+          "old": "kriptonite_script_command_00BA",
+          "new": "wackobrain_actor_script_command_00BA"
+        },
+        {
+          "source_offset": 6022,
+          "old": "kriptonite_script_command_00C0",
+          "new": "wackobrain_actor_script_command_00C0"
+        },
+        {
+          "source_offset": 6024,
+          "old": "kriptonite_script_command_00C0_operand_word",
+          "new": "wackobrain_actor_script_command_00C0_operand_word"
+        },
+        {
+          "source_offset": 6026,
+          "old": "kriptonite_script_command_00C4",
+          "new": "wackobrain_actor_script_command_00C4"
+        },
+        {
+          "source_offset": 6030,
+          "old": "kriptonite_script_command_00C8",
+          "new": "wackobrain_actor_script_command_00C8"
+        },
+        {
+          "source_offset": 6034,
+          "old": "kriptonite_script_command_00CC",
+          "new": "wackobrain_actor_script_command_00CC"
+        },
+        {
+          "source_offset": 6036,
+          "old": "kriptonite_script_command_00CC_reload_count",
+          "new": "wackobrain_actor_script_command_00CC_reload_count"
+        },
+        {
+          "source_offset": 6042,
+          "old": "kriptonite_script_command_00D4",
+          "new": "wackobrain_actor_script_command_00D4"
+        },
+        {
+          "source_offset": 6048,
+          "old": "kriptonite_script_command_00DA",
+          "new": "wackobrain_actor_script_command_00DA"
+        },
+        {
+          "source_offset": 6052,
+          "old": "kriptonite_script_command_00DE",
+          "new": "wackobrain_actor_script_command_00DE"
+        },
+        {
+          "source_offset": 6058,
+          "old": "kriptonite_script_command_00E4",
+          "new": "wackobrain_actor_script_command_00E4"
+        },
+        {
+          "source_offset": 6060,
+          "old": "kriptonite_script_command_00E4_operand_word",
+          "new": "wackobrain_actor_script_command_00E4_operand_word"
+        },
+        {
+          "source_offset": 6062,
+          "old": "kriptonite_script_command_00E8",
+          "new": "wackobrain_actor_script_command_00E8"
+        },
+        {
+          "source_offset": 6066,
+          "old": "kriptonite_script_command_00EC",
+          "new": "wackobrain_actor_script_command_00EC"
+        },
+        {
+          "source_offset": 6070,
+          "old": "kriptonite_script_command_00F0",
+          "new": "wackobrain_actor_script_command_00F0"
+        },
+        {
+          "source_offset": 6072,
+          "old": "kriptonite_script_command_00F0_reload_count",
+          "new": "wackobrain_actor_script_command_00F0_reload_count"
+        },
+        {
+          "source_offset": 6078,
+          "old": "kriptonite_script_command_00F8",
+          "new": "wackobrain_actor_script_command_00F8"
+        },
+        {
+          "source_offset": 6084,
+          "old": "kriptonite_script_command_00FE",
+          "new": "wackobrain_actor_script_command_00FE"
+        },
+        {
+          "source_offset": 6086,
+          "old": "kriptonite_script_command_00FE_operand_word",
+          "new": "wackobrain_actor_script_command_00FE_operand_word"
+        },
+        {
+          "source_offset": 6088,
+          "old": "kriptonite_script_command_0102",
+          "new": "wackobrain_actor_script_command_0102"
+        },
+        {
+          "source_offset": 6092,
+          "old": "kriptonite_script_command_0106",
+          "new": "wackobrain_actor_script_command_0106"
+        },
+        {
+          "source_offset": 6096,
+          "old": "kriptonite_script_command_010A",
+          "new": "wackobrain_actor_script_command_010A"
+        },
+        {
+          "source_offset": 6098,
+          "old": "kriptonite_script_command_010A_reload_count",
+          "new": "wackobrain_actor_script_command_010A_reload_count"
+        },
+        {
+          "source_offset": 6104,
+          "old": "kriptonite_script_command_0112",
+          "new": "wackobrain_actor_script_command_0112"
+        },
+        {
+          "source_offset": 6110,
+          "old": "kriptonite_script_command_0118",
+          "new": "wackobrain_actor_script_command_0118"
+        },
+        {
+          "source_offset": 6114,
+          "old": "kriptonite_script_command_011C",
+          "new": "wackobrain_actor_script_command_011C"
+        },
+        {
+          "source_offset": 6120,
+          "old": "kriptonite_script_command_0122",
+          "new": "wackobrain_actor_script_command_0122"
+        },
+        {
+          "source_offset": 6122,
+          "old": "kriptonite_script_command_0122_operand_word",
+          "new": "wackobrain_actor_script_command_0122_operand_word"
+        },
+        {
+          "source_offset": 6124,
+          "old": "kriptonite_script_command_0126",
+          "new": "wackobrain_actor_script_command_0126"
+        },
+        {
+          "source_offset": 6128,
+          "old": "kriptonite_script_command_012A",
+          "new": "wackobrain_actor_script_command_012A"
+        },
+        {
+          "source_offset": 6132,
+          "old": "kriptonite_script_command_012E",
+          "new": "wackobrain_actor_script_command_012E"
+        },
+        {
+          "source_offset": 6134,
+          "old": "kriptonite_script_command_012E_reload_count",
+          "new": "wackobrain_actor_script_command_012E_reload_count"
+        },
+        {
+          "source_offset": 6140,
+          "old": "kriptonite_script_command_0136",
+          "new": "wackobrain_actor_script_command_0136"
+        },
+        {
+          "source_offset": 6146,
+          "old": "kriptonite_script_command_013C",
+          "new": "wackobrain_actor_script_command_013C"
+        },
+        {
+          "source_offset": 6148,
+          "old": "kriptonite_script_command_013C_operand_word",
+          "new": "wackobrain_actor_script_command_013C_operand_word"
+        },
+        {
+          "source_offset": 6150,
+          "old": "kriptonite_script_command_0140",
+          "new": "wackobrain_actor_script_command_0140"
+        },
+        {
+          "source_offset": 6154,
+          "old": "kriptonite_script_command_0144",
+          "new": "wackobrain_actor_script_command_0144"
+        },
+        {
+          "source_offset": 6158,
+          "old": "kriptonite_script_command_0148",
+          "new": "wackobrain_actor_script_command_0148"
+        },
+        {
+          "source_offset": 6160,
+          "old": "kriptonite_script_command_0148_reload_count",
+          "new": "wackobrain_actor_script_command_0148_reload_count"
+        },
+        {
+          "source_offset": 6166,
+          "old": "kriptonite_script_command_0150",
+          "new": "wackobrain_actor_script_command_0150"
+        },
+        {
+          "source_offset": 6172,
+          "old": "kriptonite_script_command_0156",
+          "new": "wackobrain_actor_script_command_0156"
+        },
+        {
+          "source_offset": 6174,
+          "old": "kriptonite_script_command_0156_operand_word",
+          "new": "wackobrain_actor_script_command_0156_operand_word"
+        },
+        {
+          "source_offset": 6176,
+          "old": "kriptonite_script_command_015A",
+          "new": "wackobrain_actor_script_command_015A"
+        },
+        {
+          "source_offset": 6180,
+          "old": "kriptonite_script_command_015E",
+          "new": "wackobrain_actor_script_command_015E"
+        },
+        {
+          "source_offset": 6184,
+          "old": "kriptonite_script_command_0162",
+          "new": "wackobrain_actor_script_command_0162"
+        },
+        {
+          "source_offset": 6186,
+          "old": "kriptonite_script_command_0162_reload_count",
+          "new": "wackobrain_actor_script_command_0162_reload_count"
+        },
+        {
+          "source_offset": 6192,
+          "old": "kriptonite_script_command_016A",
+          "new": "wackobrain_actor_script_command_016A"
+        },
+        {
+          "source_offset": 6198,
+          "old": "kriptonite_script_command_0170",
+          "new": "wackobrain_actor_script_command_0170"
+        },
+        {
+          "source_offset": 6200,
+          "old": "kriptonite_script_command_0170_operand_word",
+          "new": "wackobrain_actor_script_command_0170_operand_word"
+        },
+        {
+          "source_offset": 6202,
+          "old": "kriptonite_script_command_0174",
+          "new": "wackobrain_actor_script_command_0174"
+        },
+        {
+          "source_offset": 6206,
+          "old": "kriptonite_script_command_0178",
+          "new": "wackobrain_actor_script_command_0178"
+        },
+        {
+          "source_offset": 6210,
+          "old": "kriptonite_script_command_017C",
+          "new": "wackobrain_actor_script_command_017C"
+        },
+        {
+          "source_offset": 6212,
+          "old": "kriptonite_script_command_017C_reload_count",
+          "new": "wackobrain_actor_script_command_017C_reload_count"
+        },
+        {
+          "source_offset": 6218,
+          "old": "kriptonite_script_command_0184",
+          "new": "wackobrain_actor_script_command_0184"
+        },
+        {
+          "source_offset": 6224,
+          "old": "kriptonite_script_command_018A",
+          "new": "wackobrain_actor_script_command_018A"
+        },
+        {
+          "source_offset": 6228,
+          "old": "kriptonite_script_command_018E",
+          "new": "wackobrain_actor_script_command_018E"
+        },
+        {
+          "source_offset": 6234,
+          "old": "kriptonite_script_command_0194",
+          "new": "wackobrain_actor_script_command_0194"
+        },
+        {
+          "source_offset": 6236,
+          "old": "kriptonite_script_command_0194_operand_word",
+          "new": "wackobrain_actor_script_command_0194_operand_word"
+        },
+        {
+          "source_offset": 6238,
+          "old": "kriptonite_script_command_0198",
+          "new": "wackobrain_actor_script_command_0198"
+        },
+        {
+          "source_offset": 6242,
+          "old": "kriptonite_script_command_019C",
+          "new": "wackobrain_actor_script_command_019C"
+        },
+        {
+          "source_offset": 6246,
+          "old": "kriptonite_script_command_01A0",
+          "new": "wackobrain_actor_script_command_01A0"
+        },
+        {
+          "source_offset": 6248,
+          "old": "kriptonite_script_command_01A0_reload_count",
+          "new": "wackobrain_actor_script_command_01A0_reload_count"
+        },
+        {
+          "source_offset": 6254,
+          "old": "kriptonite_script_command_01A8",
+          "new": "wackobrain_actor_script_command_01A8"
+        },
+        {
+          "source_offset": 6260,
+          "old": "kriptonite_script_command_01AE",
+          "new": "wackobrain_actor_script_command_01AE"
+        },
+        {
+          "source_offset": 6264,
+          "old": "kriptonite_script_command_01B2",
+          "new": "wackobrain_actor_script_command_01B2"
+        },
+        {
+          "source_offset": 6270,
+          "old": "kriptonite_script_command_01B8",
+          "new": "wackobrain_actor_script_command_01B8"
+        },
+        {
+          "source_offset": 6272,
+          "old": "kriptonite_script_command_01B8_operand_word",
+          "new": "wackobrain_actor_script_command_01B8_operand_word"
+        },
+        {
+          "source_offset": 6274,
+          "old": "kriptonite_script_command_01BC",
+          "new": "wackobrain_actor_script_command_01BC"
+        },
+        {
+          "source_offset": 6278,
+          "old": "kriptonite_script_command_01C0",
+          "new": "wackobrain_actor_script_command_01C0"
+        },
+        {
+          "source_offset": 6282,
+          "old": "kriptonite_script_command_01C4",
+          "new": "wackobrain_actor_script_command_01C4"
+        },
+        {
+          "source_offset": 6284,
+          "old": "kriptonite_script_command_01C4_reload_count",
+          "new": "wackobrain_actor_script_command_01C4_reload_count"
+        },
+        {
+          "source_offset": 6290,
+          "old": "kriptonite_script_command_01CC",
+          "new": "wackobrain_actor_script_command_01CC"
+        },
+        {
+          "source_offset": 6296,
+          "old": "kriptonite_script_command_01D2",
+          "new": "wackobrain_actor_script_command_01D2"
+        },
+        {
+          "source_offset": 6298,
+          "old": "kriptonite_script_command_01D2_operand_word",
+          "new": "wackobrain_actor_script_command_01D2_operand_word"
+        },
+        {
+          "source_offset": 6300,
+          "old": "kriptonite_script_command_01D6",
+          "new": "wackobrain_actor_script_command_01D6"
+        },
+        {
+          "source_offset": 6304,
+          "old": "kriptonite_script_command_01DA",
+          "new": "wackobrain_actor_script_command_01DA"
+        },
+        {
+          "source_offset": 6308,
+          "old": "kriptonite_script_command_01DE",
+          "new": "wackobrain_actor_script_command_01DE"
+        },
+        {
+          "source_offset": 6310,
+          "old": "kriptonite_script_command_01DE_reload_count",
+          "new": "wackobrain_actor_script_command_01DE_reload_count"
+        },
+        {
+          "source_offset": 6316,
+          "old": "kriptonite_script_command_01E6",
+          "new": "wackobrain_actor_script_command_01E6"
+        },
+        {
+          "source_offset": 6322,
+          "old": "kriptonite_script_command_01EC",
+          "new": "wackobrain_actor_script_command_01EC"
+        },
+        {
+          "source_offset": 6324,
+          "old": "kriptonite_script_command_01EC_operand_word",
+          "new": "wackobrain_actor_script_command_01EC_operand_word"
+        },
+        {
+          "source_offset": 6326,
+          "old": "kriptonite_script_command_01F0",
+          "new": "wackobrain_actor_script_command_01F0"
+        },
+        {
+          "source_offset": 6330,
+          "old": "kriptonite_script_command_01F4",
+          "new": "wackobrain_actor_script_command_01F4"
+        },
+        {
+          "source_offset": 6334,
+          "old": "kriptonite_script_command_01F8",
+          "new": "wackobrain_actor_script_command_01F8"
+        },
+        {
+          "source_offset": 6336,
+          "old": "kriptonite_script_command_01F8_reload_count",
+          "new": "wackobrain_actor_script_command_01F8_reload_count"
+        },
+        {
+          "source_offset": 6342,
+          "old": "kriptonite_script_command_0200",
+          "new": "wackobrain_actor_script_command_0200"
+        },
+        {
+          "source_offset": 6348,
+          "old": "kriptonite_script_command_0206",
+          "new": "wackobrain_actor_script_command_0206"
+        },
+        {
+          "source_offset": 6350,
+          "old": "kriptonite_script_command_0206_operand_word",
+          "new": "wackobrain_actor_script_command_0206_operand_word"
+        },
+        {
+          "source_offset": 6352,
+          "old": "kriptonite_script_command_020A",
+          "new": "wackobrain_actor_script_command_020A"
+        },
+        {
+          "source_offset": 6356,
+          "old": "kriptonite_script_command_020E",
+          "new": "wackobrain_actor_script_command_020E"
+        },
+        {
+          "source_offset": 6360,
+          "old": "kriptonite_script_command_0212",
+          "new": "wackobrain_actor_script_command_0212"
+        },
+        {
+          "source_offset": 6362,
+          "old": "kriptonite_script_command_0212_reload_count",
+          "new": "wackobrain_actor_script_command_0212_reload_count"
+        },
+        {
+          "source_offset": 6368,
+          "old": "kriptonite_script_command_021A",
+          "new": "wackobrain_actor_script_command_021A"
+        },
+        {
+          "source_offset": 6374,
+          "old": "kriptonite_script_command_0220",
+          "new": "wackobrain_actor_script_command_0220"
+        },
+        {
+          "source_offset": 6376,
+          "old": "kriptonite_script_command_0220_operand_word",
+          "new": "wackobrain_actor_script_command_0220_operand_word"
+        },
+        {
+          "source_offset": 6378,
+          "old": "kriptonite_script_command_0224",
+          "new": "wackobrain_actor_script_command_0224"
+        },
+        {
+          "source_offset": 6382,
+          "old": "kriptonite_script_command_0228",
+          "new": "wackobrain_actor_script_command_0228"
+        },
+        {
+          "source_offset": 6386,
+          "old": "kriptonite_script_command_022C",
+          "new": "wackobrain_actor_script_command_022C"
+        },
+        {
+          "source_offset": 6388,
+          "old": "kriptonite_script_command_022C_reload_count",
+          "new": "wackobrain_actor_script_command_022C_reload_count"
+        },
+        {
+          "source_offset": 6394,
+          "old": "kriptonite_script_command_0234",
+          "new": "wackobrain_actor_script_command_0234"
+        },
+        {
+          "source_offset": 6400,
+          "old": "kriptonite_script_command_023A",
+          "new": "wackobrain_actor_script_command_023A"
+        },
+        {
+          "source_offset": 6404,
+          "old": "kriptonite_script_command_023E",
+          "new": "wackobrain_actor_script_command_023E"
+        },
+        {
+          "source_offset": 6410,
+          "old": "kriptonite_script_command_0244",
+          "new": "wackobrain_actor_script_command_0244"
+        },
+        {
+          "source_offset": 6412,
+          "old": "kriptonite_script_command_0244_operand_word",
+          "new": "wackobrain_actor_script_command_0244_operand_word"
+        },
+        {
+          "source_offset": 6414,
+          "old": "kriptonite_script_command_0248",
+          "new": "wackobrain_actor_script_command_0248"
+        },
+        {
+          "source_offset": 6418,
+          "old": "kriptonite_script_command_024C",
+          "new": "wackobrain_actor_script_command_024C"
+        },
+        {
+          "source_offset": 6422,
+          "old": "kriptonite_script_command_0250",
+          "new": "wackobrain_actor_script_command_0250"
+        },
+        {
+          "source_offset": 6424,
+          "old": "kriptonite_script_command_0250_reload_count",
+          "new": "wackobrain_actor_script_command_0250_reload_count"
+        },
+        {
+          "source_offset": 6430,
+          "old": "kriptonite_script_command_0258",
+          "new": "wackobrain_actor_script_command_0258"
+        },
+        {
+          "source_offset": 6436,
+          "old": "kriptonite_script_command_025E",
+          "new": "wackobrain_actor_script_command_025E"
+        },
+        {
+          "source_offset": 6438,
+          "old": "kriptonite_script_command_025E_operand_word",
+          "new": "wackobrain_actor_script_command_025E_operand_word"
+        },
+        {
+          "source_offset": 6440,
+          "old": "kriptonite_script_command_0262",
+          "new": "wackobrain_actor_script_command_0262"
+        },
+        {
+          "source_offset": 6444,
+          "old": "kriptonite_script_command_0266",
+          "new": "wackobrain_actor_script_command_0266"
+        },
+        {
+          "source_offset": 6448,
+          "old": "kriptonite_script_command_026A",
+          "new": "wackobrain_actor_script_command_026A"
+        },
+        {
+          "source_offset": 6450,
+          "old": "kriptonite_script_command_026A_reload_count",
+          "new": "wackobrain_actor_script_command_026A_reload_count"
+        },
+        {
+          "source_offset": 6456,
+          "old": "kriptonite_script_command_0272",
+          "new": "wackobrain_actor_script_command_0272"
+        },
+        {
+          "source_offset": 6462,
+          "old": "kriptonite_script_command_0278",
+          "new": "wackobrain_actor_script_command_0278"
+        },
+        {
+          "source_offset": 6464,
+          "old": "kriptonite_script_command_0278_operand_word",
+          "new": "wackobrain_actor_script_command_0278_operand_word"
+        },
+        {
+          "source_offset": 6466,
+          "old": "kriptonite_script_command_027C",
+          "new": "wackobrain_actor_script_command_027C"
+        },
+        {
+          "source_offset": 6470,
+          "old": "kriptonite_script_command_0280",
+          "new": "wackobrain_actor_script_command_0280"
+        },
+        {
+          "source_offset": 6474,
+          "old": "kriptonite_script_command_0284",
+          "new": "wackobrain_actor_script_command_0284"
+        },
+        {
+          "source_offset": 6476,
+          "old": "kriptonite_script_command_0284_reload_count",
+          "new": "wackobrain_actor_script_command_0284_reload_count"
+        },
+        {
+          "source_offset": 6482,
+          "old": "kriptonite_script_command_028C",
+          "new": "wackobrain_actor_script_command_028C"
+        },
+        {
+          "source_offset": 6488,
+          "old": "kriptonite_script_command_0292",
+          "new": "wackobrain_actor_script_command_0292"
+        },
+        {
+          "source_offset": 6490,
+          "old": "kriptonite_script_command_0292_operand_word",
+          "new": "wackobrain_actor_script_command_0292_operand_word"
+        },
+        {
+          "source_offset": 6492,
+          "old": "kriptonite_script_command_0296",
+          "new": "wackobrain_actor_script_command_0296"
+        },
+        {
+          "source_offset": 6496,
+          "old": "kriptonite_script_command_029A",
+          "new": "wackobrain_actor_script_command_029A"
+        },
+        {
+          "source_offset": 6500,
+          "old": "kriptonite_script_command_029E",
+          "new": "wackobrain_actor_script_command_029E"
+        },
+        {
+          "source_offset": 6502,
+          "old": "kriptonite_script_command_029E_reload_count",
+          "new": "wackobrain_actor_script_command_029E_reload_count"
+        },
+        {
+          "source_offset": 6508,
+          "old": "kriptonite_script_command_02A6",
+          "new": "wackobrain_actor_script_command_02A6"
+        },
+        {
+          "source_offset": 45760,
+          "old": "kriptonite_inventory_slots",
+          "new": "wackobrain_actor_inventory_slots"
+        },
+        {
+          "source_offset": 45768,
+          "old": "kriptonite_initial_inventory_slots",
+          "new": "wackobrain_actor_initial_inventory_slots"
+        },
+        {
+          "source_offset": 300094,
+          "old": "world_object_kriptonite",
+          "new": "world_object_wackobrain_actor"
+        },
+        {
+          "source_offset": 300148,
+          "old": "world_object_kriptonite_gap_36",
+          "new": "world_object_wackobrain_actor_gap_36"
+        },
+        {
+          "source_offset": 300158,
+          "old": "world_object_kriptonite_gap_40",
+          "new": "world_object_wackobrain_actor_gap_40"
+        },
+        {
+          "source_offset": 300178,
+          "old": "kriptonite_animation_bank",
+          "new": "wackobrain_actor_animation_bank"
+        },
+        {
+          "source_offset": 300204,
+          "old": "kriptonite_frames_49492_1",
+          "new": "wackobrain_actor_frames_49492_1"
+        },
+        {
+          "source_offset": 300222,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_1",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_1"
+        },
+        {
+          "source_offset": 300240,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_2",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_2"
+        },
+        {
+          "source_offset": 300258,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_3",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_3"
+        },
+        {
+          "source_offset": 300276,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_4",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_4"
+        },
+        {
+          "source_offset": 300294,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_5",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_5"
+        },
+        {
+          "source_offset": 300312,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_6",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_6"
+        },
+        {
+          "source_offset": 300330,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_7",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_7"
+        },
+        {
+          "source_offset": 300348,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_8",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_8"
+        },
+        {
+          "source_offset": 300366,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_9",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_9"
+        },
+        {
+          "source_offset": 300384,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_10",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_10"
+        },
+        {
+          "source_offset": 300402,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_11",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_11"
+        },
+        {
+          "source_offset": 300420,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_12",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_12"
+        },
+        {
+          "source_offset": 300438,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_13",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_13"
+        },
+        {
+          "source_offset": 300456,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_14",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_14"
+        },
+        {
+          "source_offset": 300474,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_15",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_15"
+        },
+        {
+          "source_offset": 300492,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_16",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_16"
+        },
+        {
+          "source_offset": 300510,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_17",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_17"
+        },
+        {
+          "source_offset": 300528,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_18",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_18"
+        },
+        {
+          "source_offset": 300546,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_19",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_19"
+        },
+        {
+          "source_offset": 300564,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_20",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_20"
+        },
+        {
+          "source_offset": 300582,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_21",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_21"
+        },
+        {
+          "source_offset": 300600,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_22",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_22"
+        },
+        {
+          "source_offset": 300618,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_23",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_23"
+        },
+        {
+          "source_offset": 300636,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_24",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_24"
+        },
+        {
+          "source_offset": 300654,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_25",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_25"
+        },
+        {
+          "source_offset": 300672,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_26",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_26"
+        },
+        {
+          "source_offset": 300690,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_27",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_27"
+        },
+        {
+          "source_offset": 300708,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_28",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_28"
+        },
+        {
+          "source_offset": 300726,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_29",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_29"
+        },
+        {
+          "source_offset": 300744,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_30",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_30"
+        },
+        {
+          "source_offset": 300762,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_31",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_31"
+        },
+        {
+          "source_offset": 300780,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_32",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_32"
+        },
+        {
+          "source_offset": 300798,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_33",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_33"
+        },
+        {
+          "source_offset": 300816,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_34",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_34"
+        },
+        {
+          "source_offset": 300834,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_35",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_35"
+        },
+        {
+          "source_offset": 300852,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_36",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_36"
+        },
+        {
+          "source_offset": 300870,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_37",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_37"
+        },
+        {
+          "source_offset": 300888,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_38",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_38"
+        },
+        {
+          "source_offset": 300906,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_39",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_39"
+        },
+        {
+          "source_offset": 300924,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_40",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_40"
+        },
+        {
+          "source_offset": 300942,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_41",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_41"
+        },
+        {
+          "source_offset": 300960,
+          "old": "kriptonite_frames_49492_1_bitplane_data_ptr_42",
+          "new": "wackobrain_actor_frames_49492_1_bitplane_data_ptr_42"
+        },
+        {
+          "source_offset": 300978,
+          "old": "kriptonite_positions_49492_2",
+          "new": "wackobrain_actor_positions_49492_2"
+        },
+        {
+          "source_offset": 300990,
+          "old": "kriptonite_states_49492_3",
+          "new": "wackobrain_actor_states_49492_3"
+        },
+        {
+          "source_offset": 301016,
+          "old": "kriptonite_nodes_49492_4",
+          "new": "wackobrain_actor_nodes_49492_4"
+        },
+        {
+          "source_offset": 301027,
+          "old": "kriptonite_nodes_49492_4_gap_B",
+          "new": "wackobrain_actor_nodes_49492_4_gap_B"
+        },
+        {
+          "source_offset": 301034,
+          "old": "kriptonite_sequence_49492_5",
+          "new": "wackobrain_actor_sequence_49492_5"
+        },
+        {
+          "source_offset": 301066,
+          "old": "kriptonite_nodes_49492_6",
+          "new": "wackobrain_actor_nodes_49492_6"
+        },
+        {
+          "source_offset": 301077,
+          "old": "kriptonite_nodes_49492_6_gap_B",
+          "new": "wackobrain_actor_nodes_49492_6_gap_B"
+        },
+        {
+          "source_offset": 301084,
+          "old": "kriptonite_sequence_49492_7",
+          "new": "wackobrain_actor_sequence_49492_7"
+        },
+        {
+          "source_offset": 301100,
+          "old": "kriptonite_nodes_49492_8",
+          "new": "wackobrain_actor_nodes_49492_8"
+        },
+        {
+          "source_offset": 301111,
+          "old": "kriptonite_nodes_49492_8_gap_B",
+          "new": "wackobrain_actor_nodes_49492_8_gap_B"
+        },
+        {
+          "source_offset": 301118,
+          "old": "kriptonite_sequence_49492_9",
+          "new": "wackobrain_actor_sequence_49492_9"
+        },
+        {
+          "source_offset": 301150,
+          "old": "kriptonite_nodes_49492_10",
+          "new": "wackobrain_actor_nodes_49492_10"
+        },
+        {
+          "source_offset": 301161,
+          "old": "kriptonite_nodes_49492_10_gap_B",
+          "new": "wackobrain_actor_nodes_49492_10_gap_B"
+        },
+        {
+          "source_offset": 301168,
+          "old": "kriptonite_sequence_49492_11",
+          "new": "wackobrain_actor_sequence_49492_11"
+        },
+        {
+          "source_offset": 301200,
+          "old": "kriptonite_nodes_49492_12",
+          "new": "wackobrain_actor_nodes_49492_12"
+        },
+        {
+          "source_offset": 301211,
+          "old": "kriptonite_nodes_49492_12_gap_B",
+          "new": "wackobrain_actor_nodes_49492_12_gap_B"
+        },
+        {
+          "source_offset": 301218,
+          "old": "kriptonite_sequence_49492_13",
+          "new": "wackobrain_actor_sequence_49492_13"
+        },
+        {
+          "source_offset": 301250,
+          "old": "kriptonite_nodes_49492_14",
+          "new": "wackobrain_actor_nodes_49492_14"
+        },
+        {
+          "source_offset": 301261,
+          "old": "kriptonite_nodes_49492_14_gap_B",
+          "new": "wackobrain_actor_nodes_49492_14_gap_B"
+        },
+        {
+          "source_offset": 301268,
+          "old": "kriptonite_sequence_49492_15",
+          "new": "wackobrain_actor_sequence_49492_15"
+        }
+      ]
+    },
+    {
+      "old": "megabio_feed",
+      "new": "pianist_actor",
+      "object_source_offset": 311762,
+      "item_id": 93,
+      "display_name": "Pianist",
+      "name_source_offset": 42487,
+      "script_source_offset": 8586,
+      "linked_record_intervals": [
+        [
+          311998,
+          312010
+        ],
+        [
+          311846,
+          311872
+        ],
+        [
+          312010,
+          312036
+        ]
+      ],
+      "layouts": [
+        {
+          "name": "world_object_megabio_feed",
+          "start": 311762,
+          "end": 311846,
+          "role": "world_object_record"
+        },
+        {
+          "name": "megabio_feed_inventory_slots",
+          "start": 45776,
+          "end": 45784,
+          "role": "data"
+        },
+        {
+          "name": "megabio_feed_initial_inventory_slots",
+          "start": 45784,
+          "end": 45792,
+          "role": "data"
+        },
+        {
+          "name": "world_object_megabio_feed_behavior_script",
+          "start": 8586,
+          "end": 8608,
+          "role": "world_behavior_script"
+        },
+        {
+          "name": "megabio_feed_animation_bank",
+          "start": 311846,
+          "end": 312082,
+          "role": "rooted_npc_animation_records"
+        }
+      ],
+      "renames": [
+        {
+          "source_offset": 8586,
+          "old": "world_object_megabio_feed_behavior_script",
+          "new": "world_object_pianist_actor_behavior_script"
+        },
+        {
+          "source_offset": 8592,
+          "old": "megabio_feed_script_command_0006",
+          "new": "pianist_actor_script_command_0006"
+        },
+        {
+          "source_offset": 8598,
+          "old": "megabio_feed_script_command_000C",
+          "new": "pianist_actor_script_command_000C"
+        },
+        {
+          "source_offset": 8602,
+          "old": "megabio_feed_script_command_0010",
+          "new": "pianist_actor_script_command_0010"
+        },
+        {
+          "source_offset": 45776,
+          "old": "megabio_feed_inventory_slots",
+          "new": "pianist_actor_inventory_slots"
+        },
+        {
+          "source_offset": 45784,
+          "old": "megabio_feed_initial_inventory_slots",
+          "new": "pianist_actor_initial_inventory_slots"
+        },
+        {
+          "source_offset": 311762,
+          "old": "world_object_megabio_feed",
+          "new": "world_object_pianist_actor"
+        },
+        {
+          "source_offset": 311816,
+          "old": "world_object_megabio_feed_gap_36",
+          "new": "world_object_pianist_actor_gap_36"
+        },
+        {
+          "source_offset": 311826,
+          "old": "world_object_megabio_feed_gap_40",
+          "new": "world_object_pianist_actor_gap_40"
+        },
+        {
+          "source_offset": 311834,
+          "old": "world_object_megabio_feed_world_object_flags",
+          "new": "world_object_pianist_actor_world_object_flags"
+        },
+        {
+          "source_offset": 311846,
+          "old": "megabio_feed_animation_bank",
+          "new": "pianist_actor_animation_bank"
+        },
+        {
+          "source_offset": 311872,
+          "old": "megabio_feed_frames_4C226_1",
+          "new": "pianist_actor_frames_4C226_1"
+        },
+        {
+          "source_offset": 311890,
+          "old": "megabio_feed_frames_4C226_1_bitplane_data_ptr_1",
+          "new": "pianist_actor_frames_4C226_1_bitplane_data_ptr_1"
+        },
+        {
+          "source_offset": 311908,
+          "old": "megabio_feed_frames_4C226_1_bitplane_data_ptr_2",
+          "new": "pianist_actor_frames_4C226_1_bitplane_data_ptr_2"
+        },
+        {
+          "source_offset": 311926,
+          "old": "megabio_feed_frames_4C226_1_bitplane_data_ptr_3",
+          "new": "pianist_actor_frames_4C226_1_bitplane_data_ptr_3"
+        },
+        {
+          "source_offset": 311944,
+          "old": "megabio_feed_frames_4C226_1_bitplane_data_ptr_4",
+          "new": "pianist_actor_frames_4C226_1_bitplane_data_ptr_4"
+        },
+        {
+          "source_offset": 311962,
+          "old": "megabio_feed_frames_4C226_1_bitplane_data_ptr_5",
+          "new": "pianist_actor_frames_4C226_1_bitplane_data_ptr_5"
+        },
+        {
+          "source_offset": 311980,
+          "old": "megabio_feed_frames_4C226_1_bitplane_data_ptr_6",
+          "new": "pianist_actor_frames_4C226_1_bitplane_data_ptr_6"
+        },
+        {
+          "source_offset": 311998,
+          "old": "megabio_feed_positions_4C226_2",
+          "new": "pianist_actor_positions_4C226_2"
+        },
+        {
+          "source_offset": 312010,
+          "old": "megabio_feed_states_4C226_3",
+          "new": "pianist_actor_states_4C226_3"
+        },
+        {
+          "source_offset": 312036,
+          "old": "megabio_feed_nodes_4C226_4",
+          "new": "pianist_actor_nodes_4C226_4"
+        },
+        {
+          "source_offset": 312047,
+          "old": "megabio_feed_nodes_4C226_4_gap_B",
+          "new": "pianist_actor_nodes_4C226_4_gap_B"
+        },
+        {
+          "source_offset": 312054,
+          "old": "megabio_feed_sequence_4C226_5",
+          "new": "pianist_actor_sequence_4C226_5"
+        }
+      ]
+    }
+  ],
+  "source_aliases_verified": 602,
+  "native_incoming_intervals": 35,
+  "native_incoming_references": 270,
+  "typed_owner_preservation": {
+    "layouts": 34,
+    "elements_renamed": 355,
+    "shape_binding_reference_provenance_changes": 0
+  },
+  "source_render_preservation": {
+    "rendered_new_declarations": 602,
+    "retired_old_declarations": 602,
+    "immutable_target_files_verified": 99,
+    "original_history_prefixes_preserved": true,
+    "deferred_backend_patch_unchanged": true,
+    "final_exact_receipt": "54d4c229bd78cc51ac5f324d92a00b5ea56a979af6109643cafd5bc687976c4d",
+    "source_sha256": "be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6"
+  },
+  "final_exact_receipt": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "54d4c229bd78cc51ac5f324d92a00b5ea56a979af6109643cafd5bc687976c4d",
+    "revision": "09945b2352896ac04beb5bf5450e797d7213811db8bf27115b94fb74bd235473",
+    "source_package_sha256": "6f977462f19f59d28f9fe3ebcf46c68d73fca701ffe7a23e890440d0a38b0806",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/6f977462f19f59d28f9fe3ebcf46c68d73fca701ffe7a23e890440d0a38b0806/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6",
+    "status": "exact",
+    "subject_revision": "ab0d1da24dfc581bb44247e5ed7eb41575869e93e69a452f85502f25e3294232",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "validation": {
+    "pandora_tests": 262,
+    "source_identity_and_framework_tests": 230,
+    "effective_metadata_tests": 62,
+    "final_target_selection_tests": 71,
+    "tests_are_overlapping_selections": true,
+    "C_and_vasm_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6",
+    "verification_id": "54d4c229bd78cc51ac5f324d92a00b5ea56a979af6109643cafd5bc687976c4d",
+    "new_manual_actions": 678,
+    "all_five_swaths": "accepted within documented scope",
+    "resident_server": {
+      "pid": 557,
+      "listen": "127.0.0.1:8123",
+      "log": ".runtime-state/pandora-analysis/fresh-restoration/server-after-reconnect.log",
+      "ready": true,
+      "target_ui_http_status": 200,
+      "revision": "f3ec3d667612bee3703d05c00c6060a88271b932c4e3f14f629cc2d0f2085744",
+      "subject_revision": "ab0d1da24dfc581bb44247e5ed7eb41575869e93e69a452f85502f25e3294232",
+      "exact_source_subject_preserved": true,
+      "native_renamed_field_verified": true
+    },
+    "preservation": {
+      "rendered_new_declarations": 602,
+      "retired_old_declarations": 602,
+      "immutable_target_files_verified": 99,
+      "original_history_prefixes_preserved": true,
+      "deferred_backend_patch_unchanged": true,
+      "final_exact_receipt": "54d4c229bd78cc51ac5f324d92a00b5ea56a979af6109643cafd5bc687976c4d",
+      "source_sha256": "be39ad25e4da9fadbe25134a7c7d19acd6d53ce6451ce6c8bd6241021b39adc6"
+    }
+  },
+  "model_binding_validation": {
+    "native_subject_revision": "ab0d1da24dfc581bb44247e5ed7eb41575869e93e69a452f85502f25e3294232",
+    "validated_encounter": {
+      "player_xy": [
+        808,
+        794
+      ],
+      "actor": {
+        "name": "world_object_secdroid_alpha_1",
+        "xy": [
+          816,
+          808
+        ],
+        "flags": 36,
+        "selected_item_id": 9
+      },
+      "predicted_outcome": "combat",
+      "observed_outcome": "canonical combat entry7792",
+      "patrol_keepout_inclusive": [
+        793,
+        839,
+        713,
+        989
+      ]
+    },
+    "scenario_prerequisites": {
+      "status": "conditional_dependency_model_not_an_executed_BYTE_path",
+      "rifle_pickup": {
+        "xy": [
+          1244,
+          867
+        ],
+        "item_id": 18,
+        "interaction_data_source_offset": 297574,
+        "initial_stored_attachment": 0,
+        "requires": [
+          "selected item<2",
+          "distance<28",
+          "fresh proximity-latch entry",
+          "inventory/combat UI clear"
+        ]
+      },
+      "arm_audio": {
+        "center": [
+          840,
+          168
+        ],
+        "requires": [
+          "Pianist alive",
+          "Manhattan distance<256"
+        ],
+        "effect": "shared audio bit0 set; WORD volume updated",
+        "source_pc": "0x5534a"
+      },
+      "direct_weapon_kill": {
+        "feed_initial_hp": 29,
+        "rifle_damage": 30,
+        "initial_ammunition": [
+          5,
+          1
+        ],
+        "requires": [
+          "rifle selected",
+          "ammo nonzero",
+          "fresh fire edge",
+          "valid accepted aim direction",
+          "unblocked ray hits CURRENT Pianist geometry",
+          "no earlier nearby combat transition"
+        ],
+        "effect": "defeated bit1 set without the combat world-X bias",
+        "source_pc": "0x93fa",
+        "music_actor_initial_hp": 29
+      },
+      "BYTE_write": {
+        "requires": [
+          "Pianist defeated bit1",
+          "shared audio bit0 still set"
+        ],
+        "source_pc": "0x552f0",
+        "state": "not dynamically observed"
+      },
+      "order": [
+        "acquire rifle",
+        "arm proximity audio alive",
+        "aim and fire without an encounter",
+        "direct kill before same-frame proximity update",
+        "BYTE guard sees both bits"
+      ],
+      "limit": "Weapon hit and inventory predicates are recovered target rules; unknown NPC timing is not assumed safe.",
+      "music_actor": {
+        "name": "world_object_pianist_actor",
+        "source_offset": 311762
+      }
+    },
+    "legacy_field_aliases": {
+      "pianist_staging_route": "blocking_actor_staging_route",
+      "feed_initial_hp": "music_actor_initial_hp"
+    },
+    "route_searches_suppressed": 2,
+    "new_runtime_probe": false,
+    "historical_observations_modified": false
+  }
+}

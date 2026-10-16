@@ -6885,6 +6885,66 @@ static int test_facts_v2_affine_static_interior_expression_same_identity_join_su
   return 0;
 }
 
+static int target_equate_dependency_fixture(int cycle) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[] = {0x4eU, 0x75U};
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  char *assembly_profile = NULL, *assembly_error = NULL;
+  int status;
+  const char *names[] = {"a_flags", "b_last", "late_bit", "count", "FACE", "Q"};
+  const char *expressions[] = {"(1<<late_bit)|$02", "count-1", "6", "32", "$FACE", "'Q'"};
+  int32_t values[] = {66, 31, 6, 32, 0xFACE, 'Q'};
+  size_t index;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes); section.data_size = sizeof(bytes); section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.target_equate_count = 6U;
+  for (index = 0U; index < 6U; ++index) {
+    snprintf(policy.target_equates[index].name, sizeof(policy.target_equates[index].name), "%s", names[index]);
+    policy.target_equates[index].value = values[index];
+    policy.target_equates[index].value_style_id = M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL;
+    snprintf(policy.target_equates[index].value_expr, sizeof(policy.target_equates[index].value_expr),
+      "%s", expressions[index]);
+  }
+  if (cycle) snprintf(policy.target_equates[2].value_expr, sizeof(policy.target_equates[2].value_expr), "a_flags");
+  status = m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile, m68k_diag_sink(NULL));
+  if (cycle) {
+    M68K_C_ASSERT(status != 0 || profile.asm_source_refused != 0U);
+  } else {
+    const char *bit, *flags, *count, *last;
+    M68K_C_ASSERT_INT(0, status);
+    M68K_C_ASSERT(source != NULL);
+    bit = strstr(source, "late_bit\tEQU\t6\n"); flags = strstr(source, "a_flags\tEQU\t(1<<late_bit)|$02\n");
+    count = strstr(source, "count\tEQU\t32\n"); last = strstr(source, "b_last\tEQU\tcount-1\n");
+    M68K_C_ASSERT(bit && flags && count && last);
+    M68K_C_ASSERT(bit < flags && count < last);
+    M68K_C_ASSERT(strstr(source, "FACE\tEQU\t$FACE\n") != NULL);
+    M68K_C_ASSERT(strstr(source, "Q\tEQU\t'Q'\n") != NULL);
+    M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "",
+      source, "68000", &rebuilt, &rebuilt_size, &assembly_profile, &assembly_error));
+    M68K_C_ASSERT(rebuilt_size == sizeof(bytes) && memcmp(rebuilt, bytes, sizeof(bytes)) == 0);
+    platform_file_free_bytes(rebuilt); platform_file_free_text(assembly_profile); platform_file_free_text(assembly_error);
+  }
+  m68k_facts_v2_free_text(source); m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_target_equates_emit_dependencies_before_consumers(void) {
+  return target_equate_dependency_fixture(0);
+}
+
+static int test_target_equates_reject_dependency_cycles(void) {
+  return target_equate_dependency_fixture(1);
+}
+
 static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
   M68kObject object;
   M68kSection section;
@@ -21509,6 +21569,97 @@ static int test_facts_v2_render_asm_source_merges_hardware_base_by_id(void) {
   return 0;
 }
 
+static int test_platform_context_step(M68kRenderPlatformState *state, const char *text) {
+  M68kInstructionIR instruction = m68k_plain_parse_instruction_to_ir(text, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL));
+  M68K_C_ASSERT(m68k_sim_metadata_for_instruction(&instruction) != NULL);
+  platform_state_update_data_lvo_after_instruction(state, &instruction);
+  platform_state_update_after_instruction(state, NULL, &instruction);
+  return 0;
+}
+
+static int test_hardware_context_survives_register_exchange_and_copy(void) {
+  M68kRenderPlatformState state;
+  uint16_t custom_id = 0U;
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT(platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_id));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l #$DFF000,d4"));
+  M68K_C_ASSERT_U32(1U << 4U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "movea.l #$70000,a5"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d4,a5"));
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  M68K_C_ASSERT_U32(1U << 5U, state.address_hardware_base_known);
+  M68K_C_ASSERT_U32(custom_id, state.address_hardware_base_id[5]);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.w $1E(a5),d5"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.w #$40,$9C(a5)"));
+  M68K_C_ASSERT_U32(1U << 5U, state.address_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d4,a5"));
+  M68K_C_ASSERT_U32(0U, state.address_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d4,d2"));
+  M68K_C_ASSERT_U32(1U << 2U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l d2,d2"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "movea.l d2,a4"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg a4,a6"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l a6,d0"));
+  M68K_C_ASSERT_U32(custom_id, state.data_hardware_base_id[0]);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "movea.l a6,a6"));
+  M68K_C_ASSERT_U32(custom_id, state.address_hardware_base_id[6]);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "cmp.l #0,d0"));
+  M68K_C_ASSERT((state.data_hardware_base_known & 1U) != 0U);
+  return 0;
+}
+
+static int test_hardware_context_refuses_partial_clobbered_and_loaded_values(void) {
+  static const char *data_clobbers[] = {
+    "move.w #$F000,d0", "move.b #0,d0", "addq.l #2,d0", "clr.l d0",
+    "move.l (a0),d0", "movem.l (a7)+,d0-d1", "jsr (a0)"
+  };
+  static const char *address_clobbers[] = {
+    "addq.l #2,a5", "move.w (a5)+,d0", "movem.l d0-d1,(a5)+", "movea.w #$F000,a5"
+  };
+  M68kRenderPlatformState state;
+  M68kAnalysisPolicy *policy;
+  size_t index;
+  for (index = 0U; index < sizeof(data_clobbers) / sizeof(data_clobbers[0]); ++index) {
+    memset(&state, 0, sizeof(state));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l #$DFF000,d0"));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, data_clobbers[index]));
+    M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d0,a5"));
+    M68K_C_ASSERT_U32(0U, state.address_hardware_base_known);
+  }
+  for (index = 0U; index < sizeof(address_clobbers) / sizeof(address_clobbers[0]); ++index) {
+    memset(&state, 0, sizeof(state));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "lea.l $DFF000.l,a5"));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, address_clobbers[index]));
+    M68K_C_ASSERT_U32(0U, state.address_hardware_base_known);
+  }
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l $DFF000.l,d0"));
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.w #$F000,d0"));
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l #$DFF000,d0"));
+  policy = (M68kAnalysisPolicy *)malloc(sizeof(*policy));
+  M68K_C_ASSERT(policy != NULL);
+  m68k_analysis_policy_init_default(policy);
+  policy->register_seed_count = 1U;
+  policy->register_seeds[0].has_entry_offset = 1U;
+  policy->register_seeds[0].entry_offset = 0U;
+  policy->register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_DATA;
+  policy->register_seeds[0].reg_index = 0U;
+  policy->register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy->register_seeds[0].name, sizeof(policy->register_seeds[0].name), "Node");
+  platform_state_apply_policy_register_seeds(&state, policy, 0U, 0U);
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  snprintf(policy->register_seeds[0].name, sizeof(policy->register_seeds[0].name), "_custom");
+  platform_state_apply_policy_register_seeds(&state, policy, 0U, 0U);
+  M68K_C_ASSERT_U32(1U, state.data_hardware_base_known);
+  m68k_analysis_policy_destroy(policy);
+  free(policy);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper(void) {
   M68kObject object;
   M68kSection section;
@@ -30986,7 +31137,7 @@ static int test_facts_v2_render_asm_source_honors_explicit_typed_field_labels(vo
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
+static int pointer_table_pointee_loop_fixture(int known_one_past, uint8_t seed_reg_kind) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -31007,6 +31158,12 @@ static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type
     0x60u, 0xf4u, 0x4eu, 0x75u,
     [32] = 0x00u, [33] = 0x01u, [34] = 0x00u, [35] = 0x30u
   };
+  if (known_one_past) {
+    const uint8_t prefix[] = {0x58u, 0x88u, 0x24u, 0x18u, 0x67u, 0x08u, 0x2au, 0x42u,
+      0x30u, 0x2du, 0x00u, 0x02u, 0x4eu, 0x75u, 0x4eu, 0x75u};
+    memcpy(bytes + 4U, prefix, sizeof(prefix));
+    bytes[36] = 0x00u; bytes[37] = 0x01u; bytes[38] = 0x00u; bytes[39] = 0x34u;
+  }
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
@@ -31040,6 +31197,20 @@ static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type
   custom_structs[0].fields[0].offset = 2U;
   custom_structs[0].fields[0].size = 2U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "world_y");
+  /* An explicit register seed is independent evidence, even when the prior
+   * value was inferred from a table whose canonical binding is unresolved. */
+  if (seed_reg_kind != 0U) {
+    M68kAnalysisRegisterSeed *seed = &policy.register_seeds[0];
+    policy.register_seed_count = 1U;
+    seed->kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+    seed->reg_kind = seed_reg_kind;
+    seed->reg_index = seed_reg_kind == M68K_ANALYSIS_REGISTER_DATA ? 2U : 5U;
+    seed->has_section_index = 1U;
+    seed->section_index = 0U;
+    seed->has_entry_offset = 1U;
+    seed->entry_offset = seed_reg_kind == M68K_ANALYSIS_REGISTER_DATA ? 8U : 10U;
+    snprintf(seed->type_name, sizeof(seed->type_name), "world_object_shared_prefix");
+  }
   policy.structured_data_item_count = 1U;
   policy.structured_data_items[0].has_section_index = 1U;
   policy.structured_data_items[0].section_index = 0U;
@@ -31054,24 +31225,47 @@ static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type
   analysis_section = &analysis.sections[0];
   for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *candidate = &analysis_section->recovered_platform_typed_accesses[index];
-    if (candidate->offset == 10U && candidate->operand_index == 0U && candidate->base_reg == 5U &&
+    if (candidate->offset == (known_one_past ? 12U : 10U) && candidate->operand_index == 0U && candidate->base_reg == 5U &&
         candidate->displacement == 2) {
       typed = candidate;
       break;
     }
   }
-  M68K_C_ASSERT(typed != NULL);
-  M68K_C_ASSERT(strcmp(typed->field_name, "world_y") == 0);
+  if (known_one_past) M68K_C_ASSERT(typed == NULL);
+  else {
+    M68K_C_ASSERT(typed != NULL);
+    M68K_C_ASSERT(strcmp(typed->field_name, "world_y") == 0);
+    if (seed_reg_kind != 0U) {
+      M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, typed->type_provenance_kind);
+      M68K_C_ASSERT_U32(0U, typed->has_table_origin);
+    }
+  }
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y") != NULL);
+  if (!known_one_past) M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
+}
+
+static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
+  return pointer_table_pointee_loop_fixture(0, 0U);
+}
+
+static int test_facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load(void) {
+  return pointer_table_pointee_loop_fixture(1, 0U);
+}
+
+static int test_facts_v2_address_register_seed_replaces_table_origin(void) {
+  return pointer_table_pointee_loop_fixture(0, M68K_ANALYSIS_REGISTER_ADDRESS);
+}
+
+static int test_facts_v2_data_register_seed_replaces_table_origin(void) {
+  return pointer_table_pointee_loop_fixture(0, M68K_ANALYSIS_REGISTER_DATA);
 }
 
 static int test_facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin(void) {
@@ -38980,8 +39174,39 @@ static int test_function_summary_append_rejects_invalid_effect_state(void) {
   return 0;
 }
 
+static int test_function_summary_hardware_result_requires_a_full_known_register(void) {
+  M68kSectionAnalysisIR section;
+  M68kFunctionSummaryIR summary;
+  uint16_t base_id;
+  memset(&summary, 0, sizeof(summary));
+  M68K_C_ASSERT(platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    "_custom", &base_id));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section, test_ir_result_arena()));
+  snprintf(summary.function_summary_id, sizeof(summary.function_summary_id), "constant-hardware-return");
+  summary.result_count = 1U;
+  summary.results[0].kind = M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE;
+  summary.results[0].location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+  summary.results[0].location.register_count = 1U;
+  summary.results[0].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  summary.results[0].location.registers[0].register_index = 5U;
+  summary.results[0].hardware_base_id = base_id;
+  summary.results[0].location.width = 2U;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_function_summary(&section, &summary));
+  summary.results[0].location.width = 4U;
+  summary.results[0].hardware_base_id = 0xffffU;
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_function_summary(&section, &summary));
+  summary.results[0].hardware_base_id = base_id;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_function_summary(&section, &summary));
+  M68K_C_ASSERT_U32(1U, section.function_summary_count);
+  M68K_C_ASSERT_U32(base_id, section.function_summaries[0].results[0].hardware_base_id);
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
 int m68k_c_ir_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"function_summary_hardware_result_requires_a_full_known_register",
+      test_function_summary_hardware_result_requires_a_full_known_register},
     {"platform_canonical_row_batch_copies_borrowed_row_data",
       test_platform_canonical_row_batch_copies_borrowed_row_data},
     {"render_evidence_source_order_finalization", test_render_evidence_source_order_finalization},
@@ -39197,6 +39422,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_affine_static_interior_expression_same_identity_join_survives},
     {"facts_v2_absolute_operand_manual_equate_preserves_encoding",
       test_facts_v2_absolute_operand_manual_equate_preserves_encoding},
+    {"target_equates_emit_dependencies_before_consumers", test_target_equates_emit_dependencies_before_consumers},
+    {"target_equates_reject_dependency_cycles", test_target_equates_reject_dependency_cycles},
     {"facts_v2_render_asm_source_records_manual_equate_access",
       test_facts_v2_render_asm_source_records_manual_equate_access},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",
@@ -39649,6 +39876,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_does_not_recreate_missing_platform_address_symbol},
     {"facts_v2_render_asm_source_merges_hardware_base_by_id",
       test_facts_v2_render_asm_source_merges_hardware_base_by_id},
+    {"hardware_context_survives_register_exchange_and_copy",
+      test_hardware_context_survives_register_exchange_and_copy},
+    {"hardware_context_refuses_partial_clobbered_and_loaded_values",
+      test_hardware_context_refuses_partial_clobbered_and_loaded_values},
     {"facts_v2_render_asm_source_inherits_hardware_base_into_local_helper",
       test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper},
     {"facts_v2_hardware_base_runtime_sink_exports_pointer_comment",
@@ -39924,8 +40155,14 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call},
     {"facts_v2_render_asm_source_honors_explicit_typed_field_labels",
       test_facts_v2_render_asm_source_honors_explicit_typed_field_labels},
+    {"facts_v2_address_register_seed_replaces_table_origin",
+      test_facts_v2_address_register_seed_replaces_table_origin},
+    {"facts_v2_data_register_seed_replaces_table_origin",
+      test_facts_v2_data_register_seed_replaces_table_origin},
     {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",
       test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type},
+    {"facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load",
+      test_facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load},
     {"facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin",
       test_facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin},
     {"facts_v2_render_asm_source_propagates_pointer_table_chain",

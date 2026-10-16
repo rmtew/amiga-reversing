@@ -19,6 +19,9 @@ def typed_pointer_report(
     offset: int = 0,
     limit: int = 50,
     struct_name: str | None = None,
+    section_index: int | None = None,
+    source_offset: int | None = None,
+    end_offset: int | None = None,
     summary_only: bool = False,
     exceptions_only: bool = False,
 ) -> dict[str, object]:
@@ -27,6 +30,8 @@ def typed_pointer_report(
     Counts cover the entire selected population, including interrupted fields.
     Offset and limit select the returned details, not the summary denominator.
     Names and address-looking scalar values do not participate in selection.
+    Source intervals select field starts, not truncated field extents. A source
+    interval requires a section; unselected fields never invoke native lookup.
     """
     if type(offset) is not int or offset < 0:
         raise ValueError("offset must be a nonnegative integer")
@@ -34,11 +39,27 @@ def typed_pointer_report(
         raise ValueError("limit must be 1..100")
     if type(exceptions_only) is not bool:
         raise ValueError("exceptions_only must be boolean")
+    for name, value in (("section_index", section_index), ("source_offset", source_offset),
+                        ("end_offset", end_offset)):
+        if value is not None and (type(value) is not int or not 0 <= value <= 0xFFFFFFFF):
+            raise ValueError(f"{name} must be a nonnegative 32-bit integer")
+    if (source_offset is not None or end_offset is not None) and section_index is None:
+        raise ValueError("source interval requires section_index")
+    if end_offset is not None and end_offset <= (source_offset or 0):
+        raise ValueError("source interval must be nonempty and increasing")
     selected = {}
     for entity in metadata.seeded_entities:
         if not entity.struct_name or not entity.field_name:
             continue
         if struct_name is not None and entity.struct_name != struct_name:
+            continue
+        # Select canonical field starts before native row lookup. This limits
+        # both summary denominators and work; it never infers pointer values.
+        if section_index is not None and entity.hunk != section_index:
+            continue
+        if source_offset is not None and entity.addr < source_offset:
+            continue
+        if end_offset is not None and entity.addr >= end_offset:
             continue
         if not entity.pointer_struct and entity.value_kind not in {
             "target_pointer", "struct_pointer"
