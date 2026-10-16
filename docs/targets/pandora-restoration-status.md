@@ -3127,8 +3127,17 @@ tests and 40 affected Pandora CPU tests pass. C and vasm reproduce all 376,832
 original bytes; 86 asset identities and payload hashes remain unchanged.
 See `docs/validation/pandora-descriptor-partition.json` for the receipt and scope.
 
-The next substantial gap is a typed positive-X animation-node view over the
-existing player-state tail, including its overlapping ownership and lifetime.
-General mutable-state combinations and equal-depth tie behavior remain unproved.
-No further exception-consequence investigation is planned for the completed
-optional patch proof.
+The positive-X boundary is now corrected: the concrete player uses the existing
+26-byte render prefix, followed by an 18-byte animation node. The former overlap
+came from its generic 30-byte state binding. Initialization and movement now name
+`player_move_positive_x_animation`; its header and eight frame pointers use the
+same types as the other directions. Idle changes hold/clock state within this
+node; no player interaction-tail phase was established. Its byte +11 stays an
+unknown gap. All 29 focused tests and exact C/vasm reproduction pass; 86 assets
+are unchanged. See `docs/validation/pandora-player-directional-nodes.json`.
+
+The next connected gap is the extended chained-node successor at +18 and its
+currently numeric successor-field accesses. General mutable-state combinations,
+allocation lifetime and equal-depth tie behavior remain unproved. No further
+exception-consequence investigation is planned for the completed optional patch
+proof.

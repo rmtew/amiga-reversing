@@ -11620,16 +11620,16 @@ abs_0_00019644:
 	add.w world_object_shared_prefix_world_y(a4),d1
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a4),a1
 	lea.l player_position_state.l,a2
-	movea.l world_position_state_record_current_geometry_ptr.w(a2),a3
-	add.w world_position_state_record_world_x_offset(a2),d0
-	add.w world_position_collision_bounds_world_x_origin_offset(a3),d0
+	movea.l world_position_render_state_prefix_current_geometry_ptr.w(a2),a3
+	add.w world_position_render_state_prefix_world_x_offset(a2),d0
+	add.w WorldPositionAnimationFrame_x_offset(a3),d0
 	move.w d0,d2
-	add.w world_position_collision_bounds_world_x_extent(a3),d0
+	add.w WorldPositionAnimationFrame_frame_width(a3),d0
 	move.w d0,d3
-	add.w world_position_state_record_world_y_offset(a2),d1
-	add.w world_position_collision_bounds_world_y_origin_offset(a3),d1
+	add.w world_position_render_state_prefix_world_y_offset(a2),d1
+	add.w WorldPositionAnimationFrame_y_offset(a3),d1
 	move.w d1,d4
-	add.w world_position_collision_bounds_world_y_extent(a3),d1
+	add.w WorldPositionAnimationFrame_frame_height(a3),d1
 	move.w d1,d5
 	tst.w app_player_move_request_x_step(a6)
 	beq.b abs_0_000196A2
@@ -11786,7 +11786,7 @@ select_player_movement_animation:
 	bset.b #2,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019862:
-	lea.l player_position_state_interaction_data_ptr.l,a1
+	lea.l player_move_positive_x_animation.l,a1
 	bset.b #3,world_object_shared_prefix_movement_direction_flags(a4)
 	bra.b abs_0_00019890
 abs_0_00019870:
@@ -11800,11 +11800,11 @@ abs_0_00019884:
 	lea.l player_move_positive_y_animation.l,a1
 	bset.b #1,world_object_shared_prefix_movement_direction_flags(a4)
 abs_0_00019890:
-	movea.l world_position_state_record_state_node_ptr(a0),a2
+	movea.l world_position_render_state_prefix_state_node_ptr(a0),a2
 	cmpa.l a2,a1
 	beq.b abs_0_000198A2
 	movea.l a1,a2
-	move.l a2,world_position_state_record_state_node_ptr(a0)
+	move.l a2,world_position_render_state_prefix_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a2)
 abs_0_000198A2:
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a2)
@@ -11879,7 +11879,7 @@ abs_0_0001996A:
     ; Hold the current animation header after idle or blocked movement: reset index/phase, set held-header mode and clear skip-update. This node dereference has no local null guard.
 hold_player_movement_animation:
 	lea.l player_position_state_state_node_ptr.l,a0
-	movea.l (a0),a0	; operand 1: world_position_state_record_state_node_ptr at (a0)
+	movea.l (a0),a0	; operand 1: world_position_render_state_prefix_state_node_ptr at (a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
@@ -19693,11 +19693,11 @@ gardener_states_4AF7E_2:
 	dcb.b $9,$00
 	dc.b $05,$AF,$24,$00,$05,$AF,$24,$00,$05,$AF,$36,$00,$05,$AF,$48,$00
 	dc.b $05,$AF,$5A,$00,$05,$AF,$6C
-    ; Install initial player/fixed animation nodes and coordinates. Positive-X shares a long with player state; scripts may replace frame sequences. No alias-lifetime or allocation guarantee.
+    ; Install the positive-X node after the 26-byte player render state. Movement selects directional nodes; idle holds the header pose. General allocation lifetime is not established.
 initialize_player_and_fixed_animation_nodes:
-	lea.l player_position_state_interaction_data_ptr.l,a0
+	lea.l player_move_positive_x_animation.l,a0
 	lea.l player_position_state_state_node_ptr.l,a4
-	move.l a0,(a4)	; operand 2: world_position_state_record_state_node_ptr at (a4)
+	move.l a0,(a4)	; operand 2: world_position_render_state_prefix_state_node_ptr at (a4)
 	lea.l combat_visual_position_descriptor.l,a0
 	move.w #$2710,d0
 	move.w d0,world_position_descriptor_prefix_world_x(a0)
@@ -22102,31 +22102,25 @@ player_position_state_state_node_ptr:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $02	; world_object_flags
-player_position_state_interaction_data_ptr:
-	dc.l player_position_descriptor	; interaction_data_ptr
-player_move_positive_x_animation_frame_count:
-	dc.b $07	; animation_node_suffix
-player_move_positive_x_animation_phase_step:
-	dc.b $40	; animation_node_suffix
-player_move_positive_x_animation_frame_sequence_ptr:
-	dc.l $0005C756	; animation_node_suffix
-player_move_positive_x_animation_mode_flags:
-	dc.b $00	; animation_node_suffix
-player_move_positive_x_animation_unknown_byte:
-	dc.b $00	; animation_node_suffix
-player_move_positive_x_animation_xy_sequence_ptr:
-	dc.l $00000000	; animation_node_suffix
-player_move_positive_x_animation_frame_index_and_phase:
-	dc.w $0000	; animation_node_suffix
+player_move_positive_x_animation:
+	dc.l player_position_descriptor	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $40	; phase_step
+	dc.l player_move_positive_x_frames	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+player_move_positive_x_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
 player_move_positive_x_frames:
-	dc.l abs_0_0005C376	; animation_frame_pointers
-	dc.l player_move_positive_x_cycling_geometry_frames
-	dc.l abs_0_0005C39A
-	dc.l abs_0_0005C3AC
-	dc.l abs_0_0005C3BE
-	dc.l abs_0_0005C3D0
-	dc.l abs_0_0005C3E2
-	dc.l abs_0_0005C3F4
+	dc.l abs_0_0005C376	; frame_ptr
+	dc.l player_move_positive_x_cycling_geometry_frames	; frame_ptr
+	dc.l abs_0_0005C39A	; frame_ptr
+	dc.l abs_0_0005C3AC	; frame_ptr
+	dc.l abs_0_0005C3BE	; frame_ptr
+	dc.l abs_0_0005C3D0	; frame_ptr
+	dc.l abs_0_0005C3E2	; frame_ptr
+	dc.l abs_0_0005C3F4	; frame_ptr
 player_move_negative_x_animation:
 	dc.l player_position_descriptor	; position_descriptor_ptr
 	dc.b $07	; frame_count
