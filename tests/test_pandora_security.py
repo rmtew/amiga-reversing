@@ -1,7 +1,11 @@
 """Original checkpoint policy and state transitions, with explicit local inputs."""
 from __future__ import annotations
 
+import ctypes as C
+
 import pytest
+
+from src.tests.test_m68k_simulator_arithmetic import Trace, engine
 
 from amiga_reversing.disasm.effective_metadata import effective_target_metadata
 from amiga_reversing.disasm.project_paths import resolve_project_paths
@@ -239,3 +243,143 @@ def test_escape_prefix_binds_second_final_pose_record_and_unbinds_animation(secu
     assert read(player_state+state['state_node_ptr']) == 0
     # This is the original guarded path's MOVE/CLR continuation, not proof of
     # ordinary escape reachability or a second defeat geometry's exclusive use.
+
+
+def configure_checkpoint_service(security):
+    """Explicit stable-nearby fixture, not a claim about actor motion in game."""
+    cpu, memory, schemas, read, write, run, slots = security
+    obj = schemas['world_object_shared_prefix']
+    state = schemas['world_position_state_record']
+    actor, descriptor, render_state = 0x80000, 0x80100, 0x80200
+    write(actor+obj['position_descriptor_ptr'], descriptor)
+    write(descriptor, render_state)
+    write(render_state+state['world_object_flags'], 0x80, 1)
+    write(APP+slots['app_nearest_object_ptr'], actor)
+    write(PLAYER+obj['world_object_flags'], 0, 1)
+    write(PLAYER+obj['selected_item_id'], 18, 1)
+    write(PLAYER+obj['hit_points'], 44, 2)
+    write(APP+slots['app_ui_flags'], 0, 1)
+    write(APP+slots['app_security_checkpoint_response_active'], 1, 1)
+    write(APP+slots['app_security_damage_service_countdown'], 50, 2)
+    write(APP+slots['app_security_damage_flash_ticks_remaining'], 0, 1)
+    write(APP+slots['app_security_saved_palette_color'], 0xABC, 2)
+    selectors = [read(BASE+0x3502+2*i, 2) for i in range(1290)]
+    i = next(i for i, selector in enumerate(selectors) if zone(selector) == 0)
+    row, column = divmod(i, 30)
+    write(PLAYER+obj['world_x'], column*48, 2)
+    write(PLAYER+obj['world_y'], row*48, 2)
+    return actor, render_state, selectors
+
+
+def test_second_damage_requires_flash_then_fifty_eligible_service_calls(security):
+    cpu, memory, schemas, read, write, run, slots = security
+    configure_checkpoint_service(security)
+    write(APP+slots['app_security_damage_flash_ticks_remaining'], 31, 1)
+    # The flash skips countdown work, including its final color-restore call.
+    for remaining in range(30, -1, -1):
+        run(0x8814)
+        assert read(APP+slots['app_security_damage_flash_ticks_remaining'], 1) == remaining
+        assert read(APP+slots['app_security_damage_service_countdown'], 2) == 50
+    assert read(BASE+0x772, 2) == 0xABC
+    for remaining in range(49, 0, -1):
+        run(0x8814)
+        assert read(APP+slots['app_security_damage_service_countdown'], 2) == remaining
+        assert read(PLAYER+schemas['world_object_shared_prefix']['hit_points'], 2) == 44
+    run(0x8814, stop=0x887C)
+    assert read(APP+slots['app_security_damage_service_countdown'], 2) == 0
+    assert cpu.d[0] & 255 == 0  # 44-51 clamps before the original store.
+    assert read(PLAYER+schemas['world_object_shared_prefix']['hit_points'], 2) == 44
+    # Stop before the health store and UI/audio calls. No gameplay reachability
+    # or elapsed-time conversion follows from this fixed-nearby fixture.
+
+
+@pytest.mark.parametrize('gate', ['inactive', 'combat', 'valid_card', 'unrestricted'])
+def test_damage_pause_preserves_countdown_and_resumes_without_restart(security, gate):
+    cpu, memory, schemas, read, write, run, slots = security
+    _, _, selectors = configure_checkpoint_service(security)
+    obj = schemas['world_object_shared_prefix']
+    original_xy = read(PLAYER+obj['world_x'])
+    if gate == 'inactive':
+        write(PLAYER+obj['world_object_flags'], 2, 1)
+    elif gate == 'combat':
+        write(APP+slots['app_ui_flags'], 2, 1)
+    elif gate == 'valid_card':
+        write(PLAYER+obj['selected_item_id'], 48, 1)
+    else:
+        i = next(i for i, selector in enumerate(selectors) if zone(selector) == 0xFF)
+        row, column = divmod(i, 30)
+        write(PLAYER+obj['world_x'], column*48, 2)
+        write(PLAYER+obj['world_y'], row*48, 2)
+    for _ in range(3):
+        run(0x8814)
+        assert read(APP+slots['app_security_damage_service_countdown'], 2) == 50
+        assert read(APP+slots['app_security_checkpoint_response_active'], 1) == 1
+    write(PLAYER+obj['world_object_flags'], 0, 1)
+    write(APP+slots['app_ui_flags'], 0, 1)
+    write(PLAYER+obj['selected_item_id'], 18, 1)
+    write(PLAYER+obj['world_x'], original_xy)
+    run(0x8814)
+    assert read(APP+slots['app_security_damage_service_countdown'], 2) == 49
+    assert read(APP+slots['app_security_checkpoint_response_active'], 1) == 1
+
+
+@pytest.mark.parametrize('missing', [True, False])
+def test_lost_checkpoint_branches_to_response_clear_before_countdown(security, missing):
+    cpu, memory, schemas, read, write, run, slots = security
+    _, render_state, _ = configure_checkpoint_service(security)
+    if missing:
+        write(APP+slots['app_nearest_object_ptr'], 0)
+    else:
+        write(render_state+schemas['world_position_state_record']['world_object_flags'], 0, 1)
+    run(0x8814, stop=0x8848)
+    assert read(APP+slots['app_security_damage_service_countdown'], 2) == 50
+    # Branch destination established; the clear helper's audio work is outside
+    # this bounded CPU check and is not replaced or stubbed.
+
+
+def test_static_defeat_executes_original_callees_without_reseeding_registers(security):
+    cpu, memory, schemas, read, write, run, slots = security
+    obj = schemas['world_object_shared_prefix']
+    descriptor = read(PLAYER+obj['position_descriptor_ptr'])
+    previous = read(descriptor)
+    # Explicit already-busy status queue: messages are appended by the actual
+    # original callees. No rendering callback or machine instruction is stubbed.
+    queue = APP+slots['app_scrolling_message_queue_head']
+    write(APP+slots['app_scrolling_message_queue_tail'], queue)
+    write(APP+0x2A6, 1 << 5, 1)
+    write(APP+slots['app_ui_flags'], 0, 1)
+    write(APP+slots['app_font_glyph_bitmap_table_ptr'], BASE+0xA7E2)
+    write(0xA, 0xA5, 1)
+    write(0x10, 0xBEEF, 2)
+    # Preserve CPU and stack continuously while retaining only 64 instructions'
+    # write ranges at a time. A full text draw exceeds the trace range capacity.
+    buffer = (C.c_uint8 * len(memory)).from_buffer(memory)
+    cpu.a[7] = 0x9000
+    write(0x9000, 0x800)
+    cpu.pc = BASE+0x88BC
+    steps = 0
+    for _ in range(64):
+        trace = Trace()
+        rc = engine()(0, buffer, len(memory), C.byref(cpu), 64,
+                      BASE+0x8902, BASE+0x8904, None, C.byref(trace))
+        assert rc == 0 and trace.stop_reason in (1, 3)
+        assert 0 < trace.steps <= 64 and not trace.overflow
+        assert not any(d.severity >= 3 for d in trace.diagnostics.items[:trace.diagnostics.count])
+        steps += trace.steps
+        if trace.stop_reason == 1:
+            break
+    else:
+        pytest.fail('Original defeat continuation exceeded 4096 instructions')
+    assert cpu.pc == BASE+0x8902 and cpu.a[7] == 0x9000
+    assert steps < 4096
+    assert read(PLAYER+obj['hit_points'], 2) == 0
+    assert read(PLAYER+obj['world_object_flags'], 1) & 2
+    assert cpu.a[5] == PLAYER
+    assert read(descriptor) == BASE+0x4C5B6
+    assert read(PLAYER+obj['saved_position_state_ptr']) == previous
+    assert read(APP+slots['app_scrolling_message_queue_tail']) == queue+12
+    assert all(read(queue+4*i) for i in range(3))
+    assert read(queue+12) == 0
+    assert read(0xA, 1) == 0xA4 and read(0x10, 2) == 0
+    # This confirms original caller/callee continuity from the death branch in
+    # an explicit local state, not that ordinary joystick play reaches it.
