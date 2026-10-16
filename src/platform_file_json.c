@@ -6914,14 +6914,25 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
     int is_immediate = listing_operand_is_immediate_value(operand, NULL);
     uint8_t shape = m68k_instruction_operand_decoded_ea_shape(operand);
     int is_absolute = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD || shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
+    int32_t indexed_displacement = 0;
+    int is_indexed_displacement = m68k_ir_operand_brief_index_displacement(operand, &indexed_displacement);
     unsigned width_bits = 0U;
     int32_t signed_value = (int32_t)operand->value.value;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
     int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
-    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !has_base_register) continue;
+    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !is_indexed_displacement && !has_base_register) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
-    if (is_absolute) {
+    if (is_indexed_displacement) {
+      if (json_builder_appendf(builder,
+          "{\"kind\":\"indexed_displacement\",\"operand_index\":%u,\"value\":%d,\"width_bytes\":1,\"width_bits\":8,\"base_register\":\"A%u\"",
+          (unsigned)operand_index, indexed_displacement, (unsigned)operand->value.ea_reg) != 0) return -1;
+      if (symbol_name != NULL && symbol_name[0] != '\0') {
+        if (json_builder_append(builder, ",\"symbol\":") != 0 ||
+            json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+      }
+      if (json_builder_append(builder, "}") != 0) return -1;
+    } else if (is_absolute) {
       unsigned width = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ? 2U : 4U;
       if (json_builder_appendf(builder,
           "{\"kind\":\"absolute_address\",\"operand_index\":%u,\"value\":%u,\"width_bytes\":%u,\"width_bits\":%u",
@@ -8830,6 +8841,7 @@ static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
     int16_t displacement = 0;
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
     if (listing_operand_is_immediate_value(operand, NULL)) return 1;
+    if (m68k_ir_operand_brief_index_displacement(operand, NULL)) return 1;
     if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ||
         m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG) return 1;
     if (operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U) return 1;

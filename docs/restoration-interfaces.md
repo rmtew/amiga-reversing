@@ -325,3 +325,17 @@ classification preserves bytes with unknown purpose; it does not assert media
 format, unused storage or relocation safety. Unclassified bytes remain excluded
 from automatic asset extraction, and existing label, expression, fixup, ORG and
 range-overlap guards still apply.
+
+Brief address-register indexed operands expose their encoded signed-byte
+`indexed_displacement` as an element. `representation.symbol` accepts only an
+equal-valued canonical target EQU; the native renderer checks the actual decoded
+displacement again and preserves the base register, index register, width and
+scale. This names the fixed displacement only. It does not resolve the dynamic
+index, infer a structure field, or prove array bounds. PC-indexed and full-extension
+forms are outside this command's scope.
+
+Function-summary commands also accept type-neutral `abi_pointer` inputs in
+single-register or register-tuple locations. Combined with `identity_input`
+results, these express shared save/restore wrappers without imposing a fixed
+pointee type on every caller. Register preservation alone retains the existing
+conservative treatment of storage-derived types across opaque memory effects.

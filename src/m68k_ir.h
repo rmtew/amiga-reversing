@@ -2904,6 +2904,7 @@ uint32_t m68k_analysis_structured_data_range_ownership_evidence_flags(
   const M68kAnalysisStructuredDataItem *item);
 uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStructuredDataItem *item);
 int m68k_ir_operand_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
+int m68k_ir_operand_brief_index_displacement(const M68kOperandIR *operand, int32_t *out_value);
 int m68k_ir_byte_is_quoted_string_safe(uint8_t value);
 int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,

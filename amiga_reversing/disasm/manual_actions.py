@@ -2364,7 +2364,10 @@ def _validate_candidate_equate_capacity(
         representation.pop("source_symbol", None)  # Never trust a caller-supplied identity.
         symbol, value = representation.get("symbol"), representation.get("value")
         width = representation.get("width_bytes")
-        if representation.get("element_kind") == "absolute_address" and symbol in equates:
+        if representation.get("element_kind") == "indexed_displacement":
+            if width != 1 or type(value) is not int or not -128 <= value <= 127 or symbol not in equates or equates[symbol] != value:
+                raise ValueError("indexed displacement requires an equal-valued canonical EQU")
+        elif representation.get("element_kind") == "absolute_address" and symbol in equates:
             if width not in {2, 4} or equates[symbol] != value:
                 raise ValueError("absolute symbol representation EQU value must match the decoded address")
         elif representation.get("element_kind") in {"immediate", "absolute_address"} and symbol not in equates:

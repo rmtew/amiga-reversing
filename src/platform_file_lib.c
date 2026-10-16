@@ -2417,6 +2417,8 @@ static int append_metadata_function_summary_abi_location_local(const char *objec
     char member_name[8];
     out_location->kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE;
     while (cursor != NULL && cursor < registers_end) {
+      cursor = json_skip_ws_local(cursor, registers_end);
+      if (cursor == registers_end) break;
       if (out_location->register_count >= M68K_FUNCTION_SUMMARY_ABI_REGISTER_TUPLE_LIMIT ||
           (cursor = json_next_string_local(cursor, registers_end, member_name, sizeof(member_name))) == NULL ||
           !function_summary_register_name_local(member_name,

@@ -726,8 +726,18 @@ WorldPositionChainedStateNode_header RS.B 18
 WorldPositionChainedStateNode_next_node_ptr RS.L 1
 WorldPositionChainedStateNode_SIZEOF EQU __RS
 
+; STRUCT WorldPositionXYOffset
+    RSRESET
+WorldPositionXYOffset_x_offset RS.W 1
+WorldPositionXYOffset_y_offset RS.W 1
+WorldPositionXYOffset_SIZEOF EQU __RS
+
+ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
+ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
+ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
+ANIM_MODE_HOLD_AT_END_MASK	EQU	1<<ANIM_MODE_HOLD_AT_END_BIT
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
 ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
@@ -906,6 +916,7 @@ WORLD_POSITION_SECURITY_CHECKPOINT_BIT	EQU	7
 WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOINT_BIT)|$08
 WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
+WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
@@ -1266,7 +1277,7 @@ handle_self_destruct_countdown_expiry:
 	move.b WorldPositionStateNode_phase_step(a0),WorldPositionStateNode_frame_index_and_phase+1(a0)
 	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l hit_feedback_overlay.l,a5
@@ -2206,6 +2217,7 @@ abs_0_000112F0:
 abs_0_00011302:
 	addq.l #6,a4
 	rts
+    ; Ten-byte commands install node/frame and clear clock/hold; preserve count, step, XY and other modes. Head-only selector; the next two walk attachments by flag 3.
 world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
@@ -3246,7 +3258,7 @@ world_object_secdroid_pi_behavior_script:
 secdroid_pi_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
 secdroid_pi_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -3269,7 +3281,7 @@ secdroid_pi_script_command_0020_reload_count:
 secdroid_pi_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
 secdroid_pi_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
@@ -3327,14 +3339,14 @@ secdroid_pi_script_command_0072:
 secdroid_pi_script_command_0076:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
 secdroid_pi_script_command_0080:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
 secdroid_pi_script_command_0084:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
 secdroid_pi_script_command_008E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_pi_script_command_008E_operand_word:
@@ -3386,7 +3398,7 @@ secdroid_pi_script_command_00C2_reload_count:
 secdroid_pi_script_command_00CA:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_6_held	; frame_sequence_ptr
 secdroid_pi_script_command_00D4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0032	; operand_word
@@ -3409,7 +3421,7 @@ secdroid_pi_script_command_00E4_reload_count:
 secdroid_pi_script_command_00EC:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
 secdroid_pi_script_command_00F6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0064	; operand_word
@@ -3423,7 +3435,7 @@ world_object_secdroid_omega_behavior_script:
 secdroid_omega_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
 secdroid_omega_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $0001	; operand_word
@@ -3446,7 +3458,7 @@ secdroid_omega_script_command_0020_reload_count:
 secdroid_omega_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
 secdroid_omega_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_omega_script_command_0032_operand_word:
@@ -3466,7 +3478,7 @@ secdroid_omega_script_command_003E_reload_count:
 secdroid_omega_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
 secdroid_omega_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_omega_script_command_0050_operand_word:
@@ -3486,7 +3498,7 @@ secdroid_omega_script_command_005C_reload_count:
 secdroid_omega_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$90	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
 secdroid_omega_script_command_006E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_omega_script_command_006E_operand_word:
@@ -4221,7 +4233,7 @@ secdroid_alpha_1_script_command_0006:
 secdroid_alpha_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_1_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_1_script_command_0014_operand_word:
@@ -4241,7 +4253,7 @@ secdroid_alpha_1_script_command_0020_reload_count:
 secdroid_alpha_1_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$2C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_1_script_command_0032_operand_word:
@@ -4261,7 +4273,7 @@ secdroid_alpha_1_script_command_003E_reload_count:
 secdroid_alpha_1_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$50	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_6_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_1_script_command_0050_operand_word:
@@ -4281,7 +4293,7 @@ secdroid_alpha_1_script_command_005C_reload_count:
 secdroid_alpha_1_script_command_0064:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
 	dc.w $001E	; operand_word
@@ -4304,7 +4316,7 @@ secdroid_alpha_1_script_command_007E_reload_count:
 secdroid_alpha_1_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$14	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_1_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_1_script_command_0090_operand_word:
@@ -4324,7 +4336,7 @@ secdroid_alpha_1_script_command_009C_reload_count:
 secdroid_alpha_1_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$44	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_1_script_command_00AE_operand_word:
@@ -4354,7 +4366,7 @@ secdroid_alpha_2_script_command_0006:
 secdroid_alpha_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$28	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_2_held	; frame_sequence_ptr
 secdroid_alpha_2_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_2_script_command_0014_operand_word:
@@ -4374,7 +4386,7 @@ secdroid_alpha_2_script_command_0020_reload_count:
 secdroid_alpha_2_script_command_0028:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$20	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
 secdroid_alpha_2_script_command_0032:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_2_script_command_0032_operand_word:
@@ -4394,7 +4406,7 @@ secdroid_alpha_2_script_command_003E_reload_count:
 secdroid_alpha_2_script_command_0046:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$5C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_7_held	; frame_sequence_ptr
 secdroid_alpha_2_script_command_0050:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_2_script_command_0050_operand_word:
@@ -4437,7 +4449,7 @@ secdroid_alpha_2_script_command_007E_reload_count:
 secdroid_alpha_2_script_command_0086:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$38	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_4_held	; frame_sequence_ptr
 secdroid_alpha_2_script_command_0090:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_2_script_command_0090_operand_word:
@@ -4457,7 +4469,7 @@ secdroid_alpha_2_script_command_009C_reload_count:
 secdroid_alpha_2_script_command_00A4:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$B4	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
 secdroid_alpha_2_script_command_00AE:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_2_script_command_00AE_operand_word:
@@ -4487,7 +4499,7 @@ secdroid_delta_2_script_command_0006:
 secdroid_delta_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
 secdroid_delta_2_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_delta_2_script_command_0014_operand_word:
@@ -4542,7 +4554,7 @@ secdroid_delta_2_script_command_0050:
 secdroid_delta_2_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_1_held	; frame_sequence_ptr
 secdroid_delta_2_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_delta_2_script_command_005E_operand_word:
@@ -4604,7 +4616,7 @@ secdroid_delta_1_script_command_0006:
 secdroid_delta_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$14	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_1_held	; frame_sequence_ptr
 secdroid_delta_1_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_delta_1_script_command_0014_operand_word:
@@ -4659,7 +4671,7 @@ secdroid_delta_1_script_command_0050:
 secdroid_delta_1_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
-	dc.l fixed_npc_frame_sequences_early+$3C	; frame_sequence_ptr
+	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
 secdroid_delta_1_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_delta_1_script_command_005E_operand_word:
@@ -9634,7 +9646,7 @@ abs_0_00017A4E:
 	move.b WorldPositionStateNode_phase_step(a0),WorldPositionStateNode_frame_index_and_phase+1(a0)
 	subq.b #1,WorldPositionStateNode_frame_index_and_phase+1(a0)
 	clr.b WorldPositionStateNode_frame_index_and_phase(a0)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	lea.l nearby_distance_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l hit_feedback_overlay.l,a5
@@ -9950,14 +9962,15 @@ abs_0_00017E6E:
 	sub.w d3,d1
 	bpl.b abs_0_00017E74
 	neg.w d1
+    ; Near/far sequences use unsigned WORD distance after biases; flag 5 selects variant. Changes trigger audio, clear hold/clock and set hold-at-end; count persists.
 abs_0_00017E74:
 	add.w d1,d0
-	cmp.w #$2C,d0
+	cmp.w #WORLD_PROXIMITY_ANIMATION_DISTANCE,d0
 	bcc.b abs_0_00017EC2
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_5.l,a3
+	lea.l world_proximity_near_sequence_0_held.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017E90
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_19.l,a3
+	lea.l world_proximity_near_sequence_1_held.l,a3
 abs_0_00017E90:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
@@ -9966,18 +9979,18 @@ abs_0_00017E90:
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,$0006(a5)
-	bclr.b #0,$000A(a5)
-	bset.b #2,$000A(a5)
-	clr.w $0010(a5)
+	move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)
+	bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a5)
 	move.l a0,-(a7)
 	movea.l (a7)+,a0
 	bra.b abs_0_00017F02
 abs_0_00017EC2:
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_12.l,a3
+	lea.l world_proximity_far_sequence_0_held.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
 	beq.b abs_0_00017ED6
-	lea.l world_position_descriptor_sequence_ptrs_frame_ptr_26.l,a3
+	lea.l world_proximity_far_sequence_1_held.l,a3
 abs_0_00017ED6:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
@@ -9986,10 +9999,10 @@ abs_0_00017ED6:
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
-	move.l a3,$0006(a5)
-	bclr.b #0,$000A(a5)
-	bset.b #2,$000A(a5)
-	clr.w $0010(a5)
+	move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)
+	bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)
+	clr.w WorldPositionStateNode_frame_index_and_phase(a5)
 abs_0_00017F02:
 	dbf.w d7,abs_0_00017E04
 abs_0_00017F06:
@@ -10099,7 +10112,7 @@ abs_0_00018032:
 	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
 	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
@@ -10703,7 +10716,7 @@ abs_0_000186F4:
 	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
 	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
@@ -11526,7 +11539,7 @@ bind_cursor_sprites_and_palette:
 	move.l (a0)+,(a1)+
 	movem.l (a7)+,a0-a1
 	rts
-    ; Animate frames and XY offsets with a byte phase clock. A negative wrapped phase advances the cycle. Headers supply the held pose; mode flags choose chaining, holding or looping at the end.
+    ; Held record then count active records; stride 4, no sentinel. Wrap reads held XY then active zero. Hold-at-end loads held XY on the next visit.
 advance_entity_animation:
 	tst.l world_position_state_record_state_node_ptr(a4)
 	beq.w abs_0_000195E0
@@ -11540,8 +11553,8 @@ advance_entity_animation:
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d0
 	beq.w abs_0_000195E0
 	movea.l d0,a1
-	move.w (a1)+,world_position_state_record_world_x_offset(a4)
-	move.w (a1),world_position_state_record_world_y_offset(a4)
+	move.w (a1)+,world_position_state_record_world_x_offset(a4)	; operand 1: WorldPositionXYOffset_x_offset at (a1)+
+	move.w (a1),world_position_state_record_world_y_offset(a4)	; operand 1: WorldPositionXYOffset_y_offset at (a1)
 	bra.w abs_0_000195E0
 abs_0_00019556:
 	move.b WorldPositionStateNode_frame_index_and_phase+1(a0),d0
@@ -11576,20 +11589,20 @@ abs_0_000195AA:
 	tst.l WorldPositionStateNode_xy_sequence_ptr(a0)
 	beq.b abs_0_000195BC
 	movea.l WorldPositionStateNode_xy_sequence_ptr(a0),a2
-	move.w (a2)+,world_position_state_record_world_x_offset(a4)
-	move.w (a2),world_position_state_record_world_y_offset(a4)
+	move.w (a2)+,world_position_state_record_world_x_offset(a4)	; operand 1: WorldPositionXYOffset_x_offset at (a2)+
+	move.w (a2),world_position_state_record_world_y_offset(a4)	; operand 1: WorldPositionXYOffset_y_offset at (a2)
 abs_0_000195BC:
 	clr.b d0
 abs_0_000195BE:
 	move.b d0,WorldPositionStateNode_frame_index_and_phase(a0)
 	add.w d0,d0
 	add.w d0,d0
-	move.l $4(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)
+	move.l ANIM_ACTIVE_FRAME_OFFSET(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d2
 	beq.b abs_0_000195E0
 	movea.l d2,a2
-	move.w $4(a2,d0.w),world_position_state_record_world_x_offset(a4)
-	move.w $6(a2,d0.w),world_position_state_record_world_y_offset(a4)
+	move.w ANIM_ACTIVE_X_OFFSET(a2,d0.w),world_position_state_record_world_x_offset(a4)
+	move.w ANIM_ACTIVE_Y_OFFSET(a2,d0.w),world_position_state_record_world_y_offset(a4)
 abs_0_000195E0:
 	rts
     ; Scale input to axis-only requests (X*7, Y*4), test candidate geometry against tile restrictions, then commit position and choose animation. Accepted requests supply item-effect direction.
@@ -15363,26 +15376,26 @@ ranged_hit_visual_animation:
 	dc.b $07	; frame_count
 	dc.b $80	; phase_step
 	dc.l ranged_hit_visual_frame_ptrs	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 ranged_hit_visual_animation_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 ranged_hit_visual_frame_ptrs:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_1:
+ranged_hit_visual_frame_ptrs_active:
 	dc.l ranged_hit_visual_geometry_frames	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_2:
+ranged_hit_visual_frame_ptrs_active_frame_ptr_1:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_1	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_3:
+ranged_hit_visual_frame_ptrs_active_frame_ptr_2:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_2	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_4:
+ranged_hit_visual_frame_ptrs_active_frame_ptr_3:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_3	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_5:
+ranged_hit_visual_frame_ptrs_active_frame_ptr_4:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_4	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_6:
+ranged_hit_visual_frame_ptrs_active_frame_ptr_5:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_5	; frame_ptr
-ranged_hit_visual_frame_ptrs_frame_ptr_7:
+ranged_hit_visual_frame_ptrs_active_frame_ptr_6:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 world_object_musician:
 	dc.l $00000000	; item_name_ptr
@@ -15496,14 +15509,15 @@ musician_nodes_4870E_4:
 	dc.l musician_positions_4870E_2	; position_descriptor_ptr
 	dc.b $05	; frame_count
 	dc.b $1E	; phase_step
-	dc.l musician_sequence_4870E_5	; frame_sequence_ptr
+	dc.l musician_sequence_4870E_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 musician_nodes_4870E_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-musician_sequence_4870E_5:
+musician_sequence_4870E_5_held:
 	dc.l musician_frames_4870E_1	; frame_ptr
+musician_sequence_4870E_5_active:
 	dc.l musician_frames_4870E_1	; frame_ptr
 	dc.l musician_frames_4870E_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l musician_frames_4870E_1_bitplane_data_ptr_2	; frame_ptr
@@ -15748,14 +15762,15 @@ item_receptacle_4_attachment_animation_node:
 	dc.l item_receptacle_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $28	; phase_step
-	dc.l item_receptacle_4_attachment_frame_sequence	; frame_sequence_ptr
+	dc.l item_receptacle_4_attachment_frame_sequence_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 item_receptacle_4_attachment_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-item_receptacle_4_attachment_frame_sequence:
+item_receptacle_4_attachment_frame_sequence_held:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+item_receptacle_4_attachment_frame_sequence_active:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 item_receptacle_5_primary_state:
@@ -16397,7 +16412,7 @@ world_position_state_nodes_position_descriptor_ptr_6:
 	dc.l world_position_descriptors	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
@@ -16407,7 +16422,7 @@ world_position_state_nodes_position_descriptor_ptr_7:
 	dc.l world_position_descriptors_position_state_ptr_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
@@ -16417,7 +16432,7 @@ world_position_state_nodes_position_descriptor_ptr_8:
 	dc.l world_position_descriptors_position_state_ptr_2	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
@@ -16427,7 +16442,7 @@ world_position_state_nodes_position_descriptor_ptr_9:
 	dc.l world_position_descriptors_position_state_ptr_3	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
@@ -16437,7 +16452,7 @@ world_position_state_nodes_position_descriptor_ptr_10:
 	dc.l world_position_descriptors_position_state_ptr_4	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
@@ -16447,7 +16462,7 @@ world_position_state_nodes_position_descriptor_ptr_11:
 	dc.l world_position_descriptors_position_state_ptr_5	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
@@ -16457,7 +16472,7 @@ world_position_state_nodes_position_descriptor_ptr_12:
 	dc.l world_position_descriptors_position_state_ptr_6	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_E3_12:
 	dc.b $00	; typed data block gap
@@ -16467,7 +16482,7 @@ world_position_state_nodes_position_descriptor_ptr_13:
 	dc.l world_position_descriptors_position_state_ptr_7	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_F5_13:
 	dc.b $00	; typed data block gap
@@ -16477,7 +16492,7 @@ world_position_state_nodes_position_descriptor_ptr_14:
 	dc.l world_position_descriptors_position_state_ptr_8	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_107_14:
 	dc.b $00	; typed data block gap
@@ -16487,7 +16502,7 @@ world_position_state_nodes_position_descriptor_ptr_15:
 	dc.l world_position_descriptors_position_state_ptr_9	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_119_15:
 	dc.b $00	; typed data block gap
@@ -16497,7 +16512,7 @@ world_position_state_nodes_position_descriptor_ptr_16:
 	dc.l world_position_descriptors_position_state_ptr_10	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_12B_16:
 	dc.b $00	; typed data block gap
@@ -16507,7 +16522,7 @@ world_position_state_nodes_position_descriptor_ptr_17:
 	dc.l world_position_descriptors_position_state_ptr_11	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_13D_17:
 	dc.b $00	; typed data block gap
@@ -16517,7 +16532,7 @@ world_position_state_nodes_position_descriptor_ptr_18:
 	dc.l world_position_descriptors_position_state_ptr_12	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_14F_18:
 	dc.b $00	; typed data block gap
@@ -16527,7 +16542,7 @@ world_position_state_nodes_position_descriptor_ptr_19:
 	dc.l world_position_descriptors_position_state_ptr_13	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_12	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_0_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_161_19:
 	dc.b $00	; typed data block gap
@@ -16537,7 +16552,7 @@ world_position_state_nodes_position_descriptor_ptr_20:
 	dc.l world_position_descriptors_position_state_ptr_14	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_173_20:
 	dc.b $00	; typed data block gap
@@ -16547,7 +16562,7 @@ world_position_state_nodes_position_descriptor_ptr_21:
 	dc.l world_position_descriptors_position_state_ptr_15	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_185_21:
 	dc.b $00	; typed data block gap
@@ -16557,7 +16572,7 @@ world_position_state_nodes_position_descriptor_ptr_22:
 	dc.l world_position_descriptors_position_state_ptr_16	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_197_22:
 	dc.b $00	; typed data block gap
@@ -16567,7 +16582,7 @@ world_position_state_nodes_position_descriptor_ptr_23:
 	dc.l world_position_descriptors_position_state_ptr_17	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l world_position_descriptor_sequence_ptrs_frame_ptr_26	; frame_sequence_ptr
+	dc.l world_proximity_far_sequence_1_held	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_HEADER_MASK	; mode_flags
 world_position_state_nodes_gap_1A9_23:
 	dc.b $00	; typed data block gap
@@ -16575,42 +16590,48 @@ world_position_state_nodes_gap_1A9_23:
 	dc.w $0000	; frame_index_and_phase
 world_position_descriptor_sequence_ptrs:
 	dc.l $00000000	; frame_ptr
+world_position_descriptor_sequence_ptrs_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_18	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_19	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_20	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_21	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_5:
+world_proximity_near_sequence_0_held:
 	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
+world_proximity_near_sequence_0_active:
 	dc.l world_position_animation_frames	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_3	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_4	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_12:
+world_proximity_far_sequence_0_held:
 	dc.l world_position_animation_frames	; frame_ptr
+world_proximity_far_sequence_0_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_5	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_4	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_3	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l world_position_animation_frames	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_19:
+world_proximity_near_sequence_1_held:
 	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
+world_proximity_near_sequence_1_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_7	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_8	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_9	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_10	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
-world_position_descriptor_sequence_ptrs_frame_ptr_26:
+world_proximity_far_sequence_1_held:
 	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+world_proximity_far_sequence_1_active:
 	dc.l world_position_animation_frames_bitplane_data_ptr_11	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_10	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_9	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_8	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_7	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_6	; frame_ptr
+world_position_unassigned_frame_entries:
 	dc.l world_position_animation_frames_bitplane_data_ptr_17	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_12	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_13	; frame_ptr
@@ -16832,14 +16853,15 @@ squash_player_nodes_49268_5:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l squash_player_sequence_49268_6	; frame_sequence_ptr
+	dc.l squash_player_sequence_49268_6_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 squash_player_nodes_49268_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-squash_player_sequence_49268_6:
+squash_player_sequence_49268_6_held:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_7	; frame_ptr
+squash_player_sequence_49268_6_active:
 	dc.l squash_player_frames_49268_2	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_2	; frame_ptr
@@ -16851,14 +16873,15 @@ squash_player_nodes_49268_7:
 	dc.l squash_player_positions_49268_3	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l squash_player_sequence_49268_8	; frame_sequence_ptr
+	dc.l squash_player_sequence_49268_8_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 squash_player_nodes_49268_7_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-squash_player_sequence_49268_8:
+squash_player_sequence_49268_8_held:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_15	; frame_ptr
+squash_player_sequence_49268_8_active:
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_8	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_9	; frame_ptr
 	dc.l squash_player_frames_49268_2_bitplane_data_ptr_10	; frame_ptr
@@ -17282,6 +17305,7 @@ wackobrain_actor_nodes_49492_4_gap_B:
 	dc.w $0000	; frame_index_and_phase
 wackobrain_actor_sequence_49492_5:
 	dc.l wackobrain_actor_frames_49492_1	; frame_ptr
+wackobrain_actor_sequence_49492_5_active:
 	dc.l wackobrain_actor_frames_49492_1	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_2	; frame_ptr
@@ -17301,6 +17325,7 @@ wackobrain_actor_nodes_49492_6_gap_B:
 	dc.w $0000	; frame_index_and_phase
 wackobrain_actor_sequence_49492_7:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
+wackobrain_actor_sequence_49492_7_active:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_7	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_8	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_9	; frame_ptr
@@ -17316,6 +17341,7 @@ wackobrain_actor_nodes_49492_8_gap_B:
 	dc.w $0000	; frame_index_and_phase
 wackobrain_actor_sequence_49492_9:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
+wackobrain_actor_sequence_49492_9_active:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_10	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_11	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_12	; frame_ptr
@@ -17335,6 +17361,7 @@ wackobrain_actor_nodes_49492_10_gap_B:
 	dc.w $0000	; frame_index_and_phase
 wackobrain_actor_sequence_49492_11:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
+wackobrain_actor_sequence_49492_11_active:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_17	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_18	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_19	; frame_ptr
@@ -17354,6 +17381,7 @@ wackobrain_actor_nodes_49492_12_gap_B:
 	dc.w $0000	; frame_index_and_phase
 wackobrain_actor_sequence_49492_13:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
+wackobrain_actor_sequence_49492_13_active:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_24	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_25	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_26	; frame_ptr
@@ -17366,13 +17394,14 @@ wackobrain_actor_nodes_49492_14:
 	dc.b $0C	; frame_count
 	dc.b $2D	; phase_step
 	dc.l wackobrain_actor_sequence_49492_15	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 wackobrain_actor_nodes_49492_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 wackobrain_actor_sequence_49492_15:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_42	; frame_ptr
+wackobrain_actor_sequence_49492_15_active:
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_31	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_32	; frame_ptr
 	dc.l wackobrain_actor_frames_49492_1_bitplane_data_ptr_33	; frame_ptr
@@ -17585,14 +17614,15 @@ thief_nodes_4995C_4:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l thief_sequence_4995C_5	; frame_sequence_ptr
+	dc.l thief_sequence_4995C_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 thief_nodes_4995C_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-thief_sequence_4995C_5:
+thief_sequence_4995C_5_held:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_8	; frame_ptr
+thief_sequence_4995C_5_active:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_2	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_3	; frame_ptr
@@ -17604,14 +17634,15 @@ thief_nodes_4995C_6:
 	dc.l thief_positions_4995C_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l thief_sequence_4995C_7	; frame_sequence_ptr
+	dc.l thief_sequence_4995C_7_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 thief_nodes_4995C_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-thief_sequence_4995C_7:
+thief_sequence_4995C_7_held:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_16	; frame_ptr
+thief_sequence_4995C_7_active:
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_9	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_10	; frame_ptr
 	dc.l thief_frames_4995C_1_bitplane_data_ptr_11	; frame_ptr
@@ -17829,14 +17860,15 @@ priest_nodes_49B98_3:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $08	; frame_count
 	dc.b $28	; phase_step
-	dc.l priest_sequence_49B98_4	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l priest_sequence_49B98_4_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 priest_nodes_49B98_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-priest_sequence_49B98_4:
+priest_sequence_49B98_4_held:
 	dc.l priest_animation_bank_bitplane_data_ptr_15	; frame_ptr
+priest_sequence_49B98_4_active:
 	dc.l priest_animation_bank_bitplane_data_ptr_7	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_8	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_9	; frame_ptr
@@ -17849,14 +17881,15 @@ priest_nodes_49B98_5:
 	dc.l priest_positions_49B98_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $2B	; phase_step
-	dc.l priest_sequence_49B98_6	; frame_sequence_ptr
+	dc.l priest_sequence_49B98_6_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 priest_nodes_49B98_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-priest_sequence_49B98_6:
+priest_sequence_49B98_6_held:
 	dc.l priest_animation_bank	; frame_ptr
+priest_sequence_49B98_6_active:
 	dc.l priest_animation_bank	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l priest_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -18080,14 +18113,15 @@ icelord_nodes_49DCE_3:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.b $13	; frame_count
 	dc.b $2A	; phase_step
-	dc.l icelord_sequence_49DCE_4	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l icelord_sequence_49DCE_4_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 icelord_nodes_49DCE_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-icelord_sequence_49DCE_4:
+icelord_sequence_49DCE_4_held:
 	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
+icelord_sequence_49DCE_4_active:
 	dc.l icelord_animation_bank	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -18111,14 +18145,15 @@ icelord_nodes_49DCE_5:
 	dc.l icelord_positions_49DCE_1	; position_descriptor_ptr
 	dc.b $13	; frame_count
 	dc.b $2A	; phase_step
-	dc.l icelord_sequence_49DCE_6	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l icelord_sequence_49DCE_6_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 icelord_nodes_49DCE_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-icelord_sequence_49DCE_6:
+icelord_sequence_49DCE_6_held:
 	dc.l icelord_animation_bank	; frame_ptr
+icelord_sequence_49DCE_6_active:
 	dc.l icelord_animation_bank_bitplane_data_ptr_18	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_17	; frame_ptr
 	dc.l icelord_animation_bank_bitplane_data_ptr_16	; frame_ptr
@@ -18466,14 +18501,15 @@ hooligan_nodes_4A07C_4:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_5	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_5:
+hooligan_sequence_4A07C_5_held:
 	dc.l hooligan_animation_bank	; frame_ptr
+hooligan_sequence_4A07C_5_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_2	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_3	; frame_ptr
@@ -18484,14 +18520,15 @@ hooligan_nodes_4A07C_6:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_7	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_7_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_7:
+hooligan_sequence_4A07C_7_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_7	; frame_ptr
+hooligan_sequence_4A07C_7_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_8	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_9	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_10	; frame_ptr
@@ -18502,14 +18539,15 @@ hooligan_nodes_4A07C_8:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_9	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_9_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_8_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_9:
+hooligan_sequence_4A07C_9_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_21	; frame_ptr
+hooligan_sequence_4A07C_9_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_14	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_15	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_16	; frame_ptr
@@ -18521,14 +18559,15 @@ hooligan_nodes_4A07C_10:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l hooligan_sequence_4A07C_11	; frame_sequence_ptr
+	dc.l hooligan_sequence_4A07C_11_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 hooligan_nodes_4A07C_10_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_11:
+hooligan_sequence_4A07C_11_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+hooligan_sequence_4A07C_11_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_22	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_23	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_24	; frame_ptr
@@ -18540,28 +18579,30 @@ hooligan_nodes_4A07C_12:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $20	; phase_step
-	dc.l hooligan_sequence_4A07C_13	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l hooligan_sequence_4A07C_13_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 hooligan_nodes_4A07C_12_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_13:
+hooligan_sequence_4A07C_13_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+hooligan_sequence_4A07C_13_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_30	; frame_ptr
 hooligan_nodes_4A07C_14:
 	dc.l hooligan_positions_4A07C_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $20	; phase_step
-	dc.l hooligan_sequence_4A07C_15	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l hooligan_sequence_4A07C_15_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 hooligan_nodes_4A07C_14_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-hooligan_sequence_4A07C_15:
+hooligan_sequence_4A07C_15_held:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
+hooligan_sequence_4A07C_15_active:
 	dc.l hooligan_animation_bank_bitplane_data_ptr_29	; frame_ptr
 	dc.l hooligan_animation_bank_bitplane_data_ptr_31	; frame_ptr
 world_object_entry_officer:
@@ -18700,14 +18741,15 @@ entry_officer_nodes_4A45E_3:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l entry_officer_sequence_4A45E_4	; frame_sequence_ptr
+	dc.l entry_officer_sequence_4A45E_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 entry_officer_nodes_4A45E_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-entry_officer_sequence_4A45E_4:
+entry_officer_sequence_4A45E_4_held:
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_8	; frame_ptr
+entry_officer_sequence_4A45E_4_active:
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_2	; frame_ptr
 	dc.l entry_officer_animation_bank_1_bitplane_data_ptr_3	; frame_ptr
@@ -18719,14 +18761,15 @@ entry_officer_nodes_4A45E_5:
 	dc.l entry_officer_positions_4A45E_1	; position_descriptor_ptr
 	dc.b $09	; frame_count
 	dc.b $40	; phase_step
-	dc.l entry_officer_sequence_4A45E_6	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l entry_officer_sequence_4A45E_6_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 entry_officer_nodes_4A45E_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-entry_officer_sequence_4A45E_6:
+entry_officer_sequence_4A45E_6_held:
 	dc.l entry_officer_animation_bank_1	; frame_ptr
+entry_officer_sequence_4A45E_6_active:
 	dc.l entry_officer_animation_bank_2	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -18824,14 +18867,15 @@ death_fly_nodes_4A600_3:
 	dc.l death_fly_positions_4A600_1	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $80	; phase_step
-	dc.l death_fly_sequence_4A600_4	; frame_sequence_ptr
+	dc.l death_fly_sequence_4A600_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 death_fly_nodes_4A600_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-death_fly_sequence_4A600_4:
+death_fly_sequence_4A600_4_held:
 	dc.l death_fly_animation_bank_bitplane_data_ptr_1	; frame_ptr
+death_fly_sequence_4A600_4_active:
 	dc.l death_fly_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l death_fly_animation_bank_bitplane_data_ptr_2	; frame_ptr
 world_object_driffid:
@@ -18954,14 +18998,15 @@ driffid_nodes_4A6E8_4:
 	dc.l driffid_positions_4A6E8_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l driffid_sequence_4A6E8_5	; frame_sequence_ptr
+	dc.l driffid_sequence_4A6E8_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 driffid_nodes_4A6E8_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-driffid_sequence_4A6E8_5:
+driffid_sequence_4A6E8_5_held:
 	dc.l driffid_animation_bank	; frame_ptr
+driffid_sequence_4A6E8_5_active:
 	dc.l driffid_animation_bank	; frame_ptr
 	dc.l driffid_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l driffid_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -19491,7 +19536,7 @@ menial_droid_animation_bank_1:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 menial_droid_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -19596,14 +19641,15 @@ menial_droid_animation_bank_3:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $80	; phase_step
-	dc.l menial_droid_sequence_4AE50_1	; frame_sequence_ptr
+	dc.l menial_droid_sequence_4AE50_1_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 menial_droid_animation_bank_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-menial_droid_sequence_4AE50_1:
+menial_droid_sequence_4AE50_1_held:
 	dc.l menial_droid_animation_bank_2	; frame_ptr
+menial_droid_sequence_4AE50_1_active:
 	dc.l menial_droid_animation_bank_2	; frame_ptr
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -19650,7 +19696,7 @@ gardener_animation_bank_1:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 gardener_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -19793,7 +19839,7 @@ collect_world_object_item:
 	movea.l $0014(a5),a0
 	clr.b (a0)
 	lea.l entry_officer_nodes_4A45E_5(pc),a0
-	bclr.b #0,WorldPositionStateNode_mode_flags(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	btst.b #2,app_ui_flags(a6)
 	beq.b abs_0_0005B16C
@@ -19999,14 +20045,15 @@ technician_nodes_4B1DA_4:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l technician_sequence_4B1DA_5	; frame_sequence_ptr
+	dc.l technician_sequence_4B1DA_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 technician_nodes_4B1DA_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-technician_sequence_4B1DA_5:
+technician_sequence_4B1DA_5_held:
 	dc.l technician_animation_bank_bitplane_data_ptr_1	; frame_ptr
+technician_sequence_4B1DA_5_active:
 	dc.l technician_animation_bank_bitplane_data_ptr_2	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_3	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_4	; frame_ptr
@@ -20018,14 +20065,15 @@ technician_nodes_4B1DA_6:
 	dc.l technician_positions_4B1DA_2	; position_descriptor_ptr
 	dc.b $07	; frame_count
 	dc.b $40	; phase_step
-	dc.l technician_sequence_4B1DA_7	; frame_sequence_ptr
+	dc.l technician_sequence_4B1DA_7_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 technician_nodes_4B1DA_6_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-technician_sequence_4B1DA_7:
+technician_sequence_4B1DA_7_held:
 	dc.l technician_animation_bank_bitplane_data_ptr_1	; frame_ptr
+technician_sequence_4B1DA_7_active:
 	dc.l technician_animation_bank_bitplane_data_ptr_9	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_10	; frame_ptr
 	dc.l technician_animation_bank_bitplane_data_ptr_11	; frame_ptr
@@ -20072,7 +20120,7 @@ robomechanic_animation_bank_1:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 robomechanic_animation_bank_1_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -20152,14 +20200,15 @@ robomechanic_nodes_4B454_3:
 	dc.l robomechanic_positions_4B454_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
 	dc.b $28	; phase_step
-	dc.l robomechanic_sequence_4B454_4	; frame_sequence_ptr
+	dc.l robomechanic_sequence_4B454_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 robomechanic_nodes_4B454_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-robomechanic_sequence_4B454_4:
+robomechanic_sequence_4B454_4_held:
 	dc.l robomechanic_animation_bank_2	; frame_ptr
+robomechanic_sequence_4B454_4_active:
 	dc.l robomechanic_animation_bank_2	; frame_ptr
 	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l robomechanic_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -20364,14 +20413,15 @@ doctor_nodes_4B552_3:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l doctor_sequence_4B552_4	; frame_sequence_ptr
+	dc.l doctor_sequence_4B552_4_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 doctor_nodes_4B552_3_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-doctor_sequence_4B552_4:
+doctor_sequence_4B552_4_held:
 	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
+doctor_sequence_4B552_4_active:
 	dc.l doctor_animation_bank	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_1	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_2	; frame_ptr
@@ -20382,14 +20432,15 @@ doctor_nodes_4B552_5:
 	dc.l doctor_positions_4B552_1	; position_descriptor_ptr
 	dc.b $06	; frame_count
 	dc.b $40	; phase_step
-	dc.l doctor_sequence_4B552_6	; frame_sequence_ptr
+	dc.l doctor_sequence_4B552_6_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 doctor_nodes_4B552_5_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-doctor_sequence_4B552_6:
+doctor_sequence_4B552_6_held:
 	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
+doctor_sequence_4B552_6_active:
 	dc.l doctor_animation_bank_bitplane_data_ptr_6	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_7	; frame_ptr
 	dc.l doctor_animation_bank_bitplane_data_ptr_8	; frame_ptr
@@ -20495,15 +20546,16 @@ diabetic_script_pose_controller:
 	dc.l diabetic_animation_bank	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l diabetic_pose_frames_by_mode	; frame_sequence_ptr
+	dc.l diabetic_pose_frames_by_mode_held	; frame_sequence_ptr
 diabetic_script_pose_controller_mode_flags:
 	dc.b $00	; mode_flags
 diabetic_script_pose_controller_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-diabetic_pose_frames_by_mode:
+diabetic_pose_frames_by_mode_held:
 	dc.l diabetic_held_pose	; frame_ptr
+diabetic_pose_frames_by_mode_active:
 	dc.l diabetic_script_pose_frames	; frame_ptr
 world_object_security_officer:
 	dc.l $00000000	; item_name_ptr
@@ -20585,14 +20637,15 @@ security_officer_nodes_4B882_4:
 	dc.l security_officer_positions_4B882_2	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l security_officer_sequence_4B882_5	; frame_sequence_ptr
+	dc.l security_officer_sequence_4B882_5_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 security_officer_nodes_4B882_4_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-security_officer_sequence_4B882_5:
+security_officer_sequence_4B882_5_held:
 	dc.l security_officer_animation_bank_bitplane_data_ptr_1	; frame_ptr
+security_officer_sequence_4B882_5_active:
 	dc.l security_officer_animation_bank	; frame_ptr
 world_object_bank_manager:
 	dc.l $00000000	; item_name_ptr
@@ -20734,14 +20787,15 @@ chemist_nodes_4BA0C_2:
 	dc.l chemist_animation_bank	; position_descriptor_ptr
 	dc.b $01	; frame_count
 	dc.b $80	; phase_step
-	dc.l chemist_sequence_4BA0C_3	; frame_sequence_ptr
+	dc.l chemist_sequence_4BA0C_3_held	; frame_sequence_ptr
 	dc.b $00	; mode_flags
 chemist_nodes_4BA0C_2_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
-chemist_sequence_4BA0C_3:
+chemist_sequence_4BA0C_3_held:
 	dc.l doctor_animation_bank_bitplane_data_ptr_13	; frame_ptr
+chemist_sequence_4BA0C_3_active:
 	dc.l doctor_animation_bank_bitplane_data_ptr_12	; frame_ptr
 world_object_secdroid_alpha_1:
 	dc.l $00000000	; item_name_ptr
@@ -21061,6 +21115,7 @@ fixed_npc_geometry_headers_bitplane_data_ptr_13:
 	dc.w $0000	; y_offset
 fixed_npc_saved_frame_sequence:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_13	; frame_ptr
+fixed_npc_saved_frame_sequence_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_9	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_10	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_11	; frame_ptr
@@ -21071,7 +21126,7 @@ fixed_npc_saved_animation_states:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_saved_animation_states_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21091,7 +21146,7 @@ secdroid_delta_1_saved_animation_node:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 secdroid_delta_1_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21111,7 +21166,7 @@ secdroid_delta_2_saved_animation_node:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 secdroid_delta_2_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21131,7 +21186,7 @@ secdroid_pi_saved_animation_node:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 secdroid_pi_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21151,7 +21206,7 @@ secdroid_omega_saved_animation_node:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 secdroid_omega_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21171,7 +21226,7 @@ secdroid_alpha_2_saved_animation_node:
 	dc.b $05	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_saved_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 secdroid_alpha_2_saved_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21344,21 +21399,28 @@ secdroid_alpha_2_attachment_position_state:
 	dc.b $00	; world_object_flags
 fixed_npc_frame_sequences_early:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_early_0_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_early_1_held:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_early_1_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+fixed_npc_frame_sequences_early_2_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_early_2_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+fixed_npc_frame_sequences_early_3_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_early_3_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
@@ -21369,40 +21431,57 @@ fixed_npc_frame_sequences_early:
 	dc.b $00,$05,$BC,$94,$00,$05,$BC,$A6,$00,$05,$BC,$B8
 fixed_npc_frame_sequences_late:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+fixed_npc_frame_sequences_late_0_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_late_1_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+fixed_npc_frame_sequences_late_1_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+fixed_npc_frame_sequences_late_2_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+fixed_npc_frame_sequences_late_2_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+fixed_npc_frame_sequences_late_3_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+fixed_npc_frame_sequences_late_3_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_late_4_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+fixed_npc_frame_sequences_late_4_active:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+fixed_npc_frame_sequences_late_5_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_late_5_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+fixed_npc_frame_sequences_late_6_held:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_late_6_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+fixed_npc_frame_sequences_late_7_held:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+fixed_npc_frame_sequences_late_7_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+fixed_npc_frame_sequences_late_8_held:
 	dc.l fixed_npc_geometry_headers	; frame_ptr
+fixed_npc_frame_sequences_late_8_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 fixed_npc_script_animation_nodes:
 	dc.l fixed_npc_position_states	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_B_0:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21411,7 +21490,7 @@ fixed_npc_script_animation_nodes_gap_B_0:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_1D_1:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21419,8 +21498,8 @@ fixed_npc_script_animation_nodes_gap_1D_1:
 	dc.l secdroid_delta_1_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_2F_2:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21429,7 +21508,7 @@ fixed_npc_script_animation_nodes_gap_2F_2:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_41_3:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21437,8 +21516,8 @@ fixed_npc_script_animation_nodes_gap_41_3:
 	dc.l secdroid_delta_2_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_53_4:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21447,7 +21526,7 @@ fixed_npc_script_animation_nodes_gap_53_4:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_65_5:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21455,8 +21534,8 @@ fixed_npc_script_animation_nodes_gap_65_5:
 	dc.l secdroid_pi_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_77_6:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21465,7 +21544,7 @@ fixed_npc_script_animation_nodes_gap_77_6:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_89_7:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21473,8 +21552,8 @@ fixed_npc_script_animation_nodes_gap_89_7:
 	dc.l secdroid_omega_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_9B_8:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21483,7 +21562,7 @@ fixed_npc_script_animation_nodes_gap_9B_8:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_AD_9:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21491,8 +21570,8 @@ fixed_npc_script_animation_nodes_gap_AD_9:
 	dc.l secdroid_alpha_2_position_descriptor	; position_descriptor_ptr
 	dc.b $02	; frame_count
 	dc.b $40	; phase_step
-	dc.l fixed_npc_frame_sequences_late+$68	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_BF_10:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21501,7 +21580,7 @@ fixed_npc_script_animation_nodes_gap_BF_10:
 	dc.b $04	; frame_count
 	dc.b $40	; phase_step
 	dc.l fixed_npc_frame_sequences_late	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 fixed_npc_script_animation_nodes_gap_D1_11:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
@@ -21635,6 +21714,7 @@ pianist_actor_nodes_4C226_4_gap_B:
 	dc.w $0000	; frame_index_and_phase
 pianist_actor_sequence_4C226_5:
 	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
+pianist_actor_sequence_4C226_5_active:
 	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_1	; frame_ptr
 	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_2	; frame_ptr
 	dc.l pianist_actor_frames_4C226_1_bitplane_data_ptr_3	; frame_ptr
@@ -22073,13 +22153,14 @@ player_animated_defeat_node:
 	dc.b $0D	; frame_count
 	dc.b $28	; phase_step
 	dc.l player_animated_defeat_frame_refs	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 player_animated_defeat_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 player_animated_defeat_frame_refs:
 	dc.l abs_0_0005C6A8	; frame_ptr
+player_animated_defeat_frame_refs_active:
 	dc.l entry_officer_animation_bank_2	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
@@ -22122,6 +22203,7 @@ player_move_positive_x_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_positive_x_frames:
 	dc.l abs_0_0005C376	; frame_ptr
+player_move_positive_x_frames_sequence_0_active:
 	dc.l player_move_positive_x_cycling_geometry_frames	; frame_ptr
 	dc.l abs_0_0005C39A	; frame_ptr
 	dc.l abs_0_0005C3AC	; frame_ptr
@@ -22141,6 +22223,7 @@ player_move_negative_x_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_negative_x_frames:
 	dc.l player_move_negative_x_geometry_frames	; frame_ptr
+player_move_negative_x_frames_sequence_0_active:
 	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l player_move_negative_x_geometry_frames_bitplane_data_ptr_3	; frame_ptr
@@ -22160,6 +22243,7 @@ player_move_positive_y_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_positive_y_frames:
 	dc.l player_move_positive_y_geometry_frames	; frame_ptr
+player_move_positive_y_frames_sequence_0_active:
 	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l player_move_positive_y_geometry_frames_bitplane_data_ptr_3	; frame_ptr
@@ -22178,6 +22262,7 @@ player_move_negative_y_animation_gap_B:
 	dc.w $0000	; frame_index_and_phase
 player_move_negative_y_frames:
 	dc.l player_move_negative_y_geometry_frames	; frame_ptr
+player_move_negative_y_frames_sequence_0_active:
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_1	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_2	; frame_ptr
 	dc.l player_move_negative_y_geometry_frames_bitplane_data_ptr_3	; frame_ptr
@@ -22296,6 +22381,7 @@ combat_active_animation_node_gap_B:
 	dc.w $0000	; frame_index_and_phase
 combat_active_frame_sequence:
 	dc.l combat_encounter_geometry_headers	; frame_ptr
+combat_active_frame_sequence_active:
 	dc.l combat_encounter_geometry_headers	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_2	; frame_ptr
@@ -22307,13 +22393,14 @@ combat_exit_animation_node:
 	dc.b $06	; frame_count
 	dc.b $2B	; phase_step
 	dc.l combat_exit_frame_sequence	; frame_sequence_ptr
-	dc.b $04	; mode_flags
+	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 combat_exit_animation_node_gap_B:
 	dc.b $00	; typed data block gap
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 combat_exit_frame_sequence:
 	dc.l $00000000	; frame_ptr
+combat_exit_frame_sequence_active:
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_7	; frame_ptr
 	dc.l combat_encounter_geometry_headers_bitplane_data_ptr_8	; frame_ptr

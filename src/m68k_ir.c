@@ -1,5 +1,8 @@
 #include "platform_host_compat.h"
 #include "m68k_ir.h"
+#include "m68k_instruction_spec.h"
+#include "m68k_parse_util.h"
+#include "m68k_simulator.h"
 
 #include "generated/amiga_os_runtime.h"
 #include "generated/atari_st_os_runtime.h"
@@ -859,6 +862,18 @@ uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStruct
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) return 2U;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return 4U;
   return 0U;
+}
+
+/* Presentation of the decoded brief displacement is independent of the
+ * dynamic index value. It does not establish array bounds or field identity. */
+int m68k_ir_operand_brief_index_displacement(const M68kOperandIR *operand, int32_t *out_value) {
+  if (operand == NULL || operand->kind != M68K_ASM_OPERAND_EA ||
+      m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_INDEX ||
+      operand->value.ea_mode != 6U || operand->value.full_ext_base_suppress ||
+      operand->value.full_ext_index_suppress || operand->value.full_ext_base_disp_size ||
+      operand->value.full_ext_outer_disp_size || operand->value.full_ext_iis) return 0;
+  if (out_value != NULL) *out_value = (int32_t)m68k_sign_extend32(operand->value.value, 8U);
+  return 1;
 }
 
 int m68k_ir_operand_immediate_value(const M68kOperandIR *operand, uint32_t *out_value) {

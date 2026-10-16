@@ -512,6 +512,11 @@ def listing_element_action_catalog(
                 {"representation": "symbol"}, _symbol_representation_parameter_schema(),
             )
         )
+    if (element_kind == "indexed_displacement" and context.get("width_bytes") == 1
+            and (value := _optional_int(context.get("value"))) is not None and -128 <= value <= 127):
+        actions.append(_context_log_action(
+            "representation.symbol", "Use displacement symbol", "set_representation", context,
+            {"representation": "symbol"}, _symbol_representation_parameter_schema()))
     if element_kind == "immediate":
         actions.append(
             _context_log_action(
@@ -5058,6 +5063,11 @@ def _representation_payload(
         if not isinstance(symbol, str) or not symbol.strip():
             raise ValueError("symbol representation requires parameter symbol")
         representation["symbol"] = symbol.strip()
+        if element_kind == "indexed_displacement":
+            element_context = selected_listing_element_context(row, element_context or {})
+            value = _optional_int((element_context or {}).get("value"))
+            if value is None or not -128 <= value <= 127 or (element_context or {}).get("width_bytes") != 1:
+                raise ValueError("indexed displacement requires a native signed byte")
         if element_kind == "absolute_address":
             element_context = selected_listing_element_context(row, element_context or {})
             value = _optional_int((element_context or {}).get("value"))
@@ -6069,6 +6079,26 @@ def _target_function_summary_payload(params: Mapping[str, object]) -> dict[str, 
             raise ValueError("target.function_summary.add inputs must be objects")
         location = raw_input.get("location")
         struct_name = raw_input.get("struct_name")
+        if raw_input.get("value_kind") == "abi_pointer":
+            # The metadata/native contract already supports type-neutral
+            # identity results. Expose that contract without assigning one
+            # pointee structure to every caller of a shared save/restore helper.
+            if not isinstance(location, Mapping) or "struct_name" in raw_input:
+                raise ValueError("abi_pointer inputs require location and no struct_name")
+            normalized = dict(location)
+            if normalized.get("kind") == "register" and isinstance(normalized.get("register"), str):
+                if normalized.get("width") != 4:
+                    raise ValueError("abi_pointer register inputs require width 4")
+                normalized["register"] = normalized["register"].strip().upper()
+            elif normalized.get("kind") == "register_tuple" and isinstance(normalized.get("registers"), list):
+                normalized["registers"] = [r.strip().upper() if isinstance(r, str) else r
+                                           for r in normalized["registers"]]
+            else:
+                raise ValueError("abi_pointer inputs require register or register_tuple locations")
+            inputs.append({"location": normalized, "value_kind": "abi_pointer"})
+            continue
+        if raw_input.get("value_kind", "struct_ptr") != "struct_ptr":
+            raise ValueError("function summary input value_kind must be struct_ptr or abi_pointer")
         if not isinstance(location, Mapping) or not isinstance(struct_name, str) or not struct_name.strip():
             raise ValueError("target.function_summary.add inputs require location and struct_name")
         location_kind = location.get("kind")

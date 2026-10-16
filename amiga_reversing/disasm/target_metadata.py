@@ -2132,8 +2132,8 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
         assert isinstance(offset, int) and isinstance(width, int) and isinstance(convention, str)
         return {"kind": kind, "offset": offset, "width": width, "convention": convention}
     registers = location.get("registers"); width = location.get("width")
-    assert kind == "register_tuple" and isinstance(registers, list) and isinstance(width, int)
-    return {"kind": kind, "registers": registers, "width": width}
+    assert kind == "register_tuple" and isinstance(registers, (list, tuple)) and isinstance(width, int)
+    return {"kind": kind, "registers": list(registers), "width": width}
 
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:

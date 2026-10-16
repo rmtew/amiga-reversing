@@ -5251,6 +5251,8 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
     uint32_t value = 0U;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
+    int32_t indexed_displacement = 0;
+    int is_indexed_displacement = m68k_ir_operand_brief_index_displacement(operand, &indexed_displacement);
     int is_immediate = m68k_ir_operand_immediate_value(operand, &value);
     int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
     int is_absolute = operand_absolute_offset_local(operand, &value);
@@ -5280,12 +5282,16 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
     }
     if ((operand->symbol_ref.has_name != 0U &&
           (!is_absolute || operand->symbol_ref.name_is_generated == 0U)) ||
-        (!is_immediate && !is_base_displacement && !is_absolute)) continue;
+        (!is_immediate && !is_base_displacement && !is_absolute && !is_indexed_displacement)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
     if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
       const char *symbol_name = manual_representation_symbol_name(lookup, representation);
       if (symbol_name == NULL || !asm_symbol_name_is_safe_local(symbol_name)) continue;
+      if (is_indexed_displacement && (lookup == NULL || lookup->policy == NULL ||
+          representation->target_equate_index == 0U ||
+          representation->target_equate_index > lookup->policy->target_equate_count ||
+          lookup->policy->target_equates[representation->target_equate_index - 1U].value != indexed_displacement)) return -1;
       if (is_absolute && (lookup == NULL || lookup->policy == NULL ||
           representation->target_equate_index == 0U ||
           representation->target_equate_index > lookup->policy->target_equate_count ||

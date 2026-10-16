@@ -3146,7 +3146,33 @@ concrete record was widened or gameplay reachability asserted. All 17 focused
 tests and exact C/vasm reproduction pass; data directives and 86 assets are
 unchanged. See `docs/validation/pandora-chained-animation.json`.
 
-The next connected gap is indexed active frame/XY sequence access and bounds
-under script sequence replacement. General mutable-state combinations, allocation
-lifetime and equal-depth tie behavior remain unproved. No further consequence
+The combined animation pass separates held and active records for all 63
+established sequence starts (416 pointer entries), covering 89 initialized nodes,
+26 script replacements and four proximity variants. The frame/XY consumers now
+name the held-record skip and XY fields. Nonzero initial modes and remaining mode
+bit operands use the established masks/indices. Counts and phase steps retain
+their original values; replacement preserves both and the optional XY pointer.
+
+A shared feedback-audio contract restores the identities of D1-D7/A1-A6 on normal
+return, without imposing a game-specific pointee type on other callers. The
+normal command path now supports the existing type-neutral identity model;
+canonical tuple serialization and whitespace parsing are covered by positive and
+conservative tests. Opaque-memory invalidation remains conservative without an
+explicit identity result.
+
+The inventory reports 70 to
+78 named node-field accesses and
+zero exceptions among 267 node pointers and 430 frame pointers (including NULLs).
+Full C/vasm exactness preserves all 376,832 original bytes and 86 asset identities,
+paths, sizes and hashes. Test results, the receipt, all sequence bounds and the
+compact before/after inventory are in
+`docs/validation/pandora-animation-subsystem.json`.
+
+Remaining animation unknowns are the 14 trailing frame pointers at
+`$491A4..$491DC` without an established sequence consumer, node byte `+11`, and
+the physical meaning of proximity variant flag 5. No initialized node uses XY or
+chaining, so their actual gameplay producers and scheduling remain unestablished.
+Known count/sequence pairs fit; arbitrary later mutation and shared-node lifetime
+are not proved by this static/local execution pass. Equal-depth tie behavior and
+allocation lifetime remain separate engine questions. No further consequence
 investigation is planned for the completed optional patch proof.
