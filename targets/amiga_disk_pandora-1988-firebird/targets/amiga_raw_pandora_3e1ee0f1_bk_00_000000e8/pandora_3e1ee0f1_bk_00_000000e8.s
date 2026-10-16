@@ -90,8 +90,8 @@ app_text_cursor_ptr RS.L 1
 app_font_glyph_bitmap_table_ptr RS.L 1
 app_proportional_text_word_cursor_ptr RS.L 1
 app_font_glyph_layout_table_ptr RS.L 1
-app_01F4 RS.W 1
-app_01F6 RS.W 1
+app_geometry_clipped_x_span RS.W 1
+app_geometry_clipped_y_span RS.W 1
     RS.B 18
 app_020A RS.B 1
 app_proportional_text_pixel_shift RS.B 1
@@ -958,6 +958,11 @@ UI_OVERLAY_SAVED_BACKGROUND_BIT	EQU	5
 UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
 UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
 UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
+VIEW_CLIP_BOTTOM_BIT	EQU	$1
+VIEW_CLIP_LEFT_BIT	EQU	$2
+VIEW_CLIP_REJECT	EQU	$F
+VIEW_CLIP_RIGHT_BIT	EQU	$3
+VIEW_CLIP_TOP_BIT	EQU	$0
 WORK_BUFFER_PALETTE_INPUT_BASE	EQU	UI_HIT_BACKGROUND_STORAGE+$2E0
 WORLD_CMD_ADD_X	EQU	0
 WORLD_CMD_ADD_Y	EQU	1
@@ -8221,65 +8226,67 @@ get_tilemap_view_bounds:
 	swap.w d1
 	move.w app_tilemap_scroll_y(a6),d1
 	rts
+    ; Original point test rejects interior points: SWAP D0 at $6836 clears C before BCC $6838. D4 high WORD survives. CPU and Musashi agree; gameplay consequences remain unproved.
 tilemap_point_is_in_view:
 	move.w #$FFFF,d4
 	bsr.b get_tilemap_view_bounds
 	cmp.w d0,d2
-	bcs.b abs_0_00016848
+	bcs.b point_view_return
 	swap.w d0
 	cmp.w d0,d2
 	swap.w d0
-	bcc.b abs_0_00016848
+	bcc.b point_view_return
 	cmp.w d1,d3
-	bcs.b abs_0_00016848
+	bcs.b point_view_return
 	swap.w d1
 	cmp.w d1,d3
 	swap.w d1
-	bcc.b abs_0_00016848
+	bcc.b point_view_return
 	moveq.l #0,d4
-abs_0_00016848:
+point_view_return:
 	rts
+    ; D0/D1 return exclusive view-end:start; D2/D3 retain inclusive rect-end:start. Unsigned D4 side flags. REJECT aliases all four flags; callers also reject enclosing rectangles. Wraps unchecked.
 clip_tile_region_to_view:
 	bsr.b get_tilemap_view_bounds
 	movem.l d0-d3,-(a7)
 	moveq.l #0,d4
 	swap.w d0
 	cmp.w d0,d2
-	bcc.b abs_0_00016898
+	bcc.b clip_reject_rectangle
 	swap.w d0
 	cmp.w d0,d2
-	bcc.b abs_0_0001686A
-	bset #2,d4
+	bcc.b clip_test_right_edge
+	bset #VIEW_CLIP_LEFT_BIT,d4
 	swap.w d2
 	cmp.w d0,d2
-	bcs.b abs_0_00016898
+	bcs.b clip_reject_rectangle
 	swap.w d2
-abs_0_0001686A:
+clip_test_right_edge:
 	swap.w d0
 	swap.w d2
 	cmp.w d0,d2
-	bcs.b abs_0_00016876
-	bset #3,d4
-abs_0_00016876:
+	bcs.b clip_test_vertical_edges
+	bset #VIEW_CLIP_RIGHT_BIT,d4
+clip_test_vertical_edges:
 	swap.w d1
 	cmp.w d1,d3
-	bcc.b abs_0_00016898
+	bcc.b clip_reject_rectangle
 	swap.w d1
 	cmp.w d1,d3
-	bcc.b abs_0_00016886
-	bset #0,d4
-abs_0_00016886:
+	bcc.b clip_test_bottom_edge
+	bset #VIEW_CLIP_TOP_BIT,d4
+clip_test_bottom_edge:
 	swap.w d3
 	cmp.w d1,d3
-	bcs.b abs_0_00016898
+	bcs.b clip_reject_rectangle
 	swap.w d1
 	cmp.w d1,d3
-	bcs.b abs_0_0001689A
-	bset #1,d4
-	bra.b abs_0_0001689A
-abs_0_00016898:
-	moveq.l #15,d4
-abs_0_0001689A:
+	bcs.b clip_return_packed_coordinates
+	bset #VIEW_CLIP_BOTTOM_BIT,d4
+	bra.b clip_return_packed_coordinates
+clip_reject_rectangle:
+	moveq.l #VIEW_CLIP_REJECT,d4
+clip_return_packed_coordinates:
 	movem.l (a7)+,d0-d3
 	rts
 blit_tile_pointer_rectangle_to_buffer:
@@ -8291,18 +8298,18 @@ blit_tile_pointer_rectangle_to_buffer:
 	subq.w #1,d1
 	movea.l a0,a2
 	movea.l a1,a4
-abs_0_000168B8:
+restore_tile_rows:
 	move.l d0,d2
 	movea.l a2,a3
 	movea.l a4,a5
-abs_0_000168BE:
+restore_tile_columns:
 	movea.l (a3)+,a0
 	movea.l a5,a1
 	exg d4,a5
-abs_0_000168C4:
+wait_tile_rectangle_blit:
 	move.w $001E(a5),d5
 	btst #6,d5
-	beq.b abs_0_000168C4
+	beq.b wait_tile_rectangle_blit
 	move.w #$40,$009C(a5)
 	move.w #$FFFF,$0046(a5)
 	move.l a0,$0050(a5)
@@ -8313,15 +8320,15 @@ abs_0_000168C4:
 	move.w #$1001,$0058(a5)
 	exg d4,a5
 	addq.l #2,a5
-	dbf.w d2,abs_0_000168BE
+	dbf.w d2,restore_tile_columns
 	adda.l app_tile_pointer_grid_row_stride_bytes(a6),a2
 	cmpa.l app_tile_pointer_grid_end(a6),a2
-	bcs.b abs_0_00016910
+	bcs.b restore_tile_next_row
 	move.l app_tile_pointer_grid_byte_size(a6),d2
 	suba.l d2,a2
-abs_0_00016910:
+restore_tile_next_row:
 	lea.l $0A00(a4),a4
-	dbf.w d1,abs_0_000168B8
+	dbf.w d1,restore_tile_rows
 	movem.l (a7)+,d2-d5
 	rts
 blit_masked_frame_aligned_word_four_planes:
@@ -8672,7 +8679,7 @@ abs_0_00016DA4:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
-abs_0_00016DAE:
+get_back_buffer_word_address:
 	movem.l d0-d2,-(a7)
 	lsr.w #3,d0
 	bclr #0,d0
@@ -8705,52 +8712,52 @@ copy_world_object_field_30_to_field_36:
     ; Restore background tiles in the saved entity/attachment rectangle, rounded to 16-pixel tile bounds and clipped to the view.
 restore_entity_background:
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a0),d0
-abs_0_00016E02:
-	beq.b abs_0_00016E5A
+find_first_previous_geometry:
+	beq.b restore_entity_background_return
 	movea.l d0,a4
 	tst.l world_position_state_record_previous_geometry_ptr(a4)
-	bne.b abs_0_00016E12
+	bne.b begin_previous_geometry_union
 	move.l world_position_state_record_attachment_state_ptr(a4),d0
-	bra.b abs_0_00016E02
-abs_0_00016E12:
+	bra.b find_first_previous_geometry
+begin_previous_geometry_union:
 	move.w world_position_descriptor_prefix_previous_world_x(a0),d0
 	move.w world_position_descriptor_prefix_previous_world_y(a0),d1
 	bsr.b get_previous_rect_start
 	bsr.b get_previous_rect_end
 	move.l d4,d2
 	move.l d5,d3
-abs_0_00016E22:
-	move.l $0014(a4),d6
-	beq.w abs_0_00016E9C
+union_next_attachment_geometry:
+	move.l world_position_state_record_attachment_state_ptr(a4),d6
+	beq.w restore_clipped_tile_rectangle
 	movea.l d6,a4
 	bsr.b get_previous_rect_start
 	cmp.w d2,d4
-	bcc.b abs_0_00016E34
+	bcc.b union_previous_rectangle_min_y
 	move.w d4,d2
-abs_0_00016E34:
+union_previous_rectangle_min_y:
 	cmp.w d3,d5
-	bcc.b abs_0_00016E3A
+	bcc.b union_previous_rectangle_maxima
 	move.w d5,d3
-abs_0_00016E3A:
+union_previous_rectangle_maxima:
 	bsr.b get_previous_rect_end
 	swap.w d2
 	swap.w d4
 	cmp.w d2,d4
-	bls.b abs_0_00016E46
+	bls.b union_previous_rectangle_max_y
 	move.w d4,d2
-abs_0_00016E46:
+union_previous_rectangle_max_y:
 	swap.w d2
 	swap.w d4
 	swap.w d3
 	swap.w d5
 	cmp.w d3,d5
-	bls.b abs_0_00016E54
+	bls.b union_previous_rectangle_next_attachment
 	move.w d5,d3
-abs_0_00016E54:
+union_previous_rectangle_next_attachment:
 	swap.w d3
 	swap.w d5
-	bra.b abs_0_00016E22
-abs_0_00016E5A:
+	bra.b union_next_attachment_geometry
+restore_entity_background_return:
 	rts
 get_previous_rect_start:
 	movea.l world_position_state_record_previous_geometry_ptr(a4),a3
@@ -8776,7 +8783,8 @@ get_previous_rect_end:
 	swap.w d4
 	swap.w d5
 	rts
-abs_0_00016E9C:
+    ; Round union outward to inclusive 16-pixel tile bounds; clip, shorten rows/columns and advance the source grid. REJECT skips the copy, including the all-four-sides flag combination.
+restore_clipped_tile_rectangle:
 	move.l a0,-(a7)
 	move.l d2,d5
 	move.l d3,d6
@@ -8793,8 +8801,8 @@ abs_0_00016E9C:
 	swap.w d2
 	swap.w d3
 	bsr.w clip_tile_region_to_view
-	cmp.b #$F,d4
-	beq.w abs_0_00016F58
+	cmp.b #VIEW_CLIP_REJECT,d4
+	beq.w restore_tile_rectangle_return
 	addq.w #1,d5
 	addq.w #1,d6
 	sub.w d2,d5
@@ -8805,9 +8813,9 @@ abs_0_00016E9C:
 	exg d1,d3
 	bsr.w get_tilemap_cell_pointer
 	tst.b d4
-	beq.w abs_0_00016F48
-	btst #2,d4
-	beq.b abs_0_00016EFA
+	beq.w restore_visible_tile_rectangle
+	btst #VIEW_CLIP_LEFT_BIT,d4
+	beq.b restore_clip_right_tiles
 	move.w d2,d7
 	sub.w d0,d7
 	add.w d7,d0
@@ -8816,10 +8824,10 @@ abs_0_00016E9C:
 	add.w d7,d7
 	add.w d7,d7
 	adda.w d7,a0
-	bra.w abs_0_00016F12
-abs_0_00016EFA:
-	btst #3,d4
-	beq.b abs_0_00016F12
+	bra.w restore_clip_vertical_tiles
+restore_clip_right_tiles:
+	btst #VIEW_CLIP_RIGHT_BIT,d4
+	beq.b restore_clip_vertical_tiles
 	swap.w d0
 	move.w d0,d7
 	swap.w d0
@@ -8829,9 +8837,9 @@ abs_0_00016EFA:
 	lsr.w #4,d7
 	sub.w d7,d5
 	swap.w d2
-abs_0_00016F12:
-	btst #0,d4
-	beq.b abs_0_00016F30
+restore_clip_vertical_tiles:
+	btst #VIEW_CLIP_TOP_BIT,d4
+	beq.b restore_clip_bottom_tiles
 	move.w d3,d7
 	sub.w d1,d7
 	move.w d3,d1
@@ -8841,10 +8849,10 @@ abs_0_00016F12:
 	add.w d7,d7
 	add.w d7,d7
 	adda.w d7,a0
-	bra.w abs_0_00016F48
-abs_0_00016F30:
-	btst #1,d4
-	beq.b abs_0_00016F48
+	bra.w restore_visible_tile_rectangle
+restore_clip_bottom_tiles:
+	btst #VIEW_CLIP_BOTTOM_BIT,d4
+	beq.b restore_visible_tile_rectangle
 	swap.w d1
 	move.w d1,d7
 	swap.w d1
@@ -8854,31 +8862,31 @@ abs_0_00016F30:
 	lsr.w #4,d7
 	sub.w d7,d6
 	swap.w d3
-abs_0_00016F48:
+restore_visible_tile_rectangle:
 	sub.w d3,d1
 	sub.w d2,d0
-	bsr.w abs_0_00016DAE
+	bsr.w get_back_buffer_word_address
 	move.w d5,d0
 	move.w d6,d1
 	bsr.w blit_tile_pointer_rectangle_to_buffer
-abs_0_00016F58:
+restore_tile_rectangle_return:
 	movea.l (a7)+,a0
 	rts
 draw_entity_geometry_chain:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_00016F60:
+draw_next_geometry_attachment:
 	bsr.b draw_entity_geometry
-	move.l $0014(a0),d0
-	beq.b abs_0_00016F6C
+	move.l world_position_state_record_attachment_state_ptr(a0),d0
+	beq.b draw_geometry_chain_return
 	movea.l d0,a0
-	bra.b abs_0_00016F60
-abs_0_00016F6C:
+	bra.b draw_next_geometry_attachment
+draw_geometry_chain_return:
 	rts
     ; Draw current geometry at XY plus animation offsets. Original H<=48 bounds scratch to768B after nonwrapping clipping; fully clipped geometry sets bit0. DMA input bounds remain separate.
 draw_entity_geometry:
 	movem.l a0/a5,-(a7)
 	tst.l world_position_state_record_current_geometry_ptr.w(a0)
-	beq.w abs_0_00017166
+	beq.w draw_geometry_return
 	movea.l world_position_state_record_position_descriptor_ptr(a0),a1
 	move.w world_position_state_record_world_x_offset(a0),d0
 	move.w world_position_state_record_world_y_offset(a0),d1
@@ -8898,58 +8906,59 @@ draw_entity_geometry:
 	swap.w d3
 	move.w d1,d3
 	bsr.w clip_tile_region_to_view
-	cmp.b #$F,d4
-	beq.w abs_0_0001716C
+	cmp.b #VIEW_CLIP_REJECT,d4
+	beq.w mark_geometry_outside_view
 	bclr.b #0,world_position_state_record_interaction_flags(a0)
-	move.w $000A(a2),d7
+    ; Clip preserves A2 geometry, A4 mask and A3 pixels. Computed top skip advances mask by 2*stride_words*skip and four-plane pixels by four times that. Original +1 is retained.
+	move.w world_position_collision_bounds_world_y_extent(a2),d7
 	tst.b d4
-	beq.w abs_0_00017174
-	btst #0,d4
-	beq.b abs_0_00016FFA
+	beq.w draw_geometry_fully_visible
+	btst #VIEW_CLIP_TOP_BIT,d4
+	beq.b draw_geometry_clip_bottom
 	swap.w d3
 	move.w d3,d7
 	addq.w #1,d7
 	swap.w d3
 	sub.w d1,d7
-	move.w $000A(a2),d6
+	move.w world_position_collision_bounds_world_y_extent(a2),d6
 	sub.w d7,d6
-	mulu.w $0008(a2),d6
+	mulu.w world_position_collision_bounds_row_stride_words(a2),d6
 	add.w d6,d6
 	adda.w d6,a4
 	add.w d6,d6
 	add.w d6,d6
 	adda.w d6,a3
 	move.w d1,d3
-	bra.b abs_0_00017008
-abs_0_00016FFA:
-	btst #1,d4
-	beq.b abs_0_00017008
+	bra.b draw_geometry_clip_horizontal
+draw_geometry_clip_bottom:
+	btst #VIEW_CLIP_BOTTOM_BIT,d4
+	beq.b draw_geometry_clip_horizontal
 	swap.w d1
 	move.w d1,d7
 	swap.w d1
 	sub.w d3,d7
-abs_0_00017008:
-	btst #2,d4
-	beq.w abs_0_000170AC
-	move.w $0008(a2),d4
+draw_geometry_clip_horizontal:
+	btst #VIEW_CLIP_LEFT_BIT,d4
+	beq.w draw_geometry_test_right_clip
+	move.w world_position_collision_bounds_row_stride_words(a2),d4
 	move.w d4,d5
 	movea.l a4,a1
 	movea.l a3,a0
 	lsl.w #3,d5
 	sub.w d0,d2
-	bra.b abs_0_0001702E
-abs_0_00017020:
+	bra.b draw_geometry_test_left_alignment
+draw_geometry_skip_left_word:
 	addq.l #8,a0
 	addq.l #2,a1
 	subq.w #1,d4
-	bmi.w abs_0_00017166
+	bmi.w draw_geometry_return
 	addi.w #16,d2
-abs_0_0001702E:
-	bmi.b abs_0_00017020
-	bne.w abs_0_00017068
-	clr.w app_01F4(a6)
+draw_geometry_test_left_alignment:
+	bmi.b draw_geometry_skip_left_word
+	bne.w draw_geometry_left_shifted_edge
+	clr.w app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	move.w d3,app_01F6(a6)
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -8958,18 +8967,18 @@ abs_0_0001702E:
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d1,a2
 	subq.w #1,d4
-	bmi.w abs_0_00017166
-abs_0_00017056:
+	bmi.w draw_geometry_return
+draw_geometry_left_aligned_columns:
 	bsr.w blit_masked_frame_aligned_word_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_00017056
-	bra.w abs_0_00017166
-abs_0_00017068:
-	clr.w app_01F4(a6)
+	dbf.w d4,draw_geometry_left_aligned_columns
+	bra.w draw_geometry_return
+draw_geometry_left_shifted_edge:
+	clr.w app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	move.w d3,app_01F6(a6)
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -8982,20 +8991,20 @@ abs_0_00017068:
 	subq.l #2,a1
 	bsr.w blit_masked_frame_second_word_via_shared_scratch
 	subq.w #1,d4
-	bmi.w abs_0_00017166
+	bmi.w draw_geometry_return
 	addq.l #8,a0
 	addq.l #2,a1
-abs_0_0001709A:
+draw_geometry_left_shifted_columns:
 	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_0001709A
-	bra.w abs_0_00017166
-abs_0_000170AC:
-	btst #3,d4
-	beq.w abs_0_0001711E
-	move.w $0008(a2),d4
+	dbf.w d4,draw_geometry_left_shifted_columns
+	bra.w draw_geometry_return
+draw_geometry_test_right_clip:
+	btst #VIEW_CLIP_RIGHT_BIT,d4
+	beq.w draw_geometry_horizontal_span_setup
+	move.w world_position_collision_bounds_row_stride_words(a2),d4
 	move.w d4,d5
 	subq.w #1,d4
 	movea.l a4,a1
@@ -9009,12 +9018,12 @@ abs_0_000170AC:
 	lsr.w #4,d0
 	subq.w #1,d0
 	move.w d0,d4
-	move.w d2,app_01F4(a6)
+	move.w d2,app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	bpl.b abs_0_000170DC
+	bpl.b draw_geometry_right_clipped_origin
 	moveq.l #0,d3
-abs_0_000170DC:
-	move.w d3,app_01F6(a6)
+draw_geometry_right_clipped_origin:
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -9027,29 +9036,30 @@ abs_0_000170DC:
 	add.w d0,d1
 	adda.w d1,a2
 	tst.w d4
-	bmi.b abs_0_00017110
-abs_0_00017102:
+	bmi.b draw_geometry_right_partial_word
+draw_geometry_right_visible_columns:
 	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_00017102
-abs_0_00017110:
+	dbf.w d4,draw_geometry_right_visible_columns
+draw_geometry_right_partial_word:
 	tst.b d6
-	beq.w abs_0_00017166
+	beq.w draw_geometry_return
 	bsr.w blit_masked_frame_first_word_via_shared_scratch
-	bra.w abs_0_00017166
-abs_0_0001711E:
-	move.w $0008(a2),d4
+	bra.w draw_geometry_return
+    ; Span WORDs store coordinate differences; left-clipped paths force X=0. No reader of these app slots is established. D4 drives the DBF column loop independently of the stored spans.
+draw_geometry_horizontal_span_setup:
+	move.w world_position_collision_bounds_row_stride_words(a2),d4
 	move.w d4,d5
 	subq.w #1,d4
 	lsl.w #3,d5
 	movea.l a4,a1
 	movea.l a3,a0
 	sub.w d0,d2
-	move.w d2,app_01F4(a6)
+	move.w d2,app_geometry_clipped_x_span(a6)
 	sub.w d1,d3
-	move.w d3,app_01F6(a6)
+	move.w d3,app_geometry_clipped_y_span(a6)
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
@@ -9062,20 +9072,20 @@ abs_0_0001711E:
 	add.w d1,d0
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d0,a2
-abs_0_00017158:
+draw_geometry_full_width_columns:
 	bsr.w blit_masked_frame_shifted_two_words_four_planes
 	addq.l #8,a0
 	addq.l #2,a1
 	addq.l #2,a2
-	dbf.w d4,abs_0_00017158
-abs_0_00017166:
+	dbf.w d4,draw_geometry_full_width_columns
+draw_geometry_return:
 	movem.l (a7)+,a0/a5
 	rts
-abs_0_0001716C:
+mark_geometry_outside_view:
 	bset.b #0,world_position_state_record_interaction_flags(a0)
-	bra.b abs_0_00017166
-abs_0_00017174:
-	bra.b abs_0_0001711E
+	bra.b draw_geometry_return
+draw_geometry_fully_visible:
+	bra.b draw_geometry_horizontal_span_setup
 	dc.b $67,$75,$6E,$66,$69,$72,$65,$2E,$64,$61,$74,$00
 abs_0_00017182:
 	dc.b "pandora1.pi1",$00

@@ -3239,3 +3239,61 @@ All 76 canonical facts are verified against exact C/vasm reproduction of the
 All 86 asset identities, paths, sizes and hashes are unchanged. The
 [compact inventory and evidence](../validation/pandora-audio-state-and-programs.json)
 retain the remaining bounds, timing and lifetime limitations.
+
+
+## Geometry clipping, attachment traversal and background restoration
+
+The compact [programmatic stocktake](../validation/pandora-geometry-clipping.json)
+uses canonical metadata and native query totals. The published starting head
+`3a61f340` has 496 layouts, 61 structures, 82 callable summaries, 71 entry seeds
+and 902 native field records (resolved and unresolved). The retained coverage
+inventory partitions all 376,832
+bytes into 344 intervals: 24,394 code, 263,587 accepted noncode and 88,851 unclaimed
+bytes. That existing partition was checked, not rederived at this revision. Neither
+raw preservation nor a classified opaque asset establishes semantic completion.
+The final native snapshot has 7,043 instructions, 225 function candidates, 3,418
+CFG edges and 89 review candidates; none is a completion score. Rerun the index
+with `.venv/bin/python -m amiga_reversing.tools.pandora_restoration_stocktake`
+against the ready resident service.
+
+**74 accepted canonical actions** restore a connected rendering swath. Four
+normal-return contracts preserve existing state/geometry identities across the
+clipper, draw routine and both previous-geometry helpers. Native propagation
+resolves **eight additional field operands** (902→910 total native field records),
+including both attachment
+traversals and every remaining numeric geometry dimension/stride read after
+clipping. The final field inventory contains 883 resolved and 27 unresolved uses.
+Two WORD span names replace **eight anonymous stores**. Five clip
+constants name **15 operand sites** across every producer and both consumers.
+**43 branch/helper declarations** now identify the previous-geometry union,
+clipped tile-grid traversal and aligned/shifted drawing paths. Five comments
+record the contracts and their limits. No generated source was edited manually.
+
+The original point test rejects interior points because SWAP clears carry before
+BCC; native CPU and independent Musashi execution agree. This is documented
+behavior, without a correction or claimed gameplay consequence. The four side
+flags also alias the rejection value 15, so both callers skip an enclosing
+rectangle. Top clipping retains its original `Y+H+1-view_top` row arithmetic.
+The two produced span slots have no established reader; they are not inferred
+allocations or DMA sizes.
+
+Validation passes **49 distinct focused tests** across the existing rendering,
+framebuffer, snapshot and state suites and seven new geometry cases, plus
+**816 native checks**. The new checks cover 1,156 rectangle boundaries, 49 point
+cases, five independent Musashi point cases, ten drawing cases, three top-row
+adjustments and both previous-geometry helpers. MMIO tests supply a ready-bit
+shadow; they do not run a chipset or prove pixel output, DMA ordering or lifetime.
+
+C and independent vasm reproduce all **376,832 original bytes** exactly, receipt
+`ab1f896592710b0815dfb753baeaaadfdde9011f9ff7f8bee812ab57095bf9e0`. All **86 asset identities, names, paths, sizes and hashes**,
+all data directives, 99 immutable tracked target files and both history prefixes
+are preserved. The Decision Journal accepts all 74 new actions. No runtime setup,
+optional-patch change, merge or PR-description edit was needed.
+
+Semantic gaps remain in arbitrary coordinates/extents, mutable pointers and
+attachment lifetimes, indirect effects, resource/tail purpose and audio/DMA
+scheduling. The previously investigated animation and audio unknowns stay open.
+Original-layout exactness does not close whole-game relocation: changed code,
+data and DMA placement still needs reference, lifetime and execution evidence.
+The next connected rendering gap is custom-register address context through the
+tile copier's EXG path and its bounded DMA packet/extents.
