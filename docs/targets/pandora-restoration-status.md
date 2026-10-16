@@ -3065,3 +3065,36 @@ still reproduces all 376,832 original bytes with C and independent vasm, receipt
 The one new source comment is accepted through the Decision Journal. Original
 history prefixes and asset payloads are preserved. Optional output hashes and
 scope are recorded in `docs/validation/pandora-optional-null-guard.json`.
+
+## Corrected gameplay proof completed
+
+The opt-in guard completed the same ordinary combat-defeat route from a fresh
+corrected boot, through ten successful segments and build-bound checkpoints.
+Original checkpoints are refused for the corrected context. All captures in the
+eight shared pre-defeat segments match the original. The NULL exchange returns
+with the same common registers and state behavior, while the illegal-instruction
+vector remains `$00FC081C` instead of becoming `$0000081C`. The bus-error vector
+remains `$00FC0818` in both runs; the original bit clear at byte `$A` was already
+a value no-op. A separate non-NULL caller comparison matches registers and
+record/vector bytes, with only the documented extra stack scratch difference.
+
+Eight subsequent main-loop visits confirm HP 0, the defeated flag/static state,
+combat mode cleared and intact vectors. The exit timer remains 70 in that bounded
+window. There is no claimed visible improvement, crash/glitch consequence, or
+full exit/title transition. Treat the low-impact bug as a proof case for the
+general explicit optional-fix mechanism. See
+`runtime/observations/pandora-corrected-combat-defeat.json` and
+`docs/optional-patches.md` for evidence and reproduction.
+
+Runtime admission now validates optional raw payloads against their complete
+patch ledger and canonical boundaries, refuses source probes inside rewritten
+ranges, and keeps snapshots tied to build identity. It shares one canonical
+analysis snapshot within a CLI invocation without weakening hash checks.
+127 focused framework tests pass. Default target source and payload remain
+unchanged at the existing full C/vasm exact receipt.
+
+The next source-restoration candidate is the unresolved typed descriptor load
+at `$84C0`: inspect the table-origin/type-seed reconciliation and, if reproduced
+as a general defect, restore the field expression through the shared framework
+with focused regressions and exact reassembly. No further exception-consequence
+investigation is planned for this patch proof.

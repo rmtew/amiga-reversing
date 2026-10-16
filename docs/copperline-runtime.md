@@ -874,3 +874,39 @@ The damage receipt is recreated by the documented chain above; save it after
 [Compact evidence](../runtime/observations/pandora-combat-null-node.json) records
 the chain, input cleanup, payload identity, captures and raw report hashes.
 [Optional correction](optional-patches.md) remains separate from default source.
+
+## Corrected-build combat comparison
+
+The opt-in NULL-node guard now completes a fresh corrected boot, the same
+corridor/rifle/return route, and combat defeat using only corrected-build
+checkpoints. All ten segments pass. Each snapshot binds the corrected payload
+`ee345a4a502415dd717509f834a05db5039fbcc0acc4e28b6f3b14c813a78535`,
+its artifact receipt, media, ROM and emulator. An original checkpoint is refused
+against that context. No guest HP, pointer or predicate was forced.
+
+All captured values in the eight shared west-through-first-damage segments
+match the original. Common combat registers, PC/SP and memory also match except
+for the intended vector preservation after exchange. Original `$10..$13`
+changes `$00FC081C`→`$0000081C`; corrected remains `$00FC081C`. The bus-error
+vector `$8..$B` remains `$00FC0818` in both: bit 0 of byte `$A` was already clear.
+These are exception vectors, not overwritten handler code.
+
+Eight following main-loop visits retain HP 0, the defeated flag, static defeat
+state and cleared combat mode, with vectors intact. The exit counter remains 70
+in this short window. No complete exit/title transition, visual comparison,
+exception-consequence test or player-visible improvement is claimed. This is a
+low-impact original bug used to prove explicit optional correction.
+
+The non-NULL entry-officer exchange matches original captured registers and
+object/state/node/vector bytes; only the declared four-byte extra stack scratch
+differs. Runtime admission rejects original instruction anchors inside replaced
+ranges and omits overlapping function symbols. One immutable canonical analysis
+snapshot is reused within each CLI invocation and closed on all exits; payload
+and checkpoint identity checks are unchanged. **127 focused framework tests pass.**
+The default binary and rendered-source hashes still match the prior C/vasm exact
+receipt `95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836`.
+
+[Evidence](../runtime/observations/pandora-corrected-combat-defeat.json) and
+[reproduction](optional-patches.md#reproduce-the-corrected-route) record the build,
+checkpoint lineage, captures and comparison limits. No guest snapshots are
+published. The corrected local chain is under `.runtime-state/pandora-corrected`.

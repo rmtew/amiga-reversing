@@ -1,0 +1,431 @@
+{
+  "schema_version": 1,
+  "result": "corrected_ordinary_combat_defeat_and_eight_following_main_loops_passed",
+  "assessment": "Low-impact original bug and optional-fix mechanism proof; no claimed player-visible improvement.",
+  "build": {
+    "schema_version": 1,
+    "kind": "fixed_size_optional_patch",
+    "layout": "raw-single-section",
+    "artifact_file": "payload.bin",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "manifest_sha256": "d53313f1300d9b623c028263d85d3afb263217471ea16dd0ac1f8954ebdef9ac",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "ee345a4a502415dd717509f834a05db5039fbcc0acc4e28b6f3b14c813a78535",
+    "size": 376832,
+    "enabled": [
+      "guard-null-state-node"
+    ],
+    "default_original": false,
+    "patches": [
+      {
+        "id": "guard-null-state-node",
+        "start": "s0:0000867E:instruction",
+        "end": "s0:000086A6:instruction",
+        "expected_hex": "2f08206d004e2f082068000808a80000000a42680010206d002c2b680000004e215f0000205f4e75",
+        "replacement_hex": "2f08206d004e2f082f280008205f670a08a80000000a42680010206d002c2b50004e209f205f4e75",
+        "assembly": "null-node-guard.s",
+        "assembly_sha256": "7e569cd9e59f9b9e0ceb38531d5388ed5caa999929c5cc5641505e059e0d5fc1",
+        "rationale": "Exchange incoming and active states as before; skip animation-node resets when the incoming node is NULL. Original static defeat otherwise writes through NULL into low-memory vectors.",
+        "preconditions": [
+          "Original raw payload and exact instruction boundaries match.",
+          "Incoming state and object descriptor pointers are valid; only the animation-node pointer may be NULL.",
+          "At least 12 bytes below entry SP are writable and disjoint from object, descriptor, state, node, and code; the original routine required 8."
+        ],
+        "conflicts": []
+      }
+    ]
+  },
+  "runtime_binding": {
+    "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "contract_id": "pandora",
+    "payload_sha256": "ee345a4a502415dd717509f834a05db5039fbcc0acc4e28b6f3b14c813a78535",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "floppy_sha256": "fe34a8b0aed6c7ab75012855776130a6f88ce73863c7c8ffa0e09c2633c2754b",
+    "derived_manifest_sha256": "5de7c2cf8f37df92bdbe4e30e783304e14c1af070f6d6eedea3484865d700ed5",
+    "runtime_view": {
+      "base_addr": 65536,
+      "source_start": 0,
+      "source_end": 349040,
+      "runtime_base": 65536
+    }
+  },
+  "checkpoint_policy": {
+    "fresh_corrected_boot": true,
+    "all_successors_same_binding": true,
+    "original_checkpoint_rejected": "Checkpoint identity, context or snapshot digest mismatch",
+    "synthetic_outcome_edits": false
+  },
+  "segments": [
+    {
+      "segment": "corridor",
+      "phase_count": 63,
+      "runner_status": "ok",
+      "raw_report_sha256": "84e9968cdefc2c00df7ed1de0cfd5ade92ee27b1fc7866e602d12a81ebd21045",
+      "checkpoint_snapshot_sha256": "40c7dbff31074e9e5ce4100d68ad1c80c80872899e1eca273b656f4b5ecf330e",
+      "parent_snapshot_sha256": null,
+      "inputs_released": true
+    },
+    {
+      "segment": "west",
+      "phase_count": 32,
+      "runner_status": "ok",
+      "raw_report_sha256": "5962e307f7734bf9676e574640036e2978aaedc50c6f1621e0f4196618ce6060",
+      "checkpoint_snapshot_sha256": "505de7fa6f8043e636578434090305beec6413026676c3f65d077f7232bb0914",
+      "parent_snapshot_sha256": "40c7dbff31074e9e5ce4100d68ad1c80c80872899e1eca273b656f4b5ecf330e",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "east",
+      "phase_count": 30,
+      "runner_status": "ok",
+      "raw_report_sha256": "6c82104ea43f253da93e355fa107281dbd025c340c8e3a7205e8a8f0ad18c64f",
+      "checkpoint_snapshot_sha256": "64cec777889b1ceae07d9a27f03dcbf0dc29f87069fdba3852058950b0bec64a",
+      "parent_snapshot_sha256": "505de7fa6f8043e636578434090305beec6413026676c3f65d077f7232bb0914",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "ready",
+      "phase_count": 38,
+      "runner_status": "ok",
+      "raw_report_sha256": "b30678319d77ae52145d8610e2c052529b3c12e5aa15f2ba0ad11eccdde1fcb2",
+      "checkpoint_snapshot_sha256": "ee662dd4770d1e1d79ea886596ae9739f24cae234c932713d5937462c4950d74",
+      "parent_snapshot_sha256": "64cec777889b1ceae07d9a27f03dcbf0dc29f87069fdba3852058950b0bec64a",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "rifle",
+      "phase_count": 5,
+      "runner_status": "ok",
+      "raw_report_sha256": "43d9827d80275b80be274a54fa1f4be76622d6e5a25e2fecc021515b4e650167",
+      "checkpoint_snapshot_sha256": "3541d45f5512997282b05aa1481780331eec9e8d798b44c17ac8a3fa94fdeea8",
+      "parent_snapshot_sha256": "ee662dd4770d1e1d79ea886596ae9739f24cae234c932713d5937462c4950d74",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "audit",
+      "phase_count": 2,
+      "runner_status": "ok",
+      "raw_report_sha256": "fbcdfe7e47b03eb5ff68b8c38ab60c94b0b040e0962aeadb532bf0f269d5de1c",
+      "checkpoint_snapshot_sha256": "ebb5f16f9213aadb3cabc6326346e9cd9793eab03c2ddcedf5541cfe0784d1fa",
+      "parent_snapshot_sha256": "3541d45f5512997282b05aa1481780331eec9e8d798b44c17ac8a3fa94fdeea8",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "neutral",
+      "phase_count": 8,
+      "runner_status": "ok",
+      "raw_report_sha256": "56cb08826aa401afd81993d1b6ee642a61420f7fc75e794616075c93ca31581a",
+      "checkpoint_snapshot_sha256": "b2ee0469f8add221aca425a2ca7b3cf13911d60718539e39b1507d0b0e160c86",
+      "parent_snapshot_sha256": "ebb5f16f9213aadb3cabc6326346e9cd9793eab03c2ddcedf5541cfe0784d1fa",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "reverse-stage",
+      "phase_count": 15,
+      "runner_status": "ok",
+      "raw_report_sha256": "0e6c96bebfb99ddcd132a35c2981ab30879b55ea318ad382f553b143acfa190f",
+      "checkpoint_snapshot_sha256": "1a8c3fa6e1aac6da80e36f6ea84362944c53473e651d9a504c7b3820f3dd2986",
+      "parent_snapshot_sha256": "b2ee0469f8add221aca425a2ca7b3cf13911d60718539e39b1507d0b0e160c86",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "damage",
+      "phase_count": 38,
+      "runner_status": "ok",
+      "raw_report_sha256": "740408c3fbcba9908dbbb784f4855f322e53967767e42c4e78be2df18f4f2f89",
+      "checkpoint_snapshot_sha256": "84957966508990c33622c635c4b7720f8756b77e8cc7195cbebd584f35559ce5",
+      "parent_snapshot_sha256": "1a8c3fa6e1aac6da80e36f6ea84362944c53473e651d9a504c7b3820f3dd2986",
+      "inputs_released": true,
+      "capture_differences_from_original": []
+    },
+    {
+      "segment": "defeat",
+      "phase_count": 6,
+      "runner_status": "ok",
+      "raw_report_sha256": "f05d0d8a297e6de4e066f9c5c727fe5af61aa0fffd8d5c56aaf549554ece64fa",
+      "checkpoint_snapshot_sha256": "13edf767ca6322dce6ac39e0ca740bfa80515c1e9a2f0f1052a8832a7efc8f9b",
+      "parent_snapshot_sha256": "84957966508990c33622c635c4b7720f8756b77e8cc7195cbebd584f35559ce5",
+      "inputs_released": true
+    }
+  ],
+  "original_defeat_report_sha256": "75a37c539100a64639a2a24b4a1526c7432600c825d58b06cefb6e45c608d32d",
+  "common_combat_comparisons": [
+    {
+      "phase": "before_combat_state_exchange",
+      "common_registers_pc_sp_identical": true,
+      "changed_common_memory_reads": []
+    },
+    {
+      "phase": "combat_exchange_returned",
+      "common_registers_pc_sp_identical": true,
+      "changed_common_memory_reads": [
+        "0x00000008"
+      ]
+    },
+    {
+      "phase": "combat_player_defeat",
+      "common_registers_pc_sp_identical": true,
+      "changed_common_memory_reads": []
+    },
+    {
+      "phase": "first_damage_anchor",
+      "common_registers_pc_sp_identical": true,
+      "changed_common_memory_reads": []
+    },
+    {
+      "phase": "first_damage_applied",
+      "common_registers_pc_sp_identical": true,
+      "changed_common_memory_reads": []
+    }
+  ],
+  "corrected_defeat_phases": [
+    {
+      "name": "first_damage_anchor",
+      "stable_key": "s0:0000887C:instruction",
+      "status": "hit",
+      "pc": "0x0001887c",
+      "sp": "0x0001044e",
+      "capture": {
+        "registers": {
+          "a0": "0x00013502",
+          "a4": "0x0005c322",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "sr": "0x00002000"
+        },
+        "memory": {
+          "0x0005c35e": "005f",
+          "0x00000008": "00fc081800fc081a00fc081c"
+        }
+      }
+    },
+    {
+      "name": "first_damage_applied",
+      "stable_key": "s0:00008896:instruction",
+      "status": "hit",
+      "pc": "0x00018896",
+      "sp": "0x0001044e",
+      "capture": {
+        "registers": {
+          "a0": "0x0001aa72",
+          "a4": "0x000132d6",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "sr": "0x00002010"
+        },
+        "memory": {
+          "0x0005c35e": "002c",
+          "0x00000008": "00fc081800fc081a00fc081c"
+        }
+      }
+    },
+    {
+      "name": "combat_player_defeat",
+      "stable_key": "s0:000079A8:instruction",
+      "status": "hit",
+      "pc": "0x000179a8",
+      "sp": "0x0001044e",
+      "capture": {
+        "registers": {
+          "a0": "0x0000397c",
+          "a4": "0x0005c322",
+          "a5": "0x0005bc0a",
+          "a6": "0x000039fc",
+          "sr": "0x00002019"
+        },
+        "memory": {
+          "0x0005c35e": "0002",
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x00003c2a": "2200"
+        }
+      }
+    },
+    {
+      "name": "before_combat_state_exchange",
+      "stable_key": "s0:00007A06:instruction",
+      "status": "hit",
+      "pc": "0x00017a06",
+      "sp": "0x0001044e",
+      "capture": {
+        "registers": {
+          "a0": "0x0005cc87",
+          "a4": "0x000132d6",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "sr": "0x00002004",
+          "a7": "0x0001044e"
+        },
+        "memory": {
+          "0x0005c35e": "0000",
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x0005c5be": "00000000",
+          "0x0005c370": "0005c5b6",
+          "0x0005c71e": "0005c72a",
+          "0x0001043e": "0005cc87000199f40005ca6a000179e2000105ce000000104bf900dff0023015"
+        }
+      }
+    },
+    {
+      "name": "combat_exchange_returned",
+      "stable_key": "s0:00007A0A:instruction",
+      "status": "hit",
+      "pc": "0x00017a0a",
+      "sp": "0x0001044e",
+      "capture": {
+        "registers": {
+          "a0": "0x0005cc87",
+          "a4": "0x000132d6",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "sr": "0x00002000",
+          "a7": "0x0001044e"
+        },
+        "memory": {
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x0005c35e": "0000",
+          "0x0005c370": "0005c72a",
+          "0x0005c71e": "0005c5b6",
+          "0x0001043e": "000000000005c5b60005cc8700017a0a000105ce000000104bf900dff0023015"
+        }
+      }
+    },
+    {
+      "name": "defeated_main_loops",
+      "stable_key": "s0:000005CA:instruction",
+      "status": "hit",
+      "pc": "0x000105ca",
+      "sp": "0x00010452",
+      "capture": {
+        "registers": {
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "a7": "0x00010452",
+          "sr": "0x00002000"
+        },
+        "memory": {
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x0005c35e": "0000",
+          "0x0005c36a": "02",
+          "0x0005c71e": "0005c5b6",
+          "0x00003c2a": "20",
+          "0x00003cc8": "46"
+        }
+      },
+      "first_capture": {
+        "registers": {
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "a7": "0x00010452",
+          "sr": "0x00002000"
+        },
+        "memory": {
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x0005c35e": "0000",
+          "0x0005c36a": "02",
+          "0x0005c71e": "0005c5b6",
+          "0x00003c2a": "20",
+          "0x00003cc8": "46"
+        }
+      },
+      "occurrences_observed": 8
+    }
+  ],
+  "nonnull": {
+    "original_report_sha256": "dcf00703bdfe9d738df17f5e00f4cb0deffcc742a4bd163eeea73716ddf681df",
+    "comparisons": [
+      {
+        "phase": "nonnull_exchange_before",
+        "registers_identical": true,
+        "original_memory": {
+          "0x0005a436": "0005a500",
+          "0x0005a458": "0005a526",
+          "0x0005a500": "0005a50c",
+          "0x0005a52e": "0005a572",
+          "0x0005a572": "0005a50009400005a5840400000000000000",
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x00010426": "0005a40a00019ab000019a240005b12e000111e0000123c60005a40a00011426"
+        },
+        "corrected_memory": {
+          "0x0005a436": "0005a500",
+          "0x0005a458": "0005a526",
+          "0x0005a500": "0005a50c",
+          "0x0005a52e": "0005a572",
+          "0x0005a572": "0005a50009400005a5840400000000000000",
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x00010426": "0005a40a00019ab000019a240005b12e000111e0000123c60005a40a00011426"
+        }
+      },
+      {
+        "phase": "nonnull_exchange_after",
+        "registers_identical": true,
+        "original_memory": {
+          "0x0005a436": "0005a500",
+          "0x0005a458": "0005a50c",
+          "0x0005a500": "0005a526",
+          "0x0005a52e": "0005a572",
+          "0x0005a572": "0005a50009400005a5840400000000000000",
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x00010426": "0005a40a0005a5260005a5720005b172000111e0000123c60005a40a00011426"
+        },
+        "corrected_memory": {
+          "0x0005a436": "0005a500",
+          "0x0005a458": "0005a50c",
+          "0x0005a500": "0005a526",
+          "0x0005a52e": "0005a572",
+          "0x0005a572": "0005a50009400005a5840400000000000000",
+          "0x00000008": "00fc081800fc081a00fc081c",
+          "0x00010426": "0005a5720005a5260005a5720005b172000111e0000123c60005a40a00011426"
+        }
+      }
+    ],
+    "interpretation": "Object/state/node/vector bytes and captured registers match. Only the declared extra four-byte stack scratch differs after the call; node flags/phase were already reset by the original caller."
+  },
+  "vectors": {
+    "bus_error": {
+      "range": "0x8..0xB",
+      "original_before": "00fc0818",
+      "original_after": "00fc0818",
+      "corrected_after": "00fc0818",
+      "note": "Byte0xA is08; bit0 was already clear."
+    },
+    "address_error": {
+      "range": "0xC..0xF",
+      "all_observed": "00fc081a"
+    },
+    "illegal_instruction": {
+      "range": "0x10..0x13",
+      "original_before": "00fc081c",
+      "original_after": "0000081c",
+      "corrected_before": "00fc081c",
+      "corrected_after": "00fc081c",
+      "note": "The original changes the vector high word, redirecting the handler address from Kickstart ROM to low RAM; it does not overwrite handler code."
+    }
+  },
+  "limits": [
+    "Eight subsequent main-loop visits were observed; no full exit/title transition is claimed. Exit service counter remained70 in both first/last samples.",
+    "No visual image comparison or exception-consequence experiment was performed. No visible benefit or new crash/glitch is established.",
+    "Original disk-loader parity remains outside the direct-payload contract.",
+    "The guard still requires12 writable disjoint stack bytes below helper entry SP."
+  ],
+  "reproduction": {
+    "root_base": "runtime/scenarios/pandora-corridor-actors.json",
+    "nonnull_insert_source": "runtime/scenarios/pandora-nonnull-exchange.json",
+    "composed_root_sha256": "1198dcc1ae704751f861bb696df3bbe921fc956f8eb87f2466799eca09693cc6",
+    "final_scenario": "runtime/scenarios/pandora-corrected-combat-defeat.json",
+    "recipe": "docs/optional-patches.md"
+  },
+  "validation": {
+    "framework_tests": 127,
+    "default_receipt": "95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836",
+    "default_payload_and_rendered_source_hashes_unchanged": true
+  }
+}

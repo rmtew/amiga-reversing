@@ -1,7 +1,8 @@
-"""Exact derived-payload identity, preserving canonical source coordinates.
+"""Exact derived-payload identity for relocation and explicit optional patches.
 
-The first contract rewrites fixed-width instruction operands only. It does not
-move code, promote branches, or infer runtime mappings from a changed PC.
+Relocation rewrites fixed-width operands without moving code. Optional patches
+preserve payload extent but may change internal instruction boundaries; those
+ranges are excluded from original runtime instruction mappings.
 """
 
 from __future__ import annotations
@@ -20,6 +21,9 @@ def sha256(data: bytes) -> str:
 
 def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
     manifest = json.loads(manifest_path.read_text())
+    if isinstance(manifest, dict) and manifest.get('kind') == 'fixed_size_optional_patch':
+        from .optional_artifact import validate
+        return validate(manifest, manifest_path.parent, target_id)
     fields = {
         "schema_version",
         "kind",
@@ -139,6 +143,10 @@ def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
 
 def verify_native_binding(manifest: dict, artifact) -> None:
     """Re-run the proof against current native facts; manifest claims are not proof."""
+    if manifest.get('kind') == 'fixed_size_optional_patch':
+        from .optional_artifact import verify_binding
+        verify_binding(manifest, artifact)
+        return
     region = next(
         (
             r

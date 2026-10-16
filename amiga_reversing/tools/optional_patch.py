@@ -93,7 +93,9 @@ def main(argv=None) -> int:
                     raise ValueError('Assembly annotation hash mismatch')
         finally:
             artifact.close()
-    receipt = {'schema_version': 1, 'target_id': manifest['target_id'],
+    receipt = {'schema_version': 1, 'kind': 'fixed_size_optional_patch',
+               'layout': 'raw-single-section', 'artifact_file': 'payload.bin',
+               'target_id': manifest['target_id'],
                'manifest_sha256': sha256(manifest_bytes), 'original_sha256': sha256(original),
                'output_sha256': sha256(payload), 'size': len(payload),
                'enabled': [p['id'] for p in selected], 'default_original': not selected,
