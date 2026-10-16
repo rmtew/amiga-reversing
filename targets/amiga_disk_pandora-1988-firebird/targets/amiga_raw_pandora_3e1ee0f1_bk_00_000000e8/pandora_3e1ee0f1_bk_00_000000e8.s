@@ -10463,6 +10463,7 @@ abs_0_00018492:
 render_context_prompt:
 	moveq.l #0,d0
 	bra.w redraw_ui_overlay_selected_line_proportional
+    ; Bit6 wins over bit7: front keeps input order, back reverses it. Sort only deferred middle by unsigned world Y. Nonempty middle is required; universal reachability and tie stability unproved.
 partition_world_object_update_ptrs:
 	lea.l world_object_sort_source_ptrs(pc),a0
 	movea.l a0,a2
@@ -10471,36 +10472,37 @@ partition_world_object_update_ptrs:
 	move.l d7,d6
 	lea.l world_depth_sort_copy_scratch(pc),a3
 	movea.l a3,a4
-abs_0_000184AE:
+copy_world_descriptor_ptr_snapshot:
 	move.l (a2)+,(a3)+
-	dbf.w d7,abs_0_000184AE
+	dbf.w d7,copy_world_descriptor_ptr_snapshot
 	lea.l world_depth_sort_deferred_scratch(pc),a5
 	move.l d6,d7
 	addq.w #1,d7
 	moveq.l #-1,d5
-abs_0_000184BE:
+partition_next_world_descriptor:
 	movea.l (a4)+,a3
+    ; KNOWN: type A3=Target code-entry register seed:world_position_descriptor_prefix
 	movea.l $0000(a3),a2
 	btst.b #6,world_position_state_record_world_object_flags(a2)
-	beq.b abs_0_000184D2
+	beq.b partition_world_descriptor_check_back_group
 	move.l a3,(a0)+
 	subq.w #1,d7
-	bra.b abs_0_000184E4
-abs_0_000184D2:
+	bra.b advance_world_descriptor_partition
+partition_world_descriptor_check_back_group:
 	btst.b #7,world_position_state_record_world_object_flags(a2)
-	beq.b abs_0_000184E0
+	beq.b defer_world_descriptor_for_depth_sort
 	move.l a3,-(a1)
 	subq.w #1,d7
-	bra.b abs_0_000184E4
-abs_0_000184E0:
+	bra.b advance_world_descriptor_partition
+defer_world_descriptor_for_depth_sort:
 	move.l a3,(a5)+
 	addq.w #1,d5
-abs_0_000184E4:
-	dbf.w d6,abs_0_000184BE
+advance_world_descriptor_partition:
+	dbf.w d6,partition_next_world_descriptor
 	movea.l a0,a1
-abs_0_000184EA:
+reverse_copy_deferred_world_descriptors:
 	move.l -(a5),(a1)+
-	dbf.w d5,abs_0_000184EA
+	dbf.w d5,reverse_copy_deferred_world_descriptors
 	move.w d7,d3
 	subq.l #4,a0
 	moveq.l #1,d0
@@ -10512,7 +10514,7 @@ abs_0_000184F6:
 	add.w d0,d0
 	add.w d3,d3
 	add.w d3,d3
-abs_0_00018504:
+reduce_world_descriptor_sort_gap:
 	lsr.w #2,d0
 	subq.w #1,d0
 	lsr.w #1,d0
@@ -10523,24 +10525,25 @@ abs_0_00018504:
 	sub.w d0,d4
 abs_0_00018514:
 	move.w d7,d2
-abs_0_00018516:
+compare_world_descriptor_depth_pair:
 	move.w d2,d1
 	add.w d0,d1
 	movea.l $0(a0,d1.w),a1
 	movea.l $0(a0,d2.w),a2
-	move.w $0006(a1),d5
-	cmp.w $0006(a2),d5
+    ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix; type A2=Target code-entry register seed:world_position_descriptor_prefix
+	move.w world_position_descriptor_prefix_world_y(a1),d5
+	cmp.w world_position_descriptor_prefix_world_y(a2),d5
 	bcc.b abs_0_0001853A
 	move.l a2,$0(a0,d1.w)
 	move.l a1,$0(a0,d2.w)
 	sub.w d0,d2
 	bmi.b abs_0_0001853A
-	bne.b abs_0_00018516
+	bne.b compare_world_descriptor_depth_pair
 abs_0_0001853A:
 	addq.w #4,d7
 	cmp.w d7,d4
 	bcc.b abs_0_00018514
-	bra.b abs_0_00018504
+	bra.b reduce_world_descriptor_sort_gap
 abs_0_00018542:
 	rts
     ; Render DIRE/POOR/FAIR/GOOD/DEAD from word hit points; zero means DEAD and nonzero values clamp to 95. Update the overlay's RGB12 palette color and text plane. Known input records only.

@@ -3001,3 +3001,30 @@ C and vasm remain exact for all 376,832 original bytes, receipt
 `65a94e792c8a308779fe30cc222b6e57038a4d954a58d275758f886669668b4a`. Native field/reference and preservation evidence is in
 `docs/validation/pandora-security-defeat.json`. The local service is PID 4652,
 target ready and UI HTTP 200. PR5 remains unmerged; relocation is unchanged.
+
+## Descriptor partition and unsigned depth order
+
+Twelve accepted canonical actions connect the recovered original-CPU evidence
+to generated source: eight branch names, three descriptor-prefix register seeds
+and one ordering/precondition comment. The 32-pointer snapshot feeds the three
+groups: bit6 wins and retains front order; bit7 reverses back order; the deferred
+middle is reverse-copied, then sorted by unsigned WORD world Y. Native propagation
+names both comparison operands at `0x8522` and `0x8526`. The seeded state-pointer
+load at `0x84C0` remains numeric, an explicit native field-resolution/rendering
+question. Nonempty deferred input and tie stability remain unproved generally.
+
+The recovered published head `e1eac3eb` passes 27 focused security, partition and
+state-transition tests. Canonical verification after the annotation batch reproduces
+all 376,832 bytes with C and independent vasm, receipt
+`19e81b45193f3db3cb34b0495004a0c0f4f3a6635afc709a060328e813868495`.
+Existing manual and decision history prefixes and original payload bytes are
+preserved. See `docs/validation/pandora-descriptor-partition.json` for action IDs,
+field sites and hashes. This is static restoration, not gameplay defeat proof.
+
+The replacement worker recovered both published commits with identities intact.
+The local canonical server now works through approved loopback access. Saved
+checkpoint retrieval still fails through the supported Library route with
+`Tunnel connection failed: 403 Forbidden`; no alternate transfer route was used.
+The original-input NULL-node reachability investigation and any optional corrected
+variant remain pending. The legal ROM and original decoded payload match their
+recorded hashes; no emulator checkpoint or Copperline executable was transferred.
