@@ -1632,6 +1632,7 @@ static const TextU8Map ANALYSIS_REGISTER_SEED_KIND_NAMES[] = {
   { "library_base", M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE },
   { "struct_ptr", M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR },
   { "abi_pointer", M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER },
+  { "hardware_indexed", M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED },
 };
 
 static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
@@ -1780,6 +1781,7 @@ int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *poli
     return 0;
   }
   seed->kind = analysis_register_seed_kind_id_from_text_local(parts[2]);
+  if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) return 0; /* Structured contract required. */
   if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_NONE) return 0;
   if (!copy_policy_text(seed->name, sizeof(seed->name), parts[3])) return 0;
   if (part_count > 4U && !copy_policy_text(seed->type_name, sizeof(seed->type_name), parts[4])) return 0;
@@ -2190,6 +2192,9 @@ static const char *json_next_object_local(const char *cursor, const char *end, c
   return NULL;
 }
 
+static int append_metadata_hardware_indexed_seed_local(const char *, const char *, M68kAnalysisPolicy *,
+  const char *, uint32_t, uint32_t, const char *);
+
 static int append_metadata_register_seed_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   char register_name[8];
@@ -2212,6 +2217,11 @@ static int append_metadata_register_seed_local(const char *object_start, const c
     return 0;
   }
   seed_kind = analysis_register_seed_kind_id_from_text_local(kind);
+  if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
+    if (!has_entry_offset) return 0;
+    return append_metadata_hardware_indexed_seed_local(object_start, object_end, policy,
+      register_name, has_hunk ? hunk : 0U, entry_offset, context_name);
+  }
   if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) {
     if (!json_optional_string_field_local(object_start, object_end, "library_name", name, sizeof(name))) return 0;
   } else if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
@@ -2364,6 +2374,56 @@ static const char *json_object_field_local(const char *object_start, const char 
   if (json_next_object_local(value, object_end, &parsed_end) != value || parsed_end == NULL) return NULL;
   if (out_end != NULL) *out_end = parsed_end;
   return value;
+}
+
+static int append_metadata_hardware_indexed_seed_local(const char *start, const char *end,
+    M68kAnalysisPolicy *policy, const char *reg, uint32_t section, uint32_t offset, const char *context) {
+  const char *domain_end, *array_end, *cursor;
+  const char *domain = json_object_field_local(start, end, "hardware_indexed", &domain_end);
+  uint32_t stride = 0U;
+  uint16_t base_id, values[8] = {0}, index;
+  uint8_t count = 0U;
+  int has_stride;
+  char base[64], counter[8];
+  static const char *const keys[] = {"base_symbol", "index_register", "stride", "index_values"};
+  if (domain == NULL || !json_object_has_only_keys_local(domain, domain_end, keys, 4U) ||
+      !json_optional_string_field_local(domain, domain_end, "base_symbol", base, sizeof(base)) ||
+      !json_optional_string_field_local(domain, domain_end, "index_register", counter, sizeof(counter)) ||
+      !json_number_field_local(domain, domain_end, "stride", &stride, &has_stride) || !has_stride ||
+      stride == 0U || stride > INT16_MAX || strlen(reg) != 2U || reg[0] != 'A' || reg[1] < '0' || reg[1] > '7' ||
+      strlen(counter) != 2U || counter[0] != 'D' || counter[1] < '0' || counter[1] > '7' ||
+      !platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base, &base_id)) return 0;
+  cursor = json_array_field_local(domain, domain_end, "index_values", &array_end);
+  if (cursor == NULL) return 0;
+  while ((cursor = json_skip_ws_local(cursor, array_end)) < array_end) {
+    char *next;
+    unsigned long value;
+    if (count == 8U || *cursor < '0' || *cursor > '9') return 0;
+    value = strtoul(cursor, &next, 10);
+    if (next > array_end || value > (uint32_t)INT16_MAX / stride ||
+        (count != 0U && value <= values[count - 1U])) return 0;
+    values[count++] = (uint16_t)value;
+    cursor = json_skip_ws_local(next, array_end);
+    if (cursor == array_end) break;
+    if (*cursor++ != ',' || json_skip_ws_local(cursor, array_end) == array_end) return 0;
+  }
+  if (count == 0U || !policy_add_register_seed_local(policy, section, offset, 1U, reg,
+      M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED, base, "", context)) return 0;
+  for (index = 0U; index < policy->register_seed_count; ++index) {
+    M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED || seed->section_index != section ||
+        seed->entry_offset != offset || seed->reg_index != (uint8_t)(reg[1] - '0')) continue;
+    if (strcmp(seed->name, base) != 0 || strcmp(seed->context_name, context) != 0) return 0;
+    if (seed->hardware_index_count != 0U)
+      return seed->hardware_stride == stride && seed->hardware_index_register == (uint8_t)(counter[1] - '0') &&
+        seed->hardware_index_count == count && memcmp(seed->hardware_index_values, values, sizeof(values)) == 0;
+    seed->hardware_stride = (uint16_t)stride;
+    seed->hardware_index_register = (uint8_t)(counter[1] - '0');
+    seed->hardware_index_count = count;
+    memcpy(seed->hardware_index_values, values, sizeof(values));
+    return 1;
+  }
+  return 0;
 }
 
 static int function_summary_register_name_local(const char *text, uint8_t *out_kind, uint8_t *out_index) {
@@ -9292,6 +9352,7 @@ static const char *analysis_register_kind_name_local(uint8_t kind) {
 }
 
 static const char *analysis_register_seed_kind_name_local(uint8_t kind) {
+  if (kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) return "hardware_indexed";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) return "library_base";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) return "struct_ptr";
   if (kind == M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER) return "abi_pointer";
@@ -10192,6 +10253,17 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_append_json_string(builder, analysis_register_kind_name_local(seed->reg_kind)) != 0) return -1;
     if (json_builder_appendf(builder, ",\"reg_index\":%u,\"kind\":", (unsigned)seed->reg_index) != 0) return -1;
     if (json_builder_append_json_string(builder, analysis_register_seed_kind_name_local(seed->kind)) != 0) return -1;
+    if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
+      uint8_t value_index;
+      if (json_builder_append(builder, ",\"hardware_indexed\":{\"base_symbol\":") != 0 ||
+          json_builder_append_json_string(builder, seed->name) != 0 ||
+          json_builder_appendf(builder, ",\"index_register\":\"D%u\",\"stride\":%u,\"index_values\":[",
+            (unsigned)seed->hardware_index_register, (unsigned)seed->hardware_stride) != 0) return -1;
+      for (value_index = 0U; value_index < seed->hardware_index_count; ++value_index)
+        if (json_builder_appendf(builder, "%s%u", value_index == 0U ? "" : ",",
+            (unsigned)seed->hardware_index_values[value_index]) != 0) return -1;
+      if (json_builder_append(builder, "]}") != 0) return -1;
+    }
     if (json_builder_append(builder, ",\"name\":") != 0) return -1;
     if (append_nullable_text_json_local(builder, seed->name) != 0) return -1;
     if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;

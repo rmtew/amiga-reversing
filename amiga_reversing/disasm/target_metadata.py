@@ -67,6 +67,7 @@ class RssetLayoutStorageKind(StrEnum):
 class EntryRegisterSeedKind(StrEnum):
     LIBRARY_BASE = "library_base"
     STRUCT_PTR = "struct_ptr"
+    HARDWARE_INDEXED = "hardware_indexed"
 
 
 class ManualRepresentationStyle(StrEnum):
@@ -235,6 +236,25 @@ class EntryRegisterSeedMetadata:
     contradicted_evidence_id: str | None = None
     reason: str | None = None
     cleanup_scope: dict[str, object] | None = None
+    hardware_indexed: dict[str, object] | None = None
+    hunk: int | None = None
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.kind, EntryRegisterSeedKind)
+        if self.kind != EntryRegisterSeedKind.HARDWARE_INDEXED:
+            if self.hardware_indexed is not None:
+                raise ValueError("indexed hardware input requires hardware_indexed kind")
+            return
+        d = self.hardware_indexed
+        if (not isinstance(d, dict) or set(d) != {"base_symbol", "index_register", "stride", "index_values"}
+                or not isinstance(d["base_symbol"], str) or not d["base_symbol"]
+                or not isinstance(d["index_register"], str) or d["index_register"] not in {f"D{i}" for i in range(8)}
+                or self.register not in {f"A{i}" for i in range(8)} or self.entry_offset is None
+                or type(d["stride"]) is not int or not 1 <= d["stride"] <= 32767
+                or not isinstance(d["index_values"], (list, tuple)) or not 1 <= len(d["index_values"]) <= 8
+                or any(type(v) is not int or not 0 <= v <= 32767 // d["stride"] for v in d["index_values"])
+                or list(d["index_values"]) != sorted(set(d["index_values"]))):
+            raise ValueError("invalid indexed hardware input contract")
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> EntryRegisterSeedMetadata:
@@ -278,6 +298,8 @@ class EntryRegisterSeedMetadata:
             entry_offset=entry_offset,
             register=register,
             kind=_entry_register_seed_kind(kind),
+            hardware_indexed=payload.get("hardware_indexed"),
+            hunk=payload.get("hunk"),
             note=note,
             library_name=library_name,
             struct_name=struct_name,
@@ -293,10 +315,6 @@ class EntryRegisterSeedMetadata:
             reason=reason,
             cleanup_scope=cleanup_scope,
         )
-
-    def __post_init__(self) -> None:
-        assert isinstance(self.kind, EntryRegisterSeedKind)
-
 
 @dataclass(frozen=True, slots=True)
 class FunctionSummaryAbiLocationMetadata:
@@ -2150,6 +2168,11 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    for seed in payload.get("entry_register_seeds", ()):
+        if seed.get("hardware_indexed") is None:
+            seed.pop("hardware_indexed", None)
+        if seed.get("hunk") is None:
+            seed.pop("hunk", None)
     # Optional address-domain declarations do not change the legacy wire shape.
     for representation in payload.get("manual_representations", ()):
         if representation.get("source_symbol") is None:

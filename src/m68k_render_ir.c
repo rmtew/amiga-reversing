@@ -1794,6 +1794,7 @@ static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *p
     } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_DATA && seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS) continue;
     if (seed->reg_index >= 8U || seed->name[0] == '\0') continue;
+    if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) continue;
     if (m68k_bitset_u32_has(emitted[seed->reg_kind - 1U], seed->reg_index)) continue;
     m68k_bitset_u32_set(&emitted[seed->reg_kind - 1U], seed->reg_index);
     snprintf(reg_name, sizeof(reg_name), "%c%u",
@@ -1817,15 +1818,49 @@ static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *p
   return used != 0U;
 }
 
+static int format_hardware_indexed_input_comment(const M68kAnalysisRegisterSeed *seed,
+    char *message, size_t message_size) {
+  size_t used = 0U;
+  uint8_t value_index;
+  size_t available = message_size - used;
+  int wrote = snprintf(message + used, available, "%sINPUT contract: A%u=%s+%u*D%u.w; D%u.w in {",
+    used == 0U ? "" : "; ", (unsigned)seed->reg_index, seed->name, (unsigned)seed->hardware_stride,
+    (unsigned)seed->hardware_index_register, (unsigned)seed->hardware_index_register);
+  if (wrote < 0) return 0;
+  used += (size_t)wrote < available ? (size_t)wrote : available - 1U;
+  for (value_index = 0U; value_index < seed->hardware_index_count && used + 1U < message_size; ++value_index) {
+    available = message_size - used;
+    wrote = snprintf(message + used, available, "%s%u", value_index == 0U ? "" : ",",
+      (unsigned)seed->hardware_index_values[value_index]);
+    if (wrote < 0) return 0;
+    used += (size_t)wrote < available ? (size_t)wrote : available - 1U;
+  }
+  if (used + 1U < message_size) {
+    message[used++] = '}';
+    message[used] = '\0';
+  }
+  return used != 0U;
+}
+
 static void render_asm_policy_register_seed_comment(M68kRenderIRPreview *preview, const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset) {
-  char comment[256];
-  char line[320];
-  if (preview == NULL) return;
-  if (!format_policy_register_seed_comment_local(policy, section_index, offset, comment, sizeof(comment))) return;
-  snprintf(line, sizeof(line), "    ; %s\n", comment);
-  hash_asm_text(preview, line);
-  ++preview->asm_source_lines;
+  char comment[256], line[320];
+  uint16_t index;
+  if (preview == NULL || policy == NULL) return;
+  if (format_policy_register_seed_comment_local(policy, section_index, offset, comment, sizeof(comment))) {
+    snprintf(line, sizeof(line), "    ; %s\n", comment);
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+  }
+  for (index = 0U; index < policy->register_seed_count; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED || !seed->has_entry_offset ||
+        seed->entry_offset != offset || (seed->has_section_index && seed->section_index != section_index)) continue;
+    if (!format_hardware_indexed_input_comment(seed, comment, sizeof(comment))) continue;
+    snprintf(line, sizeof(line), "    ; %s\n", comment);
+    hash_asm_text(preview, line);
+    ++preview->asm_source_lines;
+  }
 }
 
 void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind,
@@ -5229,6 +5264,10 @@ static const M68kPlatformAddressUseIR *source_analysis_hardware_register_use_for
     const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
     uint16_t base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
     uint32_t register_offset = 0U;
+    if (use->offset == offset && use->operand_index == operand_index &&
+        use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY &&
+        use->relative_register_offset == displacement && use->relative_base_offset_count != 0U)
+      return use;
     if (use->offset != offset ||
         use->operand_index != operand_index ||
         use->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS ||

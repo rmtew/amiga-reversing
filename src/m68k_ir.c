@@ -738,6 +738,8 @@ const char *m68k_platform_address_use_shape_name(uint8_t use_shape) {
       return "execbase_literal";
     case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
       return "hardware_base_address";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY:
+      return "hardware_register_family";
     default:
       return "unknown";
   }
@@ -3639,7 +3641,13 @@ int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *
         existing->address == use->address &&
         existing->effective_address == use->effective_address &&
         existing->access_kind == use->access_kind &&
-        existing->use_shape == use->use_shape) {
+        existing->use_shape == use->use_shape &&
+        existing->relative_base_id == use->relative_base_id &&
+        existing->relative_register_offset == use->relative_register_offset &&
+        existing->relative_base_offset_count == use->relative_base_offset_count &&
+        existing->relative_requires_input_contract == use->relative_requires_input_contract &&
+        memcmp(existing->relative_base_offsets, use->relative_base_offsets,
+          sizeof(use->relative_base_offsets)) == 0) {
       return 0;
     }
   }

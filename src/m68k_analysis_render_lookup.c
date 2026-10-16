@@ -8251,6 +8251,189 @@ static void platform_state_merge_register_id(uint32_t *dest_known, uint8_t reg_i
   }
 }
 
+static int hardware_word_set_add(M68kHardwareWordSet *set, uint16_t value) {
+  uint8_t i, j;
+  for (i = 0U; i < set->count && set->values[i] < value; ++i) {}
+  if (i < set->count && set->values[i] == value) return 1;
+  if (set->count == M68K_HARDWARE_VALUE_LIMIT) return 0;
+  for (j = set->count; j > i; --j) set->values[j] = set->values[j - 1U];
+  set->values[i] = value;
+  ++set->count;
+  return 1;
+}
+
+static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwareWordSet *source) {
+  uint8_t i;
+  if (dest->count == 0U || source->count == 0U) goto unknown;
+  dest->requires_input_contract |= source->requires_input_contract;
+  for (i = 0U; i < source->count; ++i)
+    if (!hardware_word_set_add(dest, source->values[i])) goto unknown;
+  return;
+unknown:
+  memset(dest, 0, sizeof(*dest));
+}
+
+static M68kHardwareWordSet hardware_operand_word_values(const M68kRenderPlatformState *state,
+    const M68kOperandIR *operand) {
+  M68kHardwareWordSet result = {0};
+  uint32_t immediate;
+  uint8_t reg;
+  if (m68k_ir_operand_immediate_value(operand, &immediate)) {
+    result.count = 1U;
+    result.values[0] = (uint16_t)immediate;
+  } else if (operand_is_data_register_local(operand, &reg) && reg < 8U) result = state->word_values[reg];
+  return result;
+}
+
+static M68kHardwareRelativeBase hardware_relative_register(const M68kRenderPlatformState *state, uint8_t reg) {
+  M68kHardwareRelativeBase result = state->relative_hardware[reg];
+  if (result.offsets.count == 0U && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
+    result.base_id = state->address_hardware_base_id[reg];
+    result.offsets.count = 1U;
+    result.offsets.values[0] = 0U;
+  }
+  return result;
+}
+
+/* This domain tracks low WORDs only. It cannot manufacture full data-register
+ * addresses. Unmodelled writes, memory loads, overflow and opaque calls are top. */
+static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68kRenderPlatformState *before,
+    const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
+  uint8_t i, reg, dest;
+  M68kHardwareWordSet source;
+  if (meta == NULL) {
+    memset(state->word_values, 0, sizeof(state->word_values));
+    memset(state->relative_hardware, 0, sizeof(state->relative_hardware));
+    return;
+  }
+  if (meta->flow_kind == M68K_SIM_FLOW_CALL) {
+    memset(state->word_values, 0, sizeof(state->word_values));
+    memset(state->relative_hardware, 0, sizeof(state->relative_hardware));
+    return;
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    state->word_values[reg] = before->word_values[reg];
+    state->relative_hardware[reg] = hardware_relative_register(before, reg);
+  }
+  for (i = 0U; i < instruction->operand_count; ++i) {
+    const M68kOperandIR *operand = &instruction->operands[i];
+    if (meta->operand_access_kinds[i] == M68K_SIM_ACCESS_REGISTER_WRITE ||
+        meta->operand_access_kinds[i] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      if (operand_is_data_register_local(operand, &reg))
+        memset(&state->word_values[reg], 0, sizeof(state->word_values[reg]));
+      if (operand_address_register_index_local(operand, &reg))
+        memset(&state->relative_hardware[reg], 0, sizeof(state->relative_hardware[reg]));
+    }
+    if ((m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+         m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_PREDECREMENT) &&
+        operand->value.ea_reg < 8U)
+      memset(&state->relative_hardware[operand->value.ea_reg], 0,
+        sizeof(state->relative_hardware[operand->value.ea_reg]));
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count == 2U &&
+      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+    for (reg = 0U; reg < 8U; ++reg) {
+      if (reglist_contains_data_register_local(&instruction->operands[1], reg))
+        memset(&state->word_values[reg], 0, sizeof(state->word_values[reg]));
+      if (reglist_contains_address_register_local(&instruction->operands[1], reg))
+        memset(&state->relative_hardware[reg], 0, sizeof(state->relative_hardware[reg]));
+    }
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_DBF &&
+      operand_is_data_register_local(&instruction->operands[0], &reg)) {
+    M68kHardwareWordSet result = {0};
+    result.requires_input_contract = before->word_values[reg].requires_input_contract;
+    for (i = 0U; i < before->word_values[reg].count; ++i)
+      (void)hardware_word_set_add(&result, (uint16_t)(before->word_values[reg].values[i] - 1U));
+    state->word_values[reg] = result;
+    return;
+  }
+  if (instruction->operand_count < 2U) return;
+  source = hardware_operand_word_values(before, &instruction->operands[0]);
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA && instruction->size_suffix == 'w' &&
+      operand_address_register_index_local(&instruction->operands[1], &dest)) {
+    M68kHardwareRelativeBase base = hardware_relative_register(before, dest), result;
+    uint8_t j;
+    memset(&result, 0, sizeof(result));
+    result.base_id = base.base_id;
+    result.offsets.requires_input_contract = base.offsets.requires_input_contract | source.requires_input_contract;
+    if (source.count == 0U || base.offsets.count == 0U) return;
+    for (i = 0U; i < base.offsets.count; ++i) for (j = 0U; j < source.count; ++j) {
+      int32_t offset = (int32_t)base.offsets.values[i] + (int16_t)source.values[j];
+      if (offset < 0 || offset > INT16_MAX || !hardware_word_set_add(&result.offsets, (uint16_t)offset)) return;
+    }
+    state->relative_hardware[dest] = result;
+  } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE) && instruction->size_suffix == 'l' &&
+      operand_address_register_index_local(&instruction->operands[1], &dest) &&
+      operand_address_register_index_local(&instruction->operands[0], &reg)) {
+    state->relative_hardware[dest] = hardware_relative_register(before, reg);
+  } else if (operand_is_data_register_local(&instruction->operands[1], &dest)) {
+    M68kHardwareWordSet result = {0};
+    result.requires_input_contract = source.requires_input_contract | before->word_values[dest].requires_input_contract;
+    if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ ||
+        (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+         (instruction->size_suffix == 'w' || instruction->size_suffix == 'l'))) {
+      state->word_values[dest] = source;
+    } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ||
+                instruction->mnemonic_id == M68K_ASM_MNEMONIC_MULU) &&
+        instruction->size_suffix == 'w' && source.count == 1U) {
+      uint16_t amount = source.values[0];
+      if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL && amount > 15U) return;
+      for (i = 0U; i < before->word_values[dest].count; ++i) {
+        uint32_t value = before->word_values[dest].values[i];
+        value = instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ? value << amount : value * amount;
+        if (!hardware_word_set_add(&result, (uint16_t)value)) return;
+      }
+      state->word_values[dest] = result;
+    }
+  }
+  for (reg = 0U; reg < 8U; ++reg)
+    if (state->relative_hardware[reg].offsets.count == 0U)
+      state->relative_hardware[reg] = hardware_relative_register(state, reg);
+}
+
+static void hardware_relative_apply_policy_inputs(M68kRenderPlatformState *state,
+    const M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
+  {
+    uint16_t seed_index;
+    for (seed_index = 0U; policy != NULL && seed_index < policy->register_seed_count; ++seed_index) {
+      const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[seed_index];
+      M68kHardwareRelativeBase *relative;
+      uint8_t value_index;
+      if (!seed->has_entry_offset || seed->entry_offset != offset ||
+          (seed->has_section_index && seed->section_index != section_index)) continue;
+      if (seed->reg_index >= 8U) continue;
+      if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
+        if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS)
+          memset(&state->relative_hardware[seed->reg_index], 0, sizeof(state->relative_hardware[seed->reg_index]));
+        if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA)
+          memset(&state->word_values[seed->reg_index], 0, sizeof(state->word_values[seed->reg_index]));
+        continue;
+      }
+      if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->hardware_index_register >= 8U ||
+          seed->hardware_index_count == 0U || seed->hardware_index_count > 8U) continue;
+      relative = &state->relative_hardware[seed->reg_index];
+      memset(relative, 0, sizeof(*relative));
+      memset(&state->word_values[seed->hardware_index_register], 0,
+        sizeof(state->word_values[seed->hardware_index_register]));
+      if (!platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          seed->name, &relative->base_id)) continue;
+      relative->offsets.requires_input_contract = 1U;
+      state->word_values[seed->hardware_index_register].requires_input_contract = 1U;
+      for (value_index = 0U; value_index < seed->hardware_index_count; ++value_index) {
+        (void)hardware_word_set_add(&relative->offsets,
+          seed->hardware_index_values[value_index] * seed->hardware_stride);
+        (void)hardware_word_set_add(&state->word_values[seed->hardware_index_register],
+          seed->hardware_index_values[value_index]);
+      }
+      m68k_bitset_u32_clear(&state->address_hardware_base_known, seed->reg_index);
+      state->address_hardware_base_id[seed->reg_index] = 0U;
+    }
+  }
+}
+
 static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRenderPlatformState *source) {
   M68kRenderPlatformState old_state;
   size_t index;
@@ -8258,6 +8441,13 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
   if (dest == NULL || source == NULL) return 0;
   old_state = *dest;
   for (index = 0U; index < 8U; ++index) {
+    hardware_word_set_merge(&dest->word_values[index], &source->word_values[index]);
+    if (dest->relative_hardware[index].base_id != source->relative_hardware[index].base_id)
+      memset(&dest->relative_hardware[index], 0, sizeof(dest->relative_hardware[index]));
+    else {
+      hardware_word_set_merge(&dest->relative_hardware[index].offsets, &source->relative_hardware[index].offsets);
+      if (dest->relative_hardware[index].offsets.count == 0U) dest->relative_hardware[index].base_id = 0U;
+    }
     platform_state_merge_register_base(&dest->data_base_known, (uint8_t)index, &dest->data_base_id[index],
       dest->data_base_library[index], sizeof(dest->data_base_library[index]), source->data_base_known,
       source->data_base_id[index], source->data_base_library[index], &changed);
@@ -8590,6 +8780,30 @@ static int render_lookup_record_hardware_address_uses(M68kRenderLookup *lookup, 
         state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement, symbol_buf, sizeof(symbol_buf));
       address += (uint32_t)(uint16_t)displacement;
       use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
+    } else if ((access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+        operand_is_address_displacement_local(operand, &base_reg, &displacement) && displacement >= 0 &&
+        state->relative_hardware[base_reg].offsets.count != 0U) {
+      const M68kHardwareRelativeBase *base = &state->relative_hardware[base_reg];
+      const AmigaOsHardwareRegisterFieldInfo *origin = amiga_os_find_hardware_register_field_by_base_id_offset(
+        base->base_id, (uint16_t)displacement);
+      uint8_t i;
+      if (origin == NULL) continue;
+      for (i = 0U; i < base->offsets.count; ++i) {
+        const AmigaOsHardwareRegisterFieldInfo *field = amiga_os_find_hardware_register_field_by_base_id_offset(
+          base->base_id, (uint16_t)displacement + (uint32_t)base->offsets.values[i]);
+        if (field == NULL || field->register_symbol_id != origin->register_symbol_id ||
+            field->field_symbol_id != origin->field_symbol_id || field->field_offset != origin->field_offset ||
+            field->register_offset != origin->register_offset + base->offsets.values[i]) break;
+      }
+      if (i != base->offsets.count) continue;
+      symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        base->base_id, (uint16_t)displacement, symbol_buf, sizeof(symbol_buf));
+      use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY;
+      use.relative_base_id = base->base_id;
+      use.relative_register_offset = (uint16_t)displacement;
+      use.relative_base_offset_count = base->offsets.count;
+      use.relative_requires_input_contract = base->offsets.requires_input_contract;
+      memcpy(use.relative_base_offsets, base->offsets.values, sizeof(use.relative_base_offsets));
     } else if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction->size_suffix == 'l' &&
         operand_index == metadata->source_operand_index && m68k_ir_operand_immediate_value(operand, &address)) {
       symbol = platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, address);
@@ -9109,6 +9323,29 @@ static int typed_flow_enqueue_node(size_t *queue, uint8_t *queued, size_t capaci
   return 0;
 }
 
+/* DBF decrements the low WORD and branches only if it is not $FFFF. Do not
+ * merge the exhausted counter into the backedge, or a bounded loop becomes top. */
+static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *predecessor,
+    const M68kRenderTypedFlowNode *successor, M68kRenderPlatformState *state) {
+  M68kInstructionIR instruction;
+  M68kHardwareWordSet result = {0};
+  uint8_t reg, i;
+  int fallthrough;
+  if (predecessor->candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF ||
+      m68k_decode_candidate_to_instruction(predecessor->candidate, &instruction) != 0 ||
+      !operand_is_data_register_local(&instruction.operands[0], &reg) || state->word_values[reg].count == 0U)
+    return 1;
+  fallthrough = successor->candidate->offset == predecessor->candidate->offset + predecessor->candidate->byte_count;
+  for (i = 0U; i < state->word_values[reg].count; ++i) {
+    uint16_t value = state->word_values[reg].values[i];
+    if ((value == UINT16_MAX) == fallthrough) (void)hardware_word_set_add(&result, value);
+  }
+  if (result.count == 0U) return 0;
+  result.requires_input_contract = state->word_values[reg].requires_input_contract;
+  state->word_values[reg] = result;
+  return 1;
+}
+
 static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index) {
   M68kRenderTypedFlowNode *node;
   M68kRenderTypedState typed_input;
@@ -9142,6 +9379,106 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
   node->platform_in = platform_input;
   node->has_in = has_input ? 1U : 0U;
   return 1;
+}
+
+/* Hardware bounds have a separate fixed point. Unrelated typed memory/cursor
+ * churn cannot either suppress these proofs or certify an unfinished set. */
+static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
+    const M68kRenderTypedFlowGraph *graph, Arena *arena) {
+  M68kRenderPlatformState *inputs, *outputs;
+  uint8_t *has_in, *has_out, *queued;
+  size_t *queue, head = 0U, count = 0U, visits = 0U, index;
+  size_t limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
+    M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT);
+  ArenaMark mark;
+  int result = -1;
+  if (graph->node_count == 0U) return 0;
+  mark = arena_mark(arena);
+  inputs = arena_calloc(arena, graph->node_count, sizeof(*inputs));
+  outputs = arena_calloc(arena, graph->node_count, sizeof(*outputs));
+  has_in = arena_calloc(arena, graph->node_count, 1U);
+  has_out = arena_calloc(arena, graph->node_count, 1U);
+  queued = arena_calloc(arena, graph->node_count, 1U);
+  queue = arena_alloc(arena, graph->node_count * sizeof(*queue));
+  if (inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
+    goto done;
+  for (index = 0U; index < graph->node_count; ++index) if (graph->nodes[index].is_root) {
+    has_in[index] = 1U;
+    if (typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, index) != 0) goto done;
+  }
+  while (count != 0U && visits++ < limit) {
+    const M68kRenderTypedFlowNode *node;
+    M68kRenderPlatformState before, next, normalized;
+    M68kInstructionIR instruction;
+    uint8_t successor_index;
+    index = queue[head];
+    head = (head + 1U) % graph->node_count;
+    --count;
+    queued[index] = 0U;
+    node = &graph->nodes[index];
+    before = inputs[index];
+    platform_state_apply_policy_register_seeds(&before, lookup->policy, section->section_index,
+      node->candidate->offset);
+    hardware_relative_apply_policy_inputs(&before, lookup->policy, section->section_index, node->candidate->offset);
+    if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) goto done;
+    next = before;
+    platform_state_update_after_instruction(&next, lookup, &instruction);
+    /* Calls are top in this solver. Existing exact-address call proofs remain
+     * separate; no new preservation assumption is made for a relative base. */
+    hardware_relative_transfer(&next, &before, &instruction);
+    memset(&normalized, 0, sizeof(normalized));
+    normalized.data_hardware_base_known = next.data_hardware_base_known;
+    normalized.address_hardware_base_known = next.address_hardware_base_known;
+    memcpy(normalized.data_hardware_base_id, next.data_hardware_base_id, sizeof(next.data_hardware_base_id));
+    memcpy(normalized.address_hardware_base_id, next.address_hardware_base_id, sizeof(next.address_hardware_base_id));
+    memcpy(normalized.word_values, next.word_values, sizeof(next.word_values));
+    memcpy(normalized.relative_hardware, next.relative_hardware, sizeof(next.relative_hardware));
+    if (has_out[index] && platform_states_equal(&outputs[index], &normalized)) continue;
+    outputs[index] = normalized;
+    has_out[index] = 1U;
+    for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
+      size_t successor = node->successors[successor_index], predecessor_index;
+      M68kRenderPlatformState input;
+      int found = graph->nodes[successor].is_root != 0U;
+      memset(&input, 0, sizeof(input));
+      for (predecessor_index = graph->predecessor_offsets[successor];
+           predecessor_index < graph->predecessor_offsets[successor + 1U]; ++predecessor_index) {
+        size_t predecessor = graph->predecessors[predecessor_index];
+        M68kRenderPlatformState edge;
+        if (!has_out[predecessor]) continue;
+        edge = outputs[predecessor];
+        if (!hardware_relative_refine_dbf_edge(&graph->nodes[predecessor], &graph->nodes[successor], &edge)) continue;
+        if (!found) input = edge;
+        else (void)platform_state_merge_into(&input, &edge);
+        found = 1;
+      }
+      if (has_in[successor] == (uint8_t)found && platform_states_equal(&inputs[successor], &input)) continue;
+      inputs[successor] = input;
+      has_in[successor] = (uint8_t)found;
+      if (found && typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, successor) != 0) goto done;
+    }
+  }
+  if (count == 0U) for (index = 0U; index < graph->node_count; ++index) if (has_in[index]) {
+    M68kRenderPlatformState proof = inputs[index];
+    M68kInstructionIR instruction;
+    uint8_t reg;
+    platform_state_apply_policy_register_seeds(&proof, lookup->policy, section->section_index,
+      graph->nodes[index].candidate->offset);
+    hardware_relative_apply_policy_inputs(&proof, lookup->policy, section->section_index,
+      graph->nodes[index].candidate->offset);
+    for (reg = 0U; reg < 8U; ++reg)
+      if (m68k_bitset_u32_has(proof.address_hardware_base_known, reg) &&
+          proof.relative_hardware[reg].offsets.count == 1U && proof.relative_hardware[reg].offsets.values[0] == 0U)
+        memset(&proof.relative_hardware[reg], 0, sizeof(proof.relative_hardware[reg]));
+    proof.address_hardware_base_known = proof.data_hardware_base_known = 0U;
+    if (m68k_decode_candidate_to_instruction(graph->nodes[index].candidate, &instruction) != 0 ||
+        render_lookup_record_hardware_address_uses(lookup, section->section_index, &proof, &instruction,
+          graph->nodes[index].candidate->offset) != 0) goto done;
+  }
+  result = 0;
+done:
+  arena_rewind(arena, mark);
+  return result;
 }
 
 static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
@@ -9211,6 +9548,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         goto cleanup;
       }
     }
+    if (hardware_relative_analyze_graph(lookup, section, graph, arena) != 0) goto cleanup;
   }
   result = 0;
 
@@ -13981,6 +14319,7 @@ static int displacement_is_custom_hardware_offset(int16_t displacement) {
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement) {
   if (state == NULL || base_reg >= 8U) return 0;
+  if (state->relative_hardware[base_reg].offsets.count != 0U) return 0;
   if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) return 0;
   if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) return 1;
   if (m68k_bitset_u32_has(state->address_base_known, base_reg))

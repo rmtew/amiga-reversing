@@ -4926,7 +4926,21 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       } else if (json_builder_appendf(&builder, "%u", (unsigned)use->operand_index) != 0) {
         goto oom;
       }
-      if (json_builder_appendf(&builder,
+      if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) {
+        uint8_t relative_index;
+        if (json_builder_appendf(&builder,
+            ",\"address\":null,\"effective_address\":null,\"use_shape_id\":%u,\"relative_base_id\":%u,"
+            "\"relative_register_offset\":%u,\"requires_indexed_input_contract\":%s,"
+            "\"proof_scope\":\"analysis_entry_contracts\",\"relative_base_offsets\":[",
+            (unsigned)use->use_shape, (unsigned)use->relative_base_id,
+            (unsigned)use->relative_register_offset, use->relative_requires_input_contract ? "true" : "false") != 0)
+          goto oom;
+        for (relative_index = 0U; relative_index < use->relative_base_offset_count; ++relative_index) {
+          if (json_builder_appendf(&builder, "%s%u", relative_index == 0U ? "" : ",",
+              (unsigned)use->relative_base_offsets[relative_index]) != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "],\"use_shape_name\":") != 0) goto oom;
+      } else if (json_builder_appendf(&builder,
           ",\"address\":%u,\"effective_address\":%u,\"use_shape_id\":%u,\"use_shape_name\":",
           (unsigned)use->address, (unsigned)use->effective_address, (unsigned)use->use_shape) != 0)
         goto oom;

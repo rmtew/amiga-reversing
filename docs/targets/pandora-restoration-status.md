@@ -3392,3 +3392,41 @@ the existing `codec_id` failure, establishing that it predates this correction.
 See the [correction evidence](../validation/pandora-render-quality-correction.json)
 and [SDK offset-domain contract](../restoration-interfaces.md). Runtime callback
 closure, pixel DMA, alias safety and arbitrary replacement admission remain open.
+
+## Audio channel-relative hardware
+
+Twelve primary-player audio writes are reviewed as one group: ten in the main
+channel loop and two in the silence opcode handler. All twelve now have native
+closed hardware-family facts with base offsets `{0,16,32,48}`; previously none
+had such a bounded fact. Ten already had valid accepted offset names. The two
+silence writes now gain `aud0+ac_ptr` / `aud0+ac_len` and their pointer / 64-byte
+length explanations. The corrected `27bc9a02` instruction names, inline notes
+and standalone comments are preserved.
+
+These twelve proofs depend on eleven explicit handler-entry input contracts:
+A6=`_custom+16*D7.w`, with D7.w in 0..3, for original valid primary-player
+dispatch. Existing handler discovery entries otherwise supply unknown register
+values and erase the loop bounds. The contracts appear on complete separate
+`INPUT contract` source lines. The independent bounded solver propagates low
+WORD sets, ADDA.W and DBF backedge/exhaustion states, validates every candidate
+against the same SDK family field, and records input dependence. It publishes
+no fabricated single address and drops unknown, overflowing or unfinished
+proofs. Calls and unsupported writes remain conservative. Accepted offset
+renderings remain independent fallbacks.
+
+The original instruction harness checks all eleven opcode handlers in all four
+channels, including D7 upper-WORD sentinels and reset through RTS. Four producer
+cases and four actual silence-handler channel-write cases bring that audio
+group to 52 CPU cases. The native indirect jump at 4DC2A remains unresolved;
+arbitrary handler entry, opcode/operand replacement and dispatch closure are
+not proved by these input contracts. MMIO is a memory shadow, not audio output
+or DMA timing.
+
+819 native and 380 focused framework/catalog/CPU/source-quality tests pass.
+C and independent vasm match all 376,832 original bytes, receipt
+`5046acf61f021bc19c38f5276d168ad74c1bfc016a5bd301f07474b9c5b71cd0`.
+All 86 assets and both historical prefixes are preserved. The `codec_id`
+provenance question was closed by the preceding correction's isolated baseline
+comparison; the missing Ancient provider is pre-existing and unchanged here.
+See the [reviewed-versus-resolved evidence](../validation/pandora-audio-channel-hardware.json)
+and [indexed input contract](../restoration-interfaces.md).

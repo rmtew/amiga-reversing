@@ -128,6 +128,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_code_label_action(),
         _target_code_label_remove_action(),
         _target_code_register_seed_action(),
+        _target_hardware_indexed_input_action(),
         _target_code_register_seed_remove_action(),
         _target_function_summary_action(),
         _target_function_summary_remove_action(),
@@ -199,6 +200,8 @@ def target_catalog_manual_payload(
         return "create_manual_label", {"label": _target_code_label_payload(params)}
     if action.get("action") == "remove_manual_label":
         return "remove_manual_label", {"label_id": str(params["label_id"])}
+    if action.get("action") == "create_manual_hardware_indexed_input":
+        return "create_manual_register_seed", {"register_seed": _target_hardware_indexed_input_payload(params)}
     if action.get("action") == "create_manual_register_seed":
         return "create_manual_register_seed", {"register_seed": _target_code_register_seed_payload(params)}
     if action.get("action") == "remove_manual_register_seed":
@@ -5942,6 +5945,47 @@ def _target_code_label_remove_action() -> dict[str, object]:
         "remove_manual_label",
         {"type": "object", "properties": {"label_id": {"type": "string"}}, "required": ["label_id"]},
     )
+
+
+def _target_hardware_indexed_input_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.code.hardware_indexed_input.add", "Add indexed hardware entry contract",
+        "create_manual_hardware_indexed_input", {
+            "type": "object", "properties": {
+                "hunk": {"type": "integer", "minimum": 0}, "addr": {"type": "integer", "minimum": 0},
+                "register": {"type": "string", "pattern": "^A[0-7]$"},
+                "hardware_indexed": {"type": "object", "properties": {
+                    "base_symbol": {"type": "string"},
+                    "index_register": {"type": "string", "pattern": "^D[0-7]$"},
+                    "stride": {"type": "integer", "minimum": 1, "maximum": 32767},
+                    "index_values": {"type": "array", "items": {"type": "integer", "minimum": 0},
+                                     "minItems": 1, "maxItems": 8, "uniqueItems": True},
+                }, "required": ["base_symbol", "index_register", "stride", "index_values"],
+                    "additionalProperties": False},
+                "context_name": {"type": "string"}, "note": {"type": "string"},
+            }, "required": ["hunk", "addr", "register", "hardware_indexed", "note"],
+        })
+
+
+def _target_hardware_indexed_input_payload(params: Mapping[str, object]) -> dict[str, object]:
+    from .target_metadata import EntryRegisterSeedKind, EntryRegisterSeedMetadata
+
+    hunk, addr = _optional_int(params.get("hunk")), _optional_int(params.get("addr"))
+    if (hunk is None or hunk < 0 or addr is None or addr < 0
+            or not isinstance(params.get("note"), str) or not params["note"].strip()):
+        raise ValueError("indexed hardware contract requires hunk, addr and an explicit precondition note")
+    seed = {
+        "register_seed_id": f"catalog-indexed-hardware-{uuid.uuid4().hex}", "hunk": hunk,
+        "entry_offset": addr, "register": str(params.get("register", "")).upper(),
+        "kind": "hardware_indexed", "library_name": None, "struct_name": None,
+        "context_name": str(params.get("context_name", "")), "note": params["note"],
+        "hardware_indexed": params.get("hardware_indexed"),
+    }
+    EntryRegisterSeedMetadata(
+        entry_offset=addr, register=seed["register"], kind=EntryRegisterSeedKind.HARDWARE_INDEXED,
+        note=seed["note"], hardware_indexed=seed["hardware_indexed"], hunk=hunk,
+    )
+    return seed
 
 
 def _target_code_register_seed_action() -> dict[str, object]:

@@ -201,6 +201,31 @@ so explanations survive call and CFG proofs alongside operand names. Pointer
 notes inferred from a destination field yield to existing pointer-provenance
 notes. Unknown calls and conflicting values remain conservative.
 
+`target.code.hardware_indexed_input.add` declares an explicit entry precondition:
+an address register equals a registered hardware base plus `stride` times the
+low WORD of a data register. Its `hardware_indexed` object contains
+`base_symbol`, `index_register`, `stride` and a sorted closed `index_values`
+list of at most eight nonnegative members. The command also requires an entry
+address, section, destination register and precondition note. Native admission
+checks the registered base, register classes, set capacity and offset extent
+before history is appended. Source comments say `INPUT contract`, rather than
+presenting the destination as a fixed address or a recovered game struct.
+
+The bounded hardware solver tracks low-WORD constants, moves, immediate shifts
+and multiplies, ADDA.W, and DBF's separate backedge/exhaustion states. It unions
+closed sets at joins and discards unknown or overflowing sets. Its fixed point
+is independent of typed-memory propagation; an exhausted hardware proof budget
+publishes no family facts. Calls, unmodelled/partial writes, memory loads and
+address autoupdates invalidate the affected domain. Each member must resolve
+to the same SDK register-family field before an automatic symbol/note is added.
+The resulting `hardware_register_family` facts expose `relative_base_offsets`
+and `proof_scope: analysis_entry_contracts`; `address` and `effective_address`
+are null. `requires_indexed_input_contract` records whether such an explicit
+indexed precondition supplied the bounds, including after scalar transfers and
+joins. Literal offset interpretations remain valid fallbacks where these
+bounds are unknown. An accepted input precondition is not proof that every
+possible indirect caller or opcode supplies it.
+
 Native policy storage accepts up to 16,384 structured data items and 16,384 named
 labels after array fields expand. The merged pending interpretation is checked
 against the actual binary before any Manual Action Log append; overflow refuses

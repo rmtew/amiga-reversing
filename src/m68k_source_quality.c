@@ -10760,6 +10760,13 @@ static int platform_address_use_operand_matches_accepted_instruction(const M68kP
     const M68kInstructionIR *instruction, uint8_t platform_kind) {
   uint32_t value = 0U;
   if (use == NULL || instruction == NULL || use->operand_index >= instruction->operand_count) return 0;
+  if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) {
+    uint8_t reg;
+    int16_t displacement;
+    return use->relative_base_offset_count != 0U &&
+      source_quality_operand_address_displacement(&instruction->operands[use->operand_index], &reg, &displacement) &&
+      displacement >= 0 && (uint16_t)displacement == use->relative_register_offset;
+  }
   if (source_quality_operand_absolute_offset(&instruction->operands[use->operand_index], &value)) {
     return value == use->address;
   }
@@ -12465,7 +12472,8 @@ static int append_hardware_address_use_notes(M68kSectionAnalysisIR *section_anal
     uint32_t register_offset;
     int immediate = 0;
     char note[160];
-    if (address->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS) continue;
+    if (address->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS &&
+        address->use_shape != M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) continue;
     candidate = m68k_decode_ir_find_candidate_at_offset(section, address->offset);
     if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate) ||
         m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
@@ -12482,9 +12490,15 @@ static int append_hardware_address_use_notes(M68kSectionAnalysisIR *section_anal
       }
     }
     value = source_quality_immediate_domain_value_for_instruction_size(&instruction, value);
-    if (!platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
-          address->address, &base_id, &register_offset) ||
-        !source_quality_hardware_offset_note(base_id, register_offset, &instruction, address->access_kind,
+    if (address->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) {
+      base_id = address->relative_base_id;
+      register_offset = address->relative_register_offset;
+      if (append_platform_operand_expr_semantic_use(section_analysis, candidate,
+          M68K_PLATFORM_SEMANTIC_USE_HARDWARE_VALUE, address->operand_index, address->symbol_name,
+          address->confidence, "hardware_relative", address->confidence) != 0) return -1;
+    } else if (!platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        address->address, &base_id, &register_offset)) continue;
+    if (!source_quality_hardware_offset_note(base_id, register_offset, &instruction, address->access_kind,
           (uint8_t)immediate, value, &kind, note, sizeof(note))) continue;
     if (kind == M68K_PLATFORM_SEMANTIC_USE_HARDWARE_ACCESS &&
         source_quality_has_runtime_sink_pointer_at(section_analysis, candidate->offset)) continue;

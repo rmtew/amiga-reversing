@@ -99,7 +99,8 @@ typedef enum M68kAnalysisRegisterSeedKind {
   M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR = 2,
   /* Callable-only ABI identity for a pointer whose concrete pointee type is
    * not yet recovered.  It is not valid as a free register seed. */
-  M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER = 3
+  M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER = 3,
+  M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED = 4
 } M68kAnalysisRegisterSeedKind;
 
 typedef struct M68kAnalysisRegisterSeed {
@@ -115,6 +116,10 @@ typedef struct M68kAnalysisRegisterSeed {
   char name[64];
   char type_name[64];
   char context_name[64];
+  uint16_t hardware_stride;
+  uint16_t hardware_index_values[8];
+  uint8_t hardware_index_count;
+  uint8_t hardware_index_register;
 } M68kAnalysisRegisterSeed;
 
 typedef enum M68kAnalysisFunctionSummaryCallableKind {
@@ -2004,7 +2009,8 @@ typedef enum M68kPlatformAddressUseShape {
   M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE = 3,
   M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS = 4,
   M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL = 5,
-  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS = 6
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS = 6,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY = 7
 } M68kPlatformAddressUseShape;
 
 typedef struct M68kPlatformAddressUseIR {
@@ -2019,6 +2025,13 @@ typedef struct M68kPlatformAddressUseIR {
   uint8_t use_shape;
   uint8_t confidence;
   uint8_t has_handler_target;
+  /* Only FAMILY uses carry this closed base-offset set. address/effective_address
+   * are absent for that shape, not a representative member of the set. */
+  uint16_t relative_base_id;
+  uint16_t relative_register_offset;
+  uint16_t relative_base_offsets[8];
+  uint8_t relative_base_offset_count;
+  uint8_t relative_requires_input_contract;
 } M68kPlatformAddressUseIR;
 
 typedef enum M68kPlatformSemanticUseKind {
