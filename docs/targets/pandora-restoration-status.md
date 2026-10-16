@@ -3136,8 +3136,17 @@ node; no player interaction-tail phase was established. Its byte +11 stays an
 unknown gap. All 29 focused tests and exact C/vasm reproduction pass; 86 assets
 are unchanged. See `docs/validation/pandora-player-directional-nodes.json`.
 
-The next connected gap is the extended chained-node successor at +18 and its
-currently numeric successor-field accesses. General mutable-state combinations,
-allocation lifetime and equal-depth tie behavior remain unproved. No further
-exception-consequence investigation is planned for the completed optional patch
-proof.
+The guarded chain transition now uses a 22-byte extended schema containing the
+existing 18-byte header and an absolute LONG successor pointer. Its three field
+accesses are symbolic; only the guarded A0 context receives the extended type.
+It resets and installs one successor per call, preserving all mode bits except
+hold. There is no NULL/sentinel guard before successor writes. None of the 89
+typed nodes or 77 typed-pointer targets has the chain bit set initially, so no
+concrete record was widened or gameplay reachability asserted. All 17 focused
+tests and exact C/vasm reproduction pass; data directives and 86 assets are
+unchanged. See `docs/validation/pandora-chained-animation.json`.
+
+The next connected gap is indexed active frame/XY sequence access and bounds
+under script sequence replacement. General mutable-state combinations, allocation
+lifetime and equal-depth tie behavior remain unproved. No further consequence
+investigation is planned for the completed optional patch proof.

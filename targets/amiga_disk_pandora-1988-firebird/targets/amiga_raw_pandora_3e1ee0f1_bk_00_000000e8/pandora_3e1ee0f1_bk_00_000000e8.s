@@ -720,6 +720,12 @@ world_object_source_reference_SIZEOF EQU __RS
 world_position_descriptor_source_reference_descriptor_ptr RS.L 1
 world_position_descriptor_source_reference_SIZEOF EQU __RS
 
+; STRUCT WorldPositionChainedStateNode
+    RSRESET
+WorldPositionChainedStateNode_header RS.B 18
+WorldPositionChainedStateNode_next_node_ptr RS.L 1
+WorldPositionChainedStateNode_SIZEOF EQU __RS
+
 ANIM_MODE_CHAIN_AT_END_BIT	EQU	$3
 ANIM_MODE_HOLD_AT_END_BIT	EQU	$2
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
@@ -11552,10 +11558,12 @@ abs_0_00019568:
 	bcs.b abs_0_000195BE
 	btst.b #ANIM_MODE_CHAIN_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
 	beq.b abs_0_00019596
-    ; Chained mode uses an extended node: its next-node pointer at +$12 lies beyond the 18-byte basic record.
-	movea.l $0012(a0),a0
-	clr.w $0010(a0)
-	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,$000A(a0)
+    ; Chain once through absolute LONG next_node_ptr. Reset successor clock and clear only hold bit, then install and return. No NULL/sentinel guard; NULL writes WORD $10 and BYTE $0A.
+    ; KNOWN: type A0=Target code-entry register seed:WorldPositionChainedStateNode
+chain_to_next_animation_node:
+	movea.l WorldPositionChainedStateNode_next_node_ptr(a0),a0
+	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
+	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.l a0,world_position_state_record_state_node_ptr(a4)
 	bra.b abs_0_000195E0
 abs_0_00019596:
