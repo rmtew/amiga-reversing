@@ -8179,6 +8179,9 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
     platform_state_merge_register_id(&dest->address_hardware_base_known, (uint8_t)index,
       &dest->address_hardware_base_id[index], source->address_hardware_base_known,
       source->address_hardware_base_id[index], &changed);
+    platform_state_merge_register_id(&dest->data_hardware_base_known, (uint8_t)index,
+      &dest->data_hardware_base_id[index], source->data_hardware_base_known,
+      source->data_hardware_base_id[index], &changed);
     platform_state_merge_register_name(&dest->data_layout_base_known, (uint8_t)index,
       dest->data_layout_base_symbol[index], sizeof(dest->data_layout_base_symbol[index]),
       source->data_layout_base_known,
@@ -8472,6 +8475,62 @@ void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(cons
   }
 }
 
+static int render_lookup_record_hardware_address_uses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderPlatformState *state, const M68kInstructionIR *instruction, uint32_t offset) {
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  size_t operand_index;
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    M68kPlatformAddressUseIR use;
+    M68kRenderHardwareAddressUse *entry;
+    const char *symbol = NULL;
+    char symbol_buf[96];
+    uint32_t address = 0U;
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
+    uint8_t access = metadata->operand_access_kinds[operand_index];
+    memset(&use, 0, sizeof(use));
+    if ((access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE ||
+         access == M68K_SIM_ACCESS_COMPUTE_ADDRESS) &&
+        operand_is_address_displacement_local(operand, &base_reg, &displacement) && displacement >= 0 &&
+        m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
+        platform_facts_v2_hardware_base_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          state->address_hardware_base_id[base_reg], &address)) {
+      symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement, symbol_buf, sizeof(symbol_buf));
+      address += (uint32_t)(uint16_t)displacement;
+      use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
+    } else if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction->size_suffix == 'l' &&
+        operand_index == metadata->source_operand_index && m68k_ir_operand_immediate_value(operand, &address)) {
+      symbol = platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, address);
+      use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS;
+    }
+    if (symbol == NULL || symbol[0] == '\0') continue;
+    if (lookup->hardware_address_use_count == lookup->hardware_address_use_capacity) {
+      size_t capacity = lookup->hardware_address_use_capacity == 0U ? 32U : lookup->hardware_address_use_capacity * 2U;
+      M68kRenderHardwareAddressUse *grown = (M68kRenderHardwareAddressUse *)render_lookup_grow_array(lookup,
+        lookup->hardware_address_uses, lookup->hardware_address_use_count, sizeof(*grown), capacity);
+      if (grown == NULL) return -1;
+      lookup->hardware_address_uses = grown;
+      lookup->hardware_address_use_capacity = capacity;
+    }
+    use.symbol_name = arena_strdup(render_lookup_arena(lookup), symbol);
+    if (use.symbol_name == NULL) return -1;
+    use.offset = offset;
+    use.operand_index = (uint32_t)operand_index;
+    use.address = address;
+    use.effective_address = address;
+    use.access_width = instruction->size_suffix == 'l' ? 4U : (instruction->size_suffix == 'w' ? 2U : 1U);
+    use.access_kind = access;
+    use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    entry = &lookup->hardware_address_uses[lookup->hardware_address_use_count++];
+    entry->section_index = section_index;
+    entry->use = use;
+  }
+  return 0;
+}
+
 static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start,
     const M68kDecodeSectionIR *section, const M68kRenderTypedFlowNode *node, int allow_lookup_storage,
     int record_typed_accesses, M68kRenderTypedState *out_typed_state, M68kRenderPlatformState *out_platform_state,
@@ -8550,6 +8609,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       out_typed_state, &instruction, node->candidate->offset) != 0) {
     return -1;
   }
+  if (record_typed_accesses && render_lookup_record_hardware_address_uses(lookup, section->section_index,
+      out_platform_state, &instruction, node->candidate->offset) != 0) return -1;
   if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
       node->candidate->offset, record_typed_accesses, io_changed) != 0) {
     return -1;
@@ -8664,8 +8725,32 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   if (call_has_result_summary != 0U)
     typed_state_apply_function_summary_results(out_typed_state, &call_input_state, lookup, result_summary,
       section->section_index, node->candidate->offset);
-  platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
-  platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
+  /* Sequential rendering drops terminal/call contexts. CFG successors may retain
+   * literal hardware identities only across unchanged or proven preserved registers. */
+  {
+    M68kRenderPlatformState before = *out_platform_state;
+    const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(&instruction);
+    uint8_t reg;
+    platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
+    platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
+    for (reg = 0U; metadata != NULL && reg < 8U; ++reg) {
+      uint32_t bit = (uint32_t)1U << reg;
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+          (metadata->flow_kind == M68K_SIM_FLOW_CALL &&
+           function_summary_register_effect(selected_local_effects, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
+             M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)) {
+        out_platform_state->address_hardware_base_known |= before.address_hardware_base_known & bit;
+        out_platform_state->address_hardware_base_id[reg] = before.address_hardware_base_id[reg];
+      }
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+          (metadata->flow_kind == M68K_SIM_FLOW_CALL &&
+           function_summary_register_effect(selected_local_effects, M68K_ANALYSIS_REGISTER_DATA, reg) ==
+             M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)) {
+        out_platform_state->data_hardware_base_known |= before.data_hardware_base_known & bit;
+        out_platform_state->data_hardware_base_id[reg] = before.data_hardware_base_id[reg];
+      }
+    }
+  }
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
   if (candidate_terminates_a6_state(node->candidate)) typed_state_clear_all(out_typed_state);
   return 0;
@@ -9083,6 +9168,7 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
       for (operand_index = 0U; operand_index < 8U; ++operand_index)
         if (m68k_bitset_u32_has(state.address_base_known, (uint8_t)operand_index))
           m68k_bitset_u32_set(&seen_library_base, (uint8_t)operand_index);
+      if (state.data_hardware_base_known != 0U || state.address_hardware_base_known != 0U) return 1;
     }
   }
   return 0;
@@ -9178,6 +9264,7 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
     changed = 0;
     if (final_pass) {
       lookup->typed_access_count = 0U;
+      lookup->hardware_address_use_count = 0U;
       lookup->affine_address_use_count = 0U;
     }
     for (section_index = 0U; section_index < decode->section_count; ++section_index) {
@@ -9205,6 +9292,7 @@ static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68k
   if (workflow->graphs == NULL) return 0;
   if (workflow->section_count != decode->section_count) return -1;
   lookup->typed_access_count = 0U;
+  lookup->hardware_address_use_count = 0U;
   lookup->affine_address_use_count = 0U;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
@@ -14945,6 +15033,12 @@ static int append_manual_data_references_for_section(const M68kRenderLookup *loo
 
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  for (index = 0U; index < lookup->hardware_address_use_count; ++index) {
+    const M68kRenderHardwareAddressUse *entry = &lookup->hardware_address_uses[index];
+    if (entry->section_index == section_analysis->section_index &&
+        m68k_ir_section_analysis_append_platform_address_use(section_analysis, &entry->use) != 0) return -1;
+  }
   if (append_manual_data_references_for_section(lookup, decode, section_analysis) != 0) return -1;
   if (append_render_lookup_platform_effects_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_app_slot_refs_for_section(lookup, section_analysis) != 0) return -1;

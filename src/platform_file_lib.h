@@ -30,6 +30,8 @@ PLATFORM_FILE_API size_t platform_file_entry_comment_text_capacity(void);
 PLATFORM_FILE_API size_t platform_file_entry_comment_count_capacity(void);
 /* Native target equate storage bound for durable-writer preflight. */
 PLATFORM_FILE_API size_t platform_file_target_equate_count_capacity(void);
+/* Resolve registered platform constants even when no source declaration uses them yet. */
+PLATFORM_FILE_API int platform_file_symbol_constant_value(const char *backend, const char *symbol, int32_t *out_value);
 PLATFORM_FILE_API size_t platform_file_structured_data_item_count_capacity(void);
 PLATFORM_FILE_API size_t platform_file_named_label_count_capacity(void);
 PLATFORM_FILE_API size_t platform_file_manual_data_reference_count_capacity(void);

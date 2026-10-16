@@ -49,7 +49,6 @@
 ;   evidence: no recovered OS calls
 
     INCLUDE "graphics/copper.i"
-    INCLUDE "graphics/display.i"
     INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/blit.i"
     INCLUDE "hardware/cia.i"
@@ -927,6 +926,13 @@ ITEM_ID_WRENCH	EQU	$2
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
+SCENE_EDGE_COPY_SOURCE_MODULO	EQU	4-2
+SCENE_EDGE_PAIR_MODULO	EQU	16-4
+SCENE_PLANE_WORD_MODULO	EQU	40-2
+SCENE_TILE_BLTSIZE	EQU	(64<<6)|1
+SCENE_TILE_COPY_CONTROL	EQU	$9F0
+SCENE_WORLD_PAIR_MODULO	EQU	160-4
+SCENE_WORLD_WORD_MODULO	EQU	160-2
 SECURITY_CHECKPOINT_HEALTH_DAMAGE	EQU	51
 SECURITY_CLEARANCE_VARIANT_COUNT	EQU	6
 SECURITY_DAMAGE_FLASH_SERVICE_STEPS	EQU	31
@@ -1208,25 +1214,25 @@ abs_0_00010498:
 	move.l a0,m68k_vector_level_3_interrupt_autovector.w
     ; Configure four bitplanes with modulo 120. The frame callback sets plane starts 40 bytes apart, forming an interleaved plane layout.
 	moveq.l #120,d0
-	move.w d0,bpl1mod(a5)
-	move.w d0,bpl2mod(a5)
-	move.w #(4<<PLNCNTSHFT)|COLORON,bplcon0(a5)	; display 4 bitplanes lores color
-	move.w #$2C81,diwstrt(a5)	; display window start v=$2C h=$81
-	move.w #$F4C1,diwstop(a5)	; display window stop v=$F4 h=$C1
-	move.w #$38,ddfstrt(a5)	; display fetch start $38
-	move.w #$D0,ddfstop(a5)	; display fetch stop $D0
-	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_COPPER|DMAF_BLITTER,dmacon(a5)
+	move.w d0,$0108(a5)
+	move.w d0,$010A(a5)
+	move.w #$4200,$0100(a5)
+	move.w #$2C81,$008E(a5)
+	move.w #$F4C1,$0090(a5)
+	move.w #$38,$0092(a5)
+	move.w #$D0,$0094(a5)
+	move.w #$86C0,$0096(a5)
 	move #$2000,sr
     ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
-	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
+	move.w #$C030,$009A(a5)
 	bsr.w run_title_starfield_until_fire
-	move.w #DMAF_RASTER,dmacon(a5)
+	move.w #$100,$0096(a5)
 	lea.l handle_vertical_blank_frame_update(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l gameplay_split_display_copper_list(pc),a0
-	move.l a0,cop1lc(a5)	; copper_list pointer
+	move.l a0,$0080(a5)
 	lea.l abs_0_0001076E(pc),a0
 	move.l a0,app_current_palette(a6)
 	bsr.w start_seeded_zero_copy_blit
@@ -1508,7 +1514,7 @@ handle_level_3_interrupts:
 	beq.b abs_0_00010910
 	movea.l app_copper_interrupt_callback(a6),a0
 	jsr (a0)
-	move.w #INTF_COPER,intreq(a5)
+	move.w #$10,$009C(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
 abs_0_00010910:
@@ -1529,7 +1535,7 @@ abs_0_00010928:
 	rte
 abs_0_00010940:
 	bclr #15,d0
-	move.w d0,$009C(a5)
+	move.w d0,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
     ; Clear frame-completion bit 5 on entry, increment the frame counter and install display pointers. Completion is signalled only after the later keyboard poll.
@@ -2008,19 +2014,19 @@ run_title_starfield_until_fire:
 	move.l #FRAMEBUFFER_BANK0_BASE,app_front_bitplane_base(a6)
     ; First cold title entry starts the seeded ascending zero blit over $70000..$7CD28, including loaded-input tail $75370..$7C000. Later contents vary; original tail purpose remains unknown.
 	bsr.w start_seeded_zero_copy_blit
-	move.w #INTF_INTEN,intena(a5)
-	move.w #DMAF_MASTER,dmacon(a5)
+	move.w #$4000,$009A(a5)
+	move.w #$200,$0096(a5)
 	bsr.w initialize_starfield
 	lea.l abs_0_00010DE0(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l copper_list_00020ED8(pc),a0
-	move.l a0,cop1lc(a5)	; copper_list pointer
+	move.l a0,$0080(a5)
 	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
 	addi.l #150,d5
-	move.w #INTF_SETCLR|INTF_INTEN,intena(a5)
-	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)
+	move.w #$C000,$009A(a5)
+	move.w #$8300,$0096(a5)
 abs_0_00010FD2:
 	bsr.w update_starfield
 	btst.b #0,app_world_interaction_audio_flags(a6)
@@ -8289,9 +8295,10 @@ clip_reject_rectangle:
 clip_return_packed_coordinates:
 	movem.l (a7)+,d0-d3
 	rts
+    ; Copies W*H 16x16 four-plane tiles. Per packet: 128B source, 2522B destination span at 40B/row. Zero dimensions underflow; bounds are unchecked and final DMA can outlive return.
 blit_tile_pointer_rectangle_to_buffer:
 	movem.l d2-d5,-(a7)
-	move.l #$DFF000,d4
+	move.l #_custom,d4
 	moveq.l #0,d3
 	move.b #$98,d3
 	subq.w #1,d0
@@ -8307,17 +8314,17 @@ restore_tile_columns:
 	movea.l a5,a1
 	exg d4,a5
 wait_tile_rectangle_blit:
-	move.w $001E(a5),d5
-	btst #6,d5
+	move.w intreqr(a5),d5
+	btst #INTB_BLIT,d5
 	beq.b wait_tile_rectangle_blit
-	move.w #$40,$009C(a5)
-	move.w #$FFFF,$0046(a5)
-	move.l a0,$0050(a5)
-	move.l a1,$0054(a5)
-	clr.w $0064(a5)
-	move.w #$26,$0066(a5)
-	move.w #$9F0,$0040(a5)
-	move.w #$1001,$0058(a5)
+	move.w #INTF_BLIT,intreq(a5)
+	move.w #$FFFF,bltalwm(a5)
+	move.l a0,bltapt(a5)
+	move.l a1,bltdpt(a5)
+	clr.w bltamod(a5)
+	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
+	move.w #SCENE_TILE_COPY_CONTROL,bltcon0(a5)
+	move.w #SCENE_TILE_BLTSIZE,bltsize(a5)
 	exg d4,a5
 	addq.l #2,a5
 	dbf.w d2,restore_tile_columns
@@ -8326,6 +8333,7 @@ wait_tile_rectangle_blit:
 	bcs.b restore_tile_next_row
 	move.l app_tile_pointer_grid_byte_size(a6),d2
 	suba.l d2,a2
+    ; 2560B = 16 pixel rows * 4 planes * 40B. Grid advances one row stride, subtracting grid byte size at most once per row; arbitrary strides and allocation bounds remain unchecked.
 restore_tile_next_row:
 	lea.l $0A00(a4),a4
 	dbf.w d1,restore_tile_rows
@@ -8357,8 +8365,8 @@ abs_0_00016944:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9E,bltcmod(a5)
-	move.w #$9E,bltdmod(a5)
+	move.w #SCENE_WORLD_WORD_MODULO,bltcmod(a5)
+	move.w #SCENE_WORLD_WORD_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -8433,8 +8441,8 @@ abs_0_00016A48:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9C,bltcmod(a5)
-	move.w #$9C,bltdmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltcmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -8512,8 +8520,8 @@ abs_0_00016B4C:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9C,bltcmod(a5)
-	move.w #$C,bltdmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltcmod(a5)
+	move.w #SCENE_EDGE_PAIR_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -8558,6 +8566,7 @@ abs_0_00016BF4:
 	move.l a2,bltcpt(a5)	; blitter_source pointer
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
+    ; Staging uses 16B/row. Final one-WORD copy has 4H rows, A stride4B and D stride40B; initialized H<=48 bounds scratch to768B. Wait before reading; final DMA can outlive return.
 abs_0_00016C18:
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #6,d0
@@ -8566,8 +8575,8 @@ abs_0_00016C18:
 	move.w #$FFFF,bltalwm(a5)
 	move.l (a7)+,bltapt(a5)	; blitter_source pointer
 	move.l (a7)+,bltdpt(a5)	; blitter_destination pointer
-	move.w #$2,bltamod(a5)
-	move.w #$26,bltdmod(a5)
+	move.w #SCENE_EDGE_COPY_SOURCE_MODULO,bltamod(a5)
+	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	andi.w #65472,d7
 	add.w d7,d7
@@ -8611,8 +8620,8 @@ abs_0_00016C96:
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
-	move.w #$9C,bltcmod(a5)
-	move.w #$C,bltdmod(a5)
+	move.w #SCENE_WORLD_PAIR_MODULO,bltcmod(a5)
+	move.w #SCENE_EDGE_PAIR_MODULO,bltdmod(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
@@ -8657,6 +8666,7 @@ abs_0_00016D3E:
 	move.l a2,bltcpt(a5)	; blitter_source pointer
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
+    ; Final copy selects scratch+2, the second WORD of each four-byte pair, then copies 4H one-WORD rows with A stride4B and D stride40B. Initialized H<=48 is a bound, not an admission check.
 abs_0_00016D62:
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #6,d0
@@ -8667,8 +8677,8 @@ abs_0_00016D62:
 	addq.l #2,a3
 	move.l a3,bltapt(a5)	; blitter_source pointer
 	move.l (a7)+,bltdpt(a5)	; blitter_destination pointer
-	move.w #$2,bltamod(a5)
-	move.w #$26,bltdmod(a5)
+	move.w #SCENE_EDGE_COPY_SOURCE_MODULO,bltamod(a5)
+	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	andi.w #65472,d7
 	add.w d7,d7
@@ -23188,8 +23198,8 @@ abs_0_0005D968:
 	move.w d1,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9CC
-	move.l a2,aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w d1,aud0+ac_len(a6)
+	move.l a2,$00A0(a6)
+	move.w d1,$00A4(a6)
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
@@ -23197,8 +23207,8 @@ abs_0_0005D9CE:
 	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9EC
-	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
+	move.l audio_player_globals_silence_sample_ptr(pc),$00A0(a6)
+	move.w #$20,$00A4(a6)
 abs_0_0005D9EC:
 	subq.w #1,audio_channel_runtime_state_update_countdown(a0)
 	beq.b abs_0_0005DA16
@@ -23236,9 +23246,9 @@ abs_0_0005DA1A:
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA6E
-	move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)
-	move.w d1,aud0+ac_vol(a6)
+	move.l audio_sample_metadata_sample_ptr.w(a5),$00A0(a6)
+	move.w audio_sample_metadata_sample_length(a5),$00A4(a6)
+	move.w d1,$00A8(a6)
 abs_0_0005DA6E:
 	andi.w #255,d0
 	lea.l audio_pitch_scalars(pc),a2
@@ -23251,7 +23261,7 @@ abs_0_0005DA6E:
 	move.w d0,audio_channel_dma_configuration_sample_period(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DA94
-	move.w d0,aud0+ac_per(a6)	; audio period
+	move.w d0,$00A6(a6)
 abs_0_0005DA94:
 	sf.b audio_channel_runtime_state_sample_start_pending(a0)
 abs_0_0005DA98:
@@ -23328,7 +23338,7 @@ abs_0_0005DB64:
 	move.w d0,audio_channel_dma_configuration_sample_period(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DB72
-	move.w d0,aud0+ac_per(a6)	; audio period
+	move.w d0,$00A6(a6)
     ; Primary volume: a negative marker retains the cursor but applies its low seven bits. Secondary envelopes retain both cursor and previous volume. Original markers bound the current streams.
 abs_0_0005DB72:
 	subq.b #1,audio_channel_runtime_state_volume_sequence_countdown(a0)
@@ -23346,7 +23356,7 @@ abs_0_0005DB8A:
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DBA4
-	move.w d1,aud0+ac_vol(a6)
+	move.w d1,$00A8(a6)
 abs_0_0005DBA4:
 	bra.w abs_0_0005DAAE
 abs_0_0005DBA8:

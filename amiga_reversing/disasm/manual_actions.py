@@ -2343,6 +2343,7 @@ def _validate_candidate_equate_capacity(
     # Use the renderer's canonical merge, including generated reference proxies,
     # while the append lock still protects the candidate from concurrent writes.
     from amiga_reversing.disasm.c_backend import (
+        platform_constant_value_with_c_backend,
         validate_target_equate_count_with_c_backend,
     )
     from amiga_reversing.disasm.effective_metadata import effective_target_metadata
@@ -2371,15 +2372,23 @@ def _validate_candidate_equate_capacity(
             if width not in {2, 4} or equates[symbol] != value:
                 raise ValueError("absolute symbol representation EQU value must match the decoded address")
         elif representation.get("element_kind") in {"immediate", "absolute_address"} and symbol not in equates:
-            source_choices.append(representation)
+            constant = platform_constant_value_with_c_backend(binary_source, str(symbol))
+            if constant is not None:
+                if constant not in (value, representation.get("signed_value")):
+                    raise ValueError("platform symbol constant must match the decoded value")
+            else:
+                source_choices.append(representation)
     if not source_choices:
         return
     import tempfile
-    from amiga_reversing.disasm.c_backend import build_listing_artifact_profile_from_binary_source
+
+    from amiga_reversing.disasm.c_backend import (
+        build_listing_artifact_profile_from_binary_source,
+    )
     from amiga_reversing.disasm.effective_metadata import effective_metadata_text
-    # Platform symbols retain their existing representation path. A native
-    # query distinguishes declarations from source labels without Python
-    # interpreting generated names or subtracting load addresses.
+    # Platform constants were handled by the native registry above. Resolve
+    # source declarations against one native plan, without interpreting names
+    # or subtracting load addresses in Python.
     pending_without_presentations = [a for a in pending_actions
         if a.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION]
     text = effective_metadata_text(target_dir, pending_actions=pending_without_presentations, binary_source=binary_source)

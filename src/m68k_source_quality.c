@@ -9537,19 +9537,39 @@ static void source_quality_hardware_base_state_update_after_instruction(SourceQu
     const M68kInstructionIR *instruction) {
   uint8_t dest_reg = 0U;
   uint16_t source_base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+  const M68kSimFormMetadata *metadata;
+  int source_known = 0;
+  size_t operand_index;
   if (state == NULL || instruction == NULL) return;
-  if (platform_instruction_has_terminal_state_flow(instruction)) {
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (platform_instruction_has_terminal_state_flow(instruction) ||
+      (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL)) {
     source_quality_hardware_base_state_clear_all(state);
     return;
   }
-  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
-    if (instruction->operand_count >= 2U && instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+  if (instruction->operand_count != 0U) {
+    source_known = source_quality_operand_hardware_base_id(state, &instruction->operands[0], &source_base_id);
+    if (metadata != NULL && metadata->operand_access_kinds[0] == M68K_SIM_ACCESS_MEMORY_READ) {
+      uint32_t immediate = 0U;
+      const M68kOperandIR *source = &instruction->operands[0];
+      if (!source_quality_operand_address_register_index(source, &dest_reg) &&
+          !m68k_ir_operand_immediate_value(source, &immediate)) source_known = 0;
+    }
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t access = metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_REGISTER_WRITE;
+    if ((access == M68K_SIM_ACCESS_REGISTER_WRITE || access == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+        source_quality_operand_address_register_index(operand, &dest_reg))
+      source_quality_hardware_base_state_clear(state, dest_reg);
+    if (platform_operand_updates_address_register(instruction, operand_index) && operand->value.ea_reg < 8U)
+      source_quality_hardware_base_state_clear(state, operand->value.ea_reg);
+    if (access == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
       for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
-        if (source_quality_reglist_contains_register(&instruction->operands[1], 2U, dest_reg))
+        if (source_quality_reglist_contains_register(operand, 2U, dest_reg))
           source_quality_hardware_base_state_clear(state, dest_reg);
       }
     }
-    return;
   }
   if (instruction->operand_count < 2U) return;
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
@@ -9557,11 +9577,12 @@ static void source_quality_hardware_base_state_update_after_instruction(SourceQu
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA) {
     return;
   }
+  if (instruction->size_suffix != 'l' && instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA) return;
   if (!source_quality_operand_address_register_index(&instruction->operands[instruction->operand_count - 1U],
       &dest_reg)) {
     return;
   }
-  if (source_quality_operand_hardware_base_id(state, &instruction->operands[0], &source_base_id))
+  if (source_known)
     source_quality_hardware_base_state_set(state, dest_reg, source_base_id);
   else
     source_quality_hardware_base_state_clear(state, dest_reg);

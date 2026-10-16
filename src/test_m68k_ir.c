@@ -21569,6 +21569,97 @@ static int test_facts_v2_render_asm_source_merges_hardware_base_by_id(void) {
   return 0;
 }
 
+static int test_platform_context_step(M68kRenderPlatformState *state, const char *text) {
+  M68kInstructionIR instruction = m68k_plain_parse_instruction_to_ir(text, M68K_ASM_CPU_68000,
+    m68k_diag_sink(NULL));
+  M68K_C_ASSERT(m68k_sim_metadata_for_instruction(&instruction) != NULL);
+  platform_state_update_data_lvo_after_instruction(state, &instruction);
+  platform_state_update_after_instruction(state, NULL, &instruction);
+  return 0;
+}
+
+static int test_hardware_context_survives_register_exchange_and_copy(void) {
+  M68kRenderPlatformState state;
+  uint16_t custom_id = 0U;
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT(platform_facts_v2_custom_hardware_base_id(M68K_PLATFORM_BACKEND_AMIGA_HUNK, &custom_id));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l #$DFF000,d4"));
+  M68K_C_ASSERT_U32(1U << 4U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "movea.l #$70000,a5"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d4,a5"));
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  M68K_C_ASSERT_U32(1U << 5U, state.address_hardware_base_known);
+  M68K_C_ASSERT_U32(custom_id, state.address_hardware_base_id[5]);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.w $1E(a5),d5"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.w #$40,$9C(a5)"));
+  M68K_C_ASSERT_U32(1U << 5U, state.address_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d4,a5"));
+  M68K_C_ASSERT_U32(0U, state.address_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d4,d2"));
+  M68K_C_ASSERT_U32(1U << 2U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l d2,d2"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "movea.l d2,a4"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg a4,a6"));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l a6,d0"));
+  M68K_C_ASSERT_U32(custom_id, state.data_hardware_base_id[0]);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "movea.l a6,a6"));
+  M68K_C_ASSERT_U32(custom_id, state.address_hardware_base_id[6]);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "cmp.l #0,d0"));
+  M68K_C_ASSERT((state.data_hardware_base_known & 1U) != 0U);
+  return 0;
+}
+
+static int test_hardware_context_refuses_partial_clobbered_and_loaded_values(void) {
+  static const char *data_clobbers[] = {
+    "move.w #$F000,d0", "move.b #0,d0", "addq.l #2,d0", "clr.l d0",
+    "move.l (a0),d0", "movem.l (a7)+,d0-d1", "jsr (a0)"
+  };
+  static const char *address_clobbers[] = {
+    "addq.l #2,a5", "move.w (a5)+,d0", "movem.l d0-d1,(a5)+", "movea.w #$F000,a5"
+  };
+  M68kRenderPlatformState state;
+  M68kAnalysisPolicy *policy;
+  size_t index;
+  for (index = 0U; index < sizeof(data_clobbers) / sizeof(data_clobbers[0]); ++index) {
+    memset(&state, 0, sizeof(state));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l #$DFF000,d0"));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, data_clobbers[index]));
+    M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "exg d0,a5"));
+    M68K_C_ASSERT_U32(0U, state.address_hardware_base_known);
+  }
+  for (index = 0U; index < sizeof(address_clobbers) / sizeof(address_clobbers[0]); ++index) {
+    memset(&state, 0, sizeof(state));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "lea.l $DFF000.l,a5"));
+    M68K_C_ASSERT_INT(0, test_platform_context_step(&state, address_clobbers[index]));
+    M68K_C_ASSERT_U32(0U, state.address_hardware_base_known);
+  }
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l $DFF000.l,d0"));
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.w #$F000,d0"));
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  M68K_C_ASSERT_INT(0, test_platform_context_step(&state, "move.l #$DFF000,d0"));
+  policy = (M68kAnalysisPolicy *)malloc(sizeof(*policy));
+  M68K_C_ASSERT(policy != NULL);
+  m68k_analysis_policy_init_default(policy);
+  policy->register_seed_count = 1U;
+  policy->register_seeds[0].has_entry_offset = 1U;
+  policy->register_seeds[0].entry_offset = 0U;
+  policy->register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_DATA;
+  policy->register_seeds[0].reg_index = 0U;
+  policy->register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  snprintf(policy->register_seeds[0].name, sizeof(policy->register_seeds[0].name), "Node");
+  platform_state_apply_policy_register_seeds(&state, policy, 0U, 0U);
+  M68K_C_ASSERT_U32(0U, state.data_hardware_base_known);
+  snprintf(policy->register_seeds[0].name, sizeof(policy->register_seeds[0].name), "_custom");
+  platform_state_apply_policy_register_seeds(&state, policy, 0U, 0U);
+  M68K_C_ASSERT_U32(1U, state.data_hardware_base_known);
+  m68k_analysis_policy_destroy(policy);
+  free(policy);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper(void) {
   M68kObject object;
   M68kSection section;
@@ -39754,6 +39845,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_does_not_recreate_missing_platform_address_symbol},
     {"facts_v2_render_asm_source_merges_hardware_base_by_id",
       test_facts_v2_render_asm_source_merges_hardware_base_by_id},
+    {"hardware_context_survives_register_exchange_and_copy",
+      test_hardware_context_survives_register_exchange_and_copy},
+    {"hardware_context_refuses_partial_clobbered_and_loaded_values",
+      test_hardware_context_refuses_partial_clobbered_and_loaded_values},
     {"facts_v2_render_asm_source_inherits_hardware_base_into_local_helper",
       test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper},
     {"facts_v2_hardware_base_runtime_sink_exports_pointer_comment",

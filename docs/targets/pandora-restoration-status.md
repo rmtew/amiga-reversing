@@ -3297,3 +3297,33 @@ Original-layout exactness does not close whole-game relocation: changed code,
 data and DMA placement still needs reference, lifetime and execution evidence.
 The next connected rendering gap is custom-register address context through the
 tile copier's EXG path and its bounded DMA packet/extents.
+
+## Scene blit packets and exchanged hardware base
+
+The tile copier now tracks `_custom` through D4 and the D4/A5 exchanges,
+rendering nine register operands symbolically. Twenty-eight accepted actions
+add seven shared stride/size/control equates, seventeen operand bindings and
+four bounded packet comments. The four masked helpers share the 160-byte
+world row and the 16-byte staging row. The final edge copy reads one WORD
+from each four-byte scratch pair and writes at a 40-byte row stride.
+Initialized H<=48 gives a conditional 768-byte scratch extent; it is not an
+allocation or replacement-admission proof. Zero tile dimensions underflow,
+and final DMA starts can outlive the helper return.
+
+Native hardware context follows full register values and simultaneous EXG.
+Calls retain only registers proved preserved by an existing callable summary;
+unknown calls and register changes discard the identity. This conservatism
+also exposes earlier display/audio naming assumptions: boot/title return
+values, the Copper callback return, and channel-relative audio bases need
+further contracts. Those operands remain numeric; this projection no longer
+selects `graphics/display.i`. No target seed was invented to hide the gap.
+The SDK registry now admits registered constants such as INTB_BLIT and
+INTF_BLIT even when unused constants lack source declarations, rejecting
+mismatched values before appending history.
+
+818 native tests, 75 focused context/query/symbol tests and 25 original-CPU
+packet cases pass. The packet harness models registers, not pixel DMA.
+All 86 asset hashes and both history prefixes are preserved. C and independent
+vasm reproduce all 376,832 original bytes, receipt
+`63c65ac70f7500726ceab857b58be86766251056f1f5cfa9d8724ffcee8c8a1b`.
+See the [compact packet evidence](../validation/pandora-scene-blit-packets.json).

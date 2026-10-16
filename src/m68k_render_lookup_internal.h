@@ -107,6 +107,8 @@ typedef struct M68kRenderPlatformState {
   char address_base_library[8][64];
   uint32_t address_hardware_base_known;
   uint16_t address_hardware_base_id[8];
+  uint32_t data_hardware_base_known;
+  uint16_t data_hardware_base_id[8];
   uint32_t data_app_base_known;
   uint32_t address_app_base_known;
   uint32_t data_layout_base_known;
@@ -117,6 +119,11 @@ typedef struct M68kRenderPlatformState {
   int16_t data_lvo[8];
   M68kRenderPlatformLocalBaseSlot local_base_slots[32];
 } M68kRenderPlatformState;
+
+typedef struct M68kRenderHardwareAddressUse {
+  size_t section_index;
+  M68kPlatformAddressUseIR use;
+} M68kRenderHardwareAddressUse;
 
 typedef struct M68kRenderAmigaVectorResolution {
   const AmigaOsLibraryVectorInfo *platform_vector;
@@ -778,6 +785,9 @@ struct M68kRenderLookup {
   M68kRenderTypedAccess *typed_accesses;
   size_t typed_access_count;
   size_t typed_access_capacity;
+  M68kRenderHardwareAddressUse *hardware_address_uses;
+  size_t hardware_address_use_count;
+  size_t hardware_address_use_capacity;
   M68kRenderAffineAddressUse *affine_address_uses;
   size_t affine_address_use_count;
   size_t affine_address_use_capacity;

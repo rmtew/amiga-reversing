@@ -1416,6 +1416,8 @@ static void platform_state_clear_data_library(M68kRenderPlatformState *state, ui
   m68k_bitset_u32_clear(&state->data_base_known, reg_index);
   state->data_base_id[reg_index] = 0U;
   state->data_base_library[reg_index][0] = '\0';
+  m68k_bitset_u32_clear(&state->data_hardware_base_known, reg_index);
+  state->data_hardware_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   m68k_bitset_u32_clear(&state->data_layout_base_known, reg_index);
   state->data_layout_base_symbol[reg_index][0] = '\0';
   platform_state_clear_data_lvo(state, reg_index);
@@ -1424,6 +1426,8 @@ static void platform_state_clear_data_library(M68kRenderPlatformState *state, ui
 static void platform_state_clear_all_data_libraries(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   state->data_base_known = 0U;
+  state->data_hardware_base_known = 0U;
+  memset(state->data_hardware_base_id, 0, sizeof(state->data_hardware_base_id));
   memset(state->data_base_id, 0, sizeof(state->data_base_id));
   memset(state->data_base_library, 0, sizeof(state->data_base_library));
   state->data_layout_base_known = 0U;
@@ -1457,6 +1461,8 @@ static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *
 static void platform_state_clear_all_hardware_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
   state->address_hardware_base_known = 0U;
+  state->data_hardware_base_known = 0U;
+  memset(state->data_hardware_base_id, 0, sizeof(state->data_hardware_base_id));
   memset(state->address_hardware_base_id, 0, sizeof(state->address_hardware_base_id));
 }
 
@@ -1538,6 +1544,8 @@ static void platform_state_set_data_library(M68kRenderPlatformState *state, uint
   const char *canonical_library_name = platform_library_name_from_base_id(base_id);
   if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
   if (canonical_library_name == NULL || canonical_library_name[0] == '\0') return;
+  m68k_bitset_u32_clear(&state->data_hardware_base_known, reg_index);
+  state->data_hardware_base_id[reg_index] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
   m68k_bitset_u32_set(&state->data_base_known, reg_index);
   state->data_base_id[reg_index] = base_id;
   snprintf(state->data_base_library[reg_index], sizeof(state->data_base_library[reg_index]), "%s",
@@ -1682,6 +1690,18 @@ static int platform_state_set_register_hardware_base(M68kRenderPlatformState *st
   return 1;
 }
 
+static void platform_state_set_data_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
+    const char *base_symbol) {
+  uint16_t base_id;
+  if (state == NULL || reg_index >= 8U || base_symbol == NULL ||
+      !platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK, base_symbol, &base_id))
+    return;
+  platform_state_clear_data_library(state, reg_index);
+  platform_state_clear_data_app_base(state, reg_index);
+  m68k_bitset_u32_set(&state->data_hardware_base_known, reg_index);
+  state->data_hardware_base_id[reg_index] = base_id;
+}
+
 void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
     const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
   uint16_t index;
@@ -1701,6 +1721,9 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
      * leaving the old identity alive would mislabel its fields as registers. */
     if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
       platform_state_clear_register(state, seed->reg_index);
+    } else if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+      platform_state_clear_data_library(state, seed->reg_index);
+      platform_state_clear_data_app_base(state, seed->reg_index);
     }
     if (platform_state_name_is_app_base(seed->name)) {
       platform_state_set_register_app_base(state, seed->reg_kind, seed->reg_index);
@@ -1708,6 +1731,10 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
     }
     if (policy_has_layout_base_symbol(policy, seed->name)) {
       platform_state_set_register_layout_base(state, seed->reg_kind, seed->reg_index, seed->name);
+      continue;
+    }
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
+      platform_state_set_data_hardware_base(state, seed->reg_index, seed->name);
       continue;
     }
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) continue;
@@ -4257,6 +4284,11 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   uint32_t value = 0U;
   const char *base_symbol;
   if (operand == NULL) return NULL;
+  if (operand_is_data_register_local(operand, &reg) && reg < 8U && state != NULL &&
+      m68k_bitset_u32_has(state->data_hardware_base_known, reg)) {
+    return platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      state->data_hardware_base_id[reg]);
+  }
   if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
       state != NULL && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
     return platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
@@ -4303,11 +4335,17 @@ static int candidate_has_call_or_jump_flow(const M68kDecodeCandidate *candidate)
 }
 
 static void platform_state_update_hardware_base_after_instruction(M68kRenderPlatformState *state,
-    const M68kInstructionIR *instruction) {
+    const M68kInstructionIR *instruction, const char *source_base_symbol) {
   uint8_t dest_reg = 0U;
-  const char *source_base_symbol;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
   if (state == NULL || instruction == NULL) return;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
+    platform_state_clear_all_hardware_bases(state);
+    return;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL) {
     platform_state_clear_all_hardware_bases(state);
     return;
   }
@@ -4316,19 +4354,57 @@ static void platform_state_update_hardware_base_after_instruction(M68kRenderPlat
       for (dest_reg = 0U; dest_reg < 8U; ++dest_reg) {
         if (reglist_contains_address_register_local(&instruction->operands[1], dest_reg))
           platform_state_clear_address_hardware_base(state, dest_reg);
+        if (reglist_contains_data_register_local(&instruction->operands[1], dest_reg)) {
+          m68k_bitset_u32_clear(&state->data_hardware_base_known, dest_reg);
+          state->data_hardware_base_id[dest_reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+        }
       }
+    }
+    for (operand_index = 0U; metadata != NULL && operand_index < instruction->operand_count &&
+         operand_index < 4U; ++operand_index) {
+      if (platform_operand_updates_address_register(instruction, operand_index) &&
+          instruction->operands[operand_index].value.ea_reg < 8U)
+        platform_state_clear_address_hardware_base(state, instruction->operands[operand_index].value.ea_reg);
     }
     return;
   }
+  /* Reading a hardware register is not loading the hardware base address. */
+  if (metadata != NULL && metadata->operand_access_kinds[0] == M68K_SIM_ACCESS_MEMORY_READ) {
+    const M68kOperandIR *source = &instruction->operands[0];
+    uint32_t immediate = 0U;
+    uint8_t source_reg = 0U;
+    if (!operand_is_data_register_local(source, &source_reg) &&
+        !operand_address_register_index_local(source, &source_reg) &&
+        !m68k_ir_operand_immediate_value(source, &immediate)) source_base_symbol = NULL;
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    if (metadata == NULL || metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE ||
+        metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      if (operand_is_data_register_local(operand, &dest_reg)) {
+        m68k_bitset_u32_clear(&state->data_hardware_base_known, dest_reg);
+        state->data_hardware_base_id[dest_reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+      } else if (operand_address_register_index_local(operand, &dest_reg)) {
+        platform_state_clear_address_hardware_base(state, dest_reg);
+      }
+    }
+    if (platform_operand_updates_address_register(instruction, operand_index)) {
+      uint8_t base_reg = operand->value.ea_reg;
+      if (base_reg < 8U) platform_state_clear_address_hardware_base(state, base_reg);
+    }
+  }
   if (instruction->operand_count < 2U) return;
-  source_base_symbol = platform_state_operand_hardware_base_symbol(state, &instruction->operands[0]);
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA) {
     const M68kOperandIR *dest = &instruction->operands[instruction->operand_count - 1U];
+    /* A partial register write does not establish the full hardware address. */
+    if (instruction->size_suffix != 'l' && instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA) return;
     if (operand_address_register_index_local(dest, &dest_reg)) {
       if (source_base_symbol != NULL) platform_state_set_register_hardware_base(state, dest_reg, source_base_symbol);
       else platform_state_clear_address_hardware_base(state, dest_reg);
+    } else if (operand_is_data_register_local(dest, &dest_reg) && source_base_symbol != NULL) {
+      platform_state_set_data_hardware_base(state, dest_reg, source_base_symbol);
     }
   }
 }
@@ -4465,14 +4541,59 @@ static void platform_state_update_library_slots_after_instruction(M68kRenderPlat
   }
 }
 
+static void platform_state_copy_exchanged_register(M68kRenderPlatformState *state,
+    const M68kRenderPlatformState *previous, const M68kOperandIR *dest, const M68kOperandIR *source) {
+  uint8_t reg = 0U;
+  uint8_t source_reg = 0U;
+  int is_data = operand_is_data_register_local(dest, &reg);
+  const char *library = platform_state_operand_library(previous, source);
+  const char *hardware = platform_state_operand_hardware_base_symbol(previous, source);
+  const char *layout = platform_state_operand_layout_base_symbol(previous, source);
+  int app = platform_state_operand_is_app_base(previous, source);
+  uint8_t kind = is_data ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+  if (!is_data && !operand_address_register_index_local(dest, &reg)) return;
+  if (is_data) {
+    platform_state_clear_data_library(state, reg);
+    platform_state_clear_data_app_base(state, reg);
+  } else {
+    platform_state_clear_register(state, reg);
+  }
+  if (library != NULL) {
+    if (is_data) platform_state_set_data_library(state, reg, library);
+    else platform_state_set_register_library(state, reg, library);
+  }
+  if (app) platform_state_set_register_app_base(state, kind, reg);
+  if (layout != NULL) platform_state_set_register_layout_base(state, kind, reg, layout);
+  if (hardware != NULL) {
+    if (is_data) platform_state_set_data_hardware_base(state, reg, hardware);
+    else platform_state_set_register_hardware_base(state, reg, hardware);
+  }
+  if (is_data && operand_is_data_register_local(source, &source_reg) &&
+      m68k_bitset_u32_has(previous->data_lvo_known, source_reg)) {
+    m68k_bitset_u32_set(&state->data_lvo_known, reg);
+    state->data_lvo[reg] = previous->data_lvo[source_reg];
+  }
+}
+
 void platform_state_update_after_instruction(M68kRenderPlatformState *state, const M68kRenderLookup *lookup,
     const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  const char *hardware_source;
   if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP && instruction->operand_count == 2U) {
+    M68kRenderPlatformState previous = *state;
+    platform_state_copy_exchanged_register(state, &previous, &instruction->operands[0], &instruction->operands[1]);
+    platform_state_copy_exchanged_register(state, &previous, &instruction->operands[1], &instruction->operands[0]);
+    return;
+  }
+  hardware_source = instruction->operand_count != 0U
+    ? platform_state_operand_hardware_base_symbol(state, &instruction->operands[0]) : NULL;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_register(state, 6U);
     platform_state_clear_all_data_libraries(state);
     platform_state_clear_all_local_base_slots(state);
-    platform_state_update_hardware_base_after_instruction(state, instruction);
+    platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
     platform_state_update_app_base_after_instruction(state, instruction);
     platform_state_update_layout_base_after_instruction(state, instruction);
     return;
@@ -4489,7 +4610,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
           platform_state_clear_register(state, reg_index);
       }
     }
-    platform_state_update_hardware_base_after_instruction(state, instruction);
+    platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
     platform_state_update_app_base_after_instruction(state, instruction);
     platform_state_update_layout_base_after_instruction(state, instruction);
     return;
@@ -4543,7 +4664,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
       platform_state_clear_register(state, 6U);
     }
   }
-  platform_state_update_hardware_base_after_instruction(state, instruction);
+  platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
   platform_state_update_app_base_after_instruction(state, instruction);
   platform_state_update_layout_base_after_instruction(state, instruction);
 }
@@ -5648,10 +5769,15 @@ static int instruction_writes_data_unknown_for_state(const M68kInstructionIR *in
 
 void platform_state_update_data_lvo_after_instruction(M68kRenderPlatformState *state,
     const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
   int16_t lvo = 0;
   uint8_t reg = 0U;
   uint8_t reg_index;
   if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  /* The following platform-state transfer exchanges all register contexts
+   * together. Do not erase one source before that simultaneous transfer. */
+  if (metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP) return;
   if (instruction_loads_data_immediate(instruction, &reg, &lvo) && lvo < 0) {
     m68k_bitset_u32_set(&state->data_lvo_known, reg);
     state->data_lvo[reg] = lvo;

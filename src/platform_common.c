@@ -175,6 +175,24 @@ int platform_instruction_has_terminal_state_flow(const M68kInstructionIR *instru
      (metadata->flow_kind == M68K_SIM_FLOW_TRAP && metadata->flow_conditional == 0U));
 }
 
+int platform_operand_updates_address_register(const M68kInstructionIR *instruction, size_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *operand;
+  uint8_t access;
+  if (instruction == NULL || operand_index >= instruction->operand_count || operand_index >= 4U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  operand = &instruction->operands[operand_index];
+  if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE) return 1;
+  access = metadata->operand_access_kinds[operand_index];
+  if (access != M68K_SIM_ACCESS_MEMORY_READ && access != M68K_SIM_ACCESS_MEMORY_WRITE) return 0;
+  /* Generic EA forms retain their update in the operand, like simulator EA
+   * dispatch; fixed forms expose it directly in the generated metadata. */
+  return operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_PREDEC ||
+    ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+     (operand->value.ea_mode == 3U || operand->value.ea_mode == 4U));
+}
+
 void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
     char *buf, size_t buf_size) {
   char prefix[40];

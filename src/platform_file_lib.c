@@ -2068,6 +2068,12 @@ int platform_file_validate_entry_comment_text(const char *json_string, const cha
   return strcmp(parsed, text) == 0 ? 0 : 2;
 }
 
+int platform_file_symbol_constant_value(const char *backend, const char *symbol, int32_t *out_value) {
+  if (out_value != NULL) *out_value = 0;
+  if (backend == NULL || (strcmp(backend, "amiga-raw") != 0 && strcmp(backend, "amiga-hunk") != 0)) return 0;
+  return platform_facts_v2_symbol_constant_value(M68K_PLATFORM_BACKEND_AMIGA_HUNK, symbol, out_value);
+}
+
 static int json_optional_string_field_local(const char *object_start, const char *object_end, const char *key,
     char *out, size_t out_size) {
   const char *value = json_find_key_local(object_start, object_end, key);
