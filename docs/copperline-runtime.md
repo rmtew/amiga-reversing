@@ -838,3 +838,39 @@ witnesses, separately from those runtime observations. It is not an observed
 Copperline CPU failure, nor is ordinary gameplay reachability of that spliced
 palette path established. Do not attribute it to emulator version without an
 isolated architectural discrepancy or a relevant upstream fix.
+
+## Replacement-worker checkpoint recreation and combat defeat
+
+On October 16 the pinned official Copperline 1.0.0 AppImage was downloaded again
+and verified against its published checksum. The existing legal ROM was reused;
+`ctennis` was not changed. The original corridor, west staging, flight crossing,
+rifle approach, pickup and fresh-process audit all passed, followed by the
+neutral observation, reverse staging and first-security-damage route. Local
+receipts and snapshots are in `.runtime-state/pandora-takeover`; guest snapshots
+are not committed. This recreation no longer depends on transferring the old
+worker's checkpoint archive.
+
+The original `pandora-security-null-node.json` again times out awaiting a second
+security hit. The new `pandora-security-eligibility-window.json` instead counts
+160 service entries after the first hit, retaining the first and last capture
+of each 32-call group. Combat flag bit 1 becomes set, the security countdown
+pauses at 33, and HP drops to 0. This contradicts the provisional lost-proximity
+explanation for that observed window: the sampled nearest object remains the
+flight controller.
+
+`pandora-combat-null-node.json`, loaded from the saved first-damage receipt,
+passes all seven canonical stops. It observes combat defeat `$79A8`, call site
+`$7A06`, A0=0 before the node writes at `$868A`, word `$10` changed from `$00FC`
+to zero after them at `$8694`, and the return at `$7A0A`. Byte `$A` remains `$08`
+because its cleared bit was already zero. No HP, pointer, predicate, or gameplay
+register was injected. The direct-payload boot contract remains the explicit
+original-loader limitation.
+
+Use the existing public checkpoint command with scenario
+`runtime/scenarios/pandora-combat-null-node.json`, load receipt
+`.runtime-state/pandora-takeover/damage.json`, and a fresh state directory.
+The damage receipt is recreated by the documented chain above; save it after
+`pandora-reverse-security-damage.json` completes at the pre-store stop.
+[Compact evidence](../runtime/observations/pandora-combat-null-node.json) records
+the chain, input cleanup, payload identity, captures and raw report hashes.
+[Optional correction](optional-patches.md) remains separate from default source.

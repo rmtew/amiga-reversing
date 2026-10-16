@@ -3028,3 +3028,40 @@ checkpoint retrieval still fails through the supported Library route with
 The original-input NULL-node reachability investigation and any optional corrected
 variant remain pending. The legal ROM and original decoded payload match their
 recorded hashes; no emulator checkpoint or Copperline executable was transferred.
+
+## Ordinary combat defeat reaches the NULL-node writes
+
+The replacement worker recreated the documented corridor-to-rifle checkpoint
+chain from the pinned Copperline release and existing legal ROM. Rifle pickup
+and fresh-process audit passed at `(1228,874)`, HP 95, selected item 18. Neutral,
+reverse-staging and first-security-damage scenarios also passed. No checkpoint
+transfer or guest predicate edit was needed.
+
+The former second-security-hit timeout was the wrong gate for the observed
+route. A 160-service-call diagnostic shows combat flag bit 1 becoming set while
+the security countdown remains 33 and HP falls to 0. The explicit original
+combat probe then reaches `$79A8`, `$7A06`, `$868A` with A0=0, `$8694` with word
+`$10` changed `$00FC`→zero, and return `$7A0A`. Byte `$A` was `$08` before and
+after because bit 0 was already clear. This closes ordinary-input reachability
+for this direct-payload route, not original-disk loader parity or all defeat
+paths. Captures and checkpoint lineage are in
+`runtime/observations/pandora-combat-null-node.json`.
+
+The general explicit optional-patch builder now admits raw single-section,
+fixed-size corrections against original hashes, expected bytes and canonical
+instruction boundaries. With no enabled patch it emits the original unchanged.
+The Pandora opt-in guard occupies the same 40 bytes at `$867E..$86A6`, exchanges
+states normally, and skips only the reset of a NULL node. It needs 12 disjoint
+writable stack bytes below entry SP instead of 8; no code cave or relocated code
+is assumed. See `docs/optional-patches.md` and the annotated patch manifest.
+Corrected gameplay has not been run: corrected behavior is presently a bounded
+CPU/independent-assembly proof, distinct from original gameplay confirmation.
+
+Validation covers 41 distinct focused tests across admission, assembler identity,
+register/CCR/memory equivalence, NULL preservation, original policy/transitions,
+and full original death callees with either helper. Canonical default source
+still reproduces all 376,832 original bytes with C and independent vasm, receipt
+`95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836`.
+The one new source comment is accepted through the Decision Journal. Original
+history prefixes and asset payloads are preserved. Optional output hashes and
+scope are recorded in `docs/validation/pandora-optional-null-guard.json`.

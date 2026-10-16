@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-combat-null-node",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "first_damage_anchor",
+      "breakpoint_stable_key": "s0:0000887C:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 8,
+            "size": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "first_damage_applied",
+      "breakpoint_stable_key": "s0:00008896:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "002c"
+          },
+          {
+            "address": 8,
+            "size": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "combat_player_defeat",
+      "breakpoint_stable_key": "s0:000079A8:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "before_combat_state_exchange",
+      "breakpoint_stable_key": "s0:00007A06:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "0000"
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378302,
+            "size": 4,
+            "expect_hex": "00000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null_node_before_writes",
+      "breakpoint_stable_key": "s0:0000868A:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378302,
+            "size": 4,
+            "expect_hex": "00000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null_node_after_writes",
+      "breakpoint_stable_key": "s0:00008694:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 378302,
+            "size": 4,
+            "expect_hex": "00000000"
+          }
+        ]
+      }
+    },
+    {
+      "name": "combat_exchange_returned",
+      "breakpoint_stable_key": "s0:00007A0A:instruction",
+      "wait_seconds": 8,
+      "capture": {
+        "registers": [
+          "a0",
+          "a4",
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "0000"
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

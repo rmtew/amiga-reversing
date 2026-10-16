@@ -337,8 +337,12 @@ def test_lost_checkpoint_branches_to_response_clear_before_countdown(security, m
     # this bounded CPU check and is not replaced or stubbed.
 
 
-def test_static_defeat_executes_original_callees_without_reseeding_registers(security):
+@pytest.mark.parametrize('corrected', [False, True])
+def test_static_defeat_executes_original_callees_without_reseeding_registers(security, corrected):
     cpu, memory, schemas, read, write, run, slots = security
+    if corrected:
+        from tests.test_pandora_optional_patch import patch_record
+        memory[BASE+0x867E:BASE+0x86A6] = bytes.fromhex(patch_record()['replacement_hex'])
     obj = schemas['world_object_shared_prefix']
     descriptor = read(PLAYER+obj['position_descriptor_ptr'])
     previous = read(descriptor)
@@ -380,6 +384,7 @@ def test_static_defeat_executes_original_callees_without_reseeding_registers(sec
     assert read(APP+slots['app_scrolling_message_queue_tail']) == queue+12
     assert all(read(queue+4*i) for i in range(3))
     assert read(queue+12) == 0
-    assert read(0xA, 1) == 0xA4 and read(0x10, 2) == 0
+    assert read(0xA, 1) == (0xA5 if corrected else 0xA4)
+    assert read(0x10, 2) == (0xBEEF if corrected else 0)
     # This confirms original caller/callee continuity from the death branch in
     # an explicit local state, not that ordinary joystick play reaches it.

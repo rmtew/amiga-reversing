@@ -9568,6 +9568,7 @@ abs_0_00017980:
 	bsr.w advance_and_draw_player_attack_charge
 	bsr.w service_combat_hit_feedback_timers
 	rts
+    ; Observed normal combat defeat reaches the NULL-node reset at $868A and zeros WORD $10 (illegal-instruction vector high word). See runtime/observations/pandora-combat-null-node.json.
 handle_combat_player_defeat:
 	clr.w world_object_shared_prefix_hit_points(a4)
 	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
