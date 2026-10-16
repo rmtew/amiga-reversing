@@ -30986,7 +30986,7 @@ static int test_facts_v2_render_asm_source_honors_explicit_typed_field_labels(vo
   return 0;
 }
 
-static int pointer_table_pointee_loop_fixture(int known_one_past) {
+static int pointer_table_pointee_loop_fixture(int known_one_past, uint8_t seed_reg_kind) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -31046,6 +31046,20 @@ static int pointer_table_pointee_loop_fixture(int known_one_past) {
   custom_structs[0].fields[0].offset = 2U;
   custom_structs[0].fields[0].size = 2U;
   snprintf(custom_structs[0].fields[0].name, sizeof(custom_structs[0].fields[0].name), "world_y");
+  /* An explicit register seed is independent evidence, even when the prior
+   * value was inferred from a table whose canonical binding is unresolved. */
+  if (seed_reg_kind != 0U) {
+    M68kAnalysisRegisterSeed *seed = &policy.register_seeds[0];
+    policy.register_seed_count = 1U;
+    seed->kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+    seed->reg_kind = seed_reg_kind;
+    seed->reg_index = seed_reg_kind == M68K_ANALYSIS_REGISTER_DATA ? 2U : 5U;
+    seed->has_section_index = 1U;
+    seed->section_index = 0U;
+    seed->has_entry_offset = 1U;
+    seed->entry_offset = seed_reg_kind == M68K_ANALYSIS_REGISTER_DATA ? 8U : 10U;
+    snprintf(seed->type_name, sizeof(seed->type_name), "world_object_shared_prefix");
+  }
   policy.structured_data_item_count = 1U;
   policy.structured_data_items[0].has_section_index = 1U;
   policy.structured_data_items[0].section_index = 0U;
@@ -31070,6 +31084,10 @@ static int pointer_table_pointee_loop_fixture(int known_one_past) {
   else {
     M68K_C_ASSERT(typed != NULL);
     M68K_C_ASSERT(strcmp(typed->field_name, "world_y") == 0);
+    if (seed_reg_kind != 0U) {
+      M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, typed->type_provenance_kind);
+      M68K_C_ASSERT_U32(0U, typed->has_table_origin);
+    }
   }
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
@@ -31084,11 +31102,19 @@ static int pointer_table_pointee_loop_fixture(int known_one_past) {
 }
 
 static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
-  return pointer_table_pointee_loop_fixture(0);
+  return pointer_table_pointee_loop_fixture(0, 0U);
 }
 
 static int test_facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load(void) {
-  return pointer_table_pointee_loop_fixture(1);
+  return pointer_table_pointee_loop_fixture(1, 0U);
+}
+
+static int test_facts_v2_address_register_seed_replaces_table_origin(void) {
+  return pointer_table_pointee_loop_fixture(0, M68K_ANALYSIS_REGISTER_ADDRESS);
+}
+
+static int test_facts_v2_data_register_seed_replaces_table_origin(void) {
+  return pointer_table_pointee_loop_fixture(0, M68K_ANALYSIS_REGISTER_DATA);
 }
 
 static int test_facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin(void) {
@@ -39941,6 +39967,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call},
     {"facts_v2_render_asm_source_honors_explicit_typed_field_labels",
       test_facts_v2_render_asm_source_honors_explicit_typed_field_labels},
+    {"facts_v2_address_register_seed_replaces_table_origin",
+      test_facts_v2_address_register_seed_replaces_table_origin},
+    {"facts_v2_data_register_seed_replaces_table_origin",
+      test_facts_v2_data_register_seed_replaces_table_origin},
     {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",
       test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type},
     {"facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load",

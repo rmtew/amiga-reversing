@@ -3010,8 +3010,8 @@ and one ordering/precondition comment. The 32-pointer snapshot feeds the three
 groups: bit6 wins and retains front order; bit7 reverses back order; the deferred
 middle is reverse-copied, then sorted by unsigned WORD world Y. Native propagation
 names both comparison operands at `0x8522` and `0x8526`. The seeded state-pointer
-load at `0x84C0` remains numeric, an explicit native field-resolution/rendering
-question. Nonempty deferred input and tie stability remain unproved generally.
+load at `0x84C0` remained numeric at this stage; the reconciliation fix below
+closes that native field-resolution question. Nonempty deferred input and tie stability remain unproved generally.
 
 The recovered published head `e1eac3eb` passes 27 focused security, partition and
 state-transition tests. Canonical verification after the annotation batch reproduces
@@ -3093,8 +3093,31 @@ analysis snapshot within a CLI invocation without weakening hash checks.
 127 focused framework tests pass. Default target source and payload remain
 unchanged at the existing full C/vasm exact receipt.
 
-The next source-restoration candidate is the unresolved typed descriptor load
-at `$84C0`: inspect the table-origin/type-seed reconciliation and, if reproduced
-as a general defect, restore the field expression through the shared framework
-with focused regressions and exact reassembly. No further exception-consequence
-investigation is planned for this patch proof.
+## Typed descriptor load restored
+
+The shared native register-seed path now clears stale table-origin metadata when
+an explicit seed establishes an independent typed root. At `$84C0`, the accepted
+A3 descriptor seed had retained origin `$31AA`; table-contract reconciliation
+then discarded its field annotation. The formatter already supported the required
+zero-displacement encoding. Canonical regeneration now emits
+`movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2`.
+The following flags access and both depth comparisons retain their symbols.
+
+The general fix applies to supported address/data register and array seeds;
+unseeded or ambiguously bound table values retain their conservative checks.
+The complete source diff changes one operand. All 86 asset identities, sizes and
+hashes, and both manual/decision histories, remain unchanged. There are no new
+manual seeds or direct generated-source edits.
+
+All 814 native tests (650 IR tests) and four Pandora partition tests pass. The
+new address-seed regression fails before the fix; the seed tests also check
+provenance and absence of stale table origin. C and independent vasm reproduce
+all 376,832 original bytes, receipt
+`06fc580a878bf197df3ee041613c44530597082cd2ddf7efe1ac06e41e33216a`.
+See `docs/validation/pandora-descriptor-seed-reconciliation.json` for hashes,
+native reference evidence and limits.
+
+The next connected gap is semantic binding of descriptor-count and flag-bit
+operands. Nonempty deferred input and equal-depth tie behavior remain unproved
+generally. No further exception-consequence investigation is planned for the
+completed optional patch proof.

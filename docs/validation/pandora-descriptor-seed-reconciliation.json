@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "published_base_commit": "3149cee2c84709fffbb179665ef4bdec632bac95",
+  "source_offset": "0x84C0",
+  "original_instruction_bytes": "246b0000",
+  "before": "movea.l $0000(a3),a2",
+  "after": "movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2",
+  "references": [
+    {
+      "comment_only": false,
+      "kind": "symbol_reference",
+      "operand_index": 0,
+      "provenance": "typed_operand",
+      "section_index": 0,
+      "source_offset": 33984,
+      "symbol": "world_position_descriptor_prefix_position_state_ptr",
+      "target_offset": null,
+      "target_section_index": null
+    }
+  ],
+  "root_cause": "The accepted A3 descriptor seed replaced type provenance but retained the prior value's table origin. Native tracing showed policy_seed (11), table 0x31AA, consumer zero, selection 1, and INVALID table-contract state. Reconciliation discarded the load annotation even though its pointer-field type propagated to the following instruction. Zero-displacement rendering already supported the encoding-preserving symbolic .w form.",
+  "contract": "An explicit supported register seed establishes an independent typed root at its instruction and clears the old value's table origin. Apply through the native shared seed path to address/data register and array seeds. Unseeded table-derived values continue to require canonical binding.",
+  "application": "Canonical restoration verify regenerated the entire source package. Exactly one instruction operand changed; no generated-source hand edit, new manual seed, or history rewrite was used.",
+  "tests": [
+    {
+      "command": "src/build/m68k_c_unit_tests.exe",
+      "result": "814 passed, including 650 IR tests"
+    },
+    {
+      "command": ".venv/bin/python -m pytest -q tests/test_pandora_descriptor_partition.py",
+      "result": "4 passed in 6.82s"
+    },
+    {
+      "result": "Address-register seed regression failed before the fix and passed after it. Data-register propagation, one-past table rejection, and explicit zero-displacement pointer-field rendering passed. Seed fixtures assert policy-seed provenance and absence of stale table origin."
+    }
+  ],
+  "preservation": {
+    "asset_count": 86,
+    "asset_identities_sizes_and_hashes_unchanged": true,
+    "manual_actions_unchanged": true,
+    "decision_journal_unchanged": true
+  },
+  "limits": [
+    "No new type is inferred for an unseeded or ambiguously bound pointer.",
+    "Nonempty deferred input and equal-depth tie behavior remain unproved generally; this source annotation does not expand the partition CPU test scope."
+  ],
+  "next_gap": "Bind the descriptor-count and flag-bit operands through supported semantic operand facts, retaining numeric values where the command/model cannot express the proved meaning.",
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "receipt_id": "06fc580a878bf197df3ee041613c44530597082cd2ddf7efe1ac06e41e33216a",
+    "source_package_sha256": "f08e232d58d89de901919ad099ca99983cb99024261174c71300844752694b5f",
+    "source_sha256": "f396ea5b165a85aa63e6eed0ea973a47b34f293166cbdf60e47cad4d736327d8",
+    "status": "exact",
+    "subject_revision": "58389a8489e23d91c506a797800f0302163a6f6939c940d71e54b2190b85131e",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  }
+}

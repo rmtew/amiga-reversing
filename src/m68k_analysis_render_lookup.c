@@ -2345,6 +2345,14 @@ static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
     provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, section_index, offset);
     typed_state_set_reg_struct_id_array(state, seed->reg_kind, seed->reg_index, struct_id,
       seed->array_element_count, 0U, &provenance);
+    /* The seed establishes an independent typed root at this instruction.
+     * Retaining the previous value's table origin lets canonical table
+     * reconciliation discard fields supported by the seed itself. Ordinary
+     * table-derived values still require their canonical binding. */
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA)
+      typed_table_origin_clear(&state->data_regs[seed->reg_index].table_origin);
+    else
+      typed_table_origin_clear(&state->addr_regs[seed->reg_index].table_origin);
   }
 }
 

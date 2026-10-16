@@ -10483,7 +10483,7 @@ copy_world_descriptor_ptr_snapshot:
 partition_next_world_descriptor:
 	movea.l (a4)+,a3
     ; KNOWN: type A3=Target code-entry register seed:world_position_descriptor_prefix
-	movea.l $0000(a3),a2
+	movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2
 	btst.b #6,world_position_state_record_world_object_flags(a2)
 	beq.b partition_world_descriptor_check_back_group
 	move.l a3,(a0)+

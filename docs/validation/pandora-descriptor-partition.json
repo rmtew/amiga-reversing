@@ -56,7 +56,7 @@
         "field": "world_position_descriptor_prefix_world_y"
       }
     ],
-    "remaining_gap": "At source 0x84C0 the canonical A3 descriptor-prefix seed appears in native source, but MOVEA still renders $0000(a3), not the position_state_ptr field. Root cause remains to be isolated in native field resolution/rendering; no direct assembly edit was used. Descriptor-count and flag-constant operand bindings remain future work."
+    "remaining_gap": "The former 0x84C0 typed load gap is closed by the shared register-seed reconciliation fix; see pandora-descriptor-seed-reconciliation.json for current verification. Descriptor-count and flag-constant operand bindings remain future work."
   },
   "verification": {
     "receipt_id": "19e81b45193f3db3cb34b0495004a0c0f4f3a6635afc709a060328e813868495",
