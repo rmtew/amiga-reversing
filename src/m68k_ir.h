@@ -44,7 +44,8 @@ typedef struct M68kRenderPolicy {
   M68kOsRenderPolicy os;
 } M68kRenderPolicy;
 
-#define M68K_ANALYSIS_REGISTER_SEED_LIMIT 64U
+/* Bounded entry contexts; native ingestion must refuse overflow, never truncate. */
+#define M68K_ANALYSIS_REGISTER_SEED_LIMIT 256U
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 256U
 #define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 16384U
 #define M68K_ANALYSIS_NAMED_LABEL_LIMIT 16384U

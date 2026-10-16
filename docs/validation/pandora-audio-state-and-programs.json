@@ -1,0 +1,151 @@
+{
+  "baseline_commit": "32b4de9730970d32e16d72e9d5f429a7fec27222",
+  "canonical_actions": 76,
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "6aca81da954ad25534cb3f93b04cd74520c77ab6c829e56900a6e4033f156847",
+    "revision": "d5bd6ea9ed65ef4d55c66c6e47c54b1d0793c80f84baf1be2369ac19a5790087",
+    "source_package_sha256": "3974756f612a4172d31dd6f95a23ae891ca293bd288f2973ead5521d6cdb4c3a",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/3974756f612a4172d31dd6f95a23ae891ca293bd288f2973ead5521d6cdb4c3a/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "96c4ed65dc7fc547d160d7798ca971948af6459487293a82c55531d4b29a1aaf",
+    "status": "exact",
+    "subject_revision": "5c3403f04b7ec1be6c6b103e74430db8d9a717d743a79aea6af5cbe90789da21",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "state_view": {
+    "base_source_offset": 317406,
+    "scope": "Sparse code-base relative address view, not an allocation or a data classification of the intervening code.",
+    "native_numeric_A3_instruction_sites_before": 42,
+    "named_field_operands_after": 42,
+    "resolved_instruction_sites": [
+      317426,
+      317450,
+      317454,
+      317460,
+      317544,
+      317548,
+      317558,
+      317562,
+      317566,
+      317570,
+      317574,
+      317578,
+      317582,
+      317586,
+      317590,
+      317648,
+      317680,
+      317696,
+      317712,
+      317718,
+      317724,
+      317730,
+      317746,
+      317758,
+      317762,
+      317770,
+      317782,
+      317786,
+      317794,
+      318622,
+      318688,
+      320376,
+      320430,
+      320438,
+      320442,
+      320474,
+      320480,
+      320486,
+      320516,
+      320626,
+      320672,
+      320676
+    ],
+    "remaining_numeric_sites": [],
+    "global_record_bytes": 18,
+    "unknown_global_byte_offset": 13,
+    "remaining_dynamic_indexed_accesses": [
+      {
+        "source_offset": 317520,
+        "displacement": 0
+      },
+      {
+        "source_offset": 320630,
+        "displacement": 4452
+      }
+    ]
+  },
+  "program_inventory": {
+    "physical_programs": 29,
+    "bytes": 907,
+    "decoded_tokens": 858,
+    "token_counts": {
+      "volume": 47,
+      "sample": 60,
+      "0x86": 16,
+      "duration": 174,
+      "note": 485,
+      "0x80": 29,
+      "0x88": 12,
+      "0x83": 12,
+      "0x87": 6,
+      "0x82": 8,
+      "pitch": 4,
+      "0x85": 5
+    },
+    "parameter_commands_typed_before": 8,
+    "parameter_commands_typed_after": 33,
+    "new_pitch_modulation_records": 16,
+    "new_channel_note_offset_records": 9,
+    "new_parameter_record_bytes": 66,
+    "unchanged_shared_tail_entries": [
+      319478,
+      319551,
+      319674
+    ]
+  },
+  "framework": {
+    "register_seed_capacity_before": 64,
+    "register_seed_capacity_after": 256,
+    "refused_candidate_history_unchanged": true,
+    "tested_retained_counts": [
+      65,
+      256
+    ],
+    "tested_overflow_count": 257,
+    "ctypes_fixture": "Updated stale policy/count/storage/field layouts to match the native header; both direct metadata-loader integration tests pass."
+  },
+  "tests": {
+    "audio": 33,
+    "native": 816,
+    "framework": 22,
+    "framework_deselected": 235,
+    "phase_gate_cases": 7168,
+    "loader_abi": 2
+  },
+  "assets_unchanged": 86,
+  "unknowns": [
+    "Global byte +13 remains untyped; the saved phase-increment copy has no established reader.",
+    "The skip-gate enable has no established enabling writer in this inventory; transition tests use controlled states.",
+    "Inputs 0x8B..0x9F, replacement programs and arbitrary sample/envelope selectors remain unbounded.",
+    "Sparse base-view fields do not establish allocation exclusivity, DMA bus timing or complete asynchronous lifetimes.",
+    "Animation unknowns are unchanged."
+  ],
+  "source_sha256": "96c4ed65dc7fc547d160d7798ca971948af6459487293a82c55531d4b29a1aaf"
+}

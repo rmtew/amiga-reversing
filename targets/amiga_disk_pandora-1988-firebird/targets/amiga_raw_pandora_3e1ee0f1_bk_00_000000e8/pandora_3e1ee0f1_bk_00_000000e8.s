@@ -732,6 +732,70 @@ WorldPositionXYOffset_x_offset RS.W 1
 WorldPositionXYOffset_y_offset RS.W 1
 WorldPositionXYOffset_SIZEOF EQU __RS
 
+; STRUCT audio_player_global_state
+    RSRESET
+audio_player_global_state_duration_multiplier RS.W 1
+audio_player_global_state_master_volume RS.W 1
+audio_player_global_state_update_phase_increment RS.B 1
+audio_player_global_state_initial_phase_increment_copy RS.B 1
+audio_player_global_state_update_phase_accumulator RS.B 1
+audio_player_global_state_player_initialized RS.B 1
+audio_player_global_state_samples_initialized RS.B 1
+audio_player_global_state_primary_updates_enabled RS.B 1
+audio_player_global_state_global_note_offset RS.B 1
+audio_player_global_state_skip_gate_countdown RS.B 1
+audio_player_global_state_skip_gate_enabled RS.B 1
+    RS.B 1
+audio_player_global_state_silence_sample_ptr RS.L 1
+audio_player_global_state_SIZEOF EQU __RS
+
+; STRUCT audio_player_base_view
+    RSRESET
+    RS.B 1312
+audio_player_base_view_globals RS.B 18
+audio_player_base_view_sample_7_waveform_direction RS.W 1
+audio_player_base_view_sample_7_word_write_offset RS.W 1
+    RS.B 504
+audio_player_base_view_sample_7_length_words RS.W 1
+    RS.B 1436
+audio_player_base_view_shift_state_high_word RS.W 1
+audio_player_base_view_shift_state_low_word RS.W 1
+    RS.B 352
+audio_player_base_view_playback_0_active RS.B 1
+    RS.B 37
+audio_player_base_view_playback_1_active RS.B 1
+    RS.B 37
+audio_player_base_view_playback_2_active RS.B 1
+    RS.B 37
+audio_player_base_view_playback_3_active RS.B 1
+    RS.B 13
+audio_player_base_view_effect_channel_and_configuration RS.W 1
+    RS.B 10
+audio_player_base_view_dma_0_enabled_and_pending RS.W 1
+    RS.B 10
+audio_player_base_view_dma_1_enabled_and_pending RS.W 1
+    RS.B 10
+audio_player_base_view_dma_2_enabled_and_pending RS.W 1
+    RS.B 10
+audio_player_base_view_dma_3_enabled_and_pending RS.W 1
+    RS.B 638
+audio_player_base_view_secondary_sample_address_base RS.L 1
+audio_player_base_view_secondary_volume_sequence_offsets RS.B 12
+audio_player_base_view_SIZEOF EQU __RS
+
+; STRUCT audio_pitch_modulation_command
+    RSRESET
+audio_pitch_modulation_command_opcode RS.B 1
+audio_pitch_modulation_command_step RS.B 1
+audio_pitch_modulation_command_limit RS.B 1
+audio_pitch_modulation_command_SIZEOF EQU __RS
+
+; STRUCT audio_note_offset_operand
+    RSRESET
+audio_note_offset_operand_opcode RS.B 1
+audio_note_offset_operand_note_offset_byte RS.B 1
+audio_note_offset_operand_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -22971,16 +23035,17 @@ initialize_audio_player:
 	lea.l initialize_audio_player(pc),a3
 	bsr.w reset_audio_channels
 	bsr.w initialize_audio_sample_metadata
-	sf.b $052A(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	sf.b audio_player_base_view_globals+10(a3)
 	lea.l audio_channel_state_records(pc),a1
 	ext.w d0
 	mulu.w #$A,d0
 	lea.l audio_player_initialization_presets(pc),a0
 	move.b $0(a0,d0.w),d1
 	ext.w d1
-	move.w d1,$0520(a3)
-	move.b $1(a0,d0.w),$0524(a3)
-	move.b audio_update_phase_increment(pc),$0525(a3)
+	move.w d1,audio_player_base_view_globals(a3)
+	move.b $1(a0,d0.w),audio_player_base_view_globals+4(a3)
+	move.b audio_player_globals_update_phase_increment(pc),audio_player_base_view_globals+5(a3)
 	moveq.l #0,d7
 abs_0_0005D81C:
 	move.w #$1,audio_channel_runtime_state_update_countdown(a1)
@@ -23003,20 +23068,21 @@ abs_0_0005D81C:
 	addq.w #1,d7
 	cmp.w #$4,d7
 	bne.b abs_0_0005D81C
-	st.b $0529(a3)
-	st.b $0527(a3)
+	st.b audio_player_base_view_globals+9(a3)
+	st.b audio_player_base_view_globals+7(a3)
 	rts
 reset_audio_channels:
 	lea.l initialize_audio_player(pc),a3
-	sf.b $0529(a3)
-	sf.b $0E30(a3)
-	sf.b $0E56(a3)
-	sf.b $0E7C(a3)
-	sf.b $0EA2(a3)
-	clr.w $0EBC(a3)
-	clr.w $0EC8(a3)
-	clr.w $0ED4(a3)
-	clr.w $0EE0(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	sf.b audio_player_base_view_globals+9(a3)
+	sf.b audio_player_base_view_playback_0_active(a3)
+	sf.b audio_player_base_view_playback_1_active(a3)
+	sf.b audio_player_base_view_playback_2_active(a3)
+	sf.b audio_player_base_view_playback_3_active(a3)
+	clr.w audio_player_base_view_dma_0_enabled_and_pending(a3)
+	clr.w audio_player_base_view_dma_1_enabled_and_pending(a3)
+	clr.w audio_player_base_view_dma_2_enabled_and_pending(a3)
+	clr.w audio_player_base_view_dma_3_enabled_and_pending(a3)
 	move.w #DMAF_AUDIO,_custom+dmacon.l
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	move.w #$0,_custom+aud0+ac_vol.l	; audio volume 0
@@ -23026,7 +23092,8 @@ reset_audio_channels:
 	rts
 enable_active_audio_channel_dma:
 	lea.l initialize_audio_player(pc),a3
-	tst.b $0527(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	tst.b audio_player_base_view_globals+7(a3)
 	beq.b abs_0_0005D8F4
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	move.w #$8200,d1
@@ -23035,7 +23102,7 @@ abs_0_0005D8E4:
 	bset d7,d1
 	dbf.w d7,abs_0_0005D8E4
 	move.w d1,_custom+dmacon.l
-	st.b $0529(a3)
+	st.b audio_player_base_view_globals+9(a3)
 abs_0_0005D8F4:
 	rts
 abs_0_0005D8F6:
@@ -23044,38 +23111,39 @@ abs_0_0005D8FA:
 	rts
 update_audio_channels:
 	lea.l initialize_audio_player(pc),a3
-	tst.b $0529(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	tst.b audio_player_base_view_globals+9(a3)
 	beq.b abs_0_0005D8F6
-	move.b audio_update_phase_increment(pc),d0
+	move.b audio_player_globals_update_phase_increment(pc),d0
 	ext.w d0
 	mulu.w #$10,d0
-	add.b d0,$0526(a3)
+	add.b d0,audio_player_base_view_globals+6(a3)
 	bcs.b abs_0_0005D8F6
-	tst.b $052C(a3)
+	tst.b audio_player_base_view_globals+12(a3)
 	beq.b abs_0_0005D92A
-	subq.b #1,$052B(a3)
+	subq.b #1,audio_player_base_view_globals+11(a3)
 	bne.b abs_0_0005D92A
-	move.b #$6,$052B(a3)
+	move.b #$6,audio_player_base_view_globals+11(a3)
 	bra.b abs_0_0005D8FA
     ; Sample 7: guarded init sets 0/32 after 64B fill; known updates cycle 12 states at even offsets 32..44. Raw 0/0 adds transient 0..30. Requires valid pointer/no other writers; phase unknown.
 abs_0_0005D92A:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
 	move.w audio_sample_7_word_write_offset(pc),d0
-	tst.w $0532(a3)
+	tst.w audio_player_base_view_sample_7_waveform_direction(a3)
 	bmi.b abs_0_0005D950
 	move.w #$C0C0,$0(a0,d0.w)
-	addq.w #2,$0534(a3)
-	cmpi.w #44,$0534(a3)
+	addq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
+	cmpi.w #44,audio_player_base_view_sample_7_word_write_offset(a3)
 	bne.b abs_0_0005D94E
-	not.w $0532(a3)
+	not.w audio_player_base_view_sample_7_waveform_direction(a3)
 abs_0_0005D94E:
 	bra.b abs_0_0005D966
 abs_0_0005D950:
 	move.w #$3F3F,$0(a0,d0.w)
-	subq.w #2,$0534(a3)
-	cmpi.w #32,$0534(a3)
+	subq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
+	cmpi.w #32,audio_player_base_view_sample_7_word_write_offset(a3)
 	bne.b abs_0_0005D966
-	not.w $0532(a3)
+	not.w audio_player_base_view_sample_7_waveform_direction(a3)
 abs_0_0005D966:
 	moveq.l #3,d7
 abs_0_0005D968:
@@ -23115,11 +23183,11 @@ abs_0_0005D968:
 abs_0_0005D9CC:
 	bra.b abs_0_0005D9EC
 abs_0_0005D9CE:
-	move.l audio_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.l audio_player_globals_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
 	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005D9EC
-	move.l audio_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
+	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
 abs_0_0005D9EC:
 	subq.w #1,audio_channel_runtime_state_update_countdown(a0)
@@ -23137,13 +23205,13 @@ abs_0_0005DA12:
 	bra.w abs_0_0005DAAE
 abs_0_0005DA16:
 	clr.b audio_channel_runtime_state_channel_flags.w(a0)
-    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A5=Target code-entry register seed:audio_sample_metadata
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A5=Target code-entry register seed:audio_sample_metadata; type A3=Target code-entry register seed
 abs_0_0005DA1A:
 	moveq.l #0,d0
 	move.b (a1)+,d0
 	bmi.w abs_0_0005DBA8
 	move.b d0,audio_channel_runtime_state_current_note(a0)
-	add.b audio_global_note_offset(pc),d0
+	add.b audio_player_globals_global_note_offset(pc),d0
 	add.b audio_channel_runtime_state_note_offset(a0),d0
 	movea.l audio_channel_runtime_state_volume_sequence_start_ptr(a0),a2
 	move.b (a2)+,d1
@@ -23152,7 +23220,7 @@ abs_0_0005DA1A:
 	ext.w d1
 	move.l audio_sample_metadata_sample_ptr.w(a5),audio_channel_dma_configuration_sample_ptr.w(a4)
 	move.w audio_sample_metadata_sample_length(a5),audio_channel_dma_configuration_sample_length(a4)
-	move.w audio_master_volume(pc),d2
+	move.w audio_player_globals_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
@@ -23188,7 +23256,7 @@ abs_0_0005DAAE:
     ; Read a byte and apply its low seven bits. Bit 7 resets the stored cursor to the stream start; all 13 original streams end at that marker. Later stream or selector changes are not bounded.
 abs_0_0005DAB6:
 	move.b audio_channel_runtime_state_current_note(a0),d0
-	add.b audio_global_note_offset(pc),d0
+	add.b audio_player_globals_global_note_offset(pc),d0
 	add.b audio_channel_runtime_state_note_offset(a0),d0
 	movea.l audio_channel_runtime_state_pitch_sequence_cursor(a0),a1
 	move.b (a1)+,d1
@@ -23262,7 +23330,7 @@ abs_0_0005DB72:
 	move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)
 abs_0_0005DB8A:
 	andi.w #127,d1
-	move.w audio_master_volume(pc),d2
+	move.w audio_player_globals_master_volume(pc),d2
 	mulu.w d2,d1
 	lsr.w #6,d1
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
@@ -23275,7 +23343,7 @@ abs_0_0005DBA8:
 	cmp.b #$E0,d0
 	blt.b abs_0_0005DBBE
 	subi.b #223,d0
-	mulu.w audio_duration_multiplier(pc),d0
+	mulu.w audio_player_globals(pc),d0
 	move.w d0,audio_channel_runtime_state_update_reload_countdown(a0)
 	bra.w abs_0_0005DA1A
 abs_0_0005DBBE:
@@ -23340,11 +23408,11 @@ enable_audio_pitch_delta:
 start_audio_silence_sample:
 	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
 	move.l a1,audio_channel_runtime_state_program_cursor(a0)
-	move.l audio_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
+	move.l audio_player_globals_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
 	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
 	bne.b abs_0_0005DC92
-	move.l audio_silence_sample_ptr(pc),$00A0(a6)
+	move.l audio_player_globals_silence_sample_ptr(pc),$00A0(a6)
 	move.w #$20,$00A4(a6)
 abs_0_0005DC92:
 	bra.w abs_0_0005DAAE
@@ -23354,9 +23422,9 @@ enable_audio_channel_dma_and_reload_duration:
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 reset_audio_channels_command:
 	bra.w reset_audio_channels
-    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A3=Target code-entry register seed:audio_player_base_view
 set_audio_global_note_offset:
-	move.b (a1)+,$052A(a3)
+	move.b (a1)+,audio_player_base_view_globals+10(a3)
 	bra.w abs_0_0005DA1A
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
 enable_audio_pitch_modulation:
@@ -23379,11 +23447,11 @@ set_audio_channel_program_configuration:
 	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset+1(a0)
 	move.w #$0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
 	bra.w abs_0_0005DA1A
-    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
+    ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A3=Target code-entry register seed:audio_player_base_view
 set_audio_duration_multiplier_from_signed_byte:
 	move.b (a1)+,d0
 	ext.w d0
-	move.w d0,$0520(a3)
+	move.w d0,audio_player_base_view_globals(a3)
 	bra.w abs_0_0005DA1A
 audio_control_opcode_handler_offsets:
 	dc.w advance_audio_sequence_program-initialize_audio_player	; data
@@ -23397,16 +23465,25 @@ audio_control_opcode_handler_offsets:
 	dc.w set_audio_channel_note_offset-initialize_audio_player
 	dc.w set_audio_channel_program_configuration-initialize_audio_player
 	dc.w set_audio_duration_multiplier_from_signed_byte-initialize_audio_player
-audio_duration_multiplier:
-	dc.w $0000	; lookup_table
-audio_master_volume:
-	dc.w $0040	; lookup_table
-audio_update_phase_increment:
-	dc.b $00,$00,$00,$00,$00,$00	; lookup_table
-audio_global_note_offset:
-	dc.b $00,$06,$00,$00	; lookup_table
-audio_silence_sample_ptr:
-	dc.l $00000000	; lookup_table
+audio_player_globals:
+	dc.w $0000	; duration_multiplier
+audio_player_globals_master_volume:
+	dc.w $0040	; master_volume
+audio_player_globals_update_phase_increment:
+	dc.b $00	; lookup_table
+	dc.b $00	; initial_phase_increment_copy
+	dc.b $00	; update_phase_accumulator
+	dc.b $00	; player_initialized
+	dc.b $00	; samples_initialized
+	dc.b $00	; primary_updates_enabled
+audio_player_globals_global_note_offset:
+	dc.b $00	; lookup_table
+	dc.b $06	; skip_gate_countdown
+	dc.b $00	; skip_gate_enabled
+audio_player_globals_gap_D:
+	dc.b $00	; typed data block gap
+audio_player_globals_silence_sample_ptr:
+	dc.l $00000000	; silence_sample_ptr
 direction_word:
 	dc.w $0000	; data
 audio_sample_7_word_write_offset:
@@ -23647,52 +23724,122 @@ program_offsets_with_wrap_zero_3:
 program_offsets_with_wrap_zero_4:
 	dc.w $0929,$0000	; data
 tokens_and_operands_with_advance_token:
-	dc.b $B2,$C7,$86,$04,$04,$E3	; data
+	dc.b $B2,$C7	; data
+audio_mode_0_program_00_command_0002:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_00_tokens_0005:
+	dc.b $E3	; data
 	dcb.b $8,$18	; data
-	dc.b $1B,$1B	; data
-	dc.b $1B,$1B,$1B,$1B,$1B,$1B
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B,$1B	; data
+	dc.b $1B
 	dcb.b $8,$18
-	dc.b $16,$16
-	dc.b $16,$16,$16,$16,$16,$16
+	dc.b $16,$16,$16,$16,$16,$16,$16
+	dc.b $16
 	dcb.b $8,$18
-	dc.b $1B,$1B
-	dc.b $1B,$1B,$1B,$1B,$1B,$1B
-	dcb.b $A,$1D
-	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$80
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B,$1B
+	dc.b $1B
+	dcb.b $F,$1D
+	dc.b $1D,$80
 tokens_and_operands_with_advance_token_2:
-	dc.b $B2,$C7,$86,$04,$04,$E3	; data
-	dcb.b $A,$18	; data
-	dc.b $18,$18,$18,$18,$18,$18
-	dcb.b $A,$1D
-	dc.b $1D,$1D,$1D,$1D,$1D,$1D,$80
-set_note_offset_one_prefix:
-	dc.b $88,$01	; data
+	dc.b $B2,$C7	; data
+audio_mode_0_program_01_command_0002:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_01_tokens_0005:
+	dc.b $E3	; data
+	dcb.b $F,$18	; data
+	dc.b $18
+	dcb.b $F,$1D
+	dc.b $1D,$80
+audio_mode_0_program_02:
+	dc.b $88	; opcode
+	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token:
-	dc.b $B2,$C7,$86,$04,$04,$E3	; data
-	dcb.b $A,$1A	; data
-	dc.b $1A,$1A,$1A,$1A,$1A,$1A
-	dcb.b $A,$18
-	dc.b $18,$18,$18,$18,$18,$18,$88,$00,$80
+	dc.b $B2,$C7	; data
+audio_mode_0_program_02_command_0004:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_02_tokens_0007:
+	dc.b $E3	; data
+	dcb.b $F,$1A	; data
+	dc.b $1A
+	dcb.b $F,$18
+	dc.b $18
+audio_mode_0_program_02_command_0028:
+	dc.b $88	; opcode
+	dc.b $00	; note_offset_byte
+audio_mode_0_program_02_tokens_002A:
+	dc.b $80	; data
 tokens_and_operands_with_advance_token_3:
-	dc.b $C7,$B7,$86,$06,$06,$FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80	; data
+	dc.b $C7,$B7	; data
+audio_mode_0_program_03_command_0002:
+	dc.b $86	; opcode
+	dc.b $06	; step
+	dc.b $06	; limit
+audio_mode_0_program_03_tokens_0005:
+	dc.b $FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80	; data
 tokens_and_operands_with_advance_token_4:
-	dc.b $C7,$B7,$86,$06,$06,$FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80	; data
-set_note_offset_one_prefix_2:
-	dc.b $88,$01	; data
+	dc.b $C7,$B7	; data
+audio_mode_0_program_04_command_0002:
+	dc.b $86	; opcode
+	dc.b $06	; step
+	dc.b $06	; limit
+audio_mode_0_program_04_tokens_0005:
+	dc.b $FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80	; data
+audio_mode_0_program_05:
+	dc.b $88	; opcode
+	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_2:
-	dc.b $C0,$FF,$86,$01,$02,$BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26	; data
-	dc.b $26,$24,$24,$32,$32,$30,$30,$88,$00,$80
+	dc.b $C0,$FF	; data
+audio_mode_0_program_05_command_0004:
+	dc.b $86	; opcode
+	dc.b $01	; step
+	dc.b $02	; limit
+audio_mode_0_program_05_tokens_0007:
+	dc.b $BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26,$26,$24,$24,$32,$32	; data
+	dc.b $30,$30
+audio_mode_0_program_05_command_0019:
+	dc.b $88	; opcode
+	dc.b $00	; note_offset_byte
+audio_mode_0_program_05_tokens_001B:
+	dc.b $80	; data
 tokens_and_operands_with_advance_token_5:
-	dc.b $C7,$B7,$86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83	; data
-	dc.b $C6,$86,$04,$04,$F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7
-	dc.b $86,$03,$03,$F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6,$86
-	dc.b $02,$02,$F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80
+	dc.b $C7,$B7	; data
+audio_mode_0_program_06_command_0002:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_0_program_06_tokens_0005:
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6	; data
+audio_mode_0_program_06_command_0011:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_0_program_06_tokens_0014:
+	dc.b $F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7	; data
+audio_mode_0_program_06_command_0020:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_0_program_06_tokens_0023:
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6	; data
+audio_mode_0_program_06_command_002F:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_0_program_06_tokens_0032:
+	dc.b $F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80	; data
 tokens_and_operands_with_advance_token_6:
 	dc.b $C2,$BE,$87,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3	; data
 	dc.b $2B,$FF,$2D,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83
 	dc.b $80
-set_note_offset_one_prefix_3:
-	dc.b $88,$01	; data
+audio_mode_0_program_08:
+	dc.b $88	; opcode
+	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_3:
 	dc.b $E3,$83,$C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32	; data
 	dc.b $2B,$E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7
@@ -23700,7 +23847,11 @@ shared_tail_entry_with_advance_token_3:
 	dc.b $E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B
 	dc.b $BF,$FF
 	dcb.b $8,$82
-	dc.b $88,$00,$80
+audio_mode_0_program_08_command_004C:
+	dc.b $88	; opcode
+	dc.b $00	; note_offset_byte
+audio_mode_0_program_08_tokens_004E:
+	dc.b $80	; data
 tokens_and_operands_with_advance_token_7:
 	dc.b $87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3	; data
 	dc.b $24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5,$24,$E0,$BE,$C3,$24,$80
@@ -23716,9 +23867,15 @@ program_offsets_with_wrap_zero_8:
 	dc.w $0A4B,$0A4B,$0A4B,$0A4B,$0B7A,$0B83,$0A4B,$0A4B	; data
 	dc.w $0A4B,$0A4B,$0000	; data
 tokens_and_operands_with_advance_token_8:
-	dc.b $C7,$B3,$86,$02,$02,$E1	; data
-	dcb.b $A,$1F	; data
-	dc.b $1F,$1F,$1F,$1F,$1F,$1F,$80
+	dc.b $C7,$B3	; data
+audio_mode_1_program_00_command_0002:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_1_program_00_tokens_0005:
+	dc.b $E1	; data
+	dcb.b $F,$1F	; data
+	dc.b $1F,$80
 tokens_and_operands_with_advance_token_9:
 	dcb.b $10,$1D	; data
 	dc.b $80
@@ -23727,17 +23884,29 @@ tokens_and_operands_with_advance_token_10:
 	dc.b $37,$E9,$37,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$E5,$35,$EB,$35,$E3
 	dc.b $35,$E9,$35,$80
 tokens_and_operands_with_advance_token_11:
-	dc.b $B5,$86,$02,$02,$C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B	; data
-	dc.b $EB,$2B,$E3,$2B,$E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$C6
-	dc.b $E5,$29,$EB,$29,$E3,$29,$E9,$29,$80
+	dc.b $B5	; data
+audio_mode_1_program_03_command_0001:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_1_program_03_tokens_0004:
+	dc.b $C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B,$EB,$2B,$E3,$2B	; data
+	dc.b $E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$C6,$E5,$29,$EB,$29
+	dc.b $E3,$29,$E9,$29,$80
 tokens_and_operands_with_advance_token_12:
 	dc.b $B5,$87,$C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E	; data
 	dc.b $E3,$2F,$E9,$2E,$C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E
 	dc.b $EB,$2D,$E3,$2E,$E9,$30,$80
 tokens_and_operands_with_advance_token_13:
-	dc.b $B5,$86,$02,$02,$C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F	; data
-	dc.b $EB,$2E,$E3,$2F,$E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C6
-	dc.b $E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$80
+	dc.b $B5	; data
+audio_mode_1_program_05_command_0001:
+	dc.b $86	; opcode
+	dc.b $02	; step
+	dc.b $02	; limit
+audio_mode_1_program_05_tokens_0004:
+	dc.b $C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F,$EB,$2E,$E3,$2F	; data
+	dc.b $E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C6,$E5,$2E,$EB,$2D
+	dc.b $E3,$2E,$E9,$2D,$80
 tokens_and_operands_with_advance_token_14:
 	dc.b $E1,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24	; data
 	dc.b $BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE
@@ -23751,22 +23920,52 @@ program_offsets_with_wrap_zero_11:
 program_offsets_with_wrap_zero_12:
 	dc.w $0B5C,$0000	; data
 tokens_and_operands_with_advance_token_15:
-	dc.b $C7,$B3,$86,$04,$04,$88,$03,$E1,$18,$24,$18,$24,$18,$24,$18,$24	; data
-	dc.b $18,$24,$18,$24,$18,$E0,$18,$24,$17,$23,$16,$22,$E1,$15,$21,$15
-	dc.b $21,$15,$21,$15,$21,$15,$21,$15,$21,$15,$E0,$15,$21,$16,$22,$17
-	dc.b $23,$80
+	dc.b $C7,$B3	; data
+audio_mode_2_program_00_command_0002:
+	dc.b $86	; opcode
+	dc.b $04	; step
+	dc.b $04	; limit
+audio_mode_2_program_00_command_0005:
+	dc.b $88	; opcode
+	dc.b $03	; note_offset_byte
+audio_mode_2_program_00_tokens_0007:
+	dc.b $E1,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$E0,$18	; data
+	dc.b $24,$17,$23,$16,$22,$E1,$15,$21,$15,$21,$15,$21,$15,$21,$15,$21
+	dc.b $15,$21,$15,$E0,$15,$21,$16,$22,$17,$23,$80
 tokens_and_operands_with_advance_token_16:
-	dc.b $C7,$88,$03,$B5,$86,$03,$03,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24	; data
-	dc.b $28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28
-	dc.b $25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28
-	dc.b $28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1
-	dc.b $28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28,$E8,$2B,$80
+	dc.b $C7	; data
+audio_mode_2_program_01_command_0001:
+	dc.b $88	; opcode
+	dc.b $03	; note_offset_byte
+audio_mode_2_program_01_tokens_0003:
+	dc.b $B5	; data
+audio_mode_2_program_01_command_0004:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_2_program_01_tokens_0007:
+	dc.b $E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8	; data
+	dc.b $28,$E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28
+	dc.b $E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28
+	dc.b $E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2
+	dc.b $28,$E1,$28,$E8,$2B,$80
 tokens_and_operands_with_advance_token_17:
-	dc.b $C7,$88,$03,$B5,$86,$03,$03,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28	; data
-	dc.b $2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B
-	dc.b $28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$C6,$E1,$28,$E3,$2B,$E1,$2B
-	dc.b $2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1
-	dc.b $2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D,$E8,$30,$80
+	dc.b $C7	; data
+audio_mode_2_program_02_command_0001:
+	dc.b $88	; opcode
+	dc.b $03	; note_offset_byte
+audio_mode_2_program_02_tokens_0003:
+	dc.b $B5	; data
+audio_mode_2_program_02_command_0004:
+	dc.b $86	; opcode
+	dc.b $03	; step
+	dc.b $03	; limit
+audio_mode_2_program_02_tokens_0007:
+	dc.b $E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8	; data
+	dc.b $2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D
+	dc.b $E8,$30,$C6,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B
+	dc.b $E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2
+	dc.b $2B,$E1,$2D,$E8,$30,$80
 tokens_and_operands_with_advance_token_18:
 	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18	; data
 	dc.b $A0,$80
@@ -23805,8 +24004,9 @@ audio_channel_transpose_minus3:
 	dc.b $BF,$C0,$FF
 	dcb.b $10,$82
 	dc.b $80
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 initialize_audio_sample_metadata:
-	tst.b $0528(a3)
+	tst.b audio_player_base_view_globals+8(a3)
 	bne.w abs_0_0005E3EA
     ; Initialize 11 length/divisor/payload records; payloads are referenced directly, with no decompression on this path.
 	lea.l audio_sample_record_stream(pc),a0
@@ -23824,10 +24024,10 @@ abs_0_0005E38A:
 	move.w d2,audio_sample_metadata_sample_period(a5)
 	adda.w #$C,a5
 	dbf.w d1,abs_0_0005E38A
-	move.l a0,$052E(a3)
+	move.l a0,audio_player_base_view_globals+14(a3)
 	adda.w #$40,a0
-	move.l a0,$1160(a3)
-	st.b $0528(a3)
+	move.l a0,audio_player_base_view_secondary_sample_address_base(a3)
+	st.b audio_player_base_view_globals+8(a3)
     ; Sample 7's 64-byte payload becomes 32 bytes 0xC0 then 32 bytes 0x3F; later indexed-write bounds remain unproven.
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
 	move.w #$F,d1
@@ -23838,9 +24038,9 @@ abs_0_0005E3C6:
 abs_0_0005E3D2:
 	move.w #$3F3F,(a0)+
 	dbf.w d1,abs_0_0005E3D2
-	move.w #$20,$072E(a3)
-	move.w #$20,$0534(a3)
-	clr.w $0532(a3)
+	move.w #$20,audio_player_base_view_sample_7_length_words(a3)
+	move.w #$20,audio_player_base_view_sample_7_word_write_offset(a3)
+	clr.w audio_player_base_view_sample_7_waveform_direction(a3)
 abs_0_0005E3EA:
 	rts
 start_audio_sequence:
@@ -23849,7 +24049,8 @@ start_audio_sequence:
 	lea.l initialize_audio_player(pc),a3
 	bsr.w initialize_audio_sample_metadata
     ; Unchecked packed selector: high byte is channel 0..3; low byte is configuration 0..28. EXT.W sign-extends the low byte for the 22-byte lookup; the channel selects playback and DMA records.
-	move.w d0,$0EB0(a3)
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
+	move.w d0,audio_player_base_view_effect_channel_and_configuration(a3)
 	moveq.l #0,d7
 	lea.l audio_channel_dma_configurations(pc),a4
 	move.b audio_effect_channel_index(pc),d7
@@ -23884,7 +24085,7 @@ abs_0_0005E458:
 	move.b audio_channel_playback_state_sequence_index(a2),d0
 	ext.w d0
 	add.w d0,d0
-	lea.l $1164(a3),a0
+	lea.l audio_player_base_view_secondary_volume_sequence_offsets(a3),a0
 	movea.w $0(a0,d0.w),a0
 	adda.l a3,a0
 	move.l a0,audio_channel_playback_state_volume_sequence_cursor(a2)
@@ -23895,12 +24096,13 @@ abs_0_0005E484:
 	rts
 advance_audio_shift_state:
 	lea.l initialize_audio_player(pc),a3
+    ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 	move.b audio_shift_state_words(pc),d0
 	andi.b #72,d0
 	addi.b #56,d0
 	lsl.b #2,d0
-	roxl $0CCE(a3)
-	roxl $0CCC(a3)
+	roxl audio_player_base_view_shift_state_low_word(a3)
+	roxl audio_player_base_view_shift_state_high_word(a3)
 	rts
 audio_shift_state_words:
 	dc.w $6F80,$1B34	; mutable_audio_shift_state
@@ -24719,7 +24921,7 @@ abs_0_000652DE:
 	beq.b abs_0_000652FC
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
-	move.b #$40,audio_master_volume.l
+	move.b #$40,audio_player_globals_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
 abs_0_000652FC:
 	rts
@@ -24744,7 +24946,7 @@ abs_0_00065322:
 	beq.b abs_0_0006536E
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
-	move.w #$40,audio_master_volume.l
+	move.w #$40,audio_player_globals_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
 	bra.b abs_0_0006536E
 abs_0_0006534A:
@@ -24758,7 +24960,7 @@ abs_0_00065362:
 	lsr.w #2,d1
 	moveq.l #64,d0
 	sub.b d1,d0
-	move.w d0,audio_master_volume.l
+	move.w d0,audio_player_globals_master_volume.l
 abs_0_0006536E:
 	rts
 preserved_uncopied_payload_tail:

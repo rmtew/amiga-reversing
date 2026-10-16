@@ -3208,3 +3208,34 @@ All 86 asset identities, paths, sizes and hashes, all data directives and histor
 prefixes are preserved. See the [audio evidence](../validation/pandora-audio-dispatch-contracts.json).
 Invalid opcodes, replacement program bounds, sample allocation lifetimes and
 Paula DMA timing remain outside this local CPU/static proof.
+
+## Shared audio state and program operands
+
+The audio inventory covers 29 physical program intervals (907 bytes, 858 decoded
+tokens) and their shared state consumers. All **42 numeric A3 state-access sites
+now use named fields**. The sparse base view is relative to
+`initialize_audio_player`; it does not classify intervening code as data or claim
+allocation ownership. The 18-byte global record retains its unknown byte at +13.
+Two dynamic indexed accesses remain unresolved in native type analysis.
+
+Parameter-bearing command coverage increases **8→33 records**: 16 additional
+pitch-modulation records expose opcode/step/limit, and nine channel-note-offset
+records expose opcode/operand. All original program extents and three shared-tail
+entry points remain intact. Unsupported control bytes and arbitrary replacement
+sample/envelope selectors remain unbounded. The phase-increment copy has no
+established reader, and the skip gate has no established enabling writer here.
+
+The valid candidate exceeded the native 64-register-context capacity before any
+history append. Capacity is now 256 with refusal beyond that bound; tests retain
+65 and 256 entries and reject 257. The direct-loader ctypes fixture was also
+stale and now matches the native policy ABI. All **816 native, 22 focused framework,
+2 loader-ABI and 33 audio tests pass**, including 7,168 phase/counter cases,
+all four reset pairs, the guarded eleven-sample initializer and all 25 new
+parameter records.
+
+All 76 canonical facts are verified against exact C/vasm reproduction of the
+376,832-byte original, receipt
+`6aca81da954ad25534cb3f93b04cd74520c77ab6c829e56900a6e4033f156847`.
+All 86 asset identities, paths, sizes and hashes are unchanged. The
+[compact inventory and evidence](../validation/pandora-audio-state-and-programs.json)
+retain the remaining bounds, timing and lifetime limitations.

@@ -1369,6 +1369,11 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("semantic_role", ctypes.c_char * 65),
         ("source_pattern", ctypes.c_char * 65),
         ("comment", ctypes.c_char * 97),
+        ("pointer_address_domain", ctypes.c_uint8),
+        ("pointer_symbol_group", ctypes.c_char * 64),
+        ("has_source_owner_span", ctypes.c_uint8),
+        ("source_owner_start", ctypes.c_uint32),
+        ("source_owner_size", ctypes.c_uint32),
     ]
 
 
@@ -1376,7 +1381,8 @@ class _M68kAnalysisNamedLabel(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
         ("domain", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("is_source_declaration", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 1),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("name", ctypes.c_char * 64),
@@ -1488,6 +1494,9 @@ class _M68kAnalysisTargetEquate(ctypes.Structure):
         ("value_style_id", ctypes.c_uint8),
         ("reserved", ctypes.c_uint8 * 3),
         ("value_expr", ctypes.c_char * 64),
+        ("group", ctypes.c_char * 64),
+        ("extent_bytes", ctypes.c_uint32),
+        ("address_domain", ctypes.c_uint8),
     ]
 
 
@@ -1522,6 +1531,8 @@ class _M68kAnalysisCustomStructField(ctypes.Structure):
         ("named_base", ctypes.c_char * 64),
         ("value_kind", ctypes.c_uint8),
         ("reserved", ctypes.c_uint8 * 3),
+        ("pointer_address_domain", ctypes.c_uint8),
+        ("pointer_symbol_group", ctypes.c_char * 64),
     ]
 
 
@@ -1535,12 +1546,52 @@ class _M68kAnalysisCustomStruct(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisManualDataReference(ctypes.Structure):
+    _fields_ = [
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("raw_value", ctypes.c_uint32),
+        ("base_section_index", ctypes.c_uint32),
+        ("base_offset", ctypes.c_uint32),
+        ("target_section_index", ctypes.c_uint32),
+        ("target_offset", ctypes.c_uint32),
+        ("owner_element_offset", ctypes.c_uint32),
+        ("owner_kind", ctypes.c_char * 32),
+        ("owner_id", ctypes.c_char * 96),
+        ("owner_layout_id", ctypes.c_char * 64),
+        ("xref_generation_mode", ctypes.c_char * 32),
+    ]
+
+
+class _M68kAnalysisAbstractRegion(ctypes.Structure):
+    _fields_ = [
+        ("section_index", ctypes.c_uint32),
+        ("start_offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("region_id", ctypes.c_char * 96),
+    ]
+
+
+class _M68kMemoryRegionIR(ctypes.Structure):
+    _fields_ = [
+        ("region_id", ctypes.c_char * 96),
+        ("name", ctypes.c_char * 64),
+        ("runtime_address", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("alignment", ctypes.c_uint32),
+        ("dma_access", ctypes.c_uint8),
+        ("persistent", ctypes.c_uint8),
+        ("source_mapped", ctypes.c_uint8),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
         ("has_entry_offset", ctypes.c_uint8),
         ("disable_implicit_entry_points", ctypes.c_uint8),
-        ("reserved0", ctypes.c_uint8 * 1),
+        ("storage_capacity_status", ctypes.c_uint8),
         ("register_seed_count", ctypes.c_uint16),
         ("function_summary_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
@@ -1555,21 +1606,25 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("manual_representation_count", ctypes.c_uint16),
         ("target_equate_count", ctypes.c_uint16),
         ("manual_runtime_address_ref_count", ctypes.c_uint16),
+        ("manual_data_reference_count", ctypes.c_uint16),
+        ("abstract_region_count", ctypes.c_uint16),
+        ("memory_region_count", ctypes.c_uint16),
         ("custom_struct_count", ctypes.c_uint16),
         ("custom_struct_capacity", ctypes.c_uint16),
         ("structured_data_item_capacity", ctypes.c_uint16),
         ("named_label_capacity", ctypes.c_uint16),
+        ("manual_representation_capacity", ctypes.c_uint16),
         ("custom_struct_owner", ctypes.c_uint8),
         ("structured_data_items_owner", ctypes.c_uint8),
         ("named_labels_owner", ctypes.c_uint8),
-        ("reserved1", ctypes.c_uint8 * 1),
+        ("manual_representations_owner", ctypes.c_uint8),
         ("entry_offset", ctypes.c_uint32),
         ("source_context_kind", ctypes.c_char * 512),
         ("source_context_disk_id", ctypes.c_char * 512),
         ("source_context_disk_path", ctypes.c_char * 512),
         ("source_context_entry_path", ctypes.c_char * 512),
         ("source_context_parent_disk_id", ctypes.c_char * 512),
-        ("register_seeds", _M68kAnalysisRegisterSeed * 64),
+        ("register_seeds", _M68kAnalysisRegisterSeed * 256),
         ("function_summaries", _M68kAnalysisFunctionSummary * 192),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
         ("structured_data_items_inline", _M68kAnalysisStructuredDataItem * 4),
@@ -1582,9 +1637,13 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
         ("absolute_storage_slots", _M68kAnalysisAbsoluteStorageSlot * 128),
         ("rsset_use_site_bindings", _M68kAnalysisRssetUseSiteBinding * 128),
-        ("manual_representations", _M68kAnalysisManualRepresentation * 128),
-        ("target_equates", _M68kAnalysisTargetEquate * 128),
+        ("manual_representations_inline", _M68kAnalysisManualRepresentation * 4),
+        ("manual_representations", ctypes.POINTER(_M68kAnalysisManualRepresentation)),
+        ("target_equates", _M68kAnalysisTargetEquate * 512),
         ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
+        ("manual_data_references", _M68kAnalysisManualDataReference * 512),
+        ("abstract_regions", _M68kAnalysisAbstractRegion * 128),
+        ("memory_regions", _M68kMemoryRegionIR * 16),
         ("custom_structs", ctypes.POINTER(_M68kAnalysisCustomStruct)),
     ]
 
