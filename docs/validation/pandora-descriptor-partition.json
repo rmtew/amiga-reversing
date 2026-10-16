@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_start": "0x849A",
+  "source_end": "0x8544",
+  "name": "partition_world_object_update_ptrs",
+  "test_command": ".venv/bin/python -m pytest -q tests/test_pandora_descriptor_partition.py",
+  "result": "4 passed in 5.21s",
+  "cases": [
+    "original initialized records",
+    "mixed flags, including both bits",
+    "all deferred",
+    "one deferred"
+  ],
+  "facts": [
+    "Copy all 32 descriptor pointers at 0x310E..0x318E to scratch 0x31AA..0x322A before partition writes.",
+    "Read state pointer from descriptor+0 and flags from state+25. Bit6 takes precedence and appends at front in input order. Otherwise bit7 writes backward from 0x318E, reversing admitted order. Neither flag appends to deferred scratch at 0x322A.",
+    "Reverse-copy deferred records into the middle, then sort only that middle by unsigned WORD descriptor+6 (world Y). Tie stability is not asserted.",
+    "All four tested families conserve the 32-pointer multiset and retain the original input snapshot in copy scratch."
+  ],
+  "limits": [
+    "No-deferred input was not tested or claimed reachable; the reverse-copy body has no initial empty-count guard.",
+    "Tests do not establish every reachable mutable-state combination, rendering lifetime or IRQ safety."
+  ],
+  "test_development": "Initial test entry 0x8494 selected render_context_prompt. Original bytes established partition entry 0x849A; corrected before interpreting results.",
+  "pending_canonical_annotations": [
+    "Inspect native xrefs at a fresh revision; name copy, deferred admission/reverse-copy and sort branches.",
+    "Add scoped descriptor-prefix register seeds, descriptor count32 and flag constants with operand bindings.",
+    "Use canonical command surface and full C+vasm exact verification."
+  ],
+  "blocker": "Canonical API state request failed with urlopen error [Errno 1] Operation not permitted under current sandbox. No alternate mutation path or further permission request used."
+}
