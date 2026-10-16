@@ -10123,7 +10123,7 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
           if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
               M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET, item.section_index, item.offset, 1U,
-              target_runtime, target_trace_state, 0U) != 0) return -1;
+              target_runtime, target_trace_state, allow_trace_variant) != 0) return -1;
         } else {
           if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,

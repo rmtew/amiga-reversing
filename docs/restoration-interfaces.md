@@ -89,6 +89,13 @@ relations include `callers`, `callees`, `ranges`, `owned_blocks`,
 `unresolved_transfers`, `entry_evidence` and `name_evidence`. Ownership is a
 conservative candidate, not proof of a complete function boundary.
 
+Native CFG queries include accepted traced destinations for indirect transfers,
+using each code-start fact's source section and instruction offset. A resolved
+destination edge identifies a known candidate; it does not close the target set.
+The unresolved edge remains alongside candidates because discovery does not
+establish completeness across mutable stores or all callers. Table addresses,
+cross-section aliases and unaccepted instruction starts are not destinations.
+
 For mutation parameters use `--request request.json` (or `--request -` for stdin).
 RSSET region renaming requires an explicit `size` from the current declaration.
 An omitted extent can otherwise become four bytes and cover neighboring fields.

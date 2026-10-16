@@ -189,6 +189,46 @@ static size_t analysis_cfg_block_index_for_offset(const M68kSectionAnalysisIR *s
   return SIZE_MAX;
 }
 
+/* Code discovery records the source instruction for each traced indirect
+ * destination. Consume those canonical source coordinates, never the address
+ * of a pointer table or a representative recovered-site target. The facts do
+ * not assert completeness across callers or mutable stores, so the caller
+ * retains the unresolved edge alongside these known destinations. */
+static int analysis_cfg_append_indirect_destinations(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, uint8_t kind) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint32_t source_offset = candidate->offset;
+  size_t operand_index;
+  size_t index;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || (metadata->flow_kind != M68K_SIM_FLOW_CALL &&
+      metadata->flow_kind != M68K_SIM_FLOW_JUMP)) return 0;
+  operand_index = metadata->target_operand_index;
+  if (operand_index >= candidate->operand_count || operand_index >= M68K_DECODE_IR_MAX_OPERANDS ||
+      candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+      (candidate->operands[operand_index].ea_mode == 7U &&
+       candidate->operands[operand_index].ea_reg <= 1U)) return 0;
+  for (index = 0U; index < section_analysis->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section_analysis->code_start_refs[index];
+    size_t edge_index;
+    int duplicate = 0;
+    if (ref->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET ||
+        ref->source_section_index != section->section_index || ref->source_offset != source_offset ||
+        !accepted_start_at(section, accepted_start, ref->offset)) continue;
+    for (edge_index = section_analysis->edge_count; edge_index > 0U; ) {
+      const M68kCfgEdgeIR *edge = &section_analysis->edges[--edge_index];
+      if (edge->source_offset != source_offset) break;
+      if (edge->kind == kind && edge->target_offset == ref->offset) { duplicate = 1; break; }
+    }
+    if (!duplicate && analysis_cfg_append_edge(section_analysis, section_analysis->block_count,
+        source_offset, ref->offset, kind) != 0) return -1;
+  }
+  return 0;
+}
+
 static int analysis_cfg_resolve_edge_targets(M68kSectionAnalysisIR *section_analysis) {
   size_t edge_index;
   if (section_analysis == NULL) return -1;
@@ -325,6 +365,9 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
       has_fallthrough = render_cfg_candidate_has_fallthrough(candidate);
       if (has_control_target && analysis_cfg_append_edge(section_analysis, section_analysis->block_count,
           cursor, target_offset, edge_kind) != 0) goto cleanup;
+      if (has_control_target && target_offset == UINT32_MAX &&
+          analysis_cfg_append_indirect_destinations(section_analysis, section, accepted_start,
+            candidate, edge_kind) != 0) goto cleanup;
       if (has_control_target) {
         if (has_fallthrough && next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
             analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,

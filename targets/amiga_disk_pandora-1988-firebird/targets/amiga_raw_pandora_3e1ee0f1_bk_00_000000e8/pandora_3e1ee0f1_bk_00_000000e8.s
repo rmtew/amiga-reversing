@@ -1759,6 +1759,7 @@ abs_0_00010C24:
 clear_star_pixel:
 	moveq.l #0,d2
 	bra.b abs_0_00010C6A
+    ; Lifetimes 17..64 select colors 1..7: 1+((lifetime-16)>>3). Clear uses color 0. AND #7 later selects the pixel bit; it does not clamp the dispatch index.
 render_star_pixel_by_lifetime:
 	moveq.l #0,d2
 	move.b title_star_record_lifetime(a2),d2
@@ -1784,53 +1785,54 @@ abs_0_00010C6A:
 	add.w d2,d2
 	movea.l star_plane_bit_operation_dispatch(pc,d2.w),a1
 	adda.w d0,a0
+    ; Writers update bit D1 at A0/A0+40/A0+80, then JMP A3. Original continuations resume initialization, update motion after clearing, or advance the record after drawing.
 	jmp (a1)
 star_plane_bit_operation_dispatch:
-	dc.l abs_0_00010CC0	; pointer_table
+	dc.l write_star_pixel_color_0	; pointer_table
 star_plane_operation_1:
-	dc.l abs_0_00010CCC	; pointer_table
-	dc.l abs_0_00010CD8	; pointer_table
-	dc.l abs_0_00010CE4	; pointer_table
-	dc.l abs_0_00010CF0	; pointer_table
-	dc.l abs_0_00010CFC	; pointer_table
-	dc.l abs_0_00010D08	; pointer_table
-	dc.l abs_0_00010D14	; pointer_table
-abs_0_00010CC0:
+	dc.l write_star_pixel_color_1	; pointer_table
+	dc.l write_star_pixel_color_2	; pointer_table
+	dc.l write_star_pixel_color_3	; pointer_table
+	dc.l write_star_pixel_color_4	; pointer_table
+	dc.l write_star_pixel_color_5	; pointer_table
+	dc.l write_star_pixel_color_6	; pointer_table
+	dc.l write_star_pixel_color_7	; pointer_table
+write_star_pixel_color_0:
 	bclr.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CCC:
+write_star_pixel_color_1:
 	bset.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CD8:
+write_star_pixel_color_2:
 	bclr.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CE4:
+write_star_pixel_color_3:
 	bset.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bclr.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CF0:
+write_star_pixel_color_4:
 	bclr.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010CFC:
+write_star_pixel_color_5:
 	bset.b d1,(a0)
 	bclr.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010D08:
+write_star_pixel_color_6:
 	bclr.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
 	jmp (a3)
-abs_0_00010D14:
+write_star_pixel_color_7:
 	bset.b d1,(a0)
 	bset.b d1,$0028(a0)
 	bset.b d1,$0050(a0)
@@ -1869,16 +1871,16 @@ update_starfield:
 	move.w #$63,d7
 	movea.l #$400,a2
 abs_0_00010D94:
-	lea.l abs_0_00010D9C(pc),a3
+	lea.l continue_starfield_after_pixel_clear(pc),a3
 	bra.w clear_star_pixel
-abs_0_00010D9C:
+continue_starfield_after_pixel_clear:
 	bsr.w update_star_motion
 	bne.b abs_0_00010DA6
 	bsr.w reset_star_motion
 abs_0_00010DA6:
-	lea.l abs_0_00010DAE(pc),a3
+	lea.l advance_starfield_after_pixel_render(pc),a3
 	bra.w render_star_pixel_by_lifetime
-abs_0_00010DAE:
+advance_starfield_after_pixel_render:
 	lea.l $000A(a2),a2
 	dbf.w d7,abs_0_00010D94
 	btst.b #2,app_status_flags(a6)

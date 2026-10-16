@@ -3430,3 +3430,29 @@ provenance question was closed by the preceding correction's isolated baseline
 comparison; the missing Ancient provider is pre-existing and unchanged here.
 See the [reviewed-versus-resolved evidence](../validation/pandora-audio-channel-hardware.json)
 and [indexed input contract](../restoration-interfaces.md).
+
+
+## Indirect dispatch and star color operations
+
+The 22-site native indirect-transfer inventory now feeds 58 known destination
+edges at 14 sites into the CFG, including the eight star operations and all 33
+world-command handlers. Previously discovery knew these destinations but the
+CFG omitted them. Every site retains its unresolved alternative: candidate
+edges do not establish a complete target set. Runtime-mapped direct branches
+now retain the existing bounded permission to replay distinct continuation
+inputs; focused tests reproduce the previous lost-target behavior.
+
+Eight star color writers and two continuations gain semantic names. One
+canonical eight-entry signature records opaque A0/A3 pointer inputs; two source
+comments explain the lifetime selector, three planes spaced 40 bytes apart,
+and tail continuation. Original instruction checks cover every color with all
+three original continuations, every valid lifetime, and the unsigned world
+opcode guard. AND #7 bounds the pixel bit, not the star table index.
+
+819 native and 283 focused tests pass. C and independent vasm reproduce all
+376,832 original bytes, receipt `3ad5a1de386597905593f9ba670d22911c144e4c5d5183b2345cb5b95f52680e`. All 86 assets, both history prefixes,
+and earlier symbolic instructions/comments are preserved modulo the ten label
+renames. The [inventory and limits](../validation/pandora-indirect-dispatch.json)
+record eight sites without known targets. The next swath is continuation
+propagation through the longer star selector: native replay still recovers
+only DAE per writer, despite the three reviewed original continuations.
