@@ -1,0 +1,929 @@
+{
+  "schema_version": 1,
+  "starting_commit": "68eba33bfc79a4c22ca1c5b5de639d289b0646c2",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do checkpoint contact rectangles, exact-card authorization, seen bits, attachment holds and rejection health/defeat connect to the escape-card consumer?",
+  "source_spans": {
+    "contact": [
+      32520,
+      32892
+    ],
+    "shared_feedback": [
+      316186,
+      316192
+    ],
+    "escape_consumer": [
+      38768,
+      38910
+    ]
+  },
+  "facts": {
+    "accepted_actions": 57,
+    "labels": 15,
+    "equates": 13,
+    "operand_bindings": 21,
+    "semantic_comments": 8,
+    "new_owners_or_types": 0,
+    "pointer_presentation_changes": 0
+  },
+  "labels": {
+    "32570": "use_tall_checkpoint_vertical_bias",
+    "32572": "offset_checkpoint_contact_coordinates",
+    "32598": "measure_checkpoint_vertical_distance",
+    "32604": "test_checkpoint_contact_rectangle",
+    "32646": "test_lt_commander_checkpoint_card",
+    "32662": "test_engineer_checkpoint_card",
+    "32678": "test_awol_officer_checkpoint_card",
+    "32706": "latch_authorized_checkpoint_visit",
+    "32734": "hold_checkpoint_attachment_chain",
+    "32756": "release_checkpoint_attachment_chain",
+    "32778": "reject_checkpoint_card_and_apply_damage",
+    "32818": "defeat_player_for_rejected_checkpoint_card",
+    "316186": "start_id_failure_or_item_handoff_audio",
+    "38768": "test_escape_authorization_for_requested_tile",
+    "38864": "test_terminal_or_blocked_movement_tile"
+  },
+  "operand_bindings": [
+    [
+      32520,
+      "WORLD_OBJECT_INACTIVE_BIT",
+      1,
+      "immediate"
+    ],
+    [
+      32854,
+      "WORLD_OBJECT_INACTIVE_BIT",
+      1,
+      "immediate"
+    ],
+    [
+      32552,
+      "CHECKPOINT_CONTACT_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32574,
+      "CHECKPOINT_CONTACT_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32586,
+      "CHECKPOINT_CONTACT_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32570,
+      "CHECKPOINT_TALL_VERTICAL_BIAS",
+      32,
+      "immediate"
+    ],
+    [
+      32604,
+      "CHECKPOINT_CONTACT_EXCLUSIVE_Y",
+      32,
+      "immediate"
+    ],
+    [
+      32612,
+      "CHECKPOINT_CONTACT_EXCLUSIVE_X",
+      18,
+      "immediate"
+    ],
+    [
+      32628,
+      "CHECKPOINT_COMMANDER_SEEN_BIT",
+      0,
+      "immediate"
+    ],
+    [
+      32654,
+      "CHECKPOINT_LT_COMMANDER_SEEN_BIT",
+      1,
+      "immediate"
+    ],
+    [
+      32670,
+      "CHECKPOINT_ENGINEER_SEEN_BIT",
+      2,
+      "immediate"
+    ],
+    [
+      32692,
+      "CHECKPOINT_AWOL_OFFICER_SEEN_BIT",
+      3,
+      "immediate"
+    ],
+    [
+      32638,
+      "ITEM_ID_ID_COMMANDER",
+      48,
+      "immediate"
+    ],
+    [
+      32656,
+      "ITEM_ID_ID_LT_COMMANDER",
+      49,
+      "immediate"
+    ],
+    [
+      32672,
+      "ITEM_ID_ID_ENGINEER",
+      50,
+      "immediate"
+    ],
+    [
+      32694,
+      "ITEM_ID_ID_AWOL_OFCR",
+      55,
+      "immediate"
+    ],
+    [
+      32716,
+      "CHECKPOINT_FIRST_AUTHORIZATION_AUDIO_SEQUENCE",
+      280,
+      "immediate"
+    ],
+    [
+      32786,
+      "CHECKPOINT_CONTACT_LOW_HP_DAMAGE",
+      10,
+      "immediate"
+    ],
+    [
+      316186,
+      "ID_FAILURE_OR_HANDOFF_AUDIO_SEQUENCE",
+      258,
+      "immediate"
+    ],
+    [
+      38790,
+      "TILE_ID_ESCAPE",
+      236,
+      "immediate"
+    ],
+    [
+      38848,
+      "ESCAPE_AUDIO_PLAYER_MODE",
+      1,
+      "immediate"
+    ]
+  ],
+  "checkpoint_identities": [
+    {
+      "descriptor_source_offset": 298192,
+      "copied_runtime_value": 363728,
+      "required_item_id": 48,
+      "seen_bit": 0,
+      "descriptor_y_bias": 16
+    },
+    {
+      "descriptor_source_offset": 298204,
+      "copied_runtime_value": 363740,
+      "required_item_id": 49,
+      "seen_bit": 1,
+      "descriptor_y_bias": 16
+    },
+    {
+      "descriptor_source_offset": 298216,
+      "copied_runtime_value": 363752,
+      "required_item_id": 50,
+      "seen_bit": 2,
+      "descriptor_y_bias": 32
+    },
+    {
+      "descriptor_source_offset": 298228,
+      "copied_runtime_value": 363764,
+      "required_item_id": 55,
+      "seen_bit": 3,
+      "descriptor_y_bias": 32
+    }
+  ],
+  "semantics": {
+    "guards": "Player inactive bit1 or escape-triggered game-event bit3 skips contact before coordinate work. Other player/event bits do not gate this prefix. Fire and the unrelated periodic-security countdown are not read by this contact handler.",
+    "rectangle": "Descriptor WORD XY plus state offsets, descriptor X+16 and Y+16 except identities20/21 Y+32; player WORD XY+16. All additions/subtractions wrap modulo65536; signed-negative magnitudes retain8000. Require unsigned X magnitude below18 AND Y below32. No Manhattan sum. Far releases node holds, retaining movement-inhibit and escape-card values. Near clears movement inhibition before checking cards.",
+    "card_choices": "Exact descriptor identities18/19/20/21 require held BYTE IDs48/49/50/55 and select seen bits0/1/2/3. Unknown descriptor identity reaching this role skips all four checks and shares bit0, accepting every held ID in the controlled tests. Existing descriptor field labels and pointer forms remain unchanged.",
+    "escape_card_producer": "Within contact handling, only in-range descriptor21 clears then recomputes event bit4. Wrong card clears it before damage; far/inactive/escape-triggered paths retain its previous value. This is a producer/consumer contract, not complete writer or alias closure.",
+    "authorization": "BSET selected seen bit first. Only a previously clear bit requests audio0118 then increments count BYTE modulo256. Already-seen authorization still holds the chain without increment/feedback. Count is independent stored state, not recomputed from bits. Two unknown descriptors share bit0 and continue after the real audio call, incrementing once.",
+    "attachment_hold": "Walk root then each non-NULL attachment; BSET or BCLR node mode bit0 only. Every other node byte, including WORD frame index/phase, survives. No frame restart is performed by this call. Original four chains have1/1/2/2 states, six distinct non-NULL nodes. Readable nodes and finite chains are inputs; arbitrary replacements/cycles/lifetimes are not proved.",
+    "rejection": "Set movement inhibition FF and subtract10 from HP low BYTE. Wrapped results1..127 survive and update only that byte. Results0 or128..255 branch to defeat before storing the computed byte. Surviving contact draws health, requests shared0102 feedback and returns from the whole descriptor scan.",
+    "defeat": "Use the existing animated defeat state, set its geometry, clear node clock and hold-header bit, mark player inactive and exchange active/saved states through the original helper. Reload exit delay70, clear whole HP WORD, draw health and queue outcomes, then return from the whole scan. Unlike the separately documented static-state failure route, this known incoming node is non-NULL.",
+    "shared_feedback": "Three observed direct callers remain: contact survivor802A, missing-ID defeat8748 and collect_world_object_item4B17E. Name start_id_failure_or_item_handoff_audio reflects all three rather than assigning a damage-only sound purpose. The request value is0102; DMA/audibility are not inferred.",
+    "escape_consumer": "At977E require event bit4 and decoded D0 low WORD236; no selected-card or checkpoint-count recheck. Set escape event bit3, install player escape geometry and clear its node, clear four initializer-relative bytes EBD/EC9/ED5/EE1, clear feedback event bit7, request audio mode1 with A6 saved/restored, then tail-call the existing outcome/inhibition helper. Because escape bit3 is already set, that helper retains inherited exit delay, including0/70/255."
+  },
+  "coverage": {
+    "distinct_cpu_cases": 40,
+    "axis_word_inputs_at_two_bias_modes": 262144,
+    "state_offsets_in_axis_sweeps": 0,
+    "descriptor_card_choices": 1280,
+    "player_guard_bytes": 256,
+    "event_guard_bytes": 256,
+    "seen_mask_index_combinations": 1024,
+    "count_byte_values": 256,
+    "chain_mode_byte_inputs": 512,
+    "hp_low_byte_inputs": 256,
+    "hp_high_byte_values": [
+      0,
+      1,
+      127,
+      255
+    ],
+    "hp_combinations": 1024,
+    "full_first_authorization_cases": 8,
+    "repeated_authorization_case": 1,
+    "unknown_two_descriptor_audio_continuation_case": 1,
+    "rectangle_boundary_cases": 6,
+    "full_survivor_low_hp_values": [
+      11,
+      95,
+      137
+    ],
+    "full_defeat_low_hp_values": [
+      0,
+      10,
+      138,
+      255
+    ],
+    "original_chain_sizes": [
+      1,
+      1,
+      2,
+      2
+    ],
+    "original_nodes": 6,
+    "escape_flag_tile_combinations": 1536,
+    "escape_inherited_delay_values": [
+      0,
+      70,
+      255
+    ],
+    "test_file": "tests/test_pandora_checkpoint_contact.py",
+    "execution_notes": "34 initial cases,2 original-chain/continuation cases and4 escape-consumer cases pass in separate focused runs. Collection confirms40 distinct cases. Unchanged tests were not repeated. Complete UI/audio/outcome calls use original code and valid initialized data with fresh independent call frames. Bounded trace summaries may overflow; guest memory and normal return are checked. Escape executions begin with explicit decoded D0 at977E, excluding tile decoding, input and loader reachability."
+  },
+  "canonical_relationships": {
+    "identity_pairs": [
+      {
+        "source_offset": 32554,
+        "target_offset": 298228
+      },
+      {
+        "source_offset": 32562,
+        "target_offset": 298216
+      },
+      {
+        "source_offset": 32630,
+        "target_offset": 298192
+      },
+      {
+        "source_offset": 32646,
+        "target_offset": 298204
+      },
+      {
+        "source_offset": 32662,
+        "target_offset": 298216
+      },
+      {
+        "source_offset": 32678,
+        "target_offset": 298228
+      }
+    ],
+    "verification": "All six descriptor identity references pass native outgoing and incoming coordinate queries after append, and all six instruction texts retain their exact prior pointer expressions. Shared feedback retains exactly three observed callers; escape-card macro retains exactly producer7FAE/7FBC and consumer977E. All15 labels and21 operand bindings resolve. This does not close indirect callers or alias writers.",
+    "existing_descriptor_pointer_fields": [
+      {
+        "end_offset": 298196,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364244,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_18",
+          "symbol_group": "",
+          "target_offset": 298708,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298192,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298208,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364270,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_19",
+          "symbol_group": "",
+          "target_offset": 298734,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298204,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298220,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364296,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_20",
+          "symbol_group": "",
+          "target_offset": 298760,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298216,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298232,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364322,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_21",
+          "symbol_group": "",
+          "target_offset": 298786,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298228,
+        "struct_name": "world_position_descriptor_prefix"
+      }
+    ],
+    "existing_six_state_pointer_fields": [
+      {
+        "end_offset": 298712,
+        "field_name": "current_geometry_ptr",
+        "name": "world_position_state_records_current_geometry_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298708,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298716,
+        "field_name": "previous_geometry_ptr",
+        "name": "world_position_state_records_previous_geometry_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298712,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298720,
+        "field_name": "state_node_ptr",
+        "name": "world_position_state_records_state_node_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364400,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_nodes",
+          "symbol_group": "",
+          "target_offset": 298864,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298716,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298728,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_records_position_descriptor_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363728,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_18",
+          "symbol_group": "",
+          "target_offset": 298192,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298724,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298732,
+        "field_name": "attachment_state_ptr",
+        "name": "world_position_state_records_attachment_state_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298728,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298738,
+        "field_name": "current_geometry_ptr",
+        "name": "world_position_state_records_current_geometry_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298734,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298742,
+        "field_name": "previous_geometry_ptr",
+        "name": "world_position_state_records_previous_geometry_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298738,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298746,
+        "field_name": "state_node_ptr",
+        "name": "world_position_state_records_state_node_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364418,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_nodes_position_descriptor_ptr_1",
+          "symbol_group": "",
+          "target_offset": 298882,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298742,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298754,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_records_position_descriptor_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363740,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_19",
+          "symbol_group": "",
+          "target_offset": 298204,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298750,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298758,
+        "field_name": "attachment_state_ptr",
+        "name": "world_position_state_records_attachment_state_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298754,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298764,
+        "field_name": "current_geometry_ptr",
+        "name": "world_position_state_records_current_geometry_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298760,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298768,
+        "field_name": "previous_geometry_ptr",
+        "name": "world_position_state_records_previous_geometry_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298764,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298772,
+        "field_name": "state_node_ptr",
+        "name": "world_position_state_records_state_node_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364436,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_nodes_position_descriptor_ptr_2",
+          "symbol_group": "",
+          "target_offset": 298900,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298768,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298780,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_records_position_descriptor_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363752,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_20",
+          "symbol_group": "",
+          "target_offset": 298216,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298776,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298784,
+        "field_name": "attachment_state_ptr",
+        "name": "world_position_state_records_attachment_state_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364348,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "checkpoint_attachment_states",
+          "symbol_group": "",
+          "target_offset": 298812,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298780,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298790,
+        "field_name": "current_geometry_ptr",
+        "name": "world_position_state_records_current_geometry_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298786,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298794,
+        "field_name": "previous_geometry_ptr",
+        "name": "world_position_state_records_previous_geometry_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298790,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298798,
+        "field_name": "state_node_ptr",
+        "name": "world_position_state_records_state_node_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364454,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_nodes_position_descriptor_ptr_3",
+          "symbol_group": "",
+          "target_offset": 298918,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298794,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298806,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_records_position_descriptor_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363764,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_21",
+          "symbol_group": "",
+          "target_offset": 298228,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298802,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298810,
+        "field_name": "attachment_state_ptr",
+        "name": "world_position_state_records_attachment_state_ptr_21",
+        "resolution": {
+          "addend": 26,
+          "address_domain": "mapped_source",
+          "encoded_value": 364374,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "checkpoint_attachment_states",
+          "symbol_group": "",
+          "target_offset": 298838,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298806,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298816,
+        "field_name": "current_geometry_ptr",
+        "name": "checkpoint_attachment_states",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298812,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298820,
+        "field_name": "previous_geometry_ptr",
+        "name": "checkpoint_attachment_states_previous_geometry_ptr_0",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298816,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298824,
+        "field_name": "state_node_ptr",
+        "name": "checkpoint_attachment_states_state_node_ptr_0",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364472,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_nodes_position_descriptor_ptr_4",
+          "symbol_group": "",
+          "target_offset": 298936,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298820,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298832,
+        "field_name": "position_descriptor_ptr",
+        "name": "checkpoint_attachment_states_position_descriptor_ptr_0",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363752,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_20",
+          "symbol_group": "",
+          "target_offset": 298216,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298828,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298836,
+        "field_name": "attachment_state_ptr",
+        "name": "checkpoint_attachment_states_attachment_state_ptr_0",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298832,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298842,
+        "field_name": "current_geometry_ptr",
+        "name": "checkpoint_attachment_states_current_geometry_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298838,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298846,
+        "field_name": "previous_geometry_ptr",
+        "name": "checkpoint_attachment_states_previous_geometry_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298842,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298850,
+        "field_name": "state_node_ptr",
+        "name": "checkpoint_attachment_states_state_node_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364490,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_nodes_position_descriptor_ptr_5",
+          "symbol_group": "",
+          "target_offset": 298954,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298846,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298858,
+        "field_name": "position_descriptor_ptr",
+        "name": "checkpoint_attachment_states_position_descriptor_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363764,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_21",
+          "symbol_group": "",
+          "target_offset": 298228,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298854,
+        "struct_name": "world_position_render_state_prefix"
+      },
+      {
+        "end_offset": 298862,
+        "field_name": "attachment_state_ptr",
+        "name": "checkpoint_attachment_states_attachment_state_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298858,
+        "struct_name": "world_position_render_state_prefix"
+      }
+    ],
+    "scope": "Bounded native inventories contain4 descriptor pointer fields and30 state pointer fields with no additional pages. Existing layouts, types and data facts are unchanged, so these inventories are reused after the strict preservation audit. Pointer presentation limitations and prior encoded-value forms remain intact."
+  },
+  "framework": {
+    "implementation_changes": false,
+    "reused_focused_framework_checks": 48,
+    "reused_native_checks": 819,
+    "preparation_benchmark_repeated": false,
+    "reason": "Only target naming/constant/comment facts, generated source, documentation and original-byte CPU tests changed."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "2f269867fe4a00725c3c0db30218f1e3e2d2e92c3dc950eddfe436ddf8388469",
+    "source_audit": "Every prior source line retained outside21 bound operand rows and15 label substitutions, allowing only new semantic comments. Every previous entry comment, SDK/hardware expression, all layout/type/owner identities and extents, all86 assets, pointer presentations, both raw gaps and both complete history prefixes pass. Exactly57 actions and57 acceptance decisions appended; timestamp-only project metadata restored. Manifest differences restricted to source file size/hash, metadata hash and row identities.",
+    "known_unrelated_boundary": "Previously reproduced bootstrap-copy fixture reports full_source_policy_load_view where its assertion expects overlaid_by_runtime_copy; unchanged and not counted as passing."
+  },
+  "limits": "Existing copied-payload view,16MB flat RAM, explicit MMIO shadows, valid initialized UI/font/audio records and readable finite node chains. No DMA completion, audibility, arbitrary graph lifetime, complete alias/writer/indirect-caller closure, original-disk/input reachability, full-game runtime confidence or alternate-layout claim."
+}

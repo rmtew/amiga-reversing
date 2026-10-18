@@ -4283,3 +4283,80 @@ verification receipt and supporting evidence are in
 contact/authorization and its attachment-hold traversal remain the next
 connected control-flow question. Full-game and alternate-layout confidence
 remain separate open gates.
+
+## Checkpoint contact authorization and the connected escape latch
+
+Checkpoint contact now has complete local branch names and symbolic card IDs,
+rectangle bounds, coordinate biases, authorization bits and feedback requests.
+The four descriptor identities retain their existing field labels and pointer
+spellings. Native queries verify all six identity comparisons against those same
+canonical owners. The shared `$102` feedback helper is named for both ID failure
+and item handoff, retaining its three observed direct callers.
+
+Contact first skips an inactive player or an already-triggered escape.
+Descriptor XY plus state offsets and the player XY use wrapped WORD arithmetic.
+Standard bias is 16 on each participant; descriptor identities 20 and 21 use Y
+bias 32. The unsigned magnitudes are tested independently: X below 18 and Y
+below 32, with no Manhattan-sum threshold. Far visits release the node
+header-hold bit through the attachment chain, but leave movement inhibition and
+the escape-card latch untouched. Near visits clear movement inhibition before
+card checking.
+
+Descriptor identities 18/19/20/21 require exactly ID Commander 48, ID Lieutenant
+Commander 49, ID Engineer 50 and ID AWOL Officer 55. They select seen bits
+0/1/2/3. An unrecognized descriptor that reaches the checkpoint path skips all
+four card checks and shares bit 0. Within contact handling, only the in-range
+identity 21 path clears and recomputes escape-card bit 4; a wrong card clears it
+before damage, while far, inactive and escape-triggered visits preserve its
+previous value.
+
+Authorization sets the selected seen bit. A clear-to-set transition requests
+feedback `$118` and increments the count BYTE, wrapping modulo 256. An already
+set bit still holds the attachment chain but neither recounts nor requests that
+feedback. Count is not recomputed from the bits. Both hold and release visit the
+root and each non-NULL attachment, changing only node header-hold bit 0. They
+retain all clock/phase bytes and other mode bits. The four original checkpoint
+chains contain 1/1/2/2 states and six distinct nodes. Arbitrary replacement
+chains, cycles and node lifetimes remain outside this proof.
+
+A rejected card inhibits movement and subtracts ten from only the HP low BYTE.
+Only wrapped results 1..127 survive; the high HP byte is retained on that path.
+Results zero or 128..255 enter defeat before the computed low byte is stored.
+Survivors draw health, request the shared `$102` feedback and return from the
+whole descriptor scan. Defeat installs the existing animated state and geometry,
+resets its node, marks the player inactive, exchanges active/saved states,
+clears the whole HP WORD, loads exit delay 70 and queues the existing outcome
+messages. This path also returns from the whole scan.
+
+The connected movement consumer checks escape-card bit 4 and decoded tile low
+WORD 236; it does not reread the selected card or checkpoint count. On
+acceptance it installs the escape pose, removes its animation node, clears four
+audio-local bytes, requests audio mode 1 and preserves A6 around initialization.
+It presets the escape-triggered bit before the existing outcome helper, so that
+helper preserves the inherited exit delay. Three complete original
+consumer/callee paths retain delays 0/70/255. The tile-decoding prelude is
+statically inspected; these executions start with an explicit decoded tile at
+the guard, rather than proving movement, loader or joystick reachability.
+
+Forty distinct original-code CPU cases cover 262,144 axis inputs at both Y-bias
+modes, all 1,280 descriptor/card choices, both guard bytes, 1,024
+seen-mask/index combinations, all count bytes, 512 chain-mode inputs and all HP
+low bytes at four high-byte values. Full calls cover first/repeated
+authorization, count wrap, two-descriptor continuation after feedback,
+rectangular boundaries, three survivor and four animated-defeat/outcome paths,
+all six original chain nodes, 1,536 escape flag/tile choices and the three
+inherited-delay paths. Tests use initialized original UI/font/audio data, flat
+RAM, explicit MMIO shadows and fresh disjoint call frames. DMA completion and
+full-game runtime confidence remain separate open questions.
+
+All 57 actions are accepted: fifteen labels, thirteen equates, twenty-one
+operand bindings and eight semantic comments. No framework or CPU implementation
+changed; the prior 48 focused framework and 819 native checks are reused, and
+the preparation benchmark was not repeated. Every prior annotation, hardware/SDK
+expression, owner bound, asset, pointer presentation, raw gap and history prefix
+passes preservation. C and vasm reproduce all 376,832 original bytes. Evidence,
+canonical relationships, scope and the verification receipt are recorded in
+`docs/validation/pandora-checkpoint-contact.json`. The remaining
+proximity-animation branch within the same descriptor service is the next
+connected control-flow family; broader runtime and alternate-layout gates remain
+open.

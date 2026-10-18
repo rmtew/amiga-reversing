@@ -915,6 +915,16 @@ CAMERA_VIEWPORT_HEIGHT_PIXELS	EQU	128
 CAMERA_VIEWPORT_TILE_ROWS	EQU	8
 CAMERA_VIEWPORT_WIDTH_PIXELS	EQU	320
 CAMERA_WRAP_BOTTOM_PLAYER_OFFSET	EQU	80
+CHECKPOINT_AWOL_OFFICER_SEEN_BIT	EQU	3
+CHECKPOINT_COMMANDER_SEEN_BIT	EQU	0
+CHECKPOINT_CONTACT_COORDINATE_BIAS	EQU	16
+CHECKPOINT_CONTACT_EXCLUSIVE_X	EQU	18
+CHECKPOINT_CONTACT_EXCLUSIVE_Y	EQU	32
+CHECKPOINT_CONTACT_LOW_HP_DAMAGE	EQU	10
+CHECKPOINT_ENGINEER_SEEN_BIT	EQU	2
+CHECKPOINT_FIRST_AUTHORIZATION_AUDIO_SEQUENCE	EQU	$118
+CHECKPOINT_LT_COMMANDER_SEEN_BIT	EQU	1
+CHECKPOINT_TALL_VERTICAL_BIAS	EQU	32
 COMBAT_ATTACK_CHECK_WORD_DISP	EQU	world_object_shared_prefix_combat_attack_check_value-1
 COMBAT_ATTACK_WINDOW_END	EQU	25
 COMBAT_CHARGE_CELL_SHIFT	EQU	3
@@ -948,6 +958,7 @@ CUSTOM_COLOR00_REGISTER	EQU	_custom+color
 DMAF_CLRALL	EQU	$7FFF
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
+ESCAPE_AUDIO_PLAYER_MODE	EQU	1
 FRAMEBUFFER_BANK0_BASE	EQU	$70000
 FRAMEBUFFER_BANK1_BASE	EQU	$78000
 FRAMEBUFFER_LAST_RASTER_ROW	EQU	199
@@ -965,6 +976,7 @@ GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT	EQU	0
 GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
+ID_FAILURE_OR_HANDOFF_AUDIO_SEQUENCE	EQU	$102
 ID_POSSESSION_VARIANT_COUNT	EQU	8
 INPUT_DIRECTION_DOWN_BIT	EQU	1
 INPUT_DIRECTION_LEFT_BIT	EQU	2
@@ -1197,6 +1209,7 @@ TICKER_ROW6_INSERT_OFFSET	EQU	$7C87
 TILE_GRID_POINTER_BYTES	EQU	4
 TILE_GRID_POINTER_SHIFT	EQU	2
 TILE_GRID_TWO_POINTER_BYTES	EQU	2*TILE_GRID_POINTER_BYTES
+TILE_ID_ESCAPE	EQU	236
 TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
@@ -14170,103 +14183,110 @@ advance_world_interaction_descriptor:
 return_from_world_interaction_service:
 	rts
 handle_checkpoint_contact_interaction:
-	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a4)
 	bne.b advance_world_interaction_descriptor
 	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	bne.b advance_world_interaction_descriptor
+    ; Wrapped WORD deltas use separate unsigned limits: |X|<18 and |Y|<32. Descriptors 20/21 add 32 to Y; all others add 16. Player XY and descriptor X each add 16; state offsets apply first.
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
 	add.w world_position_state_record_world_x_offset(a2),d0
 	add.w world_position_state_record_world_y_offset(a2),d1
-	moveq.l #16,d4
+	moveq.l #CHECKPOINT_CONTACT_COORDINATE_BIAS,d4
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
-	beq.b abs_0_00017F3A
+	beq.b use_tall_checkpoint_vertical_bias
 	cmpa.l #world_position_descriptors_position_state_ptr_20,a1
-	bne.b abs_0_00017F3C
-abs_0_00017F3A:
-	moveq.l #32,d4
-abs_0_00017F3C:
+	bne.b offset_checkpoint_contact_coordinates
+use_tall_checkpoint_vertical_bias:
+	moveq.l #CHECKPOINT_TALL_VERTICAL_BIAS,d4
+offset_checkpoint_contact_coordinates:
 	add.w d4,d1
-	addi.w #16,d0
+	addi.w #CHECKPOINT_CONTACT_COORDINATE_BIAS,d0
 	move.w world_object_shared_prefix_world_x(a4),d2
 	move.w world_object_shared_prefix_world_y(a4),d3
-	moveq.l #16,d4
+	moveq.l #CHECKPOINT_CONTACT_COORDINATE_BIAS,d4
 	add.w d4,d2
 	add.w d4,d3
 	sub.w d2,d0
-	bpl.b abs_0_00017F56
+	bpl.b measure_checkpoint_vertical_distance
 	neg.w d0
-abs_0_00017F56:
+measure_checkpoint_vertical_distance:
 	sub.w d3,d1
-	bpl.b abs_0_00017F5C
+	bpl.b test_checkpoint_contact_rectangle
 	neg.w d1
-abs_0_00017F5C:
-	cmp.w #$20,d1
-	bcc.w abs_0_00017FF4
-	cmp.w #$12,d0
-	bcc.w abs_0_00017FF4
+test_checkpoint_contact_rectangle:
+	cmp.w #CHECKPOINT_CONTACT_EXCLUSIVE_Y,d1
+	bcc.w release_checkpoint_attachment_chain
+	cmp.w #CHECKPOINT_CONTACT_EXCLUSIVE_X,d0
+	bcc.w release_checkpoint_attachment_chain
 	clr.b app_player_movement_commit_inhibited(a6)
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	moveq.l #0,d1
+    ; Known descriptor identities require exact IDs 48/49/50/55 and choose seen bits 0/1/2/3. An unknown descriptor skips all card checks and shares bit 0.
+	moveq.l #CHECKPOINT_COMMANDER_SEEN_BIT,d1
 	cmpa.l #world_position_descriptors_position_state_ptr_18,a1
-	bne.b abs_0_00017F86
-	cmp.b #$30,d0
-	bne.w abs_0_0001800A
-abs_0_00017F86:
+	bne.b test_lt_commander_checkpoint_card
+	cmp.b #ITEM_ID_ID_COMMANDER,d0
+	bne.w reject_checkpoint_card_and_apply_damage
+test_lt_commander_checkpoint_card:
 	cmpa.l #world_position_descriptors_position_state_ptr_19,a1
-	bne.b abs_0_00017F96
-	moveq.l #1,d1
-	cmp.b #$31,d0
-	bne.b abs_0_0001800A
-abs_0_00017F96:
+	bne.b test_engineer_checkpoint_card
+	moveq.l #CHECKPOINT_LT_COMMANDER_SEEN_BIT,d1
+	cmp.b #ITEM_ID_ID_LT_COMMANDER,d0
+	bne.b reject_checkpoint_card_and_apply_damage
+test_engineer_checkpoint_card:
 	cmpa.l #world_position_descriptors_position_state_ptr_20,a1
-	bne.b abs_0_00017FA6
-	moveq.l #2,d1
-	cmp.b #$32,d0
-	bne.b abs_0_0001800A
-abs_0_00017FA6:
+	bne.b test_awol_officer_checkpoint_card
+	moveq.l #CHECKPOINT_ENGINEER_SEEN_BIT,d1
+	cmp.b #ITEM_ID_ID_ENGINEER,d0
+	bne.b reject_checkpoint_card_and_apply_damage
+test_awol_officer_checkpoint_card:
 	cmpa.l #world_position_descriptors_position_state_ptr_21,a1
-	bne.b abs_0_00017FC2
+	bne.b latch_authorized_checkpoint_visit
+    ; Only an in-range descriptor 21 clears/recomputes escape-card bit 4. A wrong card clears it before damage; far, inactive and escape-triggered paths leave any previous value unchanged.
 	bclr.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
-	moveq.l #3,d1
-	cmp.b #$37,d0
-	bne.b abs_0_0001800A
+	moveq.l #CHECKPOINT_AWOL_OFFICER_SEEN_BIT,d1
+	cmp.b #ITEM_ID_ID_AWOL_OFCR,d0
+	bne.b reject_checkpoint_card_and_apply_damage
 	bset.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
-abs_0_00017FC2:
+    ; Set the selected seen bit; only a clear bit requests $118 feedback and increments the count BYTE modulo 256. Existing seen bits still hold the chain. Count is not recomputed from bits.
+latch_authorized_checkpoint_visit:
 	bset.b d1,app_authorized_checkpoint_seen_bits(a6)
-	bne.b abs_0_00017FDE
+	bne.b hold_checkpoint_attachment_chain
 	movem.l a0-a3,-(a7)
-	move.w #$118,d0
+	move.w #CHECKPOINT_FIRST_AUTHORIZATION_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	movem.l (a7)+,a0-a3
 	addq.b #1,app_authorized_checkpoint_count(a6)
-abs_0_00017FDE:
+    ; Visit root and each non-NULL attachment, changing only node hold bit 0. Frame index/phase and other mode bits survive both hold and release. Inputs require readable nodes and a finite chain.
+hold_checkpoint_attachment_chain:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w advance_world_interaction_descriptor
 	movea.l d0,a2
-	bra.b abs_0_00017FDE
-abs_0_00017FF4:
+	bra.b hold_checkpoint_attachment_chain
+release_checkpoint_attachment_chain:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
 	beq.w advance_world_interaction_descriptor
 	movea.l d0,a2
-	bra.b abs_0_00017FF4
-abs_0_0001800A:
+	bra.b release_checkpoint_attachment_chain
+    ; Each rejection: inhibit movement and subtract 10 from HP low BYTE. Only wrapped results 1..127 survive; high HP byte persists. Zero/negative results branch before storing the low byte.
+reject_checkpoint_card_and_apply_damage:
 	st.b app_player_movement_commit_inhibited(a6)
 	move.b world_object_shared_prefix_hit_points+1(a4),d0
-	subi.b #10,d0
-	beq.b abs_0_00018032
-	bmi.b abs_0_00018032
+	subi.b #CHECKPOINT_CONTACT_LOW_HP_DAMAGE,d0
+	beq.b defeat_player_for_rejected_checkpoint_card
+	bmi.b defeat_player_for_rejected_checkpoint_card
 	move.b d0,world_object_shared_prefix_hit_points+1(a4)
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	jsr abs_0_0005D31A.l
+	jsr start_id_failure_or_item_handoff_audio.l
 	rts
-abs_0_00018032:
+    ; Install animated defeat state/geometry, reset its node and exchange active/saved states. Mark inactive, clear the whole HP WORD, reload exit delay 70 and queue outcomes. Exit the whole scan.
+defeat_player_for_rejected_checkpoint_card:
 	movea.l a4,a5
 	lea.l player_animated_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
@@ -14275,7 +14295,7 @@ abs_0_00018032:
 	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
-	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w world_object_shared_prefix_hit_points(a5)
@@ -14893,7 +14913,7 @@ abs_0_000186F4:
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
 	jsr enqueue_game_outcome_and_rank_messages.l
-	jsr abs_0_0005D31A.l
+	jsr start_id_failure_or_item_handoff_audio.l
 finish_id_possession_recheck:
 	bclr.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	movem.l (a7)+,d0-d7/a0-a5
@@ -15831,12 +15851,12 @@ abs_0_00019644:
 	move.w d5,d1
 	subq.w #4,d1
 	move.w d2,d0
-	bra.w abs_0_00019770
+	bra.w test_escape_authorization_for_requested_tile
 abs_0_00019698:
 	move.w d5,d1
 	subq.w #4,d1
 	move.w d3,d0
-	bra.w abs_0_00019770
+	bra.w test_escape_authorization_for_requested_tile
 abs_0_000196A2:
 	tst.w app_player_move_request_y_step(a6)
 	beq.w select_player_movement_animation
@@ -15906,15 +15926,16 @@ abs_0_000196EA:
 	bsr.w test_msb_first_bitset_bit
 	bne.w hold_player_movement_animation
 	bra.w commit_player_move_request
-abs_0_00019770:
+test_escape_authorization_for_requested_tile:
 	bsr.w get_tilemap_cell_pointer
 	move.l (a0),d0
 	subi.l #118952,d0
 	lsr.l #7,d0
+    ; Escape needs bit 4 and decoded tile low WORD 236; it does not re-read the card or visit count. It sets escape before the outcome helper, so that helper keeps the inherited exit delay.
 	btst.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
-	beq.b abs_0_000197D0
-	cmp.w #$EC,d0
-	bne.b abs_0_000197D0
+	beq.b test_terminal_or_blocked_movement_tile
+	cmp.w #TILE_ID_ESCAPE,d0
+	bne.b test_terminal_or_blocked_movement_tile
 	bset.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
 	move.l #player_escape_geometry,player_position_state.l
 	clr.l player_position_state_state_node_ptr.l
@@ -15925,11 +15946,11 @@ abs_0_00019770:
 	clr.b $0EE1(a0)
 	bclr.b #GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT,app_game_event_flags(a6)
 	move.l a6,-(a7)
-	moveq.l #1,d0
+	moveq.l #ESCAPE_AUDIO_PLAYER_MODE,d0
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
 	jmp announce_escape_and_inhibit_movement.l
-abs_0_000197D0:
+test_terminal_or_blocked_movement_tile:
 	cmp.w #TILE_ID_TERMINAL_B,d0
 	beq.w run_terminal_modal_loop
 	cmp.w #TILE_ID_TERMINAL_A,d0
@@ -24895,7 +24916,7 @@ abs_0_0005B16C:
 	jsr exchange_world_object_position_states.l
 	jsr display_current_item_name.l
 	jsr refresh_selected_item_name_display.l
-	jsr abs_0_0005D31A.l
+	jsr start_id_failure_or_item_handoff_audio.l
 abs_0_0005B184:
 	rts
 world_object_technician:
@@ -27759,8 +27780,8 @@ start_paired_feedback_audio_sequences:
 	bsr.b start_feedback_audio_sequence
 	move.w #$30C,d0
 	bra.b start_feedback_audio_sequence
-abs_0_0005D31A:
-	move.w #$102,d0
+start_id_failure_or_item_handoff_audio:
+	move.w #ID_FAILURE_OR_HANDOFF_AUDIO_SEQUENCE,d0
 	bra.b start_feedback_audio_sequence
 abs_0_0005D320:
 	move.w #$30F,d0
