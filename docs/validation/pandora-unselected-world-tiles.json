@@ -1,0 +1,1003 @@
+{
+  "schema_version": 1,
+  "starting_commit": "c2cb8538213b8bbbeefb578378999b1c6c29c9bf",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "Which source format accounts for the33 unselected128-byte cells interspersed with the established world-tile pixel assets?",
+  "facts": {
+    "accepted_actions": 67,
+    "new_shared_types": 1,
+    "new_source_cell_owners": 33,
+    "new_typed_row_arrays": 33,
+    "raster_rows": 528,
+    "typed_word_fields": 2112,
+    "newly_classified_source_bytes": 4224,
+    "modified_existing_types_or_owners": 0,
+    "pointer_presentation_changes": 0
+  },
+  "format": {
+    "type_name": "world_tile_planar_row",
+    "row_size_bytes": 8,
+    "fields": [
+      {
+        "name": "plane_0_pixels",
+        "offset": 0,
+        "type": "UWORD",
+        "size": 2
+      },
+      {
+        "name": "plane_1_pixels",
+        "offset": 2,
+        "type": "UWORD",
+        "size": 2
+      },
+      {
+        "name": "plane_2_pixels",
+        "offset": 4,
+        "type": "UWORD",
+        "size": 2
+      },
+      {
+        "name": "plane_3_pixels",
+        "offset": 6,
+        "type": "UWORD",
+        "size": 2
+      }
+    ],
+    "rows_per_cell": 16,
+    "row_stride_bytes": 8,
+    "cell_size_bytes": 128,
+    "pixels_per_row": 16,
+    "plane_order_evidence": "Existing original viewport packets copy64 source WORDs, source modulo0, into interleaved planes at40-byte destination intervals; established display plane starts are40 bytes apart. Four WORDs form one16-pixel raster row. The new source cells decode as coherent pixel graphics using that same format. This is source-format inference, without a new runtime allocation or reachability contract."
+  },
+  "family": {
+    "bank_source_span": [
+      53416,
+      118440
+    ],
+    "aligned_source_slots": 508,
+    "existing_initialized_selected_cells": 475,
+    "existing_selected_pixel_bytes": 60800,
+    "existing_selected_asset_owners": 25,
+    "new_unselected_cells": 33,
+    "original_definition_records": 468,
+    "original_definition_word_offsets": 4212,
+    "original_macro_selectors": 1290,
+    "original_macro_grid": [
+      30,
+      43
+    ],
+    "unused_definition_reference": {
+      "source_offset": 24208,
+      "record_index": 447,
+      "record_cell": "r2c0",
+      "encoded_offset": 63872,
+      "base_source_offset": 53416,
+      "target_source_offset": 117288,
+      "target_cell_index": 499,
+      "original_macro_447_occurrences": 0,
+      "native_word_bytes": "f980",
+      "source_expression_preserved": true,
+      "new_interpreted_reference_added": false
+    },
+    "cells_absent_from_original_definitions": 32,
+    "scope": "The original initialized map selects none of these33 slots. One is present only in unused definition447;32 are absent from all468 definitions. No whole-atlas envelope owner is added. The33 individual source owners remain disjoint from all existing assets and owners. Later dynamic accesses, aliases, mask generation and exclusive runtime storage remain unproved."
+  },
+  "source_cells": [
+    {
+      "cell_index": 12,
+      "source_start": 54952,
+      "source_end": 55080,
+      "sha256": "03c4d86d4027a74d36673a883d5fce56726b243eca8fa136e1222b4bf087c846",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000D6A8:data",
+        "s0:0000D6B8:data",
+        "s0:0000D6C8:data",
+        "s0:0000D6D8:data",
+        "s0:0000D6E8:data",
+        "s0:0000D6F8:data",
+        "s0:0000D708:data",
+        "s0:0000D718:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 40,
+      "source_start": 58536,
+      "source_end": 58664,
+      "sha256": "ccf3dd9419ad9862d10124a49708b327b77c9a1ec8b54e0183682a94f11f3c14",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000E4A8:data",
+        "s0:0000E4B8:data",
+        "s0:0000E4C8:data",
+        "s0:0000E4D8:data",
+        "s0:0000E4E8:data",
+        "s0:0000E4F8:data",
+        "s0:0000E508:data",
+        "s0:0000E518:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 43,
+      "source_start": 58920,
+      "source_end": 59048,
+      "sha256": "dc9a400bcb577cdd36d6ddaced9bbe822fa412f29802793247a25702ffa39962",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000E628:data",
+        "s0:0000E638:data",
+        "s0:0000E648:data",
+        "s0:0000E658:data",
+        "s0:0000E668:data",
+        "s0:0000E678:data",
+        "s0:0000E688:data",
+        "s0:0000E698:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 47,
+      "source_start": 59432,
+      "source_end": 59560,
+      "sha256": "a052c81012dfd61b91d2ffffad884618d883d24a5087a42a49f6fcc0ca2b37a8",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000E828:data",
+        "s0:0000E830:data",
+        "s0:0000E840:data",
+        "s0:0000E850:data",
+        "s0:0000E860:data",
+        "s0:0000E870:data",
+        "s0:0000E880:data",
+        "s0:0000E890:data",
+        "s0:0000E8A0:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 50,
+      "source_start": 59816,
+      "source_end": 59944,
+      "sha256": "952de258925215e035c0f9b2bdb5f5f83928138ff2f92ef151c4d65534d5b62f",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000E9A8:data",
+        "s0:0000E9B0:data",
+        "s0:0000E9C0:data",
+        "s0:0000E9D0:data",
+        "s0:0000E9E0:data",
+        "s0:0000E9F0:data",
+        "s0:0000EA00:data",
+        "s0:0000EA10:data",
+        "s0:0000EA20:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 56,
+      "source_start": 60584,
+      "source_end": 60712,
+      "sha256": "a3f30eab958daf739b29fd4c7381c3915450f5a9c941d5d6fb492069e30646bb",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000ECA8:data",
+        "s0:0000ECB8:data",
+        "s0:0000ECC8:data",
+        "s0:0000ECD8:data",
+        "s0:0000ECE8:data",
+        "s0:0000ECF8:data",
+        "s0:0000ED08:data",
+        "s0:0000ED18:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 58,
+      "source_start": 60840,
+      "source_end": 60968,
+      "sha256": "05b34d1b24452b32a5e6c89a60c4b03be8939a9e923860cacf66da7d884bb162",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000EDA8:data",
+        "s0:0000EDB8:data",
+        "s0:0000EDC8:data",
+        "s0:0000EDD8:data",
+        "s0:0000EDE8:data",
+        "s0:0000EDF8:data",
+        "s0:0000EE08:data",
+        "s0:0000EE18:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 59,
+      "source_start": 60968,
+      "source_end": 61096,
+      "sha256": "4a6bf1e50b4f9222783020ff6d1621e9848fca5f545fc697f7ad3d69c681f752",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000EE28:data",
+        "s0:0000EE38:data",
+        "s0:0000EE48:data",
+        "s0:0000EE58:data",
+        "s0:0000EE68:data",
+        "s0:0000EE78:data",
+        "s0:0000EE88:data",
+        "s0:0000EE98:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 62,
+      "source_start": 61352,
+      "source_end": 61480,
+      "sha256": "45f1cd5a2aeb40a4aa1573eb3075d2b60bbacf8de3eb3d6bf4fdd148c9ca3a5e",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000EFA8:data",
+        "s0:0000EFB8:data",
+        "s0:0000EFC8:data",
+        "s0:0000EFD8:data",
+        "s0:0000EFE8:data",
+        "s0:0000EFF8:data",
+        "s0:0000F008:data",
+        "s0:0000F018:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 63,
+      "source_start": 61480,
+      "source_end": 61608,
+      "sha256": "9b9d217f92568738ea5c4a886d557bbf72f4e755aa35d2817789282b983a07fd",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F028:data",
+        "s0:0000F038:data",
+        "s0:0000F048:data",
+        "s0:0000F058:data",
+        "s0:0000F068:data",
+        "s0:0000F078:data",
+        "s0:0000F088:data",
+        "s0:0000F098:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 71,
+      "source_start": 62504,
+      "source_end": 62632,
+      "sha256": "87a91743b2e1037c601f522ed8562be175d5dd8c1588951913e5656ef3b3944d",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F428:data",
+        "s0:0000F438:data",
+        "s0:0000F448:data",
+        "s0:0000F458:data",
+        "s0:0000F468:data",
+        "s0:0000F478:data",
+        "s0:0000F488:data",
+        "s0:0000F498:data",
+        "s0:0000F4A2:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 72,
+      "source_start": 62632,
+      "source_end": 62760,
+      "sha256": "9b594694d384ebf7dd6e326f772317d2d376a005b1ba77cdd3e9ed09d089c2e6",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F4A2:data",
+        "s0:0000F4AA:data",
+        "s0:0000F4BA:data",
+        "s0:0000F4CA:data",
+        "s0:0000F4DA:data",
+        "s0:0000F4E0:data",
+        "s0:0000F4E8:data",
+        "s0:0000F4F8:data",
+        "s0:0000F508:data",
+        "s0:0000F518:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 73,
+      "source_start": 62760,
+      "source_end": 62888,
+      "sha256": "01b0551e1dbe69b32e54e45961a961d2daf966ad53c6b0bc52ba446b4b39a4aa",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F528:data",
+        "s0:0000F530:data",
+        "s0:0000F540:data",
+        "s0:0000F550:data",
+        "s0:0000F560:data",
+        "s0:0000F56A:data",
+        "s0:0000F572:data",
+        "s0:0000F582:data",
+        "s0:0000F592:data",
+        "s0:0000F5A2:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 74,
+      "source_start": 62888,
+      "source_end": 63016,
+      "sha256": "b0cdb43d566447e5dbba38a2c08f7e4ba43ea6b52c7d321e0d614da11442a338",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F5A2:data",
+        "s0:0000F5B2:data",
+        "s0:0000F5C2:data",
+        "s0:0000F5D2:data",
+        "s0:0000F5E2:data",
+        "s0:0000F5F2:data",
+        "s0:0000F602:data",
+        "s0:0000F612:data",
+        "s0:0000F622:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 75,
+      "source_start": 63016,
+      "source_end": 63144,
+      "sha256": "0ece7431473e335c7f82fe35a1eb0fe3fb1c80d11f72f8122987a5f0969cf26a",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F622:data",
+        "s0:0000F632:data",
+        "s0:0000F642:data",
+        "s0:0000F652:data",
+        "s0:0000F662:data",
+        "s0:0000F672:data",
+        "s0:0000F682:data",
+        "s0:0000F692:data",
+        "s0:0000F6A2:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 76,
+      "source_start": 63144,
+      "source_end": 63272,
+      "sha256": "8b2f2c4efac5c34ce538b1b94feea44fc7b013734925afc26f7ed7b7af0d3ff4",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F6A2:data",
+        "s0:0000F6AA:data",
+        "s0:0000F6BA:data",
+        "s0:0000F6CA:data",
+        "s0:0000F6DA:data",
+        "s0:0000F6EA:data",
+        "s0:0000F6FA:data",
+        "s0:0000F70A:data",
+        "s0:0000F71A:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 77,
+      "source_start": 63272,
+      "source_end": 63400,
+      "sha256": "daba459fe62b111bb10d159a3c4414efb9c46bdaa58ebe58cc2419d38402635c",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000F71A:data",
+        "s0:0000F72A:data",
+        "s0:0000F73A:data",
+        "s0:0000F74A:data",
+        "s0:0000F75A:data",
+        "s0:0000F76A:data",
+        "s0:0000F77A:data",
+        "s0:0000F782:data",
+        "s0:0000F78E:data",
+        "s0:0000F79E:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 90,
+      "source_start": 64936,
+      "source_end": 65064,
+      "sha256": "6d11b1dedf11ec226356c1fb6216ba38312e06b8d6e54e098b7261de18bc3dfd",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0000FDA8:data",
+        "s0:0000FDB0:data",
+        "s0:0000FDC0:data",
+        "s0:0000FDD0:data",
+        "s0:0000FDE0:data",
+        "s0:0000FDF0:data",
+        "s0:0000FE00:data",
+        "s0:0000FE10:data",
+        "s0:0000FE20:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 95,
+      "source_start": 65576,
+      "source_end": 65704,
+      "sha256": "a6a4e52a641a9936d3da42cadac2bdd83a2cb4aedbc343aefe6440410be1db08",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00010028:data",
+        "s0:00010038:data",
+        "s0:00010048:data",
+        "s0:00010058:data",
+        "s0:00010068:data",
+        "s0:00010078:data",
+        "s0:00010088:data",
+        "s0:00010098:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 102,
+      "source_start": 66472,
+      "source_end": 66600,
+      "sha256": "c914443bf0eac20447f59018675ad4ffae4dcc74997d4a1aa5680aed7a463b21",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:000103A8:data",
+        "s0:000103B8:data",
+        "s0:000103C8:data",
+        "s0:000103D8:data",
+        "s0:000103E8:data",
+        "s0:000103F8:data",
+        "s0:00010408:data",
+        "s0:00010418:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 104,
+      "source_start": 66728,
+      "source_end": 66856,
+      "sha256": "17015cb504d53fff726b3b5aae239e028e0222c75b57f17a6e63caca30ee35ba",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:000104A8:data",
+        "s0:000104B8:data",
+        "s0:000104C8:data",
+        "s0:000104D8:data",
+        "s0:000104E8:data",
+        "s0:000104F8:data",
+        "s0:00010508:data",
+        "s0:00010518:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 120,
+      "source_start": 68776,
+      "source_end": 68904,
+      "sha256": "24f497fb2bf0c5b01822e63f8aba7978296ef535a6e4606e6f991e652e1985c1",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00010CA8:data",
+        "s0:00010CB8:data",
+        "s0:00010CC8:data",
+        "s0:00010CD8:data",
+        "s0:00010CE8:data",
+        "s0:00010CF8:data",
+        "s0:00010D08:data",
+        "s0:00010D18:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 165,
+      "source_start": 74536,
+      "source_end": 74664,
+      "sha256": "72c5ebb86f00d4139598b800ac886f07322b1e5f1ba68b61c03827028a75424c",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00012328:data",
+        "s0:00012338:data",
+        "s0:00012348:data",
+        "s0:00012358:data",
+        "s0:00012368:data",
+        "s0:00012378:data",
+        "s0:00012388:data",
+        "s0:00012398:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 167,
+      "source_start": 74792,
+      "source_end": 74920,
+      "sha256": "559475a0616314fab0d382f14c866f057bb6801318913852c55f1f824069df86",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00012428:data",
+        "s0:00012438:data",
+        "s0:00012448:data",
+        "s0:00012458:data",
+        "s0:00012468:data",
+        "s0:00012478:data",
+        "s0:00012488:data",
+        "s0:00012498:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 177,
+      "source_start": 76072,
+      "source_end": 76200,
+      "sha256": "0ebe5b178caa015b1324369f9ce5fe01b3702005f8a990efff54c4bf564b7fd6",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00012928:data",
+        "s0:00012938:data",
+        "s0:00012948:data",
+        "s0:00012958:data",
+        "s0:00012968:data",
+        "s0:00012978:data",
+        "s0:00012988:data",
+        "s0:00012998:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 313,
+      "source_start": 93480,
+      "source_end": 93608,
+      "sha256": "8239a54820e8139ed388a0f032773f3b98d702545dc7f66f46b6c22337195eeb",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00016D28:data",
+        "s0:00016D38:data",
+        "s0:00016D48:data",
+        "s0:00016D58:data",
+        "s0:00016D68:data",
+        "s0:00016D78:data",
+        "s0:00016D88:data",
+        "s0:00016D98:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 367,
+      "source_start": 100392,
+      "source_end": 100520,
+      "sha256": "c5ef75fe82de4e938f8316466063854874507c52c7085a9604e19651321336f4",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00018828:data",
+        "s0:00018838:data",
+        "s0:00018848:data",
+        "s0:00018858:data",
+        "s0:00018868:data",
+        "s0:00018878:data",
+        "s0:00018888:data",
+        "s0:00018898:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 371,
+      "source_start": 100904,
+      "source_end": 101032,
+      "sha256": "7699ff3d26d0ffdda2dd34a6a72e16f87f493ac802e93305e552103d605321c9",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00018A28:data",
+        "s0:00018A38:data",
+        "s0:00018A48:data",
+        "s0:00018A58:data",
+        "s0:00018A68:data",
+        "s0:00018A78:data",
+        "s0:00018A88:data",
+        "s0:00018A98:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 381,
+      "source_start": 102184,
+      "source_end": 102312,
+      "sha256": "35f380bc00613c384b47ca572790b7da1ed090e598eaca2bf3b2ca9f4565caf2",
+      "native_byte_coverage": 112,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00018F28:data",
+        "s0:00018F38:data",
+        "s0:00018F48:data",
+        "s0:00018F58:data",
+        "s0:00018F68:data",
+        "s0:00018F78:data",
+        "s0:00018F88:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 382,
+      "source_start": 102312,
+      "source_end": 102440,
+      "sha256": "aba0442c2befe4ae1fb7ed4d5915ea2bdaf98c74db078d972a1f728ccaf5fea8",
+      "native_byte_coverage": 126,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:00018F88:data",
+        "s0:00018FAA:data",
+        "s0:00018FBA:data",
+        "s0:00018FCA:data",
+        "s0:00018FDA:data",
+        "s0:00018FEA:data",
+        "s0:00018FFA:data",
+        "s0:0001900A:data",
+        "s0:0001901A:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 465,
+      "source_start": 112936,
+      "source_end": 113064,
+      "sha256": "d95276c0b9029aca83737f8e198c8e451294014c1272f6cc8a0f602634b3c5c1",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0001B928:data",
+        "s0:0001B938:data",
+        "s0:0001B948:data",
+        "s0:0001B958:data",
+        "s0:0001B968:data",
+        "s0:0001B978:data",
+        "s0:0001B988:data",
+        "s0:0001B998:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 490,
+      "source_start": 116136,
+      "source_end": 116264,
+      "sha256": "676fb7a047b9f025edc4da80c3ca6212f466dfa29babefed9cd3e95c964c5176",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0001C5A8:data",
+        "s0:0001C5B8:data",
+        "s0:0001C5C8:data",
+        "s0:0001C5D8:data",
+        "s0:0001C5E8:data",
+        "s0:0001C5F8:data",
+        "s0:0001C608:data",
+        "s0:0001C618:data"
+      ],
+      "definition_refs": []
+    },
+    {
+      "cell_index": 499,
+      "source_start": 117288,
+      "source_end": 117416,
+      "sha256": "1096e9cb5f26e6d38d2e0bb97f395c5a4ea1f6c31aa517069d0ee665e05195b9",
+      "native_byte_coverage": 128,
+      "original_binary_byte_count": 128,
+      "data_row_keys": [
+        "s0:0001CA28:data",
+        "s0:0001CA38:data",
+        "s0:0001CA48:data",
+        "s0:0001CA58:data",
+        "s0:0001CA68:data",
+        "s0:0001CA78:data",
+        "s0:0001CA88:data",
+        "s0:0001CA98:data"
+      ],
+      "definition_refs": [
+        {
+          "source_offset": 24208,
+          "record_index": 447,
+          "cell_index": 6,
+          "encoded_offset": 63872
+        }
+      ]
+    }
+  ],
+  "source_review": {
+    "completed_before_mutation": true,
+    "source_snapshot_revision": "7f5413298d79ddc3f30063680cd63bcaf80991d14b0cf622cb6273d2c0267682",
+    "post_framework_reinspection": "Unchanged first/last cell bytes, builder instruction, complete prior layout/type model and selected command schemas re-inspected with a fresh revision after the backend rebuild. Cached unchanged source byte/format evidence was reused.",
+    "initial_native_extent_bytes": 4224,
+    "initial_exposed_native_byte_prefixes": 4206,
+    "initial_bounded_bytes": {
+      "source_start": 102280,
+      "source_end": 102314,
+      "directive": "dcb.b $22,$FF",
+      "exposed_prefix_bytes": 16,
+      "unavailable_prefix_tail_bytes": 18
+    },
+    "final_byte_proof": "All2112 emitted UWORD values are compared with all4224 original source bytes. The fresh native typed plan exposes the formerly bounded34-byte run as17 complete WORD rows, including its18 previously unexposed bytes. Full independent C/vasm comparison verifies the complete original file. The generic folded-row byte-cache limit is not claimed fixed.",
+    "batching": "One source-format review,34 type/owner actions, then33 element bindings using refreshed actual owner IDs, followed by one final explicit source export and review. Intermediate native artifacts supply the command contract; the generated target assembly was not exported between batches."
+  },
+  "contact_sheet": {
+    "path": "pandora-unselected-world-tile-cells.png",
+    "sha256": "b0e9cc659b6fd1b8103f84f65b3457ab4fb034634814dfadb3c1e4d1d4ea9f16",
+    "columns": 7,
+    "cell_indices_row_major": [
+      [
+        12,
+        40,
+        43,
+        47,
+        50,
+        56,
+        58
+      ],
+      [
+        59,
+        62,
+        63,
+        71,
+        72,
+        73,
+        74
+      ],
+      [
+        75,
+        76,
+        77,
+        90,
+        95,
+        102,
+        104
+      ],
+      [
+        120,
+        165,
+        167,
+        177,
+        313,
+        367,
+        371
+      ],
+      [
+        381,
+        382,
+        465,
+        490,
+        499
+      ]
+    ],
+    "display": "Four-times nearest-neighbor grayscale; intensity17*pixel_index. Original game palette is not applied. Blank margins separate cells; numeric index legend is in this record. No new semantic names are guessed from the images."
+  },
+  "framework": {
+    "change": "Raise both pointer-backed native policy limits from16384 to32768. Typed arrays produce one structured item and source label per expanded leaf. Existing16-bit counters, dynamic allocation, overflow refusals and clone semantics remain unchanged. The complete67-fact candidate was refused before any target history append at the old limits; it passes after the change.",
+    "focused_checks": {
+      "count": 22,
+      "files": [
+        "tests/test_policy_storage_capacity.py",
+        "tests/test_policy_storage_capacity_api.py"
+      ],
+      "coverage": "Complete32768-item policy serialization, duplicate label at capacity, rejection at32769, expanded-field-array atomicity, object enrichment refusal in policy/listing/render, and catalog/history refusal paths. Native clone tests preserve final entries after destroying the source; wide requests beyond16-bit range and SIZE_MAX are refused. The optional structured-data mirror still marks incompleteness after its bound without dropping source-IR items."
+    },
+    "native_checks": 819,
+    "new_runtime_cpu_cases": 0,
+    "reused_unchanged_cpu_evidence": [
+      "Nine original-code cases in tests/test_pandora_tilemap_grid.py, including complete90x129 initialized pointer-grid comparison",
+      "Existing tests/test_pandora_tile_dma.py packet/source extent proof and display-plane interleaving proof"
+    ],
+    "preparation_benchmark_repeated": false,
+    "new_full_target_audit": false,
+    "deferred_long_role_limit": "An untyped element copies its owner role into a63-byte native subtype field. Long free-form owner roles can fail element preflight. These new owners use short role world_tile_pixel_rows. Longer-role support is unchanged and remains documented in docs/restoration-interfaces.md."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "c8ac8b67e2c81a265eae5da07bdda1b08b4eb52bfee83fa60987b5f9db9285dd",
+    "emitted_word_proof": [
+      {
+        "name": "world_tile_pixels_012",
+        "source_start": 54952,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_040",
+        "source_start": 58536,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_043",
+        "source_start": 58920,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_047",
+        "source_start": 59432,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_050",
+        "source_start": 59816,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_056",
+        "source_start": 60584,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_058",
+        "source_start": 60840,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_059",
+        "source_start": 60968,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_062",
+        "source_start": 61352,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_063",
+        "source_start": 61480,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_071",
+        "source_start": 62504,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_072",
+        "source_start": 62632,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_073",
+        "source_start": 62760,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_074",
+        "source_start": 62888,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_075",
+        "source_start": 63016,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_076",
+        "source_start": 63144,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_077",
+        "source_start": 63272,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_090",
+        "source_start": 64936,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_095",
+        "source_start": 65576,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_102",
+        "source_start": 66472,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_104",
+        "source_start": 66728,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_120",
+        "source_start": 68776,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_165",
+        "source_start": 74536,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_167",
+        "source_start": 74792,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_177",
+        "source_start": 76072,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_313",
+        "source_start": 93480,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_367",
+        "source_start": 100392,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_371",
+        "source_start": 100904,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_381",
+        "source_start": 102184,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_382",
+        "source_start": 102312,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_465",
+        "source_start": 112936,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_490",
+        "source_start": 116136,
+        "word_count": 64
+      },
+      {
+        "name": "world_tile_pixels_499",
+        "source_start": 117288,
+        "word_count": 64
+      }
+    ],
+    "fresh_native_examples": [
+      "first cell012:64 complete typed WORD rows",
+      "last cell499:64 complete typed WORD rows",
+      "former34-byte folded run:17 complete typed WORD rows",
+      "definition447 r2c0 retains scalar WORD F980"
+    ],
+    "source_audit": "All prior source outside these4224 bytes remains present, including all understood names/fields/SDK expressions and pointer forms. All old types, owner identities/bounds, comments,86 assets, two preserved raw gaps and complete history prefixes pass. Exactly67 actions and67 acceptance decisions appended. Timestamp-only project metadata restored; manifest changes limited to source size/hash, metadata hash and row identities.",
+    "known_unrelated_boundary": "Existing bootstrap-copy fixture view expectation and Hunk numeric-pointer presentation issue remain deferred and are not counted as passing."
+  },
+  "limits": "Source-format recovery only. Decoded graphics and the established atlas/blitter layout support the row/plane interpretation; none of these33 cells is newly proven reachable in ordinary gameplay. No exclusive atlas allocation, arbitrary mutation/alias/writer closure, DMA completion, actual palette appearance, mask lifetime, full-game runtime confidence or alternate-layout safety claim."
+}

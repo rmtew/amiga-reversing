@@ -47,8 +47,9 @@ typedef struct M68kRenderPolicy {
 /* Bounded entry contexts; native ingestion must refuse overflow, never truncate. */
 #define M68K_ANALYSIS_REGISTER_SEED_LIMIT 256U
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 256U
-#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 16384U
-#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 16384U
+/* Typed data arrays retain a record and a source label for each leaf field. */
+#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 32768U
+#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 32768U
 #if M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT > UINT16_MAX || M68K_ANALYSIS_NAMED_LABEL_LIMIT > UINT16_MAX
 #error Analysis policy collection limits must fit their uint16_t counters
 #endif

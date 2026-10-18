@@ -169,6 +169,11 @@ The context above is schematic: use the current native locator and element ID
 when applicable, plus a command discovered in the catalog. Do not invent locators
 or arbitrary manual payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
 
+Native policy storage permits 32,768 structured-data items and 32,768 named
+labels, allocated on demand. Typed arrays count each expanded leaf field.
+Overflow is refused before history append; the bounded counts still fit the
+existing 16-bit native counters.
+
 Use `interpret_batch` for a connected set of 1..100 interpretations from the same
 inspected revision:
 

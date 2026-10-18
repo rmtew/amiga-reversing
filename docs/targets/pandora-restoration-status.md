@@ -4487,3 +4487,54 @@ without repeating the preparation benchmark. Evidence and receipt are in
 docs/validation/pandora-npc-handoff.json. The next connected question is which
 original scheduling/scene conditions select this officer script and expose its
 post-handoff state; full-game and alternate-layout confidence remain open.
+
+## Unselected world-tile source cells and bounded native storage
+
+The 33 previously unclaimed cells interspersed with the 25 established
+world-tile asset owners now have individual 128-byte source owners. A shared
+8-byte world_tile_planar_row contains four UWORD plane values; each cell binds
+16 raster rows. This restores 4,224 source bytes as 528 rows and 2,112 typed
+WORD fields. Existing asset files and owner identities/extents are retained; no whole-atlas envelope
+owner or exclusive runtime allocation is introduced.
+
+The established viewport packet reads 64 packed WORDs with source modulo 0 and
+40-byte destination intervals. Together with the known display plane
+interleaving, this gives four plane WORDs per 16-pixel raster row and 16 rows
+per cell. All 33 cells decode as coherent pixel graphics under that layout. This
+supports their source format; it does not establish use by the game. Each cell keeps its numeric atlas index. The grayscale contact sheet and its
+numeric atlas-index legend are recorded in
+docs/validation/pandora-unselected-world-tiles.json and
+pandora-unselected-world-tile-cells.png.
+
+None of these 33 cells is selected by the original 43x30 macro map. Cell 499
+appears once, as scalar offset F980 in definition 447 r2c0; the original macro
+map never selects 447. The other 32 cells are absent from all 468 definitions.
+The previously restored 475 selected cells remain unchanged. Later mutation,
+aliases and indirect writers can differ; this is not an exhaustive runtime
+ownership, mask-writer or gameplay-reachability contract.
+
+The full family was reviewed before mutation. Native row extents cover all 4,224
+bytes, with 4,206 exposed bytes matching the original binary. One 34-byte folded
+DCB row exposes only 16 bytes, so that prefix was not treated as full-field
+proof. Final export compares every emitted typed WORD with the original bytes; a
+fresh native window exposes the full 34-byte run as 17 WORD rows. The generic
+folded-row cache boundary remains unchanged.
+
+The complete 67-action candidate exposed both 16,384-entry native policy limits
+before any target action was appended. Both pointer-backed collections now
+permit 32,768 entries, retaining their 16-bit counters, dynamic allocation and
+atomic overflow refusals. Updated tests cover complete boundary retention,
+duplicate labels, 32,769-entry refusal, object enrichment, typed-array preflight
+and wide reservation requests. All 22 focused capacity tests and 819 native
+checks pass. The longer-role limit remains deferred: untyped owner role text
+exceeding 63 bytes blocks element preflight, but the short world_tile_pixel_rows
+category works here.
+
+All 67 target actions are accepted: one shared row type, 33 disjoint owners and
+33 typed arrays. Source review preceded both catalog batches; a final explicit
+export followed their completion. C and vasm reproduce all 376,832 original
+bytes. All previous names, fields, SDK expressions, comments, types/owner
+bounds, 86 assets, pointer forms, raw gaps and history prefixes pass
+preservation. Earlier unchanged tile-grid, packet and display CPU proofs are
+reused; no new gameplay confidence, full audit or preparation benchmark is
+claimed. The remaining semantic use of the unselected cells stays unknown.

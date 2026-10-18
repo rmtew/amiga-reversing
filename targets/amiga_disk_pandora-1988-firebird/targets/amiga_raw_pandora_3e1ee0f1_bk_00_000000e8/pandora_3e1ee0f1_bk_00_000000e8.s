@@ -875,6 +875,14 @@ world_tile_definition_3x3_r2c1_pixels_offset RS.W 1
 world_tile_definition_3x3_r2c2_pixels_offset RS.W 1
 world_tile_definition_3x3_SIZEOF EQU __RS
 
+; STRUCT world_tile_planar_row
+    RSRESET
+world_tile_planar_row_plane_0_pixels RS.W 1
+world_tile_planar_row_plane_1_pixels RS.W 1
+world_tile_planar_row_plane_2_pixels RS.W 1
+world_tile_planar_row_plane_3_pixels RS.W 1
+world_tile_planar_row_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -19681,71 +19689,411 @@ title_glyph_Z:
 world_tile_pixels_000_through_011:
 	INCBIN "assets/world_tile_pixels_000_through_011.bin"
 ; bitmap
-	dc.b $7F,$FE,$DF,$FF,$DF,$FF,$C0,$00,$B0,$01,$6F,$FF,$EF,$FF,$6F,$FC
-	dc.b $DB,$F9,$37,$FF,$F7,$FF,$30,$02,$EC,$45,$1B,$FF,$FB,$FF,$19,$B2
-	dc.b $F6,$85,$0D,$FF,$FD,$FF,$0C,$6A,$FB,$05,$06,$FF,$FE,$FF,$06,$5A
-	dc.b $FD,$8D,$03,$7F,$FF,$7F,$03,$32,$FE,$D5,$01,$BF,$FF,$BF,$01,$8A
-	dc.b $FF,$65,$00,$DF,$FF,$DF,$00,$CA,$87,$B5,$78,$6F,$F7,$EF,$70,$62
-	dc.b $B7,$D9,$78,$37,$F7,$F7,$40,$32,$B7,$ED,$78,$1B,$F7,$FB,$40,$1A
-	dc.b $B7,$F7,$78,$0D,$F7,$FD,$40,$0C,$B7,$FB,$78,$06,$F7,$FE,$40,$06
-	dc.b $B7,$FD,$78,$03,$F7,$FF,$40,$03,$87,$FE,$78,$01,$87,$FF,$00,$01
+world_tile_pixels_012:
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $DFFF	; plane_1_pixels
+	dc.w $DFFF	; plane_2_pixels
+	dc.w $C000	; plane_3_pixels
+	dc.w $B001	; plane_0_pixels
+	dc.w $6FFF	; plane_1_pixels
+	dc.w $EFFF	; plane_2_pixels
+	dc.w $6FFC	; plane_3_pixels
+	dc.w $DBF9	; plane_0_pixels
+	dc.w $37FF	; plane_1_pixels
+	dc.w $F7FF	; plane_2_pixels
+	dc.w $3002	; plane_3_pixels
+	dc.w $EC45	; plane_0_pixels
+	dc.w $1BFF	; plane_1_pixels
+	dc.w $FBFF	; plane_2_pixels
+	dc.w $19B2	; plane_3_pixels
+	dc.w $F685	; plane_0_pixels
+	dc.w $0DFF	; plane_1_pixels
+	dc.w $FDFF	; plane_2_pixels
+	dc.w $0C6A	; plane_3_pixels
+	dc.w $FB05	; plane_0_pixels
+	dc.w $06FF	; plane_1_pixels
+	dc.w $FEFF	; plane_2_pixels
+	dc.w $065A	; plane_3_pixels
+	dc.w $FD8D	; plane_0_pixels
+	dc.w $037F	; plane_1_pixels
+	dc.w $FF7F	; plane_2_pixels
+	dc.w $0332	; plane_3_pixels
+	dc.w $FED5	; plane_0_pixels
+	dc.w $01BF	; plane_1_pixels
+	dc.w $FFBF	; plane_2_pixels
+	dc.w $018A	; plane_3_pixels
+	dc.w $FF65	; plane_0_pixels
+	dc.w $00DF	; plane_1_pixels
+	dc.w $FFDF	; plane_2_pixels
+	dc.w $00CA	; plane_3_pixels
+	dc.w $87B5	; plane_0_pixels
+	dc.w $786F	; plane_1_pixels
+	dc.w $F7EF	; plane_2_pixels
+	dc.w $7062	; plane_3_pixels
+	dc.w $B7D9	; plane_0_pixels
+	dc.w $7837	; plane_1_pixels
+	dc.w $F7F7	; plane_2_pixels
+	dc.w $4032	; plane_3_pixels
+	dc.w $B7ED	; plane_0_pixels
+	dc.w $781B	; plane_1_pixels
+	dc.w $F7FB	; plane_2_pixels
+	dc.w $401A	; plane_3_pixels
+	dc.w $B7F7	; plane_0_pixels
+	dc.w $780D	; plane_1_pixels
+	dc.w $F7FD	; plane_2_pixels
+	dc.w $400C	; plane_3_pixels
+	dc.w $B7FB	; plane_0_pixels
+	dc.w $7806	; plane_1_pixels
+	dc.w $F7FE	; plane_2_pixels
+	dc.w $4006	; plane_3_pixels
+	dc.w $B7FD	; plane_0_pixels
+	dc.w $7803	; plane_1_pixels
+	dc.w $F7FF	; plane_2_pixels
+	dc.w $4003	; plane_3_pixels
+	dc.w $87FE	; plane_0_pixels
+	dc.w $7801	; plane_1_pixels
+	dc.w $87FF	; plane_2_pixels
+	dc.w $0001	; plane_3_pixels
 world_tile_pixels_013_through_039:
 	INCBIN "assets/world_tile_pixels_013_through_039.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FE,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $1F,$FE,$FF,$FD,$9F,$FD,$9F,$FD,$06,$06,$FF,$F9,$86,$09,$86,$09
-	dc.b $0B,$E2,$F4,$1D,$80,$15,$80,$1D,$0B,$E2,$F4,$1D,$80,$15,$80,$1D
-	dc.b $0E,$02,$F3,$FD,$83,$F5,$83,$FD,$0F,$F6,$F8,$09,$88,$09,$88,$09
-	dc.b $0D,$56,$FA,$A9,$8A,$A1,$8A,$A1,$18,$16,$F7,$E9,$92,$A1,$92,$A1
-	dc.b $18,$3A,$F7,$C5,$92,$81,$92,$81,$38,$7A,$E7,$85,$A2,$81,$A2,$81
-	dc.b $3A,$EA,$E5,$15,$A0,$31,$A0,$11,$7F,$DC,$C0,$23,$C0,$31,$C0,$31
-	dc.b $7F,$FC,$C0,$03,$C0,$01,$C0,$01,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
+world_tile_pixels_040:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $1FFE	; plane_0_pixels
+	dc.w $FFFD	; plane_1_pixels
+	dc.w $9FFD	; plane_2_pixels
+	dc.w $9FFD	; plane_3_pixels
+	dc.w $0606	; plane_0_pixels
+	dc.w $FFF9	; plane_1_pixels
+	dc.w $8609	; plane_2_pixels
+	dc.w $8609	; plane_3_pixels
+	dc.w $0BE2	; plane_0_pixels
+	dc.w $F41D	; plane_1_pixels
+	dc.w $8015	; plane_2_pixels
+	dc.w $801D	; plane_3_pixels
+	dc.w $0BE2	; plane_0_pixels
+	dc.w $F41D	; plane_1_pixels
+	dc.w $8015	; plane_2_pixels
+	dc.w $801D	; plane_3_pixels
+	dc.w $0E02	; plane_0_pixels
+	dc.w $F3FD	; plane_1_pixels
+	dc.w $83F5	; plane_2_pixels
+	dc.w $83FD	; plane_3_pixels
+	dc.w $0FF6	; plane_0_pixels
+	dc.w $F809	; plane_1_pixels
+	dc.w $8809	; plane_2_pixels
+	dc.w $8809	; plane_3_pixels
+	dc.w $0D56	; plane_0_pixels
+	dc.w $FAA9	; plane_1_pixels
+	dc.w $8AA1	; plane_2_pixels
+	dc.w $8AA1	; plane_3_pixels
+	dc.w $1816	; plane_0_pixels
+	dc.w $F7E9	; plane_1_pixels
+	dc.w $92A1	; plane_2_pixels
+	dc.w $92A1	; plane_3_pixels
+	dc.w $183A	; plane_0_pixels
+	dc.w $F7C5	; plane_1_pixels
+	dc.w $9281	; plane_2_pixels
+	dc.w $9281	; plane_3_pixels
+	dc.w $387A	; plane_0_pixels
+	dc.w $E785	; plane_1_pixels
+	dc.w $A281	; plane_2_pixels
+	dc.w $A281	; plane_3_pixels
+	dc.w $3AEA	; plane_0_pixels
+	dc.w $E515	; plane_1_pixels
+	dc.w $A031	; plane_2_pixels
+	dc.w $A011	; plane_3_pixels
+	dc.w $7FDC	; plane_0_pixels
+	dc.w $C023	; plane_1_pixels
+	dc.w $C031	; plane_2_pixels
+	dc.w $C031	; plane_3_pixels
+	dc.w $7FFC	; plane_0_pixels
+	dc.w $C003	; plane_1_pixels
+	dc.w $C001	; plane_2_pixels
+	dc.w $C001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
 world_tile_pixels_041_through_042:
 	INCBIN "assets/world_tile_pixels_041_through_042.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$80,$00,$80,$00,$80,$00
-	dc.b $7F,$FF,$80,$00,$80,$00,$80,$00,$00,$07,$FF,$F8,$FF,$F8,$FF,$F8
-	dc.b $00,$0F,$FF,$F0,$FF,$F0,$FF,$F0,$1F,$FF,$E0,$00,$E0,$00,$E0,$00
-	dc.b $60,$0F,$9F,$F0,$80,$00,$80,$00,$1F,$FF,$E0,$00,$E0,$00,$E0,$00
-	dc.b $1F,$FF,$E0,$00,$E0,$00,$E0,$00,$00,$07,$FF,$F8,$FF,$F8,$FF,$F8
-	dc.b $00,$0F,$FF,$F0,$FF,$F0,$FF,$F0,$0F,$FF,$F0,$00,$F0,$00,$F0,$00
-	dc.b $78,$0F,$87,$F0,$80,$00,$80,$00,$07,$FF,$F8,$00,$F8,$00,$F8,$00
-	dc.b $07,$FF,$F8,$00,$F8,$00,$F8,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
+world_tile_pixels_043:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $8000	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $8000	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $0007	; plane_0_pixels
+	dc.w $FFF8	; plane_1_pixels
+	dc.w $FFF8	; plane_2_pixels
+	dc.w $FFF8	; plane_3_pixels
+	dc.w $000F	; plane_0_pixels
+	dc.w $FFF0	; plane_1_pixels
+	dc.w $FFF0	; plane_2_pixels
+	dc.w $FFF0	; plane_3_pixels
+	dc.w $1FFF	; plane_0_pixels
+	dc.w $E000	; plane_1_pixels
+	dc.w $E000	; plane_2_pixels
+	dc.w $E000	; plane_3_pixels
+	dc.w $600F	; plane_0_pixels
+	dc.w $9FF0	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $1FFF	; plane_0_pixels
+	dc.w $E000	; plane_1_pixels
+	dc.w $E000	; plane_2_pixels
+	dc.w $E000	; plane_3_pixels
+	dc.w $1FFF	; plane_0_pixels
+	dc.w $E000	; plane_1_pixels
+	dc.w $E000	; plane_2_pixels
+	dc.w $E000	; plane_3_pixels
+	dc.w $0007	; plane_0_pixels
+	dc.w $FFF8	; plane_1_pixels
+	dc.w $FFF8	; plane_2_pixels
+	dc.w $FFF8	; plane_3_pixels
+	dc.w $000F	; plane_0_pixels
+	dc.w $FFF0	; plane_1_pixels
+	dc.w $FFF0	; plane_2_pixels
+	dc.w $FFF0	; plane_3_pixels
+	dc.w $0FFF	; plane_0_pixels
+	dc.w $F000	; plane_1_pixels
+	dc.w $F000	; plane_2_pixels
+	dc.w $F000	; plane_3_pixels
+	dc.w $780F	; plane_0_pixels
+	dc.w $87F0	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $07FF	; plane_0_pixels
+	dc.w $F800	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $07FF	; plane_0_pixels
+	dc.w $F800	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
 world_tile_pixels_044_through_046:
 	INCBIN "assets/world_tile_pixels_044_through_046.bin"
 ; bitmap
-	dcb.b $8,$FF
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$FF,$FF,$00,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00
+world_tile_pixels_047:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $80FF	; plane_0_pixels
+	dc.w $FF00	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
 world_tile_pixels_048_through_049:
 	INCBIN "assets/world_tile_pixels_048_through_049.bin"
 ; bitmap
-	dcb.b $8,$FF
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$01,$00,$FE,$00,$00,$00,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00
+world_tile_pixels_050:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FF01	; plane_0_pixels
+	dc.w $00FE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
 world_tile_pixels_051_through_055:
 	INCBIN "assets/world_tile_pixels_051_through_055.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$01,$80,$01,$80
-	dc.b $00,$00,$FF,$FF,$03,$80,$03,$80,$00,$00,$FF,$FF,$07,$FF,$06,$FF
-	dc.b $00,$00,$FF,$FF,$0F,$FF,$0C,$00,$00,$00,$FF,$FF,$1F,$FF,$1B,$FF
-	dc.b $00,$00,$FF,$FF,$3F,$FF,$37,$FF,$00,$00,$FF,$FF,$7F,$FF,$6F,$FF
-	dc.b $10,$00,$FF,$FF,$7F,$FF,$6F,$FF,$08,$00,$FF,$FF,$3F,$FF,$37,$FF
-	dc.b $04,$00,$FF,$FF,$1F,$FF,$1B,$FF,$03,$FF,$FF,$FF,$0F,$FF,$0C,$00
-	dc.b $01,$00,$FF,$FF,$07,$FF,$06,$FF,$00,$00,$FF,$FF,$03,$80,$03,$80
-	dc.b $00,$00,$FF,$FF,$01,$80,$01,$80,$00,$00,$FF,$FF,$00,$00,$00,$00
+world_tile_pixels_056:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0180	; plane_2_pixels
+	dc.w $0180	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0380	; plane_2_pixels
+	dc.w $0380	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $07FF	; plane_2_pixels
+	dc.w $06FF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0C00	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $1FFF	; plane_2_pixels
+	dc.w $1BFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $3FFF	; plane_2_pixels
+	dc.w $37FF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFF	; plane_2_pixels
+	dc.w $6FFF	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFF	; plane_2_pixels
+	dc.w $6FFF	; plane_3_pixels
+	dc.w $0800	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $3FFF	; plane_2_pixels
+	dc.w $37FF	; plane_3_pixels
+	dc.w $0400	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $1FFF	; plane_2_pixels
+	dc.w $1BFF	; plane_3_pixels
+	dc.w $03FF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0C00	; plane_3_pixels
+	dc.w $0100	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $07FF	; plane_2_pixels
+	dc.w $06FF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0380	; plane_2_pixels
+	dc.w $0380	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0180	; plane_2_pixels
+	dc.w $0180	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
 world_tile_pixels_057:
 	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$01,$80,$01,$80	; bitmap
 	dc.b $00,$00,$FF,$FF,$01,$C0,$01,$C0,$00,$00,$FF,$FF,$FF,$E0,$FF,$60
@@ -19755,139 +20103,931 @@ world_tile_pixels_057:
 	dc.b $00,$20,$FF,$FF,$FF,$F8,$FF,$D8,$FF,$C0,$FF,$FF,$FF,$F0,$00,$30
 	dc.b $00,$80,$FF,$FF,$FF,$E0,$FF,$60,$00,$00,$FF,$FF,$01,$C0,$01,$C0
 	dc.b $00,$00,$FF,$FF,$01,$80,$01,$80,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $C0,$00,$7F,$FF,$40,$00,$40,$00,$C0,$00,$7F,$FF,$40,$00,$40,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
+world_tile_pixels_058:
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+	dc.w $C000	; plane_0_pixels
+	dc.w $7FFF	; plane_1_pixels
+	dc.w $4000	; plane_2_pixels
+	dc.w $4000	; plane_3_pixels
+world_tile_pixels_059:
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
 world_tile_pixels_060_through_061:
 	INCBIN "assets/world_tile_pixels_060_through_061.bin"
 ; bitmap
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$84,$21,$7B,$DE,$00,$00,$00,$00
-	dc.b $84,$21,$7B,$DE,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
+world_tile_pixels_062:
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+world_tile_pixels_063:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8421	; plane_0_pixels
+	dc.w $7BDE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
 world_tile_pixels_064_through_070:
 	INCBIN "assets/world_tile_pixels_064_through_070.bin"
 ; bitmap
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$81,$00,$FE,$FF,$80,$00,$80,$00
-	dc.b $81,$00,$FE,$FF,$80,$00,$80,$00,$80,$FF,$FF,$FF,$80,$FF,$80,$FF
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$80,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $80,$00,$FF,$FF,$80,$00,$80,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dcb.b $8,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
-	dc.b $FF,$FF,$00,$00,$00,$00,$01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01
-	dc.b $FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01
-	dc.b $FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00,$01,$01
-	dc.b $FF,$FE,$01,$00,$01,$00,$01,$01,$FF,$FE,$01,$00,$01,$00,$FF,$01
-	dc.b $FF,$FE,$FF,$00,$FF,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$00,$01
-	dc.b $FF,$FE,$00,$00,$00,$00,$00,$01,$FF,$FE,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$FF,$FF
-	dc.b $00,$00,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$80,$01
-	dc.b $7F,$FE,$00,$00,$00,$00,$80,$01,$7F,$FE,$00,$00,$00,$00,$FF,$FF
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$3F,$FE,$C0,$01,$C0,$01,$C0,$01,$40,$02
-	dc.b $BF,$FD,$BF,$FD,$BF,$FD,$40,$12,$BF,$ED,$BF,$ED,$BF,$ED,$60,$02
-	dc.b $9F,$FD,$9F,$FD,$9F,$FD,$60,$12,$9F,$ED,$9F,$ED,$9F,$ED,$70,$02
-	dc.b $8F,$FD,$8F,$FD,$8F,$FD,$70,$12,$8F,$ED,$8F,$ED,$8F,$ED,$70,$02
-	dc.b $8F,$FD,$8F,$FD,$8F,$FD,$70,$12,$8F,$ED,$8F,$ED,$8F,$ED,$70,$02
-	dc.b $8F,$FD,$8F,$ED,$8F,$ED,$70,$1E,$8F,$F1,$8F,$F1,$8F,$F1,$70,$1E
-	dc.b $8F,$F1,$8F,$F1,$8F,$F1,$7F,$FE,$8F,$E1,$8F,$E1,$8F,$E1,$7F,$FE
-	dc.b $80,$01,$80,$01,$80,$01,$7F,$FE,$80,$01,$80,$01,$80,$01,$00,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$0F,$E0,$10,$00
-	dc.b $FF,$EF,$FF,$FF,$EF,$EF,$10,$00,$FF,$EF,$FF,$FF,$EF,$EF,$10,$00
-	dc.b $FF,$EF,$FF,$FF,$EF,$EF,$1F,$E0,$FF,$EF,$FF,$FF,$E0,$0F,$10,$00
-	dc.b $FF,$EF,$FF,$FF,$E0,$0F,$10,$00,$FF,$EF,$FF,$FF,$EF,$EF,$10,$00
-	dc.b $FF,$EF,$FF,$FF,$EF,$EF,$10,$00,$FF,$EF,$FF,$FF,$EF,$EF,$1F,$E0
-	dc.b $FF,$FF,$FF,$FF,$E0,$1F,$00,$00
-	dcb.b $C,$FF
-	dc.b $00,$00,$25,$14,$FF,$FF,$FF,$FF,$DA,$EB,$25,$14,$FF,$FF,$FF,$FF
-	dc.b $DA,$EB,$FF,$FF,$00,$00,$00,$00,$00,$00
+world_tile_pixels_071:
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8100	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $80FF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $80FF	; plane_2_pixels
+	dc.w $80FF	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+world_tile_pixels_072:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+world_tile_pixels_073:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+world_tile_pixels_074:
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $0101	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0100	; plane_2_pixels
+	dc.w $0100	; plane_3_pixels
+	dc.w $FF01	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $FF00	; plane_2_pixels
+	dc.w $FF00	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+world_tile_pixels_075:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $7FFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+world_tile_pixels_076:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $3FFE	; plane_0_pixels
+	dc.w $C001	; plane_1_pixels
+	dc.w $C001	; plane_2_pixels
+	dc.w $C001	; plane_3_pixels
+	dc.w $4002	; plane_0_pixels
+	dc.w $BFFD	; plane_1_pixels
+	dc.w $BFFD	; plane_2_pixels
+	dc.w $BFFD	; plane_3_pixels
+	dc.w $4012	; plane_0_pixels
+	dc.w $BFED	; plane_1_pixels
+	dc.w $BFED	; plane_2_pixels
+	dc.w $BFED	; plane_3_pixels
+	dc.w $6002	; plane_0_pixels
+	dc.w $9FFD	; plane_1_pixels
+	dc.w $9FFD	; plane_2_pixels
+	dc.w $9FFD	; plane_3_pixels
+	dc.w $6012	; plane_0_pixels
+	dc.w $9FED	; plane_1_pixels
+	dc.w $9FED	; plane_2_pixels
+	dc.w $9FED	; plane_3_pixels
+	dc.w $7002	; plane_0_pixels
+	dc.w $8FFD	; plane_1_pixels
+	dc.w $8FFD	; plane_2_pixels
+	dc.w $8FFD	; plane_3_pixels
+	dc.w $7012	; plane_0_pixels
+	dc.w $8FED	; plane_1_pixels
+	dc.w $8FED	; plane_2_pixels
+	dc.w $8FED	; plane_3_pixels
+	dc.w $7002	; plane_0_pixels
+	dc.w $8FFD	; plane_1_pixels
+	dc.w $8FFD	; plane_2_pixels
+	dc.w $8FFD	; plane_3_pixels
+	dc.w $7012	; plane_0_pixels
+	dc.w $8FED	; plane_1_pixels
+	dc.w $8FED	; plane_2_pixels
+	dc.w $8FED	; plane_3_pixels
+	dc.w $7002	; plane_0_pixels
+	dc.w $8FFD	; plane_1_pixels
+	dc.w $8FED	; plane_2_pixels
+	dc.w $8FED	; plane_3_pixels
+	dc.w $701E	; plane_0_pixels
+	dc.w $8FF1	; plane_1_pixels
+	dc.w $8FF1	; plane_2_pixels
+	dc.w $8FF1	; plane_3_pixels
+	dc.w $701E	; plane_0_pixels
+	dc.w $8FF1	; plane_1_pixels
+	dc.w $8FF1	; plane_2_pixels
+	dc.w $8FF1	; plane_3_pixels
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $8FE1	; plane_1_pixels
+	dc.w $8FE1	; plane_2_pixels
+	dc.w $8FE1	; plane_3_pixels
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $8001	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $8001	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+world_tile_pixels_077:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0FE0	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $1FE0	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $E00F	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $E00F	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $1000	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $1FE0	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $E01F	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $2514	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $DAEB	; plane_3_pixels
+	dc.w $2514	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $DAEB	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
 world_tile_pixels_078_through_089:
 	INCBIN "assets/world_tile_pixels_078_through_089.bin"
 ; bitmap
-	dcb.b $8,$FF
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $80,$01,$FF,$FE,$80,$00,$80,$00,$80,$01,$FF,$FE,$80,$00,$80,$00
-	dc.b $00,$01,$FF,$FE,$FF,$FE,$FF,$FE
+world_tile_pixels_090:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $FFFE	; plane_2_pixels
+	dc.w $FFFE	; plane_3_pixels
 world_tile_pixels_091_through_094:
 	INCBIN "assets/world_tile_pixels_091_through_094.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$03,$C0,$FF,$FF,$03,$C0,$03,$C0
-	dc.b $04,$20,$FF,$FF,$07,$E0,$07,$E0,$0B,$D0,$FF,$FF,$0F,$F0,$0F,$F0
-	dc.b $17,$E8,$FF,$FF,$1F,$F8,$1C,$38,$2F,$F4,$FF,$FF,$3F,$FC,$38,$1C
-	dc.b $5B,$DA,$FF,$FF,$7F,$FE,$74,$2E,$59,$9A,$FF,$FF,$7F,$FE,$76,$6E
-	dc.b $58,$1A,$FF,$FF,$7F,$FE,$77,$EE,$58,$1A,$FF,$FF,$7F,$FE,$77,$EE
-	dc.b $2F,$F4,$FF,$FF,$3F,$FC,$38,$1C,$17,$E8,$FF,$FF,$1F,$F8,$1C,$38
-	dc.b $0B,$D0,$FF,$FF,$0F,$F0,$0F,$F0,$04,$20,$FF,$FF,$07,$E0,$07,$E0
-	dc.b $03,$C0,$FF,$FF,$03,$C0,$03,$C0,$00,$00,$FF,$FF,$00,$00,$00,$00
+world_tile_pixels_095:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $03C0	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $03C0	; plane_2_pixels
+	dc.w $03C0	; plane_3_pixels
+	dc.w $0420	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $07E0	; plane_2_pixels
+	dc.w $07E0	; plane_3_pixels
+	dc.w $0BD0	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0FF0	; plane_2_pixels
+	dc.w $0FF0	; plane_3_pixels
+	dc.w $17E8	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $1FF8	; plane_2_pixels
+	dc.w $1C38	; plane_3_pixels
+	dc.w $2FF4	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $3FFC	; plane_2_pixels
+	dc.w $381C	; plane_3_pixels
+	dc.w $5BDA	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFE	; plane_2_pixels
+	dc.w $742E	; plane_3_pixels
+	dc.w $599A	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFE	; plane_2_pixels
+	dc.w $766E	; plane_3_pixels
+	dc.w $581A	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFE	; plane_2_pixels
+	dc.w $77EE	; plane_3_pixels
+	dc.w $581A	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFE	; plane_2_pixels
+	dc.w $77EE	; plane_3_pixels
+	dc.w $2FF4	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $3FFC	; plane_2_pixels
+	dc.w $381C	; plane_3_pixels
+	dc.w $17E8	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $1FF8	; plane_2_pixels
+	dc.w $1C38	; plane_3_pixels
+	dc.w $0BD0	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0FF0	; plane_2_pixels
+	dc.w $0FF0	; plane_3_pixels
+	dc.w $0420	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $07E0	; plane_2_pixels
+	dc.w $07E0	; plane_3_pixels
+	dc.w $03C0	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $03C0	; plane_2_pixels
+	dc.w $03C0	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
 world_tile_pixels_096_through_101:
 	INCBIN "assets/world_tile_pixels_096_through_101.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$F0,$1F,$FF,$FF,$0F,$E0,$0F,$E0
-	dc.b $00,$00,$EF,$EF,$FF,$FF,$EF,$EF,$00,$10,$EF,$FF,$FF,$EF,$EF,$EF
-	dc.b $00,$00,$EF,$EF,$FF,$FF,$EF,$EF,$00,$10,$E0,$1F,$FF,$EF,$E0,$0F
-	dc.b $0F,$E0,$EF,$EF,$F0,$1F,$E0,$0F,$00,$10,$EF,$FF,$FF,$EF,$EF,$EF
-	dc.b $00,$00,$EF,$EF,$FF,$FF,$EF,$EF,$00,$00,$EF,$EF,$FF,$FF,$EF,$EF
-	dc.b $00,$00,$F0,$1F,$FF,$FF,$F0,$1F,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$BF,$FB,$FF,$FF,$BF,$FB
-	dc.b $00,$00,$BF,$FB,$FF,$FF,$BF,$FB,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF
+world_tile_pixels_102:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $F01F	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0FE0	; plane_2_pixels
+	dc.w $0FE0	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $EFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $0010	; plane_0_pixels
+	dc.w $EFFF	; plane_1_pixels
+	dc.w $FFEF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $EFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $0010	; plane_0_pixels
+	dc.w $E01F	; plane_1_pixels
+	dc.w $FFEF	; plane_2_pixels
+	dc.w $E00F	; plane_3_pixels
+	dc.w $0FE0	; plane_0_pixels
+	dc.w $EFEF	; plane_1_pixels
+	dc.w $F01F	; plane_2_pixels
+	dc.w $E00F	; plane_3_pixels
+	dc.w $0010	; plane_0_pixels
+	dc.w $EFFF	; plane_1_pixels
+	dc.w $FFEF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $EFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $EFEF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $EFEF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $F01F	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $F01F	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $BFFB	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $BFFB	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $BFFB	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $BFFB	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
 world_tile_pixels_103:
 	dc.b $08,$00,$FF,$FF,$1F,$F8,$17,$E8,$04,$00,$FF,$FF,$0F,$FC,$0B,$F4	; bitmap
 	dc.b $02,$00,$FF,$FF,$07,$FE,$05,$FA,$01,$00,$FF,$FF,$03,$FF,$02,$FD
@@ -19897,36 +21037,207 @@ world_tile_pixels_103:
 	dc.b $00,$02,$FF,$FF,$00,$07,$00,$05,$00,$01,$FF,$FF,$00,$03,$00,$02
 	dc.b $00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF,$00,$00,$00,$00
 	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$1F,$E0,$1F,$E0
-	dc.b $00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$00,$10,$FF,$EF,$FF,$EF,$FF,$EF
-	dc.b $00,$10,$FF,$EF,$FF,$EF,$FF,$EF,$1F,$F0,$E0,$0F,$E0,$0F,$E0,$0F
-	dc.b $01,$08,$FE,$F7,$F0,$87,$F0,$87,$20,$04,$DF,$FB,$CE,$73,$CE,$73
-	dc.b $0A,$77,$FD,$E8,$E9,$E8,$E9,$E8,$AB,$F8,$DC,$67,$98,$67,$98,$67
-	dc.b $88,$D8,$FF,$67,$9B,$47,$9B,$47,$89,$59,$FE,$E6,$9A,$C6,$9A,$C6
-	dc.b $88,$D8,$FF,$67,$9B,$47,$9B,$47,$88,$DB,$FF,$64,$9B,$44,$9B,$44
-	dc.b $88,$D8,$FF,$67,$9B,$47,$9B,$47,$89,$59,$FE,$E6,$9A,$C6,$9A,$C6
+world_tile_pixels_104:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $1FE0	; plane_2_pixels
+	dc.w $1FE0	; plane_3_pixels
+	dc.w $0010	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFEF	; plane_2_pixels
+	dc.w $FFEF	; plane_3_pixels
+	dc.w $0010	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFEF	; plane_2_pixels
+	dc.w $FFEF	; plane_3_pixels
+	dc.w $0010	; plane_0_pixels
+	dc.w $FFEF	; plane_1_pixels
+	dc.w $FFEF	; plane_2_pixels
+	dc.w $FFEF	; plane_3_pixels
+	dc.w $1FF0	; plane_0_pixels
+	dc.w $E00F	; plane_1_pixels
+	dc.w $E00F	; plane_2_pixels
+	dc.w $E00F	; plane_3_pixels
+	dc.w $0108	; plane_0_pixels
+	dc.w $FEF7	; plane_1_pixels
+	dc.w $F087	; plane_2_pixels
+	dc.w $F087	; plane_3_pixels
+	dc.w $2004	; plane_0_pixels
+	dc.w $DFFB	; plane_1_pixels
+	dc.w $CE73	; plane_2_pixels
+	dc.w $CE73	; plane_3_pixels
+	dc.w $0A77	; plane_0_pixels
+	dc.w $FDE8	; plane_1_pixels
+	dc.w $E9E8	; plane_2_pixels
+	dc.w $E9E8	; plane_3_pixels
+	dc.w $ABF8	; plane_0_pixels
+	dc.w $DC67	; plane_1_pixels
+	dc.w $9867	; plane_2_pixels
+	dc.w $9867	; plane_3_pixels
+	dc.w $88D8	; plane_0_pixels
+	dc.w $FF67	; plane_1_pixels
+	dc.w $9B47	; plane_2_pixels
+	dc.w $9B47	; plane_3_pixels
+	dc.w $8959	; plane_0_pixels
+	dc.w $FEE6	; plane_1_pixels
+	dc.w $9AC6	; plane_2_pixels
+	dc.w $9AC6	; plane_3_pixels
+	dc.w $88D8	; plane_0_pixels
+	dc.w $FF67	; plane_1_pixels
+	dc.w $9B47	; plane_2_pixels
+	dc.w $9B47	; plane_3_pixels
+	dc.w $88DB	; plane_0_pixels
+	dc.w $FF64	; plane_1_pixels
+	dc.w $9B44	; plane_2_pixels
+	dc.w $9B44	; plane_3_pixels
+	dc.w $88D8	; plane_0_pixels
+	dc.w $FF67	; plane_1_pixels
+	dc.w $9B47	; plane_2_pixels
+	dc.w $9B47	; plane_3_pixels
+	dc.w $8959	; plane_0_pixels
+	dc.w $FEE6	; plane_1_pixels
+	dc.w $9AC6	; plane_2_pixels
+	dc.w $9AC6	; plane_3_pixels
 world_tile_pixels_105_through_119:
 	INCBIN "assets/world_tile_pixels_105_through_119.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$00,$00,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF
-	dc.b $7F,$FF,$FF,$FF,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FE,$FF,$FE,$7F,$FE
-	dc.b $7F,$FE,$FF,$FD,$FF,$FC,$7F,$FC,$7F,$FD,$FF,$FA,$FF,$F8,$7F,$F8
-	dc.b $7F,$FB,$FF,$F5,$FF,$F1,$7F,$F1,$7F,$F6,$FF,$EB,$FF,$E2,$7F,$E2
-	dc.b $7F,$EC,$FF,$D7,$FF,$C4,$7F,$C4,$7F,$D8,$FF,$AF,$FF,$88,$7F,$88
+world_tile_pixels_120:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $7FFF	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $FFFE	; plane_2_pixels
+	dc.w $7FFE	; plane_3_pixels
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $FFFD	; plane_1_pixels
+	dc.w $FFFC	; plane_2_pixels
+	dc.w $7FFC	; plane_3_pixels
+	dc.w $7FFD	; plane_0_pixels
+	dc.w $FFFA	; plane_1_pixels
+	dc.w $FFF8	; plane_2_pixels
+	dc.w $7FF8	; plane_3_pixels
+	dc.w $7FFB	; plane_0_pixels
+	dc.w $FFF5	; plane_1_pixels
+	dc.w $FFF1	; plane_2_pixels
+	dc.w $7FF1	; plane_3_pixels
+	dc.w $7FF6	; plane_0_pixels
+	dc.w $FFEB	; plane_1_pixels
+	dc.w $FFE2	; plane_2_pixels
+	dc.w $7FE2	; plane_3_pixels
+	dc.w $7FEC	; plane_0_pixels
+	dc.w $FFD7	; plane_1_pixels
+	dc.w $FFC4	; plane_2_pixels
+	dc.w $7FC4	; plane_3_pixels
+	dc.w $7FD8	; plane_0_pixels
+	dc.w $FFAF	; plane_1_pixels
+	dc.w $FF88	; plane_2_pixels
+	dc.w $7F88	; plane_3_pixels
 world_tile_pixels_121_through_164:
 	INCBIN "assets/world_tile_pixels_121_through_164.bin"
 ; bitmap
-	dc.b $FF,$C3,$00,$00,$FF,$FF,$07,$3C,$0F,$80,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $FF,$C3,$00,$00,$FF,$FF,$07,$3C,$FF,$E7,$00,$00,$FF,$FF,$07,$18
-	dc.b $FF,$FF,$10,$00,$EF,$FF,$12,$18,$FF,$FF,$28,$00,$D7,$FF,$3A,$7E
-	dc.b $EF,$FF,$44,$00,$BB,$FF,$FF,$FF,$FF,$FF,$28,$00,$D7,$FF,$3A,$7E
-	dc.b $FF,$FF,$10,$00,$EF,$FF,$17,$18,$FF,$FF,$00,$18,$FF,$E7,$0F,$98
-	dc.b $FF,$FF,$E0,$3F,$1F,$C0,$FF,$FF,$FF,$FF,$00,$18,$FF,$E7,$0F,$98
-	dc.b $FF,$E7,$00,$00,$FF,$FF,$07,$18,$FF,$E7,$00,$00,$FF,$FF,$02,$18
-	dc.b $FF,$E7,$00,$00,$FF,$FF,$02,$18,$FF,$E7,$00,$00,$FF,$FF,$02,$18
+world_tile_pixels_165:
+	dc.w $FFC3	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $073C	; plane_3_pixels
+	dc.w $0F80	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFC3	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $073C	; plane_3_pixels
+	dc.w $FFE7	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0718	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $1000	; plane_1_pixels
+	dc.w $EFFF	; plane_2_pixels
+	dc.w $1218	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $2800	; plane_1_pixels
+	dc.w $D7FF	; plane_2_pixels
+	dc.w $3A7E	; plane_3_pixels
+	dc.w $EFFF	; plane_0_pixels
+	dc.w $4400	; plane_1_pixels
+	dc.w $BBFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $2800	; plane_1_pixels
+	dc.w $D7FF	; plane_2_pixels
+	dc.w $3A7E	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $1000	; plane_1_pixels
+	dc.w $EFFF	; plane_2_pixels
+	dc.w $1718	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0018	; plane_1_pixels
+	dc.w $FFE7	; plane_2_pixels
+	dc.w $0F98	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $E03F	; plane_1_pixels
+	dc.w $1FC0	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0018	; plane_1_pixels
+	dc.w $FFE7	; plane_2_pixels
+	dc.w $0F98	; plane_3_pixels
+	dc.w $FFE7	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0718	; plane_3_pixels
+	dc.w $FFE7	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0218	; plane_3_pixels
+	dc.w $FFE7	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0218	; plane_3_pixels
+	dc.w $FFE7	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $0218	; plane_3_pixels
 world_tile_pixels_166:
 	dc.b $14,$00,$1C,$00,$FB,$FF,$08,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF	; bitmap
 	dc.b $01,$40,$01,$C0,$FF,$BF,$00,$80,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
@@ -19936,109 +21247,680 @@ world_tile_pixels_166:
 	dc.b $80,$02,$80,$03,$7F,$FF,$00,$01,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 	dc.b $A0,$00,$E0,$00,$DF,$FF,$40,$00,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
 	dc.b $00,$28,$00,$38,$FF,$F7,$00,$10,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $7F,$FE,$FF,$FF,$7F,$FF,$7F,$FF,$FF,$FC,$80,$03,$80,$01,$80,$01
-	dc.b $C0,$02,$BF,$FF,$BF,$FF,$BF,$FF,$D7,$EA,$A8,$17,$A8,$17,$A8,$17
-	dc.b $D8,$1A,$B7,$F7,$B7,$F7,$B7,$F7,$CD,$B2,$BB,$EF,$BB,$EF,$BB,$EF
-	dc.b $D6,$6A,$AD,$D7,$AD,$D7,$AD,$D7,$C3,$42,$BE,$BF,$BE,$BF,$BE,$BF
-	dc.b $D9,$BA,$BF,$7F,$BB,$7F,$BB,$7F,$DA,$DA,$A7,$A7,$A7,$A7,$A7,$A7
-	dc.b $C6,$62,$BD,$DF,$BD,$DF,$BD,$DF,$CD,$32,$BB,$EF,$BB,$6F,$BB,$6F
-	dc.b $DB,$DA,$B4,$37,$B4,$37,$B4,$37,$D0,$0A,$AF,$FF,$AF,$FF,$AF,$FF
-	dc.b $FF,$FE,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
+world_tile_pixels_167:
+	dc.w $7FFE	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $7FFF	; plane_2_pixels
+	dc.w $7FFF	; plane_3_pixels
+	dc.w $FFFC	; plane_0_pixels
+	dc.w $8003	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $C002	; plane_0_pixels
+	dc.w $BFFF	; plane_1_pixels
+	dc.w $BFFF	; plane_2_pixels
+	dc.w $BFFF	; plane_3_pixels
+	dc.w $D7EA	; plane_0_pixels
+	dc.w $A817	; plane_1_pixels
+	dc.w $A817	; plane_2_pixels
+	dc.w $A817	; plane_3_pixels
+	dc.w $D81A	; plane_0_pixels
+	dc.w $B7F7	; plane_1_pixels
+	dc.w $B7F7	; plane_2_pixels
+	dc.w $B7F7	; plane_3_pixels
+	dc.w $CDB2	; plane_0_pixels
+	dc.w $BBEF	; plane_1_pixels
+	dc.w $BBEF	; plane_2_pixels
+	dc.w $BBEF	; plane_3_pixels
+	dc.w $D66A	; plane_0_pixels
+	dc.w $ADD7	; plane_1_pixels
+	dc.w $ADD7	; plane_2_pixels
+	dc.w $ADD7	; plane_3_pixels
+	dc.w $C342	; plane_0_pixels
+	dc.w $BEBF	; plane_1_pixels
+	dc.w $BEBF	; plane_2_pixels
+	dc.w $BEBF	; plane_3_pixels
+	dc.w $D9BA	; plane_0_pixels
+	dc.w $BF7F	; plane_1_pixels
+	dc.w $BB7F	; plane_2_pixels
+	dc.w $BB7F	; plane_3_pixels
+	dc.w $DADA	; plane_0_pixels
+	dc.w $A7A7	; plane_1_pixels
+	dc.w $A7A7	; plane_2_pixels
+	dc.w $A7A7	; plane_3_pixels
+	dc.w $C662	; plane_0_pixels
+	dc.w $BDDF	; plane_1_pixels
+	dc.w $BDDF	; plane_2_pixels
+	dc.w $BDDF	; plane_3_pixels
+	dc.w $CD32	; plane_0_pixels
+	dc.w $BBEF	; plane_1_pixels
+	dc.w $BB6F	; plane_2_pixels
+	dc.w $BB6F	; plane_3_pixels
+	dc.w $DBDA	; plane_0_pixels
+	dc.w $B437	; plane_1_pixels
+	dc.w $B437	; plane_2_pixels
+	dc.w $B437	; plane_3_pixels
+	dc.w $D00A	; plane_0_pixels
+	dc.w $AFFF	; plane_1_pixels
+	dc.w $AFFF	; plane_2_pixels
+	dc.w $AFFF	; plane_3_pixels
+	dc.w $FFFE	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
 world_tile_pixels_168_through_176:
 	INCBIN "assets/world_tile_pixels_168_through_176.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$3F,$F8,$3F,$F8
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$80,$01,$80,$01
-	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
-	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
-	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
-	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$80,$01,$80,$01
-	dc.b $00,$00,$FF,$FF,$80,$01,$80,$01,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
+world_tile_pixels_177:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $3FF8	; plane_2_pixels
+	dc.w $3FF8	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8001	; plane_2_pixels
+	dc.w $8001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
 world_tile_pixels_178_through_312:
 	INCBIN "assets/world_tile_pixels_178_through_312.bin"
 ; bitmap
-	dc.b $01,$00,$00,$00,$FF,$FF,$FF,$FF,$20,$04,$20,$04,$DF,$FB,$FF,$FF
-	dc.b $08,$41,$00,$40,$FF,$BF,$FF,$FF,$80,$40,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $08,$24,$08,$00,$F7,$FF,$FF,$FF,$02,$00,$00,$00,$FF,$FF,$FF,$FF
-	dc.b $20,$08,$00,$08,$FF,$F7,$FF,$FF,$10,$21,$10,$01,$EF,$FE,$FF,$FF
-	dc.b $41,$00,$40,$00,$BF,$FF,$FF,$FF,$89,$12,$01,$02,$FE,$FD,$FF,$FF
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF,$21,$82,$01,$00,$FE,$FF,$FF,$FF
-	dc.b $40,$04,$40,$04,$BF,$FB,$FF,$FF,$08,$28,$00,$08,$FF,$F7,$FF,$FF
-	dc.b $41,$02,$01,$00,$FE,$FD,$FF,$FF,$08,$04,$08,$00,$F7,$FF,$FF,$FF
+world_tile_pixels_313:
+	dc.w $0100	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $2004	; plane_0_pixels
+	dc.w $2004	; plane_1_pixels
+	dc.w $DFFB	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0841	; plane_0_pixels
+	dc.w $0040	; plane_1_pixels
+	dc.w $FFBF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $8040	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0824	; plane_0_pixels
+	dc.w $0800	; plane_1_pixels
+	dc.w $F7FF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0200	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $2008	; plane_0_pixels
+	dc.w $0008	; plane_1_pixels
+	dc.w $FFF7	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $1021	; plane_0_pixels
+	dc.w $1001	; plane_1_pixels
+	dc.w $EFFE	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $4100	; plane_0_pixels
+	dc.w $4000	; plane_1_pixels
+	dc.w $BFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $8912	; plane_0_pixels
+	dc.w $0102	; plane_1_pixels
+	dc.w $FEFD	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $2182	; plane_0_pixels
+	dc.w $0100	; plane_1_pixels
+	dc.w $FEFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $4004	; plane_0_pixels
+	dc.w $4004	; plane_1_pixels
+	dc.w $BFFB	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0828	; plane_0_pixels
+	dc.w $0008	; plane_1_pixels
+	dc.w $FFF7	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $4102	; plane_0_pixels
+	dc.w $0100	; plane_1_pixels
+	dc.w $FEFD	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0804	; plane_0_pixels
+	dc.w $0800	; plane_1_pixels
+	dc.w $F7FF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
 world_tile_pixels_314_through_366:
 	INCBIN "assets/world_tile_pixels_314_through_366.bin"
 ; bitmap
-	dc.b $FF,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $00,$00,$FF,$FF,$80,$00,$80,$00,$00,$00,$FF,$FF,$80,$00,$80,$00
-	dc.b $00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF,$C0,$00,$C0,$00
-	dc.b $00,$00,$FF,$FF,$C0,$00,$C0,$00,$00,$00,$FF,$FF,$E0,$00,$E0,$00
-	dc.b $00,$00,$FF,$FF,$E0,$00,$E0,$00,$00,$01,$FF,$FE,$E0,$00,$E0,$00
-	dc.b $00,$02,$FF,$FD,$F0,$00,$F0,$00,$00,$05,$FF,$FA,$F0,$00,$F0,$00
-	dc.b $00,$0B,$FF,$F5,$F0,$01,$F0,$01,$00,$16,$FF,$EB,$F8,$02,$F8,$02
-	dc.b $00,$2C,$FF,$D7,$F8,$04,$F8,$04,$00,$58,$FF,$AF,$F8,$08,$F8,$08
+world_tile_pixels_367:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $8000	; plane_2_pixels
+	dc.w $8000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $C000	; plane_2_pixels
+	dc.w $C000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $C000	; plane_2_pixels
+	dc.w $C000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $C000	; plane_2_pixels
+	dc.w $C000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $E000	; plane_2_pixels
+	dc.w $E000	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $E000	; plane_2_pixels
+	dc.w $E000	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $E000	; plane_2_pixels
+	dc.w $E000	; plane_3_pixels
+	dc.w $0002	; plane_0_pixels
+	dc.w $FFFD	; plane_1_pixels
+	dc.w $F000	; plane_2_pixels
+	dc.w $F000	; plane_3_pixels
+	dc.w $0005	; plane_0_pixels
+	dc.w $FFFA	; plane_1_pixels
+	dc.w $F000	; plane_2_pixels
+	dc.w $F000	; plane_3_pixels
+	dc.w $000B	; plane_0_pixels
+	dc.w $FFF5	; plane_1_pixels
+	dc.w $F001	; plane_2_pixels
+	dc.w $F001	; plane_3_pixels
+	dc.w $0016	; plane_0_pixels
+	dc.w $FFEB	; plane_1_pixels
+	dc.w $F802	; plane_2_pixels
+	dc.w $F802	; plane_3_pixels
+	dc.w $002C	; plane_0_pixels
+	dc.w $FFD7	; plane_1_pixels
+	dc.w $F804	; plane_2_pixels
+	dc.w $F804	; plane_3_pixels
+	dc.w $0058	; plane_0_pixels
+	dc.w $FFAF	; plane_1_pixels
+	dc.w $F808	; plane_2_pixels
+	dc.w $F808	; plane_3_pixels
 world_tile_pixels_368_through_370:
 	INCBIN "assets/world_tile_pixels_368_through_370.bin"
 ; bitmap
-	dc.b $03,$FF,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $00,$00,$FF,$FF,$FC,$00,$FC,$00,$00,$00,$FF,$FF,$FC,$00,$FC,$00
-	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $80,$00,$FF,$FF,$00,$00,$00,$00,$80,$01,$FF,$FE,$00,$00,$00,$00
-	dc.b $80,$02,$FF,$FD,$00,$00,$00,$00,$80,$05,$FF,$FA,$00,$00,$00,$00
-	dc.b $80,$0B,$FF,$F5,$00,$01,$00,$01,$80,$16,$FF,$EB,$00,$02,$00,$02
-	dc.b $80,$2C,$FF,$D7,$00,$04,$00,$04,$80,$58,$FF,$AF,$00,$08,$00,$08
+world_tile_pixels_371:
+	dc.w $03FF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8002	; plane_0_pixels
+	dc.w $FFFD	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $8005	; plane_0_pixels
+	dc.w $FFFA	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
+	dc.w $800B	; plane_0_pixels
+	dc.w $FFF5	; plane_1_pixels
+	dc.w $0001	; plane_2_pixels
+	dc.w $0001	; plane_3_pixels
+	dc.w $8016	; plane_0_pixels
+	dc.w $FFEB	; plane_1_pixels
+	dc.w $0002	; plane_2_pixels
+	dc.w $0002	; plane_3_pixels
+	dc.w $802C	; plane_0_pixels
+	dc.w $FFD7	; plane_1_pixels
+	dc.w $0004	; plane_2_pixels
+	dc.w $0004	; plane_3_pixels
+	dc.w $8058	; plane_0_pixels
+	dc.w $FFAF	; plane_1_pixels
+	dc.w $0008	; plane_2_pixels
+	dc.w $0008	; plane_3_pixels
 world_tile_pixels_372_through_380:
 	INCBIN "assets/world_tile_pixels_372_through_380.bin"
 ; bitmap
-	dc.b $F1,$FF,$FE,$00,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00
-	dc.b $F0,$00,$FF,$FF,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00
-	dc.b $F0,$00,$FF,$FF,$FE,$00,$FE,$00,$F0,$00,$FF,$FF,$FE,$00,$FE,$00
-	dc.b $F0,$00,$FF,$FF,$FE,$00,$FE,$00,$FC,$00,$FB,$FF,$FA,$00,$FA,$00
-	dc.b $FE,$00,$FD,$FF,$FC,$00,$FC,$00,$FF,$00,$FE,$FF,$FE,$00,$FE,$00
-	dc.b $FF,$80,$FF,$7F,$FF,$00,$FF,$00,$FF,$FF,$FF,$80,$FF,$80,$FF,$80
-	dcb.b $22,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF
-	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$FF,$FF,$0F,$FF,$0F,$FF,$0F,$FF
+world_tile_pixels_381:
+	dc.w $F1FF	; plane_0_pixels
+	dc.w $FE00	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $F000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $F000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $F000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $F000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $F000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $F000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $FC00	; plane_0_pixels
+	dc.w $FBFF	; plane_1_pixels
+	dc.w $FA00	; plane_2_pixels
+	dc.w $FA00	; plane_3_pixels
+	dc.w $FE00	; plane_0_pixels
+	dc.w $FDFF	; plane_1_pixels
+	dc.w $FC00	; plane_2_pixels
+	dc.w $FC00	; plane_3_pixels
+	dc.w $FF00	; plane_0_pixels
+	dc.w $FEFF	; plane_1_pixels
+	dc.w $FE00	; plane_2_pixels
+	dc.w $FE00	; plane_3_pixels
+	dc.w $FF80	; plane_0_pixels
+	dc.w $FF7F	; plane_1_pixels
+	dc.w $FF00	; plane_2_pixels
+	dc.w $FF00	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FF80	; plane_1_pixels
+	dc.w $FF80	; plane_2_pixels
+	dc.w $FF80	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+world_tile_pixels_382:
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0FFF	; plane_1_pixels
+	dc.w $0FFF	; plane_2_pixels
+	dc.w $0FFF	; plane_3_pixels
 world_tile_pixels_383_through_464:
 	INCBIN "assets/world_tile_pixels_383_through_464.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$15,$FF,$EA,$FF,$EA,$FF,$EA
-	dc.b $5F,$D3,$7F,$EE,$9F,$C2,$FF,$C2,$AF,$A7,$3F,$DA,$CF,$82,$FF,$82
-	dc.b $D7,$5A,$9F,$AD,$67,$08,$FF,$08,$EB,$8B,$CE,$F6,$32,$92,$FE,$92
-	dc.b $F4,$A7,$E7,$5A,$1D,$02,$FD,$02,$FA,$4B,$ED,$B6,$18,$02,$F8,$02
-	dc.b $F4,$B2,$FB,$5D,$10,$10,$F0,$10,$EB,$17,$F5,$EA,$21,$22,$E1,$22
-	dc.b $F1,$4B,$CE,$B6,$42,$02,$C2,$02,$FF,$FF,$AE,$EE,$AE,$EE,$AE,$EE
+world_tile_pixels_465:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0015	; plane_0_pixels
+	dc.w $FFEA	; plane_1_pixels
+	dc.w $FFEA	; plane_2_pixels
+	dc.w $FFEA	; plane_3_pixels
+	dc.w $5FD3	; plane_0_pixels
+	dc.w $7FEE	; plane_1_pixels
+	dc.w $9FC2	; plane_2_pixels
+	dc.w $FFC2	; plane_3_pixels
+	dc.w $AFA7	; plane_0_pixels
+	dc.w $3FDA	; plane_1_pixels
+	dc.w $CF82	; plane_2_pixels
+	dc.w $FF82	; plane_3_pixels
+	dc.w $D75A	; plane_0_pixels
+	dc.w $9FAD	; plane_1_pixels
+	dc.w $6708	; plane_2_pixels
+	dc.w $FF08	; plane_3_pixels
+	dc.w $EB8B	; plane_0_pixels
+	dc.w $CEF6	; plane_1_pixels
+	dc.w $3292	; plane_2_pixels
+	dc.w $FE92	; plane_3_pixels
+	dc.w $F4A7	; plane_0_pixels
+	dc.w $E75A	; plane_1_pixels
+	dc.w $1D02	; plane_2_pixels
+	dc.w $FD02	; plane_3_pixels
+	dc.w $FA4B	; plane_0_pixels
+	dc.w $EDB6	; plane_1_pixels
+	dc.w $1802	; plane_2_pixels
+	dc.w $F802	; plane_3_pixels
+	dc.w $F4B2	; plane_0_pixels
+	dc.w $FB5D	; plane_1_pixels
+	dc.w $1010	; plane_2_pixels
+	dc.w $F010	; plane_3_pixels
+	dc.w $EB17	; plane_0_pixels
+	dc.w $F5EA	; plane_1_pixels
+	dc.w $2122	; plane_2_pixels
+	dc.w $E122	; plane_3_pixels
+	dc.w $F14B	; plane_0_pixels
+	dc.w $CEB6	; plane_1_pixels
+	dc.w $4202	; plane_2_pixels
+	dc.w $C202	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $AEEE	; plane_1_pixels
+	dc.w $AEEE	; plane_2_pixels
+	dc.w $AEEE	; plane_3_pixels
 world_tile_pixels_466_through_489:
 	INCBIN "assets/world_tile_pixels_466_through_489.bin"
 ; bitmap
-	dc.b $1F,$FF,$FF,$FF,$FF,$FF,$C0,$00,$18,$00,$FF,$FF,$FF,$FF,$C7,$FF
-	dc.b $18,$00,$FF,$FF,$FF,$FF,$C7,$FF,$18,$00,$FF,$FF,$FF,$FF,$C7,$FF
-	dc.b $30,$00,$FF,$FF,$FF,$FF,$CF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$F8,$00,$F8,$00,$00,$00,$FF,$FF,$F8,$00,$F8,$00
-	dc.b $00,$00,$FF,$FF,$F8,$00,$F8,$00,$00,$00,$FF,$FF,$F8,$00,$F8,$00
-	dc.b $00,$00,$FF,$FF,$F8,$00,$F8,$00,$FF,$FF,$00,$00,$00,$00,$00,$00
+world_tile_pixels_490:
+	dc.w $1FFF	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $C000	; plane_3_pixels
+	dc.w $1800	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $C7FF	; plane_3_pixels
+	dc.w $1800	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $C7FF	; plane_3_pixels
+	dc.w $1800	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $C7FF	; plane_3_pixels
+	dc.w $3000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $CFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $F800	; plane_2_pixels
+	dc.w $F800	; plane_3_pixels
+	dc.w $FFFF	; plane_0_pixels
+	dc.w $0000	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
 world_tile_pixels_491_through_498:
 	INCBIN "assets/world_tile_pixels_491_through_498.bin"
 ; bitmap
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$00,$23,$FF,$DC,$E3,$FF,$E3,$DC
-	dc.b $00,$3F,$FF,$C0,$00,$7F,$00,$40,$00,$3F,$FF,$C0,$00,$7F,$00,$40
-	dc.b $00,$3F,$FF,$C0,$00,$7F,$00,$40,$00,$1F,$FF,$E0,$00,$3F,$00,$20
-	dc.b $00,$0F,$FF,$F0,$00,$1F,$00,$10,$00,$07,$FF,$F8,$00,$0F,$00,$08
-	dc.b $00,$03,$FF,$FC,$00,$07,$00,$04,$00,$01,$FF,$FE,$00,$03,$00,$02
-	dc.b $00,$00,$FF,$FF,$00,$01,$00,$01,$00,$00,$FF,$FF,$00,$00,$00,$00
+world_tile_pixels_499:
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $FFFF	; plane_2_pixels
+	dc.w $FFFF	; plane_3_pixels
+	dc.w $0023	; plane_0_pixels
+	dc.w $FFDC	; plane_1_pixels
+	dc.w $E3FF	; plane_2_pixels
+	dc.w $E3DC	; plane_3_pixels
+	dc.w $003F	; plane_0_pixels
+	dc.w $FFC0	; plane_1_pixels
+	dc.w $007F	; plane_2_pixels
+	dc.w $0040	; plane_3_pixels
+	dc.w $003F	; plane_0_pixels
+	dc.w $FFC0	; plane_1_pixels
+	dc.w $007F	; plane_2_pixels
+	dc.w $0040	; plane_3_pixels
+	dc.w $003F	; plane_0_pixels
+	dc.w $FFC0	; plane_1_pixels
+	dc.w $007F	; plane_2_pixels
+	dc.w $0040	; plane_3_pixels
+	dc.w $001F	; plane_0_pixels
+	dc.w $FFE0	; plane_1_pixels
+	dc.w $003F	; plane_2_pixels
+	dc.w $0020	; plane_3_pixels
+	dc.w $000F	; plane_0_pixels
+	dc.w $FFF0	; plane_1_pixels
+	dc.w $001F	; plane_2_pixels
+	dc.w $0010	; plane_3_pixels
+	dc.w $0007	; plane_0_pixels
+	dc.w $FFF8	; plane_1_pixels
+	dc.w $000F	; plane_2_pixels
+	dc.w $0008	; plane_3_pixels
+	dc.w $0003	; plane_0_pixels
+	dc.w $FFFC	; plane_1_pixels
+	dc.w $0007	; plane_2_pixels
+	dc.w $0004	; plane_3_pixels
+	dc.w $0001	; plane_0_pixels
+	dc.w $FFFE	; plane_1_pixels
+	dc.w $0003	; plane_2_pixels
+	dc.w $0002	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0001	; plane_2_pixels
+	dc.w $0001	; plane_3_pixels
+	dc.w $0000	; plane_0_pixels
+	dc.w $FFFF	; plane_1_pixels
+	dc.w $0000	; plane_2_pixels
+	dc.w $0000	; plane_3_pixels
 world_tile_pixels_500_through_507:
 	INCBIN "assets/world_tile_pixels_500_through_507.bin"
 ; bitmap
