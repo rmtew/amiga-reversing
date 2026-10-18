@@ -1,0 +1,2046 @@
+{
+  "schema_version": 1,
+  "starting_commit": "4a95657eb7d2b740c921ceb17945bbcdeae2f766",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do proximity variant/distance selection, same-pointer suppression, real feedback, node writes and phase/frame consumption interact?",
+  "source_spans": {
+    "proximity_service": [
+      32240,
+      32520
+    ],
+    "proximity_block": [
+      32312,
+      32514
+    ],
+    "frame_consumer": [
+      38170,
+      38370
+    ],
+    "four_existing_sequences": [
+      299316,
+      299428
+    ],
+    "eighteen_original_nodes": [
+      298972,
+      299296
+    ]
+  },
+  "facts": {
+    "accepted_actions": 32,
+    "labels": 14,
+    "new_block_labels": 1,
+    "anonymous_label_replacements": 13,
+    "equates": 4,
+    "operand_bindings": 9,
+    "semantic_comments": 5,
+    "new_owners_or_types": 0,
+    "pointer_presentation_changes": 0
+  },
+  "labels": {
+    "32312": "select_world_proximity_animation",
+    "32344": "apply_proximity_variant_x_bias",
+    "32366": "measure_proximity_vertical_distance",
+    "32372": "choose_proximity_near_or_far_sequence",
+    "32400": "install_proximity_near_sequence_if_changed",
+    "32450": "choose_proximity_far_variant",
+    "32470": "install_proximity_far_sequence_if_changed",
+    "38230": "update_animation_phase_byte",
+    "38248": "advance_animation_frame_on_negative_phase",
+    "38294": "test_animation_hold_at_end",
+    "38314": "read_held_xy_before_animation_wrap",
+    "38332": "reset_looping_animation_frame_index",
+    "38334": "load_active_animation_frame",
+    "38368": "return_from_entity_animation"
+  },
+  "operand_bindings": [
+    [
+      32334,
+      "WORLD_STATE_PROXIMITY_VARIANT_BIT",
+      5,
+      "immediate"
+    ],
+    [
+      32386,
+      "WORLD_STATE_PROXIMITY_VARIANT_BIT",
+      5,
+      "immediate"
+    ],
+    [
+      32456,
+      "WORLD_STATE_PROXIMITY_VARIANT_BIT",
+      5,
+      "immediate"
+    ],
+    [
+      32328,
+      "PROXIMITY_DEFAULT_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32342,
+      "PROXIMITY_DEFAULT_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32354,
+      "PROXIMITY_DEFAULT_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32332,
+      "PROXIMITY_VARIANT_X_BIAS",
+      8,
+      "immediate"
+    ],
+    [
+      32412,
+      "WORLD_PROXIMITY_TRANSITION_AUDIO_SEQUENCE",
+      783,
+      "immediate"
+    ],
+    [
+      32482,
+      "WORLD_PROXIMITY_TRANSITION_AUDIO_SEQUENCE",
+      783,
+      "immediate"
+    ]
+  ],
+  "semantics": {
+    "selection": "After NULL-state/outside-view and higher-priority checkpoint/receptacle dispatch, role bit5 selects bank1 and descriptor X bias8; otherwise bank0 and bias16. Descriptor Y and player XY add16. Descriptor state offsets apply first; WORD additions/subtractions, negative magnitudes and sum wrap. Unsigned sum below44 selects near; otherwise far. Player inactive, escape-event and UI flags do not gate this role within this service.",
+    "same_pointer": "Compare the selected held-sequence address with node.frame_sequence_ptr. Equality skips every node store and feedback even when count/mode/clock are stale. Game-event feedback and world-interaction audio bytes stay unchanged in all1024 tested node states.",
+    "transition": "A different pointer saves A0, requests feedback030F through the original wrapper, restores A0, writes frame_sequence_ptr, clears header-hold bit0, sets hold-at-end bit2 and clears frame_index_and_phase WORD. Near retains its additional balanced A0 push/pop. Count, phase step, XY pointer, padding and every unrelated mode bit survive. The loop cursor and counter continue across real audio and a later NULL-state descriptor.",
+    "frame_clock": "Add phase_step to phase BYTE modulo256. The resulting bit7 triggers frame advancement; addition carry is not tested. Nonnegative results are stored as phase; negative results reset phase then increment BYTE frame index modulo256 before unsigned count comparison.",
+    "frame_end": "At end, chain mode precedes hold-at-end; otherwise loop. Existing held/active geometry and XY contracts remain unchanged. Prior published chain/XY proof is reused. The selector does not normalize retained count/step/mode/XY inputs or prove arbitrary sequence bounds safe.",
+    "normal_cycles": "Original nodes have count6, step64 and NULL XY pointer. Complete near/far cycles in both banks reach held geometry after12 animator calls, mode5 and clock0500. Later held calls retain clock/geometry, and later same-pointer proximity visits do not restart or request feedback.",
+    "source_initialization": "The eighteen source nodes store six far-bank0 and twelve far-bank1 pointers. Stored bank is not assumed to match the role flag. The original-node witness chooses a changed near/far phase from each existing known sequence, positions the player explicitly, executes real feedback and checks exactly the intended18-byte node changes. Source records and their pointer forms remain unchanged."
+  },
+  "coverage": {
+    "distinct_unmodified_code_cpu_cases": 28,
+    "axis_word_inputs": 262144,
+    "state_offset_wrapped_sum_cases": 8,
+    "isolated_role_flag_bytes": 256,
+    "player_event_ui_flag_cases": 768,
+    "same_pointer_node_states": 1024,
+    "paired_store_checks": 512,
+    "store_check_inputs": "Each mode/count/phase-step BYTE value is exercised in correlated inputs on both store paths; this is not the full Cartesian product. XY pointer and other bytes are retained.",
+    "full_feedback_stack_cases": 4,
+    "near_far_cycle_banks": 2,
+    "normal_cycle_calls_per_direction": 12,
+    "phase_step_pairs": 65536,
+    "multi_descriptor_orderings": 2,
+    "original_source_nodes": 18,
+    "test_file": "tests/test_pandora_proximity_animation.py",
+    "execution_notes": "27 initial cases pass; the original-node case was corrected after overrestrictive stored-bank assumptions, then passes independently. Collection confirms28 distinct cases. Unchanged27 cases were not repeated. All new calls execute unmodified original instructions, including real audio initialization/feedback; earlier audio-stub selection tests are not counted as unmodified-call evidence. Prefix tests supply explicit intermediate registers. Bounded write summaries may overflow on full calls; guest memory, expected state and normal return are checked."
+  },
+  "canonical_relationships": {
+    "sequence_lea_pairs": [
+      {
+        "source_offset": 32380,
+        "target_offset": 299316
+      },
+      {
+        "source_offset": 32394,
+        "target_offset": 299372
+      },
+      {
+        "source_offset": 32450,
+        "target_offset": 299344
+      },
+      {
+        "source_offset": 32464,
+        "target_offset": 299400
+      }
+    ],
+    "verification": "All four existing sequence LEAs retain identical prior text and canonical targets, checked through native incoming/outgoing coordinate queries after append. All14 labels and9 operand bindings resolve; no anonymous locals remain in the selector/service-prefix and951A..95E0 consumer spans.",
+    "existing_descriptor_pointer_fields": [
+      {
+        "end_offset": 297980,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363776,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records",
+          "symbol_group": "",
+          "target_offset": 298240,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 297976,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 297992,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363802,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_1",
+          "symbol_group": "",
+          "target_offset": 298266,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 297988,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298004,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_2",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363828,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_2",
+          "symbol_group": "",
+          "target_offset": 298292,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298000,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298016,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_3",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363854,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_3",
+          "symbol_group": "",
+          "target_offset": 298318,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298012,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298028,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_4",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_4",
+          "symbol_group": "",
+          "target_offset": 298344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298024,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298040,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_5",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363906,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_5",
+          "symbol_group": "",
+          "target_offset": 298370,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298036,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298052,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_6",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363932,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_6",
+          "symbol_group": "",
+          "target_offset": 298396,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298048,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298064,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_7",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363958,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_7",
+          "symbol_group": "",
+          "target_offset": 298422,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298060,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298076,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_8",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363984,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_8",
+          "symbol_group": "",
+          "target_offset": 298448,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298072,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298088,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_9",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364010,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_9",
+          "symbol_group": "",
+          "target_offset": 298474,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298084,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298100,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_10",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364036,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_10",
+          "symbol_group": "",
+          "target_offset": 298500,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298096,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298112,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_11",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364062,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_11",
+          "symbol_group": "",
+          "target_offset": 298526,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298108,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298124,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_12",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364088,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_12",
+          "symbol_group": "",
+          "target_offset": 298552,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298120,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298136,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_13",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364114,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_13",
+          "symbol_group": "",
+          "target_offset": 298578,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298132,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298148,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_14",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364140,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_14",
+          "symbol_group": "",
+          "target_offset": 298604,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298144,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298160,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_15",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364166,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_15",
+          "symbol_group": "",
+          "target_offset": 298630,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298156,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298172,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_16",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364192,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_16",
+          "symbol_group": "",
+          "target_offset": 298656,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298168,
+        "struct_name": "world_position_descriptor_prefix"
+      },
+      {
+        "end_offset": 298184,
+        "field_name": "position_state_ptr",
+        "name": "world_position_descriptors_position_state_ptr_17",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 364218,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_state_records_current_geometry_ptr_17",
+          "symbol_group": "",
+          "target_offset": 298682,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298180,
+        "struct_name": "world_position_descriptor_prefix"
+      }
+    ],
+    "existing_node_pointer_fields": [
+      {
+        "end_offset": 298976,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_6",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363512,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors",
+          "symbol_group": "",
+          "target_offset": 297976,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298972,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 298982,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_6",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298978,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 298988,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_6",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 298984,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 298994,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_7",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363524,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_1",
+          "symbol_group": "",
+          "target_offset": 297988,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298990,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299000,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_7",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_0_held",
+          "symbol_group": "",
+          "target_offset": 299344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 298996,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299006,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_7",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299002,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299012,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_8",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363536,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_2",
+          "symbol_group": "",
+          "target_offset": 298000,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299008,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299018,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_8",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299014,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299024,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_8",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299020,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299030,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_9",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363548,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_3",
+          "symbol_group": "",
+          "target_offset": 298012,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299026,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299036,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_9",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_0_held",
+          "symbol_group": "",
+          "target_offset": 299344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299032,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299042,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_9",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299038,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299048,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_10",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363560,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_4",
+          "symbol_group": "",
+          "target_offset": 298024,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299044,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299054,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_10",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299050,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299060,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_10",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299056,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299066,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_11",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363572,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_5",
+          "symbol_group": "",
+          "target_offset": 298036,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299062,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299072,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_11",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_0_held",
+          "symbol_group": "",
+          "target_offset": 299344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299068,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299078,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_11",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299074,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299084,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_12",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363584,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_6",
+          "symbol_group": "",
+          "target_offset": 298048,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299080,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299090,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_12",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299086,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299096,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_12",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299092,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299102,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_13",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363596,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_7",
+          "symbol_group": "",
+          "target_offset": 298060,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299098,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299108,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_13",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299104,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299114,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_13",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299110,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299120,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_14",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363608,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_8",
+          "symbol_group": "",
+          "target_offset": 298072,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299116,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299126,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_14",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_0_held",
+          "symbol_group": "",
+          "target_offset": 299344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299122,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299132,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_14",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299128,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299138,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_15",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363620,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_9",
+          "symbol_group": "",
+          "target_offset": 298084,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299134,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299144,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_15",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299140,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299150,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_15",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299146,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299156,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_16",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363632,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_10",
+          "symbol_group": "",
+          "target_offset": 298096,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299152,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299162,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_16",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_0_held",
+          "symbol_group": "",
+          "target_offset": 299344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299158,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299168,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_16",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299164,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299174,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_17",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363644,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_11",
+          "symbol_group": "",
+          "target_offset": 298108,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299170,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299180,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_17",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299176,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299186,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_17",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299182,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299192,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363656,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_12",
+          "symbol_group": "",
+          "target_offset": 298120,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299188,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299198,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299194,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299204,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_18",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299200,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299210,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363668,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_13",
+          "symbol_group": "",
+          "target_offset": 298132,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299206,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299216,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364880,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_0_held",
+          "symbol_group": "",
+          "target_offset": 299344,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299212,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299222,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_19",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299218,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299228,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363680,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_14",
+          "symbol_group": "",
+          "target_offset": 298144,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299224,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299234,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299230,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299240,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_20",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299236,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299246,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363692,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_15",
+          "symbol_group": "",
+          "target_offset": 298156,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299242,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299252,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299248,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299258,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_21",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299254,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299264,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_22",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363704,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_16",
+          "symbol_group": "",
+          "target_offset": 298168,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299260,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299270,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_22",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299266,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299276,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_22",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299272,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299282,
+        "field_name": "position_descriptor_ptr",
+        "name": "world_position_state_nodes_position_descriptor_ptr_23",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363716,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_descriptors_position_state_ptr_17",
+          "symbol_group": "",
+          "target_offset": 298180,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299278,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299288,
+        "field_name": "frame_sequence_ptr",
+        "name": "world_position_state_nodes_frame_sequence_ptr_23",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 364936,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_proximity_far_sequence_1_held",
+          "symbol_group": "",
+          "target_offset": 299400,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299284,
+        "struct_name": "WorldPositionStateNode"
+      },
+      {
+        "end_offset": 299294,
+        "field_name": "xy_sequence_ptr",
+        "name": "world_position_state_nodes_xy_sequence_ptr_23",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 0,
+          "outcome": "null",
+          "reason": "null_pointer",
+          "symbol": "",
+          "symbol_group": ""
+        },
+        "section_index": 0,
+        "source_offset": 299290,
+        "struct_name": "WorldPositionStateNode"
+      }
+    ],
+    "existing_sequence_frame_fields": [
+      {
+        "end_offset": 299320,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_held",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363206,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_5",
+          "symbol_group": "",
+          "target_offset": 297670,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299316,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299324,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_active",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363116,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames",
+          "symbol_group": "",
+          "target_offset": 297580,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299320,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299328,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_active_frame_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363134,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_1",
+          "symbol_group": "",
+          "target_offset": 297598,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299324,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299332,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_active_frame_ptr_2",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363152,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_2",
+          "symbol_group": "",
+          "target_offset": 297616,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299328,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299336,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_active_frame_ptr_3",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363170,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_3",
+          "symbol_group": "",
+          "target_offset": 297634,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299332,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299340,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_active_frame_ptr_4",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363188,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_4",
+          "symbol_group": "",
+          "target_offset": 297652,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299336,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299344,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_0_active_frame_ptr_5",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363206,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_5",
+          "symbol_group": "",
+          "target_offset": 297670,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299340,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299348,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_held",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363116,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames",
+          "symbol_group": "",
+          "target_offset": 297580,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299344,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299352,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_active",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363206,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_5",
+          "symbol_group": "",
+          "target_offset": 297670,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299348,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299356,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_active_frame_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363188,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_4",
+          "symbol_group": "",
+          "target_offset": 297652,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299352,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299360,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_active_frame_ptr_2",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363170,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_3",
+          "symbol_group": "",
+          "target_offset": 297634,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299356,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299364,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_active_frame_ptr_3",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363152,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_2",
+          "symbol_group": "",
+          "target_offset": 297616,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299360,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299368,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_active_frame_ptr_4",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363134,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_1",
+          "symbol_group": "",
+          "target_offset": 297598,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299364,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299372,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_0_active_frame_ptr_5",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363116,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames",
+          "symbol_group": "",
+          "target_offset": 297580,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299368,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299376,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_held",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363314,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_11",
+          "symbol_group": "",
+          "target_offset": 297778,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299372,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299380,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_active",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363224,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_6",
+          "symbol_group": "",
+          "target_offset": 297688,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299376,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299384,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_active_frame_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363242,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_7",
+          "symbol_group": "",
+          "target_offset": 297706,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299380,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299388,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_active_frame_ptr_2",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363260,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_8",
+          "symbol_group": "",
+          "target_offset": 297724,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299384,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299392,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_active_frame_ptr_3",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363278,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_9",
+          "symbol_group": "",
+          "target_offset": 297742,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299388,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299396,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_active_frame_ptr_4",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363296,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_10",
+          "symbol_group": "",
+          "target_offset": 297760,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299392,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299400,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_near_sequence_1_active_frame_ptr_5",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363314,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_11",
+          "symbol_group": "",
+          "target_offset": 297778,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299396,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299404,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_held",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363224,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_6",
+          "symbol_group": "",
+          "target_offset": 297688,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299400,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299408,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_active",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363314,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_11",
+          "symbol_group": "",
+          "target_offset": 297778,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299404,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299412,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_active_frame_ptr_1",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363296,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_10",
+          "symbol_group": "",
+          "target_offset": 297760,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299408,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299416,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_active_frame_ptr_2",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363278,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_9",
+          "symbol_group": "",
+          "target_offset": 297742,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299412,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299420,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_active_frame_ptr_3",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363260,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_8",
+          "symbol_group": "",
+          "target_offset": 297724,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299416,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299424,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_active_frame_ptr_4",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363242,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_7",
+          "symbol_group": "",
+          "target_offset": 297706,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299420,
+        "struct_name": "WorldPositionDescriptorPointer"
+      },
+      {
+        "end_offset": 299428,
+        "field_name": "frame_ptr",
+        "name": "world_proximity_far_sequence_1_active_frame_ptr_5",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "legacy",
+          "encoded_value": 363224,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "world_position_animation_frames_bitplane_data_ptr_6",
+          "symbol_group": "",
+          "target_offset": 297688,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 299424,
+        "struct_name": "WorldPositionDescriptorPointer"
+      }
+    ],
+    "scope": "Bounded inventories contain18 descriptor fields,54 node pointer fields and28 sequence frame pointers. These native typed-resolution inventories are separate from the code-reference query; no complete automatic data-xref closure is claimed. No data/type/owner facts changed, so inventories are reused after the strict preservation audit. Four28-byte sequence owners and all other prior pointer presentations remain intact."
+  },
+  "framework": {
+    "implementation_changes": false,
+    "reused_focused_framework_checks": 48,
+    "reused_native_checks": 819,
+    "preparation_benchmark_repeated": false,
+    "prior_evidence": "Published typed sequence bounds, chained-node and held/active XY proofs remain applicable. Earlier stubbed-wrapper tests retain their original narrow scope."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "7ca79b044bbabbf73885cffeef2179a853cd58a0db8e741e7d7c7c59783d28f5",
+    "source_audit": "Every prior source line retained outside9 operand rows and14 intended labels, allowing only new semantic comments. All earlier entry comments, SDK/hardware expressions, complete layouts/types/owner extents, all86 assets, pointer forms, both raw gaps and complete history prefixes pass. Exactly32 actions and32 acceptance decisions appended; timestamp-only project metadata restored. Manifest differences restricted to source file size/hash, metadata hash and row identities.",
+    "known_unrelated_boundary": "Previously reproduced bootstrap-copy fixture reports full_source_policy_load_view where its assertion expects overlaid_by_runtime_copy; unchanged and not counted as passing."
+  },
+  "limits": "Existing copied-payload view,16MB flat RAM, explicit inputs/MMIO shadows, readable node records, valid initialized audio data and fresh disjoint call frames. No DMA completion, audibility, arbitrary graph lifetime, complete alias/writer/indirect-caller closure, loader/input scheduling reachability, full-game runtime confidence or alternate-layout claim."
+}

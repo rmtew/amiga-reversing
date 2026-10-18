@@ -4360,3 +4360,67 @@ canonical relationships, scope and the verification receipt are recorded in
 proximity-animation branch within the same descriptor service is the next
 connected control-flow family; broader runtime and alternate-layout gates remain
 open.
+
+## Proximity sequence control and frame consumption
+
+The remaining proximity branch of the descriptor service and the shared frame
+consumer now have meaningful local names. State role bit 5 selects sequence bank
+1 and descriptor X bias 8; otherwise bank 0 and bias 16 apply. Player XY and
+descriptor Y use bias 16. Descriptor state offsets apply before the wrapped WORD
+subtractions, negative magnitudes and sum. An unsigned sum below 44 selects
+near; 44 or greater selects far. The sum can wrap, including to zero. The
+earlier outside-view and role-priority rules remain unchanged. After that
+dispatch, player inactive, escape-event and UI flags do not gate the proximity
+branch.
+
+An already-selected sequence pointer suppresses all node writes and feedback,
+even when clock, mode or count are stale. A different pointer requests feedback
+`$30F`, installs the sequence, clears header-hold bit 0, sets hold-at-end bit 2
+and clears the clock WORD. Frame count, phase step, XY pointer, padding and all
+other mode bits survive. The caller saves A0 around real feedback; the near
+path's additional balanced push/pop is retained. Neither path consumes the
+descriptor loop counter. Multi-descriptor tests include both changed/current
+orderings and a later NULL-state descriptor.
+
+The related consumer adds phase step to the phase BYTE modulo 256. Bit 7 of the
+result advances the frame; addition carry is not the condition. At frame end,
+chain mode wins over hold-at-end; otherwise the sequence loops. Those existing
+chain and held/active XY semantics are retained. The proximity selector does not
+normalize these retained playback inputs or make arbitrary counts safe for the
+selected owner. For the original six-frame, step-64, non-chained nodes, complete
+near and far cycles reach their held geometry after twelve animation calls.
+Subsequent proximity visits keep the held node without restarting it.
+
+The native source inventories contain eighteen descriptor pointers, fifty-four
+pointer fields in their eighteen nodes, and twenty-eight held/active frame
+pointers across four existing 28-byte sequence owners. Six stored node
+selections point to far bank 0 and twelve to far bank 1. These stored inputs are
+preserved; selection is driven by role flags and distance, without assuming that
+the stored bank already matches the role. A changing-selection witness executes
+real feedback on all eighteen original source nodes and checks their exact
+retained fields. All four sequence LEAs retain their prior expressions and
+canonical targets. The earlier numeric/encoded-value presentation boundary is
+unchanged.
+
+Twenty-eight distinct tests execute unmodified original code. They cover 262,144
+axis words at both X biases, eight offset/wrapped-sum cases, all isolated role
+flag bytes, 768 player/event/UI flag cases, 1,024 same-pointer node states, 512
+paired mode/count/step store checks, four complete feedback/stack paths, both
+near/far cycles for each bank, every phase/step BYTE pair, two multi-descriptor
+scans and the eighteen original nodes. Existing audio-stub selection tests
+remain local evidence and are not promoted to unmodified-call evidence. Earlier
+published chain/XY and typed-bound proofs are reused. These are explicit-input
+calls under the copied-payload view, flat RAM and valid audio data; no DMA,
+audibility, arbitrary graph lifetime or full-game reachability is established.
+
+All 32 actions are accepted: fourteen labels, four equates, nine operand
+bindings and five semantic comments. One label introduces the proximity block;
+the other thirteen replace anonymous locals. No framework or CPU implementation
+changed; the prior 48 focused framework and 819 native checks are reused,
+without repeating the preparation benchmark. All previous comments, SDK/hardware
+expressions, layouts/types, owner bounds, assets, pointer forms, raw gaps and
+history prefixes pass preservation. C and vasm reproduce all 376,832 original
+bytes. Evidence and the verification receipt are in
+`docs/validation/pandora-proximity-animation.json`. The partially documented NPC
+item-handoff path and its panel/queue/state-exchange effects are a useful next
+connected slice; full-game and alternate-layout confidence remain open.

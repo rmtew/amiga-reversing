@@ -1130,6 +1130,8 @@ PROXIMITY_AUDIO_CENTER_Y	EQU	168
 PROXIMITY_AUDIO_DISTANCE_SHIFT	EQU	2
 PROXIMITY_AUDIO_EXCLUSIVE_DISTANCE	EQU	256
 PROXIMITY_AUDIO_FULL_VOLUME	EQU	64
+PROXIMITY_DEFAULT_COORDINATE_BIAS	EQU	16
+PROXIMITY_VARIANT_X_BIAS	EQU	8
 RECEPTACLE_BRAIN_PICKUP_HIT_POINTS	EQU	95
 RECEPTACLE_COORDINATE_BIAS	EQU	16
 RECEPTACLE_EXCLUSIVE_MANHATTAN_DISTANCE	EQU	28
@@ -1308,6 +1310,7 @@ WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
+WORLD_PROXIMITY_TRANSITION_AUDIO_SEQUENCE	EQU	$30F
 WORLD_RESTART_ACTIVE_DESCRIPTOR_COUNT	EQU	67
 WORLD_RESTART_EARTH_BCD	EQU	$9999
 WORLD_RESTART_INITIAL_TILE_ROW	EQU	51
@@ -1322,6 +1325,7 @@ WORLD_RESTART_TICKER_HIGHLIGHT_RGB12	EQU	$EEE
 WORLD_STATE_CHECKPOINT_INTERACTION_BIT	EQU	4
 WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
 WORLD_STATE_PROXIMITY_ANIMATION_BIT	EQU	0
+WORLD_STATE_PROXIMITY_VARIANT_BIT	EQU	5
 WORLD_STATE_RECEPTACLE_INTERACTION_BIT	EQU	2
 WORLD_TILE_DEFINITION_BYTES	EQU	world_tile_definition_3x3_SIZEOF
 WORLD_TILE_DEF_R0C0_FIELD	EQU	world_tile_definition_3x3_r0c0_pixels_offset
@@ -14114,46 +14118,50 @@ visit_next_world_interaction_descriptor:
 	bne.w handle_item_receptacle_interaction
 	btst.b #WORLD_STATE_PROXIMITY_ANIMATION_BIT,world_position_state_record_world_object_flags(a2)
 	beq.w advance_world_interaction_descriptor
+    ; Role bit 5 selects bank 1 and descriptor X bias 8; otherwise bank 0 and bias 16. Player XY and descriptor Y use 16. WORD offsets, magnitudes and sum wrap before unsigned distance<44.
+select_world_proximity_animation:
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
 	add.w world_position_state_record_world_x_offset(a2),d0
 	add.w world_position_state_record_world_y_offset(a2),d1
-	addi.w #16,d1
-	moveq.l #8,d2
-	btst.b #5,world_position_state_record_world_object_flags(a2)
-	bne.b abs_0_00017E58
-	moveq.l #16,d2
-abs_0_00017E58:
+	addi.w #PROXIMITY_DEFAULT_COORDINATE_BIAS,d1
+	moveq.l #PROXIMITY_VARIANT_X_BIAS,d2
+	btst.b #WORLD_STATE_PROXIMITY_VARIANT_BIT,world_position_state_record_world_object_flags(a2)
+	bne.b apply_proximity_variant_x_bias
+	moveq.l #PROXIMITY_DEFAULT_COORDINATE_BIAS,d2
+apply_proximity_variant_x_bias:
 	add.w d2,d0
 	move.w world_object_shared_prefix_world_x(a4),d2
 	move.w world_object_shared_prefix_world_y(a4),d3
-	moveq.l #16,d4
+	moveq.l #PROXIMITY_DEFAULT_COORDINATE_BIAS,d4
 	add.w d4,d2
 	add.w d4,d3
 	sub.w d2,d0
-	bpl.b abs_0_00017E6E
+	bpl.b measure_proximity_vertical_distance
 	neg.w d0
-abs_0_00017E6E:
+measure_proximity_vertical_distance:
 	sub.w d3,d1
-	bpl.b abs_0_00017E74
+	bpl.b choose_proximity_near_or_far_sequence
 	neg.w d1
     ; Near/far sequences use unsigned WORD distance after biases; flag 5 selects variant. Changes trigger audio, clear hold/clock and set hold-at-end; count persists.
-abs_0_00017E74:
+choose_proximity_near_or_far_sequence:
 	add.w d1,d0
 	cmp.w #WORLD_PROXIMITY_ANIMATION_DISTANCE,d0
-	bcc.b abs_0_00017EC2
+	bcc.b choose_proximity_far_variant
 	lea.l world_proximity_near_sequence_0_held.l,a3
-	btst.b #5,world_position_state_record_world_object_flags(a2)
-	beq.b abs_0_00017E90
+	btst.b #WORLD_STATE_PROXIMITY_VARIANT_BIT,world_position_state_record_world_object_flags(a2)
+	beq.b install_proximity_near_sequence_if_changed
 	lea.l world_proximity_near_sequence_1_held.l,a3
-abs_0_00017E90:
+install_proximity_near_sequence_if_changed:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
+    ; Equal sequence pointer skips all node writes and feedback, even if count, mode or clock are stale. Player inactive, escape and UI flags do not gate this proximity role after dispatch.
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
 	beq.b advance_world_interaction_descriptor
 	move.l a0,-(a7)
-	move.w #$30F,d0
+	move.w #WORLD_PROXIMITY_TRANSITION_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
+    ; Changing sequence clears header-hold, sets hold-at-end and clears the clock WORD. Count, phase step, XY pointer and all other mode bits persist; these stores do not normalize playback inputs.
 	move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)
 	bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)
@@ -14161,17 +14169,17 @@ abs_0_00017E90:
 	move.l a0,-(a7)
 	movea.l (a7)+,a0
 	bra.b advance_world_interaction_descriptor
-abs_0_00017EC2:
+choose_proximity_far_variant:
 	lea.l world_proximity_far_sequence_0_held.l,a3
-	btst.b #5,world_position_state_record_world_object_flags(a2)
-	beq.b abs_0_00017ED6
+	btst.b #WORLD_STATE_PROXIMITY_VARIANT_BIT,world_position_state_record_world_object_flags(a2)
+	beq.b install_proximity_far_sequence_if_changed
 	lea.l world_proximity_far_sequence_1_held.l,a3
-abs_0_00017ED6:
+install_proximity_far_sequence_if_changed:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
 	beq.b advance_world_interaction_descriptor
 	move.l a0,-(a7)
-	move.w #$30F,d0
+	move.w #WORLD_PROXIMITY_TRANSITION_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	movea.l (a7)+,a0
 	move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)
@@ -15733,35 +15741,37 @@ bind_cursor_sprites_and_palette:
     ; Held record then count active records; stride 4, no sentinel. Wrap reads held XY then active zero. Hold-at-end loads held XY on the next visit.
 advance_entity_animation:
 	tst.l world_position_state_record_state_node_ptr(a4)
-	beq.w abs_0_000195E0
+	beq.w return_from_entity_animation
 	movea.l world_position_state_record_state_node_ptr(a4),a0
 	movea.l WorldPositionStateNode_frame_sequence_ptr(a0),a1
 	btst.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
-	bne.w abs_0_000195E0
+	bne.w return_from_entity_animation
 	btst.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
-	beq.b abs_0_00019556
+	beq.b update_animation_phase_byte
 	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)	; operand 1: WorldPositionDescriptorPointer_frame_ptr at (a1)
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d0
-	beq.w abs_0_000195E0
+	beq.w return_from_entity_animation
 	movea.l d0,a1
 	move.w (a1)+,world_position_state_record_world_x_offset(a4)	; operand 1: WorldPositionXYOffset_x_offset at (a1)+
 	move.w (a1),world_position_state_record_world_y_offset(a4)	; operand 1: WorldPositionXYOffset_y_offset at (a1)
-	bra.w abs_0_000195E0
-abs_0_00019556:
+	bra.w return_from_entity_animation
+    ; Add phase step to the phase BYTE modulo 256. Bit 7 of the result advances the frame; addition carry is not tested. Normal step 64 from phase 0 advances every second call.
+update_animation_phase_byte:
 	move.b WorldPositionStateNode_frame_index_and_phase+1(a0),d0
 	add.b WorldPositionStateNode_phase_step(a0),d0
-	bmi.b abs_0_00019568
+	bmi.b advance_animation_frame_on_negative_phase
 	move.b d0,WorldPositionStateNode_frame_index_and_phase+1(a0)
-	bra.w abs_0_000195E0
-abs_0_00019568:
+	bra.w return_from_entity_animation
+advance_animation_frame_on_negative_phase:
 	clr.b WorldPositionStateNode_frame_index_and_phase+1(a0)
 	moveq.l #0,d0
 	move.b WorldPositionStateNode_frame_index_and_phase(a0),d0
 	addq.b #1,d0
+    ; Next frame index wraps as BYTE before unsigned count comparison. At end, chain mode wins over hold-at-end; otherwise loop. The proximity selector retains count and all these mode bits.
 	cmp.b WorldPositionStateNode_frame_count(a0),d0
-	bcs.b abs_0_000195BE
+	bcs.b load_active_animation_frame
 	btst.b #ANIM_MODE_CHAIN_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
-	beq.b abs_0_00019596
+	beq.b test_animation_hold_at_end
     ; Chain once through absolute LONG next_node_ptr. Reset successor clock and clear only hold bit, then install and return. No NULL/sentinel guard; NULL writes WORD $10 and BYTE $0A.
     ; KNOWN: type A0=Target code-entry register seed:WorldPositionChainedStateNode
 chain_to_next_animation_node:
@@ -15769,32 +15779,32 @@ chain_to_next_animation_node:
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.l a0,world_position_state_record_state_node_ptr(a4)
-	bra.b abs_0_000195E0
-abs_0_00019596:
+	bra.b return_from_entity_animation
+test_animation_hold_at_end:
 	btst.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a0)
-	beq.b abs_0_000195AA
+	beq.b read_held_xy_before_animation_wrap
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.l (a1),world_position_state_record_current_geometry_ptr.w(a4)	; operand 1: WorldPositionDescriptorPointer_frame_ptr at (a1)
-	bra.b abs_0_000195E0
-abs_0_000195AA:
+	bra.b return_from_entity_animation
+read_held_xy_before_animation_wrap:
 	tst.l WorldPositionStateNode_xy_sequence_ptr(a0)
-	beq.b abs_0_000195BC
+	beq.b reset_looping_animation_frame_index
 	movea.l WorldPositionStateNode_xy_sequence_ptr(a0),a2
 	move.w (a2)+,world_position_state_record_world_x_offset(a4)	; operand 1: WorldPositionXYOffset_x_offset at (a2)+
 	move.w (a2),world_position_state_record_world_y_offset(a4)	; operand 1: WorldPositionXYOffset_y_offset at (a2)
-abs_0_000195BC:
+reset_looping_animation_frame_index:
 	clr.b d0
-abs_0_000195BE:
+load_active_animation_frame:
 	move.b d0,WorldPositionStateNode_frame_index_and_phase(a0)
 	add.w d0,d0
 	add.w d0,d0
 	move.l ANIM_ACTIVE_FRAME_OFFSET(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)
 	move.l WorldPositionStateNode_xy_sequence_ptr(a0),d2
-	beq.b abs_0_000195E0
+	beq.b return_from_entity_animation
 	movea.l d2,a2
 	move.w ANIM_ACTIVE_X_OFFSET(a2,d0.w),world_position_state_record_world_x_offset(a4)
 	move.w ANIM_ACTIVE_Y_OFFSET(a2,d0.w),world_position_state_record_world_y_offset(a4)
-abs_0_000195E0:
+return_from_entity_animation:
 	rts
     ; Scale input to axis-only requests (X*7, Y*4), test candidate geometry against tile restrictions, then commit position and choose animation. Accepted requests supply item-effect direction.
 update_player_world_movement:
