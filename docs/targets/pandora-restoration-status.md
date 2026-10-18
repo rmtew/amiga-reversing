@@ -4017,3 +4017,57 @@ The final C/vasm gate reproduces all 376,832 original bytes, receipt
 The prior annotation audit passes, including all eight existing star-pixel pointer names. The earlier exact
 gate was rejected for generalizing those scalar pointers; the corrected guard
 applies only within wider owners. No target actions were accepted at that gate.
+
+## Restart reconstruction, PRNG seeding and cursor row producer
+
+The connected reset family now distinguishes runtime seed initialization from a
+world restart. The seed entry selects four original LONG values with VHPOSR
+WORD bits 2..3. Its stores write six bytes at absolute `$7E8..$7ED`, leaving the
+prior WORD at `$7EE..$7EF` in the second state LONG. It then falls through into
+one complete update. These absolute state bytes are separate from the existing
+A6-relative grid-cell selector views.
+
+Each update performs 32 bit steps: feedback is shift bit 3 XOR history bit 0;
+shift left and append feedback, and latch outgoing bit 31 as history BYTE
+`$00/$FF`. The high 24 history bits persist and do not affect output. D0/D1
+return the second LONG, D2-D7/A1-A6 retain identity and the ABI stack balances.
+The tests establish this arithmetic and retained seed tail, without a period,
+entropy or gameplay-distribution claim.
+
+A complete original reset witness covers all 35 sentinel-listed object records.
+It restores initial flags, inventory and offer banks, selected item, item state,
+HP and behavior script, recomputes the name from the current item-definition
+byte, and clears script delay. Both banks copy eight
+BYTEs forward; synthetic overlap tests expose the sequential copy effects, so
+this is not a memmove contract. Perturbed NPC XY remain unchanged by this
+routine; the player is reset separately, and later script execution is a
+separate operation. Empty-table exit is also checked. The complete
+reset leaves the absolute PRNG state unchanged while restoring mission/UI state,
+3000 self-destruct service steps, Earth BCD `9999`, player XY `(241,866)`, camera
+row 51 and the separate initial count of 67 active descriptors. The witness uses
+valid original records and matching initial inactive parity; prior conditional
+state-exchange and receptacle witnesses remain applicable to those branches.
+
+The cursor producer handles sixteen input groups with sixteen-byte stride. It
+copies the first two WORDs to rows at `$65374` and the next two to `$653B8`, then
+skips eight bytes. Each output is 64 bytes; the preceding control LONGs remain
+unchanged. This documents CPU writes in flat RAM, not file-backed allocation,
+chipset DMA completion or complete pointer/writer ownership.
+
+Eleven original-code cases cover 64 recurrence states, 256 chained updates,
+76 beam/prior-tail combinations, history-bit independence, all 35 original
+records, both overlap directions, null exit and all sixteen cursor groups.
+The batch changes no framework or CPU implementation; the existing 819 native
+and 150 focused framework results are reused. Unknown reset slots and the store
+at `$64C0` receive no new interpretation. Existing owner extents, SDK/hardware
+annotations, encoded-value names/canonical xrefs, both raw gaps and the separate
+bootstrap fixture limitation remain preserved. Full evidence is in
+`docs/validation/pandora-restart-random.json`. The 100 facts include 17 canonical
+EQU aliases of existing RSSET fields, as required by the displacement catalog;
+no new field widths or owner extents are introduced.
+
+All 100 actions are accepted. The final C/vasm gate reproduces all 376,832
+original bytes, receipt
+`e6a4a304951afd1e41d8d86df378c2d875ee3a825400896acebdd0709319dbb8`. The audit preserves
+every prior annotation/SDK expression, all owner identities/bounds, 86 assets,
+reference spellings, both raw gaps and both history prefixes.

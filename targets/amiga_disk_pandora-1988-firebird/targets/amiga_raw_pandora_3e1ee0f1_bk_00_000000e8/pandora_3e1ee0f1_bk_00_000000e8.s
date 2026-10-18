@@ -928,6 +928,10 @@ COMBAT_WORLD_X_BIAS	EQU	10000
 COMPACT_GLYPH_INDEX_SHIFT	EQU	3
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 CONTEXT_STATUS_MESSAGE_ACTIVE_BIT	EQU	5
+CURSOR_PLANE0_SEED_ROWS_ADDRESS	EQU	$65374
+CURSOR_PLANE1_SEED_ROWS_ADDRESS	EQU	$653B8
+CURSOR_SEED_LAST_ROW	EQU	15
+CURSOR_SEED_ROW_SKIP_BYTES	EQU	8
 _custom	EQU	$DFF000
 CUSTOM_COLOR00_REGISTER	EQU	_custom+color
 DMAF_CLRALL	EQU	$7FFF
@@ -1075,6 +1079,14 @@ NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
+PRNG_ADVANCE_LAST_BIT	EQU	31
+PRNG_FEEDBACK_BIT_MASK	EQU	$1
+PRNG_FEEDBACK_TAP_SHIFT	EQU	3
+PRNG_SEED_CHOICE_COUNT	EQU	4
+PRNG_SEED_CHOICE_MASK	EQU	(PRNG_SEED_CHOICE_COUNT-1)*4
+PRNG_STATE_BASE	EQU	$7E8
+PRNG_SEED_LONGWORD_ADDRESS	EQU	PRNG_STATE_BASE+2
+PRNG_SHIFT_STATE_DISPLACEMENT	EQU	4
 PROPORTIONAL_BITMAP_ROWS	EQU	7
 PROPORTIONAL_BLIT_ONE_WORD_SIZE	EQU	(PROPORTIONAL_BITMAP_ROWS<<HSIZEBITS)|1
 PROPORTIONAL_BLIT_OR_CONTROL	EQU	SRCA|SRCC|DEST|BLITTER_A_OR_C_MINTERM
@@ -1085,6 +1097,23 @@ PROPORTIONAL_SHIFT_PACK_SHIFT	EQU	16-ASHIFTSHIFT
 PROPORTIONAL_SINGLE_WORD_MODULO	EQU	FRAMEBUFFER_RASTER_ROW_BYTES-2
 PROPORTIONAL_STRADDLE_SOURCE_MODULO	EQU	-2
 PROPORTIONAL_WORD_PIXELS	EQU	16
+RESTART_FIELD_BEHAVIOR_SCRIPT_DELAY_TICKS	EQU	world_object_shared_prefix_behavior_script_delay_ticks
+RESTART_FIELD_BEHAVIOR_SCRIPT_PTR	EQU	world_object_shared_prefix_behavior_script_ptr
+RESTART_FIELD_HIT_POINTS	EQU	world_object_shared_prefix_hit_points
+RESTART_FIELD_INITIAL_BEHAVIOR_SCRIPT_PTR	EQU	world_object_shared_prefix_initial_behavior_script_ptr
+RESTART_FIELD_INITIAL_HIT_POINTS	EQU	world_object_shared_prefix_initial_hit_points
+RESTART_FIELD_INITIAL_INVENTORY_SLOTS_PTR	EQU	world_object_shared_prefix_initial_inventory_slots_ptr
+RESTART_FIELD_INITIAL_ITEM_STATE	EQU	world_object_shared_prefix_initial_item_state
+RESTART_FIELD_INITIAL_SELECTED_ITEM_ID	EQU	world_object_shared_prefix_initial_selected_item_id
+RESTART_FIELD_INITIAL_TRADE_OFFER_TABLE_PTR	EQU	world_object_shared_prefix_initial_trade_offer_table_ptr
+RESTART_FIELD_INITIAL_WORLD_OBJECT_FLAGS	EQU	world_object_shared_prefix_initial_world_object_flags
+RESTART_FIELD_INVENTORY_SLOTS_PTR	EQU	world_object_shared_prefix_inventory_slots_ptr
+RESTART_FIELD_ITEM_DEFINITION_ID	EQU	world_object_shared_prefix_item_definition_id
+RESTART_FIELD_ITEM_NAME_PTR	EQU	world_object_shared_prefix_item_name_ptr
+RESTART_FIELD_ITEM_STATE	EQU	world_object_shared_prefix_item_state
+RESTART_FIELD_SELECTED_ITEM_ID	EQU	world_object_shared_prefix_selected_item_id
+RESTART_FIELD_TRADE_OFFER_TABLE_PTR	EQU	world_object_shared_prefix_trade_offer_table_ptr
+RESTART_FIELD_WORLD_OBJECT_FLAGS	EQU	world_object_shared_prefix_world_object_flags
 RGB12_ACCUMULATOR_FRACTION_BITS	EQU	4
 RGB12_ACCUMULATOR_STRIDE	EQU	6
 RGB12_COMPONENT_BITS	EQU	4
@@ -1226,6 +1255,17 @@ WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
+WORLD_RESTART_ACTIVE_DESCRIPTOR_COUNT	EQU	67
+WORLD_RESTART_EARTH_BCD	EQU	$9999
+WORLD_RESTART_INITIAL_TILE_ROW	EQU	51
+WORLD_RESTART_ITEM_BANK_LAST_BYTE	EQU	7
+WORLD_RESTART_OVERLAY_LAST_LONGWORD	EQU	3
+WORLD_RESTART_PLAYER_X	EQU	241
+WORLD_RESTART_PLAYER_Y_WITHIN_ROW	EQU	50
+WORLD_RESTART_RECEPTACLE_LAST_INDEX	EQU	5
+WORLD_RESTART_SELF_DESTRUCT_STEPS	EQU	3000
+WORLD_RESTART_TERMINAL_LAST_LONGWORD	EQU	15
+WORLD_RESTART_TICKER_HIGHLIGHT_RGB12	EQU	$EEE
 WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
 WORLD_TILE_DEFINITION_BYTES	EQU	world_tile_definition_3x3_SIZEOF
 WORLD_TILE_DEF_R0C0_FIELD	EQU	world_tile_definition_3x3_r0c0_pixels_offset
@@ -6546,28 +6586,30 @@ abs_0_00012F8E:
 	rts
 pseudorandom_seed_values:
 	dc.l $67FDE432,$95429168,$DA0597A3,$54FFA672	; lookup_table
+    ; VHPOSR bits 2..3 select four LONG seeds. Stores at $7EA.L and $7E8.W seed six bytes; $7EE..$7EF retain prior data. Fall through to one 32-step update.
 seed_pseudorandom_state_from_beam_position:
 	move.w _custom+vhposr.l,d0
-	andi.w #12,d0
-	move.l pseudorandom_seed_values(pc,d0.w),$07EA.w
+	andi.w #PRNG_SEED_CHOICE_MASK,d0
+	move.l pseudorandom_seed_values(pc,d0.w),PRNG_SEED_LONGWORD_ADDRESS.w
 	move.w pseudorandom_seed_values(pc,d0.w),absolute_slot_000007E8.w
+    ; Feedback = shift bit 3 XOR history bit 0. Shift left, append feedback and latch outgoing bit 31 as $00/$FF; repeat 32. History high 24 bits are preserved; no period/distribution claim.
 advance_pseudorandom_state:
 	movem.l d2-d3,-(a7)
-	lea.l absolute_slot_000007E8.w,a0
-	move.l $0004(a0),d1
+	lea.l PRNG_STATE_BASE.w,a0
+	move.l PRNG_SHIFT_STATE_DISPLACEMENT(a0),d1
 	move.l (a0),d0
-	moveq.l #31,d2
-abs_0_00012FE8:
+	moveq.l #PRNG_ADVANCE_LAST_BIT,d2
+advance_next_pseudorandom_feedback_bit:
 	move.b d1,d3
-	lsr.b #3,d3
+	lsr.b #PRNG_FEEDBACK_TAP_SHIFT,d3
 	eor.b d0,d3
-	andi.b #1,d3
+	andi.b #PRNG_FEEDBACK_BIT_MASK,d3
 	add.l d1,d1
 	scs.b d0
 	add.b d3,d1
-	dbf.w d2,abs_0_00012FE8
+	dbf.w d2,advance_next_pseudorandom_feedback_bit
 	move.l d0,(a0)
-	move.l d1,$0004(a0)
+	move.l d1,PRNG_SHIFT_STATE_DISPLACEMENT(a0)
 	move.l d1,d0
 	movem.l (a7)+,d2-d3
 	rts
@@ -16347,25 +16389,27 @@ fill_raster_row_byte_offsets:
 	bsr.w build_world_tilemap_pointer_grid
 	move.w #CAMERA_SCROLL_INSET_PROFILE_INDEX,app_camera_scroll_profile_index(a6)
     ; Cold startup copies sixteen rows' first four words into two 64-byte cursor payloads before title/scratch reuse. Last four words are skipped; later copies need current-source evidence.
-	moveq.l #15,d7
+	moveq.l #CURSOR_SEED_LAST_ROW,d7
 	lea.l cursor_sprite_initial_rows_shared_scratch.l,a0
-	lea.l $00065374.l,a1
-	lea.l $000653B8.l,a2
-abs_0_00019F06:
+	lea.l CURSOR_PLANE0_SEED_ROWS_ADDRESS.l,a1
+	lea.l CURSOR_PLANE1_SEED_ROWS_ADDRESS.l,a2
+    ; Sixteen groups use four WORDs then skip eight bytes: two WORDs to $65374, two to $653B8. The preceding control LONGs stay unchanged; runtime allocation and DMA behavior are not proved.
+initialize_next_cursor_sprite_row_pair:
 	movem.w (a0)+,d0-d3
 	move.w d0,(a1)+
 	move.w d1,(a1)+
 	move.w d2,(a2)+
 	move.w d3,(a2)+
-	addq.l #8,a0
-	dbf.w d7,abs_0_00019F06
+	addq.l #CURSOR_SEED_ROW_SKIP_BYTES,a0
+	dbf.w d7,initialize_next_cursor_sprite_row_pair
 	bsr.w initialize_scene_and_animation_mask_banks
 	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	rts
+    ; Restart resets mission/UI state and all 35 sentinel-listed objects, selecting 67 active descriptors. The complete original reset leaves absolute PRNG bytes $7E8..$7EF unchanged.
 initialize_world_state:
 	move.l a5,-(a7)
 	move.w initial_ranged_weapon_ammunition.l,ranged_weapon_ammunition_remaining.l
-	move.w #$BB8,app_self_destruct_service_ticks_remaining(a6)
+	move.w #WORLD_RESTART_SELF_DESTRUCT_STEPS,app_self_destruct_service_ticks_remaining(a6)
 	move.l #$24C28,$64C0.w
 	move.w #COMBAT_WORLD_X_BIAS,d0
 	move.w d0,ranged_hit_visual_descriptor_world_x.l
@@ -16378,18 +16422,18 @@ clear_next_keyboard_state_longword:
 	dbf.w d7,clear_next_keyboard_state_longword
     ; For these six receptacles, clear flags byte 5, including proximity bit 0. Restore a nonzero saved attachment and clear its saved pointer; otherwise keep the current attachment.
 	lea.l scene_restart_receptacle_state_ptrs.l,a0
-	moveq.l #5,d7
-abs_0_00019F6E:
+	moveq.l #WORLD_RESTART_RECEPTACLE_LAST_INDEX,d7
+restore_next_restart_receptacle:
 	movea.l (a0)+,a1
     ; KNOWN: type A1=Target code-entry register seed:world_position_state_record
 	movea.l world_position_state_record_interaction_data_ptr(a1),a2
 	clr.b item_receptacle_interaction_data_flags(a2)
 	tst.l (a2)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a2)
-	beq.b abs_0_00019F82
+	beq.b advance_restart_receptacle_count
 	move.l (a2),world_position_state_record_attachment_state_ptr(a1)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a2)
 	clr.l (a2)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a2)
-abs_0_00019F82:
-	dbf.w d7,abs_0_00019F6E
+advance_restart_receptacle_count:
+	dbf.w d7,restore_next_restart_receptacle
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
 	clr.b app_authorized_checkpoint_count(a6)
@@ -16404,11 +16448,11 @@ abs_0_00019F82:
 	clr.l app_02D4(a6)
 	clr.l app_cursor_sprite0_dma_ptr(a6)
 	clr.l app_cursor_sprite1_dma_ptr(a6)
-	moveq.l #15,d7
+	moveq.l #WORLD_RESTART_TERMINAL_LAST_LONGWORD,d7
 	lea.l app_terminal_deposited_item_ids(a6),a0
-abs_0_00019FC4:
+clear_next_terminal_deposit_longword:
 	clr.l (a0)+
-	dbf.w d7,abs_0_00019FC4
+	dbf.w d7,clear_next_terminal_deposit_longword
 	clr.b app_player_movement_commit_inhibited(a6)
 	clr.b app_security_damage_flash_ticks_remaining(a6)
 	clr.b app_security_checkpoint_response_active(a6)
@@ -16417,16 +16461,16 @@ abs_0_00019FC4:
 	move.l #compact_font_index_origin,app_font_glyph_bitmap_table_ptr(a6)
 	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)
 	clr.b app_proportional_text_pixel_shift(a6)
-	moveq.l #51,d0
+	moveq.l #WORLD_RESTART_INITIAL_TILE_ROW,d0
 	move.w d0,app_tile_row(a6)
 	lsl.w #4,d0
 	move.w d0,app_tilemap_scroll_y(a6)
 	clr.w app_tile_column(a6)
 	clr.w app_tilemap_scroll_x(a6)
 	lea.l player_world_object.l,a4
-	addi.w #50,d0
+	addi.w #WORLD_RESTART_PLAYER_Y_WITHIN_ROW,d0
 	move.w d0,world_object_shared_prefix_world_y(a4)
-	move.w #$F1,world_object_shared_prefix_world_x(a4)
+	move.w #WORLD_RESTART_PLAYER_X,world_object_shared_prefix_world_x(a4)
 	bsr.w clear_overlay_pointer_storage
 	lea.l gameplay_current_rgb12_palette.l,a0
 	lea.l gameplay_palette_increment_rgb12.l,a1
@@ -16439,14 +16483,14 @@ abs_0_00019FC4:
 	clr.b player_world_object_selected_item_id.l
 	lea.l backpack_inventory_overlay_line_0_ptr.l,a0
 	lea.l pocket_inventory_overlay_line_0_ptr.l,a1
-	moveq.l #3,d7
-abs_0_0001A056:
+	moveq.l #WORLD_RESTART_OVERLAY_LAST_LONGWORD,d7
+clear_next_inventory_overlay_line_pointer:
 	move.l d0,(a0)+	; operand 2: ui_overlay_descriptor_x at (a0)+
 	move.l d0,(a1)+	; operand 2: ui_overlay_descriptor_x at (a1)+
-	dbf.w d7,abs_0_0001A056
+	dbf.w d7,clear_next_inventory_overlay_line_pointer
 	lea.l player_holding_overlay_line_0_ptr.l,a0
 	move.l d0,(a0)	; operand 2: ui_overlay_descriptor_line_0_ptr at (a0)
-	move.w #$EEE,app_ticker_highlight_rgb12(a6)
+	move.w #WORLD_RESTART_TICKER_HIGHLIGHT_RGB12,app_ticker_highlight_rgb12(a6)
 	clr.b app_ui_flags(a6)
 	clr.b app_status_flags(a6)
 	clr.b app_context_flags(a6)
@@ -16458,52 +16502,53 @@ abs_0_0001A056:
 	move.l a0,app_scrolling_message_queue_tail(a6)
 	clr.l app_scrolling_message_queue_head(a6)
 	clr.b app_palette_transition_steps_remaining(a6)
-	move.w #$9999,app_earth_orbit_countdown_bcd(a6)
+	move.w #WORLD_RESTART_EARTH_BCD,app_earth_orbit_countdown_bcd(a6)
 	move.b #$1,app_earth_orbit_countdown_divider(a6)
 	bsr.w configure_camera_scroll_triggers
 	move.l #active_world_object_ptr_table,app_active_world_object_ptr_table(a6)
-	move.w #$43,active_world_object_count(a6)
+	move.w #WORLD_RESTART_ACTIVE_DESCRIPTOR_COUNT,active_world_object_count(a6)
     ; Restart exchanges states only when the current/initial inactive bits differ, then restores initial flags and script state. The saved state/node must be valid when exchanged.
 	lea.l world_object_ptr_table.l,a1
-abs_0_0001A0B8:
+read_next_restart_world_object:
 	move.l (a1)+,d0
-	beq.b abs_0_0001A12E
+	beq.b finish_world_object_restart
 	movea.l d0,a5
-	move.b $0049(a5),d0
-	move.b $0048(a5),d1
+	move.b RESTART_FIELD_INITIAL_WORLD_OBJECT_FLAGS(a5),d0
+	move.b RESTART_FIELD_WORLD_OBJECT_FLAGS(a5),d1
 	eor.b d0,d1
 	btst #WORLD_OBJECT_INACTIVE_BIT,d1
-	beq.b abs_0_0001A0D2
+	beq.b restore_initial_world_object_flags
 	bsr.w exchange_world_object_position_states
-abs_0_0001A0D2:
-	move.b d0,$0048(a5)
-	btst.b #WORLD_OBJECT_INACTIVE_BIT,$0048(a5)
-	beq.b abs_0_0001A0E2
+restore_initial_world_object_flags:
+	move.b d0,RESTART_FIELD_WORLD_OBJECT_FLAGS(a5)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,RESTART_FIELD_WORLD_OBJECT_FLAGS(a5)
+	beq.b restore_world_object_name_and_item_banks
 	bsr.w copy_world_object_xy_to_position_descriptor
-abs_0_0001A0E2:
+restore_world_object_name_and_item_banks:
 	moveq.l #0,d0
-	move.b $004A(a5),d0
+	move.b RESTART_FIELD_ITEM_DEFINITION_ID(a5),d0
 	bsr.w resolve_item_name
-	move.l d0,$0000(a5)
-	movea.l $001C(a5),a2
-	movea.l $0014(a5),a3
-	moveq.l #7,d7
-abs_0_0001A0FA:
+	move.l d0,RESTART_FIELD_ITEM_NAME_PTR.w(a5)
+	movea.l RESTART_FIELD_INITIAL_INVENTORY_SLOTS_PTR(a5),a2
+	movea.l RESTART_FIELD_INVENTORY_SLOTS_PTR(a5),a3
+	moveq.l #WORLD_RESTART_ITEM_BANK_LAST_BYTE,d7
+    ; Both item banks copy eight BYTEs forward, including self/overlap aliases; there is no memmove guarantee. Restore initial item/state/HP/script fields and clear script delay for each object.
+copy_next_initial_inventory_byte:
 	move.b (a2)+,(a3)+
-	dbf.w d7,abs_0_0001A0FA
-	movea.l $0020(a5),a2
-	movea.l $0018(a5),a3
-	moveq.l #7,d7
-abs_0_0001A10A:
+	dbf.w d7,copy_next_initial_inventory_byte
+	movea.l RESTART_FIELD_INITIAL_TRADE_OFFER_TABLE_PTR(a5),a2
+	movea.l RESTART_FIELD_TRADE_OFFER_TABLE_PTR(a5),a3
+	moveq.l #WORLD_RESTART_ITEM_BANK_LAST_BYTE,d7
+copy_next_initial_trade_offer_byte:
 	move.b (a2)+,(a3)+
-	dbf.w d7,abs_0_0001A10A
-	move.b $0047(a5),$0046(a5)
-	move.b $004D(a5),$004C(a5)
-	move.w $003E(a5),$003C(a5)
-	move.l $0028(a5),$0024(a5)
-	clr.w $0044(a5)
-	bra.b abs_0_0001A0B8
-abs_0_0001A12E:
+	dbf.w d7,copy_next_initial_trade_offer_byte
+	move.b RESTART_FIELD_INITIAL_SELECTED_ITEM_ID(a5),RESTART_FIELD_SELECTED_ITEM_ID(a5)
+	move.b RESTART_FIELD_INITIAL_ITEM_STATE(a5),RESTART_FIELD_ITEM_STATE(a5)
+	move.w RESTART_FIELD_INITIAL_HIT_POINTS(a5),RESTART_FIELD_HIT_POINTS(a5)
+	move.l RESTART_FIELD_INITIAL_BEHAVIOR_SCRIPT_PTR(a5),RESTART_FIELD_BEHAVIOR_SCRIPT_PTR(a5)
+	clr.w RESTART_FIELD_BEHAVIOR_SCRIPT_DELAY_TICKS(a5)
+	bra.b read_next_restart_world_object
+finish_world_object_restart:
 	move.l #player_position_state,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
 	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
