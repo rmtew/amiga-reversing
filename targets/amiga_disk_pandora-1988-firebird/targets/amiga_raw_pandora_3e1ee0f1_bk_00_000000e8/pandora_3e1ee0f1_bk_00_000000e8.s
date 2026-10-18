@@ -1212,6 +1212,14 @@ PROXIMITY_AUDIO_EXCLUSIVE_DISTANCE	EQU	256
 PROXIMITY_AUDIO_FULL_VOLUME	EQU	64
 PROXIMITY_DEFAULT_COORDINATE_BIAS	EQU	16
 PROXIMITY_VARIANT_X_BIAS	EQU	8
+RANGED_FIRE_AUDIO_SEQUENCE	EQU	$201
+RANGED_FIRE_ORIGIN_BIAS	EQU	14
+RANGED_FIRE_UI_BLOCK_MASK	EQU	(1<<UI_FLAG_COMBAT_ACTIVE)|(1<<UI_FLAG_INVENTORY_PANEL_ACTIVE)
+RANGED_HIT_VISUAL_SERVICE_TICKS	EQU	25
+RANGED_OBJECT_DEFEAT_AUDIO_SEQUENCE	EQU	$11B
+RANGED_PLAYER_WORLD_X_OFFSET	EQU	world_object_shared_prefix_world_x
+RANGED_PLAYER_WORLD_Y_OFFSET	EQU	world_object_shared_prefix_world_y
+RANGED_RAY_STEP_SHIFT	EQU	1
 RANGED_WEAPON_VARIANT_COUNT	EQU	2
 RECEPTACLE_BRAIN_PICKUP_HIT_POINTS	EQU	95
 RECEPTACLE_COORDINATE_BIAS	EQU	16
@@ -1428,6 +1436,8 @@ WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOI
 WORLD_POSITION_CURRENT_GEOMETRY_DISP	EQU	world_position_state_record_current_geometry_ptr
 WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
+WORLD_POSITION_RANGED_RESISTANCE_MESSAGE_BIT	EQU	4
+WORLD_POSITION_RANGED_STATE_SKIP_BIT	EQU	3
 WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT	EQU	3
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
@@ -15695,42 +15705,50 @@ ranged_weapon_ammunition_remaining:
 	dc.b $00,$00	; ranged_weapon_ammunition
 service_selected_ranged_weapon_fire:
 	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
-	bne.w abs_0_000193D8
+	bne.w return_from_ranged_weapon_service
 	tst.w app_ranged_hit_visual_ticks_remaining(a6)
-	beq.b abs_0_0001926E
+	beq.b test_ranged_fire_input_gates
+tick_ranged_hit_visual_timer:
 	subq.w #1,app_ranged_hit_visual_ticks_remaining(a6)
-	bne.b abs_0_0001926E
+	bne.b test_ranged_fire_input_gates
 	clr.l ranged_hit_visual_state_state_node_ptr.l
-abs_0_0001926E:
+test_ranged_fire_input_gates:
 	move.b app_ui_flags(a6),d0
-	andi.b #6,d0
-	bne.w abs_0_000193D8
+    ; Active player ticks visual timer before UI/fire gates. UI bits1/2 suppress firing and release rearm but not this timer; inactive player skips both. Expiry unbinds the node, keeps geometry.
+	andi.b #RANGED_FIRE_UI_BLOCK_MASK,d0
+	bne.w return_from_ranged_weapon_service
 	tst.b app_input_fire_pressed_ff(a6)
-	beq.w abs_0_000193D4
+	beq.w store_ranged_fire_latch_byte
 	tst.b app_ranged_weapon_fire_latched(a6)
-	bne.w abs_0_000193D8
+	bne.w return_from_ranged_weapon_service
+    ; A new press is latched before weapon/ammo checks. Invalid IDs and empty variants still consume it. Switching held IDs cannot rearm; UI/combat-blocked release retains the latch.
+latch_new_ranged_fire_press:
 	addq.b #1,app_ranged_weapon_fire_latched(a6)
 	lea.l player_world_object.l,a4
 	clr.w d0
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	subi.b #ITEM_ID_LASER_RIFLE,d0
 	cmp.b #RANGED_WEAPON_VARIANT_COUNT,d0
-	bcc.w abs_0_000193D8
+	bcc.w return_from_ranged_weapon_service
+select_ranged_weapon_ammunition_byte:
 	move.w d0,app_ranged_weapon_variant_index(a6)
 	lea.l ranged_weapon_ammunition_remaining(pc),a0
 	tst.b $0(a0,d0.w)
-	beq.w abs_0_000193D8
+	beq.w return_from_ranged_weapon_service
+consume_selected_ranged_round:
 	subq.b #1,$0(a0,d0.w)
-	jsr abs_0_0005D30A.l
-	move.w $0030(a4),d0
-	move.w $0032(a4),d1
-	moveq.l #14,d2
+	jsr start_ranged_weapon_fire_feedback.l
+prepare_ranged_fire_origin_and_step:
+	move.w RANGED_PLAYER_WORLD_X_OFFSET(a4),d0
+	move.w RANGED_PLAYER_WORLD_Y_OFFSET(a4),d1
+    ; Aim uses the last accepted request: step=2*request, then origin pre-add plus first loop put the first sample at player+14+4*request, with WORD wrap. Directional inputs are not resampled here.
+	moveq.l #RANGED_FIRE_ORIGIN_BIAS,d2
 	add.w d2,d0
 	add.w d2,d1
 	move.w app_last_accepted_move_request_x_step(a6),d2
 	move.w app_last_accepted_move_request_y_step(a6),d3
-	asl.w #1,d2
-	asl.w #1,d3
+	asl.w #RANGED_RAY_STEP_SHIFT,d2
+	asl.w #RANGED_RAY_STEP_SHIFT,d3
 	add.w d2,d0
 	add.w d3,d1
     ; Hardcoded 90-column grid; byte offset wraps at 64KiB. No range counter or map clamp: NULL hit scans resume sampling. A zero step repeats the point unless another condition changes.
@@ -15739,9 +15757,9 @@ advance_ranged_effect_ray_point:
 	add.w d3,d1
 	move.w d0,d5
 	move.w d1,d6
-	lsr.w #4,d0
-	lsr.w #4,d1
-	mulu.w #$5A,d1
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d0
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d1
+	mulu.w #WORLD_GRID_COLUMNS,d1
 	add.w d1,d0
 	add.w d0,d0
 	add.w d0,d0
@@ -15771,7 +15789,7 @@ scan_ranged_effect_position_descriptors:
 test_ranged_effect_state_chain:
 	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
 	bne.b scan_ranged_effect_position_descriptors
-	btst.b #3,world_position_state_record_world_object_flags(a2)
+	btst.b #WORLD_POSITION_RANGED_STATE_SKIP_BIT,world_position_state_record_world_object_flags(a2)
 	bne.w next_ranged_effect_attachment_state
 	move.w world_position_descriptor_prefix_world_x(a1),d4
 	move.w world_position_descriptor_prefix_world_y(a1),d5
@@ -15800,28 +15818,32 @@ match_ranged_hit_descriptor_to_world_object:
 	bne.b match_ranged_hit_descriptor_to_world_object
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a0)
-	bne.b abs_0_000193A4
+	bne.b store_ranged_hit_point_in_loaded_descriptor
 	bsr.w activate_ranged_hit_visual_and_return_descriptor
     ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
-abs_0_000193A4:
+store_ranged_hit_point_in_loaded_descriptor:
 	move.w d0,world_position_descriptor_prefix_world_x(a1)
 	move.w d1,world_position_descriptor_prefix_world_y(a1)
+apply_ranged_hit_item_state_and_health_damage:
 	move.w app_ranged_weapon_variant_index(a6),d0
 	move.b world_object_shared_prefix_item_state(a5),d1
+    ; Clamp item state by result sign after BYTE subtraction, not borrow. Health stores only a positive result; zero/negative reaches completion with its old HP byte still present.
 	sub.b ranged_weapon_item_state_damage(pc,d0.w),d1
-	bpl.b abs_0_000193BC
+	bpl.b store_nonnegative_ranged_item_state_byte
 	clr.b d1
-abs_0_000193BC:
+store_nonnegative_ranged_item_state_byte:
 	move.b d1,world_object_shared_prefix_item_state(a5)
+apply_ranged_health_damage:
 	move.b world_object_shared_prefix_hit_points+1(a5),d1
 	sub.b ranged_weapon_health_damage(pc,d0.w),d1
 	bmi.b finish_ranged_hit_object_defeat
 	beq.b finish_ranged_hit_object_defeat
+store_surviving_ranged_health_byte:
 	move.b d1,world_object_shared_prefix_hit_points+1(a5)
 	move.b app_ranged_weapon_fire_latched(a6),d0
-abs_0_000193D4:
+store_ranged_fire_latch_byte:
 	move.b d0,app_ranged_weapon_fire_latched(a6)
-abs_0_000193D8:
+return_from_ranged_weapon_service:
 	rts
 next_ranged_effect_attachment_state:
 	move.l world_position_state_record_attachment_state_ptr(a2),d4
@@ -15832,17 +15854,20 @@ ranged_weapon_health_damage:
 	dc.b $1E,$5A	; lookup_table
 ranged_weapon_item_state_damage:
 	dc.b $32,$64	; lookup_table
+    ; Optional callback runs before exchange/inactive marking, without combat passage reset. Known callbacks retain passage effects; later callback targets and memory effects remain unproved.
 finish_ranged_hit_object_defeat:
 	move.l world_object_shared_prefix_interaction_completion_callback(a5),d0
-	beq.b abs_0_000193F6
+	beq.b exchange_ranged_defeated_object_state
 	movea.l d0,a0
     ; This path does not save A5 around the call. The four known initial targets preserve A5 on normal returns. Memory/escape effects and later target mutation remain unknown.
 	jsr (a0)
-abs_0_000193F6:
+    ; Each admitted fatal hit exchanges states and increments the defeat BYTE with wrap. No existing-inactive or prior-defeat guard is tested here; later table/state admission remains separate.
+exchange_ranged_defeated_object_state:
 	bsr.w exchange_world_object_position_states
-	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+mark_ranged_victim_inactive_and_count:
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
 	addq.b #1,app_defeated_object_count(a6)
-	move.w #$11B,d0
+	move.w #RANGED_OBJECT_DEFEAT_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	rts
 handle_ranged_effect_blocked_tile:
@@ -15854,18 +15879,20 @@ handle_ranged_effect_blocked_tile:
 handle_ranged_hit_without_world_object:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
 	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a0)
-	bne.b abs_0_0001942E
+	bne.b store_anonymous_ranged_hit_point
 	bsr.w activate_ranged_hit_visual_and_return_descriptor
     ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
-abs_0_0001942E:
+store_anonymous_ranged_hit_point:
 	move.w d0,world_position_descriptor_prefix_world_x(a1)
 	move.w d1,world_position_descriptor_prefix_world_y(a1)
-	btst.b #4,world_position_state_record_world_object_flags(a2)
-	beq.b abs_0_0001944A
+    ; This bit only requests warning text for an unmapped hit. Either value returns without object damage. It establishes no force-field damage or wider solidity semantics.
+	btst.b #WORLD_POSITION_RANGED_RESISTANCE_MESSAGE_BIT,world_position_state_record_world_object_flags(a2)
+	beq.b return_from_anonymous_ranged_hit
 	lea.l ranged_force_field_resistance_message(pc),a0
+enqueue_ranged_resistance_warning:
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
-abs_0_0001944A:
+return_from_anonymous_ranged_hit:
 	rts
 ranged_force_field_resistance_message:
 	dc.b "P.S.I. say 'nice try, but force fields are impregnable.'",$00
@@ -15878,7 +15905,8 @@ activate_ranged_hit_visual_and_return_descriptor:
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	movea.l world_position_render_state_prefix_position_descriptor_ptr(a0),a1
-	move.w #$19,app_ranged_hit_visual_ticks_remaining(a6)
+reload_ranged_hit_visual_timer:
+	move.w #RANGED_HIT_VISUAL_SERVICE_TICKS,app_ranged_hit_visual_ticks_remaining(a6)
 	rts
 snapshot_inventory_cursor_and_clear_hidden_latch:
 	bclr.b #CURSOR_SPRITES_HIDDEN_LATCH_BIT,app_inventory_cursor_sprite_flags(a6)
@@ -27710,8 +27738,8 @@ start_brain_pickup_feedback_audio:
 abs_0_0005D304:
 	move.w #$300,d0
 	bra.b start_feedback_audio_sequence
-abs_0_0005D30A:
-	move.w #$201,d0
+start_ranged_weapon_fire_feedback:
+	move.w #RANGED_FIRE_AUDIO_SEQUENCE,d0
 	bra.b start_feedback_audio_sequence
 start_paired_feedback_audio_sequences:
 	moveq.l #14,d0

@@ -4873,3 +4873,41 @@ histories,
 126 assets, 2,112 typed tile fields and the 128-byte INCBIN remain intact, including
 countdown, title/F7/A4 and defeat distinctions. No asynchronous frames/DMA, pixels,
 ordinary admission, exclusive ownership, complete lifetime or intent/bug claim.
+
+### Ranged fire and complete hit resolution
+
+Accepted 52 annotations: twenty code stages, ten constants, fifteen operand
+bindings and seven finalized comments. A press latches before held-ID/ammo checks:
+invalid IDs and empty variants still consume it. Switching IDs neither rearms nor
+refills the shared two-byte ammunition array; the original initializer copies 5/1.
+UI/combat blocks release rearm while the active-player visual timer still ticks.
+Inactive player skips both. Timer expiry unbinds its node while retaining geometry.
+Aim uses the last accepted request, with WORD-wrapped first sample at
+`player + 14 + 4*request`; the ray still uses fixed 90 columns and has no general
+termination bound.
+
+Damage arrays index laser rifle/pulse cannon: health 30/90, item state 50/100. Item
+state clamps by signed result, not borrow. Positive HP results store; zero/negative
+branches reach completion with the old HP byte still present. The four known initial
+callbacks run before state exchange/inactive marking, without combat's pre-callback
+passage reset; their own passage writes remain. Later callback mutation/memory
+effects stay open. Under explicit retained table/state admission, another fatal
+hit on an inactive victim exchanges states and increments the defeat BYTE again,
+including wrap. This does not prove that normal world repartition admits it.
+Unmapped hits return for either resistance-message bit value; the bit requests
+warning text, without establishing wider force-field damage/solidity semantics.
+
+Nine original-code tests in `tests/test_pandora_ranged_resolution.py` cover all 256
+item-state/health bytes and both variants, full shots, all four known callbacks
+plus NULL, state/counter/passage effects, repeated admitted hits, all 256 UI/player/
+held-ID/fire/latch/ammo bytes, warnings, bounded zero-step nontermination and shared
+ammo/reset copy. Real audio/status/state callees remain; no instructions are patched.
+Unchanged geometry/ray/visual, ammunition, callback and other subsystem checks are
+reused. All 60 preflight instruction bytes, ten EQU forms and 15 operands are C/vasm
+exact before mutation. Comments were settled before one full output gate; all
+376,832 bytes match, receipt `41347ea5de74415c2e899179aa791ff7e108d7f898638ce9a7ffa055a2ca0927`.
+Earlier source/comments, fields/types/owner bounds, SDK/pointer forms, raw gaps,
+histories, 126 assets, 2,112 typed tile fields and the 128-byte INCBIN remain intact,
+including script clock/hold/cache, countdown, title/F7/A4 and defeat distinctions.
+No framework change, DMA/pixels, audible output, elapsed-time, ordinary admission,
+complete lifetime, intent or bug claim is added.
