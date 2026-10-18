@@ -905,7 +905,20 @@ ASCII_DIGIT_ZERO	EQU	48
 ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
 AUDIO_CHANNEL_REGISTER_BYTES	EQU	ac_SIZEOF
+AUDIO_DURATION_TOKEN_BIAS	EQU	223
+AUDIO_NOTE_INDEX_MASK	EQU	255
 AUDIO_PLAYER_MODE_PROXIMITY	EQU	2
+AUDIO_PRIMARY_CHANNEL_COUNT	EQU	4
+AUDIO_PRIMARY_DELTA_ENABLED_BIT	EQU	1
+AUDIO_PRIMARY_DMA_CONFIGURATION_BYTES	EQU	audio_channel_dma_configuration_SIZEOF
+AUDIO_PRIMARY_DMA_ENABLE_MASK	EQU	DMAF_SETCLR|DMAF_MASTER
+AUDIO_PRIMARY_LAST_CHANNEL	EQU	AUDIO_PRIMARY_CHANNEL_COUNT-1
+AUDIO_PRIMARY_PITCH_SCALE_SHIFT	EQU	10
+AUDIO_PRIMARY_SILENCE_LENGTH_WORDS	EQU	32
+AUDIO_PRIMARY_STATE_BYTES	EQU	audio_channel_runtime_state_SIZEOF
+AUDIO_PRIMARY_VOLUME_SCALE_SHIFT	EQU	6
+AUDIO_PROGRAM_DMA_RELOAD_OPCODE	EQU	$83
+AUDIO_SAMPLE_METADATA_BYTES	EQU	audio_sample_metadata_SIZEOF
 AUDIO_SECONDARY_CONFIGURATION_BYTES	EQU	audio_sequence_channel_configuration_SIZEOF
 AUDIO_SECONDARY_CONFIGURATION_LAST_WORD	EQU	AUDIO_SECONDARY_CONFIGURATION_BYTES/2-1
 AUDIO_SECONDARY_DMA_CONFIGURATION_BYTES	EQU	audio_channel_dma_configuration_SIZEOF
@@ -915,6 +928,12 @@ AUDIO_SECONDARY_MINIMUM_REGISTER_PERIOD	EQU	124
 AUDIO_SECONDARY_PRIME_LENGTH_WORDS	EQU	64
 AUDIO_SECONDARY_START_DELAY_INITIAL_COUNT	EQU	512
 AUDIO_SECONDARY_STATE_BYTES	EQU	audio_channel_playback_state_SIZEOF
+AUDIO_STREAM_TERMINAL_BIT	EQU	7
+AUDIO_STREAM_VALUE_MASK	EQU	127
+AUDIO_TOKEN_DURATION_FIRST	EQU	$E0
+AUDIO_TOKEN_PITCH_FIRST	EQU	$A0
+AUDIO_TOKEN_SAMPLE_FIRST	EQU	$C0
+AUDIO_TOKEN_VOLUME_FIRST	EQU	$B0
 BITMAP_PIXELS_PER_BYTE_SHIFT	EQU	3
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 BLITTER_A_OR_C_MINTERM	EQU	ABC|ABNC|ANBC|ANBNC|NABC|NANBC
@@ -28093,7 +28112,7 @@ initialize_audio_player:
 	move.b $1(a0,d0.w),audio_player_base_view_globals+4(a3)
 	move.b audio_player_globals_update_phase_increment(pc),audio_player_base_view_globals+5(a3)
 	moveq.l #0,d7
-abs_0_0005D81C:
+initialize_next_primary_audio_channel:
 	move.w #$1,audio_channel_runtime_state_update_countdown(a1)
 	sf.b audio_channel_runtime_state_channel_flags.w(a1)
 	sf.b audio_channel_runtime_state_pitch_modulation_flags(a1)
@@ -28109,11 +28128,11 @@ abs_0_0005D81C:
 	movea.w $0(a3,a0.w),a0
 	adda.l a3,a0
 	move.l a0,audio_channel_runtime_state_program_cursor(a1)
-	adda.w #$30,a1
+	adda.w #AUDIO_PRIMARY_STATE_BYTES,a1
 	addq.w #2,d0
 	addq.w #1,d7
-	cmp.w #$4,d7
-	bne.b abs_0_0005D81C
+	cmp.w #AUDIO_PRIMARY_CHANNEL_COUNT,d7
+	bne.b initialize_next_primary_audio_channel
 	st.b audio_player_base_view_globals+9(a3)
 	st.b audio_player_base_view_globals+7(a3)
 	rts
@@ -28140,81 +28159,82 @@ enable_active_audio_channel_dma:
 	lea.l initialize_audio_player(pc),a3
     ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 	tst.b audio_player_base_view_globals+7(a3)
-	beq.b abs_0_0005D8F4
+	beq.b return_from_audio_dma_enable
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
-	move.w #$8200,d1
-	moveq.l #3,d7
-abs_0_0005D8E4:
+	move.w #AUDIO_PRIMARY_DMA_ENABLE_MASK,d1
+	moveq.l #AUDIO_PRIMARY_LAST_CHANNEL,d7
+include_next_audio_channel_dma_bit:
 	bset d7,d1
-	dbf.w d7,abs_0_0005D8E4
+	dbf.w d7,include_next_audio_channel_dma_bit
 	move.w d1,_custom+dmacon.l
 	st.b audio_player_base_view_globals+9(a3)
-abs_0_0005D8F4:
+return_from_audio_dma_enable:
 	rts
-abs_0_0005D8F6:
+service_secondary_audio_after_primary:
 	bra.w dispatch_audio_channel_updates
-abs_0_0005D8FA:
+return_on_primary_audio_skip_visit:
 	rts
 update_audio_channels:
 	lea.l initialize_audio_player(pc),a3
     ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 	tst.b audio_player_base_view_globals+9(a3)
-	beq.b abs_0_0005D8F6
+	beq.b service_secondary_audio_after_primary
 	move.b audio_player_globals_update_phase_increment(pc),d0
 	ext.w d0
 	mulu.w #$10,d0
 	add.b d0,audio_player_base_view_globals+6(a3)
-	bcs.b abs_0_0005D8F6
+	bcs.b service_secondary_audio_after_primary
 	tst.b audio_player_base_view_globals+12(a3)
-	beq.b abs_0_0005D92A
+	beq.b mutate_audio_sample_7_waveform
 	subq.b #1,audio_player_base_view_globals+11(a3)
-	bne.b abs_0_0005D92A
+	bne.b mutate_audio_sample_7_waveform
 	move.b #$6,audio_player_base_view_globals+11(a3)
-	bra.b abs_0_0005D8FA
+	bra.b return_on_primary_audio_skip_visit
     ; Sample 7: guarded init sets 0/32 after 64B fill; known updates cycle 12 states at even offsets 32..44. Raw 0/0 adds transient 0..30. Requires valid pointer/no other writers; phase unknown.
-abs_0_0005D92A:
+mutate_audio_sample_7_waveform:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
 	move.w audio_sample_7_word_write_offset(pc),d0
 	tst.w audio_player_base_view_sample_7_waveform_direction(a3)
-	bmi.b abs_0_0005D950
+	bmi.b write_sample_7_decreasing_offset
 	move.w #$C0C0,$0(a0,d0.w)
 	addq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
 	cmpi.w #44,audio_player_base_view_sample_7_word_write_offset(a3)
-	bne.b abs_0_0005D94E
+	bne.b finish_sample_7_increasing_offset_write
 	not.w audio_player_base_view_sample_7_waveform_direction(a3)
-abs_0_0005D94E:
-	bra.b abs_0_0005D966
-abs_0_0005D950:
+finish_sample_7_increasing_offset_write:
+	bra.b begin_primary_audio_channel_pass
+write_sample_7_decreasing_offset:
 	move.w #$3F3F,$0(a0,d0.w)
 	subq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
 	cmpi.w #32,audio_player_base_view_sample_7_word_write_offset(a3)
-	bne.b abs_0_0005D966
+	bne.b begin_primary_audio_channel_pass
 	not.w audio_player_base_view_sample_7_waveform_direction(a3)
-abs_0_0005D966:
-	moveq.l #3,d7
-abs_0_0005D968:
+begin_primary_audio_channel_pass:
+	moveq.l #AUDIO_PRIMARY_LAST_CHANNEL,d7
+service_next_primary_audio_channel:
 	lea.l audio_channel_dma_configurations(pc),a4
 	move.w d7,d0
-	mulu.w #$C,d0
+	mulu.w #AUDIO_PRIMARY_DMA_CONFIGURATION_BYTES,d0
 	adda.w d0,a4
     ; KNOWN: type A4=Target code-entry register seed:audio_channel_dma_configuration
 	st.b audio_channel_dma_configuration_enabled(a4)
 	lea.l _custom.l,a6
-	move.w #$30,d0
+	move.w #AUDIO_PRIMARY_STATE_BYTES,d0
 	mulu.w d7,d0
 	lea.l audio_channel_state_records(pc),a0
 	adda.w d0,a0
 	move.w d7,d0
 	lsl.w #4,d0
 	adda.w d0,a6
+    ; On the next visit after attack, a nonnegative LONG offset advances sample bytes and subtracts offset/2 from WORD length. Negative uses silence. DMA pending suppresses register stores only.
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state
 	movea.l audio_channel_runtime_state_program_cursor(a0),a1
 	movea.l audio_channel_runtime_state_sample_metadata_ptr(a0),a5
 	tst.b audio_channel_runtime_state_sample_start_pending(a0)
-	bne.b abs_0_0005D9EC
+	bne.b decrement_primary_audio_note_countdown
 	st.b audio_channel_runtime_state_sample_start_pending(a0)
 	move.l audio_sample_metadata_sample_start_byte_offset(a5),d0
-	bmi.b abs_0_0005D9CE
+	bmi.b install_primary_silence_on_negative_offset
 	movea.l audio_sample_metadata_sample_ptr.w(a5),a2
 	adda.l d0,a2
 	lsr.l #1,d0
@@ -28223,39 +28243,41 @@ abs_0_0005D968:
 	move.l a2,audio_channel_dma_configuration_sample_ptr.w(a4)
 	move.w d1,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005D9CC
+	bne.b finish_primary_sample_resume
 	move.l a2,aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w d1,aud0+ac_len(a6)
-abs_0_0005D9CC:
-	bra.b abs_0_0005D9EC
-abs_0_0005D9CE:
+finish_primary_sample_resume:
+	bra.b decrement_primary_audio_note_countdown
+install_primary_silence_on_negative_offset:
 	move.l audio_player_globals_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
-	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
+	move.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005D9EC
+	bne.b decrement_primary_audio_note_countdown
 	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
-abs_0_0005D9EC:
+	move.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,aud0+ac_len(a6)	; sound sample length 64 bytes
+    ; WORD countdown wraps: 1 ->0 clears note flags and fetches tokens; 2 ->1 only clears this DMA bit unless pending or next opcode $83. Other values update streams, including 0 ->FFFF.
+decrement_primary_audio_note_countdown:
 	subq.w #1,audio_channel_runtime_state_update_countdown(a0)
-	beq.b abs_0_0005DA16
+	beq.b clear_note_flags_before_audio_token_fetch
 	cmpi.w #1,audio_channel_runtime_state_update_countdown(a0)
-	bne.w abs_0_0005DAB6
+	bne.w update_primary_audio_pitch_stream
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005DA12
-	cmpi.b #131,(a1)
-	beq.b abs_0_0005DA12
+	bne.b finish_primary_audio_preexpiry_visit
+	cmpi.b #AUDIO_PROGRAM_DMA_RELOAD_OPCODE,(a1)
+	beq.b finish_primary_audio_preexpiry_visit
 	clr.w d1
 	bset d7,d1
 	move.w d1,_custom+dmacon.l
-abs_0_0005DA12:
-	bra.w abs_0_0005DAAE
-abs_0_0005DA16:
+finish_primary_audio_preexpiry_visit:
+	bra.w advance_primary_audio_channel
+clear_note_flags_before_audio_token_fetch:
 	clr.b audio_channel_runtime_state_channel_flags.w(a0)
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A5=Target code-entry register seed:audio_sample_metadata; type A3=Target code-entry register seed
-abs_0_0005DA1A:
+fetch_next_primary_audio_token:
 	moveq.l #0,d0
 	move.b (a1)+,d0
-	bmi.w abs_0_0005DBA8
+	bmi.w decode_primary_audio_duration_or_selector
+    ; Attack resets volume cursor and consumes its first byte with sign extension, not the later low7 mask. Existing modulation survives. Sample start resumes on the following primary visit.
 	move.b d0,audio_channel_runtime_state_current_note(a0)
 	add.b audio_player_globals_global_note_offset(pc),d0
 	add.b audio_channel_runtime_state_note_offset(a0),d0
@@ -28268,162 +28290,168 @@ abs_0_0005DA1A:
 	move.w audio_sample_metadata_sample_length(a5),audio_channel_dma_configuration_sample_length(a4)
 	move.w audio_player_globals_master_volume(pc),d2
 	mulu.w d2,d1
-	lsr.w #6,d1
+	lsr.w #AUDIO_PRIMARY_VOLUME_SCALE_SHIFT,d1
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005DA6E
+	bne.b compute_primary_attack_note_period
 	move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)	; sound_sample pointer
 	move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)
 	move.w d1,aud0+ac_vol(a6)
-abs_0_0005DA6E:
-	andi.w #255,d0
+    ; Note plus global/channel offsets wraps as BYTE before the unchecked scalar lookup. Unsigned scalar*sample period shifts right10, then stores WORD; attack omits stream/delta/modulation.
+compute_primary_attack_note_period:
+	andi.w #AUDIO_NOTE_INDEX_MASK,d0
 	lea.l audio_pitch_scalars(pc),a2
 	move.w audio_sample_metadata_sample_period(a5),d1
-	moveq.l #10,d2
+	moveq.l #AUDIO_PRIMARY_PITCH_SCALE_SHIFT,d2
 	add.w d0,d0
 	move.w $0(a2,d0.w),d0
 	mulu.w d1,d0
 	lsr.l d2,d0
 	move.w d0,audio_channel_dma_configuration_sample_period(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005DA94
+	bne.b request_primary_sample_resume_next_visit
 	move.w d0,aud0+ac_per(a6)	; audio period
-abs_0_0005DA94:
+request_primary_sample_resume_next_visit:
 	sf.b audio_channel_runtime_state_sample_start_pending(a0)
-abs_0_0005DA98:
+save_primary_audio_cursor_and_enable_dma:
 	move.l a1,audio_channel_runtime_state_program_cursor(a0)
 	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
-	move.w #$8200,d1
+	move.w #AUDIO_PRIMARY_DMA_ENABLE_MASK,d1
 	bset d7,d1
 	move.w d1,_custom+dmacon.l
-abs_0_0005DAAE:
-	dbf.w d7,abs_0_0005D968
-	bra.w abs_0_0005D8F6
+advance_primary_audio_channel:
+	dbf.w d7,service_next_primary_audio_channel
+	bra.w service_secondary_audio_after_primary
     ; Read a byte and apply its low seven bits. Bit 7 resets the stored cursor to the stream start; all 13 original streams end at that marker. Later stream or selector changes are not bounded.
-abs_0_0005DAB6:
+update_primary_audio_pitch_stream:
 	move.b audio_channel_runtime_state_current_note(a0),d0
 	add.b audio_player_globals_global_note_offset(pc),d0
 	add.b audio_channel_runtime_state_note_offset(a0),d0
 	movea.l audio_channel_runtime_state_pitch_sequence_cursor(a0),a1
 	move.b (a1)+,d1
-	bclr #7,d1
-	beq.b abs_0_0005DAD2
+	bclr #AUDIO_STREAM_TERMINAL_BIT,d1
+	beq.b save_primary_pitch_stream_cursor
 	movea.l audio_channel_runtime_state_pitch_sequence_start_ptr(a0),a1
-abs_0_0005DAD2:
+save_primary_pitch_stream_cursor:
 	move.l a1,audio_channel_runtime_state_pitch_sequence_cursor(a0)
 	add.b d1,d0
-	andi.w #255,d0
+	andi.w #AUDIO_NOTE_INDEX_MASK,d0
 	lea.l audio_pitch_scalars(pc),a2
 	move.w audio_sample_metadata_sample_period(a5),d1
-	moveq.l #10,d2
+	moveq.l #AUDIO_PRIMARY_PITCH_SCALE_SHIFT,d2
 	add.w d0,d0
 	move.w $0(a2,d0.w),d0
 	mulu.w d1,d0
 	lsr.l d2,d0
-	btst.b #1,audio_channel_runtime_state_channel_flags.w(a0)
-	beq.b abs_0_0005DB12
+	btst.b #AUDIO_PRIMARY_DELTA_ENABLED_BIT,audio_channel_runtime_state_channel_flags.w(a0)
+	beq.b update_primary_audio_pitch_modulation
 	tst.b audio_channel_runtime_state_pitch_delta_countdown(a0)
-	beq.b abs_0_0005DB04
+	beq.b accumulate_primary_audio_pitch_delta
 	subq.b #1,audio_channel_runtime_state_pitch_delta_countdown(a0)
-	bra.b abs_0_0005DB12
-abs_0_0005DB04:
+	bra.b update_primary_audio_pitch_modulation
+    ; Delta wait skips both accumulation and application. Once zero, signed BYTE step accumulates in WORD and is subtracted every pitch visit; wait is not reloaded. Note expiry clears its flag.
+accumulate_primary_audio_pitch_delta:
 	move.b audio_channel_runtime_state_pitch_delta_step(a0),d1
 	ext.w d1
 	add.w d1,audio_channel_runtime_state_pitch_delta_accumulator(a0)
 	sub.w audio_channel_runtime_state_pitch_delta_accumulator(a0),d0
-abs_0_0005DB12:
+    ; Nonzero flags activate modulation. Bit7 rises to exact BYTE limit; falling turns at zero. Zero flips bit0 (add/subtract). Updated value sign-extends into WORD period arithmetic.
+update_primary_audio_pitch_modulation:
 	tst.b audio_channel_runtime_state_pitch_modulation_flags(a0)
-	beq.b abs_0_0005DB64
-	bpl.b abs_0_0005DB34
+	beq.b store_primary_audio_period
+	bpl.b decrease_primary_pitch_modulation_value
 	move.b audio_channel_runtime_state_pitch_modulation_value(a0),d1
 	add.b audio_channel_runtime_state_pitch_modulation_step(a0),d1
 	move.b d1,audio_channel_runtime_state_pitch_modulation_value(a0)
 	cmp.b audio_channel_runtime_state_pitch_modulation_limit(a0),d1
-	bne.b abs_0_0005DB48
+	bne.b test_primary_modulation_zero_crossing
 	bchg.b #7,audio_channel_runtime_state_pitch_modulation_flags(a0)
-	bra.b abs_0_0005DB48
-abs_0_0005DB34:
+	bra.b test_primary_modulation_zero_crossing
+decrease_primary_pitch_modulation_value:
 	move.b audio_channel_runtime_state_pitch_modulation_value(a0),d1
 	sub.b audio_channel_runtime_state_pitch_modulation_step(a0),d1
 	move.b d1,audio_channel_runtime_state_pitch_modulation_value(a0)
-	bne.b abs_0_0005DB48
+	bne.b test_primary_modulation_zero_crossing
 	bchg.b #7,audio_channel_runtime_state_pitch_modulation_flags(a0)
-abs_0_0005DB48:
+test_primary_modulation_zero_crossing:
 	tst.b audio_channel_runtime_state_pitch_modulation_value(a0)
-	bne.b abs_0_0005DB54
+	bne.b apply_signed_primary_pitch_modulation
 	bchg.b #0,audio_channel_runtime_state_pitch_modulation_flags(a0)
-abs_0_0005DB54:
+apply_signed_primary_pitch_modulation:
 	ext.w d1
 	btst.b #0,audio_channel_runtime_state_pitch_modulation_flags(a0)
-	beq.b abs_0_0005DB62
+	beq.b subtract_primary_pitch_modulation
 	add.w d1,d0
-	bra.b abs_0_0005DB64
-abs_0_0005DB62:
+	bra.b store_primary_audio_period
+subtract_primary_pitch_modulation:
 	sub.w d1,d0
-abs_0_0005DB64:
+store_primary_audio_period:
 	move.w d0,audio_channel_dma_configuration_sample_period(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005DB72
+	bne.b update_primary_audio_volume_stream
 	move.w d0,aud0+ac_per(a6)	; audio period
     ; Primary volume: a negative marker retains the cursor but applies its low seven bits. Secondary envelopes retain both cursor and previous volume. Original markers bound the current streams.
-abs_0_0005DB72:
+update_primary_audio_volume_stream:
 	subq.b #1,audio_channel_runtime_state_volume_sequence_countdown(a0)
-	bcc.b abs_0_0005DBA4
+	bcc.b finish_primary_audio_stream_visit
+    ; Volume reload H gives H+1 eligible pitch visits between updates (FF gives256). Masked value*master volume keeps only the low WORD before shifting right6; a negative marker is reapplied.
 	move.b audio_channel_runtime_state_volume_sequence_interval(a0),audio_channel_runtime_state_volume_sequence_countdown(a0)
 	movea.l audio_channel_runtime_state_volume_sequence_cursor(a0),a2
 	move.b (a2)+,d1
-	bmi.b abs_0_0005DB8A
+	bmi.b scale_primary_volume_stream_value
 	move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)
-abs_0_0005DB8A:
-	andi.w #127,d1
+scale_primary_volume_stream_value:
+	andi.w #AUDIO_STREAM_VALUE_MASK,d1
 	move.w audio_player_globals_master_volume(pc),d2
 	mulu.w d2,d1
-	lsr.w #6,d1
+	lsr.w #AUDIO_PRIMARY_VOLUME_SCALE_SHIFT,d1
 	move.w d1,audio_channel_dma_configuration_sample_volume(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005DBA4
+	bne.b finish_primary_audio_stream_visit
 	move.w d1,aud0+ac_vol(a6)
-abs_0_0005DBA4:
-	bra.w abs_0_0005DAAE
-abs_0_0005DBA8:
-	cmp.b #$E0,d0
-	blt.b abs_0_0005DBBE
-	subi.b #223,d0
+finish_primary_audio_stream_visit:
+	bra.w advance_primary_audio_channel
+    ; Tokens80..9F dispatch unchecked; 11 handlers are supplied. A0..AF pitch, B0..BF volume, C0..DF sample, E0..FF duration. Physical prefixes are not runtime selector guards.
+decode_primary_audio_duration_or_selector:
+	cmp.b #AUDIO_TOKEN_DURATION_FIRST,d0
+	blt.b decode_primary_audio_sample_selector
+    ; Duration is low WORD of (token-223)*unsigned multiplier WORD, even though command8A loads a signed BYTE. Zero reload wraps at the next decrement; selectors continue fetching immediately.
+	subi.b #AUDIO_DURATION_TOKEN_BIAS,d0
 	mulu.w audio_player_globals(pc),d0
 	move.w d0,audio_channel_runtime_state_update_reload_countdown(a0)
-	bra.w abs_0_0005DA1A
-abs_0_0005DBBE:
-	cmp.b #$C0,d0
-	blt.b abs_0_0005DBDA
-	subi.b #192,d0
+	bra.w fetch_next_primary_audio_token
+decode_primary_audio_sample_selector:
+	cmp.b #AUDIO_TOKEN_SAMPLE_FIRST,d0
+	blt.b decode_primary_audio_volume_selector
+	subi.b #AUDIO_TOKEN_SAMPLE_FIRST,d0
 	lea.l audio_sample_metadata(pc),a5
-	mulu.w #$C,d0
+	mulu.w #AUDIO_SAMPLE_METADATA_BYTES,d0
 	adda.w d0,a5
 	move.l a5,audio_channel_runtime_state_sample_metadata_ptr(a0)
-	bra.w abs_0_0005DA1A
-abs_0_0005DBDA:
-	cmp.b #$B0,d0
-	blt.b abs_0_0005DBFE
-	subi.b #176,d0
+	bra.w fetch_next_primary_audio_token
+decode_primary_audio_volume_selector:
+	cmp.b #AUDIO_TOKEN_VOLUME_FIRST,d0
+	blt.b decode_primary_audio_pitch_selector
+	subi.b #AUDIO_TOKEN_VOLUME_FIRST,d0
 	add.w d0,d0
 	lea.l audio_volume_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
 	move.l a2,audio_channel_runtime_state_volume_sequence_start_ptr(a0)
 	move.b -$0001(a2),audio_channel_runtime_state_volume_sequence_interval(a0)
-	bra.w abs_0_0005DA1A
-abs_0_0005DBFE:
-	cmp.b #$A0,d0
-	blt.b abs_0_0005DC20
-	subi.b #160,d0
+	bra.w fetch_next_primary_audio_token
+decode_primary_audio_pitch_selector:
+	cmp.b #AUDIO_TOKEN_PITCH_FIRST,d0
+	blt.b dispatch_primary_audio_control_opcode
+	subi.b #AUDIO_TOKEN_PITCH_FIRST,d0
 	add.w d0,d0
 	lea.l audio_pitch_sequence_offset_table(pc),a2
 	movea.w $0(a2,d0.w),a2
 	adda.l a3,a2
 	move.l a2,audio_channel_runtime_state_pitch_sequence_start_ptr(a0)
 	move.l a2,audio_channel_runtime_state_pitch_sequence_cursor(a0)
-	bra.w abs_0_0005DA1A
-abs_0_0005DC20:
+	bra.w fetch_next_primary_audio_token
+dispatch_primary_audio_control_opcode:
 	add.b d0,d0
 	lea.l audio_control_opcode_handler_offsets(pc),a2
 	movea.w $0(a2,d0.w),a2
@@ -28436,39 +28464,39 @@ advance_audio_sequence_program:
 	adda.w d0,a2
 	addq.w #2,d0
 	tst.w $0(a3,a2.w)
-	bne.b abs_0_0005DC46
+	bne.b load_next_primary_audio_program
 	movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2
 	moveq.l #2,d0
-abs_0_0005DC46:
+load_next_primary_audio_program:
 	movea.w $0(a3,a2.w),a1
 	adda.l a3,a1
 	move.w d0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 enable_audio_pitch_delta:
 	clr.w audio_channel_runtime_state_pitch_delta_accumulator(a0)
 	move.b (a1)+,audio_channel_runtime_state_pitch_delta_step(a0)
 	move.b (a1)+,audio_channel_runtime_state_pitch_delta_countdown(a0)
-	bset.b #1,audio_channel_runtime_state_channel_flags.w(a0)
-	bra.w abs_0_0005DA1A
+	bset.b #AUDIO_PRIMARY_DELTA_ENABLED_BIT,audio_channel_runtime_state_channel_flags.w(a0)
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 start_audio_silence_sample:
 	move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)
 	move.l a1,audio_channel_runtime_state_program_cursor(a0)
 	move.l audio_player_globals_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)
-	move.w #$20,audio_channel_dma_configuration_sample_length(a4)
+	move.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,audio_channel_dma_configuration_sample_length(a4)
 	tst.b audio_channel_dma_configuration_start_pending(a4)
-	bne.b abs_0_0005DC92
+	bne.b finish_primary_audio_silence_command
 	move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)	; sound_sample pointer
-	move.w #$20,aud0+ac_len(a6)	; sound sample length 64 bytes
-abs_0_0005DC92:
-	bra.w abs_0_0005DAAE
+	move.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,aud0+ac_len(a6)	; sound sample length 64 bytes
+finish_primary_audio_silence_command:
+	bra.w advance_primary_audio_channel
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 enable_audio_channel_dma_and_reload_duration:
-	bra.w abs_0_0005DA98
+	bra.w save_primary_audio_cursor_and_enable_dma
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 reset_audio_channels_command:
@@ -28477,7 +28505,7 @@ reset_audio_channels_command:
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_global_note_offset:
 	move.b (a1)+,audio_player_base_view_globals+10(a3)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 enable_audio_pitch_modulation:
@@ -28485,31 +28513,31 @@ enable_audio_pitch_modulation:
 	move.b (a1)+,audio_channel_runtime_state_pitch_modulation_step(a0)
 	move.b (a1)+,audio_channel_runtime_state_pitch_modulation_limit(a0)
 	clr.b audio_channel_runtime_state_pitch_modulation_value(a0)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 disable_audio_pitch_modulation:
 	sf.b audio_channel_runtime_state_pitch_modulation_flags(a0)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_channel_note_offset:
 	move.b (a1)+,audio_channel_runtime_state_note_offset(a0)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_channel_program_configuration:
 	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset(a0)
 	move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset+1(a0)
 	move.w #$0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
     ; KNOWN: type A0=Target code-entry register seed:audio_channel_runtime_state; type A4=Target code-entry register seed:audio_channel_dma_configuration; type A3=Target code-entry register seed:audio_player_base_view
     ; INPUT contract: A6=_custom+16*D7.w; D7.w in {0,1,2,3}
 set_audio_duration_multiplier_from_signed_byte:
 	move.b (a1)+,d0
 	ext.w d0
 	move.w d0,audio_player_base_view_globals(a3)
-	bra.w abs_0_0005DA1A
+	bra.w fetch_next_primary_audio_token
 audio_control_opcode_handler_offsets:
 	dc.w advance_audio_sequence_program-initialize_audio_player	; data
 	dc.w enable_audio_pitch_delta-initialize_audio_player
@@ -28541,7 +28569,7 @@ audio_player_globals_gap_D:
 	dc.b $00	; typed data block gap
 audio_player_globals_silence_sample_ptr:
 	dc.l $00000000	; silence_sample_ptr
-direction_word:
+audio_sample_7_waveform_direction:
 	dc.w $0000	; data
 audio_sample_7_word_write_offset:
 	dc.w $0000	; data

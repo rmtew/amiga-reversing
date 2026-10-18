@@ -3025,6 +3025,17 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
       sim_eval_operand_by_metadata(object, section_index, section, instruction, offset, metadata,
         metadata->source_operand_index,
         &instruction->operands[metadata->source_operand_index], state, memory_state, out_result, &src, &operand_accesses)) {
+    /* Apply the KB's source extension before the full-width address write.
+     * Truncated symbolic pointers cannot retain section identity. */
+    if (metadata->source_sign_extend) {
+      uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
+      if (width < 4U) {
+        if (width && src.kind == M68K_SIM_VALUE_CONSTANT)
+          src.value = sim_sign_extend_value(src.value, (uint8_t)(width * 8U));
+        else
+          src = g_m68k_sim_unknown_value;
+      }
+    }
     if (metadata->ccr_formula == M68K_SIM_CCR_FORMULA_MOVE_FLAGS) {
       if (sim_value_is_path_stable_for_flags(&src)) {
         sim_apply_abstract_nz_flags(state->sr, src.value,
@@ -4941,6 +4952,11 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         sim_diag_error(diagnostics, "unsupported concrete move source");
       }
       return -1;
+    }
+    if (metadata->source_sign_extend) {
+      uint8_t width = sim_effective_operand_width(instruction, metadata, metadata->source_operand_index);
+      if (width && width < 4U)
+        resolved_value = sim_sign_extend_value(resolved_value, (uint8_t)(width * 8U));
     }
     if (!sim_apply_concrete_ea_register_update(instruction, metadata, metadata->source_operand_index, source,
         io_state)) {

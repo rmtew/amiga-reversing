@@ -5010,3 +5010,59 @@ all 126 assets, 2,112 typed tile fields and the 128-byte INCBIN policy remain
 intact. No framework change; unchanged prior subsystem checks are reused. Evidence
 is in `tests/test_pandora_terminal_deposit.py`, with the bounded route guard added
 to the existing rifle receipt and runtime guide.
+
+### Primary audio sequencer
+
+Accepted100 annotations complete the primary sequencer's connected control flow:
+39 code stages,19 constants,32 scalar operand forms,one sample7 direction label
+and nine purpose comments. Existing channel,DMA,sample/global/base structures and
+all original selector/program table owners remain shared and unchanged. Canonical
+SIZEOF and SDK expressions expose strides and DMA flags without losing hardware
+register names or pointer presentations.
+
+The four-channel pass stages sample resume independently from DMA pending. A
+nonnegative LONG offset advances sample bytes and subtracts offset/2 from WORD
+length; negative uses32-word silence. Countdown old1 clears note flags then fetches
+tokens, old2 only conditionally clears a DMA bit, and old0 wraps toFFFF and updates
+streams. Opcode83 and pending suppress the preexpiry DMA clear. Attack resets the
+volume cursor, consumes an unmasked signed first byte, and leaves modulation state
+intact; later volume visits apply low7 and retain a terminal-marker cursor. Header
+H gives H+1 eligible visits between volume updates, including256 forFF. Volume
+scaling keeps the product's low WORD before shifting6.
+
+Pitch stream markers apply their low7 offset before looping; note/global/channel
+sums wrap as BYTE before an unchecked scalar lookup. Signed BYTE pitch delta waits
+without applying its prior accumulator, then accumulates/subtracts WORD values on
+every pitch visit until note expiry clears the enable flag. Modulation uses exact
+BYTE equality for turns, flips add/subtract at zero, and sign-extends its updated
+value into wrapped WORD period arithmetic. Duration uses an unsigned WORD product
+although command8A loads the multiplier from a signed BYTE. Selector physical
+prefixes and the11-handler table remain distinct from unchecked encoded admission;
+unknown control targets are never executed in the tests.
+
+An explicitly injected out-of-prefix pitch selectorAF exposed missing MOVEA.W
+source extension in the simulator. Concrete and abstract MOVE paths now consume
+the existing Motorola-derived source_sign_extend metadata, without a mnemonic
+special case or generated-table edit. Truncated symbolic pointers conservatively
+lose identity; long pointers retain it. Ordinary MOVE.W remains unchanged. This
+fix is a simulator correction, not a game-byte change or proof thatAF occurs in
+normal programs.
+
+Validation:12 original-code tests in `tests/test_pandora_primary_audio.py`
+cover all256 tokens and multiplier
+bytes, signed offsets, countdown/pending gates, all pitch marker bytes, signed
+delta/WORD wrapping, all256 modulation flags with boundary values, volume intervals,
+a real command chain and two complete services of all four original channels and
+register banks. The38-test focused simulator run passes; the independent machine68k
+oracle passes5 tests/74 subtests, including40 MOVEA extension vectors; C unit tests
+pass. Explicit RAM/MMIO inputs establish CPU packets, not DMA timing or audible
+output. Existing global phase/skip,guarded sample7 initialization/12-state cycle,
+secondary-audio and table-prefix evidence is reused.
+
+Every selected operand and EQU passes an isolated original-instruction C/vasm
+preflight. One final full gate after annotations settle reproduces all376832 bytes
+with C and vasm, SHA-256
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`,
+receipt `4ae079c141db2ab5fe4c70e7908f9020adf5c28582f20282f18328c06d187ebc`. Whole prior source/comments/types/owners,all126 assets,
+2112 tile fields,128-byte INCBIN policy,SDK forms,pointer expressions,raw gaps and
+append-only histories remain preserved. No further NPC route exploration was used.

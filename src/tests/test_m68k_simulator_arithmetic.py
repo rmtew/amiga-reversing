@@ -58,6 +58,25 @@ class ConcreteArithmeticTests(unittest.TestCase):
         self.assertEqual(state.pc, len(code))
         return memory, before, trace
 
+    def test_move_address_source_extension_preserves_ccr_and_other_registers(self):
+        for width, suffix in [(2, 'w'), (4, 'l')]:
+            for value in [0, 0x7fff, 0x8000, 0xffff, 0x80000000, 0xffffffff]:
+                for form in ['d0', '(a0)', '(a0)+', '-(a0)']:
+                    with self.subTest(width=width, value=value, form=form):
+                        state = State();state.d[0] = value;state.a[0] = 32+(width if form=='-(a0)' else 0)
+                        state.a[1] = 0x12345678;state.sr = 0x201f
+                        cells=[(32,(value & ((1 << (8*width))-1)).to_bytes(width,'big'))]
+                        memory,before,trace=self.run_one(f'movea.{suffix} {form},a1',state,cells)
+                        expected=value if width==4 else (value&65535) | (0xffff0000 if value&0x8000 else 0)
+                        self.assertEqual(state.a[1],expected)
+                        self.assertEqual(state.d[0],value)
+                        self.assertEqual(state.a[0],32+(width if form=='(a0)+' else 0))
+                        self.assertEqual(state.sr,0x201f)
+                        self.assertEqual(memory,before);self.assertEqual(trace.writes,0)
+        state=State();state.d[0]=0xffff;state.d[1]=0x12340000
+        self.run_one('move.w d0,d1',state)
+        self.assertEqual(state.d[1],0x1234ffff)
+
     def test_minimal_subi_word_regression(self):
         state = State()
         state.d[0] = 0x00070328

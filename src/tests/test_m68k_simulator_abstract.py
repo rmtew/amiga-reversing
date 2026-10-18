@@ -218,6 +218,23 @@ class M68kSimulatorAbstractTests(unittest.TestCase):
         code = _assemble_line_hex("68000", asm_text)
         return self._simulate_bytes(code, state)
 
+    def test_move_address_source_extension_keeps_constants_and_drops_truncated_pointers(self):
+        for suffix, values in [('w',[0,0x7fff,0x8000,0xffff]),('l',[0x8000,0xffff,0x80000000])]:
+            for value in values:
+                state=M68kSimCpuState();state.d[0]=_const(value);state.sr=0x201f;state.sr_known=0x1f
+                result=self._simulate(f'movea.{suffix} d0,a1',state)
+                expected=value | (0xffff0000 if suffix=='w' and value&0x8000 else 0)
+                self.assertEqual(result.next_state.a[1].kind,M68K_SIM_VALUE_CONSTANT)
+                self.assertEqual(result.next_state.a[1].value,expected)
+                self.assertEqual(result.next_state.sr,0x201f)
+                self.assertEqual(result.next_state.sr_known,0x1f)
+        state=M68kSimCpuState();state.a[0]=_section_ptr(0x8000)
+        result=self._simulate('movea.w a0,a1',state)
+        self.assertEqual(result.next_state.a[1].kind,M68K_SIM_VALUE_UNKNOWN)
+        result=self._simulate('movea.l a0,a1',state)
+        self.assertEqual(result.next_state.a[1].kind,M68K_SIM_VALUE_SECTION_PTR)
+        self.assertEqual(result.next_state.a[1].value,0x8000)
+
     def test_abstract_dbf_decrements_counter_and_emits_target(self) -> None:
         state = M68kSimCpuState()
         state.d[0] = _const(2)
