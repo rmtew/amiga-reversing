@@ -3742,3 +3742,66 @@ comments, all 86 assets and both history prefixes are preserved.
 The final C/vasm gate reproduces all 376,832 original bytes with unchanged reviewed
 source SHA256 `b71dbba8dc222e54edfb5226d2b954622c3bf243117f918a281601858a724737`, receipt
 `fdf376b1ece01529ad6c7f9072682937fce0cf06d1d2a0aaa53d95e229fafc41`.
+
+## Compact/proportional text records, cursor arithmetic and plane packets
+
+The six connected compact/proportional text and cursor helpers gain complete
+local control-flow names, shared cursor/plane constants and typed glyph reads.
+The existing compact ASCII 32..90 owner remains exactly 59 eight-byte records;
+its raw grouping becomes eight named bitmap rows per record under the existing
+owner name `compact_font_ascii_32_through_90`. The encoded
+character-zero indexing origin is named separately, 256 bytes before that owner.
+Those earlier bytes retain their existing roles and are not classified as font
+records. The proportional owner remains 68 sixteen-byte advance-plus-seven-row
+records with its existing 96-byte character map. Its glyph pointer, destination
+WORD cursor and BYTE pixel phase retain their original workspace offsets.
+
+Compact text subtracts 32 from every byte at or above 97, including values above
+`z`; the ticker's bit-five folding remains a separate rule. Byte one advances
+the stored origin and reloads the live cursor. CR pops the separately saved line
+origin, adds 1280 bytes and restarts, so prior glyph advances and stored-origin
+edits do not change that CR origin. The compact copier loads the mask once and
+copies or clears exactly eight bytes in each of four planes, preserving A0-A3.
+Only the four low mask bits select planes; higher bits do not add planes.
+
+The proportional renderer uses only the advance WORD's low byte. Phase plus
+advance wraps as BYTE before comparison with sixteen. Equality advances the
+WORD cursor by two bytes with a one-WORD blit; a greater BYTE result selects two
+WORDs, source modulo -2 and a zero last-word mask. The retained phase is the low
+nibble. A wrapped result below sixteen does not advance the cursor. The packet
+uses native SDK channel/minterm and shift constants. The first-word mask remains
+inherited; enabled planes poll/ack before launching, with no final completion
+wait. Two-WORD source envelopes still include a neighbouring WORD.
+
+Seven new original-code tests cover all 256 compact plane-mask bytes, complete
+copy/clear fences and control strings, every declared proportional map entry,
+2,786 phase/advance pairs, preserved registers, selected-plane MMIO packets,
+pre-launch polling, empty text and signed WORD cursor wrap. Both cursor helpers
+mask X/Y rather than clamp, and Y values beyond the 200-entry row table still
+read adjacent workspace. All 96 declared map entries select one of the 68
+existing proportional headers with the initialized font pointer. This narrow
+fact does not establish validity for unchecked bytes, replacement font pointers,
+compact out-of-owner characters, destinations or gameplay reachability. MMIO
+shadows do not simulate acknowledgement side effects or pixel DMA.
+
+Two prior character-style facts exposed a canonical presentation-edit gap:
+new symbol styles accumulated beside the old style, triggering the native
+conflict guard. Manual projection now selects the latest style for the exact
+native section/span/operand owner, including overrides of legacy metadata.
+History stays append-only; undo/redo restores the corresponding prior/latest
+style. Other owners and native raw-metadata conflict guards stay independent.
+Eighty-two focused checks cover replacement, legacy metadata, undo/redo, owner
+separation, raw-policy conflicts, action-log behavior and hardware rendering.
+The native backend is unchanged; its completed 819 native checks and previous
+assembler checks are reused. The separate pre-existing Hunk numeric-pointer
+regression stays deferred.
+
+All 82 actions are accepted: seventeen names, eighteen constants with six
+symbolic-display revisions, 31 operand presentations, three workspace-field
+refinements, two glyph type inputs, one compact record type, one owner binding
+and three behavior comments. Nine glyph reads have native field references; the
+selected six routines have no anonymous local labels. The compact data now uses
+its precise owner name in assembly. Prior SDK expressions/comments and all 86
+assets are preserved outside that authorized glyph presentation; both histories
+retain their original prefixes. The final C/vasm gate reproduces all 376,832
+original bytes, receipt `86001ecbc830548b40cd075d120615a620b94ed08d1c14782235ca3bbdd24d28`.

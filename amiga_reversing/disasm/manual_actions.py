@@ -1731,6 +1731,21 @@ def _action_ref(action: _ManualAction, field_name: str) -> str:
     return _str_field(action.payload, field_name, what=str(action.kind))
 
 
+def manual_representation_owner_key(
+    hunk: int | None, addr: int | None, end: int | None, operand_index: int | None,
+) -> tuple[int, int, int, int | None] | None:
+    """Match native presentation ownership, without conflating overlapping spans."""
+    if addr is None:
+        return None
+    size = end - addr if end is not None and end > addr else 1
+    return hunk or 0, addr, size, operand_index
+
+
+def _representation_owner_key(value: Mapping[str, object]) -> tuple[int, int, int, int | None] | None:
+    return manual_representation_owner_key(*(
+        _manual_seed_int(value, field) for field in ("hunk", "addr", "end", "operand_index")))
+
+
 def _put_by_id(
     target: dict[str, dict[str, object]],
     value: dict[str, object],
@@ -1844,6 +1859,7 @@ def _project_actions(
     labels: dict[str, dict[str, object]] = {}
     comments: dict[str, dict[str, object]] = {}
     representations: dict[str, dict[str, object]] = {}
+    representation_owners: dict[tuple[int, int, int, int | None], str] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int, int | None], dict[str, object]] = {}
     target_equates: dict[str, dict[str, object]] = {}
@@ -1929,8 +1945,26 @@ def _project_actions(
         elif action.kind is ManualActionKind.REMOVE_MANUAL_COMMENT:
             _drop_by_id(comments, action, "comment_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_REPRESENTATION:
-            _put_by_id(representations, _action_object(action, "representation"), "representation_id")
+            value = _action_object(action, "representation")
+            representation_id = _str_field(value, "representation_id", what="representation")
+            previous = representations.get(representation_id)
+            if previous is not None:
+                previous_owner = _representation_owner_key(previous)
+                if previous_owner is not None:
+                    representation_owners.pop(previous_owner, None)
+            owner = _representation_owner_key(value)
+            if owner is not None:
+                previous_id = representation_owners.get(owner)
+                if previous_id is not None:
+                    representations.pop(previous_id, None)
+                representation_owners[owner] = representation_id
+            _put_by_id(representations, value, "representation_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_REPRESENTATION:
+            previous = representations.get(_action_ref(action, "representation_id"))
+            if previous is not None:
+                previous_owner = _representation_owner_key(previous)
+                if previous_owner is not None:
+                    representation_owners.pop(previous_owner, None)
             _drop_by_id(representations, action, "representation_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_SEMANTIC_HINT:
             _put_by_id(semantic_hints, _action_object(action, "semantic_hint"), "semantic_hint_id")

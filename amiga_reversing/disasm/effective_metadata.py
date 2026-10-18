@@ -24,6 +24,7 @@ from amiga_reversing.disasm.manual_actions import (
     ManualSeedMode,
     ReviewItemKind,
     load_manual_projection,
+    manual_representation_owner_key,
 )
 from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
@@ -2153,10 +2154,18 @@ def _apply_manual_seed_projection(
         entry_comment = _manual_comment_to_entry_comment(comment)
         if entry_comment is not None:
             entry_comments.append(entry_comment)
+    presentation_edits = []
+    edited_presentation_owners = set()
     for representation in representations:
         manual_representation = _manual_representation_to_metadata(representation)
         if manual_representation is not None:
-            manual_representations.append(manual_representation)
+            edited_presentation_owners.add(manual_representation_owner_key(manual_representation.hunk,
+                manual_representation.addr, manual_representation.end, manual_representation.operand_index))
+            presentation_edits.append(manual_representation)
+    manual_representations = [previous for previous in manual_representations
+        if manual_representation_owner_key(previous.hunk, previous.addr, previous.end,
+            previous.operand_index) not in edited_presentation_owners]
+    manual_representations.extend(presentation_edits)
     for hint in semantic_hints:
         manual_representation = _manual_semantic_hint_to_representation(hint)
         if manual_representation is not None:

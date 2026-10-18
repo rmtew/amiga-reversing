@@ -431,3 +431,10 @@ single-register or register-tuple locations. Combined with `identity_input`
 results, these express shared save/restore wrappers without imposing a fixed
 pointee type on every caller. Register preservation alone retains the existing
 conservative treatment of storage-derived types across opaque memory effects.
+
+Presentation edits replace the previous active style for the same native owner:
+section, byte span and optional operand index. The action log remains append-only;
+undo restores the preceding style and redo restores the edit. An explicit manual
+edit also replaces a matching legacy metadata presentation. Different operands,
+sections and spans remain independent, and conflicting raw metadata remains an
+error rather than silently picking a winner.

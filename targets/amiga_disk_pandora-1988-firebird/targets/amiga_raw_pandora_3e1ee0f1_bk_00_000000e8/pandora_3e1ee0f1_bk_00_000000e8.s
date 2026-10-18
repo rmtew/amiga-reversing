@@ -832,6 +832,18 @@ keyboard_state_table_SIZEOF EQU __RS
 keyboard_key_state_held_ff RS.B 1
 keyboard_key_state_SIZEOF EQU __RS
 
+; STRUCT compact_ui_glyph_record
+    RSRESET
+compact_ui_glyph_record_bitmap_row_0 RS.B 1
+compact_ui_glyph_record_bitmap_row_1 RS.B 1
+compact_ui_glyph_record_bitmap_row_2 RS.B 1
+compact_ui_glyph_record_bitmap_row_3 RS.B 1
+compact_ui_glyph_record_bitmap_row_4 RS.B 1
+compact_ui_glyph_record_bitmap_row_5 RS.B 1
+compact_ui_glyph_record_bitmap_row_6 RS.B 1
+compact_ui_glyph_record_bitmap_row_7 RS.B 1
+compact_ui_glyph_record_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -841,6 +853,7 @@ ANIM_MODE_HOLD_AT_END_MASK	EQU	1<<ANIM_MODE_HOLD_AT_END_BIT
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
 ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
+APP_RASTER_ROW_OFFSETS_OFFSET	EQU	app_raster_row_byte_offsets
 APP_STARTUP_CLEAR_LAST_BYTE	EQU	875
 APP_STATE_BASE	EQU	$39FC
 APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT	EQU	4
@@ -850,6 +863,7 @@ ASCII_CASE_FOLD_BIT	EQU	5
 ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
+BLITTER_A_OR_C_MINTERM	EQU	ABC|ABNC|ANBC|ANBNC|NABC|NANBC
 CAMERA_BOTTOM_WRAP_GUARD_ROWS	EQU	3
 CAMERA_MAP_EDGE_GUARD_PIXELS	EQU	48
 CAMERA_PLAYER_BOTTOM_TRIGGER_PAD	EQU	32
@@ -862,6 +876,7 @@ CAMERA_VIEWPORT_HEIGHT_PIXELS	EQU	128
 CAMERA_VIEWPORT_TILE_ROWS	EQU	8
 CAMERA_VIEWPORT_WIDTH_PIXELS	EQU	320
 CAMERA_WRAP_BOTTOM_PLAYER_OFFSET	EQU	80
+COMPACT_GLYPH_INDEX_SHIFT	EQU	3
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 CONTEXT_STATUS_MESSAGE_ACTIVE_BIT	EQU	5
 _custom	EQU	$DFF000
@@ -1009,6 +1024,16 @@ NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
+PROPORTIONAL_BITMAP_ROWS	EQU	7
+PROPORTIONAL_BLIT_ONE_WORD_SIZE	EQU	(PROPORTIONAL_BITMAP_ROWS<<HSIZEBITS)|1
+PROPORTIONAL_BLIT_OR_CONTROL	EQU	SRCA|SRCC|DEST|BLITTER_A_OR_C_MINTERM
+PROPORTIONAL_FULL_LAST_WORD_MASK	EQU	$FFFFFFFF
+PROPORTIONAL_GLYPH_RECORD_SHIFT	EQU	4
+PROPORTIONAL_PIXEL_PHASE_MASK	EQU	$F
+PROPORTIONAL_SHIFT_PACK_SHIFT	EQU	16-ASHIFTSHIFT
+PROPORTIONAL_SINGLE_WORD_MODULO	EQU	FRAMEBUFFER_RASTER_ROW_BYTES-2
+PROPORTIONAL_STRADDLE_SOURCE_MODULO	EQU	-2
+PROPORTIONAL_WORD_PIXELS	EQU	16
 RGB12_ACCUMULATOR_FRACTION_BITS	EQU	4
 RGB12_ACCUMULATOR_STRIDE	EQU	6
 RGB12_COMPONENT_BITS	EQU	4
@@ -1050,6 +1075,10 @@ STATUS_BAND_CLEAR_LAST_GROUP	EQU	63
 STATUS_TEXT_CURSOR_ROW	EQU	24
 STATUS_TEXT_PLANE_MASK	EQU	$8
 STATUS_TICKER_ROW0_BASE	EQU	$778A0
+TEXT_CONTROL_ADVANCE_ORIGIN_BYTE	EQU	1
+TEXT_CURSOR_ROW_TABLE_INDEX_SHIFT	EQU	4
+TEXT_CURSOR_X_BYTE_MASK	EQU	$3F
+TEXT_CURSOR_Y_CELL_MASK	EQU	$1F
 TICKER_GLYPH_INDEX_SHIFT	EQU	3
 TICKER_GLYPH_LAST_ROW	EQU	6
 TICKER_ROW0_INSERT_OFFSET	EQU	$78C7
@@ -1091,6 +1120,7 @@ UI_OVERLAY_TITLE_FIRST_CHARACTER	EQU	'A'
 UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
 UI_PAUSE_ACTIVE_BIT	EQU	7
 UI_PAUSE_INHIBIT_BIT	EQU	0
+UI_TEXT_LAST_PLANE	EQU	3
 VIEW_CLIP_BOTTOM_BIT	EQU	$1
 VIEW_CLIP_LEFT_BIT	EQU	$2
 VIEW_CLIP_REJECT	EQU	$F
@@ -7634,35 +7664,36 @@ set_bitmap_pixel_bit:
     ; NUL stores A1; CR advances saved line origin by 1280. Byte 1 advances stored origin one byte; consumes no operand.
 draw_compact_text_string:
 	move.l app_text_cursor_ptr(a6),-(a7)
-abs_0_0001605A:
+reload_compact_text_live_cursor:
 	movea.l app_text_cursor_ptr(a6),a1
-abs_0_0001605E:
+read_next_compact_text_byte:
 	moveq.l #0,d0
 	move.b (a3)+,d0
-	beq.b abs_0_0001609A
-	cmp.b #$1,d0
-	bne.b abs_0_00016070
+	beq.b store_compact_text_final_cursor
+	cmp.b #TEXT_CONTROL_ADVANCE_ORIGIN_BYTE,d0
+	bne.b test_compact_text_carriage_return
 	bsr.w advance_stored_text_origin_byte
-	bra.b abs_0_0001605A
-abs_0_00016070:
-	cmp.b #$D,d0
-	bne.b abs_0_00016082
+	bra.b reload_compact_text_live_cursor
+test_compact_text_carriage_return:
+	cmp.b #ASCII_CARRIAGE_RETURN,d0
+	bne.b fold_compact_text_byte
+    ; CR pops the saved origin, adds 1280 bytes, and restarts. Byte one advances only the stored origin; glyph advances and origin-byte edits leave the saved CR origin unchanged.
 	movea.l (a7)+,a1
-	lea.l $0500(a1),a1
+	lea.l UI_OVERLAY_CELL_ROW_BYTES(a1),a1
 	move.l a1,app_text_cursor_ptr(a6)
 	bra.b draw_compact_text_string
-abs_0_00016082:
-	cmp.b #$61,d0
-	bcs.b abs_0_0001608C
-	subi.b #' ',d0
-abs_0_0001608C:
-	lsl.w #3,d0
+fold_compact_text_byte:
+	cmp.b #ASCII_LOWERCASE_A,d0
+	bcs.b select_compact_text_glyph
+	subi.b #ASCII_SPACE,d0
+select_compact_text_glyph:
+	lsl.w #COMPACT_GLYPH_INDEX_SHIFT,d0
 	add.l app_font_glyph_bitmap_table_ptr(a6),d0
 	movea.l d0,a0
 	bsr.b draw_compact_glyph_with_plane_mask
 	addq.l #1,a1
-	bra.b abs_0_0001605E
-abs_0_0001609A:
+	bra.b read_next_compact_text_byte
+store_compact_text_final_cursor:
 	move.l a1,app_text_cursor_ptr(a6)
 	addq.l #4,a7
 	rts
@@ -7670,31 +7701,32 @@ draw_compact_glyph_with_plane_mask:
 	movem.l a1-a3,-(a7)
 	movea.l a1,a2
 	moveq.l #0,d1
-	move.b #$A0,d1
-	moveq.l #3,d2
+	move.b #FRAMEBUFFER_RASTER_ROW_BYTES,d1
+	moveq.l #UI_TEXT_LAST_PLANE,d2
     ; Load mask once: 4 low bits select 8-row copies; other planes cleared. Row stride 160, plane stride 40.
 	move.b app_text_plane_mask(a6),d0
-abs_0_000160B4:
+test_next_compact_text_plane:
 	lsr.w #1,d0
-	bcc.b abs_0_000160DA
+	bcc.b clear_disabled_compact_text_plane
 	movea.l a0,a3
-	move.b (a3)+,(a1)
+    ; KNOWN: type A3=Target code-entry register seed:compact_ui_glyph_record
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_0 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_1 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_2 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_3 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_4 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_5 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_6 at (a3)+
 	adda.l d1,a1
-	move.b (a3)+,(a1)
-	bra.b abs_0_000160F8
-abs_0_000160DA:
+	move.b (a3)+,(a1)	; operand 1: compact_ui_glyph_record_bitmap_row_7 at (a3)+
+	bra.b advance_compact_text_plane
+clear_disabled_compact_text_plane:
 	clr.b (a1)
 	adda.l d1,a1
 	clr.b (a1)
@@ -7710,18 +7742,18 @@ abs_0_000160DA:
 	clr.b (a1)
 	adda.l d1,a1
 	clr.b (a1)
-abs_0_000160F8:
-	lea.l $0028(a2),a2
+advance_compact_text_plane:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	movea.l a2,a1
-	dbf.w d2,abs_0_000160B4
+	dbf.w d2,test_next_compact_text_plane
 	movem.l (a7)+,a1-a3
 	rts
     ; Text origin uses the current front bank; the overlay helper instead uses fixed bank0. X is masked to 63 and Y to 31, not clipped to the 40-byte/25-cell image.
 set_text_cursor_in_front_buffer:
-	andi.w #63,d0
-	andi.w #31,d1
-	lsl.w #4,d1
-	move.w $0(a6,d1.w),d1
+	andi.w #TEXT_CURSOR_X_BYTE_MASK,d0
+	andi.w #TEXT_CURSOR_Y_CELL_MASK,d1
+	lsl.w #TEXT_CURSOR_ROW_TABLE_INDEX_SHIFT,d1
+	move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1
 	add.w d1,d0
 	ext.l d0
 	add.l app_front_bitplane_base(a6),d0
@@ -7730,10 +7762,10 @@ set_text_cursor_in_front_buffer:
 	rts
     ; Overlay origin stays in bank0 across world-bank swaps. Read row[(y&31)*8], add x&63 as WORD, sign-extend, then add $70000; the row table has only 200 entries.
 set_text_cursor_in_overlay_plane:
-	andi.w #63,d0
-	andi.w #31,d1
-	lsl.w #4,d1
-	move.w $0(a6,d1.w),d1
+	andi.w #TEXT_CURSOR_X_BYTE_MASK,d0
+	andi.w #TEXT_CURSOR_Y_CELL_MASK,d1
+	lsl.w #TEXT_CURSOR_ROW_TABLE_INDEX_SHIFT,d1
+	move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1
 	add.w d1,d0
 	ext.l d0
 	addi.l #imm_ref_h0_00050000_rt_00070000,d0
@@ -7746,51 +7778,54 @@ draw_proportional_ui_text_string:
 	lea.l ascii_32_through_127_glyph_indices(pc),a4
 	lea.l _custom.l,a5
 	movea.l app_proportional_text_word_cursor_ptr(a6),a0
-abs_0_00016158:
+read_next_proportional_text_byte:
 	moveq.l #0,d0
 	move.b (a3)+,d0
-	beq.w abs_0_00016204
-	subi.b #' ',d0
+	beq.w store_proportional_text_final_cursor
+	subi.b #ASCII_SPACE,d0
 	move.b $0(a4,d0.w),d0
-	lsl.w #4,d0
+	lsl.w #PROPORTIONAL_GLYPH_RECORD_SHIFT,d0
 	add.l app_font_glyph_layout_table_ptr(a6),d0
 	movea.l d0,a1
-	move.w (a1)+,d1
+    ; Add only the advance low byte to phase, with BYTE wrap before the >=16 test. Equality advances two bytes with a one-WORD blit; >16 selects two WORDs and source modulo -2.
+    ; KNOWN: type A1=Target code-entry register seed:proportional_ui_glyph_record
+	move.w (a1)+,d1	; operand 1: proportional_ui_glyph_record_advance_width_word at (a1)+
 	moveq.l #0,d2
 	move.b app_proportional_text_pixel_shift(a6),d2
 	move.b d2,d7
 	swap.w d2
-	lsr.l #4,d2
-	ori.w #3066,d2
-	move.w #$1C1,d5
-	moveq.l #-1,d3
-	move.w #$9E,d0
+	lsr.l #PROPORTIONAL_SHIFT_PACK_SHIFT,d2
+	ori.w #PROPORTIONAL_BLIT_OR_CONTROL,d2
+	move.w #PROPORTIONAL_BLIT_ONE_WORD_SIZE,d5
+	moveq.l #PROPORTIONAL_FULL_LAST_WORD_MASK,d3
+	move.w #PROPORTIONAL_SINGLE_WORD_MODULO,d0
 	clr.w d6
 	moveq.l #0,d4
 	add.b d1,d7
-	cmp.b #$10,d7
-	beq.b abs_0_000161A2
-	bcs.b abs_0_000161A4
+	cmp.b #PROPORTIONAL_WORD_PIXELS,d7
+	beq.b advance_proportional_text_word_cursor
+	bcs.b store_proportional_text_pixel_phase
 	subq.w #2,d0
 	moveq.l #0,d3
-	moveq.l #-2,d6
+	moveq.l #PROPORTIONAL_STRADDLE_SOURCE_MODULO,d6
 	addq.w #1,d5
-abs_0_000161A2:
+advance_proportional_text_word_cursor:
 	moveq.l #2,d4
-abs_0_000161A4:
-	andi.b #15,d7
+store_proportional_text_pixel_phase:
+	andi.b #PROPORTIONAL_PIXEL_PHASE_MASK,d7
 	move.b d7,app_proportional_text_pixel_shift(a6)
 	move.b app_text_plane_mask(a6),d1
-	moveq.l #3,d7
+	moveq.l #UI_TEXT_LAST_PLANE,d7
 	move.l a0,-(a7)
-abs_0_000161B4:
+test_next_proportional_text_plane:
 	lsr.w #1,d1
-	bcc.b abs_0_000161F4
+	bcc.b advance_proportional_text_plane
 	move.w d0,-(a7)
-abs_0_000161BA:
+wait_for_proportional_text_blitter:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_000161BA
+	btst #INTB_BLIT,d0
+	beq.b wait_for_proportional_text_blitter
+    ; Poll and acknowledge BLIT before each enabled-plane launch. BLTAFWM is inherited; BLTALWM is $FFFF for one WORD and zero for a straddle. No completion wait follows the final launch.
 	move.w #INTF_BLIT,intreq(a5)
 	move.w (a7)+,d0
 	move.w d3,bltalwm(a5)
@@ -7803,13 +7838,13 @@ abs_0_000161BA:
 	move.l a0,bltcpt(a5)	; blitter_source pointer
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.w d5,bltsize(a5)
-abs_0_000161F4:
-	lea.l $0028(a0),a0
-	dbf.w d7,abs_0_000161B4
+advance_proportional_text_plane:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a0),a0
+	dbf.w d7,test_next_proportional_text_plane
 	movea.l (a7)+,a0
 	adda.l d4,a0
-	bra.w abs_0_00016158
-abs_0_00016204:
+	bra.w read_next_proportional_text_byte
+store_proportional_text_final_cursor:
 	move.l a0,app_proportional_text_word_cursor_ptr(a6)
 	movem.l (a7)+,d3-d7/a4-a5
 	rts
@@ -12510,7 +12545,7 @@ initialize_world_tilemap_state:
 	move.w #FRAMEBUFFER_LAST_RASTER_ROW,d7
     ; Populate 200 WORD raster offsets, 160*y, at the workspace prefix. Text helpers select every eighth row; masked y>=25 can read beyond this 400-byte table.
 fill_raster_row_byte_offsets:
-	move.w d0,$0(a6,d1.l)
+	move.w d0,APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.l)
 	addi.w #FRAMEBUFFER_RASTER_ROW_BYTES,d0
 	addq.l #2,d1
 	dbf.w d7,fill_raster_row_byte_offsets
@@ -12587,7 +12622,7 @@ abs_0_00019FC4:
 	clr.b app_security_checkpoint_response_active(a6)
 	move.w #SECURITY_DAMAGE_PERIOD_SERVICE_STEPS,app_security_damage_service_countdown(a6)
 	clr.b app_020A(a6)
-	move.l #abs_0_0001A7E2,app_font_glyph_bitmap_table_ptr(a6)
+	move.l #compact_font_index_origin,app_font_glyph_bitmap_table_ptr(a6)
 	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)
 	clr.b app_proportional_text_pixel_shift(a6)
 	moveq.l #51,d0
@@ -13111,7 +13146,7 @@ terminal_item_deposited_message:
 abs_0_0001A7D0:
 	dc.b "PANDORA",$00
 	dc.b $63,$3A,$5C,$64,$65,$76,$70,$61,$63,$5C
-abs_0_0001A7E2:
+compact_font_index_origin:
 	dc.b $68,$61,$72,$64,$61,$5C,$00,$00
 abs_0_0001A7EA:
 	dc.b $00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69,$63,$73
@@ -13143,40 +13178,479 @@ ui_overlay_update_queue:
 	dc.l $00000000
 	dc.l $00000000
 	dcb.b $40,$00
-eight_row_glyph_records:
-	dcb.b $10,$00	; data
-	dc.b $0C,$0C,$18
-	dcb.b $D,$00
-	dcb.b $10,$00
-	dcb.b $10,$00
-	dcb.b $10,$00
-	dcb.b $10,$00
-	dcb.b $10,$00
-	dc.b $00,$00,$00,$00,$00,$18,$18
-	dcb.b $9,$00
-	dc.b $00,$7E,$66,$66,$6E,$6E,$7E,$00,$00,$38,$38,$3C,$3C,$3C,$3C,$00
-	dc.b $00,$7E,$06,$7E,$60,$60,$7E,$00,$00,$7C,$0C,$3E,$0E,$0E,$7E,$00
-	dc.b $00,$2C,$6C,$6E,$7E,$0E,$0E,$00,$00,$7E,$60,$7E,$06,$06,$7E,$00
-	dc.b $00,$3E,$30,$7E,$76,$76,$7E,$00,$00,$7E,$0E,$0E,$1C,$1C,$1C,$00
-	dc.b $00,$3E,$66,$7E,$66,$66,$7E,$00,$00,$7E,$66,$7E,$0E,$0E,$7E,$00
-	dc.b $00,$18,$18,$00,$00,$18,$18,$00,$00,$00,$00,$00,$00,$18,$18,$30
-	dcb.b $10,$00
-	dcb.b $10,$00
-	dcb.b $9,$00
-	dc.b $7E,$66,$66,$7E,$6E,$6E,$00
-	dc.b $00,$7C,$64,$7E,$66,$66,$7E,$00,$00,$3E,$32,$70,$70,$72,$7E,$00
-	dc.b $00,$7C,$66,$76,$76,$76,$7E,$00,$00,$3E,$30,$7C,$70,$70,$7E,$00
-	dc.b $00,$3E,$30,$7C,$70,$70,$70,$00,$00,$3E,$30,$70,$76,$76,$7E,$00
-	dc.b $00,$36,$36,$7E,$76,$76,$76,$00,$00,$1C,$1C,$3C,$3C,$3C,$3C,$00
-	dc.b $00,$0E,$06,$06,$66,$66,$7E,$00,$00,$32,$36,$7C,$78,$7C,$76,$00
-	dc.b $00,$30,$30,$70,$70,$72,$7E,$00,$00,$77,$7F,$7F,$6B,$63,$63,$00
-	dc.b $00,$76,$7E,$7E,$7E,$6E,$66,$00,$00,$7E,$66,$66,$6E,$6E,$7E,$00
-	dc.b $00,$3E,$36,$7E,$70,$70,$70,$00,$00,$7C,$6C,$6C,$6C,$7C,$76,$04
-	dc.b $00,$7E,$72,$7E,$7C,$6E,$66,$00,$00,$7E,$60,$7E,$06,$06,$7E,$00
-	dc.b $00,$7E,$18,$18,$38,$38,$38,$00,$00,$66,$66,$6E,$6E,$6E,$7E,$00
-	dc.b $00,$66,$66,$66,$3C,$3C,$18,$00,$00,$63,$63,$6B,$6B,$7F,$6B,$00
-	dc.b $00,$66,$66,$3C,$3C,$66,$66,$00,$00,$66,$66,$7E,$06,$06,$7E,$00
-	dc.b $00,$7E,$0E,$1C,$38,$7E,$7E,$00
+compact_font_ascii_32_through_90:
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $0C	; bitmap_row_0
+	dc.b $0C	; bitmap_row_1
+	dc.b $18	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $18	; bitmap_row_5
+	dc.b $18	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $66	; bitmap_row_3
+	dc.b $6E	; bitmap_row_4
+	dc.b $6E	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $38	; bitmap_row_1
+	dc.b $38	; bitmap_row_2
+	dc.b $3C	; bitmap_row_3
+	dc.b $3C	; bitmap_row_4
+	dc.b $3C	; bitmap_row_5
+	dc.b $3C	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $06	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $60	; bitmap_row_4
+	dc.b $60	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7C	; bitmap_row_1
+	dc.b $0C	; bitmap_row_2
+	dc.b $3E	; bitmap_row_3
+	dc.b $0E	; bitmap_row_4
+	dc.b $0E	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $2C	; bitmap_row_1
+	dc.b $6C	; bitmap_row_2
+	dc.b $6E	; bitmap_row_3
+	dc.b $7E	; bitmap_row_4
+	dc.b $0E	; bitmap_row_5
+	dc.b $0E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $60	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $06	; bitmap_row_4
+	dc.b $06	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $30	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $76	; bitmap_row_4
+	dc.b $76	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $0E	; bitmap_row_2
+	dc.b $0E	; bitmap_row_3
+	dc.b $1C	; bitmap_row_4
+	dc.b $1C	; bitmap_row_5
+	dc.b $1C	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $66	; bitmap_row_4
+	dc.b $66	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $0E	; bitmap_row_4
+	dc.b $0E	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $18	; bitmap_row_1
+	dc.b $18	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $18	; bitmap_row_5
+	dc.b $18	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $18	; bitmap_row_5
+	dc.b $18	; bitmap_row_6
+	dc.b $30	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $00	; bitmap_row_1
+	dc.b $00	; bitmap_row_2
+	dc.b $00	; bitmap_row_3
+	dc.b $00	; bitmap_row_4
+	dc.b $00	; bitmap_row_5
+	dc.b $00	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $66	; bitmap_row_3
+	dc.b $7E	; bitmap_row_4
+	dc.b $6E	; bitmap_row_5
+	dc.b $6E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7C	; bitmap_row_1
+	dc.b $64	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $66	; bitmap_row_4
+	dc.b $66	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $32	; bitmap_row_2
+	dc.b $70	; bitmap_row_3
+	dc.b $70	; bitmap_row_4
+	dc.b $72	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7C	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $76	; bitmap_row_3
+	dc.b $76	; bitmap_row_4
+	dc.b $76	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $30	; bitmap_row_2
+	dc.b $7C	; bitmap_row_3
+	dc.b $70	; bitmap_row_4
+	dc.b $70	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $30	; bitmap_row_2
+	dc.b $7C	; bitmap_row_3
+	dc.b $70	; bitmap_row_4
+	dc.b $70	; bitmap_row_5
+	dc.b $70	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $30	; bitmap_row_2
+	dc.b $70	; bitmap_row_3
+	dc.b $76	; bitmap_row_4
+	dc.b $76	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $36	; bitmap_row_1
+	dc.b $36	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $76	; bitmap_row_4
+	dc.b $76	; bitmap_row_5
+	dc.b $76	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $1C	; bitmap_row_1
+	dc.b $1C	; bitmap_row_2
+	dc.b $3C	; bitmap_row_3
+	dc.b $3C	; bitmap_row_4
+	dc.b $3C	; bitmap_row_5
+	dc.b $3C	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $0E	; bitmap_row_1
+	dc.b $06	; bitmap_row_2
+	dc.b $06	; bitmap_row_3
+	dc.b $66	; bitmap_row_4
+	dc.b $66	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $32	; bitmap_row_1
+	dc.b $36	; bitmap_row_2
+	dc.b $7C	; bitmap_row_3
+	dc.b $78	; bitmap_row_4
+	dc.b $7C	; bitmap_row_5
+	dc.b $76	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $30	; bitmap_row_1
+	dc.b $30	; bitmap_row_2
+	dc.b $70	; bitmap_row_3
+	dc.b $70	; bitmap_row_4
+	dc.b $72	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $77	; bitmap_row_1
+	dc.b $7F	; bitmap_row_2
+	dc.b $7F	; bitmap_row_3
+	dc.b $6B	; bitmap_row_4
+	dc.b $63	; bitmap_row_5
+	dc.b $63	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $76	; bitmap_row_1
+	dc.b $7E	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $7E	; bitmap_row_4
+	dc.b $6E	; bitmap_row_5
+	dc.b $66	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $66	; bitmap_row_3
+	dc.b $6E	; bitmap_row_4
+	dc.b $6E	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $3E	; bitmap_row_1
+	dc.b $36	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $70	; bitmap_row_4
+	dc.b $70	; bitmap_row_5
+	dc.b $70	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7C	; bitmap_row_1
+	dc.b $6C	; bitmap_row_2
+	dc.b $6C	; bitmap_row_3
+	dc.b $6C	; bitmap_row_4
+	dc.b $7C	; bitmap_row_5
+	dc.b $76	; bitmap_row_6
+	dc.b $04	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $72	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $7C	; bitmap_row_4
+	dc.b $6E	; bitmap_row_5
+	dc.b $66	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $60	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $06	; bitmap_row_4
+	dc.b $06	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $18	; bitmap_row_2
+	dc.b $18	; bitmap_row_3
+	dc.b $38	; bitmap_row_4
+	dc.b $38	; bitmap_row_5
+	dc.b $38	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $66	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $6E	; bitmap_row_3
+	dc.b $6E	; bitmap_row_4
+	dc.b $6E	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $66	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $66	; bitmap_row_3
+	dc.b $3C	; bitmap_row_4
+	dc.b $3C	; bitmap_row_5
+	dc.b $18	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $63	; bitmap_row_1
+	dc.b $63	; bitmap_row_2
+	dc.b $6B	; bitmap_row_3
+	dc.b $6B	; bitmap_row_4
+	dc.b $7F	; bitmap_row_5
+	dc.b $6B	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $66	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $3C	; bitmap_row_3
+	dc.b $3C	; bitmap_row_4
+	dc.b $66	; bitmap_row_5
+	dc.b $66	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $66	; bitmap_row_1
+	dc.b $66	; bitmap_row_2
+	dc.b $7E	; bitmap_row_3
+	dc.b $06	; bitmap_row_4
+	dc.b $06	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
+	dc.b $00	; bitmap_row_0
+	dc.b $7E	; bitmap_row_1
+	dc.b $0E	; bitmap_row_2
+	dc.b $1C	; bitmap_row_3
+	dc.b $38	; bitmap_row_4
+	dc.b $7E	; bitmap_row_5
+	dc.b $7E	; bitmap_row_6
+	dc.b $00	; bitmap_row_7
 abs_0_0001AABA:
 	dc.b "LIFE",$00
 abs_0_0001AABF:
