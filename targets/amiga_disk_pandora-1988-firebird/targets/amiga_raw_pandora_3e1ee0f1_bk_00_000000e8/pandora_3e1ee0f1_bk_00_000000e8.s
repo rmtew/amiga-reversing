@@ -1428,6 +1428,7 @@ WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOI
 WORLD_POSITION_CURRENT_GEOMETRY_DISP	EQU	world_position_state_record_current_geometry_ptr
 WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
+WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT	EQU	3
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 WORLD_PROXIMITY_TRANSITION_AUDIO_SEQUENCE	EQU	$30F
@@ -1442,6 +1443,14 @@ WORLD_RESTART_RECEPTACLE_LAST_INDEX	EQU	5
 WORLD_RESTART_SELF_DESTRUCT_STEPS	EQU	3000
 WORLD_RESTART_TERMINAL_LAST_LONGWORD	EQU	15
 WORLD_RESTART_TICKER_HIGHLIGHT_RGB12	EQU	$EEE
+WORLD_SCRIPT_ACTOR_CURSOR_OFFSET	EQU	world_object_shared_prefix_behavior_script_ptr
+WORLD_SCRIPT_ACTOR_DELAY_OFFSET	EQU	world_object_shared_prefix_behavior_script_delay_ticks
+WORLD_SCRIPT_COPY_WORD_COMMAND_BYTES	EQU	cmd_copy_SIZEOF
+WORLD_SCRIPT_NODE_COMMAND_BYTES	EQU	world_position_state_node_opcode_SIZEOF
+WORLD_SCRIPT_NODE_SEQUENCE_COMMAND_BYTES	EQU	world_behavior_node_sequence_command_SIZEOF
+WORLD_SCRIPT_OPCODE_COMMAND_BYTES	EQU	world_behavior_opcode_only_command_SIZEOF
+WORLD_SCRIPT_OPCODE_COUNT	EQU	33
+WORLD_SCRIPT_REPEAT_COMMAND_BYTES	EQU	cmd_repeat_SIZEOF
 WORLD_STATE_CHECKPOINT_INTERACTION_BIT	EQU	4
 WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
 WORLD_STATE_PROXIMITY_ANIMATION_BIT	EQU	0
@@ -2657,13 +2666,13 @@ world_object_command_copy_relative_word:
     ; A loop body preceding this test executes remaining_count+1 times before fall-through; the counter is then reloaded.
 world_object_command_repeat_branch_or_reload:
 	tst.w cmd_repeat_remaining_count(a4)
-	beq.b abs_0_000111CC
+	beq.b reload_world_script_repeat_counter
 	subq.w #1,cmd_repeat_remaining_count(a4)
 	adda.w cmd_repeat_branch_disp(a4),a4
 	rts
-abs_0_000111CC:
+reload_world_script_repeat_counter:
 	move.w cmd_repeat_reload_count(a4),cmd_repeat_remaining_count(a4)
-	addq.l #8,a4
+	addq.l #WORLD_SCRIPT_REPEAT_COMMAND_BYTES,a4
 	rts
     ; The callback has no cursor-return contract; its memory effects remain unconstrained.
 world_object_command_call_absolute:
@@ -2691,7 +2700,7 @@ script_copy_word:
 	movea.l cmd_copy_src(a4),a0
 	movea.l cmd_copy_dst(a4),a1
 	move.w (a0),(a1)
-	lea.l $000A(a4),a4
+	lea.l WORLD_SCRIPT_COPY_WORD_COMMAND_BYTES(a4),a4
 	rts
     ; Unsigned X/Y tests compare with a referenced word. Taken displacement is signed and relative to its own field (command+6); untaken advances by 8.
 script_x_below:
@@ -2746,162 +2755,167 @@ world_object_command_jump_relative:
 world_object_command_set_node_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	bne.b abs_0_000112A2
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	bne.b advance_head_node_command_cursor
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
+    ; Installation has no same-node shortcut: incoming clock resets and held-header clears on reselection. Cached geometry and node descriptor/count/step/XY fields stay unchanged.
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-abs_0_000112A2:
-	addq.l #6,a4
+advance_head_node_command_cursor:
+	addq.l #WORLD_SCRIPT_NODE_COMMAND_BYTES,a4
 	rts
 world_object_command_set_node_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_000112AE:
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	bne.b abs_0_000112C0
+    ; Walkers test root first, then follow links to first match. Head-only forms do not fall back. No NULL-root guard or cycle bound exists; the selector bit has no established wider visual role.
+find_first_flag3_set_state_for_node:
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	bne.b install_node_on_flag3_set_state
 	move.l world_position_state_record_attachment_state_ptr(a0),d0
-	beq.b abs_0_000112D2
+	beq.b advance_flag3_set_node_command_cursor
 	movea.l d0,a0
-	bra.b abs_0_000112AE
-abs_0_000112C0:
+	bra.b find_first_flag3_set_state_for_node
+install_node_on_flag3_set_state:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-abs_0_000112D2:
-	addq.l #6,a4
+advance_flag3_set_node_command_cursor:
+	addq.l #WORLD_SCRIPT_NODE_COMMAND_BYTES,a4
 	rts
 world_object_command_set_node_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_000112DE:
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	beq.b abs_0_000112F0
+find_first_flag3_clear_state_for_node:
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	beq.b install_node_on_flag3_clear_state
 	move.l world_position_state_record_attachment_state_ptr(a0),d0
-	beq.b abs_0_00011302
+	beq.b advance_flag3_clear_node_command_cursor
 	movea.l d0,a0
-	bra.b abs_0_000112DE
-abs_0_000112F0:
+	bra.b find_first_flag3_clear_state_for_node
+install_node_on_flag3_clear_state:
 	movea.l world_position_state_node_opcode_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-abs_0_00011302:
-	addq.l #6,a4
+advance_flag3_clear_node_command_cursor:
+	addq.l #WORLD_SCRIPT_NODE_COMMAND_BYTES,a4
 	rts
     ; Ten-byte commands install node/frame and clear clock/hold; preserve count, step, XY and other modes. Head-only selector; the next two walk attachments by flag 3.
 world_object_command_set_node_sequence_if_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	bne.b abs_0_0001132E
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	bne.b advance_head_node_sequence_command_cursor
 	movea.l cmd_node_sequence_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
+    ; Sequence replacement retains count and phase step. Cached geometry waits for animation: from phase0 with step64, the second eligible visit selects active index1 using the signed-phase test.
 	move.l cmd_node_sequence_frame_sequence_ptr(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
-abs_0_0001132E:
-	lea.l $000A(a4),a4
+advance_head_node_sequence_command_cursor:
+	lea.l WORLD_SCRIPT_NODE_SEQUENCE_COMMAND_BYTES(a4),a4
 	rts
 world_object_command_set_node_sequence_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_0001133C:
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	bne.b abs_0_0001134E
+find_first_flag3_set_state_for_node_sequence:
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	bne.b install_node_sequence_on_flag3_set_state
 	move.l world_position_state_record_attachment_state_ptr(a0),d0
-	beq.b abs_0_00011366
+	beq.b advance_flag3_set_node_sequence_command_cursor
 	movea.l d0,a0
-	bra.b abs_0_0001133C
-abs_0_0001134E:
+	bra.b find_first_flag3_set_state_for_node_sequence
+install_node_sequence_on_flag3_set_state:
 	movea.l cmd_node_sequence_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	move.l cmd_node_sequence_frame_sequence_ptr(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
-abs_0_00011366:
-	lea.l $000A(a4),a4
+advance_flag3_set_node_sequence_command_cursor:
+	lea.l WORLD_SCRIPT_NODE_SEQUENCE_COMMAND_BYTES(a4),a4
 	rts
 world_object_command_set_node_sequence_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_00011374:
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	beq.b abs_0_00011386
+find_first_flag3_clear_state_for_node_sequence:
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	beq.b install_node_sequence_on_flag3_clear_state
 	move.l world_position_state_record_attachment_state_ptr(a0),d0
-	beq.b abs_0_0001139E
+	beq.b advance_flag3_clear_node_sequence_command_cursor
 	movea.l d0,a0
-	bra.b abs_0_00011374
-abs_0_00011386:
+	bra.b find_first_flag3_clear_state_for_node_sequence
+install_node_sequence_on_flag3_clear_state:
 	movea.l cmd_node_sequence_state_node_ptr(a4),a1
 	move.l a1,world_position_state_record_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	move.l cmd_node_sequence_frame_sequence_ptr(a4),WorldPositionStateNode_frame_sequence_ptr(a1)
-abs_0_0001139E:
-	lea.l $000A(a4),a4
+advance_flag3_clear_node_sequence_command_cursor:
+	lea.l WORLD_SCRIPT_NODE_SEQUENCE_COMMAND_BYTES(a4),a4
 	rts
     ; Toggle held-header mode on the first attachment state matching the command's flag-3 predicate.
 world_object_command_toggle_node_for_flag3_set:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_000113AC:
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	bne.b abs_0_000113BE
+find_first_flag3_set_state_for_toggle:
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	bne.b toggle_first_flag3_set_state_node_hold
 	move.l world_position_state_record_attachment_state_ptr(a0),d0
-	beq.b abs_0_000113C8
+	beq.b advance_flag3_set_toggle_command_cursor
 	movea.l d0,a0
-	bra.b abs_0_000113AC
-abs_0_000113BE:
+	bra.b find_first_flag3_set_state_for_toggle
+    ; Toggle changes only the installed node hold bit and preserves its clock. Every state sharing that node observes the bit change; their cached geometry remains separate.
+toggle_first_flag3_set_state_node_hold:
 	movea.l world_position_state_record_state_node_ptr(a0),a1
 	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-abs_0_000113C8:
-	addq.l #2,a4
+advance_flag3_set_toggle_command_cursor:
+	addq.l #WORLD_SCRIPT_OPCODE_COMMAND_BYTES,a4
 	rts
 world_object_command_toggle_node_for_flag3_clear:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
-abs_0_000113D4:
-	btst.b #3,world_position_state_record_world_object_flags(a0)
-	beq.b abs_0_000113E6
+find_first_flag3_clear_state_for_toggle:
+	btst.b #WORLD_POSITION_SCRIPT_NODE_SELECTOR_BIT,world_position_state_record_world_object_flags(a0)
+	beq.b toggle_first_flag3_clear_state_node_hold
 	move.l world_position_state_record_attachment_state_ptr(a0),d0
-	beq.b abs_0_000113F0
+	beq.b advance_flag3_clear_toggle_command_cursor
 	movea.l d0,a0
-	bra.b abs_0_000113D4
-abs_0_000113E6:
+	bra.b find_first_flag3_clear_state_for_toggle
+toggle_first_flag3_clear_state_node_hold:
 	movea.l world_position_state_record_state_node_ptr(a0),a1
 	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
-abs_0_000113F0:
-	addq.l #2,a4
+advance_flag3_clear_toggle_command_cursor:
+	addq.l #WORLD_SCRIPT_OPCODE_COMMAND_BYTES,a4
 	rts
     ; Delay counts down before the inactive-bit check. Inactive objects stop dispatch at zero; the current script pass does not recheck this guard after a callback.
 run_world_object_behavior_script:
 	move.l world_object_shared_prefix_behavior_script_ptr(a5),d0
-	beq.b abs_0_00011408
+	beq.b return_from_world_object_script_service
 	movea.l d0,a4
     ; Null scripts return. Pending delay counts down once per call; flag 1 inhibits dispatch at entry. Valid commands continue until a command sets delay; loop termination is not guaranteed.
 	tst.w world_object_shared_prefix_behavior_script_delay_ticks(a5)
-	beq.b abs_0_0001140A
+	beq.b test_world_object_script_entry_inactive
 	subq.w #1,world_object_shared_prefix_behavior_script_delay_ticks(a5)
-	beq.b abs_0_0001140A
-abs_0_00011408:
+	beq.b test_world_object_script_entry_inactive
+return_from_world_object_script_service:
 	rts
-abs_0_0001140A:
+test_world_object_script_entry_inactive:
 	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_00011408
-abs_0_00011412:
+	bne.b return_from_world_object_script_service
+dispatch_next_world_object_script_command:
 	move.w (a4),d0
-	cmp.w #$21,d0
-	bcc.w abs_0_000114B6
+	cmp.w #WORLD_SCRIPT_OPCODE_COUNT,d0
+	bcc.w world_script_out_of_range_target_bytes
 	add.w d0,d0
 	add.w d0,d0
 	movea.l world_object_handler_ptrs(pc,d0.w),a0
 	jsr (a0)
-	move.l a4,$0024(a5)
-	tst.w $0044(a5)
-	beq.b abs_0_00011412
+    ; After a handler, store A4 as next cursor and retest actor delay. Nonmatching selector cycles do not return here. Out-of-range opcodes branch to raw bytes; their execution remains unproved.
+	move.l a4,WORLD_SCRIPT_ACTOR_CURSOR_OFFSET(a5)
+	tst.w WORLD_SCRIPT_ACTOR_DELAY_OFFSET(a5)
+	beq.b dispatch_next_world_object_script_command
 	rts
 world_object_handler_ptrs:
 	dc.l world_object_command_add_x	; pointer_table
@@ -2937,7 +2951,7 @@ world_object_handler_ptrs:
 	dc.l world_object_command_set_node_sequence_for_flag3_clear
 	dc.l world_object_command_toggle_node_for_flag3_set
 	dc.l world_object_command_toggle_node_for_flag3_clear
-abs_0_000114B6:
+world_script_out_of_range_target_bytes:
 	dc.b $4A,$FB
 world_object_thief_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode

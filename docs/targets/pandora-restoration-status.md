@@ -4835,3 +4835,41 @@ Earlier source/comments, types/fields/owner bounds, SDK/pointer forms, raw gaps,
 histories, 126 assets, 2,112 typed tile fields and the 128-byte INCBIN remain intact.
 No framework change, asynchronous frames/DMA, visible pixels, ordinary gameplay
 admission, complete lifetime or intent/bug claim is added.
+
+### Script node selectors and interpreter continuation
+
+Accepted 60 annotations: twenty-four code names, one raw-target name, nine
+predicate/opcode/sizeof/field constants, twenty-one bindings and five comments.
+Script installation restarts the incoming clock and clears held-header mode even
+when the node is already selected; toggles preserve the clock. States sharing a
+mutable node observe these changes while retaining separate cached geometry. The
+original 26 typed sequence commands reference eight node identities; this does not
+establish exclusive owners or ordinary runtime sharing between distinct states.
+Sequence replacement preserves count, descriptor, step and XY fields. Cached geometry
+waits for animation: in the tested count 3/phase 0/step 64 case, the second
+eligible visit selects active index 1 using the existing signed-phase test.
+Addition carry does not control this advancement.
+
+Walkers choose the first matching root/attachment; head-only forms never fall back.
+No NULL-root guard or cycle bound exists. Bit 3 is named for its command-selector
+role; its wider visual meaning remains unknown. Original indirect dispatch stores
+the returned cursor and then tests actor delay. The 33-pointer owner retains its
+bounds; out-of-range opcodes target the original raw $4AFB bytes. Their execution,
+exception behavior and fallthrough remain unproved. Repeat/copy/node strides use
+canonical aliases of existing sizeof symbols; post-handler offsets retain their
+existing object-field relationships through normal commands. No framework change.
+
+Five original-code tests in `tests/test_pandora_script_node_selectors.py` cover
+all eight commands and 256 head flag bytes through indirect dispatch plus real delay,
+head-only/no-match/first-match behavior, same-node/shared-node changes, cached-geometry
+continuation and finite-budget cycles without cursor commit. No instructions or
+callees are patched. Existing 33-opcode, delay/repeat/callback, typed sequence,
+diabetic-script and other subsystem checks are reused. All 90 preflight instruction
+bytes, nine EQU forms and 21 operands are C/vasm exact before mutation. Comments
+were finalized before one full output gate. All 376,832 bytes match, receipt
+`b455b06f57a4d181d4b2dcc94116aca0087ddc24630622680fa500758ba62e9b`.
+Earlier source/comments, fields/types/owner bounds, SDK/pointer forms, raw gaps,
+histories,
+126 assets, 2,112 typed tile fields and the 128-byte INCBIN remain intact, including
+countdown, title/F7/A4 and defeat distinctions. No asynchronous frames/DMA, pixels,
+ordinary admission, exclusive ownership, complete lifetime or intent/bug claim.
