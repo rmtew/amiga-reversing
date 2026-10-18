@@ -204,6 +204,10 @@ _LISTING_CACHE_KEY_SNAPSHOT: ContextVar[dict[str, str] | None] = ContextVar(
 _COMMAND_METADATA_SNAPSHOTS: ContextVar[dict[Path, dict[str, object]] | None] = ContextVar(
     "command_metadata_snapshots", default=None
 )
+_DisplacementUses = dict[tuple[str, int], tuple[int, list[dict[str, object]]]]
+_COMMAND_DISPLACEMENT_SNAPSHOTS: ContextVar[
+    dict[tuple[str, str], tuple[object, _DisplacementUses]] | None
+] = ContextVar("command_displacement_snapshots", default=None)
 
 
 def _command_preparation_metadata(target_dir: Path, *, typed: bool = False):
@@ -2027,8 +2031,15 @@ def _command_contract_error(code: str, message: str) -> CommandContractError:
 
 
 def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
-    from amiga_reversing.disasm.restoration import revisions
     context, rows = _command_context_from_query(project_name, query)
+    return _command_catalog_from_context(project_name, context, rows)
+
+
+def _command_catalog_from_context(
+    project_name: str, context: Mapping[str, object], rows: list[dict[str, object]],
+) -> dict[str, object]:
+    """Build availability from the already validated, immutable read context."""
+    from amiga_reversing.disasm.restoration import revisions
     cache_key = _command_availability_cache_key(project_name, context)
     cached = _COMMAND_AVAILABILITY_CACHE.get(cache_key)
     if cached is not None:
@@ -2406,23 +2417,56 @@ def _copy_rsset_same_displacement_context(project_name: str, target: dict[str, o
     artifact = _valid_c_listing_artifact(project_name)
     if artifact is None:
         return
+    snapshots = _COMMAND_DISPLACEMENT_SNAPSHOTS.get()
+    key = (project_name, _project_listing_cache_key(project_name)) if snapshots is not None else None
+    cached = snapshots.get(key) if snapshots is not None and key is not None else None
+    if cached is not None and cached[0] is artifact:
+        index = cached[1]
+    else:
+        index = _same_displacement_use_index(
+            artifact, only=None if snapshots is not None else (base_register.upper(), displacement),
+        )
+        if snapshots is not None and key is not None:
+            snapshots[key] = (artifact, index)
+    count, uses = index.get((base_register.upper(), displacement), (0, []))
+    if count:
+        target["same_displacement_use_count"] = count
+        target["same_displacement_uses"] = deepcopy(uses)
+
+
+def _same_displacement_use_index(
+    artifact: ListingArtifact, *, only: tuple[str, int] | None = None,
+) -> _DisplacementUses:
+    """Count every use, retaining the original first-row/first-operand witnesses."""
     summary, _summary_profile = artifact.summary_payload()
     total_rows = summary.get("total_rows")
     if not isinstance(total_rows, int) or total_rows <= 0:
-        return
+        return {}
     payload, _window_profile = artifact.window_payload(start=0, count=total_rows)
     raw_rows = payload.get("rows")
     if not isinstance(raw_rows, list):
-        return
-    uses: list[dict[str, object]] = []
-    wanted_base = base_register.upper()
+        return {}
+    index: _DisplacementUses = {}
     for row_index, raw_row in enumerate(raw_rows):
         if not isinstance(raw_row, Mapping):
             continue
         row = dict(raw_row)
         row.setdefault("stable_key", row.get("row_key"))
+        seen: set[tuple[str, int]] = set()
         for element_context in listing_element_contexts(row):
-            if element_context.get("base_register") != wanted_base or element_context.get("displacement") != displacement:
+            base = element_context.get("base_register")
+            displacement = element_context.get("displacement")
+            if not isinstance(base, str) or not isinstance(displacement, int):
+                continue
+            key = (base, displacement)
+            if only is not None and key != only:
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            count, uses = index.setdefault(key, (0, []))
+            index[key] = (count + 1, uses)
+            if len(uses) >= 32:
                 continue
             use = {
                 "row_index": row.get("row_index", row_index),
@@ -2437,10 +2481,7 @@ def _copy_rsset_same_displacement_context(project_name: str, target: dict[str, o
             if isinstance(width_bytes, int):
                 use["width_bytes"] = width_bytes
             uses.append({key: value for key, value in use.items() if value is not None})
-            break
-    if uses:
-        target["same_displacement_use_count"] = len(uses)
-        target["same_displacement_uses"] = uses[:32]
+    return index
 
 
 def _resolve_command_locator(
@@ -2693,7 +2734,7 @@ def _prepare_catalog_command(
         with workflow_profile.span("command_context", module="server"):
             command_context, rows = _command_context_from_body(project_name, context, workflow_profile=workflow_profile)
         with workflow_profile.span("command_catalog", module="server"):
-            catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+            catalog = _command_catalog_from_context(project_name, command_context, rows)
         context_cache[context_key] = (command_context, rows, catalog)
     else:
         command_context, rows, catalog = cached
@@ -2726,9 +2767,11 @@ def _execute_catalog_commands_unchecked(project_name: str, bodies: list[dict]) -
     context_cache = {}
     navigation_token = _COMMAND_NAVIGATION_SNAPSHOTS.set({})
     metadata_token = _COMMAND_METADATA_SNAPSHOTS.set({})
+    displacement_token = _COMMAND_DISPLACEMENT_SNAPSHOTS.set({})
     try:
         prepared = [_prepare_catalog_command(project_name, body, workflow_profile, context_cache) for body in bodies]
     finally:
+        _COMMAND_DISPLACEMENT_SNAPSHOTS.reset(displacement_token)
         _COMMAND_METADATA_SNAPSHOTS.reset(metadata_token)
         _COMMAND_NAVIGATION_SNAPSHOTS.reset(navigation_token)
     result = _apply_manual_action_commands(project_name, prepared, workflow_profile=workflow_profile)

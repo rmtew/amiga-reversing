@@ -210,7 +210,7 @@ def test_repeated_context_resolves_once_but_validates_each_parameters(
     calls = {"context": 0, "catalog": 0, "append": 0}
     for label, name in (
         ("context", "_command_context_from_body"),
-        ("catalog", "_command_catalog_payload"),
+        ("catalog", "_command_catalog_from_context"),
         ("append", "append_manual_actions"),
     ):
         original = getattr(server, name)
@@ -243,13 +243,13 @@ def test_preparation_context_memo_is_not_reused_between_requests(
     batch_target, monkeypatch
 ):
     calls = []
-    original = server._command_catalog_payload
+    original = server._command_catalog_from_context
 
     def counted(*args, **kwargs):
         calls.append(args)
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(server, "_command_catalog_payload", counted)
+    monkeypatch.setattr(server, "_command_catalog_from_context", counted)
     invoke(batch_target, entries=[batch_target.entries[1]])
     invoke(batch_target, entries=[batch_target.entries[1]])
     assert len(calls) == 2
@@ -351,3 +351,16 @@ def test_navigation_exception_restores_request_scope(batch_target, monkeypatch):
     assert not (batch_target.directory / "manual_actions.jsonl").exists()
     invoke(batch_target)
     assert len(calls) == 2
+
+
+def test_prepared_catalog_does_not_resolve_validated_context_again(batch_target, monkeypatch):
+    def unexpected(*args, **kwargs):
+        raise AssertionError("prepared context must not be reparsed as a query")
+    monkeypatch.setattr(server, "_command_context_from_query", unexpected)
+    original_apply = server._apply_manual_action_commands
+    def apply(*args, **kwargs):
+        assert server._COMMAND_DISPLACEMENT_SNAPSHOTS.get() is None
+        return original_apply(*args, **kwargs)
+    monkeypatch.setattr(server, "_apply_manual_action_commands", apply)
+    result = invoke(batch_target)
+    assert len(result["actions"]) == 2

@@ -175,7 +175,12 @@ entry contains `command_id`, the actual catalog `context`, `parameters` and
 omit `operation` and `expected_revision`. All evidence references and command
 contexts are checked against the same native artifact before any write. Identical
 contexts reuse their resolved rows and catalog only within that preparation; each
-command and its parameters are still validated independently. The Manual Action Log validates the complete batch and appends it atomically; an
+command and its parameters are still validated independently. Catalog availability
+uses the already validated context rather than resolving it a second time.
+Displacement-use witnesses share one native scan within that locked preparation,
+keyed by project/projection and artifact identity. This temporary index is discarded
+before append, including failed preparations; it is never reused by another request.
+The Manual Action Log validates the complete batch and appends it atomically; an
 invalid final entry or stale revision leaves both histories unchanged. The
 service applies the actions and invalidates the projection once, then returns
 `actions`, per-entry `commands`, and the resulting revision. Inspect and verify

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "baseline_target_commit": "f27a53e4a5bdbd4fd59fe373ae5880a469a1c074",
+  "operation_source_commit": "e8bc92e4787b03c30e561cd44ea890b09290fb22",
+  "operation": "Same 100-entry restart/random interpret_batch; real native baseline artifact and real validation/atomic append in an isolated baseline clone. Only post-append scheduling suppressed; live target histories untouched.",
+  "before_profile_seconds": {
+    "command_context": 251.099604,
+    "command_catalog": 256.749671,
+    "locator_resolution": 0.114545,
+    "manual_action_append": 25.783752,
+    "manual_action_application": 0.000272,
+    "listing_cache_invalidation": 0.010589,
+    "response_build": 0.00022
+  },
+  "after_profile_seconds": {
+    "command_context": 20.420724,
+    "command_catalog": 1.947953,
+    "locator_resolution": 9.911604,
+    "manual_action_append": 25.274279,
+    "manual_action_application": 0.00018,
+    "listing_cache_invalidation": 2.2e-05,
+    "response_build": 0.000192
+  },
+  "after_full_operation_seconds": 54.864227335998294,
+  "preparation_seconds": {
+    "before": 507.849275,
+    "after": 22.368677
+  },
+  "paired_two_context_seconds": {
+    "before": 59.385670685,
+    "after": 24.251152652
+  },
+  "equivalence": {
+    "paired_sample": "Exact prepared contexts, catalog availability, witnesses and command payloads; normalize generated IDs only. Same immutable artifact used for both modules.",
+    "full_operation": "All 100 canonical facts match original run; exclude generated IDs/time/revision and optional non-identity row_index fields. Interpretation evidence, question, reason, status and subject match separately, excluding fixture-specific subject_revision.",
+    "history": "Original MAL prefix preserved, exactly 100 records appended; Decision Journal unchanged."
+  },
+  "scope": "One locked preparation only. Keyed by project/projection and checked artifact identity; reset before append even on failure. No cross-request reuse. Public one-off catalog queries retain targeted scanning.",
+  "checks": {
+    "focused_cases_passed": 242,
+    "socket_check": "Initial sandbox socket creation denied; scoped network rerun passed.",
+    "coverage": "Validation per entry, stale/invalid final entry atomic refusal, history preservation, one append/invalidation, first 32 witnesses, all-use count, duplicate operands, copy isolation, project/projection/artifact boundaries, failure cleanup and no repeated query resolution."
+  },
+  "limits": "Single local measurement, not a general throughput claim. Cold artifact construction (171.097s) excluded from both preparation timings. No renderer/native backend or target fact changes."
+}
