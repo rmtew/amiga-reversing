@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-rifle-descriptor-audit",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "rifle_descriptor_audit",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a3",
+          "a4",
+          "a5",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4,
+            "expect_hex": "04cc036a"
+          },
+          {
+            "base_register": "a6",
+            "offset": 680,
+            "size": 8
+          },
+          {
+            "address": 77978,
+            "size": 64
+          },
+          {
+            "address": 78042,
+            "size": 64
+          },
+          {
+            "address": 78106,
+            "size": 64
+          },
+          {
+            "address": 78170,
+            "size": 64
+          },
+          {
+            "address": 78234,
+            "size": 16
+          },
+          {
+            "address": 375866,
+            "size": 36
+          },
+          {
+            "address": 376762,
+            "size": 12
+          },
+          {
+            "address": 376774,
+            "size": 52
+          },
+          {
+            "address": 376416,
+            "size": 28
+          },
+          {
+            "address": 377346,
+            "size": 36
+          },
+          {
+            "address": 377534,
+            "size": 12
+          },
+          {
+            "address": 377546,
+            "size": 28
+          },
+          {
+            "address": 377382,
+            "size": 28
+          },
+          {
+            "base_register": "a6",
+            "offset": 796,
+            "size": 4,
+            "expect_hex": "00070000"
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

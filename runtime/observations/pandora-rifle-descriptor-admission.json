@@ -1,0 +1,1376 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "inspected_head": "541423b9307745cec41f3970e82765c7c7655df4",
+  "native_subject_revision": "19b2051cde8d57e0dee2c5122b19dd7561e17dee72ac00ab8f95cefd98ecd322",
+  "runtime_profile": "Copperline 1.0.0; A500OCS PAL 68000; 512 KiB chip + 512 KiB slow; no audio",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "checkpoint_receipt": ".runtime-state/pandora-takeover/audit.json",
+  "descriptor_audit": {
+    "status": "ok",
+    "stop_reason": "breakpoint-hit",
+    "pc": "0x000105ca",
+    "sp": "0x00010452",
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified",
+      "verification_source": "checkpoint_root"
+    },
+    "reverse_boundary": {
+      "memory_write": null,
+      "reverse_anchor": "after_state_load",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      },
+      "replay_across_load": false,
+      "verification_source": "checkpoint_root",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643"
+    },
+    "checkpoint": {
+      "status": "restored",
+      "receipt_sha256": "7b61778201565cb3841db0250117e6412e824e60182633ec1956237ae5599a19",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+      "root_verification": "inherited_from_saved_execution",
+      "reverse_anchor": "after_state_load",
+      "replay_across_load": false
+    },
+    "scenario_identifier": "pandora-rifle-admission-live-state",
+    "phases": [
+      {
+        "name": "rifle_admission_state",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a3": "0x00058a66",
+            "a4": "0x0005c322",
+            "a5": "0x00dff000",
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "04cc036a",
+                "mask_hex": "ffffffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003ca4",
+              "bytes": "0001309a00430000",
+              "base_register": "a6",
+              "offset": 680
+            },
+            {
+              "address": "0x0001309a",
+              "bytes": "00058c1000058c2800058c4000058c4c00058c6400058c7c00058c8800058ca000058cac00058cb800058cc40005a8280005a8b40005a9400005a9cc0005aa58",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x000130da",
+              "bytes": "0005aad20005a5000005ab5e0005ac3a000588620005886e0005887a00058886000588920005889e000591ee0005af900005b49c000593b400058bf80005c2be",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0001311a",
+              "bytes": "00059f2400058794000597b20005adc000059cb80005b99200058c0400058c3400058c1c00059aa80005a2bc00058c580005b8c00005c71e0005b7a00005a754",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0001315a",
+              "bytes": "0005ba0c0005a63600058c940005b67200058c700005b3140005c96e0005bfba0005bf7a0005bf3a0005befa0005beba0005be7a0005859a000585a600058cd0",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0001319a",
+              "bytes": "00058cdc00058ce800058cf400000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bc3a",
+              "bytes": "045003aa000000000000000000370037005a00bc000100000000540020200005be600000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bfba",
+              "bytes": "0005bfc6045003aa045003aa",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bfc6",
+              "bytes": "0005bcee0005bcee00000000000800100005bfba0005bfe001880005bcca0005bcca0005c1c0000000000005bfba000000000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005be60",
+              "bytes": "0005bd480005bd480005be4e000400000005bfba0000000000420005",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c202",
+              "bytes": "034800a80000000000000000001d001d006e04462400000000005d0020200005c2260000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c2be",
+              "bytes": "0005c2ca034800a8034800a8",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c2ca",
+              "bytes": "0005c2640005c2640005c2e4000000000005c2be0000000001000005",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c226",
+              "bytes": "0005c2400005c24000000000000000000005c2be0000000000420004",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "00070000",
+              "base_register": "a6",
+              "offset": 796,
+              "expectation": {
+                "expected_hex": "00070000",
+                "mask_hex": "ffffffff",
+                "matched": true
+              }
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      }
+    ]
+  },
+  "normal_input_shot": {
+    "status": "ok",
+    "stop_reason": "breakpoint-hit",
+    "pc": "0x000105ca",
+    "sp": "0x00010452",
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified",
+      "verification_source": "checkpoint_root"
+    },
+    "reverse_boundary": {
+      "memory_write": null,
+      "reverse_anchor": "after_state_load",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      },
+      "replay_across_load": false,
+      "verification_source": "checkpoint_root",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643"
+    },
+    "checkpoint": {
+      "status": "restored",
+      "receipt_sha256": "7b61778201565cb3841db0250117e6412e824e60182633ec1956237ae5599a19",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+      "root_verification": "inherited_from_saved_execution",
+      "reverse_anchor": "after_state_load",
+      "replay_across_load": false
+    },
+    "scenario_identifier": "pandora-rifle-west-wall-shot",
+    "phases": [
+      {
+        "name": "shot_anchor",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010501",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 795
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "first_ray_sample",
+        "stable_key": "s0:000092E2:instruction",
+        "capture": {
+          "registers": {
+            "d0": "0x000004f6",
+            "d1": "0x03b00378",
+            "d2": "0x0000000e",
+            "d3": "0x03600000",
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010401",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "01",
+              "base_register": "a6",
+              "offset": 795
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000192e2",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000192e2",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105f6",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x92e2"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x92e2",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "wall_stops_ray",
+        "stable_key": "s0:00009410:instruction",
+        "capture": {
+          "registers": {
+            "d0": "0x00000132",
+            "d1": "0x00001356",
+            "d2": "0x0000000e",
+            "d3": "0x03600000",
+            "d5": "0x000004f6",
+            "d6": "0x00000378",
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010401",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "01",
+              "base_register": "a6",
+              "offset": 795
+            }
+          ]
+        },
+        "resolved_function": {
+          "name": "handle_ranged_effect_blocked_tile",
+          "source_start": 37904,
+          "source_end": 37918,
+          "runtime_start": 103440,
+          "runtime_end": 103454
+        },
+        "address": "0x00019410",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00019410",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105f6",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x9410"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x9410",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "shot_completed_loop",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010401",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "01",
+              "base_register": "a6",
+              "offset": 795
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      }
+    ]
+  },
+  "table": {
+    "runtime_base": 77978,
+    "count": 67,
+    "fixed_prefix_count": 29,
+    "reordered_middle_count": 32,
+    "fixed_tail_count": 6,
+    "null_index": 67,
+    "flight_descriptor_index": 55,
+    "feed_descriptor_index": 31
+  },
+  "state_roles": {
+    "flight_root": {
+      "address": 376774,
+      "flags": 136,
+      "attachment": 376800
+    },
+    "flight_attachment": {
+      "address": 376800,
+      "flags": 0,
+      "geometry": 376010,
+      "bounds_offsets": [
+        0,
+        0,
+        31,
+        27
+      ]
+    },
+    "feed_root": {
+      "address": 377546,
+      "flags": 0,
+      "geometry": 377444,
+      "bounds_offsets": [
+        7,
+        0,
+        25,
+        27
+      ]
+    }
+  },
+  "observed_shot": {
+    "physical_controls": [
+      "port1 left",
+      "port1 fire"
+    ],
+    "player_xy_before_and_after": [
+      1228,
+      874
+    ],
+    "retained_request_at_checkpoint": [
+      7,
+      0
+    ],
+    "cached_input_at_checkpoint": [
+      0,
+      0
+    ],
+    "ray_step": [
+      14,
+      0
+    ],
+    "first_sample_and_wall_stop": [
+      1270,
+      888
+    ],
+    "tile_id": 306,
+    "initial_ammunition_before_and_after": [
+      5,
+      1
+    ],
+    "mutable_ammunition_before": [
+      5,
+      1
+    ],
+    "mutable_ammunition_after": [
+      4,
+      1
+    ],
+    "player_hp_before_and_after": 95,
+    "flight_hp_before_and_after": 55
+  },
+  "evidence_corrections": [
+    "Earlier rifle audit address $1924C read the initial ammunition pair, not mutable ammunition at $1924E. The new four-byte shot capture distinguishes both; the audit scenario now reads mutable ammunition.",
+    "A6+$1C6/$1C8 is cached input, zero at this checkpoint; A6+$31C/$31E is retained accepted aim, still (7,0). The audit now captures both.",
+    "Root flag bit3 does not reject a complete descriptor chain: the flight root skips to its ray-eligible attachment. This alone does not prove an ordinary hit."
+  ],
+  "limits": [
+    "Two original normal-input shots are bounded: simultaneous left+fire hits a wall on sample1 with retained right aim; separately accepted left aim traverses one clear tile and stops at sample2. Both return to the canonical main-loop anchor. No global ray termination or successful NPC hit is proved.",
+    "No RAM, register or instruction injection; only checkpoint restore, normal input and read-only captures. Root payload/copy verification is inherited from the original checkpoint, with exact snapshot/media/register verification on restore.",
+    "Input releases at first-ray-sample phase and runner cleanup. No framebuffer, DMA, audible output, successful return to Feed, BYTE write or relocated weapon comparison claim.",
+    "Initial restricted Copperline startup exited with code1 before observation. The scoped documented runner succeeded using the unchanged compiled canonical anchor. No access restriction was bypassed."
+  ],
+  "historical_context": {
+    "normal_inventory_and_idle_audit": "runtime/observations/pandora-rifle-composition.json",
+    "note": "Its neutral input capture is A6+$1C6, not the later named retained-aim fields; its ammunition capture at $1924C is the initial pair. New canonical captures distinguish both."
+  },
+  "separated_left_aim": {
+    "status": "ok",
+    "stop_reason": "breakpoint-hit",
+    "pc": "0x000105ca",
+    "sp": "0x00010452",
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified",
+      "verification_source": "checkpoint_root"
+    },
+    "reverse_boundary": {
+      "memory_write": null,
+      "reverse_anchor": "after_state_load",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      },
+      "replay_across_load": false,
+      "verification_source": "checkpoint_root",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643"
+    },
+    "checkpoint": {
+      "status": "restored",
+      "receipt_sha256": "7b61778201565cb3841db0250117e6412e824e60182633ec1956237ae5599a19",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+      "root_verification": "inherited_from_saved_execution",
+      "reverse_anchor": "after_state_load",
+      "replay_across_load": false
+    },
+    "scenario_identifier": "pandora-rifle-separated-left-aim",
+    "phases": [
+      {
+        "name": "shot_anchor",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010501",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "00070000",
+              "base_register": "a6",
+              "offset": 796
+            },
+            {
+              "address": "0x00003bc2",
+              "bytes": "00000000",
+              "base_register": "a6",
+              "offset": 454
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "left_input_window",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04be036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010501",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "fff90000",
+              "base_register": "a6",
+              "offset": 796
+            },
+            {
+              "address": "0x00003bc2",
+              "bytes": "ffff0000",
+              "base_register": "a6",
+              "offset": 454
+            }
+          ]
+        },
+        "resolved_function": null,
+        "occurrences_requested": 8,
+        "occurrences_observed": 8,
+        "first_visit": {
+          "pc": "0x000105ca",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        },
+        "last_visit": {
+          "pc": "0x000105ca",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        },
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "neutral_before_fire",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04b7036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010501",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "fff90000",
+              "base_register": "a6",
+              "offset": 796
+            },
+            {
+              "address": "0x00003bc2",
+              "bytes": "00000000",
+              "base_register": "a6",
+              "offset": 454
+            }
+          ]
+        },
+        "resolved_function": null,
+        "occurrences_requested": 2,
+        "occurrences_observed": 2,
+        "first_visit": {
+          "pc": "0x000105ca",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        },
+        "last_visit": {
+          "pc": "0x000105ca",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        },
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "first_ray_sample",
+        "stable_key": "s0:000092E2:instruction",
+        "capture": {
+          "registers": {
+            "d0": "0x000004a9",
+            "d1": "0x03b00378",
+            "d2": "0x0000fff2",
+            "d3": "0x03600000",
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04b7036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010401",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "01",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "fff90000",
+              "base_register": "a6",
+              "offset": 796
+            },
+            {
+              "address": "0x00003bc2",
+              "bytes": "00000000",
+              "base_register": "a6",
+              "offset": 454
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000192e2",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000192e2",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105f6",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x92e2"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x92e2",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "wall_stops_ray",
+        "stable_key": "s0:00009410:instruction",
+        "capture": {
+          "registers": {
+            "d0": "0x00000040",
+            "d1": "0x00001356",
+            "d2": "0x0000fff2",
+            "d3": "0x03600000",
+            "d5": "0x0000049b",
+            "d6": "0x00000378",
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04b7036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010401",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "01",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "fff90000",
+              "base_register": "a6",
+              "offset": 796
+            },
+            {
+              "address": "0x00003bc2",
+              "bytes": "00000000",
+              "base_register": "a6",
+              "offset": 454
+            }
+          ]
+        },
+        "resolved_function": {
+          "name": "handle_ranged_effect_blocked_tile",
+          "source_start": 37904,
+          "source_end": 37918,
+          "runtime_start": 103440,
+          "runtime_end": 103454
+        },
+        "address": "0x00019410",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x00019410",
+        "sp": "0x0001044e",
+        "stack_return_address": "0x000105f6",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x9410"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x9410",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "shot_completed_loop",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04b7036a",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010401",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc46",
+              "bytes": "0037",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "0037",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "01",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003d18",
+              "bytes": "fff90000",
+              "base_register": "a6",
+              "offset": 796
+            },
+            {
+              "address": "0x00003bc2",
+              "bytes": "00000000",
+              "base_register": "a6",
+              "offset": 454
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      }
+    ]
+  },
+  "short_direction_window": {
+    "left_held_main_loop_visits": 2,
+    "neutral_visits": 1,
+    "player_xy_unchanged": [
+      1228,
+      874
+    ],
+    "retained_request_unchanged": [
+      7,
+      0
+    ],
+    "conclusion": "Cached left input was observed, but no accepted movement in this window. This prompted the bounded eight-visit follow-up; no general input failure is inferred."
+  },
+  "observed_separated_shot": {
+    "left_held_main_loop_visits": 8,
+    "neutral_visits": 2,
+    "xy_after_left_window": [
+      1214,
+      874
+    ],
+    "xy_before_and_after_fire": [
+      1207,
+      874
+    ],
+    "retained_request_before_fire": [
+      -7,
+      0
+    ],
+    "cached_input_before_fire": [
+      0,
+      0
+    ],
+    "ray_step": [
+      -14,
+      0
+    ],
+    "first_sample": [
+      1193,
+      888
+    ],
+    "first_tile_id": 92,
+    "first_tile_blocked": false,
+    "wall_stop": [
+      1179,
+      888
+    ],
+    "wall_tile_id": 64,
+    "sample_count": 2,
+    "mutable_ammunition_before": [
+      5,
+      1
+    ],
+    "mutable_ammunition_after": [
+      4,
+      1
+    ],
+    "initial_ammunition_before_and_after": [
+      5,
+      1
+    ]
+  },
+  "source_verification": {
+    "receipt_id": "26d6b1ca47e731363c5c6fa1bc9a22a7fb48d3cf497dae957edbd48b56fa61af",
+    "full_file_exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "annotations_accepted": 24,
+    "focused_checks": "3 original CPU sorting tests and 4 runtime receipt regressions passed; unrelated prior checks reused."
+  }
+}

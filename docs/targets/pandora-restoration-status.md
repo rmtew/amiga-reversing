@@ -4911,3 +4911,48 @@ histories, 126 assets, 2,112 typed tile fields and the 128-byte INCBIN remain in
 including script clock/hold/cache, countdown, title/F7/A4 and defeat distinctions.
 No framework change, DMA/pixels, audible output, elapsed-time, ordinary admission,
 complete lifetime, intent or bug claim is added.
+
+### Descriptor partition and ordinary retained-aim shot
+
+Accepted 24 annotations: ten code stages, one tail label, three
+pointer/gap constants, five operand bindings and five finalized comments. The
+32-entry reorder preserves a 29-entry fixed prefix and six-entry fixed tail/NULL
+within the 67-descriptor table. All 256 flag bytes use only bits 6/7 for partition,
+with bit 6 priority. Front keeps order, back reverses it, and the nonempty deferred
+middle sorts by unsigned Y. A four-entry original-code witness reverses equal-Y
+identities across gap passes. The empty-middle guard is still absent; no general
+lifetime invariant is asserted. Gap preparation/pass/exchange/return stages and
+the fixed tail are now named, with explicit pointer stride and decay constants.
+
+Original Copperline checkpoint evidence records all 67 live descriptors, cached
+Feed geometry, and a flight-controller root that skips only its own state: its
+linked attachment remains eligible. This does not establish an ordinary NPC hit.
+One normal-input left+fire shot keeps player (1228,874) and prior rightward aim 7/0,
+hits blocking tile 306 at its first sample (1270,888), and returns to the canonical
+main-loop anchor. Player HP 95 and controller HP 55 remain. Initial ammo 5/1 stays;
+mutable ammo 5/1 becomes 4/1. Earlier audit reads at $1924C captured initial ammo;
+the audit now reads mutable $1924E. Cached neutral input A6+$1C6 is also distinct
+from retained aim A6+$31C, now captured explicitly. Historical receipts are retained
+with these corrections documented.
+
+A separate eight-visit left-input window accepts aim (-7,0); after release and two
+neutral visits, player (1207,874) fires through clear tile 92 at (1193,888) and stops
+on blocking tile 64 at (1179,888). Both bounded shots return normally with one
+round consumed. A prior two-visit direction window did not admit movement; its
+negative result is kept explicit. No Feed return/BYTE write, successful NPC hit,
+general ray termination, DMA/pixels or audible-output claim is added.
+
+Three new CPU sorting tests and four receipt regressions pass. The receipt
+regressions independently decode the original tile/block bit and geometry bounds,
+check table membership and canonical original-payload stops, and distinguish both
+ammunition arrays. The scoped documented headless runner succeeds; the initial
+restricted startup exited 1 before any checkpoint observation. No framework change
+was made. Existing partition/ray/hit/animation/callback and other subsystem checks
+are reused. All 12 preflight instruction bytes, three equates and five quick/MOVEQ/
+shift forms are C/vasm exact. All comments were finalized before one full output
+gate: all 376,832 original bytes match, receipt `26d6b1ca47e731363c5c6fa1bc9a22a7fb48d3cf497dae957edbd48b56fa61af`.
+Whole-source preservation permits only these names/operands/comments, including
+one deliberately strengthened sort comment. Earlier fields/types/owner bounds,
+SDK/pointer forms, raw gaps, append-only histories, all 126 assets, 2,112 typed tile
+fields and the 128-byte INCBIN policy remain intact. Runtime evidence and bounded
+reproduction scenarios are linked from `docs/copperline-runtime.md`.

@@ -910,3 +910,46 @@ receipt `95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836`.
 [reproduction](optional-patches.md#reproduce-the-corrected-route) record the build,
 checkpoint lineage, captures and comparison limits. No guest snapshots are
 published. The corrected local chain is under `.runtime-state/pandora-corrected`.
+
+### Original rifle descriptor and retained-aim audit
+
+The [descriptor and shot receipt](../runtime/observations/pandora-rifle-descriptor-admission.json)
+uses the original `pandora` contract and verified original
+`.runtime-state/pandora-takeover/audit.json` checkpoint, with inherited full payload
+and copied-image verification. The pinned emulator/ROM and snapshot hashes are
+recorded there. No guest snapshots are published. Reproduce with the usual CLI,
+`--checkpoint-load` that receipt, and either
+[`pandora-rifle-descriptor-audit.json`](../runtime/scenarios/pandora-rifle-descriptor-audit.json)
+or [`pandora-rifle-simultaneous-left-fire.json`](../runtime/scenarios/pandora-rifle-simultaneous-left-fire.json),
+using a fresh isolated `--state-directory`. Inputs release at the first sampled
+ray point and on runner cleanup. The shot's historical execution identifier says
+`west-wall-shot`; “west” describes requested input, not the resulting aim.
+
+The live table contains 67 distinct descriptors and NULL: 29 fixed prefix entries,
+32 reordered entries, and six fixed tail entries. The flight controller's root
+has ray-state skip bit3, but its linked attachment does not. That root flag alone
+therefore does not establish immunity. Feed has cached geometry even with its
+outside-view flag set. These are table/state observations, not successful hits.
+
+Pressing left and fire together leaves player XY at (1228,874) and uses retained
+rightward request (7,0). The first sample, (1270,888), reaches the blocked-tile
+handler, then execution returns to the canonical main-loop anchor. Original tile
+306 is blocking there. Player HP remains 95, controller HP 55. The four-byte capture
+at `$1924C` changes from `05010501` to `05010401`: initial ammunition 5/1 remains,
+while mutable ammunition falls to 4/1. Earlier audits read the initial pair at
+`$1924C`; the audit scenario now reads mutable ammunition at `$1924E`. It also
+separates cached neutral input at A6+$1C6 from retained aim at A6+$31C. No general
+ray termination, ordinary NPC hit, Feed return, BYTE write, DMA/pixels or audible
+output is established. Changing aim requires a separately accepted movement request
+before the fresh fire press.
+
+The [separated left-aim scenario](../runtime/scenarios/pandora-rifle-separated-left-aim.json)
+uses the same original checkpoint. A two-visit direction window did not admit a
+movement request; this is a bounded negative observation. An eight-visit window
+records accepted request (-7,0); two neutral visits settle player XY at (1207,874)
+with cached input zero. A fresh fire press then samples (1193,888), clear original
+tile 92, and (1179,888), blocking tile 64. Mutable ammo 5/1 becomes 4/1; initial ammo
+and both measured HP values stay unchanged, then the canonical main loop is hit.
+Only these two ray samples are bounded. The native instruction anchors from the
+preceding CLI compilation were reused unchanged; captures and inputs pass normal
+runner validation. This adds no successful NPC hit or global ray bound.

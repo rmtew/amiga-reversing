@@ -1399,7 +1399,10 @@ WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	EQU	30
 WORLD_CMD_SET_POSITION	EQU	23
 WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	EQU	32
 WORLD_DEPTH_SORT_DESCRIPTOR_COUNT	EQU	32
+WORLD_DEPTH_SORT_GAP_DECAY_SHIFT	EQU	2
 WORLD_DEPTH_SORT_LAST_INDEX	EQU	WORLD_DEPTH_SORT_DESCRIPTOR_COUNT-1
+WORLD_DEPTH_SORT_POINTER_BYTES	EQU	4
+WORLD_DEPTH_SORT_POINTER_SHIFT	EQU	2
 WORLD_MACRO_COLUMNS	EQU	30
 WORLD_MACRO_TILE_SIDE	EQU	3
 WORLD_GRID_COLUMNS	EQU	WORLD_MACRO_COLUMNS*WORLD_MACRO_TILE_SIDE
@@ -6992,7 +6995,7 @@ world_object_sort_source_ptrs:
 	dc.l chemist_animation_bank	; descriptor_ptr
 	dc.l bank_manager_positions_4B954_2	; descriptor_ptr
 	dc.l technician_positions_4B1DA_2	; descriptor_ptr
-abs_0_0001318E:
+world_depth_sort_tail_ptrs:
 	dc.l ranged_hit_visual_descriptor	; pointer_table
 	dc.l opponent_combat_hit_visual_descriptor	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_18	; pointer_table
@@ -14859,11 +14862,12 @@ return_from_nearby_context_update:
 render_context_prompt:
 	moveq.l #0,d0
 	bra.w redraw_ui_overlay_selected_line_proportional
-    ; Bit6 wins over bit7: front keeps input order, back reverses it. Sort only deferred middle by unsigned world Y. Nonempty middle is required; universal reachability and tie stability unproved.
+    ; Bit6 wins over bit7: front keeps order, back reverses it. Sort only deferred middle by unsigned Y. Equal-Y order can reverse across gap passes. Nonempty middle is required; no empty guard.
 partition_world_object_update_ptrs:
 	lea.l world_object_sort_source_ptrs(pc),a0
 	movea.l a0,a2
-	lea.l abs_0_0001318E(pc),a1
+    ; Reorder only 32 entries within the 67-descriptor table; keep its 29-entry prefix, six-entry tail and NULL. Rendering uses a count; the rifle scan instead follows this table to NULL.
+	lea.l world_depth_sort_tail_ptrs(pc),a1
 	moveq.l #WORLD_DEPTH_SORT_LAST_INDEX,d7
 	move.l d7,d6
 	lea.l world_depth_sort_copy_scratch(pc),a3
@@ -14895,31 +14899,37 @@ defer_world_descriptor_for_depth_sort:
 	addq.w #1,d5
 advance_world_descriptor_partition:
 	dbf.w d6,partition_next_world_descriptor
+begin_deferred_descriptor_reverse_copy:
 	movea.l a0,a1
 reverse_copy_deferred_world_descriptors:
 	move.l -(a5),(a1)+
 	dbf.w d5,reverse_copy_deferred_world_descriptors
+    ; D7 is deferred count; A0 becomes one pointer before that range. D3 scales count to bytes. Each next gap is ((((gap>>2)-1)>>1)*4); stop when the unscaled result is zero.
+prepare_world_depth_sort_stride:
 	move.w d7,d3
-	subq.l #4,a0
+	subq.l #WORLD_DEPTH_SORT_POINTER_BYTES,a0
 	moveq.l #1,d0
-abs_0_000184F6:
+grow_world_depth_sort_initial_gap:
 	add.w d0,d0
 	cmp.w d0,d3
-	bcc.b abs_0_000184F6
+	bcc.b grow_world_depth_sort_initial_gap
+scale_world_depth_sort_initial_gap:
 	add.w d0,d0
 	add.w d0,d0
+scale_world_depth_sort_middle_count:
 	add.w d3,d3
 	add.w d3,d3
 reduce_world_descriptor_sort_gap:
-	lsr.w #2,d0
+	lsr.w #WORLD_DEPTH_SORT_GAP_DECAY_SHIFT,d0
 	subq.w #1,d0
 	lsr.w #1,d0
-	beq.b abs_0_00018542
-	lsl.w #2,d0
-	moveq.l #4,d7
+	beq.b return_from_world_descriptor_partition
+	lsl.w #WORLD_DEPTH_SORT_POINTER_SHIFT,d0
+begin_world_depth_sort_gap_pass:
+	moveq.l #WORLD_DEPTH_SORT_POINTER_BYTES,d7
 	move.w d3,d4
 	sub.w d0,d4
-abs_0_00018514:
+select_world_depth_sort_pair_index:
 	move.w d7,d2
 compare_world_descriptor_depth_pair:
 	move.w d2,d1
@@ -14929,18 +14939,19 @@ compare_world_descriptor_depth_pair:
     ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix; type A2=Target code-entry register seed:world_position_descriptor_prefix
 	move.w world_position_descriptor_prefix_world_y(a1),d5
 	cmp.w world_position_descriptor_prefix_world_y(a2),d5
-	bcc.b abs_0_0001853A
+	bcc.b advance_world_depth_sort_pair_index
+exchange_world_depth_sort_pair:
 	move.l a2,$0(a0,d1.w)
 	move.l a1,$0(a0,d2.w)
 	sub.w d0,d2
-	bmi.b abs_0_0001853A
+	bmi.b advance_world_depth_sort_pair_index
 	bne.b compare_world_descriptor_depth_pair
-abs_0_0001853A:
-	addq.w #4,d7
+advance_world_depth_sort_pair_index:
+	addq.w #WORLD_DEPTH_SORT_POINTER_BYTES,d7
 	cmp.w d7,d4
-	bcc.b abs_0_00018514
+	bcc.b select_world_depth_sort_pair_index
 	bra.b reduce_world_descriptor_sort_gap
-abs_0_00018542:
+return_from_world_descriptor_partition:
 	rts
     ; Render DIRE/POOR/FAIR/GOOD/DEAD from word hit points; zero means DEAD and nonzero values clamp to 95. Update the overlay's RGB12 palette color and text plane. Known input records only.
 draw_object_health_status:
@@ -15786,6 +15797,7 @@ scan_ranged_effect_position_descriptors:
 	cmpa.l #ranged_hit_visual_descriptor,a1
 	beq.b scan_ranged_effect_position_descriptors
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a2
+    ; Flag6 skips the remaining descriptor chain; bit3 skips only this state. The flight controller root has bit3 set but its attachment is eligible. Object inactive bit1 is not tested here.
 test_ranged_effect_state_chain:
 	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
 	bne.b scan_ranged_effect_position_descriptors
@@ -15870,6 +15882,7 @@ mark_ranged_victim_inactive_and_count:
 	move.w #RANGED_OBJECT_DEFEAT_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	rts
+    ; Left+fire together keeps prior rightward aim at the rifle checkpoint: first sample (1270,888) hits a wall. Player XY stays fixed; mutable ammo falls 5 to 4. This bounds one original shot.
 handle_ranged_effect_blocked_tile:
 	bsr.w activate_ranged_hit_visual_and_return_descriptor
     ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
