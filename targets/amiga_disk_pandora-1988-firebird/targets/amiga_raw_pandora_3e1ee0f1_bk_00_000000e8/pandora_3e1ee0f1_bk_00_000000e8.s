@@ -1133,7 +1133,20 @@ NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 NPC_TRADE_OFFER_BYTES	EQU	npc_trade_offer_entry_SIZEOF
+PLAYER_HORIZONTAL_PROBE_BOTTOM_INSET	EQU	4
+PLAYER_HORIZONTAL_SCRIPT_DELAY_TICKS	EQU	2
 PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
+PLAYER_LATERAL_DRIFT_PIXELS	EQU	7
+PLAYER_LATERAL_DRIFT_NEGATIVE_WORD	EQU	$10000-PLAYER_LATERAL_DRIFT_PIXELS
+UI_FLAG_COMBAT_ACTIVE	EQU	1
+UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
+PLAYER_MOVEMENT_UI_BLOCK_MASK	EQU	(1<<UI_FLAG_COMBAT_ACTIVE)|(1<<UI_FLAG_INVENTORY_PANEL_ACTIVE)
+PLAYER_UPWARD_PROBE_BOTTOM_INSET	EQU	3
+PLAYER_VERTICAL_PROBE_LEFT_INSET	EQU	3
+PLAYER_VERTICAL_PROBE_RIGHT_INSET	EQU	4
+PLAYER_VERTICAL_SCRIPT_DELAY_TICKS	EQU	1
+PLAYER_X_SCALE_SHIFT	EQU	3
+PLAYER_Y_SCALE_SHIFT	EQU	2
 PRIEST_PASSAGE_CLOSED_PIXELS	EQU	$24C28
 PRIEST_PASSAGE_OPEN_PIXELS	EQU	$1E928
 PRNG_ADVANCE_LAST_BIT	EQU	31
@@ -1273,8 +1286,6 @@ TRADE_FIRST_NORMAL_ITEM_ID	EQU	2
 TRADE_OR_COMBAT_OBJECT_SKIP_MASK	EQU	$12
 TRADE_TABLE_LAST_ENTRY	EQU	3
 UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
-UI_FLAG_COMBAT_ACTIVE	EQU	1
-UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 UI_FLAG_SCROLLING_MESSAGE_ACTIVE	EQU	6
 UI_HIT_BACKGROUND_STORAGE	EQU	$77D00
@@ -1384,6 +1395,7 @@ WORLD_TILE_DEF_R1C2_FIELD	EQU	world_tile_definition_3x3_r1c2_pixels_offset
 WORLD_TILE_DEF_R2C0_FIELD	EQU	world_tile_definition_3x3_r2c0_pixels_offset
 WORLD_TILE_DEF_R2C1_FIELD	EQU	world_tile_definition_3x3_r2c1_pixels_offset
 WORLD_TILE_DEF_R2C2_FIELD	EQU	world_tile_definition_3x3_r2c2_pixels_offset
+WORLD_TILE_PIXEL_BYTE_SHIFT	EQU	7
 WORLD_TILE_PIXEL_SHIFT	EQU	4
 WORLD_TILE_POINTER_GRID_BASE	EQU	$4000
 _ciaa	EQU	$BFE001
@@ -15625,7 +15637,7 @@ advance_ranged_effect_ray_point:
 	movea.l app_tilemap_base(a6),a0
 	move.l $0(a0,d0.l),d0
 	subi.l #world_tile_pixels_000_through_011,d0
-	lsr.l #7,d0
+	lsr.l #WORLD_TILE_PIXEL_BYTE_SHIFT,d0
 	lea.l tile_movement_block_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
 	bne.w handle_ranged_effect_blocked_tile
@@ -15861,35 +15873,35 @@ return_from_entity_animation:
     ; Scale input to axis-only requests (X*7, Y*4), test candidate geometry against tile restrictions, then commit position and choose animation. Accepted requests supply item-effect direction.
 update_player_world_movement:
 	move.b app_ui_flags(a6),d0
-	andi.b #6,d0
+	andi.b #PLAYER_MOVEMENT_UI_BLOCK_MASK,d0
 	bne.w hold_player_movement_animation
 	btst.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
 	bne.w return_from_player_movement
-	btst.b #1,player_world_object_world_object_flags.l
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	bne.w return_from_player_movement
 	clr.w app_player_lateral_drift(a6)
 	move.w app_input_x_step(a6),d0
 	move.w app_input_y_step(a6),d1
 	move.w d0,d2
-	asl.w #3,d0
+	asl.w #PLAYER_X_SCALE_SHIFT,d0
 	sub.w d2,d0
-	asl.w #2,d1
+	asl.w #PLAYER_Y_SCALE_SHIFT,d1
 	move.w d0,app_player_move_request_x_step(a6)
 	move.w d1,app_player_move_request_y_step(a6)
 	tst.w d0
-	beq.b abs_0_0001962A
+	beq.b reject_zero_scaled_player_move
 	tst.w d1
 	bne.w hold_player_movement_animation
-abs_0_0001962A:
+reject_zero_scaled_player_move:
 	move.w d1,d2
 	or.w d0,d2
 	beq.w hold_player_movement_animation
 	lea.l player_world_object.l,a4
 	btst.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
-	beq.b abs_0_00019644
+	beq.b build_requested_player_frame_bounds
 	bsr.w enforce_id_card_requirement
     ; Probe candidate frame bounds: X motion samples its chosen X edge at maxY-4; Y motion samples left+3, midpoint and right-4 at maxY-3 for negative Y, or maxY for positive Y.
-abs_0_00019644:
+build_requested_player_frame_bounds:
 	add.w world_object_shared_prefix_world_x(a4),d0
 	add.w world_object_shared_prefix_world_y(a4),d1
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a4),a1
@@ -15906,77 +15918,82 @@ abs_0_00019644:
 	add.w WorldPositionAnimationFrame_frame_height(a3),d1
 	move.w d1,d5
 	tst.w app_player_move_request_x_step(a6)
-	beq.b abs_0_000196A2
-	move.w #$2,player_movement_script_delay_ticks.l
+	beq.b prepare_vertical_player_tile_probes
+	move.w #PLAYER_HORIZONTAL_SCRIPT_DELAY_TICKS,player_movement_script_delay_ticks.l
 	tst.w app_player_move_request_x_step(a6)
-	bpl.b abs_0_00019698
+	bpl.b probe_positive_x_player_edge
 	move.w d5,d1
-	subq.w #4,d1
+	subq.w #PLAYER_HORIZONTAL_PROBE_BOTTOM_INSET,d1
 	move.w d2,d0
 	bra.w test_escape_authorization_for_requested_tile
-abs_0_00019698:
+probe_positive_x_player_edge:
 	move.w d5,d1
-	subq.w #4,d1
+	subq.w #PLAYER_HORIZONTAL_PROBE_BOTTOM_INSET,d1
 	move.w d3,d0
 	bra.w test_escape_authorization_for_requested_tile
-abs_0_000196A2:
+prepare_vertical_player_tile_probes:
 	tst.w app_player_move_request_y_step(a6)
 	beq.w select_player_movement_animation
-	move.w #$1,player_movement_script_delay_ticks.l
+	move.w #PLAYER_VERTICAL_SCRIPT_DELAY_TICKS,player_movement_script_delay_ticks.l
 	btst.b #INPUT_DIRECTION_LEFT_BIT,world_object_shared_prefix_movement_direction_flags(a4)
-	beq.b abs_0_000196C0
-	move.w #$7,app_player_lateral_drift(a6)
-abs_0_000196C0:
+	beq.b test_previous_rightward_player_direction
+	move.w #PLAYER_LATERAL_DRIFT_PIXELS,app_player_lateral_drift(a6)
+test_previous_rightward_player_direction:
 	btst.b #INPUT_DIRECTION_RIGHT_BIT,world_object_shared_prefix_movement_direction_flags(a4)
-	beq.b abs_0_000196CE
-	move.w #$FFF9,app_player_lateral_drift(a6)
-abs_0_000196CE:
+	beq.b prepare_vertical_player_tile_row
+	move.w #PLAYER_LATERAL_DRIFT_NEGATIVE_WORD,app_player_lateral_drift(a6)
+prepare_vertical_player_tile_row:
 	lea.l tile_movement_block_bits.l,a0
-	move.l #$1D0A8,d6
+	move.l #world_tile_pixels_000_through_011,d6
 	movea.l app_tilemap_base(a6),a1
 	move.w d5,d1
-	subq.w #3,d1
+	subq.w #PLAYER_UPWARD_PROBE_BOTTOM_INSET,d1
 	tst.w app_player_move_request_y_step(a6)
-	bmi.b abs_0_000196EA
-	addq.w #3,d1
-abs_0_000196EA:
-	lsr.w #4,d1
+	bmi.b compute_vertical_player_tile_row
+	addq.w #PLAYER_UPWARD_PROBE_BOTTOM_INSET,d1
+    ; Vertical lookup adds the row product with ADD.W into a zeroed D0, dropping its high word. The shared cell helper retains the row product high word; both drop low-word carry.
+compute_vertical_player_tile_row:
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d1
 	mulu.w app_tilemap_width(a6),d1
+    ; Vertical probes test left and midpoint only for blocking; the right probe recognizes consoles before blocking. Each blocked earlier probe prevents later tile actions.
+probe_vertical_player_left_foot:
 	moveq.l #0,d0
 	move.w d2,d0
-	addq.w #3,d0
-	lsr.w #4,d0
+	addq.w #PLAYER_VERTICAL_PROBE_LEFT_INSET,d0
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d0
 	add.w d1,d0
 	add.l d0,d0
 	add.l d0,d0
 	move.l $0(a1,d0.l),d0
 	sub.l d6,d0
-	lsr.l #7,d0
+	lsr.l #WORLD_TILE_PIXEL_BYTE_SHIFT,d0
 	bsr.w test_msb_first_bitset_bit
 	bne.w hold_player_movement_animation
+probe_vertical_player_midpoint:
 	moveq.l #0,d0
 	move.w d2,d0
 	add.w d3,d0
 	lsr.w #1,d0
-	lsr.w #4,d0
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d0
 	add.w d1,d0
 	add.l d0,d0
 	add.l d0,d0
 	move.l $0(a1,d0.l),d0
 	sub.l d6,d0
-	lsr.l #7,d0
+	lsr.l #WORLD_TILE_PIXEL_BYTE_SHIFT,d0
 	bsr.w test_msb_first_bitset_bit
 	bne.w hold_player_movement_animation
+probe_vertical_player_right_foot:
 	moveq.l #0,d0
 	move.w d3,d0
-	subq.w #4,d0
-	lsr.w #4,d0
+	subq.w #PLAYER_VERTICAL_PROBE_RIGHT_INSET,d0
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d0
 	add.w d1,d0
 	add.l d0,d0
 	add.l d0,d0
 	move.l $0(a1,d0.l),d0
 	sub.l d6,d0
-	lsr.l #7,d0
+	lsr.l #WORLD_TILE_PIXEL_BYTE_SHIFT,d0
 	cmp.w #TILE_ID_TERMINAL_B,d0
 	beq.w run_terminal_modal_loop
 	cmp.w #TILE_ID_TERMINAL_A,d0
@@ -15991,8 +16008,8 @@ abs_0_000196EA:
 test_escape_authorization_for_requested_tile:
 	bsr.w get_tilemap_cell_pointer
 	move.l (a0),d0
-	subi.l #118952,d0
-	lsr.l #7,d0
+	subi.l #world_tile_pixels_000_through_011,d0
+	lsr.l #WORLD_TILE_PIXEL_BYTE_SHIFT,d0
     ; Escape needs bit 4 and decoded tile low WORD 236; it does not re-read the card or visit count. It sets escape before the outcome helper, so that helper keeps the inherited exit delay.
 	btst.b #GAME_EVENT_ESCAPE_CARD_OK_BIT,app_game_event_flags(a6)
 	beq.b test_terminal_or_blocked_movement_tile
@@ -16027,6 +16044,7 @@ test_terminal_or_blocked_movement_tile:
     ; Save the accepted request before lateral drift. Drift changes X and suppresses Y commit; otherwise Y wraps by map_height*16 with one correction.
 commit_player_move_request:
 	tst.b app_player_movement_commit_inhibited(a6)
+    ; Escape/console actions precede this commit-inhibit gate. Inhibition can stop coordinate commit without preventing a tile action from being entered.
 	bne.w hold_player_movement_animation
 	move.w app_player_move_request_x_step(a6),d0
 	move.w app_player_move_request_y_step(a6),d1
@@ -16038,17 +16056,18 @@ commit_player_move_request:
 	tst.w app_player_lateral_drift(a6)
 	bne.b select_player_movement_animation
 	move.w app_tilemap_height(a6),d3
-	lsl.w #4,d3
+	lsl.w #WORLD_TILE_PIXEL_SHIFT,d3
 	move.w world_object_shared_prefix_world_y(a4),d2
 	add.w d1,d2
-	bpl.b abs_0_0001983A
+    ; Y uses WORD arithmetic: a negative wrapped sum adds height once; a nonnegative sum subtracts once and restores on borrow. Oversized steps do not receive repeated correction.
+	bpl.b wrap_nonnegative_player_world_y
 	add.w d3,d2
-	bra.b abs_0_00019840
-abs_0_0001983A:
+	bra.b store_wrapped_player_world_y
+wrap_nonnegative_player_world_y:
 	sub.w d3,d2
-	bcc.b abs_0_00019840
+	bcc.b store_wrapped_player_world_y
 	add.w d3,d2
-abs_0_00019840:
+store_wrapped_player_world_y:
 	move.w d2,world_object_shared_prefix_world_y(a4)
     ; Choose the directional node and direction bits from the request. Restart index/phase only when the node changes; clear held-header and skip-update modes.
 select_player_movement_animation:
@@ -16164,6 +16183,7 @@ hold_player_movement_animation:
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
 	move.w #PLAYER_IDLE_SCRIPT_DELAY_TICKS,player_movement_script_delay_ticks.l
+    ; All hold paths clear status bit 6, after UI gating but without clearing the camera-active bit 4. The wider meaning of status bit 6 remains unknown.
 	bclr.b #6,app_status_flags(a6)
 return_from_player_movement:
 	rts
