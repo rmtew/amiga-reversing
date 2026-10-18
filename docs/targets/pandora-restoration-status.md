@@ -4802,3 +4802,36 @@ histories pass preservation, including title/F7/A4 distinctions. All 126 assets,
 2,112 typed tile fields and the 128-byte INCBIN policy remain intact. Unchanged
 checks are reused; no framework change, asynchronous frames/DMA, ordinary
 admission, visible pixels, complete ownership/lifetime or intent/bug claim.
+
+### Missing-ID defeat continuation and exit clocks
+
+Accepted 34 annotations: eleven code stages, eight shared defeat-geometry
+names, three constants, eight instruction/typed-BYTE bindings and four comments.
+Missing-ID failure executes health/outcome/audio work, even with a full FIFO, then
+clears the pending bit and restores D0-D7/A0-A5. It exchanges animated defeat into
+the descriptor, retaining the fixed movement state as saved, without setting the
+commit-inhibit byte. The current movement call continues using fixed-state geometry
+and can commit its requested axis step; the next call tests inactive and returns.
+This closes the previously open failed-ID continuation under controlled inputs.
+
+All three exit consumers decrement a BYTE: old 0 wraps to 255 and old 1 branches to
+warm restart. Main pauses for active status context; both modal prefixes omit that
+guard. Modal expiry reaches restart before normal world-context restoration; tests
+stop at restart entry, retaining the earlier title/F7 scope and limits. Shared
+frames 5..12 now have names at all references; node fields name thirteen active
+frames and phase increment 40. Existing thirteen-frame/held-header checks are reused.
+These names grant no exclusive art ownership or elapsed-time interpretation.
+
+Seven original-code tests in `tests/test_pandora_id_defeat_continuation.py` cover
+256 node modes with status-active context bytes, real callees/full FIFO, all four
+directions with both inhibit states, subsequent inactive admission, all 256 exit
+counter/player-flag/context bytes and a 70-service status-paused delay. No instructions
+or callees are patched. Prior acceptance, static NULL-node, checkpoint, outcome,
+countdown and title/restart checks are reused. Preflights preserve 34 instruction
+bytes and the 20-byte node image (including RTS) through C and vasm. The current API
+requires a current-subject receipt; comments were finalized before one full output
+gate. All 376,832 bytes match, receipt `1be3c7783d7f31d59b8010e0ff620928714b5903172aef74d1d6efb3d247a491`.
+Earlier source/comments, types/fields/owner bounds, SDK/pointer forms, raw gaps,
+histories, 126 assets, 2,112 typed tile fields and the 128-byte INCBIN remain intact.
+No framework change, asynchronous frames/DMA, visible pixels, ordinary gameplay
+admission, complete lifetime or intent/bug claim is added.

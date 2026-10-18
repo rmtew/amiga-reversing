@@ -1018,6 +1018,7 @@ GARDENER_FEEDBACK_AUDIO_SEQUENCE	EQU	$217
 HEX_DIGIT_NIBBLE_MASK	EQU	15
 HEX_DIGIT_ROTATE_BITS	EQU	4
 ID_FAILURE_OR_HANDOFF_AUDIO_SEQUENCE	EQU	$102
+ID_POSSESSION_INVENTORY_LAST_SLOT	EQU	3
 ID_POSSESSION_VARIANT_COUNT	EQU	8
 INPUT_DIRECTION_DOWN_BIT	EQU	1
 INPUT_DIRECTION_LEFT_BIT	EQU	2
@@ -1168,6 +1169,8 @@ NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 NPC_TRADE_OFFER_BYTES	EQU	npc_trade_offer_entry_SIZEOF
+PLAYER_DEFEAT_ACTIVE_FRAME_COUNT	EQU	13
+PLAYER_DEFEAT_PHASE_INCREMENT	EQU	40
 PLAYER_HORIZONTAL_PROBE_BOTTOM_INSET	EQU	4
 PLAYER_HORIZONTAL_SCRIPT_DELAY_TICKS	EQU	2
 PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
@@ -1772,26 +1775,27 @@ wait_for_completed_frame:
 	jsr advance_pseudorandom_state.l
 	jsr update_player_proximity_audio.l
 	btst.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_00010676
+	bne.b service_main_exit_delay_if_status_clear
 	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_00010676
+	bne.b service_main_exit_delay_if_status_clear
 	tst.b app_self_destruct_state(a6)
-	bpl.b abs_0_0001066C
+	bpl.b test_player_inactive_for_main_exit
 	move.w app_self_destruct_service_ticks_remaining(a6),d0
 	subq.w #1,d0
 	bmi.w handle_self_destruct_countdown_expiry
 	move.w d0,app_self_destruct_service_ticks_remaining(a6)
 	andi.b #127,d0
-	bne.b abs_0_0001066C
+	bne.b test_player_inactive_for_main_exit
 	lea.l self_destruct_evacuation_warning.l,a0
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	move.w #$310,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_0001066C:
-	btst.b #1,player_world_object_world_object_flags.l
+test_player_inactive_for_main_exit:
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	beq.b check_main_keyboard_shortcuts
-abs_0_00010676:
+    ; Main exit countdown pauses for active status context. Inactive player, self-destruct expiry or escape can enter. BYTE old0 wraps to255; old1 reaches warm restart.
+service_main_exit_delay_if_status_clear:
 	btst.b #CONTEXT_STATUS_MESSAGE_ACTIVE_BIT,app_context_flags(a6)
 	bne.b check_main_keyboard_shortcuts
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
@@ -1827,10 +1831,10 @@ return_immediately:
     ; Self-destruct expiry inhibits player movement and starts outcome/exit handling. Main and modal services share the exit countdown; main waits for the scrolling-message latch to clear.
 handle_self_destruct_countdown_expiry:
 	bset.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_0001074C
+	bne.b resume_frame_exchange_after_self_destruct_expiry
 	bsr.w clear_combat_hit_feedback
-	bclr.b #1,app_ui_flags(a6)
-	beq.b abs_0_00010724
+	bclr.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
+	beq.b stage_self_destruct_expiry_player_exit
 	lea.l combat_exit_animation_node.l,a0
 	lea.l combat_visual_render_state.l,a1
 	move.l a0,world_position_render_state_prefix_state_node_ptr(a1)
@@ -1842,15 +1846,15 @@ handle_self_destruct_countdown_expiry:
 	bsr.w enqueue_ui_overlay_update
 	lea.l hit_feedback_overlay.l,a5
 	bsr.w restore_ui_overlay_background
-abs_0_00010724:
+stage_self_destruct_expiry_player_exit:
 	move.w #$1,app_earth_orbit_countdown_bcd(a6)
 	lea.l blank_sprite_data.l,a0
 	move.l a0,app_current_palette(a6)
 	st.b app_player_movement_commit_inhibited(a6)
-	bset.b #1,player_world_object_world_object_flags.l
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	jsr enqueue_game_outcome_and_rank_messages.l
-abs_0_0001074C:
+resume_frame_exchange_after_self_destruct_expiry:
 	bra.w swap_front_back_display_buffers
     ; No-op callback used as the initial vertical-blank target until setup installs the full frame callback.
 noop_runtime_callback:
@@ -15037,22 +15041,24 @@ enforce_id_card_requirement:
 	sub.b d1,d0
 	cmp.b d2,d0
 	bcs.b finish_id_possession_recheck
-	moveq.l #3,d7
+	moveq.l #ID_POSSESSION_INVENTORY_LAST_SLOT,d7
 	lea.l app_carried_item_ids(a6),a0
-abs_0_000186E2:
+test_next_carried_item_for_id_possession:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
 	bcs.b finish_id_possession_recheck
-	dbf.w d7,abs_0_000186E2
-	moveq.l #3,d7
+	dbf.w d7,test_next_carried_item_for_id_possession
+	moveq.l #ID_POSSESSION_INVENTORY_LAST_SLOT,d7
 	lea.l app_pocket_item_ids(a6),a0
-abs_0_000186F4:
+test_next_pocket_item_for_id_possession:
 	move.b (a0)+,d0
 	sub.b d1,d0
 	cmp.b d2,d0
 	bcs.b finish_id_possession_recheck
-	dbf.w d7,abs_0_000186F4
+	dbf.w d7,test_next_pocket_item_for_id_possession
+    ; Exchange animated defeat into the descriptor; retain fixed movement state as saved. Real health/outcome/audio calls, even with full FIFO, still reach pending-bit clear and register restore.
+stage_player_defeat_for_missing_id:
 	movea.l a4,a5
 	lea.l player_animated_defeat_state.l,a0
 	move.l a0,world_object_shared_prefix_saved_position_state_ptr(a5)
@@ -15061,7 +15067,7 @@ abs_0_000186F4:
 	movea.l world_position_render_state_prefix_state_node_ptr(a0),a0
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
-	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w exchange_world_object_position_states
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	clr.w world_object_shared_prefix_hit_points(a5)
@@ -15489,8 +15495,11 @@ wait_for_terminal_frame_completion:
 	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
+test_terminal_player_inactive_exit:
 	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	beq.b check_terminal_restart_key
+    ; Both modal exit clocks test inactive player without the main status-message guard. Expiry jumps to warm restart before normal world-context restoration; these are service visits, not seconds.
+service_terminal_inactive_exit_delay:
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b check_terminal_restart_key
 	jmp wait_for_blitter_then_restart_runtime.l
@@ -15992,6 +16001,7 @@ reject_zero_scaled_player_move:
 	lea.l player_world_object.l,a4
 	btst.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	beq.b build_requested_player_frame_bounds
+    ; Failure restores D0-D7/A0-A5, including A4. It marks inactive without setting commit inhibition; this visit continues fixed-state probes/commit before the next entry checks the flag.
 	bsr.w enforce_id_card_requirement
     ; Probe candidate frame bounds: X motion samples its chosen X edge at maxY-4; Y motion samples left+3, midpoint and right-4 at maxY-3 for negative Y, or maxY for positive Y.
 build_requested_player_frame_bounds:
@@ -16448,8 +16458,10 @@ wait_for_self_destruct_frame_completion:
 	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
+test_self_destruct_player_inactive_exit:
 	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	beq.b check_self_destruct_restart_key
+service_self_destruct_inactive_exit_delay:
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b check_self_destruct_restart_key
 	jmp wait_for_blitter_then_restart_runtime.l
@@ -27087,7 +27099,7 @@ shared_defeat_animation_extended_geometry_frames:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-abs_0_0005C62A:
+shared_defeat_geometry_frame_05:
 	dc.l scene_pixel_cells_for_mask_bank_30+$A00	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$280	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27095,7 +27107,7 @@ abs_0_0005C62A:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-abs_0_0005C63C:
+shared_defeat_geometry_frame_06:
 	dc.l scene_pixel_cells_for_mask_bank_30+$C00	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$300	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27103,7 +27115,7 @@ abs_0_0005C63C:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0001	; y_offset
-abs_0_0005C64E:
+shared_defeat_geometry_frame_07:
 	dc.l scene_pixel_cells_for_mask_bank_30+$DF0	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$37C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27111,7 +27123,7 @@ abs_0_0005C64E:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0004	; y_offset
-abs_0_0005C660:
+shared_defeat_geometry_frame_08:
 	dc.l scene_pixel_cells_for_mask_bank_30+$FA0	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$3E8	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27119,7 +27131,7 @@ abs_0_0005C660:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000A	; y_offset
-abs_0_0005C672:
+shared_defeat_geometry_frame_09:
 	dc.l scene_pixel_cells_for_mask_bank_30+$10F0	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$43C	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27127,7 +27139,7 @@ abs_0_0005C672:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $000E	; y_offset
-abs_0_0005C684:
+shared_defeat_geometry_frame_10:
 	dc.l scene_pixel_cells_for_mask_bank_30+$1210	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$484	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27135,7 +27147,7 @@ abs_0_0005C684:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0011	; y_offset
-abs_0_0005C696:
+shared_defeat_geometry_frame_11:
 	dc.l scene_pixel_cells_for_mask_bank_30+$1300	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$4C0	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27143,7 +27155,7 @@ abs_0_0005C696:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0013	; y_offset
-abs_0_0005C6A8:
+shared_defeat_geometry_frame_12:
 	dc.l scene_pixel_cells_for_mask_bank_30+$13D0	; bitplane_data_ptr
 	dc.l scene_mask_bank_30+$4F4	; mask_data_ptr
 	dc.w $0002	; row_stride_words
@@ -27163,8 +27175,8 @@ player_animated_defeat_state:
 	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
 player_animated_defeat_node:
 	dc.l player_position_descriptor	; position_descriptor_ptr
-	dc.b $0D	; frame_count
-	dc.b $28	; phase_step
+	dc.b PLAYER_DEFEAT_ACTIVE_FRAME_COUNT	; frame_count
+	dc.b PLAYER_DEFEAT_PHASE_INCREMENT	; phase_step
 	dc.l player_animated_defeat_frame_refs	; frame_sequence_ptr
 	dc.b ANIM_MODE_HOLD_AT_END_MASK	; mode_flags
 player_animated_defeat_node_gap_B:
@@ -27172,21 +27184,21 @@ player_animated_defeat_node_gap_B:
 	dc.l $00000000	; xy_sequence_ptr
 	dc.w $0000	; frame_index_and_phase
 player_animated_defeat_frame_refs:
-	dc.l abs_0_0005C6A8	; frame_ptr
+	dc.l shared_defeat_geometry_frame_12	; frame_ptr
 player_animated_defeat_frame_refs_active:
 	dc.l entry_officer_animation_bank_2	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
 	dc.l entry_officer_animation_bank_2_bitplane_data_ptr_3	; frame_ptr
 	dc.l shared_defeat_animation_extended_geometry_frames	; frame_ptr
-	dc.l abs_0_0005C62A	; frame_ptr
-	dc.l abs_0_0005C63C	; frame_ptr
-	dc.l abs_0_0005C64E	; frame_ptr
-	dc.l abs_0_0005C660	; frame_ptr
-	dc.l abs_0_0005C672	; frame_ptr
-	dc.l abs_0_0005C684	; frame_ptr
-	dc.l abs_0_0005C696	; frame_ptr
-	dc.l abs_0_0005C6A8	; frame_ptr
+	dc.l shared_defeat_geometry_frame_05	; frame_ptr
+	dc.l shared_defeat_geometry_frame_06	; frame_ptr
+	dc.l shared_defeat_geometry_frame_07	; frame_ptr
+	dc.l shared_defeat_geometry_frame_08	; frame_ptr
+	dc.l shared_defeat_geometry_frame_09	; frame_ptr
+	dc.l shared_defeat_geometry_frame_10	; frame_ptr
+	dc.l shared_defeat_geometry_frame_11	; frame_ptr
+	dc.l shared_defeat_geometry_frame_12	; frame_ptr
 player_position_descriptor:
 	dc.l player_position_state	; position_state_ptr
 	dc.w $0000	; world_x
