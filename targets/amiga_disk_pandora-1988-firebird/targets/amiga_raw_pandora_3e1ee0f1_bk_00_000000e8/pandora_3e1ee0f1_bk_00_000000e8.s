@@ -36,6 +36,12 @@
 ;     absolute[$00058564-$00058568] refs=1 access=a
 ;     absolute[$00058576-$0005857A] refs=1 access=a
 ;     absolute[$000585A6-$000585AA] refs=1 access=a
+;     absolute[$000588C2-$000588C6] refs=1 access=a
+;     absolute[$00058904-$00058908] refs=1 access=a
+;     absolute[$00058946-$0005894A] refs=1 access=a
+;     absolute[$00058988-$0005898C] refs=1 access=a
+;     absolute[$000589CA-$000589CE] refs=1 access=a
+;     absolute[$00058A2A-$00058A2E] refs=1 access=a
 ;     absolute[$0005B0CE-$0005B0D2] refs=1 access=a
 ;     absolute[$0005B10A-$0005B10E] refs=1 access=a
 ;     absolute[$0005B112-$0005B116] refs=1 access=a
@@ -896,6 +902,7 @@ BLITTER_FULL_WORD_MASK	EQU	$FFFF
 BLITTER_HEIGHT_FIELD_MASK	EQU	$FFFF&~((1<<HSIZEBITS)-1)
 BLITTER_SHIFT_NIBBLE_MASK	EQU	(1<<(16-ASHIFTSHIFT))-1
 BLITTER_SHIFT_PACK_RIGHT_BITS	EQU	16-ASHIFTSHIFT
+BRAIN_PICKUP_AUDIO_SEQUENCE	EQU	$11C
 CAMERA_BOTTOM_WRAP_GUARD_ROWS	EQU	3
 CAMERA_MAP_EDGE_GUARD_PIXELS	EQU	48
 CAMERA_PLAYER_BOTTOM_TRIGGER_PAD	EQU	32
@@ -1111,6 +1118,11 @@ PROXIMITY_AUDIO_CENTER_Y	EQU	168
 PROXIMITY_AUDIO_DISTANCE_SHIFT	EQU	2
 PROXIMITY_AUDIO_EXCLUSIVE_DISTANCE	EQU	256
 PROXIMITY_AUDIO_FULL_VOLUME	EQU	64
+RECEPTACLE_BRAIN_PICKUP_HIT_POINTS	EQU	95
+RECEPTACLE_COORDINATE_BIAS	EQU	16
+RECEPTACLE_EXCLUSIVE_MANHATTAN_DISTANCE	EQU	28
+RECEPTACLE_NEARBY_ATTEMPT_LATCH_BIT	EQU	0
+RECEPTACLE_PICKUP_HELD_ID_LIMIT	EQU	2
 RESTART_FIELD_BEHAVIOR_SCRIPT_DELAY_TICKS	EQU	world_object_shared_prefix_behavior_script_delay_ticks
 RESTART_FIELD_BEHAVIOR_SCRIPT_PTR	EQU	world_object_shared_prefix_behavior_script_ptr
 RESTART_FIELD_HIT_POINTS	EQU	world_object_shared_prefix_hit_points
@@ -1269,6 +1281,7 @@ WORLD_MACRO_ROW_BYTES	EQU	WORLD_MACRO_TILE_SIDE*WORLD_GRID_ROW_BYTES
 WORLD_OBJECT_COMPLETION_CALLBACK_DISP	EQU	world_object_shared_prefix_interaction_completion_callback
 WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
 WORLD_OBJECT_FLAGS_DISP	EQU	world_object_shared_prefix_world_object_flags
+WORLD_OBJECT_HIT_POINTS_DISP	EQU	world_object_shared_prefix_hit_points
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
 WORLD_OBJECT_INVENTORY_PTR_DISP	EQU	world_object_shared_prefix_inventory_slots_ptr
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
@@ -1293,7 +1306,10 @@ WORLD_RESTART_RECEPTACLE_LAST_INDEX	EQU	5
 WORLD_RESTART_SELF_DESTRUCT_STEPS	EQU	3000
 WORLD_RESTART_TERMINAL_LAST_LONGWORD	EQU	15
 WORLD_RESTART_TICKER_HIGHLIGHT_RGB12	EQU	$EEE
+WORLD_STATE_CHECKPOINT_INTERACTION_BIT	EQU	4
 WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
+WORLD_STATE_PROXIMITY_ANIMATION_BIT	EQU	0
+WORLD_STATE_RECEPTACLE_INTERACTION_BIT	EQU	2
 WORLD_TILE_DEFINITION_BYTES	EQU	world_tile_definition_3x3_SIZEOF
 WORLD_TILE_DEF_R0C0_FIELD	EQU	world_tile_definition_3x3_r0c0_pixels_offset
 WORLD_TILE_DEF_R0C1_FIELD	EQU	world_tile_definition_3x3_r0c1_pixels_offset
@@ -1375,6 +1391,12 @@ dblk_ref_h0_00048564_runtime_00058564	EQU	$58564
 dblk_ref_h0_00048576_runtime_00058576	EQU	$58576
 dblk_ref_h0_0004859A_runtime_0005859A	EQU	$5859A
 dblk_ref_h0_000485A6_runtime_000585A6	EQU	$585A6
+dblk_ref_h0_000488C2_runtime_000588C2	EQU	$588C2
+dblk_ref_h0_00048904_runtime_00058904	EQU	$58904
+dblk_ref_h0_00048946_runtime_00058946	EQU	$58946
+dblk_ref_h0_00048988_runtime_00058988	EQU	$58988
+dblk_ref_h0_000489CA_runtime_000589CA	EQU	$589CA
+dblk_ref_h0_00048A2A_runtime_00058A2A	EQU	$58A2A
 dblk_ref_h0_00048CD0_runtime_00058CD0	EQU	$58CD0
 dblk_ref_h0_00048CDC_runtime_00058CDC	EQU	$58CDC
 dblk_ref_h0_00048CE8_runtime_00058CE8	EQU	$58CE8
@@ -14063,21 +14085,22 @@ update_world_object_interactions:
 	lea.l player_world_object.l,a4
 	movea.l app_active_world_object_ptr_table(a6),a0
 	move.w active_world_object_count(a6),d7
-	beq.w abs_0_00017F06
+	beq.w return_from_world_interaction_service
 	subq.w #1,d7
-abs_0_00017E04:
+visit_next_world_interaction_descriptor:
 	movea.l (a0)+,a1
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
-	beq.w abs_0_00017F02
+	beq.w advance_world_interaction_descriptor
 	movea.l d0,a2
 	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a2)
-	bne.w abs_0_00017F02
-	btst.b #4,world_position_state_record_world_object_flags(a2)
-	bne.w abs_0_00017F08
-	btst.b #2,world_position_state_record_world_object_flags(a2)
+	bne.w advance_world_interaction_descriptor
+    ; After outside-view rejection, state bit 4 wins over receptacle bit 2, then proximity-animation bit 0. Successful receptacle transfers return from this entire counted descriptor scan.
+	btst.b #WORLD_STATE_CHECKPOINT_INTERACTION_BIT,world_position_state_record_world_object_flags(a2)
+	bne.w handle_checkpoint_contact_interaction
+	btst.b #WORLD_STATE_RECEPTACLE_INTERACTION_BIT,world_position_state_record_world_object_flags(a2)
 	bne.w handle_item_receptacle_interaction
-	btst.b #0,world_position_state_record_world_object_flags(a2)
-	beq.w abs_0_00017F02
+	btst.b #WORLD_STATE_PROXIMITY_ANIMATION_BIT,world_position_state_record_world_object_flags(a2)
+	beq.w advance_world_interaction_descriptor
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
 	add.w world_position_state_record_world_x_offset(a2),d0
@@ -14113,7 +14136,7 @@ abs_0_00017E74:
 abs_0_00017E90:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
-	beq.b abs_0_00017F02
+	beq.b advance_world_interaction_descriptor
 	move.l a0,-(a7)
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
@@ -14124,7 +14147,7 @@ abs_0_00017E90:
 	clr.w WorldPositionStateNode_frame_index_and_phase(a5)
 	move.l a0,-(a7)
 	movea.l (a7)+,a0
-	bra.b abs_0_00017F02
+	bra.b advance_world_interaction_descriptor
 abs_0_00017EC2:
 	lea.l world_proximity_far_sequence_0_held.l,a3
 	btst.b #5,world_position_state_record_world_object_flags(a2)
@@ -14133,7 +14156,7 @@ abs_0_00017EC2:
 abs_0_00017ED6:
 	movea.l world_position_state_record_state_node_ptr(a2),a5
 	cmpa.l WorldPositionStateNode_frame_sequence_ptr(a5),a3
-	beq.b abs_0_00017F02
+	beq.b advance_world_interaction_descriptor
 	move.l a0,-(a7)
 	move.w #$30F,d0
 	jsr start_feedback_audio_sequence.l
@@ -14142,15 +14165,15 @@ abs_0_00017ED6:
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)
 	bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a5)
-abs_0_00017F02:
-	dbf.w d7,abs_0_00017E04
-abs_0_00017F06:
+advance_world_interaction_descriptor:
+	dbf.w d7,visit_next_world_interaction_descriptor
+return_from_world_interaction_service:
 	rts
-abs_0_00017F08:
+handle_checkpoint_contact_interaction:
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
-	bne.b abs_0_00017F02
+	bne.b advance_world_interaction_descriptor
 	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_00017F02
+	bne.b advance_world_interaction_descriptor
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
 	add.w world_position_state_record_world_x_offset(a2),d0
@@ -14221,14 +14244,14 @@ abs_0_00017FDE:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
-	beq.w abs_0_00017F02
+	beq.w advance_world_interaction_descriptor
 	movea.l d0,a2
 	bra.b abs_0_00017FDE
 abs_0_00017FF4:
 	movea.l world_position_state_record_state_node_ptr(a2),a3
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a3)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
-	beq.w abs_0_00017F02
+	beq.w advance_world_interaction_descriptor
 	movea.l d0,a2
 	bra.b abs_0_00017FF4
 abs_0_0001800A:
@@ -14261,33 +14284,34 @@ abs_0_00018032:
 	jsr enqueue_game_outcome_and_rank_messages.l
 	rts
 handle_item_receptacle_interaction:
-	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
-	bne.w abs_0_00017F02
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a4)
+	bne.w advance_world_interaction_descriptor
 	move.w world_position_descriptor_prefix_world_x(a1),d0
 	move.w world_position_descriptor_prefix_world_y(a1),d1
 	add.w world_position_state_record_world_x_offset(a2),d0
 	add.w world_position_state_record_world_y_offset(a2),d1
-	addi.w #16,d1
-	addi.w #16,d0
+	addi.w #RECEPTACLE_COORDINATE_BIAS,d1
+	addi.w #RECEPTACLE_COORDINATE_BIAS,d0
 	move.w world_object_shared_prefix_world_x(a4),d2
 	move.w world_object_shared_prefix_world_y(a4),d3
-	moveq.l #16,d4
+	moveq.l #RECEPTACLE_COORDINATE_BIAS,d4
 	add.w d4,d2
 	add.w d4,d3
 	sub.w d2,d0
-	bpl.b abs_0_000180B2
+	bpl.b measure_receptacle_vertical_distance
 	neg.w d0
-abs_0_000180B2:
+measure_receptacle_vertical_distance:
 	sub.w d3,d1
-	bpl.b abs_0_000180B8
+	bpl.b test_receptacle_wrapped_manhattan_distance
 	neg.w d1
-abs_0_000180B8:
+test_receptacle_wrapped_manhattan_distance:
 	add.w d1,d0
-	cmp.w #$1C,d0
+	cmp.w #RECEPTACLE_EXCLUSIVE_MANHATTAN_DISTANCE,d0
 	bcc.w clear_item_receptacle_proximity
 	movea.l world_position_state_record_interaction_data_ptr(a2),a3
-	bset.b #0,item_receptacle_interaction_data_flags(a3)
-	bne.w abs_0_00017F02
+    ; First near visit sets attempt bit 0 before checking phase or held ID; even a busy hand consumes it. Later near visits skip all work. A far visit clears only this bit; no fire-button gate.
+	bset.b #RECEPTACLE_NEARBY_ATTEMPT_LATCH_BIT,item_receptacle_interaction_data_flags(a3)
+	bne.w advance_world_interaction_descriptor
 	clr.b app_player_movement_commit_inhibited(a6)
 	tst.l (a3)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	beq.b deposit_item_in_receptacle
@@ -14299,7 +14323,8 @@ abs_0_000180B8:
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
 	movea.l (a7)+,a0
-	bra.w abs_0_00017F02
+	bra.w advance_world_interaction_descriptor
+    ; A nonzero saved attachment and exact held/required match restore the attachment, clear its saved pointer and held ID, then tail-return through name refresh, skipping remaining descriptors.
 complete_item_receptacle_interaction:
 	move.l (a3),world_position_state_record_attachment_state_ptr(a2)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	clr.l (a3)	; operand 1: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
@@ -14307,30 +14332,32 @@ complete_item_receptacle_interaction:
 	bra.w refresh_selected_item_name_display
 deposit_item_in_receptacle:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	cmp.b #$2,d0
-	bcc.w abs_0_00017F02
+	cmp.b #RECEPTACLE_PICKUP_HELD_ID_LIMIT,d0
+	bcc.w advance_world_interaction_descriptor
+    ; Historic deposit entry saves/detaches the visual attachment and GIVES the required ID for held IDs 0/1. NULL attachments are allowed and IDs unfiltered. Returns from the whole scan.
 	move.l world_position_state_record_attachment_state_ptr(a2),(a3)	; operand 2: item_receptacle_interaction_data_stored_attachment_state_ptr at (a3)
 	clr.l world_position_state_record_attachment_state_ptr(a2)
 	move.b item_receptacle_interaction_data_required_item_definition_id(a3),world_object_shared_prefix_selected_item_id(a4)
 	bsr.w refresh_selected_item_name_display
-	move.b $0046(a4),d0
+	move.b WORLD_OBJECT_SELECTED_ITEM_DISP(a4),d0
 	cmp.b #ITEM_ID_MOBIAN_BRAIN,d0
-	bne.b abs_0_0001814C
+	bne.b return_from_receptacle_pickup
+    ; First brain pickup sets event bit 0 and assigns the full HP WORD to 95, which can reduce HP; then draws health and plays feedback. Later pickups still transfer but skip this effect and audio.
 	bset.b #GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT,app_game_event_flags(a6)
-	bne.b abs_0_0001814C
-	move.w #$5F,$003C(a4)
+	bne.b return_from_receptacle_pickup
+	move.w #RECEPTACLE_BRAIN_PICKUP_HIT_POINTS,WORLD_OBJECT_HIT_POINTS_DISP(a4)
 	movea.l a4,a5
 	lea.l player_health_overlay.l,a4
 	bsr.w draw_object_health_status
-	jsr abs_0_0005D2FE.l
-abs_0_0001814C:
+	jsr start_brain_pickup_feedback_audio.l
+return_from_receptacle_pickup:
 	rts
 clear_item_receptacle_proximity:
 	move.l world_position_state_record_interaction_data_ptr(a2),d0
-	beq.w abs_0_00017F02
+	beq.w advance_world_interaction_descriptor
 	movea.l d0,a3
-	bclr.b #0,item_receptacle_interaction_data_flags(a3)
-	bra.w abs_0_00017F02
+	bclr.b #RECEPTACLE_NEARBY_ATTEMPT_LATCH_BIT,item_receptacle_interaction_data_flags(a3)
+	bra.w advance_world_interaction_descriptor
 incorrect_receptacle_item_message:
 	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
@@ -16464,6 +16491,7 @@ clear_next_keyboard_state_longword:
     ; For these six receptacles, clear flags byte 5, including proximity bit 0. Restore a nonzero saved attachment and clear its saved pointer; otherwise keep the current attachment.
 	lea.l scene_restart_receptacle_state_ptrs.l,a0
 	moveq.l #WORLD_RESTART_RECEPTACLE_LAST_INDEX,d7
+    ; The first state sharing an interaction record consumes its saved attachment. Later aliases see NULL and keep their current attachments. Exactly six entries are visited; no sentinel check.
 restore_next_restart_receptacle:
 	movea.l (a0)+,a1
     ; KNOWN: type A1=Target code-entry register seed:world_position_state_record
@@ -20609,8 +20637,12 @@ item_receptacle_position_descriptors_position_state_ptr_5:
 	dc.w $04DC	; previous_world_x
 	dc.w $0363	; previous_world_y
 scene_restart_receptacle_state_ptrs:
-	dc.l $000588C2,$00058904,$00058946,$00058988	; scene_restart_receptacle_state_ptrs
-	dc.l $000589CA,$00058A2A	; scene_restart_receptacle_state_ptrs
+	dc.l $000588C2	; scene_restart_receptacle_state_ptrs
+	dc.l dblk_ref_h0_00048904_runtime_00058904
+	dc.l dblk_ref_h0_00048946_runtime_00058946
+	dc.l dblk_ref_h0_00048988_runtime_00058988
+	dc.l dblk_ref_h0_000489CA_runtime_000589CA
+	dc.l dblk_ref_h0_00048A2A_runtime_00058A2A
 item_receptacle_lifecycle_records:
 	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
@@ -27713,8 +27745,8 @@ abs_0_0005D2A1:
 	dc.b $00,$60,$5C,$30,$3C,$02,$00,$60,$56,$30,$3C,$03,$00,$60,$50,$30
 	dc.b $3C,$03,$00,$60,$4A,$30,$3C,$03,$00,$60,$44,$30,$3C,$03,$00,$60
 	dc.b $3E,$30,$3C,$03,$00,$60,$38,$30,$3C,$02,$11,$60,$32
-abs_0_0005D2FE:
-	move.w #$11C,d0
+start_brain_pickup_feedback_audio:
+	move.w #BRAIN_PICKUP_AUDIO_SEQUENCE,d0
 	bra.b start_feedback_audio_sequence
 abs_0_0005D304:
 	move.w #$300,d0

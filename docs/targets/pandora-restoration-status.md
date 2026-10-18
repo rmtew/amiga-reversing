@@ -4216,3 +4216,70 @@ gap and history prefix passes preservation checks. C and vasm reproduce all
 `docs/validation/pandora-trade-selection.json`. The next connected question is
 how selected combat items supply encounter statistics and defeat/transfer effects.
 The broader full-game and alternate-layout gates remain open.
+
+## Receptacle entry latching, attachment transfer and restart
+
+The item-receptacle protocol now has named scan branches, role bits, distance
+and transfer constants, a hit-point field expression, and a named brain-feedback
+entry. Existing helper names are retained. The counted descriptor scan rejects
+outside-view states first, then prioritizes checkpoint bit 4 over receptacle bit
+2 and proximity-animation bit 0. An inactive player skips receptacle handling.
+
+Receptacle distance uses wrapped WORD arithmetic on descriptor coordinates plus
+state offsets and equal 16-pixel biases for both participants. The magnitudes
+and their sum wrap; only an unsigned sum below 28 is near. A first near visit
+sets attempt bit 0 before testing the saved attachment or held item. A busy hand
+or incorrect return therefore consumes the attempt. Further near visits skip
+work; a far visit clears only this bit, leaving the other seven flag bits
+intact. There is no fire-button check in this protocol.
+
+The historical `deposit_item_in_receptacle` entry saves the visual attachment,
+detaches it from the state, and gives the required item ID to a player holding
+ID 0 or 1. It does not filter the copied ID or reject a NULL attachment. When a
+saved attachment is nonzero, an exact required/held BYTE match restores that
+pointer and clears both saved pointer and held ID. Both successful paths exit
+the entire descriptor service. An incorrect return attempts to enqueue the
+existing message plus a blank message and continues the counted scan. The
+existing six-byte interaction records and conditional state tails keep their
+identities and bounds.
+
+Brain pickup sets the existing event bit 0 once and assigns the whole HP WORD to
+95, even when HP was higher. It then draws the health display and runs the
+original feedback sequence `$11C`. While event bit 0 remains set, brain pickups
+still transfer the item but skip this effect and its audio. The first-effect
+path changes A4 to the health overlay and A5 to the player. These are original
+effects, not gameplay repairs or a claim that the item always increases health.
+
+Six explicit restart-pointer references now connect the existing 24-byte array
+to its existing source owners, with incoming and outgoing native coordinate
+checks. The first LONG remains numeric; the other five retain standard
+encoded-value EQU spellings, with canonical relationships verified
+independently. No source-owner label expression or runtime-view materialization
+is forced. Restart visits exactly six entries, clears the whole interaction
+flags BYTE, and restores then clears nonzero saved attachments. If states share
+an interaction record, the first visit consumes its saved pointer; later aliases
+retain their current attachments. All 64 saved-pointer presence masks were
+checked on the six original records.
+
+Thirty-three distinct original-code CPU cases cover both full WORD-axis sweeps,
+wrapped sums, all state/player/latch/event flag bytes, all 65,536 return-ID
+pairs, all copied IDs and held-ID eligibility, two-descriptor
+early-exit/continuation, reentry, six complete brain-effect paths and ordered
+restart aliases. Controlled UI mode makes selected-name refresh return
+immediately; the brain cases execute health drawing and initialized original
+audio. Flat RAM, the existing copied payload view, valid records and a separate
+fresh call frame are explicit inputs. No DMA completion, arbitrary attachment
+lifetime, copy completion or full-game reachability is established by these
+witnesses.
+
+All 45 actions are accepted: eight labels, ten equates, fifteen operand
+bindings, six canonical references and six semantic comments. No framework
+implementation changed; the prior 48 focused framework and 819 native checks are
+reused. The preparation benchmark was not repeated. Previous annotations,
+hardware/SDK expressions, owner bounds, assets, raw gaps and history prefixes
+pass preservation. C and vasm reproduce all 376,832 original bytes. The
+verification receipt and supporting evidence are in
+`docs/validation/pandora-receptacle-protocol.json`. Checkpoint
+contact/authorization and its attachment-hold traversal remain the next
+connected control-flow question. Full-game and alternate-layout confidence
+remain separate open gates.
