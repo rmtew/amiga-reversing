@@ -3482,3 +3482,29 @@ descriptors with initially null update callbacks. Initialized values do not clos
 future stores or caller pointee domains. The next shared capability is tracing
 the field-load/null-guard/D0-to-A0 call idiom with its record and store provenance;
 these fields must not be promoted into unconditional complete target sets.
+
+## IRQ/display literals and title raster phases
+
+The eight indirect sites were reviewed together using the retained 35-object,
+ten-overlay and command/audio inventories. Their mutable producer/domain limits
+remain open. The saved nearby-interaction observation identifies the diabetic
+at source 83FE -> 4D568 on one original card-selected path; the current command
+catalog cannot attach a witnessed indirect CFG edge. No new complete target set
+or arbitrary-callback preservation claim is admitted. Matching the shared
+register/offset idiom alone would omit record-owner and store provenance.
+
+The connected IRQ/title family gains 18 local/external names, six constants,
+31 operand presentations and two RGB12 WORD layouts covering 80 bytes. IRQ
+source tests and acknowledgements use SDK bit names, four bitplane/two sprite
+pointer stores retain SDK register offsets, and the frame-completion bit name
+covers all eight existing set/clear/wait uses. Literal offset bindings do not
+prove A5 survives opaque callbacks. The title Copper list, three phase loops,
+beam waits and rotation loop are named together. Counts are 32 current, 24 intro
+and eight rotating raster lines; the rotating array contains sixteen WORDs,
+all rotated on even frames. Existing meaningful names and comments are retained.
+
+26 focused IRQ/title/hardware cases pass, including two new original-code frame
+rotation cases. The unchanged native backend reuses its 819-test regression
+result. Duplicate per-operand catalog reads were removed; the atomic endpoint
+still validates every native selector and revision. Final C/vasm full-payload
+receipt: `44d982824b2e1574d0b8998c3d66792c9a5823dfbdf906c42c03e0d1f9c5b413`.

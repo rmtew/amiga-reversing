@@ -805,6 +805,7 @@ ANIM_MODE_HOLD_AT_END_MASK	EQU	1<<ANIM_MODE_HOLD_AT_END_BIT
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
 ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
+APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 DMAF_CLRALL	EQU	$7FFF
@@ -924,6 +925,7 @@ ITEM_ID_THIEF	EQU	$44
 ITEM_ID_WACKOBRAIN	EQU	$62
 ITEM_ID_WOOKEY_WIG	EQU	$1C
 ITEM_ID_WRENCH	EQU	$2
+KEYBOARD_IRQ_ACK_MASK	EQU	INTF_RBF|INTF_PORTS|INTF_TBE
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
@@ -955,6 +957,10 @@ TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
+TITLE_CURRENT_GRADIENT_RASTER_LINES	EQU	32
+TITLE_GRADIENT_ROTATION_LAST_COPY	EQU	14
+TITLE_INTRO_GRADIENT_RASTER_LINES	EQU	24
+TITLE_ROTATING_GRADIENT_RASTER_LINES	EQU	8
 TITLE_STAR_COLOR_LIFETIME_SHIFT	EQU	3
 TITLE_STAR_LAST_RECORD	EQU	99
 TITLE_STAR_LIFETIME_MASK	EQU	63
@@ -1269,10 +1275,10 @@ swap_front_back_display_buffers:
 	move.l d0,app_front_bitplane_base(a6)
 	move.l d1,app_back_bitplane_base(a6)
 	move.l d0,app_display_bitplane_base(a6)
-	bclr.b #5,app_status_flags(a6)
+	bclr.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
     ; Wait for frame-callback completion bit 5. Initial entry skips the buffer exchange/clear; later loop iterations clear the latch before waiting.
 wait_for_completed_frame:
-	btst.b #5,app_status_flags(a6)
+	btst.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 	beq.b wait_for_completed_frame
 	bsr.w service_nearby_trade_or_combat
 	bsr.w update_inventory_panel_availability
@@ -1471,10 +1477,10 @@ abs_0_0001084E:
 	rts
     ; On PORTS, decode into the 128-byte key table at $397C: FF press, 00 release. Last-pressed raw key updates only on press.
 poll_keyboard_serial_input:
-	move.w $001E(a5),d0
-	btst #3,d0
+	move.w intreqr(a5),d0	; interrupt request state
+	btst #INTB_PORTS,d0
     ; Without PORTS, skip CIAA setup but still write caller A0+$E00. A gameplay probe observed target $DFFE10; write effect unknown.
-	beq.b abs_0_00010886
+	beq.b acknowledge_keyboard_serial_input
 	lea.l _ciaa.l,a0
 	moveq.l #0,d0
 	lea.l absolute_slot_0000397C.l,a1
@@ -1483,9 +1489,9 @@ poll_keyboard_serial_input:
 	not.b d0
 	bclr #7,d0
 	seq.b $0(a1,d0.l)
-	bne.b abs_0_00010886
+	bne.b acknowledge_keyboard_serial_input
 	move.b d0,app_last_pressed_raw_key(a6)
-abs_0_00010886:
+acknowledge_keyboard_serial_input:
 	move.b #CIACRAF_SPMODE,ciacra(a0)
     ; 19 MULU.W #1 operations delay acknowledgement. Low word unchanged; first result zero-extended. No fixed elapsed time asserted.
 	mulu.w #$1,d0
@@ -1508,7 +1514,7 @@ abs_0_00010886:
 	mulu.w #$1,d0
 	mulu.w #$1,d0
 	clr.b ciacra(a0)
-	move.w #$809,$009C(a5)
+	move.w #KEYBOARD_IRQ_ACK_MASK,intreq(a5)
 	rts
     ; Save D0/A0-A1/A5-A6 and bind workspace/custom bases. Callbacks must return with A5 still pointing to custom registers for acknowledgement; other clobbers need separate contracts.
 handle_level_3_interrupts:
@@ -1517,52 +1523,52 @@ handle_level_3_interrupts:
 	lea.l _custom.l,a5
     ; Sample raw INTREQR without INTENA filtering. Prefer Copper, then VBL, then BLIT; service/ack one selected source and return. If none matches, clear remaining sampled request bits.
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #4,d0
-	beq.b abs_0_00010910
+	btst #INTB_COPER,d0
+	beq.b test_vertical_blank_interrupt
 	movea.l app_copper_interrupt_callback(a6),a0
 	jsr (a0)
 	move.w #INTF_COPER,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
-abs_0_00010910:
-	btst #5,d0
-	beq.b abs_0_00010928
+test_vertical_blank_interrupt:
+	btst #INTB_VERTB,d0
+	beq.b test_blitter_interrupt
 	movea.l app_vertical_blank_callback(a6),a0
 	jsr (a0)
-	move.w #$20,$009C(a5)
+	move.w #INTF_VERTB,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
-abs_0_00010928:
-	btst #6,d0
-	beq.b abs_0_00010940
+test_blitter_interrupt:
+	btst #INTB_BLIT,d0
+	beq.b acknowledge_other_sampled_interrupts
 	movea.l app_blitter_interrupt_callback(a6),a0
 	jsr (a0)
-	move.w #$40,$009C(a5)
+	move.w #INTF_BLIT,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
-abs_0_00010940:
-	bclr #15,d0
+acknowledge_other_sampled_interrupts:
+	bclr #INTB_SETCLR,d0
 	move.w d0,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
 	rte
     ; Clear frame-completion bit 5 on entry, increment the frame counter and install display pointers. Completion is signalled only after the later keyboard poll.
 handle_vertical_blank_frame_update:
-	bclr.b #5,app_status_flags(a6)
+	bclr.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 	movem.l d1/a2,-(a7)
 	addq.l #1,app_frame_counter(a6)
 	movea.l app_display_bitplane_base(a6),a0
-	move.l a0,$00E0(a5)
+	move.l a0,bplpt(a5)	; bitmap pointer
 	lea.l $0028(a0),a0
-	move.l a0,$00E4(a5)
+	move.l a0,bplpt+$04(a5)	; bitmap pointer
 	lea.l $0028(a0),a0
-	move.l a0,$00E8(a5)
+	move.l a0,bplpt+$08(a5)	; bitmap pointer
 	lea.l $0028(a0),a0
-	move.l a0,$00EC(a5)
+	move.l a0,bplpt+$0C(a5)	; bitmap pointer
 	bsr.w apply_current_palette
 	lea.l apply_gameplay_overlay_palette_and_arm_lower_split(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
     ; VBL updates the two POS/CTL pairs in cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer, then programs the selected DMA pointers. Pixel payloads were copied before source-scratch reuse.
-	lea.l $00065370.l,a0
+	lea.l cursor_sprite0_dma_buffer.l,a0
 	move.w app_inventory_cursor_x(a6),d0
 	addi.w #128,d0
 	move.w app_inventory_cursor_y(a6),d1
@@ -1576,20 +1582,20 @@ handle_vertical_blank_frame_update:
 	lea.l $0040(a0),a0
 	move.w d0,(a0)+
 	move.w d1,(a0)+
-	move.l app_cursor_sprite0_dma_ptr(a6),$0120(a5)
-	move.l app_cursor_sprite1_dma_ptr(a6),$0124(a5)
+	move.l app_cursor_sprite0_dma_ptr(a6),sprpt(a5)	; sprite pointer
+	move.l app_cursor_sprite1_dma_ptr(a6),sprpt+$04(a5)	; sprite pointer
 	btst.b #7,app_ui_flags(a6)
-	bne.b abs_0_000109CC
+	bne.b service_frame_audio_and_keyboard
 	bsr.w update_scrolling_message_ticker
     ; Preserve D2-D7/A3-A6 around audio service, in addition to the callback D1/A2 save. This wrapper does not prove the other helpers preserve all remaining registers.
-abs_0_000109CC:
+service_frame_audio_and_keyboard:
 	movem.l d2-d7/a3-a6,-(a7)
 	jsr update_audio_channels.l
 	movem.l (a7)+,d2-d7/a3-a6
 	movem.l (a7)+,d1/a2
 	bsr.w poll_keyboard_serial_input
     ; Signal frame-callback completion after keyboard polling. Main-loop waits use this latch; it is not an input-event flag.
-	bset.b #5,app_status_flags(a6)
+	bset.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 	rts
 gameplay_split_display_copper_list:
     ; display layout 4 bitmap planes $00075000..$00075078 step $28
@@ -1901,13 +1907,14 @@ advance_starfield_after_pixel_render:
 	bclr.b #2,app_status_flags(a6)
 abs_0_00010DDE:
 	rts
-abs_0_00010DE0:
+    ; Title callbacks cycle current -> intro -> rotating with 32/24/8-line counts. The rotating phase reads 8 of 16 WORDs; the frame update rotates all 16 on even frames.
+apply_current_title_raster_gradient:
 	movea.l app_title_raster_gradient_ptr(a6),a0
-abs_0_00010DE4:
+write_next_current_title_gradient_line:
 	move.b vhposr(a5),d0
-abs_0_00010DE8:
+wait_current_title_gradient_beam_change:
 	cmp.b vhposr(a5),d0
-	beq.b abs_0_00010DE8
+	beq.b wait_current_title_gradient_beam_change
 	move.w (a0),d0
 	swap.w d0
 	move.w (a0)+,d0
@@ -1916,18 +1923,18 @@ abs_0_00010DE8:
 	move.l d0,color+$14(a5)	; palette colors 10-11
 	move.l d0,color+$18(a5)	; palette colors 12-13
 	subq.b #1,app_palette_effect_countdown(a6)
-	bne.b abs_0_00010DE4
+	bne.b write_next_current_title_gradient_line
 	lea.l handle_copper_interrupt_palette_effect(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 handle_copper_interrupt_palette_effect:
-	lea.l abs_0_00010E88(pc),a0
-	move.b #$18,app_palette_effect_countdown(a6)
-abs_0_00010E1E:
+	lea.l title_intro_raster_gradient_rgb12(pc),a0
+	move.b #TITLE_INTRO_GRADIENT_RASTER_LINES,app_palette_effect_countdown(a6)
+write_next_intro_title_gradient_line:
 	move.b vhposr(a5),d0
-abs_0_00010E22:
+wait_intro_title_gradient_beam_change:
 	cmp.b vhposr(a5),d0
-	beq.b abs_0_00010E22
+	beq.b wait_intro_title_gradient_beam_change
 	move.w (a0),d0
 	swap.w d0
 	move.w (a0)+,d0
@@ -1936,18 +1943,18 @@ abs_0_00010E22:
 	move.l d0,color+$14(a5)	; palette colors 10-11
 	move.l d0,color+$18(a5)	; palette colors 12-13
 	subq.b #1,app_palette_effect_countdown(a6)
-	bne.b abs_0_00010E1E
-	lea.l abs_0_00010E4E(pc),a0
+	bne.b write_next_intro_title_gradient_line
+	lea.l apply_rotating_title_raster_gradient(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010E4E:
-	lea.l abs_0_00010EB8(pc),a0
-	move.b #$8,app_palette_effect_countdown(a6)
-abs_0_00010E58:
+apply_rotating_title_raster_gradient:
+	lea.l title_rotating_raster_gradient_rgb12(pc),a0
+	move.b #TITLE_ROTATING_GRADIENT_RASTER_LINES,app_palette_effect_countdown(a6)
+write_next_rotating_title_gradient_line:
 	move.b vhposr(a5),d0
-abs_0_00010E5C:
+wait_rotating_title_gradient_beam_change:
 	cmp.b vhposr(a5),d0
-	beq.b abs_0_00010E5C
+	beq.b wait_rotating_title_gradient_beam_change
 	move.w (a0),d0
 	swap.w d0
 	move.w (a0)+,d0
@@ -1956,18 +1963,18 @@ abs_0_00010E5C:
 	move.l d0,color+$14(a5)	; palette colors 10-11
 	move.l d0,color+$18(a5)	; palette colors 12-13
 	subq.b #1,app_palette_effect_countdown(a6)
-	bne.b abs_0_00010E58
-	lea.l abs_0_00010DE0(pc),a0
+	bne.b write_next_rotating_title_gradient_line
+	lea.l apply_current_title_raster_gradient(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
-abs_0_00010E88:
-	dc.b $00,$00,$05,$55,$08,$88,$0B,$BB,$0F,$FF,$0E,$EE,$0D,$DD,$0C,$CC
-	dc.b $02,$28,$04,$49,$05,$5A,$06,$6B,$07,$7C,$08,$8D,$0A,$AE,$0C,$CF
-	dc.b $04,$DC,$05,$DB,$06,$DA,$07,$D9,$08,$D8,$09,$D7,$0A,$D6,$0B,$D5
-abs_0_00010EB8:
-	dc.b $0F,$66,$0E,$66,$0D,$66,$0C,$66,$0B,$66,$0A,$66,$09,$66,$08,$66
-	dc.b $07,$66,$05,$66,$04,$66,$03,$66,$06,$66,$09,$66,$0C,$66,$0F,$66
-copper_list_00020ED8:
+title_intro_raster_gradient_rgb12:
+	dc.w $0000,$0555,$0888,$0BBB,$0FFF,$0EEE,$0DDD,$0CCC	; rgb12_palette
+	dc.w $0228,$0449,$055A,$066B,$077C,$088D,$0AAE,$0CCF	; rgb12_palette
+	dc.w $04DC,$05DB,$06DA,$07D9,$08D8,$09D7,$0AD6,$0BD5	; rgb12_palette
+title_rotating_raster_gradient_rgb12:
+	dc.w $0F66,$0E66,$0D66,$0C66,$0B66,$0A66,$0966,$0866	; rgb12_palette
+	dc.w $0766,$0566,$0466,$0366,$0666,$0966,$0C66,$0F66	; rgb12_palette
+title_starfield_copper_list:
     ; display layout 4 bitmap planes $00070000..$00070078 step $28
 	dc.w bplpt,bitmap_00070000_hi	; bitmap pointer $00070000
 	dc.w bplpt+$02,bitmap_00070000_lo
@@ -2003,21 +2010,21 @@ copper_list_00020ED8:
 update_title_frame_palette_and_rotate_gradient:
 	addq.l #1,app_frame_counter(a6)
 	bsr.w apply_current_palette
-	move.b #$20,app_palette_effect_countdown(a6)
+	move.b #TITLE_CURRENT_GRADIENT_RASTER_LINES,app_palette_effect_countdown(a6)
 	lea.l title_current_raster_gradient_rgb12(pc),a0
 	move.l a0,app_title_raster_gradient_ptr(a6)
 	btst.b #0,app_frame_counter+3(a6)
-	bne.b abs_0_00010F86
-	lea.l abs_0_00010EB8(pc),a0
-	moveq.l #14,d0
+	bne.b finish_title_frame_palette_update
+	lea.l title_rotating_raster_gradient_rgb12(pc),a0
+	moveq.l #TITLE_GRADIENT_ROTATION_LAST_COPY,d0
 	movea.l a0,a1
 	addq.l #2,a1
 	move.w (a0),-(a7)
-abs_0_00010F7E:
+shift_next_title_gradient_word:
 	move.w (a1)+,(a0)+
-	dbf.w d0,abs_0_00010F7E
+	dbf.w d0,shift_next_title_gradient_word
 	move.w (a7)+,(a0)
-abs_0_00010F86:
+finish_title_frame_palette_update:
 	rts
 run_title_starfield_until_fire:
 	move.l #FRAMEBUFFER_BANK0_BASE,app_front_bitplane_base(a6)
@@ -2026,9 +2033,9 @@ run_title_starfield_until_fire:
 	move.w #INTF_INTEN,intena(a5)
 	move.w #DMAF_MASTER,dmacon(a5)
 	bsr.w initialize_starfield
-	lea.l abs_0_00010DE0(pc),a0
+	lea.l apply_current_title_raster_gradient(pc),a0
 	move.l a0,app_copper_interrupt_callback(a6)
-	lea.l copper_list_00020ED8(pc),a0
+	lea.l title_starfield_copper_list(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
 	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
@@ -11224,9 +11231,9 @@ abs_0_00019016:
 	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019016
 abs_0_0001901E:
-	bclr.b #5,app_status_flags(a6)
+	bclr.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 abs_0_00019024:
-	btst.b #5,app_status_flags(a6)
+	btst.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 	beq.b abs_0_00019024
 	bsr.w service_keyboard_pause_gate
 	jsr poll_joystick1_directions_and_fire.l
@@ -12154,9 +12161,9 @@ abs_0_00019C2A:
 	jsr poll_joystick1_directions_and_fire.l
 	bne.b abs_0_00019C2A
 abs_0_00019C32:
-	bclr.b #5,app_status_flags(a6)
+	bclr.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 abs_0_00019C38:
-	btst.b #5,app_status_flags(a6)
+	btst.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
 	beq.b abs_0_00019C38
 	bsr.w service_keyboard_pause_gate
 	jsr poll_joystick1_directions_and_fire.l

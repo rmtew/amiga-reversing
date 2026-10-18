@@ -79,3 +79,25 @@ def test_title_glyph_index_and_first_raster_cover_uppercase_and_lowercase(cpu_fi
             assert cpu.d[7] == 31 and read(cursor_slot) == destination
             # This bounded witness stops before DBF. Static D7=31 and the
             # original back edge establish32 rows; no full-copy trace claimed.
+
+
+@pytest.mark.parametrize('cpu_fixture', [0x1000000], indirect=True)
+@pytest.mark.parametrize('initial_frame,rotates', [(0, False), (1, True)])
+def test_original_title_frame_rotates_all_sixteen_gradient_words_on_even_frames(
+    cpu_fixture, title_slots, initial_frame, rotates
+):
+    cpu, memory, schemas, read, write, run = cpu_fixture
+    cpu.a[6] = APP
+    write(APP + title_slots['app_current_palette'], BASE + 0xAC8)
+    write(APP + title_slots['app_frame_counter'], initial_frame)
+    gradient = BASE + 0xEB8
+    before = bytes(memory[gradient:gradient + 32])
+    neighbors = bytes(memory[gradient - 4:gradient]) + bytes(memory[gradient + 32:gradient + 36])
+    run(0xF54)
+    expected = before[2:] + before[:2] if rotates else before
+    assert bytes(memory[gradient:gradient + 32]) == expected
+    assert bytes(memory[gradient - 4:gradient]) + bytes(memory[gradient + 32:gradient + 36]) == neighbors
+    assert read(APP + title_slots['app_frame_counter']) == initial_frame + 1
+    assert read(APP + title_slots['app_palette_effect_countdown'], 1) == 32
+    assert read(APP + title_slots['app_title_raster_gradient_ptr']) == BASE + 0xB28
+    assert bytes(memory[0xDFF180:0xDFF1A0]) == bytes(memory[BASE + 0xAC8:BASE + 0xAE8])

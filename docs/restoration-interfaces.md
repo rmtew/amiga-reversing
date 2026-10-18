@@ -158,9 +158,9 @@ The file is an object of operation parameters, without `operation`. For example:
 }
 ```
 
-The context above is schematic: copy the complete context and command from the
-actual `inspect.commands` catalog. Do not invent locators or arbitrary manual
-payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
+The context above is schematic: use the current native locator and element ID
+when applicable, plus a command discovered in the catalog. Do not invent locators
+or arbitrary manual payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
 
 Use `interpret_batch` for a connected set of 1..100 interpretations from the same
 inspected revision:
@@ -181,6 +181,13 @@ service applies the actions and invalidates the projection once, then returns
 `actions`, per-entry `commands`, and the resulting revision. Inspect and verify
 that resulting revision before review. Batches do not observe earlier entries
 as fresh catalog state, so dependent commands require a new inspection.
+
+For an already-discovered element command, the minimal context is
+`{ "kind": "element", "locator": NATIVE_LOCATOR, "element_id": NATIVE_ELEMENT_ID }`.
+The batch endpoint resolves that current native element and checks its catalog
+before append. A separate client catalog read per operand is redundant when the
+command contract is unchanged; preserve native identities and the inspected
+revision rather than synthesizing operand values or silently refreshing state.
 
 `target.function_summary.add` also accepts the canonical optional `results`,
 `effects` and `note` fields. Explicit register effects must partition all sixteen
