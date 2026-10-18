@@ -412,6 +412,13 @@ multi-register transfers, multiple EA updates, conflicting base uses, pointer-ta
 cursors and accesses outside the known record keep their conservative boundary.
 This is type/field evidence, not memory ownership or alias-exclusion proof.
 
+A bounded record cursor may retain its one-past-end value after reading the
+last field. A later predecrement can reenter that same record and resolve its
+fields, including after the cursor is stored as an address. Reads or writes at
+the endpoint remain unresolved; an invalid extra postincrement drops the cursor.
+The final declared array element follows the same rule without inventing a next
+element. Byte, WORD and LONG accesses retain their encoded auto-update syntax.
+
 Brief address-register indexed operands expose their encoded signed-byte
 `indexed_displacement` as an element. `representation.symbol` accepts only an
 equal-valued canonical target EQU; the native renderer checks the actual decoded

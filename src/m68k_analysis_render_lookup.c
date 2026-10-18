@@ -7667,7 +7667,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
             next = 0;
             ++next_index;
           }
-          if (next >= 0 && next < struct_size) {
+          /* Retain a one-past cursor for bounded predecrement back into the
+           * record. Access guards still reject a read/write at that endpoint. */
+          if (next >= 0 && next <= struct_size) {
             typed_state_set_reg_struct_id_array(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg,
               previous.struct_id, previous.array_element_count, next_index, &previous.provenance);
             state->addr_regs[operand->value.ea_reg].byte_cursor = (int32_t)next;

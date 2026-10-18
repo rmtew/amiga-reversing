@@ -3862,3 +3862,73 @@ expressions, data owners and 86 assets are preserved. Both histories retain
 their old prefixes. Native EQU values/display choices and rendered routines
 passed review before the single final C/vasm gate, which reproduces all 376,832
 original bytes, receipt `79cf80bbf1620000c99d4af084d83a7a617a1591c4d0b67ac15903122adfca27`.
+
+## Macro-tile expansion, viewport packets and modal map exchange
+
+The fixed map builder consumes 43 rows of 30 macro-tile IDs. Each ID selects
+one eighteen-byte definition containing nine unsigned WORD pixel offsets in
+3x3 row/column order. Existing owners retain their exact bounds: 1,290 IDs at
+`$3502..$3F16`, and 468 definitions at `$3F16..$5FFE`. The ID map gains a precise
+shared name at both the builder and security-zone consumer; definitions gain
+nine named row/column fields. All original IDs fit 0..467, and all definition
+offsets are 128-byte aligned with maximum `$FD80`. This is original-table
+evidence, not validation of replacement IDs or broader pixel allocation.
+
+Expansion writes exactly 11,610 LONG pointers to the fixed runtime envelope
+`$4000..$F568`, a 90-column by 129-row grid. Source offsets are zero-extended,
+but record lookup uses the signed low WORD of ID*18. The footer separately
+computes stride/size/end from current app dimensions and base; stride scaling
+wraps as WORD before the unsigned height multiplication. Synthetic dimensions
+can therefore describe bounds different from the fixed expansion.
+
+The full viewport launches twenty columns by eight rows. Each packet copies
+one WORD across 64 packed rows with destination stride forty. The next tile
+row begins 2,560 bytes later. Source rows receive one grid-size subtraction
+when they reach the end, while columns have no independent clamp or wrap.
+Initial row*width multiplication retains its upper WORD while the column
+addition and scaling wrap only its low WORD. Later row stepping uses signed
+ADDA.W. The cell-address helper differs: its column addition wraps as WORD,
+then pointer scaling uses LONG arithmetic. Its D0/D1 inputs are restored.
+Packed viewport bounds retain unsigned WORD endpoint wrap without clipping.
+
+The single-tile helper launches one WORD across sixteen packed rows, preserving
+A5. Both helpers poll and acknowledge the BLIT request before launching; neither
+waits after its final launch. The viewport inherits the first-word mask and
+BLTCON1; the single-tile helper inherits both masks and BLTCON1. These programmed
+packets do not prove ascending-mode DMA, completion, exclusive allocation or
+valid arbitrary coordinates.
+
+The modal helper exchanges width, height, column and row WORDs with its saved
+header. It always selects the adjacent modal cell base, including on the second
+exchange, and leaves derived stride/size/end untouched. Both exit callers
+explicitly restore the world-grid base. Native typing now retains a bounded
+one-past record cursor so all four backward header stores resolve to their
+fields. Endpoint accesses remain unresolved; extra out-of-range postincrement
+invalidates the cursor. This general change adds thirteen positive/conservative
+BYTE/WORD/LONG tests and updates two existing endpoint expectations.
+
+Nine original-code tests compare every expanded pointer and adjacent fences,
+exercise five footer geometries, six signed record-index cases, 320 viewport
+packets, ninety viewport arithmetic boundaries, both poll barriers, 196 cell
+address/bounds combinations and two modal exchanges. The full-grid witness
+moves its stack outside the destination envelope. The MMIO shadow performs no
+DMA or acknowledgement side effects. All 819 native checks and 71 focused
+cursor/hardware tests pass. Previously recorded font, scratch, gameplay and
+unclassified eight-byte-gap limits remain open. The unrelated pre-existing
+Hunk numeric-pointer regression stays deferred.
+
+All 94 actions are accepted: seven names, 34 constants, 42 operand
+presentations, five layout/type operations and six comment actions, including
+one preservation revision. All 4,212 definition WORDs expose their row/column
+field names; the selected routines retain no anonymous local labels. Previous
+annotations/SDK expressions, owner identities/bounds, all 86 assets and both
+history prefixes are preserved. Native EQU display choices and rendered units
+were reviewed before the first C/vasm gate, receipt
+`617dde1f00f0b06c6cdda4ab228f62ea19b2c757e131cc8b1a61edffb10a433b`.
+The preservation audit then caught a replaced helper comment; its complete
+original wording is retained with the arithmetic note appended. The final gate
+again reproduces all 376,832 original bytes, receipt
+`adf5914dfe606b4473b38fa755dc6b9dd8088fd9c85e9523f072ccb3d0ada48a`.
+The comment revision changes no implementation; existing native/focused/CPU
+results are reused. New coverage is in `tests/test_one_past_record_cursor.py`
+and `tests/test_pandora_tilemap_grid.py`.
