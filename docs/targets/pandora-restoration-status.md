@@ -3805,3 +3805,60 @@ its precise owner name in assembly. Prior SDK expressions/comments and all 86
 assets are preserved outside that authorized glyph presentation; both histories
 retain their original prefixes. The final C/vasm gate reproduces all 376,832
 original bytes, receipt `86001ecbc830548b40cd075d120615a620b94ed08d1c14782235ca3bbdd24d28`.
+
+## Masked-frame plane packets and WORD address helpers
+
+Four masked-frame helpers and both related address helpers gain complete local
+poll/return labels, SDK-derived mask/shift controls and symbolic geometry. The
+related geometry caller uses the same row-table-origin and phase-mask constants.
+EQU display choices are reviewed as part of the batch: formulas use symbolic
+display, ordinary shifts use decimal and the full-WORD mask uses hex. No data
+owners, frame bounds or original instructions change.
+
+The cookie-cut minterm selects B under A and otherwise C: A is the shared mask,
+B starts at pixel-source+2*plane, and C follows the destination at 40-byte plane
+intervals. The aligned helper uses one WORD; the shifted helper uses two. Mask
+row stride derives from the low input stride WORD divided by four; source and
+background modulos retain WORD underflow/wrap for unchecked dimensions. All
+packets inherit the first-word mask. Existing SDK register/control expressions
+and scratch-envelope comments remain intact.
+
+The edge helpers stage two-WORD pairs at scratch+4*plane with a sixteen-byte
+row stride. The second-edge background begins one WORD before the destination.
+Final copies read scratch or scratch+2 as 4H one-WORD rows, with source stride
+four and destination stride forty. Earlier initialized-height and neighboring-
+WORD envelope limits remain conditional programmed bounds, not a broader scratch
+allocation or phase-exclusion proof. Each launch polls/acks the BLIT request;
+a further poll precedes scratch reading. Final DMA can outlive return. These are
+CPU-programmed packets, not observed DMA fetches.
+
+Every variant restores D4-D7 through MOVEM.W, sign-extending the saved low WORDs,
+even on the zero-height return. The aligned entry clears D6 before saving it.
+Saved address registers are restored as LONGs. Only the low shift nibble reaches the
+hardware fields; nonzero heights can wrap to a zero encoded height field. The
+original zero test, WORD arithmetic, inherited state and lack of admission checks
+remain unchanged.
+
+The address helpers convert unsigned WORD X to an even byte offset, read through
+signed WORD(2*Y), wrap the offset sum as WORD and use signed ADDA.W for a pointer.
+The offset-only variant retains D2's high WORD and preserves D0/D1; it has no
+known static callers, which does not establish unreachability. Neither helper
+checks the 200-entry row-table boundary.
+
+Seven new original-code tests cover 576 four-plane packet sequences, 2,520 WORD-
+input boundary combinations, every plane/scratch poll barrier, register restores
+and 200 remapped-workspace address cases. The remapped workspace backs signed
+indices for arithmetic witnesses; it does not establish valid game coordinates.
+The MMIO shadow performs no acknowledgement side effects or pixel DMA. Actual
+allocation/admission, DMA completion and gameplay reachability remain open, as do
+the previously stated font limits. The eight bytes between the first two helper
+entries remain unclassified; their purpose and entry reachability are not claimed.
+Native/framework code is unchanged, so prior native and focused results are reused.
+The separate pre-existing Hunk numeric-pointer regression remains deferred.
+
+All 93 actions are accepted: 22 local labels, eight constants, 59 operand
+presentations and four behavior comments. All prior source annotations and SDK
+expressions, data owners and 86 assets are preserved. Both histories retain
+their old prefixes. Native EQU values/display choices and rendered routines
+passed review before the single final C/vasm gate, which reproduces all 376,832
+original bytes, receipt `79cf80bbf1620000c99d4af084d83a7a617a1591c4d0b67ac15903122adfca27`.

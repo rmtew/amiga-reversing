@@ -862,8 +862,14 @@ ASCII_CARRIAGE_RETURN	EQU	13
 ASCII_CASE_FOLD_BIT	EQU	5
 ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
+BITMAP_PIXELS_PER_BYTE_SHIFT	EQU	3
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 BLITTER_A_OR_C_MINTERM	EQU	ABC|ABNC|ANBC|ANBNC|NABC|NANBC
+BLITTER_COOKIE_CUT_MINTERM	EQU	ABC|ABNC|NABC|NANBC
+BLITTER_FULL_WORD_MASK	EQU	$FFFF
+BLITTER_HEIGHT_FIELD_MASK	EQU	$FFFF&~((1<<HSIZEBITS)-1)
+BLITTER_SHIFT_NIBBLE_MASK	EQU	(1<<(16-ASHIFTSHIFT))-1
+BLITTER_SHIFT_PACK_RIGHT_BITS	EQU	16-ASHIFTSHIFT
 CAMERA_BOTTOM_WRAP_GUARD_ROWS	EQU	3
 CAMERA_MAP_EDGE_GUARD_PIXELS	EQU	48
 CAMERA_PLAYER_BOTTOM_TRIGGER_PAD	EQU	32
@@ -1015,6 +1021,8 @@ KEYBOARD_INVENTORY_KEY_STATE	EQU	$39BC
 KEYBOARD_IRQ_ACK_MASK	EQU	INTF_RBF|INTF_PORTS|INTF_TBE
 KEYBOARD_PAUSE_KEY_STATE	EQU	$39CC
 KEYBOARD_STATE_BASE	EQU	$397C
+MASKED_FRAME_COPY_CONTROL	EQU	SRCA|SRCB|SRCC|DEST|BLITTER_COOKIE_CUT_MINTERM
+MASKED_FRAME_PLANE_COUNT_SHIFT	EQU	2
 MESSAGE_FAILURE_CCR	EQU	$1
 MESSAGE_FLASH_PHASE_BIT	EQU	2
 MESSAGE_FLASH_TINT_RGB12	EQU	$F55
@@ -8524,29 +8532,30 @@ restore_tile_next_row:
 	dbf.w d1,restore_tile_rows
 	movem.l (a7)+,d2-d5
 	rts
+    ; All variants restore D4-D7 as sign-extended WORDs, even for H=0. This entry zeroes D6 before saving. A0-A2/A5 are restored as LONGs; no completion wait follows the last launch.
 blit_masked_frame_aligned_word_four_planes:
 	moveq.l #0,d6
 	movem.l a0-a2/a5,-(a7)
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
 	tst.w d7
-	beq.w abs_0_00016A0C
-	lsl.w #6,d7
+	beq.w return_from_aligned_masked_frame
+	lsl.w #HSIZEBITS,d7
 	addq.w #1,d7
 	moveq.l #0,d4
 	move.w d5,d4
 	move.l d4,d5
-	lsr.w #2,d4
+	lsr.w #MASKED_FRAME_PLANE_COUNT_SHIFT,d4
 	subq.w #2,d5
 	subq.w #2,d4
-abs_0_00016944:
+wait_aligned_masked_frame_plane_0:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016944
+	btst #INTB_BLIT,d0
+	beq.b wait_aligned_masked_frame_plane_0
 	move.w #INTF_BLIT,intreq(a5)
-	move.w #$FFFF,bltalwm(a5)
+	move.w #BLITTER_FULL_WORD_MASK,bltalwm(a5)
 	move.w d6,bltcon1(a5)
-	ori.w #4042,d6
+	ori.w #MASKED_FRAME_COPY_CONTROL,d6
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
@@ -8558,11 +8567,11 @@ abs_0_00016944:
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
-abs_0_00016994:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
+wait_aligned_masked_frame_plane_1:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016994
+	btst #INTB_BLIT,d0
+	beq.b wait_aligned_masked_frame_plane_1
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8570,11 +8579,11 @@ abs_0_00016994:
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
-abs_0_000169BE:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
+wait_aligned_masked_frame_plane_2:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_000169BE
+	btst #INTB_BLIT,d0
+	beq.b wait_aligned_masked_frame_plane_2
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8582,47 +8591,48 @@ abs_0_000169BE:
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
-abs_0_000169E8:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
+wait_aligned_masked_frame_plane_3:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_000169E8
+	btst #INTB_BLIT,d0
+	beq.b wait_aligned_masked_frame_plane_3
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
-abs_0_00016A0C:
+return_from_aligned_masked_frame:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a2/a5
 	rts
 	dc.b $61,$06,$50,$88,$54,$89,$54,$8A
+    ; SWAP/CLR/ROR packs the input WORD; only its low four bits reach hardware shift fields. Height and modulo arithmetic wrap as WORD. A nonzero height can encode a zero BLTSIZE height field.
 blit_masked_frame_shifted_two_words_four_planes:
 	movem.l a0-a2/a5,-(a7)
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
 	tst.w d7
-	beq.w abs_0_00016B0E
-	lsl.w #6,d7
+	beq.w return_from_shifted_masked_frame
+	lsl.w #HSIZEBITS,d7
 	addq.w #2,d7
 	moveq.l #0,d4
 	move.w d5,d4
 	move.l d4,d5
-	lsr.w #2,d4
+	lsr.w #MASKED_FRAME_PLANE_COUNT_SHIFT,d4
 	subq.w #4,d4
 	subq.w #4,d5
 	swap.w d6
 	clr.w d6
-	ror.l #4,d6
-abs_0_00016A48:
+	ror.l #BLITTER_SHIFT_PACK_RIGHT_BITS,d6
+wait_shifted_masked_frame_plane_0:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016A48
+	btst #INTB_BLIT,d0
+	beq.b wait_shifted_masked_frame_plane_0
 	move.w #INTF_BLIT,intreq(a5)
 	clr.w bltalwm(a5)
 	move.w d6,bltcon1(a5)
-	addi.w #4042,d6
+	addi.w #MASKED_FRAME_COPY_CONTROL,d6
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
@@ -8634,11 +8644,11 @@ abs_0_00016A48:
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
-abs_0_00016A96:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
+wait_shifted_masked_frame_plane_1:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016A96
+	btst #INTB_BLIT,d0
+	beq.b wait_shifted_masked_frame_plane_1
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8646,11 +8656,11 @@ abs_0_00016A96:
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
-abs_0_00016AC0:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
+wait_shifted_masked_frame_plane_2:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016AC0
+	btst #INTB_BLIT,d0
+	beq.b wait_shifted_masked_frame_plane_2
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8658,18 +8668,18 @@ abs_0_00016AC0:
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
-abs_0_00016AEA:
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
+wait_shifted_masked_frame_plane_3:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016AEA
+	btst #INTB_BLIT,d0
+	beq.b wait_shifted_masked_frame_plane_3
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
 	move.l a2,bltcpt(a5)	; blitter_source pointer
 	move.l a2,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
-abs_0_00016B0E:
+return_from_shifted_masked_frame:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a2/a5
 	rts
@@ -8679,29 +8689,29 @@ blit_masked_frame_first_word_via_shared_scratch:
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
 	tst.w d7
-	beq.w abs_0_00016C56
-	lsl.w #6,d7
+	beq.w return_from_first_edge_masked_frame
+	lsl.w #HSIZEBITS,d7
 	addq.w #2,d7
 	moveq.l #0,d4
 	move.w d5,d4
 	move.l d4,d5
-	lsr.w #2,d4
+	lsr.w #MASKED_FRAME_PLANE_COUNT_SHIFT,d4
 	subq.w #4,d5
 	subq.w #4,d4
 	swap.w d6
 	clr.w d6
-	ror.l #4,d6
+	ror.l #BLITTER_SHIFT_PACK_RIGHT_BITS,d6
 	lea.l cursor_sprite_initial_rows_shared_scratch.l,a3
 	move.l a2,-(a7)
 	move.l a3,-(a7)
-abs_0_00016B4C:
+wait_first_edge_masked_frame_plane_0:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016B4C
+	btst #INTB_BLIT,d0
+	beq.b wait_first_edge_masked_frame_plane_0
 	move.w #INTF_BLIT,intreq(a5)
 	clr.w bltalwm(a5)
 	move.w d6,bltcon1(a5)
-	ori.w #4042,d6
+	ori.w #MASKED_FRAME_COPY_CONTROL,d6
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
@@ -8713,12 +8723,12 @@ abs_0_00016B4C:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	addq.l #4,a3
-abs_0_00016B9C:
+wait_first_edge_masked_frame_plane_1:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016B9C
+	btst #INTB_BLIT,d0
+	beq.b wait_first_edge_masked_frame_plane_1
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8726,12 +8736,12 @@ abs_0_00016B9C:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	addq.l #4,a3
-abs_0_00016BC8:
+wait_first_edge_masked_frame_plane_2:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016BC8
+	btst #INTB_BLIT,d0
+	beq.b wait_first_edge_masked_frame_plane_2
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8739,12 +8749,12 @@ abs_0_00016BC8:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	addq.l #4,a3
-abs_0_00016BF4:
+wait_first_edge_masked_frame_plane_3:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016BF4
+	btst #INTB_BLIT,d0
+	beq.b wait_first_edge_masked_frame_plane_3
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8752,23 +8762,23 @@ abs_0_00016BF4:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
     ; Staging uses 16B/row. Final one-WORD copy has 4H rows, A stride4B and D stride40B; initialized H<=48 bounds scratch to768B. Wait before reading; final DMA can outlive return.
-abs_0_00016C18:
+wait_first_edge_scratch_copy:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016C18
+	btst #INTB_BLIT,d0
+	beq.b wait_first_edge_scratch_copy
 	move.w #INTF_BLIT,intreq(a5)
-	move.w #$FFFF,bltalwm(a5)
+	move.w #BLITTER_FULL_WORD_MASK,bltalwm(a5)
 	move.l (a7)+,bltapt(a5)	; blitter_source pointer
 	move.l (a7)+,bltdpt(a5)	; blitter_destination pointer
 	move.w #SCENE_EDGE_COPY_SOURCE_MODULO,bltamod(a5)
 	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
-	andi.w #65472,d7
+	andi.w #BLITTER_HEIGHT_FIELD_MASK,d7
 	add.w d7,d7
 	add.w d7,d7
 	addq.w #1,d7
 	move.w d7,bltsize(a5)
-abs_0_00016C56:
+return_from_first_edge_masked_frame:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
@@ -8778,30 +8788,30 @@ blit_masked_frame_second_word_via_shared_scratch:
 	movem.w d4-d7,-(a7)
 	lea.l _custom.l,a5
 	tst.w d7
-	beq.w abs_0_00016DA4
-	lsl.w #6,d7
+	beq.w return_from_second_edge_masked_frame
+	lsl.w #HSIZEBITS,d7
 	addq.w #2,d7
 	moveq.l #0,d4
 	move.w d5,d4
 	move.l d4,d5
-	lsr.w #2,d4
+	lsr.w #MASKED_FRAME_PLANE_COUNT_SHIFT,d4
 	subq.w #4,d4
 	subq.w #4,d5
 	swap.w d6
 	clr.w d6
-	ror.l #4,d6
+	ror.l #BLITTER_SHIFT_PACK_RIGHT_BITS,d6
 	lea.l cursor_sprite_initial_rows_shared_scratch.l,a3
 	move.l a2,-(a7)
 	move.l a3,-(a7)
 	subq.l #2,a2
-abs_0_00016C96:
+wait_second_edge_masked_frame_plane_0:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016C96
+	btst #INTB_BLIT,d0
+	beq.b wait_second_edge_masked_frame_plane_0
 	move.w #INTF_BLIT,intreq(a5)
 	clr.w bltalwm(a5)
 	move.w d6,bltcon1(a5)
-	ori.w #4042,d6
+	ori.w #MASKED_FRAME_COPY_CONTROL,d6
 	move.w d6,bltcon0(a5)
 	move.w d4,bltamod(a5)
 	move.w d5,bltbmod(a5)
@@ -8813,12 +8823,12 @@ abs_0_00016C96:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	addq.l #4,a3
-abs_0_00016CE6:
+wait_second_edge_masked_frame_plane_1:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016CE6
+	btst #INTB_BLIT,d0
+	beq.b wait_second_edge_masked_frame_plane_1
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8826,12 +8836,12 @@ abs_0_00016CE6:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	addq.l #4,a3
-abs_0_00016D12:
+wait_second_edge_masked_frame_plane_2:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016D12
+	btst #INTB_BLIT,d0
+	beq.b wait_second_edge_masked_frame_plane_2
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8839,12 +8849,12 @@ abs_0_00016D12:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
 	addq.l #2,a0
-	lea.l $0028(a2),a2
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a2),a2
 	addq.l #4,a3
-abs_0_00016D3E:
+wait_second_edge_masked_frame_plane_3:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016D3E
+	btst #INTB_BLIT,d0
+	beq.b wait_second_edge_masked_frame_plane_3
 	move.w #INTF_BLIT,intreq(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltbpt(a5)	; blitter_source pointer
@@ -8852,12 +8862,12 @@ abs_0_00016D3E:
 	move.l a3,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltsize(a5)
     ; Final copy selects scratch+2, the second WORD of each four-byte pair, then copies 4H one-WORD rows with A stride4B and D stride40B. Initialized H<=48 is a bound, not an admission check.
-abs_0_00016D62:
+wait_second_edge_scratch_copy:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016D62
+	btst #INTB_BLIT,d0
+	beq.b wait_second_edge_scratch_copy
 	move.w #INTF_BLIT,intreq(a5)
-	move.w #$FFFF,bltalwm(a5)
+	move.w #BLITTER_FULL_WORD_MASK,bltalwm(a5)
 	movea.l (a7)+,a3
 	addq.l #2,a3
 	move.l a3,bltapt(a5)	; blitter_source pointer
@@ -8865,32 +8875,34 @@ abs_0_00016D62:
 	move.w #SCENE_EDGE_COPY_SOURCE_MODULO,bltamod(a5)
 	move.w #SCENE_PLANE_WORD_MODULO,bltdmod(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
-	andi.w #65472,d7
+	andi.w #BLITTER_HEIGHT_FIELD_MASK,d7
 	add.w d7,d7
 	add.w d7,d7
 	addq.w #1,d7
 	move.w d7,bltsize(a5)
-abs_0_00016DA4:
+return_from_second_edge_masked_frame:
 	movem.w (a7)+,d4-d7
 	movem.l (a7)+,a0-a3/a5
 	rts
+    ; X WORD >>3 is aligned to an even byte. Row lookup uses signed WORD(2*Y), without a bounds check. Offset addition wraps as WORD; ADDA.W sign-extends it. D0-D2 are preserved.
 get_back_buffer_word_address:
 	movem.l d0-d2,-(a7)
-	lsr.w #3,d0
+	lsr.w #BITMAP_PIXELS_PER_BYTE_SHIFT,d0
 	bclr #0,d0
 	add.w d1,d1
-	add.w $0(a6,d1.w),d0
+	add.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d0
 	movea.l app_back_bitplane_base(a6),a1
 	adda.w d0,a1
 	movem.l (a7)+,d0-d2
 	rts
+    ; D2 low WORD returns the aligned offset; D0/D1 and D2 high WORD survive. Signed WORD row indexing and wrapped offset remain unchecked. No static callers are known.
 calculate_tilemap_buffer_offset:
 	move.l d1,-(a7)
 	move.w d0,d2
-	lsr.w #3,d2
+	lsr.w #BITMAP_PIXELS_PER_BYTE_SHIFT,d2
 	andi.b #BITMAP_WORD_ALIGNMENT_MASK,d2
 	add.w d1,d1
-	add.w $0(a6,d1.w),d2
+	add.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d2
 	move.l (a7)+,d1
 	rts
 copy_world_object_field_30_to_indirect_slot_4:
@@ -9157,7 +9169,7 @@ draw_geometry_test_left_alignment:
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
-	move.w $0(a6,d1.w),d1
+	move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1
 	clr.w d6
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d1,a2
@@ -9177,9 +9189,9 @@ draw_geometry_left_shifted_edge:
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
-	move.w $0(a6,d1.w),d1
+	move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1
 	move.w d0,d6
-	andi.w #15,d6
+	andi.w #BLITTER_SHIFT_NIBBLE_MASK,d6
 	movea.l app_back_bitplane_base(a6),a2
 	adda.w d1,a2
 	subq.l #8,a0
@@ -9222,9 +9234,9 @@ draw_geometry_right_clipped_origin:
 	exg d0,d2
 	exg d1,d3
 	add.w d1,d1
-	move.w $0(a6,d1.w),d1
+	move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1
 	move.w d0,d6
-	andi.w #15,d6
+	andi.w #BLITTER_SHIFT_NIBBLE_MASK,d6
 	movea.l app_back_bitplane_base(a6),a2
 	andi.b #240,d0
 	lsr.w #3,d0
