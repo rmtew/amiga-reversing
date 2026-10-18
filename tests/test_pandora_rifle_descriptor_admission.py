@@ -95,3 +95,16 @@ def test_separately_accepted_left_aim_crosses_one_clear_tile_before_wall():
         assert reads[0x1924c]==bytes.fromhex('05010501' if i<3 else '05010401')
         assert reads[0x5c35e]==bytes.fromhex('005f') and reads[0x5bc46]==bytes.fromhex('0037')
     assert captures(phases[-1])[0x5c352]==ready[0x5c352]
+
+
+def test_north_firing_candidate_stops_at_combat_guard_before_any_shot():
+    observation=REPORT['north_firing_line_guard'];phases=observation['phases']
+    assert observation['status']=='incomplete' and len(phases)==2
+    assert phases[1]['termination']=='capture_expectation_mismatch'
+    assert phases[1]['occurrences_observed']==11 and phases[1]['occurrences_requested']==32
+    assert phases[1]['payload']['payload_sha256']==REPORT['original_sha256']
+    reads=captures(phases[1])
+    assert reads[0x3c2a]==bytes.fromhex('22') and reads[0x5c35e]==bytes.fromhex('005f')
+    assert int.from_bytes(reads[0x5c352][:2],'big')==1221+10000
+    assert reads[0x1924c]==bytes.fromhex('05010501')
+    assert not any(p['payload']['payload_offset']=='0x92e2' for p in phases)

@@ -1301,6 +1301,11 @@ TERMINAL_CARD_FEEDBACK_AUDIO_SEQUENCE	EQU	$110
 TERMINAL_CARD_VALUE_TEXT_PLANES	EQU	$7
 TERMINAL_DENIED_FEEDBACK_AUDIO_SEQUENCE	EQU	$216
 TERMINAL_DENIED_TEXT_PLANES	EQU	$5
+TERMINAL_DEPOSIT_EXCLUSIVE_DISTANCE	EQU	24
+TERMINAL_DEPOSIT_FEEDBACK_SEQUENCE	EQU	$106
+TERMINAL_DEPOSIT_MIN_ITEM_ID	EQU	2
+TERMINAL_DEPOSIT_STORAGE_BYTES	EQU	64
+TERMINAL_DEPOSIT_UI_BLOCK_MASK	EQU	(1<<UI_FLAG_COMBAT_ACTIVE)|(1<<UI_FLAG_INVENTORY_PANEL_ACTIVE)
 TERMINAL_DISPLAY_CARD_COUNT	EQU	8
 TERMINAL_DISPLAY_CLEAR_CELL	EQU	2
 TERMINAL_DISPLAY_CLEAR_LAST_PLANE_ROW	EQU	383
@@ -1430,6 +1435,7 @@ WORLD_OBJECT_INTERACTION_EXCLUSIVE_Y	EQU	16
 WORLD_OBJECT_INTERACTION_MESSAGE_DISP	EQU	world_object_shared_prefix_interaction_message_ptr
 WORLD_OBJECT_INVENTORY_PTR_DISP	EQU	world_object_shared_prefix_inventory_slots_ptr
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
+WORLD_OBJECT_SAVED_POSITION_STATE_OFFSET	EQU	world_object_shared_prefix_saved_position_state_ptr
 WORLD_OBJECT_SCRIPT_TRAVERSAL_BLOCK_MASK	EQU	$42
 WORLD_OBJECT_SELECTED_ITEM_DISP	EQU	world_object_shared_prefix_selected_item_id
 WORLD_OBJECT_TRADE_COMBAT_DISABLED_BIT	EQU	4
@@ -1454,7 +1460,7 @@ WORLD_RESTART_PLAYER_X	EQU	241
 WORLD_RESTART_PLAYER_Y_WITHIN_ROW	EQU	50
 WORLD_RESTART_RECEPTACLE_LAST_INDEX	EQU	5
 WORLD_RESTART_SELF_DESTRUCT_STEPS	EQU	3000
-WORLD_RESTART_TERMINAL_LAST_LONGWORD	EQU	15
+WORLD_RESTART_TERMINAL_LAST_LONGWORD	EQU	TERMINAL_DEPOSIT_STORAGE_BYTES/4-1
 WORLD_RESTART_TICKER_HIGHLIGHT_RGB12	EQU	$EEE
 WORLD_SCRIPT_ACTOR_CURSOR_OFFSET	EQU	world_object_shared_prefix_behavior_script_ptr
 WORLD_SCRIPT_ACTOR_DELAY_OFFSET	EQU	world_object_shared_prefix_behavior_script_delay_ticks
@@ -6959,7 +6965,7 @@ active_world_object_ptr_table:
 	dc.l item_receptacle_position_descriptors+$24	; descriptor_ptr
 	dc.l item_receptacle_position_descriptors+$30	; descriptor_ptr
 	dc.l item_receptacle_position_descriptors+$3C	; descriptor_ptr
-	dc.l abs_0_000591EE	; descriptor_ptr
+	dc.l salvage_deposit_position_descriptor	; descriptor_ptr
 	dc.l gardener_positions_4AF7E_1	; descriptor_ptr
 	dc.l robomechanic_positions_4B454_1	; descriptor_ptr
 world_object_sort_source_ptrs:
@@ -15140,24 +15146,24 @@ update_player_security_zone:
 	cmp.w #SECURITY_ZONE_3_END_SELECTOR,d0
 	bcc.b select_unrestricted_security_zone
 	cmp.w #SECURITY_ZONE_0_END_SELECTOR,d0
-	bcc.b abs_0_000187AA
+	bcc.b test_security_zone_one_selector_interval
 	moveq.l #0,d0
 	bra.b store_player_security_zone_tier
-abs_0_000187AA:
+test_security_zone_one_selector_interval:
 	cmp.w #SECURITY_ZONE_1_FIRST_SELECTOR,d0
 	bcs.b select_unrestricted_security_zone
 	cmp.w #SECURITY_ZONE_1_END_SELECTOR,d0
-	bcc.b abs_0_000187BA
+	bcc.b test_security_zone_two_selector_interval
 	moveq.l #1,d0
 	bra.b store_player_security_zone_tier
-abs_0_000187BA:
+test_security_zone_two_selector_interval:
 	cmp.w #SECURITY_ZONE_2_FIRST_SELECTOR,d0
 	bcs.b select_unrestricted_security_zone
 	cmp.w #SECURITY_ZONE_2_END_SELECTOR,d0
-	bcc.b abs_0_000187CA
+	bcc.b test_security_zone_three_selector_interval
 	moveq.l #2,d0
 	bra.b store_player_security_zone_tier
-abs_0_000187CA:
+test_security_zone_three_selector_interval:
 	cmp.w #SECURITY_ZONE_3_FIRST_SELECTOR,d0
 	bcs.b select_unrestricted_security_zone
 	moveq.l #3,d0
@@ -15181,10 +15187,10 @@ check_selected_id_card_security_clearance:
 	cmp.b app_player_security_zone_tier(a6),d0
 	bls.b reject_selected_id_clearance
 	move.w d0,d0
-	bra.b abs_0_00018806
+	bra.b return_from_selected_id_clearance
 reject_selected_id_clearance:
 	move #$1,ccr
-abs_0_00018806:
+return_from_selected_id_clearance:
 	rts
 clear_security_checkpoint_state:
 	clr.b app_security_checkpoint_response_active(a6)
@@ -15193,11 +15199,11 @@ clear_security_checkpoint_state:
     ; Inactive player freezes service. An existing flash bypasses combat/checkpoint tests. Missing checkpoint clears response; unrestricted zone or valid selected ID pauses it without clearing.
 process_security_checkpoint_response:
 	lea.l player_world_object.l,a4
-	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a4)
 	bne.b return_from_security_checkpoint_service
 	tst.b app_security_damage_flash_ticks_remaining(a6)
 	bne.b service_security_damage_palette_flash
-	btst.b #1,app_ui_flags(a6)
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
 	bne.b return_from_security_checkpoint_service
 	move.l app_nearest_object_ptr(a6),d0
 	beq.b clear_security_response_if_checkpoint_missing
@@ -15205,13 +15211,13 @@ process_security_checkpoint_response:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a0),a0
 	btst.b #WORLD_POSITION_SECURITY_CHECKPOINT_BIT,world_position_state_record_world_object_flags(a0)
-	bne.b abs_0_00018850
+	bne.b test_checkpoint_zone_and_selected_card
 clear_security_response_if_checkpoint_missing:
 	tst.b app_security_checkpoint_response_active(a6)
 	bne.b clear_security_checkpoint_state
 return_from_security_checkpoint_service:
 	rts
-abs_0_00018850:
+test_checkpoint_zone_and_selected_card:
 	bsr.w update_player_security_zone
 	bmi.b return_from_security_checkpoint_service
 	bsr.b check_selected_id_card_security_clearance
@@ -15249,11 +15255,11 @@ service_security_damage_palette_flash:
 finish_security_checkpoint_player_death:
 	lea.l player_world_object.l,a4
 	clr.w world_object_shared_prefix_hit_points(a4)
-	bset.b #1,world_object_shared_prefix_world_object_flags(a4)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a4)
 	move.b #GAME_EXIT_DELAY_SERVICE_STEPS,app_game_exit_service_ticks_remaining(a6)
 	jsr enqueue_game_outcome_and_rank_messages.l
 	lea.l player_static_defeat_state.l,a0
-	move.l a0,$004E(a4)
+	move.l a0,WORLD_OBJECT_SAVED_POSITION_STATE_OFFSET(a4)
 	lea.l player_final_pose_geometry_frames.l,a1
 	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a0)
 	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a0)
@@ -15262,7 +15268,7 @@ finish_security_checkpoint_player_death:
 	bsr.w draw_object_health_status
     ; With the initialized static defeat state (NULL node), exchange clears bit 0 at absolute $A and WORD at $10. No NULL guard exists; these original low-memory writes are not owned-node accesses.
 	jsr exchange_world_object_position_states.l
-	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bra.w return_from_security_checkpoint_service
     ; A normal flash reload of 31 uses palette indices 1..30, then restores the saved color. All 32 WORDs remain physical data; the endpoints are not normal flash outputs.
 select_security_flash_palette_color:
@@ -15282,7 +15288,7 @@ security_checkpoint_damage_flash_rgb12_colors:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 begin_security_checkpoint_response:
 	move.l a5,d0
-	beq.b abs_0_00018982
+	beq.b return_from_security_response_start
 	move.w initial_gameplay_palette_color_2.l,app_security_saved_palette_color(a6)
 	jsr start_paired_feedback_audio_sequences.l
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
@@ -15290,53 +15296,68 @@ begin_security_checkpoint_response:
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	move.b (a0),world_object_shared_prefix_selected_item_id(a5)	; operand 1: inventory_item_slot_item_id at (a0)
 	bsr.w display_current_item_name
-abs_0_00018982:
+return_from_security_response_start:
 	rts
+    ; Held fire is a level gate, not a fresh-edge latch. UI bits 1/2 and inactive player reject. A newly supplied held item can deposit on another visit while fire remains held; IDs 0/1 reject.
 process_terminal_item_deposit:
 	tst.b app_input_fire_pressed_ff(a6)
-	beq.w abs_0_00018A16
+	beq.w return_from_terminal_item_deposit
 	move.b app_ui_flags(a6),d0
-	andi.b #6,d0
-	bne.w abs_0_00018A16
-	lea.l abs_0_000591EE.l,a0
+	andi.b #TERMINAL_DEPOSIT_UI_BLOCK_MASK,d0
+	bne.w return_from_terminal_item_deposit
+	lea.l salvage_deposit_position_descriptor.l,a0
 	lea.l player_world_object.l,a4
-	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
-	bne.b abs_0_00018A16
-	move.w $0004(a0),d0
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a4)
+	bne.b return_from_terminal_item_deposit
+measure_terminal_deposit_horizontal_distance:
+	move.w world_position_descriptor_prefix_world_x(a0),d0
 	sub.w world_object_shared_prefix_world_x(a4),d0
-	bpl.b abs_0_000189B8
+	bpl.b measure_terminal_deposit_vertical_distance
 	neg.w d0
-abs_0_000189B8:
-	move.w $0006(a0),d1
+measure_terminal_deposit_vertical_distance:
+	move.w world_position_descriptor_prefix_world_y(a0),d1
 	sub.w world_object_shared_prefix_world_y(a4),d1
-	bpl.b abs_0_000189C4
+	bpl.b test_terminal_deposit_wrapped_distance
 	neg.w d1
-abs_0_000189C4:
+    ; Distance sums wrapped WORD magnitudes and admits unsigned values below 24. Reads current descriptor XY, so an admitted marker-position change affects this gate; there is no coordinate clamp.
+test_terminal_deposit_wrapped_distance:
 	add.w d1,d0
-	cmp.w #$18,d0
-	bcc.b abs_0_00018A16
+	cmp.w #TERMINAL_DEPOSIT_EXCLUSIVE_DISTANCE,d0
+	bcc.b return_from_terminal_item_deposit
+test_terminal_deposit_selected_item:
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	cmp.b #$2,d0
-	bcs.b abs_0_00018A16
+	cmp.b #TERMINAL_DEPOSIT_MIN_ITEM_ID,d0
+	bcs.b return_from_terminal_item_deposit
+prepare_terminal_deposit_storage_scan:
 	lea.l app_terminal_deposited_item_ids(a6),a0
-abs_0_000189DA:
+    ; Find first zero BYTE with no capacity check. Explicit full-buffer states can pass the declared 64-byte prefix into modal cache and ranged-fire latch. Ordinary overflow remains unproved.
+find_first_empty_terminal_deposit_byte:
 	tst.b (a0)+
-	bne.b abs_0_000189DA
+	bne.b find_first_empty_terminal_deposit_byte
+store_terminal_deposit_and_clear_holding:
 	move.b d0,-(a0)
 	clr.b world_object_shared_prefix_selected_item_id(a4)
+    ; Holding is cleared before ID recheck is requested. Deposited IDs are not searched by possession: only holding, four carried and four pocket IDs count. A spare ID can still satisfy recheck.
+request_id_recheck_after_terminal_deposit:
 	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
+    ; The salvage bitset has 15 bytes. Accepted injected IDs 120..255 read adjacent tile-block bits; normal acquisition is unproved. Count increments as BYTE with wrap.
+test_deposited_item_salvage_eligibility:
 	lea.l salvage_item_eligibility_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
-	beq.b abs_0_000189FA
+	beq.b enqueue_terminal_deposit_feedback
+increment_terminal_salvage_count:
 	addq.b #1,app_salvage_item_count(a6)
-abs_0_000189FA:
+enqueue_terminal_deposit_feedback:
 	lea.l terminal_item_deposited_message.l,a0
+    ; Transfer, held-item clear, ID-recheck request and salvage count precede feedback. A full message FIFO does not roll them back; holding refresh and the fixed feedback-audio call still run.
 	bsr.w enqueue_scrolling_message
 	bsr.w enqueue_blank_scrolling_message
+refresh_holding_after_terminal_deposit:
 	bsr.w refresh_selected_item_name_display
-	move.w #$106,d0
+play_terminal_deposit_feedback:
+	move.w #TERMINAL_DEPOSIT_FEEDBACK_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_00018A16:
+return_from_terminal_item_deposit:
 	rts
 modal_tilemap_context:
 	dc.w $0014	; width
@@ -21686,13 +21707,31 @@ world_position_unassigned_frame_entries:
 	dc.l world_position_animation_frames_bitplane_data_ptr_14	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_13	; frame_ptr
 	dc.l world_position_animation_frames_bitplane_data_ptr_12	; frame_ptr
-	dc.b $00,$05,$0E,$08,$00,$06,$85,$FC,$00,$02,$00,$20,$00,$20,$00,$00
-	dc.b $00,$00
-abs_0_000591EE:
-	dc.b $00,$05,$91,$FA,$00,$94,$03,$C4,$00,$94,$03,$C4,$00,$05,$91,$DC
-	dc.b $00,$05,$91,$DC
-	dcb.b $9,$00
-	dc.b $05,$91,$EE,$00,$00,$00,$00,$00,$00
+salvage_deposit_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_39	; bitplane_data_ptr
+	dc.l scene_mask_bank_39	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0020	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+    ; Initial 35-object table has no matching record. Deposit reads current XY; admitted offscreen anonymous hits can move this marker. The tested world initializer retains those coordinates.
+salvage_deposit_position_descriptor:
+	dc.l salvage_deposit_render_state	; position_state_ptr
+	dc.w $0094	; world_x
+	dc.w $03C4	; world_y
+	dc.w $0094	; previous_world_x
+	dc.w $03C4	; previous_world_y
+salvage_deposit_render_state:
+	dc.l salvage_deposit_geometry	; current_geometry_ptr
+	dc.l salvage_deposit_geometry	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l salvage_deposit_position_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
 world_object_squash_player:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_squash_player	; interaction_callback
@@ -27586,8 +27625,11 @@ queue_final_rank_rating:
 	jsr enqueue_status_message.l
 	rts
 salvage_rank_message_ptrs:
-	dc.l $0005CCF5,$0005CD0B,$0005CD25,$0005CD3E	; lookup_table
-	dc.l $0005CD57	; lookup_table
+	dc.l salvage_rank_quite_useful_message	; mode=required, data_role=pointer_table, unit=pointer
+	dc.l salvage_rank_extremely_useful_message
+	dc.l salvage_rank_very_profitable_message
+	dc.l salvage_rank_highly_valuable_message
+	dc.l salvage_rank_priceless_message
 select_defeat_rank_message:
 	move.b app_defeated_object_count(a6),d0
 	lea.l mercenary_rank_dog_meat_message(pc),a0
@@ -27640,11 +27682,16 @@ mercenary_rank_mad_psycho_message:
 	dc.b ". . MAD  PSYCHO . .",$00
 mercenary_rank_son_of_satan_message:
 	dc.b ". . SON  OF  SATAN . .",$00
-	dc.b ". . QUITE  USEFUL . .",$00
-	dc.b ". . EXTREMELY  USEFUL . .",$00
-	dc.b ". . VERY  PROFITABLE . .",$00
-	dc.b ". . HIGHLY  VALUABLE . .",$00
-	dc.b ". . PRICELESS . .",$00
+salvage_rank_quite_useful_message:
+	dc.b ". . QUITE  USEFUL . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+salvage_rank_extremely_useful_message:
+	dc.b ". . EXTREMELY  USEFUL . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+salvage_rank_very_profitable_message:
+	dc.b ". . VERY  PROFITABLE . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+salvage_rank_highly_valuable_message:
+	dc.b ". . HIGHLY  VALUABLE . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+salvage_rank_priceless_message:
+	dc.b ". . PRICELESS . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 musician_drink_request_message:
 	dc.b $22,"Give me a drink,and I",$22,"ll play you a song",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 musician_captains_colours_response:

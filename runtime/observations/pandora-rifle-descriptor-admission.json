@@ -1372,5 +1372,718 @@
     "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
     "annotations_accepted": 24,
     "focused_checks": "3 original CPU sorting tests and 4 runtime receipt regressions passed; unrelated prior checks reused."
+  },
+  "north_firing_line_guard": {
+    "status": "incomplete",
+    "direct_payload_handoff": {
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "size": 376832,
+      "load_address": 131072,
+      "status": "verified",
+      "verification_source": "checkpoint_root"
+    },
+    "reverse_boundary": {
+      "memory_write": null,
+      "reverse_anchor": "after_state_load",
+      "replay_across_write": false,
+      "materialization": {
+        "status": "verified",
+        "entrypoint": 66666,
+        "size": 349040,
+        "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+        "source_consumed_at_entry": true,
+        "input_backing_retained": true,
+        "initialization": null
+      },
+      "replay_across_load": false,
+      "verification_source": "checkpoint_root",
+      "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643"
+    },
+    "checkpoint": {
+      "load": {
+        "status": "restored",
+        "receipt_sha256": "7b61778201565cb3841db0250117e6412e824e60182633ec1956237ae5599a19",
+        "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+        "root_verification": "inherited_from_saved_execution",
+        "reverse_anchor": "after_state_load",
+        "replay_across_load": false
+      },
+      "save": {
+        "status": "not_saved",
+        "reason": "scenario_incomplete"
+      }
+    },
+    "scenario_identifier": "pandora-flight-attachment-shot",
+    "phases": [
+      {
+        "name": "flight_route_anchor",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "04cc036a0000000000000000005f005f0064000000011200000000080000000000000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc2e",
+              "bytes": "00011fa200011f820005bfba045003aa000000000000000000370037005a00bc000100000000540020200005be600000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bfba",
+              "bytes": "0005bfc6045003aa045003aa",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bfc6",
+              "bytes": "0005bcee0005bcee00000000000800100005bfba0005bfe001880005bcca0005bcca0005c1c0000000000005bfba000000000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005be60",
+              "bytes": "0005bd480005bd480005be4e000400000005bfba000000000042",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010501",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "0000070000000000000011",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003c2b",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 559
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "20",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x00003d23",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 807
+            }
+          ]
+        },
+        "resolved_function": null,
+        "address": "0x000105ca",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      },
+      {
+        "name": "north_input_window",
+        "stable_key": "s0:000005CA:instruction",
+        "capture": {
+          "registers": {
+            "a6": "0x000039fc"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0005c352",
+              "bytes": "2bd503560000000000000000005f005f0064000000010000000000010000000000000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c35e",
+              "bytes": "005f",
+              "base_register": null,
+              "offset": null,
+              "expectation": {
+                "expected_hex": "005f",
+                "mask_hex": "ffff",
+                "matched": true
+              }
+            },
+            {
+              "address": "0x0005bc2e",
+              "bytes": "00011fa200011f820005bfba0450039e000000000000000000370037005a27cd000200000000540020200005be600000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bfba",
+              "bytes": "0005bfc60450039e045003a0",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005bfc6",
+              "bytes": "0005bcee0005bcee00000000000800100005bfba0005bfe000880005bca60005bca60005c1c0000000000005bfba000000000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005be60",
+              "bytes": "0005bd480005bd480005be4e000400000005bfba000000000042",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0001924c",
+              "bytes": "05010501",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x00003d17",
+              "bytes": "000000fffc000000000006",
+              "base_register": "a6",
+              "offset": 795
+            },
+            {
+              "address": "0x00003c2b",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 559
+            },
+            {
+              "address": "0x00003c2a",
+              "bytes": "22",
+              "base_register": "a6",
+              "offset": 558,
+              "expectation": {
+                "expected_hex": "00",
+                "mask_hex": "06",
+                "matched": false
+              }
+            },
+            {
+              "address": "0x00003d23",
+              "bytes": "00",
+              "base_register": "a6",
+              "offset": 807
+            }
+          ]
+        },
+        "resolved_function": null,
+        "occurrences_requested": 32,
+        "occurrences_observed": 11,
+        "first_visit": {
+          "pc": "0x000105ca",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        },
+        "last_visit": {
+          "pc": "0x000105ca",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        },
+        "address": "0x000105ca",
+        "status": "not_hit",
+        "termination": "capture_expectation_mismatch",
+        "stop_reason": "breakpoint-hit",
+        "pc": "0x000105ca",
+        "sp": "0x00010452",
+        "stack_return_address": "0x00000010",
+        "payload": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x5ca"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x5ca",
+          "runtime_base": "0x00010000"
+        }
+      }
+    ],
+    "limit": "Only north input ran. At visit11/32 the combat UI bit violated the guard; later movement, waiting and fire phases never ran. Player HP95, controller HP55 and ammunition5/1 remain. Player X11221 equals1221 plus the original10000 combat-entry bias. This result applies only to that input window and route.",
+    "inspected_head": "a601d51aa43c9e26554625a9d2a5b7187f7e2c7c"
+  },
+  "additional_staging_checks": {
+    "observations": [
+      {
+        "scenario_identifier": "pandora-flight-left-stage-shot",
+        "status": "incomplete",
+        "checkpoint": {
+          "load": {
+            "status": "restored",
+            "receipt_sha256": "7b61778201565cb3841db0250117e6412e824e60182633ec1956237ae5599a19",
+            "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+            "root_verification": "inherited_from_saved_execution",
+            "reverse_anchor": "after_state_load",
+            "replay_across_load": false
+          },
+          "save": {
+            "status": "not_saved",
+            "reason": "scenario_incomplete"
+          }
+        },
+        "direct_payload_handoff": {
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "size": 376832,
+          "load_address": 131072,
+          "status": "verified",
+          "verification_source": "checkpoint_root"
+        },
+        "phases": [
+          {
+            "name": "flight_route_anchor",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 1,
+            "observed_visits": 1,
+            "player_xy": [
+              1228,
+              874
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "west_staging_window",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 8,
+            "observed_visits": 8,
+            "player_xy": [
+              1214,
+              874
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "west_staging_neutral",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 2,
+            "observed_visits": 2,
+            "player_xy": [
+              1207,
+              874
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "north_input_window",
+            "status": "not_hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "capture_expectation_mismatch",
+            "requested_visits": 32,
+            "observed_visits": 8,
+            "player_xy": [
+              11214,
+              854
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 34,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          }
+        ]
+      },
+      {
+        "scenario_identifier": "pandora-flight-west-wall-stage-shot",
+        "status": "ok",
+        "checkpoint": {
+          "load": {
+            "status": "restored",
+            "receipt_sha256": "7b61778201565cb3841db0250117e6412e824e60182633ec1956237ae5599a19",
+            "snapshot_sha256": "6abe90cd0b65585069201121172b51063d463ff959fb99c02ca14539f42e9643",
+            "root_verification": "inherited_from_saved_execution",
+            "reverse_anchor": "after_state_load",
+            "replay_across_load": false
+          },
+          "save": {
+            "status": "saved",
+            "receipt": "/workspace/amiga-reversing/.runtime-state/pandora-flight-west-wall-stage-shot/shot.json",
+            "receipt_sha256": "76538c4cfa3d4ddf0e51343588790d87016f12cbbf90b0bb3a3a61ba2962b845",
+            "snapshot_sha256": "829809b527f4bf702fa31eaf0807018d4c1e8c6aebb780d9ec0d900576a1e8eb",
+            "stable_key": "s0:000005CA:instruction"
+          }
+        },
+        "direct_payload_handoff": {
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "size": 376832,
+          "load_address": 131072,
+          "status": "verified",
+          "verification_source": "checkpoint_root"
+        },
+        "phases": [
+          {
+            "name": "flight_route_anchor",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 1,
+            "observed_visits": 1,
+            "player_xy": [
+              1228,
+              874
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "west_staging_window",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 24,
+            "observed_visits": 24,
+            "player_xy": [
+              1158,
+              874
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "west_staging_neutral",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 2,
+            "observed_visits": 2,
+            "player_xy": [
+              1151,
+              874
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "north_input_window",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 32,
+            "observed_visits": 32,
+            "player_xy": [
+              1158,
+              870
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "left_aim_window",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 8,
+            "observed_visits": 8,
+            "player_xy": [
+              1130,
+              870
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "neutral_staging",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 2,
+            "observed_visits": 2,
+            "player_xy": [
+              1130,
+              870
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "patrol_wait",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 40,
+            "observed_visits": 40,
+            "player_xy": [
+              1130,
+              870
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010501",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "first_ray_sample",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x92e2"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x92e2",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 1,
+            "observed_visits": 1,
+            "player_xy": [
+              1130,
+              870
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010401",
+            "ui_flags": 32,
+            "registers": {
+              "d0": "0x0000045c",
+              "d1": "0x03b00374",
+              "d2": "0x0000fff2",
+              "d3": "0x03600000",
+              "a6": "0x000039fc"
+            }
+          },
+          {
+            "name": "shot_completed_loop",
+            "status": "hit",
+            "payload": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5ca"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5ca",
+              "runtime_base": "0x00010000"
+            },
+            "termination": "breakpoint_hit",
+            "requested_visits": 1,
+            "observed_visits": 1,
+            "player_xy": [
+              1130,
+              870
+            ],
+            "player_hp": 95,
+            "flight_hp": 55,
+            "initial_then_mutable_ammunition_hex": "05010401",
+            "ui_flags": 32,
+            "registers": {
+              "a6": "0x000039fc"
+            }
+          }
+        ]
+      }
+    ],
+    "limit": "The short west staging candidate entered combat before firing. The farther-west candidate completed one shot from player(1130,870), first sample(1116,884), with flight-controller HP55 unchanged and one mutable round consumed. These observations qualify only those input windows; they establish no successful NPC hit or route-wide impossibility."
   }
 }

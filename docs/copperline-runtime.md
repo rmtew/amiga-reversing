@@ -953,3 +953,16 @@ and both measured HP values stay unchanged, then the canonical main loop is hit.
 Only these two ray samples are bounded. The native instruction anchors from the
 preceding CLI compilation were reused unchanged; captures and inputs pass normal
 runner validation. This adds no successful NPC hit or global ray bound.
+
+A [guarded northward firing-line candidate](../runtime/scenarios/pandora-flight-firing-line-guard.json)
+was also tested from the original rifle checkpoint. At visit 11 of a maximum 32,
+the combat UI bit violated the guard; later movement and firing did not run.
+HP 95 and ammo 5/1 remained. Player X 11221 includes the known 10000 combat-entry
+bias. The guard receipt records the stop before firing. This result applies only
+to that input window and route.
+
+Two bounded west-before-north follow-ups retained the same guards. Short staging
+still entered combat before firing. Farther-west staging completed one shot from
+(1130,870), first sample (1116,884), with controller HP 55 unchanged and one round
+consumed. Their canonical captures are summarized in the same rifle receipt.
+Successful NPC targeting and the Feed/BYTE route remain unproved.

@@ -4956,3 +4956,57 @@ one deliberately strengthened sort comment. Earlier fields/types/owner bounds,
 SDK/pointer forms, raw gaps, append-only histories, all 126 assets, 2,112 typed tile
 fields and the 128-byte INCBIN policy remain intact. Runtime evidence and bounded
 reproduction scenarios are linked from `docs/copperline-runtime.md`.
+
+### Terminal deposits, marker state and salvage ratings
+
+Accepted 57 active annotations: three exact data owners and 54 dependent facts. The
+previously opaque marker is now an 18-byte animation frame, 12-byte position
+descriptor and 26-byte render prefix, exposing 21 named fields without extending
+into the following squash-player record. Deposit and adjoining clearance branches
+are named; six constants, one existing-EQU expression, ten scalar forms and shared
+X/Y fields show UI/ID gates, wrapped distance, field offsets, fixed feedback and the
+64-byte storage prefix. All five salvage-rating pointers and their NUL strings are
+named and classified together, completing the deposit-to-outcome data family.
+
+Held fire is a level gate. IDs 0/1, UI bits 1/2 and inactive player reject; accepted
+items are appended to the first zero BYTE, holding is cleared, ID recheck is
+requested, and salvage increments before feedback. Full real message FIFO does not
+roll back these effects; UI/audio callees still run. Duplicate supplied held items
+can be deposited repeatedly without a fresh fire edge. Distance sums wrapped WORD
+magnitudes and compares unsigned with 24; there is no coordinate clamp. The 15-byte
+salvage bitset covers 120 IDs; explicitly supplied IDs 120..255 index following
+tile-block bytes instead. This is not ordinary acquisition evidence.
+
+No capacity comparison bounds the deposit scan. Explicit full-prefix tests reach
+adjacent modal cache and ranged-fire latch, and the latter inhibits a rifle shot
+until release. The 64-byte physical declaration is retained. No ordinary full-buffer
+occurrence is claimed. Depositing the only ID removes it from possession: the real
+recheck stages defeat. A spare pocket ID prevents that defeat while empty holding
+still fails selected-card clearance. Six explicitly supplied eligible deposits feed
+the real escaped salvage rank, without a uniqueness check.
+
+The marker belongs to the original 67-descriptor table but has no matching initial
+35-object record. An admitted per-point ray test through both original tables shows
+the offscreen anonymous-hit path moving its current XY; visible-hit handling instead
+uses the flash descriptor. Deposit admission follows the changed center. The real
+world initializer clears deposited IDs/count and fire latch, but retains marker XY
+and modal cache in the tested state. This proves neither an ordinary marker shot nor
+a gameplay exploit; subsequent title/modal/camera calls remain separate. The bounded
+original north firing-line candidate stopped at combat UI visit 11/32 before firing,
+preserving HP/ammo. Successful NPC targeting and the Feed/BYTE route remain
+unproved.
+
+Thirteen new original CPU cases and one new runtime-guard regression pass. All
+callees/instructions remain original, with explicit RAM and MMIO inputs and no
+DMA/pixels or audible-output claim. The 56 structured bytes, 54 scalar-preflight
+bytes and 10 typed-field-preflight bytes pass C/vasm checks, including seven EQU
+forms. Four redundant X/Y alias facts were undone through append-only history when
+native typed fields took precedence. The dependent owner/type commands use normal
+current-revision catalogs. Comments were finalized before one full output gate: all
+376,832 original bytes match, receipt
+`1205f41e438898e921f018c0e408cd5b7e46d98792392382df68552425deacfb`. Earlier
+fields/types/owners/comments, SDK/pointer forms, raw gaps, append-only histories,
+all 126 assets, 2,112 typed tile fields and the 128-byte INCBIN policy remain
+intact. No framework change; unchanged prior subsystem checks are reused. Evidence
+is in `tests/test_pandora_terminal_deposit.py`, with the bounded route guard added
+to the existing rifle receipt and runtime guide.

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-flight-firing-line-guard",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "input_events": [
+    {
+      "after_phase": "flight_route_anchor",
+      "release_after_phase": "north_input_window",
+      "control": "port1 up"
+    }
+  ],
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "flight_route_anchor",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 375854,
+            "size": 48
+          },
+          {
+            "address": 376762,
+            "size": 12
+          },
+          {
+            "address": 376774,
+            "size": 52
+          },
+          {
+            "address": 376416,
+            "size": 26
+          },
+          {
+            "address": 102988,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 795,
+            "size": 11
+          },
+          {
+            "base_register": "a6",
+            "offset": 559,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "base_register": "a6",
+            "offset": 807,
+            "size": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "north_input_window",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 375854,
+            "size": 48
+          },
+          {
+            "address": 376762,
+            "size": 12
+          },
+          {
+            "address": 376774,
+            "size": 52
+          },
+          {
+            "address": 376416,
+            "size": 26
+          },
+          {
+            "address": 102988,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 795,
+            "size": 11
+          },
+          {
+            "base_register": "a6",
+            "offset": 559,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "base_register": "a6",
+            "offset": 807,
+            "size": 1
+          }
+        ]
+      },
+      "occurrences": 32
+    }
+  ]
+}
