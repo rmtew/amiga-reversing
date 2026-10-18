@@ -4683,3 +4683,32 @@ fields and the compact 128-byte INCBIN policy remain intact. Unchanged prior che
 are reused. Failed ID-recheck continuation remains open. Existing substantial
 gaps also include mutable callbacks/state writers, complete buffer/DMA lifetimes,
 remaining resource-bank semantics and the original uncopied-tail purpose.
+
+### Inventory cursor selection and sprite handoff
+
+Accepted 92 connected annotations: eleven branch names, six scalar names,
+25 constants, 42 operand bindings and eight comments. Nearby inventory stages four
+ID bytes separately from record value bytes; the existing four-byte staging owner
+keeps its bounds. Eligible no-fire visits release selection even without motion.
+Unit input starts motion that bypasses fire/release for eight X services (96 pixels)
+or four Y services (8 pixels). Twelve original-code tests in
+`tests/test_pandora_inventory_cursor.py`
+cover byte gates/latches/classifiers, all joystick masks across cursor rows/columns,
+WORD countdown wrap, real swaps, staging/name consumption and palette/header writes.
+
+The three actual caller sequences remove an inherited-register ambiguity: latched
+selection skips the player LEA, so main camera rendering leaves A4 at tile-grid
+end for the subsequent +70 read. Both modal call pairs retain player A4. Context
+bit 7 therefore cannot be assumed to cache the held item; no current downstream
+consumer is established. The raw +70 operand retains its unproved base type.
+Binding reinstalls sprite pointers independently of the hide latch; snapshotting
+rearms hiding. VBL rewrites both headers even with blank pointers, preserving pixel
+rows. Snapshot X/Y WORD stores have no established reader or restoration role.
+
+A 148-byte instruction image preflighted every EQU, operand and scalar/array-alias
+form through C and vasm before mutation. Full-target C/vasm matches all 376,832
+original bytes, receipt `1154bdbbaca6bb04ed32efca2645c572e4afcc4309b5715f70d3b98e2902b85c`. Earlier source/comments,
+fields/types/owner bounds, SDK/pointer forms, raw gaps and histories pass preservation;
+all 126 assets, 2,112 typed tile fields and the 128-byte INCBIN policy remain intact.
+Unchanged checks are reused. RAM/MMIO shadows perform no DMA and establish no ordinary
+gameplay admission, complete writer/lifetime coverage or original tail purpose.

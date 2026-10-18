@@ -111,14 +111,14 @@ app_font_glyph_layout_table_ptr RS.L 1
 app_geometry_clipped_x_span RS.W 1
 app_geometry_clipped_y_span RS.W 1
     RS.B 18
-app_020A RS.B 1
+app_inventory_cursor_sprite_flags RS.B 1
 app_proportional_text_pixel_shift RS.B 1
 app_cursor_sprite0_dma_ptr RS.L 1
 app_cursor_sprite1_dma_ptr RS.L 1
 app_inventory_cursor_x RS.W 1
 app_inventory_cursor_y RS.W 1
-app_0218 RS.W 1
-app_021A RS.W 1
+app_inventory_cursor_snapshot_x RS.W 1
+app_inventory_cursor_snapshot_y RS.W 1
     RS.B 6
 app_last_pressed_raw_key RS.B 1
     RS.B 1
@@ -214,11 +214,11 @@ app_combat_grid_cell_122_low_word RS.W 1
     RSSET $0287
 app_earth_orbit_countdown_bcd_low_byte RS.B 1
     RSSET $02BB
-app_02BB RS.B 1
+app_inventory_display_item_id_1 RS.B 1
     RSSET $02BC
-app_02BC RS.B 1
+app_inventory_display_item_id_2 RS.B 1
     RSSET $02BD
-app_02BD RS.B 1
+app_inventory_display_item_id_3 RS.B 1
     RSSET $02C9
 app_configured_camera_scroll_ticks RS.B 1
     RSSET $07EF
@@ -973,6 +973,16 @@ CURSOR_PLANE0_SEED_ROWS_ADDRESS	EQU	$65374
 CURSOR_PLANE1_SEED_ROWS_ADDRESS	EQU	$653B8
 CURSOR_SEED_LAST_ROW	EQU	15
 CURSOR_SEED_ROW_SKIP_BYTES	EQU	8
+CURSOR_SPRITES_HIDDEN_LATCH_BIT	EQU	0
+cursor_sprite1_dma_buffer	EQU	$653B4
+cursor_sprite0_dma_buffer	EQU	$65370
+CURSOR_SPRITE_BUFFER_STRIDE	EQU	cursor_sprite1_dma_buffer-cursor_sprite0_dma_buffer
+CURSOR_SPRITE_CTL_ADDEND	EQU	$1080
+CURSOR_SPRITE_PIXEL_PAYLOAD_BYTES	EQU	4*(CURSOR_SEED_LAST_ROW+1)
+CURSOR_SPRITE_POSITION_X_SHIFT	EQU	1
+CURSOR_SPRITE_POSITION_Y_SHIFT	EQU	8
+CURSOR_SPRITE_X_BEAM_OFFSET	EQU	128
+CURSOR_SPRITE_Y_BEAM_OFFSET	EQU	44
 _custom	EQU	$DFF000
 CUSTOM_COLOR00_REGISTER	EQU	_custom+color
 DMAF_CLRALL	EQU	$7FFF
@@ -1016,7 +1026,23 @@ INTERACTION_FLAG_TECHNICIAN_COMPLETED	EQU	2
 INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING	EQU	5
 INTERACTION_MESSAGE_REQUEST_CCR	EQU	1
 INTF_CLRALL	EQU	$7FFF
+INVENTORY_CURSOR_BODY_COLUMN_X	EQU	192
+INVENTORY_CURSOR_FIRST_COLUMN_X	EQU	0
+INVENTORY_CURSOR_FIRST_ROW_Y	EQU	139
+INVENTORY_CURSOR_HIDDEN_X	EQU	420
+INVENTORY_CURSOR_POCKET_COLUMN_X	EQU	96
+INVENTORY_CURSOR_X_MOVE_SERVICES	EQU	8
+INVENTORY_CURSOR_Y_LIMIT_EXCLUSIVE	EQU	164
+INVENTORY_CURSOR_Y_MOVE_SERVICES	EQU	4
+INVENTORY_FIRST_NONEMPTY_ITEM_ID	EQU	2
+INVENTORY_HELD_ITEM_PALETTE_BITS	EQU	$A0
+INVENTORY_ITEM_PALETTE_COLOR_4_OFFSET	EQU	8
+INVENTORY_ITEM_PALETTE_COLOR_5_OFFSET	EQU	10
+INVENTORY_ITEM_PALETTE_COLOR_6_OFFSET	EQU	12
 INVENTORY_ITEM_SLOT_BYTES	EQU	inventory_item_slot_SIZEOF
+INVENTORY_ITEM_SLOT_2_OFFSET	EQU	2*INVENTORY_ITEM_SLOT_BYTES
+INVENTORY_ITEM_SLOT_3_OFFSET	EQU	3*INVENTORY_ITEM_SLOT_BYTES
+INVENTORY_NO_ITEM_PALETTE_MASK	EQU	$F00
 INVENTORY_TRADE_VALUE_DISP	EQU	inventory_item_slot_trade_value
 ITEM_ID_ACID	EQU	$3
 ITEM_ID_ALIEN_EGG	EQU	$6B
@@ -1174,6 +1200,7 @@ PROXIMITY_AUDIO_EXCLUSIVE_DISTANCE	EQU	256
 PROXIMITY_AUDIO_FULL_VOLUME	EQU	64
 PROXIMITY_DEFAULT_COORDINATE_BIAS	EQU	16
 PROXIMITY_VARIANT_X_BIAS	EQU	8
+RANGED_WEAPON_VARIANT_COUNT	EQU	2
 RECEPTACLE_BRAIN_PICKUP_HIT_POINTS	EQU	95
 RECEPTACLE_COORDINATE_BIAS	EQU	16
 RECEPTACLE_EXCLUSIVE_MANHATTAN_DISTANCE	EQU	28
@@ -1446,8 +1473,6 @@ bitmap_00075050_lo	EQU	bitmap_00075050-(bitmap_00075050_hi*$10000)
 bitmap_00075078	EQU	$75078
 bitmap_00075078_hi	EQU	bitmap_00075078/$10000
 bitmap_00075078_lo	EQU	bitmap_00075078-(bitmap_00075078_hi*$10000)
-cursor_sprite0_dma_buffer	EQU	$65370
-cursor_sprite1_dma_buffer	EQU	$653B4
 dblk_ref_h0_000095E2_runtime_000195E2	EQU	$195E2
 dblk_ref_h0_00010CC0	EQU	$10CC0
 dblk_ref_h0_00010CCC	EQU	$10CCC
@@ -1979,17 +2004,18 @@ handle_vertical_blank_frame_update:
 	move.l a0,app_copper_interrupt_callback(a6)
     ; VBL updates the two POS/CTL pairs in cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer, then programs the selected DMA pointers. Pixel payloads were copied before source-scratch reuse.
 	lea.l cursor_sprite0_dma_buffer.l,a0
+    ; VBL always rewrites both POS/CTL pairs, independently of selected DMA pointers or the hide latch. Pixel rows survive; separate pointer slots select the programmed hardware inputs.
 	move.w app_inventory_cursor_x(a6),d0
-	addi.w #128,d0
+	addi.w #CURSOR_SPRITE_X_BEAM_OFFSET,d0
 	move.w app_inventory_cursor_y(a6),d1
-	addi.w #44,d1
-	lsl.w #8,d1
-	lsr.w #1,d0
+	addi.w #CURSOR_SPRITE_Y_BEAM_OFFSET,d1
+	lsl.w #CURSOR_SPRITE_POSITION_Y_SHIFT,d1
+	lsr.w #CURSOR_SPRITE_POSITION_X_SHIFT,d0
 	or.w d1,d0
 	move.w d0,(a0)+
-	addi.w #4224,d1
+	addi.w #CURSOR_SPRITE_CTL_ADDEND,d1
 	move.w d1,(a0)+
-	lea.l $0040(a0),a0
+	lea.l CURSOR_SPRITE_PIXEL_PAYLOAD_BYTES(a0),a0
 	move.w d0,(a0)+
 	move.w d1,(a0)+
 	move.l app_cursor_sprite0_dma_ptr(a6),sprpt(a5)	; sprite pointer
@@ -6024,7 +6050,7 @@ abs_0_000126E6:
 	rts
 update_inventory_panel_availability:
 	lea.l player_world_object.l,a4
-	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a4)
 	bne.b return_from_inventory_key_scan
 	move.b app_ui_flags(a6),d0
 	andi.b #UI_INVENTORY_KEY_BLOCK_MASK,d0
@@ -6043,14 +6069,14 @@ toggle_inventory_panel:
 	bne.w close_inventory_panel
 	bclr.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	tst.l app_nearest_object_ptr(a6)
-	beq.b abs_0_00012754
+	beq.b open_player_carried_inventory_panel
 	movea.l app_nearest_object_ptr(a6),a5
 	move.l a5,app_inventory_panel_object_ptr(a6)
 	bsr.w is_player_within_world_object_collision_bounds
-	bcc.b abs_0_00012754
+	bcc.b open_player_carried_inventory_panel
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bne.w open_nearby_object_inventory_panel
-abs_0_00012754:
+open_player_carried_inventory_panel:
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
 	lea.l backpack_inventory_overlay(pc),a5
@@ -6101,9 +6127,10 @@ open_nearby_object_inventory_panel:
 	bset.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	move.b (a0),app_inventory_display_item_ids(a6)	; operand 1: inventory_item_slot_item_id at (a0)
-	move.b $0002(a0),app_02BB(a6)
-	move.b $0004(a0),app_02BC(a6)
-	move.b $0006(a0),app_02BD(a6)
+    ; Stage four record IDs as contiguous display bytes, skipping each record value BYTE. Name resolution reads those four bytes; the inventory records remain separate.
+	move.b INVENTORY_ITEM_SLOT_BYTES(a0),app_inventory_display_item_id_1(a6)
+	move.b INVENTORY_ITEM_SLOT_2_OFFSET(a0),app_inventory_display_item_id_2(a6)
+	move.b INVENTORY_ITEM_SLOT_3_OFFSET(a0),app_inventory_display_item_id_3(a6)
 	bsr.w build_carried_item_name_list
 	bsr.w refresh_inventory_panel
 	bsr.w reset_inventory_panel_state
@@ -6113,7 +6140,7 @@ open_nearby_object_inventory_panel:
 	bsr.w enqueue_ui_overlay_update
 	lea.l pocket_inventory_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
-	move.w #$C0,app_inventory_cursor_x(a6)
+	move.w #INVENTORY_CURSOR_BODY_COLUMN_X,app_inventory_cursor_x(a6)
 	bsr.w snapshot_inventory_cursor_and_clear_hidden_latch
 	bsr.w bind_cursor_sprites_and_palette
 	rts
@@ -6145,33 +6172,34 @@ reset_inventory_panel_state:
 	clr.w app_inventory_cursor_y_step(a6)
 	clr.w app_inventory_cursor_move_countdown(a6)
 	clr.w app_inventory_cursor_x(a6)
-	move.w #$8B,app_inventory_cursor_y(a6)
+	move.w #INVENTORY_CURSOR_FIRST_ROW_Y,app_inventory_cursor_y(a6)
 	move.b #$1,app_inventory_selection_latched(a6)
 update_inventory_panel_player_palette:
 	move.l a0,-(a7)
 	lea.l gameplay_current_rgb12_palette(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
-	cmp.b #$2,d0
-	bcc.b abs_0_000128BC
-	move.w #$F00,d0
-	and.w d0,$0008(a0)
-	and.w d0,$000A(a0)
-	and.w d0,$000C(a0)
-	bra.b abs_0_000128CC
-abs_0_000128BC:
-	move.w #$A0,d0
-	or.w d0,$0008(a0)
-	or.w d0,$000A(a0)
-	or.w d0,$000C(a0)
-abs_0_000128CC:
+	cmp.b #INVENTORY_FIRST_NONEMPTY_ITEM_ID,d0
+	bcc.b set_held_item_palette_bits
+    ; Only palette WORDs 4..6 change: IDs 0/1 AND with $0F00; other IDs OR $00A0. The fixed player supplies the held ID; binding copies all 16 colors to sprite COLOR16..31.
+	move.w #INVENTORY_NO_ITEM_PALETTE_MASK,d0
+	and.w d0,INVENTORY_ITEM_PALETTE_COLOR_4_OFFSET(a0)
+	and.w d0,INVENTORY_ITEM_PALETTE_COLOR_5_OFFSET(a0)
+	and.w d0,INVENTORY_ITEM_PALETTE_COLOR_6_OFFSET(a0)
+	bra.b bind_updated_inventory_cursor_palette
+set_held_item_palette_bits:
+	move.w #INVENTORY_HELD_ITEM_PALETTE_BITS,d0
+	or.w d0,INVENTORY_ITEM_PALETTE_COLOR_4_OFFSET(a0)
+	or.w d0,INVENTORY_ITEM_PALETTE_COLOR_5_OFFSET(a0)
+	or.w d0,INVENTORY_ITEM_PALETTE_COLOR_6_OFFSET(a0)
+bind_updated_inventory_cursor_palette:
 	bsr.w bind_cursor_sprites_and_palette
 	movea.l (a7)+,a0
 	rts
 handle_inventory_panel_input:
 	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
-	beq.b abs_0_00012918
-	btst.b #1,player_world_object_world_object_flags.l
-	bne.b abs_0_00012918
+	beq.b return_from_inventory_panel_input
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
+	bne.b return_from_inventory_panel_input
 	tst.w app_inventory_cursor_move_countdown(a6)
 	bne.w advance_inventory_cursor_move
 	tst.b app_input_fire_pressed_ff(a6)
@@ -6180,53 +6208,56 @@ handle_inventory_panel_input:
 	bsr.b update_inventory_panel_player_palette
 	st.b app_inventory_selection_latched(a6)
 	bclr.b #7,app_context_flags(a6)
+    ; Latched selection skips the player LEA. Main camera rendering leaves A4 at grid end; +70 can classify that byte. Both modal call pairs leave A4=player. No bit-7 reader is established.
 	move.b $0046(a4),d0
 	subi.b #ITEM_ID_LASER_RIFLE,d0
-	cmp.b #$2,d0
-	bcc.b abs_0_00012918
+	cmp.b #RANGED_WEAPON_VARIANT_COUNT,d0
+	bcc.b return_from_inventory_panel_input
 	bset.b #7,app_context_flags(a6)
-abs_0_00012918:
+return_from_inventory_panel_input:
 	rts
+    ; Eligible no-fire visits release the selection latch even with no direction. A nonzero move WORD bypasses release/fire; X starts first when admitted, otherwise Y is tried.
 start_inventory_cursor_move:
 	clr.b app_inventory_selection_latched(a6)
 	move.w app_input_direction_mask(a6),d0
-	beq.b abs_0_00012918
+	beq.b return_from_inventory_panel_input
 	clr.w app_inventory_cursor_x_step(a6)
 	clr.w app_inventory_cursor_y_step(a6)
 	move.w app_input_x_step(a6),d0
 	add.w app_inventory_cursor_x(a6),d0
-	cmp.w #$C0,d0
-	bcc.b abs_0_0001296A
+    ; X admission uses the one-step trial. Unit X becomes 12 pixels for eight services (96 total); unit Y becomes two pixels for four services (8 total). Start itself does not move.
+	cmp.w #INVENTORY_CURSOR_BODY_COLUMN_X,d0
+	bcc.b test_inventory_cursor_vertical_step
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
-	bne.b abs_0_00012948
-	cmp.w #$60,d0
-	bcc.b abs_0_0001296A
-abs_0_00012948:
-	cmp.w #$0,d0
-	bcs.b abs_0_0001296A
+	bne.b test_inventory_cursor_x_step
+	cmp.w #INVENTORY_CURSOR_POCKET_COLUMN_X,d0
+	bcc.b test_inventory_cursor_vertical_step
+test_inventory_cursor_x_step:
+	cmp.w #INVENTORY_CURSOR_FIRST_COLUMN_X,d0
+	bcs.b test_inventory_cursor_vertical_step
 	move.w app_input_x_step(a6),d0
-	beq.b abs_0_0001296A
+	beq.b test_inventory_cursor_vertical_step
 	add.w d0,d0
 	move.w d0,d1
 	add.w d0,d0
 	add.w d1,d0
 	add.w d0,d0
 	move.w d0,app_inventory_cursor_x_step(a6)
-	move.w #$8,app_inventory_cursor_move_countdown(a6)
+	move.w #INVENTORY_CURSOR_X_MOVE_SERVICES,app_inventory_cursor_move_countdown(a6)
 	rts
-abs_0_0001296A:
+test_inventory_cursor_vertical_step:
 	move.w app_input_y_step(a6),d0
-	beq.b abs_0_0001298E
+	beq.b return_from_inventory_cursor_move_start
 	add.w d0,d0
 	move.w d0,d1
 	add.w app_inventory_cursor_y(a6),d0
-	cmp.w #$A4,d0
-	bcc.b abs_0_0001298E
-	cmp.w #$8B,d0
-	bcs.b abs_0_0001298E
+	cmp.w #INVENTORY_CURSOR_Y_LIMIT_EXCLUSIVE,d0
+	bcc.b return_from_inventory_cursor_move_start
+	cmp.w #INVENTORY_CURSOR_FIRST_ROW_Y,d0
+	bcs.b return_from_inventory_cursor_move_start
 	move.w d1,app_inventory_cursor_y_step(a6)
-	move.w #$4,app_inventory_cursor_move_countdown(a6)
-abs_0_0001298E:
+	move.w #INVENTORY_CURSOR_Y_MOVE_SERVICES,app_inventory_cursor_move_countdown(a6)
+return_from_inventory_cursor_move_start:
 	rts
 advance_inventory_cursor_move:
 	move.w app_inventory_cursor_x_step(a6),d0
@@ -6248,7 +6279,7 @@ refresh_selected_item_name_display:
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
     ; IDs 0 and 1 display NOTHING here. The handoff has already cleared the giver selection, so its separate nearby-carrying redraw resolves the empty selection.
-	cmp.b #$2,d0
+	cmp.b #INVENTORY_FIRST_NONEMPTY_ITEM_ID,d0
 	bcc.b resolve_held_item_name_for_overlay
 	moveq.l #ITEM_ID_NOTHING,d0
 resolve_held_item_name_for_overlay:
@@ -6268,7 +6299,7 @@ refresh_inventory_panel:
 	lea.l pocket_inventory_overlay_line_0_ptr(pc),a3
 	lea.l item_name_offset_table.l,a4
 	lea.l item_name_string_table.l,a5
-abs_0_00012A0C:
+refresh_next_carried_and_pocket_item_names:
 	moveq.l #0,d0
 	move.b (a0)+,d0
 	add.w d0,d0
@@ -6281,24 +6312,24 @@ abs_0_00012A0C:
 	move.w $0(a4,d0.w),d0
 	add.l a5,d0
 	move.l d0,(a3)+	; operand 2: ui_overlay_descriptor_x at (a3)+
-	dbf.w d7,abs_0_00012A0C
+	dbf.w d7,refresh_next_carried_and_pocket_item_names
 	movem.l (a7)+,d7/a2-a5
 	rts
 handle_inventory_panel_selection:
 	tst.b app_inventory_selection_latched(a6)
-	bne.w abs_0_00012AB6
+	bne.w return_from_inventory_panel_selection
 	bsr.w clear_inventory_item_selection_flags
 	movea.l app_inventory_panel_object_ptr(a6),a5
 	lea.l player_world_object.l,a4
 	move.w app_inventory_cursor_y(a6),d0
-	subi.w #139,d0
+	subi.w #INVENTORY_CURSOR_FIRST_ROW_Y,d0
 	lsr.w #2,d0
 	move.w d0,d1
 	andi.b #6,d1
 	lsr.w #1,d0
 	move.w app_inventory_cursor_x(a6),d2
-	subi.w #0,d2
-	cmp.w #$C0,d2
+	subi.w #INVENTORY_CURSOR_FIRST_COLUMN_X,d2
+	cmp.w #INVENTORY_CURSOR_BODY_COLUMN_X,d2
 	bne.b transfer_selected_item_to_carried_inventory
 	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
     ; With valid cursor rows and zero index high byte, nearby selection swaps only the record item ID, retaining value. ANDI.B masks low bits; invalid cursor states are not bounded here.
@@ -6309,20 +6340,20 @@ handle_inventory_panel_selection:
 	move.b world_object_shared_prefix_selected_item_id(a4),$0(a1,d0.w)
 	move.b d2,world_object_shared_prefix_selected_item_id(a4)
 	cmp.b world_object_shared_prefix_selected_item_id(a5),d2
-	bne.b abs_0_00012A9E
+	bne.b refresh_selected_nearby_inventory_row
 	clr.b world_object_shared_prefix_selected_item_id(a5)
 	move.l #abs_0_0001A25D,nearby_carrying_overlay_line_0_ptr.l
-abs_0_00012A9E:
+refresh_selected_nearby_inventory_row:
 	move.l d0,-(a7)
 	bsr.w build_carried_item_name_list
 	move.l (a7)+,d0
 	lea.l body_inventory_overlay(pc),a5
 	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
 	bsr.w redraw_ui_overlay_selected_line_proportional
-abs_0_00012AB6:
+return_from_inventory_panel_selection:
 	rts
 transfer_selected_item_to_carried_inventory:
-	cmp.w #$60,d2
+	cmp.w #INVENTORY_CURSOR_POCKET_COLUMN_X,d2
 	beq.b handle_item_too_large_for_pockets
 	move.b world_object_shared_prefix_selected_item_id(a4),d2
 	lea.l app_carried_item_ids(a6),a0
@@ -15599,8 +15630,8 @@ abs_0_0001926E:
 	lea.l player_world_object.l,a4
 	clr.w d0
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	subi.b #18,d0
-	cmp.b #$2,d0
+	subi.b #ITEM_ID_LASER_RIFLE,d0
+	cmp.b #RANGED_WEAPON_VARIANT_COUNT,d0
 	bcc.w abs_0_000193D8
 	move.w d0,app_ranged_weapon_variant_index(a6)
 	lea.l ranged_weapon_ammunition_remaining(pc),a0
@@ -15767,28 +15798,30 @@ activate_ranged_hit_visual_and_return_descriptor:
 	move.w #$19,app_ranged_hit_visual_ticks_remaining(a6)
 	rts
 snapshot_inventory_cursor_and_clear_hidden_latch:
-	bclr.b #0,app_020A(a6)
-	move.w app_inventory_cursor_x(a6),app_0218(a6)
-	move.w app_inventory_cursor_y(a6),app_021A(a6)
+	bclr.b #CURSOR_SPRITES_HIDDEN_LATCH_BIT,app_inventory_cursor_sprite_flags(a6)
+    ; These WORDs snapshot cursor X/Y. Current native references establish the stores but no reader; restoration and later storage lifetime remain unproved.
+	move.w app_inventory_cursor_x(a6),app_inventory_cursor_snapshot_x(a6)
+	move.w app_inventory_cursor_y(a6),app_inventory_cursor_snapshot_y(a6)
 	rts
     ; On the first transition of flag bit 0, replace both cursor sprite pointers with blank sprite data and move cursor X off-screen to 420. Preserve A0.
 hide_cursor_sprite_pointers:
-	bset.b #0,app_020A(a6)
-	bne.b abs_0_000194E0
+	bset.b #CURSOR_SPRITES_HIDDEN_LATCH_BIT,app_inventory_cursor_sprite_flags(a6)
+	bne.b return_from_cursor_sprite_hide
 	move.l a0,-(a7)
 	lea.l blank_sprite_data.l,a0
 	move.l a0,app_cursor_sprite0_dma_ptr(a6)
 	move.l a0,app_cursor_sprite1_dma_ptr(a6)
-	move.w #$1A4,app_inventory_cursor_x(a6)
+	move.w #INVENTORY_CURSOR_HIDDEN_X,app_inventory_cursor_x(a6)
 	movea.l (a7)+,a0
-abs_0_000194E0:
+return_from_cursor_sprite_hide:
 	rts
     ; Bind cursor_sprite0_dma_buffer and cursor_sprite1_dma_buffer; copy 16 palette WORDs to COLOR16..31. Pixels were copied at cold startup before their source became scratch.
 bind_cursor_sprites_and_palette:
 	movem.l a0-a1,-(a7)
-	lea.l $00065370.l,a0
+	lea.l cursor_sprite0_dma_buffer.l,a0
+    ; Binding ignores the hide latch and reinstalls both live pointers. A later hide with bit0 still set does nothing; snapshot clears that bit to rearm hiding.
 	move.l a0,app_cursor_sprite0_dma_ptr(a6)
-	lea.l $0044(a0),a0
+	lea.l CURSOR_SPRITE_BUFFER_STRIDE(a0),a0
 	move.l a0,app_cursor_sprite1_dma_ptr(a6)
 	lea.l gameplay_current_rgb12_palette.l,a0
 	lea.l _custom+color+$20.l,a1
@@ -16637,7 +16670,7 @@ clear_next_terminal_deposit_longword:
 	clr.b app_security_damage_flash_ticks_remaining(a6)
 	clr.b app_security_checkpoint_response_active(a6)
 	move.w #SECURITY_DAMAGE_PERIOD_SERVICE_STEPS,app_security_damage_service_countdown(a6)
-	clr.b app_020A(a6)
+	clr.b app_inventory_cursor_sprite_flags(a6)
 	move.l #compact_font_index_origin,app_font_glyph_bitmap_table_ptr(a6)
 	move.l #proportional_ui_font_glyphs,app_font_glyph_layout_table_ptr(a6)
 	clr.b app_proportional_text_pixel_shift(a6)
