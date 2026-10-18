@@ -4424,3 +4424,66 @@ bytes. Evidence and the verification receipt are in
 `docs/validation/pandora-proximity-animation.json`. The partially documented NPC
 item-handoff path and its panel/queue/state-exchange effects are a useful next
 connected slice; full-game and alternate-layout confidence remain open.
+
+## NPC item handoff and connected consumers
+
+The officer handoff now uses the shared A5 world-object fields, named
+return/state-exchange branches and the existing inactive/panel equates. The
+adjacent inventory-close scan and holding-name branches also have meaningful
+local symbols. Player inactive bit1 is the only entry guard; giver inactivity
+does not prevent an explicit call. Transfer overwrites held ID with the selected
+BYTE, including 0/1, clears selection and only the first inventory slot ID, and
+sets giver inactive. The value byte and later slots survive, even if the
+selected ID appears later in the inventory.
+
+The fixed officer node reset remains separate from the state exchange's incoming
+giver node reset. Both clear header-hold and the clock WORD; the outgoing giver
+node is retained. No original stored pointer, initialized bank asymmetry,
+frame/phase behavior or prior animation proof changed. A direct second handoff
+can transfer 0 and exchange states back; script inactivity and direct-call
+behavior must not be conflated.
+
+When panel-active is set, the original routine saves D0/A0/A5 around panel
+close. The close recomputes cached Kriptonite from four carried IDs, four pocket
+IDs and held ID, retaining all other event bits. The handoff redraws nearby
+carrying using the cleared giver selection, updates holding with 0/1 normalized
+to NOTHING, and executes original feedback. Ten full cases verify both name
+pointers with original message/UI/state/audio callees. Three further full cases
+verify A5 retention through immediate message drawing with/without ticker clear,
+and busy status with ticker clear. An explicit post-message type seed restores
+the giver field names after native analysis conservatively drops the entry type
+across the call. Existing body-restore and queue/DMA ordering evidence is
+reused; these new full cases keep nearby-object inventory bit3 clear.
+
+The exact 45-byte NUL-terminated handoff message has a bounded owner and
+character representation. Its original Don"t spelling and quotes are preserved.
+The following 48 bytes remain unclassified. Native incoming/outgoing queries
+resolve the message LEA; the original typed script callback LONG at 23C8 still
+resolves to collect_world_object_item. That data pointer explains a caller
+absent from the ordinary code-reference query.
+
+Twenty-one distinct unmodified-code CPU cases cover all 256 player flags,
+selected IDs, giver flags, fixed-node modes and panel-gate flags; thirteen
+complete handoffs; a second direct call; all nine Kriptonite locations plus
+absence; and the original officer script. Under the explicit fixture inputs, the
+script reaches handoff on interpreter service 95, then installs delay 10000 at
+cursor 23D0 in the same service. Later calls count down before inactive dispatch
+inhibits continuation. This proves a scoped original-script path, not
+ordinary-gameplay reachability. Flat RAM, valid copied-view records/fonts/audio,
+explicit busy/immediate status contexts and MMIO request shadows do not
+establish DMA completion or audibility.
+
+All 22 actions are accepted: eight local labels, one message label, two register
+entry types and one explicit post-message giver type, two existing-equate
+bindings, five semantic comments, one message owner and its character element,
+plus one short-role refinement. C and vasm reproduce all 376,832 original bytes.
+All earlier comments, SDK expressions, types/owner bounds, 86 assets, pointer
+forms, raw gaps and history prefixes pass preservation. The untyped-element
+native role limit (63 bytes) is documented in docs/restoration-interfaces.md;
+the new owner uses the short message category and keeps its detailed evidence.
+Longer free-form role support remains open. No framework implementation changed;
+reuse 48 focused framework and 819 native checks and earlier related CPU proofs,
+without repeating the preparation benchmark. Evidence and receipt are in
+docs/validation/pandora-npc-handoff.json. The next connected question is which
+original scheduling/scene conditions select this officer script and expose its
+post-handoff state; full-game and alternate-layout confidence remain open.

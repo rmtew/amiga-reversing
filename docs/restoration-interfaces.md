@@ -126,6 +126,13 @@ preserving name, extent, unit, elements, type bindings and reference identities.
 Use it to refine a resource's discovered uses without replacing its owner or
 rewriting history. Unknown identities and stale revisions refuse the edit.
 
+Current native boundary: an untyped layout element copies its owner role into
+the seeded-entity subtype field, whose parser accepts at most 63 bytes. Use a
+short role category and retain longer explanations in interpretation evidence
+or source comments. A longer role can be accepted on an empty owner but will
+fail native preflight when its first element is added; that failure appends no
+action. General support for longer free-form roles remains open.
+
 A row `label.rename` explicitly supersedes its predecessor name at the same
 section/address within its address domain, including an older manual label
 with a different ID. The renamed declaration takes precedence; unrelated

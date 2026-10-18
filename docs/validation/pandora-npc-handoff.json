@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "starting_commit": "47a5b516b0b40e8d735cbb8708058271fb009947",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How does the officer script hand over an item through inventory, UI, position/animation and feedback consumers?",
+  "source_spans": {
+    "handoff": [
+      307482,
+      307590
+    ],
+    "panel_close": [
+      10104,
+      10218
+    ],
+    "holding_name": [
+      10684,
+      10730
+    ],
+    "nearby_name": [
+      31622,
+      31654
+    ],
+    "message": [
+      316065,
+      316110
+    ],
+    "unclassified_following_bytes": [
+      316110,
+      316158
+    ],
+    "officer_script": [
+      9116,
+      9174
+    ],
+    "absolute_callback_handler": [
+      4566,
+      4584
+    ]
+  },
+  "facts": {
+    "accepted_actions": 22,
+    "anonymous_local_labels": 8,
+    "message_label": 1,
+    "register_entry_types": 2,
+    "post_message_register_type": 1,
+    "reused_equate_operand_bindings": 2,
+    "semantic_comments": 5,
+    "new_message_owner": 1,
+    "message_character_element": 1,
+    "short_message_role": 1,
+    "new_struct_types": 0,
+    "pointer_presentation_changes": 0
+  },
+  "labels": {
+    "307564": "exchange_giver_state_after_item_handoff",
+    "307588": "return_from_world_object_item_handoff",
+    "10132": "scan_carried_and_pocket_items_for_kriptonite",
+    "10152": "cache_kriptonite_present_after_panel_close",
+    "10158": "clear_inventory_panel_and_refresh_nearby_ui",
+    "10180": "queue_nearby_overlays_after_panel_close",
+    "10710": "resolve_held_item_name_for_overlay",
+    "10728": "return_from_selected_item_name_display"
+  },
+  "operand_bindings": [
+    [
+      307482,
+      "WORLD_OBJECT_INACTIVE_BIT",
+      1
+    ],
+    [
+      307542,
+      "UI_FLAG_INVENTORY_PANEL_ACTIVE",
+      2
+    ]
+  ],
+  "semantics": {
+    "guard": "Player inactive bit1 skips the complete entry before message and other effects. Giver inactive does not guard this entry.",
+    "transfer": "The selected BYTE, including 0/1, overwrites player holding without a free-slot check. Clear giver selection and only the first inventory slot ID byte; its value byte and the remaining six bytes stay intact. Set giver inactive while retaining all other flag bits.",
+    "node_asymmetry": "First clear header-hold and frame/phase clock on fixed original officer node source 4A572, regardless of A5 giver. The later state exchange independently clears those fields on the incoming giver node and preserves the outgoing node. Preserve original pointer/initialization asymmetry and earlier tested animation semantics.",
+    "ui": "When UI bit2 was set, close_inventory_panel executes with explicit D0/A0/A5 save/restore around it. Panel close clears only the cached Kriptonite bit before scanning four carried IDs, four pocket IDs and held ID, then clears panel-active and refreshes nearby/holding UI. Existing nearby-object body-restore semantics and render/queue lifetime proofs are reused. New full tests use panelbit3 clear; they do not independently retest that restore branch.",
+    "type_boundary": "A5 input is typed at both function entries. Native analysis conservatively drops the handoff entry type across enqueue_status_message; an explicit seed at 4B12E restores the proven returned-giver contract, without assuming a general callback ABI. Three full message variants verify preserved A5 across immediate drawing and active-ticker clearing.",
+    "names": "Nearby carrying resolves giver selection0 after transfer. Holding name maps IDs0/1 to NOTHING1. Full calls verify exact original name-table pointer results for IDs0,1,54,100,108 with panel closed/open.",
+    "message": "The sole LEA4B124 queues the exact 45 original bytes through first NUL 4D2CD. Original Don\"t spelling and quotation marks are retained. Following 48 bytes remain raw/unclassified. Busy status context fixture makes the queue observable and yields 80 service ticks; it does not establish normal immediate drawing.",
+    "feedback": "Original initialized audio code executes without patches/stubs and sets the shared ID-failure/handoff feedback latch. Earlier audio/packet proof remains applicable; no audibility claim.",
+    "direct_repetition": "A second explicit call is not inhibited by giver inactivity: it transfers 0 and exchanges active/saved states back. This is distinct from normal subsequent interpreter dispatch.",
+    "script": "Existing typed LONG at 23C8 resolves to collect_world_object_item. The original absolute callback handler preserves A4/A5 and advances A4 by 6 after the call. In this explicit fresh original-officer fixture, service 95 reaches the complete handoff and the same interpreter invocation installs delay 10000 with cursor 23D0. Later three services decrement delay while preserving cursor; inactive dispatch check occurs after the delay path. This is scoped script reachability under stated inputs, not ordinary-gameplay/loader/input scheduling reachability."
+  },
+  "coverage": {
+    "distinct_unmodified_code_cpu_cases": 21,
+    "all_byte_inputs": {
+      "player_flags": 256,
+      "selected_item_ids": 256,
+      "giver_flags": 256,
+      "fixed_officer_node_modes": 256,
+      "holding_name_panel_gate_flags": 256
+    },
+    "full_handoffs": 13,
+    "full_handoff_inputs": "panelbit2 clear/set crossed with selected IDs 0,1,54,100,108; MMIO request shadow40 and fresh valid font/framebuffer/audio/queue inputs",
+    "additional_full_message_variants": 3,
+    "direct_second_call_cases": 1,
+    "kriptonite_location_and_absence_inputs": 10,
+    "original_officer_script_cases": 1,
+    "script_services_to_handoff": 95,
+    "post_handoff_delay": 10000,
+    "test_file": "tests/test_pandora_npc_handoff.py",
+    "execution_notes": "Initial16 cases pass; original-script expected values tightened to observed 95/23D0/10000 and rerun with two new consumer cases (3 pass); ten full cases gain exact name-pointer assertions and pass again. Three additional full calls cover immediate message drawing with/without active-ticker clearing and busy status plus ticker clearing; all preserve A5. An initial fixture used incorrect tickerbit4, then was corrected to the inspected bit6 and all three cases passed; incorrect-bit runs are not counted as ticker evidence. Collection confirms21 distinct cases. Unchanged prefix cases are reused. All calls execute unmodified original instructions, including real UI/message/state/audio helpers. No instruction patch or feedback stub. Full-call bounded write summaries may overflow; assertions use guest memory and normal stack returns."
+  },
+  "canonical_relationships": {
+    "original_script_typed_pointers": [
+      {
+        "end_offset": 9128,
+        "field_name": "state_node_ptr",
+        "name": "entry_officer_script_command_0006_state_node_ptr",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 369984,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "entry_officer_nodes_4A45E_3",
+          "symbol_group": "",
+          "target_offset": 304448,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 9124,
+        "struct_name": "world_behavior_node_command"
+      },
+      {
+        "end_offset": 9164,
+        "field_name": "target",
+        "name": "entry_officer_script_command_002A_target",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 373018,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "collect_world_object_item",
+          "symbol_group": "",
+          "target_offset": 307482,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 9160,
+        "struct_name": "cmd_absolute_target"
+      },
+      {
+        "end_offset": 9174,
+        "field_name": "target",
+        "name": "entry_officer_script_command_0034_target",
+        "resolution": {
+          "addend": 0,
+          "address_domain": "mapped_source",
+          "encoded_value": 74700,
+          "outcome": "symbolic",
+          "reason": "resolved_source",
+          "symbol": "entry_officer_post_handoff_wait",
+          "symbol_group": "",
+          "target_offset": 9164,
+          "target_section_index": 0
+        },
+        "section_index": 0,
+        "source_offset": 9170,
+        "struct_name": "cmd_absolute_target"
+      }
+    ],
+    "message_lea": {
+      "source_offset": 307492,
+      "target_offset": 316065,
+      "symbol": "npc_item_handoff_message",
+      "native_incoming_and_outgoing_verified": true
+    },
+    "scope": "Typed script pointer inventory is unchanged. Code-reference query alone lists no direct handoff caller; it omits this typed command-data relationship. Five static nearby-name call sites were inspected as A5 world-object consumers. No exhaustive writer/alias/indirect-caller closure is claimed."
+  },
+  "framework": {
+    "implementation_changes": false,
+    "reused_focused_framework_checks": 48,
+    "reused_native_checks": 819,
+    "preparation_benchmark_repeated": false,
+    "encountered_role_boundary": "An untyped element copies layout.role into a native subtype buffer accepting63 bytes. The initial long role prevented element preflight and appended no action. A normal describe action sets concise role message, then the character element validates/applies. General longer-role support remains open and is documented in docs/restoration-interfaces.md; no framework implementation changed.",
+    "reused_runtime_proof": "Earlier published animation/state-exchange, UI rendering/queue/restore and audio contracts retain their stated bounds."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "0a6a1ef78eadbfb169d29bd4ea0b78653c20f0c0ddd98d4026aedd883f844b31",
+    "source_audit": "All prior source lines retained outside 7 intended operand rows, 9 labels and 93 bytes of regrouped data, of which only 45 are newly owned as message. All earlier comments, SDK/hardware expressions, complete layouts/types/owner bounds, 86 assets, pointer forms, two raw gaps and complete history prefixes pass. Exactly 22 actions and 22 acceptance decisions appended; timestamp-only project metadata restored. Manifest changes restricted to source size/hash, metadata hash and row identities.",
+    "known_unrelated_boundary": "Preexisting bootstrap-copy fixture reports full_source_policy_load_view where its assertion expects overlaid_by_runtime_copy; unchanged and not counted as passing."
+  },
+  "limits": "Existing copied-payload view at10000,16MB flat RAM, explicit valid register/record/audio/font/queue/framebuffer inputs, busy or immediate status context, explicit ticker state and MMIO shadows. No DMA completion, audibility, arbitrary graph lifetime, full alias/writer/indirect-caller closure, loader/input scheduling reachability, full-game runtime confidence or alternate-layout claim."
+}

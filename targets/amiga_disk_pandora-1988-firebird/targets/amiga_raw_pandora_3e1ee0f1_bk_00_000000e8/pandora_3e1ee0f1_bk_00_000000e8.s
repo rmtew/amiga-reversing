@@ -6004,29 +6004,30 @@ abs_0_00012754:
 close_inventory_panel:
 	bsr.w reset_inventory_panel_state
 	bsr.w hide_cursor_sprite_pointers
+    ; Recompute cached Kriptonite from four carried IDs, four pocket IDs and the held ID. Clear only the cached bit before scanning; all other event bits persist.
 	bclr.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
 	move.b #ITEM_ID_KRIPTONITE,d0
 	lea.l app_carried_item_ids(a6),a0
 	lea.l app_pocket_item_ids(a6),a1
 	moveq.l #3,d7
-abs_0_00012794:
+scan_carried_and_pocket_items_for_kriptonite:
 	cmp.b (a0)+,d0
-	beq.b abs_0_000127A8
+	beq.b cache_kriptonite_present_after_panel_close
 	cmp.b (a1)+,d0
-	beq.b abs_0_000127A8
-	dbf.w d7,abs_0_00012794
+	beq.b cache_kriptonite_present_after_panel_close
+	dbf.w d7,scan_carried_and_pocket_items_for_kriptonite
 	cmp.b player_world_object_selected_item_id.l,d0
-	bne.b abs_0_000127AE
-abs_0_000127A8:
+	bne.b clear_inventory_panel_and_refresh_nearby_ui
+cache_kriptonite_present_after_panel_close:
 	bset.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
-abs_0_000127AE:
+clear_inventory_panel_and_refresh_nearby_ui:
 	bclr.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
-	beq.b abs_0_000127C4
+	beq.b queue_nearby_overlays_after_panel_close
 	lea.l body_inventory_overlay(pc),a5
     ; Nearby-object inventory flag selects direct body restore; queue membership and SAVED are not tested. The next nearby-character enqueue waits for restore completion before clearing.
 	bsr.w restore_ui_overlay_background
-abs_0_000127C4:
+queue_nearby_overlays_after_panel_close:
 	lea.l nearby_character_overlay(pc),a5
 	bsr.w enqueue_ui_overlay_update
 	lea.l nearby_carrying_overlay(pc),a5
@@ -6183,20 +6184,21 @@ finalize_inventory_selection:
 	rts
 refresh_selected_item_name_display:
 	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
-	bne.b abs_0_000129E8
+	bne.b return_from_selected_item_name_display
 	move.l a5,-(a7)
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
+    ; IDs 0 and 1 display NOTHING here. The handoff has already cleared the giver selection, so its separate nearby-carrying redraw resolves the empty selection.
 	cmp.b #$2,d0
-	bcc.b abs_0_000129D6
+	bcc.b resolve_held_item_name_for_overlay
 	moveq.l #ITEM_ID_NOTHING,d0
-abs_0_000129D6:
+resolve_held_item_name_for_overlay:
 	bsr.w resolve_item_name
 	lea.l player_holding_overlay(pc),a5
 	move.l d0,ui_overlay_descriptor_line_0_ptr(a5)
 	bsr.w enqueue_ui_overlay_update
 	movea.l (a7)+,a5
-abs_0_000129E8:
+return_from_selected_item_name_display:
 	rts
 refresh_inventory_panel:
 	movem.l d7/a2-a5,-(a7)
@@ -13891,10 +13893,11 @@ clear_combat_hit_feedback:
 	move.l a2,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
 	move.l a2,(a1)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a1)
 	rts
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 display_current_item_name:
 	move.l a5,-(a7)
 	moveq.l #0,d0
-	move.b $0046(a5),d0
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	bsr.w resolve_item_name
 	lea.l nearby_carrying_overlay.l,a5
 	move.l a0,ui_overlay_descriptor_line_0_ptr(a5)
@@ -24903,31 +24906,36 @@ complete_thief_interaction:
 	moveq.l #WORLD_ITEM_STATE_INCREMENT,d0
 	jmp adjust_active_world_object_item_state.l
     ; Player defeat skips the handoff; otherwise transfer the item, empty its slot, inhibit script dispatch and exchange states. Queue/UI/audio effects remain separate.
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 collect_world_object_item:
-	btst.b #1,player_world_object_world_object_flags.l
-	bne.b abs_0_0005B184
-	lea.l abs_0_0005D2A1(pc),a0
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
+	bne.b return_from_world_object_item_handoff
+	lea.l npc_item_handoff_message(pc),a0
 	jsr enqueue_status_message.l
-	move.b $0046(a5),d0
-	clr.b $0046(a5)
+    ; Copy the selected BYTE, including 0/1, over player holding. Clear only inventory slot 0 ID: its value and all later slots survive. Giver inactive is set but does not guard this entry.
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
+	move.b world_object_shared_prefix_selected_item_id(a5),d0
+	clr.b world_object_shared_prefix_selected_item_id(a5)
 	move.b d0,player_world_object_selected_item_id.l
-	bset.b #WORLD_OBJECT_INACTIVE_BIT,$0048(a5)
-	movea.l $0014(a5),a0
-	clr.b (a0)
+	bset.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
+	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
+	clr.b (a0)	; operand 1: inventory_item_slot_item_id at (a0)
+    ; Reset this fixed officer node independently of A5. The later exchange resets the incoming giver node; do not generalize these two targets into one.
 	lea.l entry_officer_nodes_4A45E_5(pc),a0
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
-	btst.b #2,app_ui_flags(a6)
-	beq.b abs_0_0005B16C
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
+	beq.b exchange_giver_state_after_item_handoff
 	movem.l d0/a0/a5,-(a7)
 	jsr close_inventory_panel.l
 	movem.l (a7)+,d0/a0/a5
-abs_0_0005B16C:
+    ; Direct repeated calls still exchange states and can transfer zero. Script inactivity inhibits later dispatch only after its delay check; the original callback service installs delay 10000.
+exchange_giver_state_after_item_handoff:
 	jsr exchange_world_object_position_states.l
 	jsr display_current_item_name.l
 	jsr refresh_selected_item_name_display.l
 	jsr start_id_failure_or_item_handoff_audio.l
-abs_0_0005B184:
+return_from_world_object_item_handoff:
 	rts
 world_object_technician:
 	dc.l $00000000	; item_name_ptr
@@ -27769,13 +27777,13 @@ bank_manager_bent_coin_response:
 	dc.b $22,"Let me invest that for you, HA HA HA HA",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 bank_manager_default_response:
 	dc.b $22,"Can I interest you in a pension scheme...",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
-abs_0_0005D2A1:
-	dc.b $22,$44,$6F,$6E,$22,$74,$20,$6D,$6F,$76,$65,$2E,$20,$59,$6F,$75
-	dc.b $20,$6E,$65,$65,$64,$20,$49,$2E,$44,$2E,$2C,$20,$6F,$6E,$6C,$79
-	dc.b $20,$79,$6F,$75,$20,$63,$61,$6E,$2E,$2E,$2E,$22,$00,$30,$3C,$03
-	dc.b $00,$60,$5C,$30,$3C,$02,$00,$60,$56,$30,$3C,$03,$00,$60,$50,$30
-	dc.b $3C,$03,$00,$60,$4A,$30,$3C,$03,$00,$60,$44,$30,$3C,$03,$00,$60
-	dc.b $3E,$30,$3C,$03,$00,$60,$38,$30,$3C,$02,$11,$60,$32
+npc_item_handoff_message:
+	dc.b '"','D','o','n','"','t',' ','m','o','v','e','.',' ','Y','o','u'	; message
+	dc.b ' ','n','e','e','d',' ','I','.','D','.',',',' ','o','n','l','y'
+	dc.b ' ','y','o','u',' ','c','a','n','.','.','.','"',$00
+	dc.b $30,$3C,$03,$00,$60,$5C,$30,$3C,$02,$00,$60,$56,$30,$3C,$03,$00
+	dc.b $60,$50,$30,$3C,$03,$00,$60,$4A,$30,$3C,$03,$00,$60,$44,$30,$3C
+	dc.b $03,$00,$60,$3E,$30,$3C,$03,$00,$60,$38,$30,$3C,$02,$11,$60,$32
 start_brain_pickup_feedback_audio:
 	move.w #BRAIN_PICKUP_AUDIO_SEQUENCE,d0
 	bra.b start_feedback_audio_sequence
