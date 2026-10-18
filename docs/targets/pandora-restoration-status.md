@@ -4071,3 +4071,38 @@ original bytes, receipt
 `e6a4a304951afd1e41d8d86df378c2d875ee3a825400896acebdd0709319dbb8`. The audit preserves
 every prior annotation/SDK expression, all owner identities/bounds, 86 assets,
 reference spellings, both raw gaps and both history prefixes.
+
+## Proximity audio transitions and fixed-center attenuation
+
+The per-visit audio gate now names its complete local branch family and the
+shared start latch. The native caller at source `$624` invokes the update. The
+pianist's inactive bit inhibits it; otherwise it computes WORD magnitudes from
+fixed `(840,168)`, sums in a WORD and compares unsigned with 256. Arithmetic
+wrap is preserved: two `$8000` magnitudes sum to zero and enter the near branch.
+Near visits store master-volume WORD `64-floor(distance/4)`, covering 64..1.
+
+Interaction bit 0 starts mode 2 only on entry. Distance exit resets only on an
+active edge and writes WORD `$0040`. Actor inhibition also resets only on an
+active edge, but writes BYTE `$40` at the volume WORD's address, preserving its
+low byte and producing `$40xx`. The source retains that original distinction.
+The shared start helper saves D1-D7/A1-A6 and clears carry on return; the near
+update instead saves only D0/D1/A6 around initialization. The shared helper's static reference
+query found no callers, so no reachability or indirect-caller closure is claimed.
+
+Fourteen original-code cases cover all 65,536 coordinate WORDs on each axis,
+eight paired wrap/threshold cases, actor inhibition, real reset/initialization,
+repeated visits and shared-latch register/carry behavior. They observe flat-RAM
+CPU writes and normal return, without audible output or chipset DMA claims.
+Initialization exceeds the bounded trace write-summary capacity; memory checks
+do not assume that summary is complete. Existing records and a disjoint valid
+stack are explicit assumptions.
+
+All 33 facts are accepted: nine labels, six constants, fourteen operand styles
+and four comments, reusing the existing inactive/latch symbols. Every prior
+annotation and SDK/hardware expression, owner extent, asset, raw gap and history
+prefix passes the preservation audit. The C/vasm gate reproduces all 376,832
+original bytes, receipt `77904b2974ba3faf4cc3ab7d80d89d7e764f007e9ec67de99c7302dda96dc734`.
+See `docs/validation/pandora-proximity-audio.json` for evidence and limits.
+The separate bootstrap fixture boundary remains unchanged. The next connected
+world-grid question is the fixed reset store at `$64C0`, whose gameplay role
+remains unassigned.

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "starting_commit": "4b2b5d17b1244833496241fe01ff8aa8422672a0",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do the fixed-center proximity gate and shared latch start, attenuate and stop audio?",
+  "source_spans": [
+    [
+      348894,
+      349040
+    ],
+    [
+      316236,
+      316264
+    ]
+  ],
+  "native_callers": {
+    "update_player_proximity_audio": [
+      1572
+    ],
+    "shared_start_helper": "Native symbol reference query returned no callers. Naming documents proven code behavior without asserting reachability or a complete indirect caller set."
+  },
+  "semantics": {
+    "gate": "Pianist inactive bit inhibits. Otherwise subtract fixed (840,168) in WORDs, negate negative WORDs, sum in a WORD and compare unsigned with 256. $8000 negates to itself; two $8000 magnitudes wrap to zero and enter near.",
+    "entry": "Interaction bit 0 starts audio mode 2 only on its clear-to-set edge. The near entry saves D0/D1/A6 around real initialization; repeated visits avoid it.",
+    "attenuation": "For wrapped distance 0..255, store master-volume WORD 64-floor(distance/4), range 64..1.",
+    "exit": "Distance exit resets only if active and stores WORD $0040. Actor inhibition resets only if active, but its BYTE store at the WORD address changes only the high byte, yielding $40xx. Inactive exits preserve the volume. No behavioral repair is made.",
+    "shared_start": "Sets the same latch and initializes mode 2 only once, saving D1-D7/A1-A6. Final MOVE.W clears carry; active visits retain D0, real mode-2 initialization returns D0=28 in the checked original records."
+  },
+  "facts": {
+    "accepted": 33,
+    "labels": 9,
+    "constants": 6,
+    "operand_bindings": 14,
+    "comments": 4,
+    "existing_symbols_reused": [
+      "WORLD_OBJECT_INACTIVE_BIT",
+      "INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE"
+    ]
+  },
+  "coverage": {
+    "pytest_cases": 14,
+    "individual_axis_word_inputs": 131072,
+    "wrapped_pair_and_threshold_cases": 8,
+    "actor_inhibit_active_states": 2,
+    "near_and_far_transitions": 1,
+    "shared_start_active_states": 2,
+    "full_initialization": "Runs the original initializer and reset with valid original data. Bounded trace write summaries overflow during initialization; tests use guest memory and normal return rather than claiming complete write traces."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "77904b2974ba3faf4cc3ab7d80d89d7e764f007e9ec67de99c7302dda96dc734",
+    "audit": "Every previous source line retained outside nine explicit label substitutions and fourteen intentional operand style replacements. All prior comments, SDK/hardware expressions, owner identities/bounds, assets, both raw gaps and both history prefixes pass. Exactly 33 MAL actions and 33 review decisions appended.",
+    "framework_checks": "No native/renderer changes; prior 819 native and 150 focused results reused. The published preparation fix passed 242 focused checks and the equivalent real 100-action clone operation.",
+    "known_unrelated_boundary": "Previously reproduced bootstrap-copy fixture expects overlaid_by_runtime_copy but receives full_source_policy_load_view; unchanged and not counted as passing."
+  },
+  "workflow_seconds": {
+    "command_context": 0.081427,
+    "command_catalog": 0.792635,
+    "locator_resolution": 0.043309,
+    "manual_action_append": 13.054545,
+    "manual_action_application": 0.000133,
+    "listing_cache_invalidation": 0.011575,
+    "response_build": 9.8e-05
+  },
+  "limits": "Flat RAM with a disjoint valid stack and original audio data; no audible/DMA completion, arbitrary replacement-data lifetime or complete reachability proof. Full-game and alternate-layout restoration remain open."
+}

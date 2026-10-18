@@ -884,6 +884,7 @@ ASCII_CARRIAGE_RETURN	EQU	13
 ASCII_CASE_FOLD_BIT	EQU	5
 ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
+AUDIO_PLAYER_MODE_PROXIMITY	EQU	2
 BITMAP_PIXELS_PER_BYTE_SHIFT	EQU	3
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 BLITTER_A_OR_C_MINTERM	EQU	ABC|ABNC|ANBC|ANBNC|NABC|NANBC
@@ -1097,6 +1098,11 @@ PROPORTIONAL_SHIFT_PACK_SHIFT	EQU	16-ASHIFTSHIFT
 PROPORTIONAL_SINGLE_WORD_MODULO	EQU	FRAMEBUFFER_RASTER_ROW_BYTES-2
 PROPORTIONAL_STRADDLE_SOURCE_MODULO	EQU	-2
 PROPORTIONAL_WORD_PIXELS	EQU	16
+PROXIMITY_AUDIO_CENTER_X	EQU	840
+PROXIMITY_AUDIO_CENTER_Y	EQU	168
+PROXIMITY_AUDIO_DISTANCE_SHIFT	EQU	2
+PROXIMITY_AUDIO_EXCLUSIVE_DISTANCE	EQU	256
+PROXIMITY_AUDIO_FULL_VOLUME	EQU	64
 RESTART_FIELD_BEHAVIOR_SCRIPT_DELAY_TICKS	EQU	world_object_shared_prefix_behavior_script_delay_ticks
 RESTART_FIELD_BEHAVIOR_SCRIPT_PTR	EQU	world_object_shared_prefix_behavior_script_ptr
 RESTART_FIELD_HIT_POINTS	EQU	world_object_shared_prefix_hit_points
@@ -27706,14 +27712,15 @@ start_feedback_audio_sequence:
 	movem.l (a7)+,d1-d7/a1-a6
 	bset.b #GAME_EVENT_FEEDBACK_AUDIO_LATCH_BIT,app_game_event_flags(a6)
 	rts
-abs_0_0005D34C:
-	bset.b #0,app_world_interaction_flags(a6)
-	bne.b abs_0_0005D364
+    ; Shared bit-0 start latch: only a new latch initializes mode 2. Saves D1-D7/A1-A6; A0 may change, D0 is the callee result. Final MOVE.W clears carry; caller reachability remains open.
+start_proximity_audio_if_inactive:
+	bset.b #INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE,app_world_interaction_flags(a6)
+	bne.b return_from_proximity_audio_start
 	movem.l d1-d7/a1-a6,-(a7)
-	moveq.l #2,d0
+	moveq.l #AUDIO_PLAYER_MODE_PROXIMITY,d0
 	jsr initialize_audio_player.l
 	movem.l (a7)+,d1-d7/a1-a6
-abs_0_0005D364:
+return_from_proximity_audio_start:
 	move.w d0,d0
 	rts
     ; Reset keeps ticks and NPC pending bits. An already-pending handler waits on nonzero channel-2 ticks; inactive dispatch cannot drain them. Another writer or reactivation is needed.
@@ -29849,52 +29856,55 @@ secondary_audio_waveform_bank:
 ; sound_sample
 	dc.b $4E,$71,$4E,$71,$00,$00,$03,$F2,$00,$00,$00,$00,$00,$05,$05,$A8
 	dc.b $05,$FF,$00,$02
-abs_0_000652DE:
-	bclr.b #0,app_world_interaction_flags(a6)
-	beq.b abs_0_000652FC
+stop_inhibited_proximity_audio:
+	bclr.b #INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE,app_world_interaction_flags(a6)
+	beq.b return_from_proximity_audio_stop
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
-	move.b #$40,audio_player_globals_master_volume.l
+    ; This is a BYTE store at the master-volume WORD address: high byte becomes $40 and low byte survives ($40xx). The distance-exit path instead stores WORD $0040; preserve this distinction.
+	move.b #PROXIMITY_AUDIO_FULL_VOLUME,audio_player_globals_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
-abs_0_000652FC:
+return_from_proximity_audio_stop:
 	rts
+    ; Inhibit when pianist inactive; otherwise sum wrapped WORD magnitudes from fixed (840,168), then compare unsigned with 256. WORD sum overflow can wrap into the near branch.
 update_player_proximity_audio:
-	btst.b #1,world_object_pianist_actor_world_object_flags.l
-	bne.b abs_0_000652DE
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_pianist_actor_world_object_flags.l
+	bne.b stop_inhibited_proximity_audio
 	lea.l player_world_object_world_x.l,a0
 	move.w (a0)+,d0	; operand 1: world_object_shared_prefix_world_x at (a0)+
-	subi.w #840,d0
-	bpl.b abs_0_00065318
+	subi.w #PROXIMITY_AUDIO_CENTER_X,d0
+	bpl.b measure_proximity_audio_y_delta
 	neg.w d0
-abs_0_00065318:
+measure_proximity_audio_y_delta:
 	move.w (a0),d1	; operand 1: world_object_shared_prefix_world_y at (a0)
-	subi.w #168,d1
-	bpl.b abs_0_00065322
+	subi.w #PROXIMITY_AUDIO_CENTER_Y,d1
+	bpl.b sum_proximity_audio_word_magnitudes
 	neg.w d1
-abs_0_00065322:
+sum_proximity_audio_word_magnitudes:
 	add.w d0,d1
-	cmp.w #$100,d1
-	bcs.b abs_0_0006534A
-	bclr.b #0,app_world_interaction_flags(a6)
-	beq.b abs_0_0006536E
+	cmp.w #PROXIMITY_AUDIO_EXCLUSIVE_DISTANCE,d1
+	bcs.b start_or_attenuate_proximity_audio
+	bclr.b #INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE,app_world_interaction_flags(a6)
+	beq.b return_from_proximity_audio_update
 	movem.l d1-d7/a0-a6,-(a7)
 	jsr reset_audio_channels.l
-	move.w #$40,audio_player_globals_master_volume.l
+	move.w #PROXIMITY_AUDIO_FULL_VOLUME,audio_player_globals_master_volume.l
 	movem.l (a7)+,d1-d7/a0-a6
-	bra.b abs_0_0006536E
-abs_0_0006534A:
-	bset.b #0,app_world_interaction_flags(a6)
-	bne.b abs_0_00065362
+	bra.b return_from_proximity_audio_update
+    ; Latch bit 0 starts audio mode 2 only on entry. While near, master volume WORD = 64-floor(distance/4), giving 64..1 for wrapped distances 0..255. Only D0/D1/A6 are saved around init here.
+start_or_attenuate_proximity_audio:
+	bset.b #INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE,app_world_interaction_flags(a6)
+	bne.b attenuate_proximity_audio_volume
 	movem.l d0-d1/a6,-(a7)
-	moveq.l #2,d0
+	moveq.l #AUDIO_PLAYER_MODE_PROXIMITY,d0
 	jsr initialize_audio_player.l
 	movem.l (a7)+,d0-d1/a6
-abs_0_00065362:
-	lsr.w #2,d1
-	moveq.l #64,d0
+attenuate_proximity_audio_volume:
+	lsr.w #PROXIMITY_AUDIO_DISTANCE_SHIFT,d1
+	moveq.l #PROXIMITY_AUDIO_FULL_VOLUME,d0
 	sub.b d1,d0
 	move.w d0,audio_player_globals_master_volume.l
-abs_0_0006536E:
+return_from_proximity_audio_update:
 	rts
 preserved_uncopied_payload_tail:
 	INCBIN "assets/preserved_uncopied_payload_tail.bin"
