@@ -4740,3 +4740,32 @@ and histories pass preservation; all 126 assets, 2,112 typed tile fields and the
 128-byte INCBIN policy remain intact, including the exact caller-dependent A4
 distinction. RAM/MMIO shadows perform no DMA or asynchronous frame production and
 establish no ordinary admission, complete ownership/lifetime or whole restart.
+
+### Title-to-gameplay restart consumers
+
+Accepted 59 annotations: fifteen code stages, fourteen constants, twenty operand
+bindings, logo/credits strings (125 bytes) and seven comments. Six original-code
+tests in `tests/test_pandora_title_restart.py` carry world/terminal/self-destruct F7
+paths through title, both initial bank renders, seven overlay registrations and
+initial world updates to the main-frame wait. The retained 20x8/row51 case starts
+its pointer walk at modal-base+4080. Per-bank row offsets are 4080,3520,2960,2400,
+1840,1280,720,160: 140 of 160 packet reads lie outside the declared 640-byte modal
+cell prefix. The renderer subtracts one grid size after each row. These are CPU
+read addresses/programmed packets; DMA, pixels and ordinary admission are unproved.
+
+Title reveal compares the LONG counter to entry+150 with wrap using equality.
+Skipped equality skips the block; repeated equality repeats its drawing/audio
+initialization. The two 16-step palette counters use foreground iterations, and
+a first-poll fire can leave before reveal. The title audio service bit is set at
+reveal and cleared by feedback start; gameplay VBL audio is independent. A bounded
+$400..$7E8 runtime address view names the 100 ten-byte records without asserting
+allocation/lifetime or a global typed-array owner; byte9 remains unknown. The
+192-byte shared gradient prefix and following 64 seed bytes have explicit fences.
+
+A 70-byte instruction preflight covers all fourteen EQU forms and immediate/d16
+styles. Full-target C/vasm matches all 376,832 bytes, receipt `0a2ba9868ee40944a838a66e5a40dbbd3c8d285800367f6e79e6781799b9ec22`.
+Earlier source/comments, fields/types/owner bounds, SDK/pointer forms, raw gaps
+and histories pass preservation, including the exact prior A4 and F7 distinctions.
+All 126 assets, 2,112 typed tile fields and the 128-byte INCBIN policy remain intact.
+Unchanged checks are reused. No asynchronous IRQ/DMA, complete ownership/lifetime,
+ordinary timing, resultant pixels or intent/bug claim is added.

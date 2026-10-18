@@ -897,6 +897,7 @@ APP_STARTUP_CLEAR_LAST_BYTE	EQU	875
 APP_STATE_BASE	EQU	$39FC
 APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT	EQU	4
 APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
+APP_STATUS_TITLE_STAR_PALETTE_ACTIVE_BIT	EQU	2
 ASCII_CARRIAGE_RETURN	EQU	13
 ASCII_CASE_FOLD_BIT	EQU	5
 ASCII_LOWERCASE_A	EQU	97
@@ -1307,16 +1308,28 @@ TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
+TITLE_CREDITS_TEXT_PLANES	EQU	$8
 TITLE_CURRENT_GRADIENT_RASTER_LINES	EQU	32
+TITLE_FIRE_EXIT_STATUS_BIT	EQU	1
+TITLE_FIRE_FEEDBACK_AUDIO_SEQUENCE	EQU	$107
+TITLE_GRADIENT_COLOR_COUNT	EQU	RGB12_TITLE_GRADIENT_LAST_COLOR+1
+TITLE_GRADIENT_ACCUMULATOR_LAST_LONGWORD	EQU	TITLE_GRADIENT_COLOR_COUNT*rgb12_accumulator_SIZEOF/4-1
+TITLE_GRADIENT_PALETTE_SERVICE_STEPS	EQU	16
 TITLE_GRADIENT_ROTATION_LAST_COPY	EQU	14
 TITLE_INTRO_GRADIENT_RASTER_LINES	EQU	24
+TITLE_REVEAL_AUDIO_PLAYER_MODE	EQU	0
+TITLE_REVEAL_FRAME_DELAY	EQU	150
 TITLE_ROTATING_GRADIENT_RASTER_LINES	EQU	8
+TITLE_STAR_ACCUMULATOR_LAST_WORD	EQU	(RGB12_TITLE_STAR_LAST_COLOR+1)*rgb12_accumulator_SIZEOF/2-1
 TITLE_STAR_COLOR_LIFETIME_SHIFT	EQU	3
 TITLE_STAR_LAST_RECORD	EQU	99
 TITLE_STAR_LIFETIME_MASK	EQU	63
 TITLE_STAR_LIFETIME_RESEED_AT	EQU	16
 TITLE_STAR_LIFETIME_RESET	EQU	64
 TITLE_STAR_MIN_VISIBLE_LIFETIME	EQU	17
+TITLE_STAR_PALETTE_SERVICE_STEPS	EQU	16
+TITLE_STAR_RECORD_BASE	EQU	$400
+TITLE_STAR_RECORD_BYTES	EQU	title_star_record_SIZEOF
 TRADE_COMBAT_ITEM_RANGE_COUNT	EQU	15
 TRADE_FEEDBACK_AUDIO_SEQUENCE	EQU	$112
 TRADE_FIRST_NORMAL_ITEM_ID	EQU	2
@@ -1353,6 +1366,7 @@ VIEW_CLIP_RIGHT_BIT	EQU	$3
 VIEW_CLIP_TOP_BIT	EQU	$0
 WACKOBRAIN_FEEDBACK_AUDIO_SEQUENCE	EQU	$8
 WORK_BUFFER_PALETTE_INPUT_BASE	EQU	UI_HIT_BACKGROUND_STORAGE+$2E0
+WORLD_AUDIO_TITLE_FOREGROUND_SERVICE_BIT	EQU	0
 WORLD_CMD_ADD_X	EQU	0
 WORLD_CMD_ADD_Y	EQU	1
 WORLD_CMD_CALL_FUNCTION	EQU	7
@@ -1683,6 +1697,7 @@ setup_runtime_hardware_and_display:
     ; Enable master, vertical-blank and Copper interrupts here; BLIT is not enabled by this write. The level-3 handler samples raw request bits.
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)
 	bsr.w run_title_starfield_until_fire
+install_gameplay_callbacks_after_title:
 	move.w #DMAF_RASTER,dmacon(a5)
 	lea.l handle_vertical_blank_frame_update(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
@@ -1694,13 +1709,17 @@ setup_runtime_hardware_and_display:
 	move.l a0,app_current_palette(a6)
 	bsr.w start_seeded_zero_copy_blit
     ; Render both fixed buffer banks ($78000, then $70000). Initial front/display is $78000 and back is $70000; these chip-visible placements are not arbitrary-base relocation.
+select_initial_gameplay_bank1:
 	move.l #FRAMEBUFFER_BANK1_BASE,app_display_bitplane_base(a6)
 	move.l #FRAMEBUFFER_BANK1_BASE,app_back_bitplane_base(a6)
+    ; These initial bank renders consume the current map header/base. Title does not restore a retained modal context; the F7 continuation keeps 20x8 with restart row51 through both renders.
 	bsr.w render_tilemap_view_to_back_buffer
+select_initial_gameplay_bank0:
 	move.l #FRAMEBUFFER_BANK0_BASE,app_back_bitplane_base(a6)
 	bsr.w render_tilemap_view_to_back_buffer
+select_gameplay_front_before_initial_updates:
 	move.l #FRAMEBUFFER_BANK1_BASE,app_front_bitplane_base(a6)
-	bsr.w abs_0_0001079E
+	bsr.w queue_initial_gameplay_overlays
 	jsr initialize_player_and_fixed_animation_nodes.l
 	bsr.w run_eligible_world_object_scripts
 	bsr.w repeat_inherited_object_xy_copy_for_world_table
@@ -1854,21 +1873,21 @@ abs_0_00010794:
 	beq.b abs_0_00010794
 	move.l (a7)+,d0
 	rts
-abs_0_0001079E:
+queue_initial_gameplay_overlays:
 	lea.l pocket_inventory_overlay(pc),a5
-	bsr.b abs_0_000107C6
+	bsr.b enqueue_startup_overlay_descriptor
 	lea.l backpack_inventory_overlay(pc),a5
-	bsr.b abs_0_000107C6
+	bsr.b enqueue_startup_overlay_descriptor
 	lea.l player_health_overlay(pc),a5
-	bsr.b abs_0_000107C6
+	bsr.b enqueue_startup_overlay_descriptor
 	lea.l nearby_distance_overlay(pc),a5
-	bsr.b abs_0_000107C6
+	bsr.b enqueue_startup_overlay_descriptor
 	lea.l nearby_character_overlay(pc),a5
-	bsr.b abs_0_000107C6
+	bsr.b enqueue_startup_overlay_descriptor
 	lea.l nearby_carrying_overlay(pc),a5
-	bsr.b abs_0_000107C6
+	bsr.b enqueue_startup_overlay_descriptor
 	lea.l player_holding_overlay(pc),a5
-abs_0_000107C6:
+enqueue_startup_overlay_descriptor:
 	bsr.w enqueue_ui_overlay_update
 	rts
     ; Start a one-row, one-word A-to-D copy with source and destination both $77D00. No local wait; the later seeded-copy routine waits for the BLIT completion request.
@@ -2309,25 +2328,25 @@ initialize_starfield:
 	lea.l title_current_rgb12_palette(pc),a0
 	move.l a0,app_current_palette(a6)
 	move.w #TITLE_STAR_LAST_RECORD,d7
-	movea.l #$400,a2
+	movea.l #TITLE_STAR_RECORD_BASE,a2
 initialize_next_star_record:
 	bsr.w initialize_star_motion_with_random_lifetime
 	lea.l finish_starfield_initialization(pc),a3
 	bra.w render_star_pixel_by_lifetime
 finish_starfield_initialization:
-	lea.l $000A(a2),a2
+	lea.l TITLE_STAR_RECORD_BYTES(a2),a2
 	dbf.w d7,initialize_next_star_record
 	lea.l title_star_palette_fractional_components(pc),a0
-	moveq.l #23,d7
-abs_0_00010D76:
+	moveq.l #TITLE_STAR_ACCUMULATOR_LAST_WORD,d7
+clear_next_title_star_accumulator_word:
 	clr.w (a0)+	; operand 1: rgb12_accumulator_red_q4 at (a0)+
-	dbf.w d7,abs_0_00010D76
-	bset.b #2,app_status_flags(a6)
-	move.b #$10,app_title_star_palette_steps_remaining(a6)
+	dbf.w d7,clear_next_title_star_accumulator_word
+	bset.b #APP_STATUS_TITLE_STAR_PALETTE_ACTIVE_BIT,app_status_flags(a6)
+	move.b #TITLE_STAR_PALETTE_SERVICE_STEPS,app_title_star_palette_steps_remaining(a6)
 	rts
 update_starfield:
 	move.w #TITLE_STAR_LAST_RECORD,d7
-	movea.l #$400,a2
+	movea.l #TITLE_STAR_RECORD_BASE,a2
 update_next_star_record:
 	lea.l continue_starfield_after_pixel_clear(pc),a3
 	bra.w clear_star_pixel
@@ -2339,19 +2358,19 @@ draw_star_after_motion_update:
 	lea.l advance_starfield_after_pixel_render(pc),a3
 	bra.w render_star_pixel_by_lifetime
 advance_starfield_after_pixel_render:
-	lea.l $000A(a2),a2
+	lea.l TITLE_STAR_RECORD_BYTES(a2),a2
 	dbf.w d7,update_next_star_record
-	btst.b #2,app_status_flags(a6)
-	beq.b abs_0_00010DDE
+	btst.b #APP_STATUS_TITLE_STAR_PALETTE_ACTIVE_BIT,app_status_flags(a6)
+	beq.b return_from_starfield_update
 	moveq.l #RGB12_TITLE_STAR_LAST_COLOR,d7
 	lea.l title_star_palette_fractional_components(pc),a2
 	lea.l title_current_rgb12_palette(pc),a0
 	lea.l title_star_palette_rgb12_increments(pc),a1
 	jsr add_rgb12_palette_components.l
 	subq.b #1,app_title_star_palette_steps_remaining(a6)
-	bne.b abs_0_00010DDE
-	bclr.b #2,app_status_flags(a6)
-abs_0_00010DDE:
+	bne.b return_from_starfield_update
+	bclr.b #APP_STATUS_TITLE_STAR_PALETTE_ACTIVE_BIT,app_status_flags(a6)
+return_from_starfield_update:
 	rts
     ; Title callbacks cycle current -> intro -> rotating with 32/24/8-line counts. The rotating phase reads 8 of 16 WORDs; the frame update rotates all 16 on even frames.
 apply_current_title_raster_gradient:
@@ -2486,67 +2505,73 @@ run_title_starfield_until_fire:
 	lea.l update_title_frame_palette_and_rotate_gradient(pc),a0
 	move.l a0,app_vertical_blank_callback(a6)
 	move.l app_frame_counter(a6),d5
-	addi.l #150,d5
+    ; D5 is entry frame counter plus 150 with LONG wrap. Reveal requires equality; a skipped value skips the block, while repeated equality redraws and reinitializes it on each foreground visit.
+	addi.l #TITLE_REVEAL_FRAME_DELAY,d5
 	move.w #INTF_SETCLR|INTF_INTEN,intena(a5)
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,dmacon(a5)
-abs_0_00010FD2:
+service_foreground_title_iteration:
 	bsr.w update_starfield
-	btst.b #0,app_world_interaction_audio_flags(a6)
-	beq.b abs_0_00010FEC
+	btst.b #WORLD_AUDIO_TITLE_FOREGROUND_SERVICE_BIT,app_world_interaction_audio_flags(a6)
+	beq.b compare_title_reveal_frame_counter
 	movem.l d5/a6,-(a7)
 	jsr update_audio_channels.l
 	movem.l (a7)+,d5/a6
-abs_0_00010FEC:
+compare_title_reveal_frame_counter:
 	cmp.l app_frame_counter(a6),d5
-	bne.b abs_0_00011052
+	bne.b advance_title_gradient_palette_if_pending
+draw_title_reveal_and_initialize_audio:
 	move.l d5,-(a7)
 	moveq.l #6,d0
 	moveq.l #1,d1
 	bsr.w set_text_cursor_in_front_buffer
-	lea.l abs_0_0001A7D0.l,a3
+	lea.l pandora_title_logo_text.l,a3
 	bsr.w draw_title_glyph_string
-	move.b #$8,app_text_plane_mask(a6)
+	move.b #TITLE_CREDITS_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #20,d1
 	bsr.w set_text_cursor_in_front_buffer
-	lea.l string_0002109E(pc),a3
+	lea.l title_credits_text(pc),a3
 	bsr.w draw_compact_text_string
-	move.b #$20,app_palette_effect_countdown(a6)
+	move.b #TITLE_CURRENT_GRADIENT_RASTER_LINES,app_palette_effect_countdown(a6)
 	lea.l title_current_raster_gradient_rgb12(pc),a0
 	move.l a0,app_title_raster_gradient_ptr(a6)
 	move.l a6,-(a7)
-	moveq.l #0,d0
+	moveq.l #TITLE_REVEAL_AUDIO_PLAYER_MODE,d0
 	jsr initialize_audio_player.l
 	movea.l (a7)+,a6
-	bset.b #0,app_world_interaction_audio_flags(a6)
+	bset.b #WORLD_AUDIO_TITLE_FOREGROUND_SERVICE_BIT,app_world_interaction_audio_flags(a6)
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a0
-	moveq.l #47,d7
-abs_0_00011044:
+	moveq.l #TITLE_GRADIENT_ACCUMULATOR_LAST_LONGWORD,d7
+    ; Clear 48 LONGs: the first 192 shared sprite-input/scratch bytes, also used by 32 six-byte RGB accumulators. The following 64 seed-row bytes remain untouched by these title writers.
+clear_next_title_gradient_accumulator_longword:
 	clr.l (a0)+
-	dbf.w d7,abs_0_00011044
-	move.b #$10,app_palette_transition_steps_remaining(a6)
+	dbf.w d7,clear_next_title_gradient_accumulator_longword
+	move.b #TITLE_GRADIENT_PALETTE_SERVICE_STEPS,app_palette_transition_steps_remaining(a6)
 	move.l (a7)+,d5
-abs_0_00011052:
+    ; Both 16-step palette counters run in foreground iterations, without waiting for a new frame. Reveal reloads the gradient counter; this same visit immediately decrements it.
+advance_title_gradient_palette_if_pending:
 	tst.b app_palette_transition_steps_remaining(a6)
-	beq.b abs_0_00011070
+	beq.b poll_title_fire_for_gameplay
 	subq.b #1,app_palette_transition_steps_remaining(a6)
 	lea.l title_current_raster_gradient_rgb12(pc),a0
 	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
 	moveq.l #RGB12_TITLE_GRADIENT_LAST_COLOR,d7
 	bsr.w add_rgb12_palette_components
-abs_0_00011070:
+poll_title_fire_for_gameplay:
 	bsr.w poll_joystick1_directions_and_fire
 	tst.b app_input_fire_pressed_ff(a6)
-	beq.w abs_0_00010FD2
-	bset.b #1,app_status_flags(a6)
+	beq.w service_foreground_title_iteration
+    ; Fire can leave on the first poll, before the reveal deadline. This path sets status bit1, resets audio and starts feedback; no wider role for the status marker is established.
+leave_title_on_fire:
+	bset.b #TITLE_FIRE_EXIT_STATUS_BIT,app_status_flags(a6)
 	jsr reset_audio_channels.l
-	move.w #$107,d0
+	move.w #TITLE_FIRE_FEEDBACK_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	rts
 	dc.b $33,$EE,$01,$AC,$00,$DF,$F1,$80,$60,$F6
-string_0002109E:
-	dc.b "   CREATED BY: SHAHID AHMAD",$0D
+title_credits_text:
+	dc.b "   CREATED BY: SHAHID AHMAD",$0D	; mode=required, data_role=string, unit=byte, encoding=ascii
 	dc.b "               DAVID EASTMAN",$0D
 	dc.b "               TERRY GREER",$0D,$0D
 	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
@@ -12370,6 +12395,7 @@ wait_for_next_viewport_tile_blit:
 	adda.w d2,a2
 	cmpa.l a4,a2
 	bcs.b advance_viewport_tile_row_count
+    ; Initial row/column arithmetic has no height normalization. This wrap occurs after each copied row and subtracts one grid size once; it is not general modulo.
 	suba.l d3,a2
 advance_viewport_tile_row_count:
 	dbf.w d1,render_next_viewport_tile_row
@@ -17215,8 +17241,8 @@ item_name_offset_table:
 	dc.w abs_0_0001A6CD-item_name_string_table
 terminal_item_deposited_message:
 	dc.b " ITEM DEPOSITED",$00
-abs_0_0001A7D0:
-	dc.b "PANDORA",$00
+pandora_title_logo_text:
+	dc.b "PANDORA",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 	dc.b $63,$3A,$5C,$64,$65,$76,$70,$61,$63,$5C
 compact_font_index_origin:
 	dc.b $68,$61,$72,$64,$61,$5C,$00,$00
@@ -27661,8 +27687,9 @@ start_player_combat_hit_audio:
 	bra.b start_feedback_audio_sequence
 start_opponent_combat_hit_audio:
 	move.w #$203,d0
+    ; Feedback start clears the bit that gates title foreground audio service. Title reveal sets it. Gameplay VBL services audio independently of this bit.
 start_feedback_audio_sequence:
-	bclr.b #0,app_world_interaction_audio_flags(a6)
+	bclr.b #WORLD_AUDIO_TITLE_FOREGROUND_SERVICE_BIT,app_world_interaction_audio_flags(a6)
 	movem.l d1-d7/a1-a6,-(a7)
 	jsr start_audio_sequence.l
 	movem.l (a7)+,d1-d7/a1-a6
