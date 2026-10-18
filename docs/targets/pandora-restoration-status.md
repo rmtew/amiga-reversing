@@ -4580,3 +4580,43 @@ owner bounds, 126 assets, SDK and pointer expressions, raw gaps and histories
 remain preserved. See `docs/validation/pandora-outcome-ranks.json` for native
 coordinates, incoming references, test domains and the verification receipt.
 Unselected atlas semantic use remains unknown.
+
+### Self-destruct console input, validation and display
+
+The connected console family now names fourteen branch stages and its nine-byte
+card-number text, with ten shared card/count/plane/event constants, fourteen
+equal-valued operand bindings and eight semantic comments. Existing app slots
+and the twelve-byte submitted-name pointer prefix retain their names and bounds.
+Twenty original-code CPU tests cover all BYTE values for UI flags, fire, selected
+item cache, state, disk/card admission and both counters. Six qualifying orders,
+three repeated-color triples and three invalid-color positions run through the
+real audio dispatch, name resolver, holding UI and compact text renderer.
+
+Input gates panel/no-fire/unchanged selection before updating the cache. A changed
+held ID is cached before state and range checks; redraw then resamples holding.
+State 0 consumes only SDI disk 38, advances to 1 and sets context bit6. State 1
+consumes card IDs 32..37; only blue 33/scarlet 35/ochre 36 increment the qualifying
+BYTE, including wrap. Three qualifying submissions arm FF without order or
+uniqueness checks. Other qualifying counts reject 2. The full disk-to-three-blue
+case preserves an explicitly inherited BEEF countdown throughout; arming does
+not reload that counter. Ordinary-play timer state and later bit6 use stay open.
+
+Name stores use submitted_BYTE*4 before incrementing; completion tests only the
+incremented low BYTE for 3. All256 bounded prefix cases show the absence of a
+three-slot guard. The declared three-pointer storage prefix is retained; synthetic
+corrupt counts do not justify expanding ownership. Normal redraw chooses prompt 0,
+card list 1, rejection 2 and accepted text for every other state. Validation success
+enters the header/name path directly with FF, distinct from an ordinary FF redraw.
+The clear prefix writes 384 thirty-byte plane rows at stride 40 from cell(2,2),
+with every ten-byte row gap and both outer fences verified.
+
+BLIT-ready MMIO is a RAM shadow and performs no DMA. Full rendering exceeds the
+bounded range-summary capacity; tests inspect actual guest memory and return
+state instead of claiming a complete write trace. No ordinary-gameplay admission,
+exclusive storage or complete-writer confidence is added. Existing 820 native,
+package-policy/media and outcome checks are reused without a framework change.
+All 376,832 original bytes match through C and vasm; all previous source, comments,
+fields/types/owners, 126 assets, SDK/pointer forms, raw gaps and history prefixes
+are preserved. The 128-byte INCBIN policy and 2,112 typed tile fields remain intact;
+unselected atlas gameplay use is still unknown. Receipt, native xrefs and test
+domains: `docs/validation/pandora-self-destruct-console.json`.

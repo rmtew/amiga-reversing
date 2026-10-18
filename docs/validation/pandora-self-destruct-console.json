@@ -1,0 +1,1360 @@
+{
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "baseline_commit": "41117a0fbee4311ee4fc8442b3c66dd6234db6de",
+  "accepted_action_count": 47,
+  "action_ids": [
+    "manual-5b85e47ac7294c82bd99545e19c4e7f6",
+    "manual-5757439d50244de9983d508f0c48e976",
+    "manual-e98e26e7f6084436b3e8f620fbb0c146",
+    "manual-f9093aec36694da99cd986de7dee4e5d",
+    "manual-ef6490df662c4979b91130dfe753d261",
+    "manual-f260501c9c074f98a9ae587822593959",
+    "manual-f8c6cef370aa441691a2c8d1c872cf36",
+    "manual-992eaa1dfc2245eaa2a5619e496a1ac0",
+    "manual-ecd9d40c352c4ee2961d5908788c9572",
+    "manual-d73fe51b60ec4e82a31867186d94b09d",
+    "manual-f93a874b97bd4b48ba8483eb05581abc",
+    "manual-b6b204a053fa4275b78193ebce9bb94a",
+    "manual-6a0c4103a90d4274b95c2bbcef2cdecd",
+    "manual-5b522b3422e547efa0505970e4d84b00",
+    "manual-4023358712a04c4591987c76cb309d54",
+    "manual-b7b98cfea3ab4e5db88d8c85bfa9fe03",
+    "manual-c48968a2cbbf43109065bb6fa78abb69",
+    "manual-1c98f8aabb16433bb9086cd7796b0797",
+    "manual-ea7852d72e6a48a4abf519d7eb7e990d",
+    "manual-290628314c004f7a97d74eb63590a257",
+    "manual-2a710ffe5c51410f9b174b1623a3ccfe",
+    "manual-308a821757364cfdad479b4c62cdd72c",
+    "manual-9a993e5bcc4a4bf0b73c36742eb8fe9f",
+    "manual-aa193720f94148fd9356e19343e34596",
+    "manual-b453aaec7a62459f8a18fcde66044c5e",
+    "manual-094dc81b39d44162bd046c1b50e43f1d",
+    "manual-68ed7e63b8e0429fbf396b4bf463cd77",
+    "manual-68c46cf9c9ef4e90a9e2c22c9524804a",
+    "manual-9293e187b9ef46e68537bdaac605816e",
+    "manual-22123d6d0259498daf55d55e7579152e",
+    "manual-b37257a63c19499eaab0db607a897c44",
+    "manual-c8d02e900ed441bfa70fd1b1e4ac4213",
+    "manual-335597c2d5c6449f98795710a0c58aaa",
+    "manual-df543170e61848f1b6c4cc01d0a4145d",
+    "manual-40b05431ddf641d38444b4abc5705fb9",
+    "manual-302cf008d89445bb80ab971641b142e8",
+    "manual-ae8d46d813a0469c9ffbf8fb7de5a6ff",
+    "manual-9d87383edcfe45f4bf0cae391ac288e0",
+    "manual-abcdada18bba44818af0d22f56aeedd8",
+    "manual-e709f7307f4145bb97ba64e2482aae09",
+    "manual-eafe71d07e9746e7a9b9734c8db19c99",
+    "manual-842d3620916948fba3c9da9c869e6b4d",
+    "manual-cee5cce2ce3846c885058e4a13bdf467",
+    "manual-616a4e7ce2ea41198a95ba0c26702414",
+    "manual-214d98ebde0e446c94dd679f814eb90a",
+    "manual-83cd1c091e4f431b92302eb2dbe7e75a",
+    "manual-b4c4490f30434163bfa0e909d876d86a"
+  ],
+  "native_source_coordinates": {
+    "process_self_destruct_card_input": 40126,
+    "validate_self_destruct_qualifying_card_count": 40362,
+    "render_self_destruct_card_sequence": 40386,
+    "run_self_destruct_modal_loop": 39936
+  },
+  "function_incoming_references": {
+    "process_self_destruct_card_input": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 40072,
+        "symbol": "process_self_destruct_card_input",
+        "target_offset": 40126,
+        "target_section_index": 0
+      }
+    ],
+    "validate_self_destruct_qualifying_card_count": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 40306,
+        "symbol": "validate_self_destruct_qualifying_card_count",
+        "target_offset": 40362,
+        "target_section_index": 0
+      }
+    ],
+    "render_self_destruct_card_sequence": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 39968,
+        "symbol": "render_self_destruct_card_sequence",
+        "target_offset": 40386,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 40356,
+        "symbol": "render_self_destruct_card_sequence",
+        "target_offset": 40386,
+        "target_section_index": 0
+      }
+    ],
+    "run_self_destruct_modal_loop": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 38744,
+        "symbol": "run_self_destruct_modal_loop",
+        "target_offset": 39936,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 38752,
+        "symbol": "run_self_destruct_modal_loop",
+        "target_offset": 39936,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 38884,
+        "symbol": "run_self_destruct_modal_loop",
+        "target_offset": 39936,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 38892,
+        "symbol": "run_self_destruct_modal_loop",
+        "target_offset": 39936,
+        "target_section_index": 0
+      }
+    ]
+  },
+  "branch_references": [
+    [
+      40126,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40072,
+            "symbol": "process_self_destruct_card_input",
+            "target_offset": 40126,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40240,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40208,
+            "symbol": "abs_0_00019D30",
+            "target_offset": 40240,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40214,
+            "symbol": "abs_0_00019D30",
+            "target_offset": 40240,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40220,
+            "symbol": "abs_0_00019D30",
+            "target_offset": 40240,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 3,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40288,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40270,
+            "symbol": "abs_0_00019D60",
+            "target_offset": 40288,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40310,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40166,
+            "symbol": "abs_0_00019D76",
+            "target_offset": 40310,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40356,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40286,
+            "symbol": "abs_0_00019DA4",
+            "target_offset": 40356,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40384,
+            "symbol": "abs_0_00019DA4",
+            "target_offset": 40356,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 2,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40360,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40132,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40140,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40154,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40170,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40178,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40186,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40200,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40314,
+            "symbol": "abs_0_00019DA8",
+            "target_offset": 40360,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 8,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40362,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40306,
+            "symbol": "validate_self_destruct_qualifying_card_count",
+            "target_offset": 40362,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40378,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40370,
+            "symbol": "abs_0_00019DBA",
+            "target_offset": 40378,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40386,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 39968,
+            "symbol": "render_self_destruct_card_sequence",
+            "target_offset": 40386,
+            "target_section_index": 0
+          },
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40356,
+            "symbol": "render_self_destruct_card_sequence",
+            "target_offset": 40386,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 2,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40400,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 1,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40422,
+            "symbol": "abs_0_00019DD0",
+            "target_offset": 40400,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40466,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40440,
+            "symbol": "abs_0_00019E12",
+            "target_offset": 40466,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40472,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40376,
+            "symbol": "abs_0_00019E18",
+            "target_offset": 40472,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40530,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 1,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40546,
+            "symbol": "abs_0_00019E52",
+            "target_offset": 40530,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40578,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40554,
+            "symbol": "abs_0_00019E82",
+            "target_offset": 40578,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40580,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40470,
+            "symbol": "abs_0_00019E84",
+            "target_offset": 40580,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40610,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40584,
+            "symbol": "abs_0_00019EA2",
+            "target_offset": 40610,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ],
+    [
+      40632,
+      {
+        "has_more": false,
+        "items": [
+          {
+            "comment_only": false,
+            "kind": "symbol_reference",
+            "operand_index": 0,
+            "provenance": "typed_operand",
+            "section_index": 0,
+            "source_offset": 40526,
+            "symbol": "abs_0_00019EB8",
+            "target_offset": 40632,
+            "target_section_index": 0
+          }
+        ],
+        "limit": 40,
+        "next_cursor": null,
+        "offset": 0,
+        "response_byte_budget": 65536,
+        "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+        "scope": "native_artifact",
+        "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+        "total": 1,
+        "unknowns": [
+          "Static facts are incomplete; absent references do not prove unreachability.",
+          "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+          "Function ownership is not inferred by this query."
+        ]
+      }
+    ]
+  ],
+  "counter_and_name_slot_references": {
+    "app_self_destruct_qualifying_card_count": {
+      "has_more": false,
+      "items": [
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40222,
+          "symbol": "app_self_destruct_qualifying_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40362,
+          "symbol": "app_self_destruct_qualifying_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40854,
+          "symbol": "app_self_destruct_qualifying_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        }
+      ],
+      "limit": 60,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+      "scope": "native_artifact",
+      "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+      "total": 3,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "app_self_destruct_submitted_card_count": {
+      "has_more": false,
+      "items": [
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40242,
+          "symbol": "app_self_destruct_submitted_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40272,
+          "symbol": "app_self_destruct_submitted_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40288,
+          "symbol": "app_self_destruct_submitted_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40520,
+          "symbol": "app_self_destruct_submitted_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40858,
+          "symbol": "app_self_destruct_submitted_card_count",
+          "target_offset": null,
+          "target_section_index": null
+        }
+      ],
+      "limit": 60,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+      "scope": "native_artifact",
+      "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+      "total": 5,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "app_self_destruct_submitted_name_ptrs": {
+      "has_more": false,
+      "items": [
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40254,
+          "symbol": "app_self_destruct_submitted_name_ptrs",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40514,
+          "symbol": "app_self_destruct_submitted_name_ptrs",
+          "target_offset": null,
+          "target_section_index": null
+        }
+      ],
+      "limit": 60,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+      "scope": "native_artifact",
+      "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+      "total": 2,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "app_context_flags": {
+      "has_more": false,
+      "items": [
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 1654,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 10494,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 10514,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 10856,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 11212,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 12092,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33542,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33610,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33654,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33728,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33738,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33814,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 33882,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 34638,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 35300,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 38456,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 39446,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 39500,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 39558,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 40326,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 41076,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 41276,
+          "symbol": "app_context_flags",
+          "target_offset": null,
+          "target_section_index": null
+        }
+      ],
+      "limit": 60,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "bbea23269b69bf4ce2353e320b5916397af979659ea9f607f36a63006541ffa3",
+      "scope": "native_artifact",
+      "subject_revision": "01bcb3e1cfcab47223db5bccad1cb46564af0877b136b1fb084b6da3f508cdc9",
+      "total": 22,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    }
+  },
+  "row_number_text": {
+    "source_start": 39769,
+    "source_end": 39778,
+    "bytes_hex": "313a0d323a0d333a00",
+    "incoming_references": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 40500,
+        "symbol": "abs_0_00019B59",
+        "target_offset": 39769,
+        "target_section_index": 0
+      }
+    ]
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "9cda09bc5b0a06644be025d58fa445c4a13ef34bc00148f020e10ab86b769fb2",
+    "revision": "deed9b5f940943ac74c4ee16bde567b7b3d17033a6d130b43cbeefce185ddcff",
+    "source_package_sha256": "6d5824ea61b9abefae29c65034b807ba5a5587861776f76a8cb450365aaf13f8",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/6d5824ea61b9abefae29c65034b807ba5a5587861776f76a8cb450365aaf13f8/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "05055d0cf18ec0ae2798ea36b0ec3b401add5f94cfd7d229ec137bf98c7655ef",
+    "status": "exact",
+    "subject_revision": "814325e275c652ac0b246f6db686ce70a2826d8e4d51a7edb321c824526b227c",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "original_cpu_tests": {
+    "file": "tests/test_pandora_self_destruct_console.py",
+    "passed": 20,
+    "original_instructions_unpatched": true,
+    "full_calls_use_real_audio_name_ui_and_compact_text_callees": true,
+    "ui_flag_bytes": 256,
+    "fire_bytes": 256,
+    "unchanged_selected_item_bytes": 256,
+    "state_bytes": 256,
+    "disk_state_item_bytes": 256,
+    "card_state_item_bytes": 256,
+    "qualifying_count_bytes_with_wrap_and_direct_validation": 256,
+    "submitted_count_bytes_with_unchecked_bounded_name_store": 256,
+    "full_qualifying_color_permutations": 6,
+    "full_repeated_color_triples": 3,
+    "full_invalid_color_positions": 3,
+    "disk_then_three_blue_with_inherited_timer": 48879,
+    "clear_plane_rows": 384,
+    "clear_bytes_per_plane_row": 30,
+    "clear_stride_bytes": 40
+  },
+  "semantics": {
+    "entry": "Inventory-panel bit2, no fire and unchanged selection return before cache update. Changed selection is cached before state/range checks.",
+    "state": "0 admits only SDI disk;1 admits six card IDs32..37; negative,2 and other positive states ignore changed selections after caching.",
+    "disk": "Consume ID38, refresh holding UI, set context bit6 and advance state0 to1; neither this nor final arming reloads inherited countdown. Bit name identifies producer condition; later reader/use is not established.",
+    "card": "All six colors consume one submission; only blue33,scarlet35,ochre36 increment qualifying BYTE. No order/uniqueness check, and qualifying count wraps.",
+    "completion": "Store name pointer at base+4*submitted_BYTE before incrementing; only incremented low BYTE==3 triggers validation. Counts outside0..2 are not guarded. WORD255+1 becomes256, and non-final BYTE store becomes0.",
+    "name_storage": "Existing12-byte/three-pointer declaration is preserved as the source storage prefix, not widened to cover synthetic out-of-bounds stores.",
+    "validation": "Qualifying BYTE exactly3 arms FF; every other byte rejects2.",
+    "render": "Normal redraw chooses disk prompt0, card header/list1, rejection2, accepted text for every other state. Successful validation enters header/list directly in stateFF and adds success footer after names; zero name count returns before footer.",
+    "clear": "Start front-buffer text cell(2,2); clear384 thirty-byte plane rows at stride40, leaving ten-byte gaps and outer fences unchanged. Four-plane display mapping gives96 raster rows."
+  },
+  "preservation": {
+    "branch_labels_named": 14,
+    "existing_row_number_label_named": 1,
+    "shared_constants_added": 10,
+    "equal_valued_operand_bindings": 14,
+    "semantic_comments_added": 8,
+    "previous_comments_retained": true,
+    "all_app_fields_and_bounds_retained": true,
+    "prior_structs_and_data_owners_retained": true,
+    "assets_unchanged": 126,
+    "graphics_output_mode": "binary_assets",
+    "minimum_asset_size": 128,
+    "typed_world_tile_fields_retained": 2112,
+    "numeric_pointer_and_sdk_forms_retained": true,
+    "history_prefixes_and_raw_gaps_retained": true
+  },
+  "reused_checks": {
+    "native_framework_checks": 820,
+    "typed_media_python": 5,
+    "unchanged_package_policy": 40,
+    "native_vasm_package_integration": 1,
+    "outcome_rank_original_cpu_tests": 9,
+    "rerun": false,
+    "reason": "No framework implementation change; prior unrelated proofs remain unchanged."
+  },
+  "limits": [
+    "Explicit copied-view calls with controlled RAM do not establish ordinary-gameplay reachability, item admission or scheduling.",
+    "BLIT-ready register is a RAM shadow; no DMA or hardware execution is modeled.",
+    "Rendering exceeds bounded write-range summaries; tests inspect actual guest memory, diagnostics and returned state without claiming complete traces.",
+    "Synthetic counter prefix calls demonstrate original unchecked arithmetic only; no allocation, exclusive ownership or complete-writer proof.",
+    "Unselected atlas gameplay use remains unknown; no asset policy or pixel-statement expansion."
+  ]
+}

@@ -956,6 +956,7 @@ COMBAT_WEAPON_PARAMETER_COUNT	EQU	7
 COMBAT_WORLD_X_BIAS	EQU	10000
 COMPACT_GLYPH_INDEX_SHIFT	EQU	3
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
+CONTEXT_SELF_DESTRUCT_DISK_ACCEPTED_BIT	EQU	6
 CONTEXT_STATUS_MESSAGE_ACTIVE_BIT	EQU	5
 CURSOR_PLANE0_SEED_ROWS_ADDRESS	EQU	$65374
 CURSOR_PLANE1_SEED_ROWS_ADDRESS	EQU	$653B8
@@ -1202,6 +1203,15 @@ SECURITY_ZONE_2_END_SELECTOR	EQU	183
 SECURITY_ZONE_2_FIRST_SELECTOR	EQU	176
 SECURITY_ZONE_3_END_SELECTOR	EQU	314
 SECURITY_ZONE_3_FIRST_SELECTOR	EQU	307
+SELF_DESTRUCT_ACCEPTED_TEXT_PLANES	EQU	10
+SELF_DESTRUCT_CARD_HEADER_TEXT_PLANES	EQU	14
+SELF_DESTRUCT_CARD_NAMES_TEXT_PLANES	EQU	9
+SELF_DESTRUCT_CARD_NUMBERS_TEXT_PLANES	EQU	13
+SELF_DESTRUCT_CODE_CARD_DOMAIN_SIZE	EQU	6
+SELF_DESTRUCT_DISK_PROMPT_TEXT_PLANES	EQU	15
+SELF_DESTRUCT_DISPLAY_CLEAR_LAST_PLANE_ROW	EQU	383
+SELF_DESTRUCT_REJECTED_TEXT_PLANES	EQU	5
+SELF_DESTRUCT_REQUIRED_CARD_COUNT	EQU	3
 SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
 SELF_DESTRUCT_STATE_ARMED	EQU	$FF
 SELF_DESTRUCT_STATE_AWAIT_DISK	EQU	$0
@@ -16263,7 +16273,7 @@ self_destruct_insert_cards_text:
 	dc.b $0D,$0D,$49,$4E,$53,$45,$52,$54,$20,$54,$48,$45,$20,$54,$48,$52
 	dc.b $45,$45,$20,$43,$4F,$44,$45,$20,$43,$41,$52,$44,$53,$2E,$2E,$2E
 	dc.b $0D,$0D,$00
-abs_0_00019B59:
+self_destruct_card_number_labels:
 	dc.b $31,$3A,$0D,$32,$3A,$0D,$33,$3A,$00
 self_destruct_rejected_cards_text:
 	dc.b "INVALID SEQUENCE: CARDS TAKEN",$0D
@@ -16326,90 +16336,96 @@ continue_self_destruct_key_input:
 	move.l #WORLD_TILE_POINTER_GRID_BASE,app_tilemap_base(a6)
 	rts
 process_self_destruct_card_input:
-	btst.b #2,app_ui_flags(a6)
-	bne.w abs_0_00019DA8
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
+	bne.w return_from_self_destruct_card_input
 	tst.b app_input_fire_pressed_ff(a6)
-	beq.w abs_0_00019DA8
+	beq.w return_from_self_destruct_card_input
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b app_modal_last_selected_item_id(a6),d0
-	beq.w abs_0_00019DA8
+	beq.w return_from_self_destruct_card_input
+    ; Cache a changed held ID before state/range checks. Panel, no-fire and unchanged-ID gates skip this write. Redraw resamples holding, so consumed cards leave zero cached.
 	move.b d0,app_modal_last_selected_item_id(a6)
 	move.b app_self_destruct_state(a6),d1
-	beq.w abs_0_00019D76
-	bmi.w abs_0_00019DA8
+	beq.w test_self_destruct_initiation_disk
+	bmi.w return_from_self_destruct_card_input
 	cmp.b #SELF_DESTRUCT_STATE_REJECTED,d1
-	beq.w abs_0_00019DA8
+	beq.w return_from_self_destruct_card_input
 	cmp.b #SELF_DESTRUCT_STATE_ACCEPT_CARDS,d1
-	bne.w abs_0_00019DA8
+	bne.w return_from_self_destruct_card_input
 	move.b d0,d1
 	subi.b #ITEM_ID_CODE_WHITE,d1
-	cmp.b #$6,d1
-	bcc.w abs_0_00019DA8
+	cmp.b #SELF_DESTRUCT_CODE_CARD_DOMAIN_SIZE,d1
+	bcc.w return_from_self_destruct_card_input
 	cmp.b #ITEM_ID_CODE_WHITE,d0
-	beq.b abs_0_00019D30
+	beq.b record_submitted_self_destruct_card_name
 	cmp.b #ITEM_ID_CODE_GREY,d0
-	beq.b abs_0_00019D30
+	beq.b record_submitted_self_destruct_card_name
 	cmp.b #ITEM_ID_CODE_BLACK,d0
-	beq.b abs_0_00019D30
+	beq.b record_submitted_self_destruct_card_name
+    ; Only blue, scarlet and ochre increment this BYTE, with wrap. White, grey and black still consume a submission. No uniqueness or order test occurs here.
 	addq.b #1,app_self_destruct_qualifying_card_count(a6)
 	move.l d0,-(a7)
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	move.l (a7)+,d0
-abs_0_00019D30:
+record_submitted_self_destruct_card_name:
 	clr.w d2
 	move.b app_self_destruct_submitted_card_count(a6),d2
 	add.w d2,d2
 	add.w d2,d2
 	bsr.w resolve_item_name
 	lea.l app_self_destruct_submitted_name_ptrs(a6),a1
+    ; Use submitted BYTE * 4 without a three-slot bound check. The declared 12-byte name-pointer prefix is not a runtime admission limit; corrupt counts can store beyond it.
 	move.l a0,$0(a1,d2.w)
 	lsr.w #2,d2
 	addq.w #1,d2
-	cmp.b #$3,d2
-	beq.b abs_0_00019D60
+    ; Validate only when the incremented count low BYTE equals 3. Other counts are stored back as BYTE; 255 advances to 256 in D2 then stores zero.
+	cmp.b #SELF_DESTRUCT_REQUIRED_CARD_COUNT,d2
+	beq.b consume_third_self_destruct_card_and_validate
 	move.b d2,app_self_destruct_submitted_card_count(a6)
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
-	bra.b abs_0_00019DA4
-abs_0_00019D60:
+	bra.b redraw_self_destruct_console_after_input
+consume_third_self_destruct_card_and_validate:
 	move.b d2,app_self_destruct_submitted_card_count(a6)
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
 	st.b app_self_destruct_state(a6)
 	bra.w validate_self_destruct_qualifying_card_count
-abs_0_00019D76:
+test_self_destruct_initiation_disk:
 	cmp.b #ITEM_ID_SDI_DISK,d0
-	bne.b abs_0_00019DA8
+	bne.b return_from_self_destruct_card_input
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
-	bset.b #6,app_context_flags(a6)
+    ; After consuming SDI disk, set context bit 6 and advance state 0 to 1. Neither disk acceptance nor final arming reloads the inherited self-destruct service countdown.
+	bset.b #CONTEXT_SELF_DESTRUCT_DISK_ACCEPTED_BIT,app_context_flags(a6)
 	addq.b #1,app_self_destruct_state(a6)
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
 	move.w #$211,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_00019DA4:
+redraw_self_destruct_console_after_input:
 	bsr.w render_self_destruct_card_sequence
-abs_0_00019DA8:
+return_from_self_destruct_card_input:
 	rts
     ; Validate three submissions by qualifying count==3 (blue/scarlet/ochre), without order or duplicate checks. Provisional FF becomes rejected (2) on failure.
 validate_self_destruct_qualifying_card_count:
 	move.b app_self_destruct_qualifying_card_count(a6),d0
-	cmp.b #$3,d0
-	bne.b abs_0_00019DBA
+	cmp.b #SELF_DESTRUCT_REQUIRED_CARD_COUNT,d0
+	bne.b reject_self_destruct_card_submission
 	st.b app_self_destruct_state(a6)
-	bra.b abs_0_00019E18
-abs_0_00019DBA:
+	bra.b draw_self_destruct_card_header_and_names
+reject_self_destruct_card_submission:
 	move.b #SELF_DESTRUCT_STATE_REJECTED,app_self_destruct_state(a6)
-	bra.b abs_0_00019DA4
+	bra.b redraw_self_destruct_console_after_input
 render_self_destruct_card_sequence:
 	moveq.l #2,d0
 	move.w d0,d1
 	bsr.w set_text_cursor_in_front_buffer
-	move.w #$17F,d7
+	move.w #SELF_DESTRUCT_DISPLAY_CLEAR_LAST_PLANE_ROW,d7
 	moveq.l #0,d0
-abs_0_00019DD0:
+    ; Clear 30 bytes on each of 384 plane rows at stride 40, starting at front-buffer text cell (2,2). Ten bytes per plane row remain untouched.
+clear_next_self_destruct_display_plane_row:
 	movea.l a0,a1
 	move.l d0,(a1)+
 	move.l d0,(a1)+
@@ -16419,75 +16435,77 @@ abs_0_00019DD0:
 	move.l d0,(a1)+
 	move.l d0,(a1)+
 	move.w d0,(a1)+
-	lea.l $0028(a0),a0
-	dbf.w d7,abs_0_00019DD0
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a0),a0
+	dbf.w d7,clear_next_self_destruct_display_plane_row
 	move.b player_world_object_selected_item_id.l,d0
 	move.b d0,app_modal_last_selected_item_id(a6)
 	move.b app_self_destruct_state(a6),d1
-	bne.b abs_0_00019E12
-	move.b #$F,app_text_plane_mask(a6)
+	bne.b select_self_destruct_card_or_result_display
+	move.b #SELF_DESTRUCT_DISK_PROMPT_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_insert_disk_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
-abs_0_00019E12:
+select_self_destruct_card_or_result_display:
 	cmp.b #SELF_DESTRUCT_STATE_ACCEPT_CARDS,d1
-	bne.b abs_0_00019E84
-abs_0_00019E18:
-	move.b #$E,app_text_plane_mask(a6)
+	bne.b select_self_destruct_rejection_display
+    ; Successful validation enters this header/name path directly with state FF. An ordinary redraw of FF instead draws only the accepted result. Zero name count returns before the success footer.
+draw_self_destruct_card_header_and_names:
+	move.b #SELF_DESTRUCT_CARD_HEADER_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #3,d1
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_insert_cards_text(pc),a3
 	bsr.w draw_compact_text_string
-	move.b #$D,app_text_plane_mask(a6)
-	lea.l abs_0_00019B59(pc),a3
+	move.b #SELF_DESTRUCT_CARD_NUMBERS_TEXT_PLANES,app_text_plane_mask(a6)
+	lea.l self_destruct_card_number_labels(pc),a3
 	bsr.w draw_compact_text_string
-	move.b #$9,app_text_plane_mask(a6)
+	move.b #SELF_DESTRUCT_CARD_NAMES_TEXT_PLANES,app_text_plane_mask(a6)
 	lea.l app_self_destruct_submitted_name_ptrs(a6),a4
 	clr.w d7
 	move.b app_self_destruct_submitted_card_count(a6),d7
 	subq.w #1,d7
-	bmi.b abs_0_00019EB8
+	bmi.b return_from_self_destruct_console_display
 	moveq.l #7,d6
-abs_0_00019E52:
+draw_next_submitted_self_destruct_card_name:
 	move.w d6,d1
 	moveq.l #5,d0
 	bsr.w set_text_cursor_in_front_buffer
 	movea.l (a4)+,a3
 	bsr.w draw_compact_text_string
 	addq.w #1,d6
-	dbf.w d7,abs_0_00019E52
+	dbf.w d7,draw_next_submitted_self_destruct_card_name
 	tst.b app_self_destruct_state(a6)
-	bpl.b abs_0_00019E82
-	move.b #$A,app_text_plane_mask(a6)
+	bpl.b return_from_self_destruct_card_name_display
+	move.b #SELF_DESTRUCT_ACCEPTED_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #10,d1
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
-abs_0_00019E82:
+return_from_self_destruct_card_name_display:
 	rts
-abs_0_00019E84:
+    ; Ordinary redraw selects state 0 disk prompt, 1 card list, 2 rejection; every other BYTE value selects accepted text. Input still ignores negative and other positive states.
+select_self_destruct_rejection_display:
 	cmp.b #SELF_DESTRUCT_STATE_REJECTED,d1
-	bne.b abs_0_00019EA2
-	move.b #$5,app_text_plane_mask(a6)
+	bne.b draw_self_destruct_accepted_result
+	move.b #SELF_DESTRUCT_REJECTED_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #2,d0
 	moveq.l #6,d1
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_rejected_cards_text(pc),a3
 	bsr.w draw_compact_text_string
 	rts
-abs_0_00019EA2:
-	move.b #$A,app_text_plane_mask(a6)
+draw_self_destruct_accepted_result:
+	move.b #SELF_DESTRUCT_ACCEPTED_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #4,d0
 	moveq.l #3,d1
 	bsr.w set_text_cursor_in_front_buffer
 	lea.l self_destruct_accepted_cards_text(pc),a3
 	bsr.w draw_compact_text_string
-abs_0_00019EB8:
+return_from_self_destruct_console_display:
 	rts
 initialize_world_tilemap_state:
 	bsr.w seed_pseudorandom_state_from_beam_position
