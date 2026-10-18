@@ -96,6 +96,17 @@ The unresolved edge remains alongside candidates because discovery does not
 establish completeness across mutable stores or all callers. Table addresses,
 cross-section aliases and unaccepted instruction starts are not destinations.
 
+Discovery also recognizes an inline resume producer: an address register holds
+the source instruction immediately after an unconditional transfer to shared
+code. Its continuation provenance travels through the bounded work queue,
+including previously accepted code and indirect table destinations. At most
+eight distinct states are retained per instruction. Register overwrites and
+opaque calls discard the affected provenance; an opaque call return clears all
+register/cache values in this extended trace. Ordinary discovery retains its
+existing short replay. Multiple traced producer destinations are reported as
+`per_caller`, rather than as a jump-table proof. These are known paths, not an
+exhaustive caller, lifetime, or callback-effects contract.
+
 For mutation parameters use `--request request.json` (or `--request -` for stdin).
 RSSET region renaming requires an explicit `size` from the current declaration.
 An omitted extent can otherwise become four bytes and cover neighboring fields.

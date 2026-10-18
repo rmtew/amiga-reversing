@@ -3,6 +3,7 @@ import pytest
 
 from tests.test_pandora_state_transitions import BASE, cpu_fixture
 from tests.test_pandora_framebuffer_lifetime import APP
+from tests.test_pandora_title_data import title_slots
 
 
 @pytest.mark.parametrize('continuation', [0xD68, 0xD9C, 0xDAE])
@@ -56,3 +57,38 @@ def test_original_world_opcode_dispatch_is_unsigned_and_bounded(cpu_fixture):
         cpu.a[0] = 0xDEADBEEF
         run(0x1412, stop=0x14B6)
         assert cpu.a[0] == 0xDEADBEEF
+
+
+@pytest.mark.parametrize('cpu_fixture', [0x1000000], indirect=True)
+def test_original_hundred_record_producers_reach_all_three_continuations(cpu_fixture, title_slots):
+    from tests.test_pandora_framebuffer_lifetime import fill_rows
+    from tests.test_pandora_render_order import sequencer
+
+    cpu, memory, structs, read, write, run = cpu_fixture
+    bitmap = 0x70000
+    fill_rows(cpu, memory, run)
+    write(APP + title_slots['app_front_bitplane_base'], bitmap)
+    memory[bitmap:bitmap + 32000] = b'\xA5' * 32000
+    memory[0x3FC:0x400] = b'\x5A' * 4
+    memory[0x7F0:0x7F4] = b'\x5A' * 4
+    write(0xDFF006, 0, 2)  # original beam-position seed selects table entry zero
+    run(0x2FC2, stop=0x2FD8)
+    assert read(0x7E8, 2) == 0x67FD and read(0x7EA) == 0x67FDE432
+    trace = sequencer(cpu, memory, write)(0xD20, budget=100000)
+    assert trace.stop_reason == 1 and cpu.a[3] == BASE + 0xD68, (hex(cpu.pc), list(cpu.d), list(cpu.a), trace.steps)
+    assert cpu.a[2] == 0x7E8 and cpu.d[7] & 0xFFFF == 0xFFFF
+    lifetime = structs['title_star_record']['lifetime']
+    assert all(17 <= read(0x400 + 10*i + lifetime, 1) <= 64 for i in range(100))
+    # Force every next motion step through the original 16 -> reset-to-64 path.
+    for i in range(100):
+        write(0x400 + 10*i + lifetime, 17, 1)
+    status = APP + title_slots['app_status_flags']
+    write(status, read(status, 1) & ~4, 1)  # isolate motion from palette fading
+    trace = sequencer(cpu, memory, write)(0xD8A, budget=100000)
+    assert trace.stop_reason == 1 and cpu.a[3] == BASE + 0xDAE
+    assert cpu.a[2] == 0x7E8 and cpu.d[7] & 0xFFFF == 0xFFFF
+    assert all(read(0x400 + 10*i + lifetime, 1) == 64 for i in range(100))
+    assert memory[0x3FC:0x400] == b'\x5A'*4 and memory[0x7F0:0x7F4] == b'\x5A'*4
+    assert all(memory[bitmap+160*y+120:bitmap+160*y+160] == b'\xA5'*40 for y in range(200))
+    # The bounded write-range summary can overflow here; assertions use guest
+    # memory and original loop completion, not an assumed complete event log.

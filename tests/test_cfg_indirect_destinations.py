@@ -102,7 +102,7 @@ second_continuation:
  dc.w 0
 ''', base)
     site = next(s for s in section['recovered_indirect_sites'] if s['offset'] == 22)
-    assert site['target_count'] == 2
+    assert site['target_count'] == 2 and site['status'] == 'per_caller'
     edges = [e for e in section['edges'] if e['source_offset'] == 22 and e['kind'] == 4]
     assert {e['target_offset'] for e in edges} == {24, 28, 0xFFFFFFFF}
 
@@ -118,3 +118,61 @@ target:
 ''', 0x100)
     edges = [e for e in section['edges'] if e['source_offset'] == 6 and e['kind'] == 3]
     assert len(edges) == 1 and edges[0]['target_offset'] == 0xFFFFFFFF
+
+
+@pytest.mark.parametrize('base', [0x100, 0x10000])
+@pytest.mark.parametrize('padding', [0, 24, 80])
+@pytest.mark.parametrize('clobber', ['', ' movea.l d1,a3\n', ' bsr.w opaque_call\n'])
+def test_continuations_survive_long_selectors_and_table_dispatch(tmp_path, base, padding, clobber):
+    text = ''' tst.w d0
+ beq.w second
+ cmp.w #1,d0
+ beq.w third
+ lea first_continuation(pc),a3
+ bra.w selector
+first_continuation:
+ moveq #1,d0
+ rts
+second:
+ lea second_continuation(pc),a3
+ bra.w selector
+second_continuation:
+ moveq #2,d0
+ rts
+third:
+ lea third_continuation(pc),a3
+ bra.w selector
+third_continuation:
+ moveq #3,d0
+ rts
+selector:
+'''+(' nop\n' * padding)+clobber+''' moveq #0,d2
+ movea.l table(pc,d2.w),a1
+ jmp (a1)
+table:
+ dc.l writer_zero,writer_one
+writer_zero:
+ bclr.b d1,(a0)
+ jmp (a3)
+writer_one:
+ bset.b d1,(a0)
+ jmp (a3)
+opaque_call:
+ movea.l d1,a3
+ rts
+ dc.w 0
+'''
+    section = analyze(tmp_path, text, base)
+    sites = section['recovered_indirect_sites']
+    assert len(sites) == 3
+    dispatch, *tails = sorted(sites, key=lambda s: s['offset'])
+    assert dispatch['target_count'] == 2 and dispatch['status'] == 'jump_table'
+    sets = []
+    for site in tails:
+        assert site['status'] == ('unresolved' if clobber else 'per_caller')
+        edges = [e for e in section['edges'] if e['source_offset'] == site['offset'] and e['kind'] == 4]
+        assert any(e['target_offset'] == 0xFFFFFFFF for e in edges)
+        targets = {e['target_offset'] for e in edges if e['target_offset'] != 0xFFFFFFFF}
+        assert len(targets) == (0 if clobber else 3)
+        sets.append(targets)
+    assert sets[0] == sets[1]

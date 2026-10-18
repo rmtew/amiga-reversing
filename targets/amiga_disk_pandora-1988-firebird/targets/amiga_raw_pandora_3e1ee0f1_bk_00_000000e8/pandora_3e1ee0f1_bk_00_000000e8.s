@@ -955,6 +955,12 @@ TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
 TILE_ID_TERMINAL_B	EQU	$9F
+TITLE_STAR_COLOR_LIFETIME_SHIFT	EQU	3
+TITLE_STAR_LAST_RECORD	EQU	99
+TITLE_STAR_LIFETIME_MASK	EQU	63
+TITLE_STAR_LIFETIME_RESEED_AT	EQU	16
+TITLE_STAR_LIFETIME_RESET	EQU	64
+TITLE_STAR_MIN_VISIBLE_LIFETIME	EQU	17
 UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
@@ -1700,7 +1706,7 @@ update_star_motion:
 	move.w d0,title_star_record_projected_y(a2)
 	subq.b #1,d1
 	move.b d1,title_star_record_lifetime(a2)
-	cmp.b #$10,d1
+	cmp.b #TITLE_STAR_LIFETIME_RESEED_AT,d1
 	rts
 reset_star_motion:
 	bsr.w advance_pseudorandom_state
@@ -1732,16 +1738,16 @@ abs_0_00010C0E:
 	asl.w #4,d0
 	asr.w #6,d0
 	move.w d0,title_star_record_projected_y(a2)
-	move.b #$40,title_star_record_lifetime(a2)
+	move.b #TITLE_STAR_LIFETIME_RESET,title_star_record_lifetime(a2)
 	rts
 initialize_star_motion_with_random_lifetime:
 	bsr.b reset_star_motion
     ; KNOWN: type A2=Target code-entry register seed:title_star_record
 abs_0_00010C24:
 	bsr.w advance_pseudorandom_state
-	andi.b #63,d1
+	andi.b #TITLE_STAR_LIFETIME_MASK,d1
 	addq.b #1,d1
-	cmp.b #$11,d1
+	cmp.b #TITLE_STAR_MIN_VISIBLE_LIFETIME,d1
 	bcs.b abs_0_00010C24
 	move.b d1,title_star_record_lifetime(a2)
 	move.w title_star_record_origin_x.w(a2),d0
@@ -1758,15 +1764,15 @@ abs_0_00010C24:
 	rts
 clear_star_pixel:
 	moveq.l #0,d2
-	bra.b abs_0_00010C6A
+	bra.b dispatch_star_pixel_color
     ; Lifetimes 17..64 select colors 1..7: 1+((lifetime-16)>>3). Clear uses color 0. AND #7 later selects the pixel bit; it does not clamp the dispatch index.
 render_star_pixel_by_lifetime:
 	moveq.l #0,d2
 	move.b title_star_record_lifetime(a2),d2
-	subi.b #16,d2
-	lsr.b #3,d2
+	subi.b #TITLE_STAR_LIFETIME_RESEED_AT,d2
+	lsr.b #TITLE_STAR_COLOR_LIFETIME_SHIFT,d2
 	addq.b #1,d2
-abs_0_00010C6A:
+dispatch_star_pixel_color:
 	move.w title_star_record_projected_x(a2),d0
 	move.w title_star_record_projected_y(a2),d1
 	addi.w #160,d0
@@ -1850,15 +1856,15 @@ initialize_starfield:
 	jsr clear_rgb12_palette_components.l
 	lea.l title_current_rgb12_palette(pc),a0
 	move.l a0,app_current_palette(a6)
-	move.w #$63,d7
+	move.w #TITLE_STAR_LAST_RECORD,d7
 	movea.l #$400,a2
-abs_0_00010D5C:
+initialize_next_star_record:
 	bsr.w initialize_star_motion_with_random_lifetime
 	lea.l finish_starfield_initialization(pc),a3
 	bra.w render_star_pixel_by_lifetime
 finish_starfield_initialization:
 	lea.l $000A(a2),a2
-	dbf.w d7,abs_0_00010D5C
+	dbf.w d7,initialize_next_star_record
 	lea.l title_star_palette_fractional_components(pc),a0
 	moveq.l #23,d7
 abs_0_00010D76:
@@ -1868,21 +1874,21 @@ abs_0_00010D76:
 	move.b #$10,app_title_star_palette_steps_remaining(a6)
 	rts
 update_starfield:
-	move.w #$63,d7
+	move.w #TITLE_STAR_LAST_RECORD,d7
 	movea.l #$400,a2
-abs_0_00010D94:
+update_next_star_record:
 	lea.l continue_starfield_after_pixel_clear(pc),a3
 	bra.w clear_star_pixel
 continue_starfield_after_pixel_clear:
 	bsr.w update_star_motion
-	bne.b abs_0_00010DA6
+	bne.b draw_star_after_motion_update
 	bsr.w reset_star_motion
-abs_0_00010DA6:
+draw_star_after_motion_update:
 	lea.l advance_starfield_after_pixel_render(pc),a3
 	bra.w render_star_pixel_by_lifetime
 advance_starfield_after_pixel_render:
 	lea.l $000A(a2),a2
-	dbf.w d7,abs_0_00010D94
+	dbf.w d7,update_next_star_record
 	btst.b #2,app_status_flags(a6)
 	beq.b abs_0_00010DDE
 	moveq.l #7,d7

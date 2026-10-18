@@ -3456,3 +3456,29 @@ renames. The [inventory and limits](../validation/pandora-indirect-dispatch.json
 record eight sites without known targets. The next swath is continuation
 propagation through the longer star selector: native replay still recovers
 only DAE per writer, despite the three reviewed original continuations.
+
+## Starfield producer and continuation family
+
+Native discovery now carries explicit inline resume producers through the longer
+star selector and its table. All eight color writers expose the three original
+continuations D68/D9C/DAE: 24 known tail edges instead of eight, and 3,492 CFG
+edges overall. The bounded trace retains at most eight states per instruction;
+opaque calls and overwritten registers discard provenance. Known targets remain
+incomplete, and every indirect site retains its unresolved alternative.
+
+Four shared dispatch/record-loop labels and six domain constants replace the
+anonymous labels and eight numeric operands in the initializer, motion/reset,
+selector and both 100-record loops. Original-code tests now exercise complete
+initialization and update, including reset at lifetime 16 and the untouched
+fourth plane. All earlier semantic lines and 86 companion assets are preserved.
+819 native and 302 focused tests pass. C and independent vasm reproduce all 376,832 original bytes. Exact-build receipt:
+`a70b10785df1d3d434cbaf7c5aef622b76c017029fa468b69e36a6ccdefe3547`.
+
+The remaining eight unknown sites share four mechanisms: four mutable record
+callbacks, two command-cursor callbacks, one Blitter callback slot, and one audio
+dispatch. The native typed-field inventory contains 35 world objects (14 non-null
+interaction callbacks and four non-null completion callbacks) and ten UI
+descriptors with initially null update callbacks. Initialized values do not close
+future stores or caller pointee domains. The next shared capability is tracing
+the field-load/null-guard/D0-to-A0 call idiom with its record and store provenance;
+these fields must not be promoted into unconditional complete target sets.
