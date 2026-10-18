@@ -4769,3 +4769,36 @@ and histories pass preservation, including the exact prior A4 and F7 distinction
 All 126 assets, 2,112 typed tile fields and the 128-byte INCBIN policy remain intact.
 Unchanged checks are reused. No asynchronous IRQ/DMA, complete ownership/lifetime,
 ordinary timing, resultant pixels or intent/bug claim is added.
+
+### Earth countdown and four-digit text controls
+
+Accepted 44 annotations: twelve code stages, one app scalar, eight constants,
+fourteen operand bindings, two data names, a 17-byte ASCII alphabet and five
+effective comments, including one appended scope clarification. The countdown
+uses main/modal service visits: divider old1 reloads4 and decrements nonzero BCD;
+old0 wraps to255. Every post-check visit with nonzero WORD and zero low BYTE
+requests sequence $306, including visits between decrements. These are not seconds.
+
+Normal valid-BCD zero-expiry notification follows drawing and its player/event
+guards; combat skips that path. Later zero visits do not retry skipped warnings.
+The separate SBCD-carry branch queues warnings before storing the high byte; its
+explicit interior-entry test does not establish countdown inputs producing carry.
+The existing warm-start/self-destruct writers and outcome consumer retain their
+prior meanings. The formatter accepts all hexadecimal nibbles, blanks leading
+zeros, and tracks nonzero before applying the low-four-bit text skip mask. A masked
+nonzero still enables later zero digits. Masked bytes become control1, which the
+existing compact renderer uses to advance stored origin; no cleared-pixel claim.
+D0-D2/D7/A0-A1 and the buffer's following byte are preserved; status bit3 is scratch.
+
+Eight original-code tests in `tests/test_pandora_earth_countdown.py` cover all
+10,000 valid BCD values, all 256 divider/UI/mask bytes, expiry guards, all sixteen
+nibbles and register/buffer fences. Musashi executes SBCD because the current
+native simulator lacks it; native tests retain the real formatter/compact renderer.
+The status FIFO remains real; audio requests are observed at caller entry. A
+56-byte C/vasm operand preflight and a 25-byte legacy-name-priority reproduction
+passed before target mutation. Full-target C/vasm matches all 376,832 bytes, receipt
+`4b7572154ed87c9d85d616bd0196aacfe5a0995917703bc1bfae820394a828e2`. Earlier source/comments, types/fields/owner bounds, SDK/pointer forms, raw gaps and
+histories pass preservation, including title/F7/A4 distinctions. All 126 assets,
+2,112 typed tile fields and the 128-byte INCBIN policy remain intact. Unchanged
+checks are reused; no framework change, asynchronous frames/DMA, ordinary
+admission, visible pixels, complete ownership/lifetime or intent/bug claim.

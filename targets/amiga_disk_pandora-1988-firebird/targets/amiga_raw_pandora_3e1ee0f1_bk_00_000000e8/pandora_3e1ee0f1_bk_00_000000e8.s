@@ -169,7 +169,7 @@ app_player_hit_feedback_ticks_remaining RS.B 1
 app_opponent_hit_feedback_ticks_remaining RS.B 1
 app_inventory_display_item_ids RS.B 4
     RS.B 4
-app_02C2 RS.B 1
+app_four_digit_text_skip_mask RS.B 1
     RS.B 5
 app_camera_scroll_countdown_reload_word RS.W 1
 app_camera_scroll_profile_index RS.W 1
@@ -896,10 +896,12 @@ APP_RASTER_ROW_OFFSETS_OFFSET	EQU	app_raster_row_byte_offsets
 APP_STARTUP_CLEAR_LAST_BYTE	EQU	875
 APP_STATE_BASE	EQU	$39FC
 APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT	EQU	4
+APP_STATUS_FOUR_DIGIT_NONZERO_SEEN_BIT	EQU	3
 APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
 APP_STATUS_TITLE_STAR_PALETTE_ACTIVE_BIT	EQU	2
 ASCII_CARRIAGE_RETURN	EQU	13
 ASCII_CASE_FOLD_BIT	EQU	5
+ASCII_DIGIT_ZERO	EQU	48
 ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
 AUDIO_CHANNEL_REGISTER_BYTES	EQU	ac_SIZEOF
@@ -987,10 +989,14 @@ CURSOR_SPRITE_Y_BEAM_OFFSET	EQU	44
 _custom	EQU	$DFF000
 CUSTOM_COLOR00_REGISTER	EQU	_custom+color
 DMAF_CLRALL	EQU	$7FFF
+EARTH_COUNTDOWN_DIVIDER_RELOAD	EQU	4
+EARTH_COUNTDOWN_HUNDRED_FEEDBACK_SEQUENCE	EQU	$306
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
 ESCAPE_AUDIO_PLAYER_MODE	EQU	1
 FEEDBACK_AUDIO_SEQUENCE_214	EQU	$214
+FOUR_DIGIT_FIRST_TEXT_SKIP_BIT	EQU	3
+FOUR_DIGIT_LAST_INDEX	EQU	3
 FRAMEBUFFER_BANK0_BASE	EQU	$70000
 FRAMEBUFFER_BANK1_BASE	EQU	$78000
 FRAMEBUFFER_LAST_RASTER_ROW	EQU	199
@@ -1009,6 +1015,8 @@ GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
 GARDENER_FEEDBACK_AUDIO_SEQUENCE	EQU	$217
+HEX_DIGIT_NIBBLE_MASK	EQU	15
+HEX_DIGIT_ROTATE_BITS	EQU	4
 ID_FAILURE_OR_HANDOFF_AUDIO_SEQUENCE	EQU	$102
 ID_POSSESSION_VARIANT_COUNT	EQU	8
 INPUT_DIRECTION_DOWN_BIT	EQU	1
@@ -6616,13 +6624,15 @@ wait_for_resume_key_release:
 	bclr.b #UI_PAUSE_ACTIVE_BIT,app_ui_flags(a6)
 return_from_pause_polling:
 	rts
+    ; Divider decrements as a BYTE on every main/modal service. Only old value1 decrements nonzero BCD and reloads4; old zero wraps to255. These are service visits, not seconds.
 update_earth_orbit_countdown_display:
 	subq.b #1,app_earth_orbit_countdown_divider(a6)
-	bne.w abs_0_00012DF8
+	bne.w test_earth_countdown_whole_hundred_alarm
 	tst.w app_earth_orbit_countdown_bcd(a6)
-	beq.w abs_0_00012E0E
+	beq.w return_from_earth_countdown_service
+decrement_earth_countdown_bcd:
 	move #$0,ccr
-	move.b #$4,app_earth_orbit_countdown_divider(a6)
+	move.b #EARTH_COUNTDOWN_DIVIDER_RELOAD,app_earth_orbit_countdown_divider(a6)
 	moveq.l #1,d1
 	move.b app_earth_orbit_countdown_bcd_low_byte(a6),d0
 	sbcd d1,d0
@@ -6630,46 +6640,50 @@ update_earth_orbit_countdown_display:
 	swap.w d1
 	move.b app_earth_orbit_countdown_bcd(a6),d0
 	sbcd d1,d0
-	bcs.w abs_0_00012E10
+	bcs.w queue_earth_orbit_expiry_warnings
 	move.b d0,app_earth_orbit_countdown_bcd(a6)
-	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_00012DF8
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
+	bne.b test_earth_countdown_whole_hundred_alarm
+prepare_earth_countdown_text:
 	lea.l nearby_distance_overlay(pc),a0
 	move.b ui_overlay_descriptor_text_color(a0),app_text_plane_mask(a6)
 	tst.b app_earth_orbit_countdown_bcd_low_byte(a6)
-	bne.b abs_0_00012DAE
+	bne.b position_earth_countdown_text
 	move.b app_frame_counter+3(a6),app_text_plane_mask(a6)
-abs_0_00012DAE:
+position_earth_countdown_text:
 	move.b ui_overlay_descriptor_x.w(a0),d0
 	move.b ui_overlay_descriptor_y(a0),d1
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w set_text_cursor_in_overlay_plane
 	move.w app_earth_orbit_countdown_bcd(a6),d0
-	clr.b app_02C2(a6)
+	clr.b app_four_digit_text_skip_mask(a6)
 	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
-	beq.b abs_0_00012DDC
+	beq.b draw_earth_countdown_digits
 	btst.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
-	beq.b abs_0_00012DDC
-	bset.b #3,app_02C2(a6)
-abs_0_00012DDC:
+	beq.b draw_earth_countdown_digits
+	bset.b #FOUR_DIGIT_FIRST_TEXT_SKIP_BIT,app_four_digit_text_skip_mask(a6)
+draw_earth_countdown_digits:
 	bsr.w draw_four_digit_value_with_blank_mask
+    ; Valid-BCD zero expiry reaches these post-draw guards: self-destruct-expired or inactive player skips it; combat bypasses it. Zero visits never retry. SBCD carry has a separate warning path.
+test_earth_countdown_expiry_after_draw:
 	btst.b #GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_00012DF8
-	btst.b #1,player_world_object_world_object_flags.l
-	bne.b abs_0_00012DF8
+	bne.b test_earth_countdown_whole_hundred_alarm
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
+	bne.b test_earth_countdown_whole_hundred_alarm
 	tst.w app_earth_orbit_countdown_bcd(a6)
-	beq.b abs_0_00012E10
-abs_0_00012DF8:
+	beq.b queue_earth_orbit_expiry_warnings
+    ; Every visit with nonzero WORD and low BYTE zero requests sequence $306, including visits between decrements. This is not an edge-triggered alarm.
+test_earth_countdown_whole_hundred_alarm:
 	tst.w app_earth_orbit_countdown_bcd(a6)
-	beq.b abs_0_00012E0E
+	beq.b return_from_earth_countdown_service
 	tst.b app_earth_orbit_countdown_bcd_low_byte(a6)
-	bne.b abs_0_00012E0E
-	move.w #$306,d0
+	bne.b return_from_earth_countdown_service
+	move.w #EARTH_COUNTDOWN_HUNDRED_FEEDBACK_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_00012E0E:
+return_from_earth_countdown_service:
 	rts
-abs_0_00012E10:
+queue_earth_orbit_expiry_warnings:
 	lea.l earth_orbit_spore_release_message(pc),a0
 	bsr.w enqueue_status_message
 	lea.l humanity_destruction_warning_message(pc),a0
@@ -6678,40 +6692,42 @@ earth_orbit_spore_release_message:
 	dc.b "EARTH ORBIT ESTABLISHED, MUTANT SPORES RELEASED.",$00
 humanity_destruction_warning_message:
 	dc.b "TOTAL DESTRUCTION OF HUMANITY IMMINENT.",$00
-abs_0_00012E79:
-	dc.b "0123456789ABCDEF",$00
+hexadecimal_digit_ascii_text:
+	dc.b "0123456789ABCDEF",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 draw_four_digit_value_with_blank_mask:
 	movem.l d0-d2/d7/a0-a1,-(a7)
-	moveq.l #3,d7
-	bclr.b #3,app_status_flags(a6)
-	lea.l abs_0_00012E79(pc),a0
-	lea.l abs_0_00012EE0(pc),a1
+	moveq.l #FOUR_DIGIT_LAST_INDEX,d7
+	bclr.b #APP_STATUS_FOUR_DIGIT_NONZERO_SEEN_BIT,app_status_flags(a6)
+	lea.l hexadecimal_digit_ascii_text(pc),a0
+	lea.l four_digit_formatted_text(pc),a1
 	movea.l a1,a3
-abs_0_00012EA0:
-	rol.w #4,d0
+    ; Rotate all four WORD nibbles through the 16-character alphabet; zero alone becomes four spaces. The routine preserves D0-D2/D7/A0-A1, but status bit3 retains whether any nibble was nonzero.
+format_next_four_digit_nibble:
+	rol.w #HEX_DIGIT_ROTATE_BITS,d0
 	move.w d0,d1
-	andi.w #15,d0
+	andi.w #HEX_DIGIT_NIBBLE_MASK,d0
 	move.b $0(a0,d0.w),d2
-	cmp.b #$30,d2
-	bne.b abs_0_00012EC0
-	btst.b #3,app_status_flags(a6)
-	bne.b abs_0_00012EC6
-	move.b #$20,d2
-	bra.b abs_0_00012EC6
-abs_0_00012EC0:
-	bset.b #3,app_status_flags(a6)
-abs_0_00012EC6:
-	btst.b d7,app_02C2(a6)
-	beq.b abs_0_00012ECE
-	moveq.l #1,d2
-abs_0_00012ECE:
+	cmp.b #ASCII_DIGIT_ZERO,d2
+	bne.b mark_four_digit_nonzero_seen
+	btst.b #APP_STATUS_FOUR_DIGIT_NONZERO_SEEN_BIT,app_status_flags(a6)
+	bne.b apply_four_digit_text_skip_bit
+	move.b #ASCII_SPACE,d2
+	bra.b apply_four_digit_text_skip_bit
+mark_four_digit_nonzero_seen:
+	bset.b #APP_STATUS_FOUR_DIGIT_NONZERO_SEEN_BIT,app_status_flags(a6)
+    ; Low four mask bits replace text bytes with control1 after leading-nonzero tracking. Masked nonzero still enables later zero digits; control1 advances stored origin, not a cleared pixel.
+apply_four_digit_text_skip_bit:
+	btst.b d7,app_four_digit_text_skip_mask(a6)
+	beq.b store_next_four_digit_text_byte
+	moveq.l #TEXT_CONTROL_ADVANCE_ORIGIN_BYTE,d2
+store_next_four_digit_text_byte:
 	move.b d2,(a1)+
 	move.w d1,d0
-	dbf.w d7,abs_0_00012EA0
+	dbf.w d7,format_next_four_digit_nibble
 	bsr.w draw_compact_text_string
 	movem.l (a7)+,d0-d2/d7/a0-a1
 	rts
-abs_0_00012EE0:
+four_digit_formatted_text:
 	dc.b $39,$39,$39,$39,$00,$00
 service_nearby_trade_or_combat:
 	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
