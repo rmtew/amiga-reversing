@@ -1265,6 +1265,7 @@ SELF_DESTRUCT_CARD_NUMBERS_TEXT_PLANES	EQU	13
 SELF_DESTRUCT_CODE_CARD_DOMAIN_SIZE	EQU	6
 SELF_DESTRUCT_DISK_PROMPT_TEXT_PLANES	EQU	15
 SELF_DESTRUCT_DISPLAY_CLEAR_LAST_PLANE_ROW	EQU	383
+SELF_DESTRUCT_MODAL_ENTRY_CACHE_MARKER	EQU	128
 SELF_DESTRUCT_REJECTED_TEXT_PLANES	EQU	5
 SELF_DESTRUCT_REQUIRED_CARD_COUNT	EQU	3
 SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
@@ -1276,6 +1277,15 @@ STATUS_BAND_CLEAR_LAST_GROUP	EQU	63
 STATUS_TEXT_CURSOR_ROW	EQU	24
 STATUS_TEXT_PLANE_MASK	EQU	$8
 STATUS_TICKER_ROW0_BASE	EQU	$778A0
+TERMINAL_CARD_FEEDBACK_AUDIO_SEQUENCE	EQU	$110
+TERMINAL_CARD_VALUE_TEXT_PLANES	EQU	$7
+TERMINAL_DENIED_FEEDBACK_AUDIO_SEQUENCE	EQU	$216
+TERMINAL_DENIED_TEXT_PLANES	EQU	$5
+TERMINAL_DISPLAY_CARD_COUNT	EQU	8
+TERMINAL_DISPLAY_CLEAR_CELL	EQU	2
+TERMINAL_DISPLAY_CLEAR_LAST_PLANE_ROW	EQU	383
+TERMINAL_HEADER_TEXT_PLANES	EQU	$E
+TERMINAL_MESSAGE_TEXT_PLANES	EQU	$A
 TEXT_CONTROL_ADVANCE_ORIGIN_BYTE	EQU	1
 TEXT_CURSOR_ROW_TABLE_INDEX_SHIFT	EQU	4
 TEXT_CURSOR_X_BYTE_MASK	EQU	$3F
@@ -15304,12 +15314,12 @@ terminal_proximity_object_table:
 	dc.l terminal_message_escape_claim	; message_ptr
 terminal_location_message_table_end:
 	dc.l $00000000	; NULL terminates location message scan
-abs_0_00018CCC:
-	dc.b "CLEARANCE:",$00
-abs_0_00018CD7:
-	dc.b "CARD NAME:",$00
-abs_0_00018CE2:
-	dc.b "ENTRY:",$00
+terminal_clearance_heading:
+	dc.b "CLEARANCE:",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+terminal_card_name_heading:
+	dc.b "CARD NAME:",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+terminal_entry_heading:
+	dc.b "ENTRY:",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 terminal_clearance_none:
 	dc.b 'N','o','n','e',' ',$00	; Terminal clearance display text
 terminal_clearance_alpha:
@@ -15323,9 +15333,10 @@ terminal_clearance_omega:
 	dcb.b $20,$20
 	dc.b $00
 	dc.b "Terminal mode",$00
-abs_0_00018D36:
-	dc.b "ACCESS DENIED...",$00
-	dc.b "ID REQUIRED",$00
+terminal_access_denied_text:
+	dc.b "ACCESS DENIED...",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+terminal_id_required_text:
+	dc.b "ID REQUIRED",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 	dc.b $00
 terminal_message_earth_warning:
 	dc.w $00F0	; world_x
@@ -15413,20 +15424,22 @@ run_terminal_modal_loop:
 	bsr.w swap_tilemap_context
 	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w snapshot_entity_draw_state
+    ; Entry keeps the active descriptor table/count and snapshots XY/attachment geometry before exchanging banks. Idle modal visits do not refresh that saved footprint.
+exchange_terminal_display_banks:
 	move.l app_front_bitplane_base(a6),d1
 	move.l app_back_bitplane_base(a6),d0
 	move.l d0,app_front_bitplane_base(a6)
 	move.l d1,app_back_bitplane_base(a6)
 	move.l d0,app_display_bitplane_base(a6)
 	bsr.w redraw_terminal_selected_item
-abs_0_00019016:
+wait_terminal_entry_direction_release:
 	jsr poll_joystick1_directions_and_fire.l
-	bne.b abs_0_00019016
-abs_0_0001901E:
+	bne.b wait_terminal_entry_direction_release
+clear_terminal_frame_completion:
 	bclr.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
-abs_0_00019024:
+wait_for_terminal_frame_completion:
 	btst.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
-	beq.b abs_0_00019024
+	beq.b wait_for_terminal_frame_completion
 	bsr.w service_keyboard_pause_gate
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
@@ -15434,7 +15447,7 @@ abs_0_00019024:
 	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
-	btst.b #1,player_world_object_world_object_flags.l
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	beq.b check_terminal_restart_key
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b check_terminal_restart_key
@@ -15444,16 +15457,19 @@ check_terminal_restart_key:
     ; KNOWN: type A0=Target code-entry register seed:keyboard_state_table
 	tst.b keyboard_state_table_warm_restart_f7_held_ff(a0)
 	beq.b continue_terminal_key_input
+    ; F7 bypasses context restoration. Warm setup through title entry resets mission/UI while retaining modal dimensions/base and the saved header; later title behavior remains unproved.
 	jmp wait_for_blitter_then_restart_runtime.l
 continue_terminal_key_input:
 	bsr.w update_terminal_selected_item
-	btst.b #2,app_ui_flags(a6)
-	bne.b abs_0_0001901E
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
+	bne.b clear_terminal_frame_completion
 	jsr poll_joystick1_directions_and_fire.l
-	beq.b abs_0_0001901E
-abs_0_00019088:
+	beq.b clear_terminal_frame_completion
+wait_terminal_exit_direction_release:
 	jsr poll_joystick1_directions_and_fire.l
-	bne.b abs_0_00019088
+	bne.b wait_terminal_exit_direction_release
+    ; Normal exit restores the world header/base and requests a two-service zero-delta camera refresh. Front/back/display pointers retain the modal-entry bank arrangement.
+request_world_redraw_after_terminal:
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
 	bset.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
@@ -15461,21 +15477,22 @@ abs_0_00019088:
 	bsr.w swap_tilemap_context
 	move.l #WORLD_TILE_POINTER_GRID_BASE,app_tilemap_base(a6)
 	rts
+    ; Changed selection is cached before redraw; redraw reads holding again after its clear. This updater has no UI/fire gate. Unchanged IDs skip display/audio work.
 update_terminal_selected_item:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b app_modal_last_selected_item_id(a6),d0
-	beq.b abs_0_000190C6
+	beq.b return_from_terminal_item_update
 	move.b d0,app_modal_last_selected_item_id(a6)
 	bsr.w redraw_terminal_selected_item
-abs_0_000190C6:
+return_from_terminal_item_update:
 	rts
 redraw_terminal_selected_item:
-	moveq.l #2,d0
+	moveq.l #TERMINAL_DISPLAY_CLEAR_CELL,d0
 	move.w d0,d1
 	bsr.w set_text_cursor_in_front_buffer
-	move.w #$17F,d7
+	move.w #TERMINAL_DISPLAY_CLEAR_LAST_PLANE_ROW,d7
 	moveq.l #0,d0
-abs_0_000190D6:
+clear_next_terminal_display_plane_row:
 	movea.l a0,a1
 	clr.l (a1)+
 	clr.l (a1)+
@@ -15485,31 +15502,31 @@ abs_0_000190D6:
 	clr.l (a1)+
 	clr.l (a1)+
 	clr.w (a1)+
-	lea.l $0028(a0),a0
-	dbf.w d7,abs_0_000190D6
+	lea.l UI_OVERLAY_BLIT_ROW_BYTES(a0),a0
+	dbf.w d7,clear_next_terminal_display_plane_row
     ; Only item IDs 48..55 reach the eight-entry clearance-label selector; BYTE subtraction normalizes the ID. This display domain is separate from the six-entry security table.
 	moveq.l #0,d0
 	move.b player_world_object_selected_item_id.l,d0
 	move.b d0,app_modal_last_selected_item_id(a6)
-	subi.b #48,d0
-	cmp.b #$8,d0
-	bcc.w abs_0_000191EC
+	subi.b #ITEM_ID_ID_COMMANDER,d0
+	cmp.b #TERMINAL_DISPLAY_CARD_COUNT,d0
+	bcc.w draw_terminal_access_denied
 	move.w d0,-(a7)
-	move.b #$E,app_text_plane_mask(a6)
+	move.b #TERMINAL_HEADER_TEXT_PLANES,app_text_plane_mask(a6)
 	moveq.l #3,d0
 	move.w d0,d1
 	bsr.w set_text_cursor_in_front_buffer
-	lea.l abs_0_00018CCC(pc),a3
+	lea.l terminal_clearance_heading(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #5,d1
 	bsr.w set_text_cursor_in_front_buffer
-	lea.l abs_0_00018CD7(pc),a3
+	lea.l terminal_card_name_heading(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #3,d0
 	moveq.l #7,d1
 	bsr.w set_text_cursor_in_front_buffer
-	lea.l abs_0_00018CE2(pc),a3
+	lea.l terminal_entry_heading(pc),a3
 	bsr.w draw_compact_text_string
     ; NULL-terminated XY/text scan; strict WORD-distance improvement keeps first ties. abs/sub/add wrap at 16 bits. On update A2=record+4; no ten-entry count or empty-table guard.
 	lea.l terminal_proximity_object_table(pc),a0
@@ -15518,34 +15535,34 @@ abs_0_000190D6:
 	move.w world_object_shared_prefix_world_y(a4),d1
 	moveq.l #-1,d4
 	movea.l (a0),a2	; operand 1: terminal_location_message_reference_message_ptr at (a0)
-abs_0_00019156:
+scan_next_terminal_location_message:
 	move.l (a0)+,d5	; operand 1: terminal_location_message_reference_message_ptr at (a0)+
-	beq.b abs_0_0001917A
+	beq.b draw_terminal_selected_message
 	movea.l d5,a1
     ; KNOWN: type A1=Target code-entry register seed:terminal_location_message_header
 	move.w (a1)+,d2	; operand 1: terminal_location_message_header_world_x at (a1)+
 	move.w (a1)+,d3	; operand 1: terminal_location_message_header_world_y at (a1)+
 	sub.w d0,d2
-	bpl.b abs_0_00019166
+	bpl.b measure_terminal_message_y_distance
 	neg.w d2
-abs_0_00019166:
+measure_terminal_message_y_distance:
 	sub.w d1,d3
-	bpl.b abs_0_0001916C
+	bpl.b compare_terminal_location_distance
 	neg.w d3
-abs_0_0001916C:
+compare_terminal_location_distance:
 	add.w d2,d3
 	cmp.w d4,d3
-	bcc.b abs_0_00019176
+	bcc.b advance_terminal_location_scan
 	move.w d3,d4
 	movea.l a1,a2
-abs_0_00019176:
-	bra.b abs_0_00019156
+advance_terminal_location_scan:
+	bra.b scan_next_terminal_location_message
 	dc.b $30,$1F
-abs_0_0001917A:
+draw_terminal_selected_message:
 	moveq.l #3,d0
 	moveq.l #9,d1
 	bsr.w set_text_cursor_in_front_buffer
-	move.b #$A,app_text_plane_mask(a6)
+	move.b #TERMINAL_MESSAGE_TEXT_PLANES,app_text_plane_mask(a6)
 	movea.l a2,a3
 	bsr.w draw_compact_text_string
 	move.w (a7)+,d0
@@ -15554,7 +15571,7 @@ abs_0_0001917A:
 	moveq.l #14,d0
 	moveq.l #3,d1
 	bsr.w set_text_cursor_in_front_buffer
-	move.b #$7,app_text_plane_mask(a6)
+	move.b #TERMINAL_CARD_VALUE_TEXT_PLANES,app_text_plane_mask(a6)
 	bsr.w draw_compact_text_string
 	moveq.l #14,d0
 	moveq.l #5,d1
@@ -15563,7 +15580,7 @@ abs_0_0001917A:
 	bsr.w resolve_item_name
 	movea.l a0,a3
 	bsr.w draw_compact_text_string
-	move.w #$110,d0
+	move.w #TERMINAL_CARD_FEEDBACK_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	rts
 terminal_card_clearance_label_table:
@@ -15575,18 +15592,19 @@ terminal_card_clearance_label_table:
 	dc.l terminal_clearance_delta	; label_ptr
 	dc.l terminal_clearance_none	; label_ptr
 	dc.l terminal_clearance_none	; label_ptr
-abs_0_000191EC:
+draw_terminal_access_denied:
 	moveq.l #10,d0
 	moveq.l #5,d1
 	bsr.w set_text_cursor_in_front_buffer
-	move.b #$5,app_text_plane_mask(a6)
-	lea.l abs_0_00018D36(pc),a3
+	move.b #TERMINAL_DENIED_TEXT_PLANES,app_text_plane_mask(a6)
+	lea.l terminal_access_denied_text(pc),a3
 	bsr.w draw_compact_text_string
 	moveq.l #10,d0
 	moveq.l #7,d1
 	bsr.w set_text_cursor_in_front_buffer
+    ; The first renderer advances A3 past its NUL. This call consumes adjacent ID REQUIRED text without another LEA; retain both bounded strings and following padding.
 	bsr.w draw_compact_text_string
-	move.w #$216,d0
+	move.w #TERMINAL_DENIED_FEEDBACK_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
 	rts
     ; Exchange four header WORDs, but always select the modal cell base. This does not restore the world base or update derived grid stride/size/end; callers restore the base separately.
@@ -16365,21 +16383,22 @@ run_self_destruct_modal_loop:
 	bsr.w swap_tilemap_context
 	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w snapshot_entity_draw_state
+exchange_self_destruct_display_banks:
 	move.l app_front_bitplane_base(a6),d1
 	move.l app_back_bitplane_base(a6),d0
 	move.l d0,app_front_bitplane_base(a6)
 	move.l d1,app_back_bitplane_base(a6)
 	move.l d0,app_display_bitplane_base(a6)
 	bsr.w render_self_destruct_card_sequence
-	move.b #$80,app_modal_last_selected_item_id(a6)
-abs_0_00019C2A:
+	move.b #SELF_DESTRUCT_MODAL_ENTRY_CACHE_MARKER,app_modal_last_selected_item_id(a6)
+wait_self_destruct_entry_direction_release:
 	jsr poll_joystick1_directions_and_fire.l
-	bne.b abs_0_00019C2A
-abs_0_00019C32:
+	bne.b wait_self_destruct_entry_direction_release
+clear_self_destruct_frame_completion:
 	bclr.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
-abs_0_00019C38:
+wait_for_self_destruct_frame_completion:
 	btst.b #APP_STATUS_FRAME_COMPLETE_BIT,app_status_flags(a6)
-	beq.b abs_0_00019C38
+	beq.b wait_for_self_destruct_frame_completion
 	bsr.w service_keyboard_pause_gate
 	jsr poll_joystick1_directions_and_fire.l
 	bsr.w update_inventory_panel_availability
@@ -16387,7 +16406,7 @@ abs_0_00019C38:
 	bsr.w service_status_message_duration
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
-	btst.b #1,player_world_object_world_object_flags.l
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	beq.b check_self_destruct_restart_key
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b check_self_destruct_restart_key
@@ -16400,10 +16419,12 @@ check_self_destruct_restart_key:
 	jmp wait_for_blitter_then_restart_runtime.l
 continue_self_destruct_key_input:
 	bsr.w process_self_destruct_card_input
-	btst.b #2,app_ui_flags(a6)
-	bne.b abs_0_00019C32
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
+	bne.b clear_self_destruct_frame_completion
 	jsr poll_joystick1_directions_and_fire.l
-	beq.b abs_0_00019C32
+	beq.b clear_self_destruct_frame_completion
+    ; Terminal waits for direction release before this handoff; self-destruct returns while direction remains held. Both entry gates wait on directions; fire alone passes.
+request_world_redraw_after_self_destruct:
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
 	bset.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)

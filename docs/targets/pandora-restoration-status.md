@@ -4712,3 +4712,31 @@ fields/types/owner bounds, SDK/pointer forms, raw gaps and histories pass preser
 all 126 assets, 2,112 typed tile fields and the 128-byte INCBIN policy remain intact.
 Unchanged checks are reused. RAM/MMIO shadows perform no DMA and establish no ordinary
 gameplay admission, complete writer/lifetime coverage or original tail purpose.
+
+### Modal handoff and terminal display
+
+Accepted 56 annotations: nineteen code stages, ten constants, sixteen operand
+bindings, five ASCII headings/error strings (58 bytes) and six comments. Both
+entries retain the active descriptor list/count, snapshot XY/attachment geometry
+once and exchange front/back/display banks. Idle modal visits retain that snapshot
+and omit world-script/self-destruct ticks. Initial release gates test directions,
+independently of fire. Terminal normal exit waits for direction release; self-destruct
+returns with direction held. Both restore the world header/base and request a
+two-service zero-delta camera refresh without exchanging banks again.
+
+Both actual F7 branches bypass that restoration. Warm setup through the next title
+entry resets mission/UI but retains modal dimensions/base and the saved header.
+Later title/restart behavior remains unproved; no intent or bug claim is added.
+Terminal updates have no UI/fire gate, skip unchanged IDs, and resample holding
+after display clearing. The renderer advances A3 to the adjacent second error line.
+Ten original-code tests in `tests/test_pandora_modal_handoff.py` establish these
+paths, exact clear fences and full eight-card/invalid-sample rendering. Existing
+swap, camera, nearest-message and self-destruct input checks are reused.
+
+A 72-byte original instruction preflight covers all new EQU/immediate/d16 forms.
+Full-target C/vasm matches all 376,832 bytes, receipt `200054450739ccd31b5ceb2afebbb47bfb002bcf74706855c9848266dbcbc10f`.
+Earlier source, comments, fields/types/owner bounds, SDK/pointer forms, raw gaps
+and histories pass preservation; all 126 assets, 2,112 typed tile fields and the
+128-byte INCBIN policy remain intact, including the exact caller-dependent A4
+distinction. RAM/MMIO shadows perform no DMA or asynchronous frame production and
+establish no ordinary admission, complete ownership/lifetime or whole restart.
