@@ -3655,3 +3655,39 @@ syntax with comment-only symbols. Prior SDK expressions/comments and all 86
 assets are preserved, and both histories retain their original prefixes.
 C and independent vasm reproduce all 376,832 original bytes, final receipt
 `598506087f5d02a3d815885bb375175ddf37d91cfdfe2f080e12a789446d6d5e`.
+
+## Camera profiles, coordinate service and movement selection
+
+Six connected camera/profile and movement-selection routines gain complete local
+naming, including the vertical wrap paths and shared movement return. The two
+existing six-byte profile records retain their owner, type and every value; the
+inset-margin record now has an explicit source alias. Shared camera-active bit,
+refresh count and profile-index constants cover all inspected producers and
+consumers, and movement-node selection reuses the existing direction bit names.
+Tile/viewport dimensions, trigger padding and map guards are named together.
+
+Six new original-code tests cover both profiles, all 256 countdown inputs,
+WORD coordinate conversion/clamping, trigger equality and map guards, both
+vertical wraps, forced refreshes and bounded repeated service prefixes. A zero
+count wraps to 255 and advances coordinates even with the active bit clear; only
+the expiry result clears deltas before rendering. The old implied active-flag
+guard in the service comment is corrected. X is not clamped, while Y uses a
+signed-negative test followed by the original unsigned upper-bound comparison.
+
+Reloads four/six permit three/five movement visits, or 48/80 pixels. The original
+48-pixel horizontal guard is unchanged for both profiles; a controlled inset-
+profile entry at X=48 wraps X in the service prefix. These tests stop before the
+renderer and do not prove full-frame completion or gameplay reachability at that
+boundary. The unchecked profile index, WORD height arithmetic, shared return
+paths and unnamed status-bit-six meaning remain explicit limits.
+
+The backend is unchanged; its 819 native and 63 focused results are reused.
+The pre-existing Hunk numeric-pointer regression remains deferred.
+
+All 79 actions are accepted: twenty names, sixteen constants, 41 operand
+presentations and two behavior comments. No generic local labels remain in the
+selected six routines. Both profile records keep their original owner, type and
+values, and all prior SDK expressions/comments and 86 assets are preserved apart
+from the explicitly corrected active-flag implication. Both histories retain
+their original prefixes. One final C/vasm gate reproduces all 376,832 original
+bytes, receipt `2eba1a598b0b07ee392231a37b72113ed2bd5f8ad6d95943da0df698373a0b00`.

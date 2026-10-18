@@ -844,8 +844,21 @@ ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
 APP_STARTUP_CLEAR_LAST_BYTE	EQU	875
 APP_STATE_BASE	EQU	$39FC
+APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT	EQU	4
 APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
+CAMERA_BOTTOM_WRAP_GUARD_ROWS	EQU	3
+CAMERA_MAP_EDGE_GUARD_PIXELS	EQU	48
+CAMERA_PLAYER_BOTTOM_TRIGGER_PAD	EQU	32
+CAMERA_PLAYER_RIGHT_TRIGGER_PAD	EQU	24
+CAMERA_REFRESH_SERVICE_TICKS	EQU	2
+CAMERA_RIGHT_MAP_GUARD_PIXELS	EQU	368
+CAMERA_SCROLL_INSET_PROFILE_INDEX	EQU	1
+CAMERA_SCROLL_NEGATIVE_TILE_DELTA_WORD	EQU	$FFF0
+CAMERA_VIEWPORT_HEIGHT_PIXELS	EQU	128
+CAMERA_VIEWPORT_TILE_ROWS	EQU	8
+CAMERA_VIEWPORT_WIDTH_PIXELS	EQU	320
+CAMERA_WRAP_BOTTOM_PLAYER_OFFSET	EQU	80
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 _custom	EQU	$DFF000
 CUSTOM_COLOR00_REGISTER	EQU	_custom+color
@@ -986,6 +999,7 @@ KEYBOARD_STATE_BASE	EQU	$397C
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
+PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
 RGB12_ACCUMULATOR_FRACTION_BITS	EQU	4
 RGB12_ACCUMULATOR_STRIDE	EQU	6
 RGB12_COMPONENT_BITS	EQU	4
@@ -1082,6 +1096,8 @@ WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
+WORLD_TILE_PIXEL_SHIFT	EQU	4
+WORLD_TILE_PIXEL_SIZE	EQU	16
 _ciaa	EQU	$BFE001
 absolute_slot_000007E8	EQU	$7E8
 absolute_slot_000010F0	EQU	$10F0
@@ -1402,7 +1418,7 @@ abs_0_00010676:
 	bne.b check_main_keyboard_shortcuts
 	bra.w wait_for_blitter_then_restart_runtime
 check_main_keyboard_shortcuts:
-	btst.b #4,app_status_flags(a6)
+	btst.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
 	bne.b continue_main_frame_exchange
 	lea.l KEYBOARD_STATE_BASE.l,a0
     ; KNOWN: type A0=Target code-entry register seed:keyboard_state_table
@@ -1422,7 +1438,7 @@ check_camera_profile_1_key:
 	beq.b continue_main_frame_exchange
 	tst.w app_camera_scroll_profile_index(a6)
 	bne.b continue_main_frame_exchange
-	move.w #$1,app_camera_scroll_profile_index(a6)
+	move.w #CAMERA_SCROLL_INSET_PROFILE_INDEX,app_camera_scroll_profile_index(a6)
 	jsr configure_camera_scroll_triggers.l
 continue_main_frame_exchange:
 	bra.w swap_front_back_display_buffers
@@ -10044,47 +10060,47 @@ start_trade_result_countdown:
 	move.l d0,d7
     ; Load the configured profile countdown low byte and start camera scrolling with existing XY deltas. Service decrements before moving; the expiry visit clears deltas and redraws.
 begin_camera_scroll:
-	bset.b #4,app_status_flags(a6)
+	bset.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
 	move.b app_configured_camera_scroll_ticks(a6),app_camera_scroll_ticks_remaining(a6)
 	rts
     ; Request a two-tick camera refresh with zero XY scroll deltas.
 request_camera_refresh:
-	bset.b #4,app_status_flags(a6)
-	move.b #$2,app_camera_scroll_ticks_remaining(a6)
+	bset.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
+	move.b #CAMERA_REFRESH_SERVICE_TICKS,app_camera_scroll_ticks_remaining(a6)
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
 	rts
-    ; Count down camera service; advance XY while active, clamp Y to the map view range, and render. Expiry clears active state and deltas.
+    ; Always decrement BYTE count; zero wraps to 255. Nonzero result advances XY even if active flag is clear. Zero result clears flag/deltas. Both paths render; only Y is clamped.
 update_camera_scroll:
 	subq.b #1,app_camera_scroll_ticks_remaining(a6)
-	bne.b abs_0_00017D60
-	bclr.b #4,app_status_flags(a6)
+	bne.b advance_camera_scroll_coordinates
+	bclr.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
-	bra.w abs_0_00017D9C
-abs_0_00017D60:
+	bra.w render_scrolled_view_and_refresh_triggers
+advance_camera_scroll_coordinates:
 	lea.l player_world_object.l,a5
 	move.w app_tilemap_height(a6),d1
-	subq.w #8,d1
-	lsl.w #4,d1
+	subq.w #CAMERA_VIEWPORT_TILE_ROWS,d1
+	lsl.w #WORLD_TILE_PIXEL_SHIFT,d1
 	move.w app_tilemap_scroll_y(a6),d0
 	add.w app_camera_scroll_delta_y(a6),d0
-	bpl.b abs_0_00017D7A
+	bpl.b clamp_camera_scroll_y_to_upper_bound
 	moveq.l #0,d0
-abs_0_00017D7A:
+clamp_camera_scroll_y_to_upper_bound:
 	cmp.w d1,d0
-	bcs.b abs_0_00017D80
+	bcs.b store_camera_scroll_y_and_tile_row
 	move.w d1,d0
-abs_0_00017D80:
+store_camera_scroll_y_and_tile_row:
 	move.w d0,app_tilemap_scroll_y(a6)
-	lsr.w #4,d0
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d0
 	move.w d0,app_tile_row(a6)
 	move.w app_tilemap_scroll_x(a6),d0
 	add.w app_camera_scroll_delta_x(a6),d0
 	move.w d0,app_tilemap_scroll_x(a6)
-	lsr.w #4,d0
+	lsr.w #WORLD_TILE_PIXEL_SHIFT,d0
 	move.w d0,app_tile_column(a6)
-abs_0_00017D9C:
+render_scrolled_view_and_refresh_triggers:
 	bsr.w render_tilemap_view_to_back_buffer
 	bsr.w configure_camera_scroll_triggers
 	rts
@@ -11354,8 +11370,8 @@ abs_0_00019088:
 	bne.b abs_0_00019088
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
-	bset.b #4,app_status_flags(a6)
-	move.b #$2,app_camera_scroll_ticks_remaining(a6)
+	bset.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
+	move.b #CAMERA_REFRESH_SERVICE_TICKS,app_camera_scroll_ticks_remaining(a6)
 	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
 	rts
@@ -11801,10 +11817,10 @@ update_player_world_movement:
 	move.b app_ui_flags(a6),d0
 	andi.b #6,d0
 	bne.w hold_player_movement_animation
-	btst.b #4,app_status_flags(a6)
-	bne.w abs_0_000199AA
+	btst.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
+	bne.w return_from_player_movement
 	btst.b #1,player_world_object_world_object_flags.l
-	bne.w abs_0_000199AA
+	bne.w return_from_player_movement
 	clr.w app_player_lateral_drift(a6)
 	move.w app_input_x_step(a6),d0
 	move.w app_input_y_step(a6),d1
@@ -11861,11 +11877,11 @@ abs_0_000196A2:
 	tst.w app_player_move_request_y_step(a6)
 	beq.w select_player_movement_animation
 	move.w #$1,player_movement_script_delay_ticks.l
-	btst.b #2,world_object_shared_prefix_movement_direction_flags(a4)
+	btst.b #INPUT_DIRECTION_LEFT_BIT,world_object_shared_prefix_movement_direction_flags(a4)
 	beq.b abs_0_000196C0
 	move.w #$7,app_player_lateral_drift(a6)
 abs_0_000196C0:
-	btst.b #3,world_object_shared_prefix_movement_direction_flags(a4)
+	btst.b #INPUT_DIRECTION_RIGHT_BIT,world_object_shared_prefix_movement_direction_flags(a4)
 	beq.b abs_0_000196CE
 	move.w #$FFF9,app_player_lateral_drift(a6)
 abs_0_000196CE:
@@ -11992,101 +12008,106 @@ select_player_movement_animation:
 	clr.b world_object_shared_prefix_movement_direction_flags(a4)
 	lea.l player_position_state.l,a0
 	tst.w d0
-	beq.b abs_0_00019870
-	bpl.b abs_0_00019862
+	beq.b select_vertical_movement_node
+	bpl.b select_positive_x_movement_node
 	lea.l player_move_negative_x_animation.l,a1
-	bset.b #2,world_object_shared_prefix_movement_direction_flags(a4)
-	bra.b abs_0_00019890
-abs_0_00019862:
+	bset.b #INPUT_DIRECTION_LEFT_BIT,world_object_shared_prefix_movement_direction_flags(a4)
+	bra.b install_selected_player_movement_node
+select_positive_x_movement_node:
 	lea.l player_move_positive_x_animation.l,a1
-	bset.b #3,world_object_shared_prefix_movement_direction_flags(a4)
-	bra.b abs_0_00019890
-abs_0_00019870:
+	bset.b #INPUT_DIRECTION_RIGHT_BIT,world_object_shared_prefix_movement_direction_flags(a4)
+	bra.b install_selected_player_movement_node
+select_vertical_movement_node:
 	tst.w d1
-	beq.b abs_0_00019890
-	bpl.b abs_0_00019884
+	beq.b install_selected_player_movement_node
+	bpl.b select_positive_y_movement_node
 	lea.l player_move_negative_y_animation.l,a1
-	bset.b #0,world_object_shared_prefix_movement_direction_flags(a4)
-	bra.b abs_0_00019890
-abs_0_00019884:
+	bset.b #INPUT_DIRECTION_UP_BIT,world_object_shared_prefix_movement_direction_flags(a4)
+	bra.b install_selected_player_movement_node
+select_positive_y_movement_node:
 	lea.l player_move_positive_y_animation.l,a1
-	bset.b #1,world_object_shared_prefix_movement_direction_flags(a4)
-abs_0_00019890:
+	bset.b #INPUT_DIRECTION_DOWN_BIT,world_object_shared_prefix_movement_direction_flags(a4)
+install_selected_player_movement_node:
 	movea.l world_position_render_state_prefix_state_node_ptr(a0),a2
 	cmpa.l a2,a1
-	beq.b abs_0_000198A2
+	beq.b resume_selected_player_movement_node
 	movea.l a1,a2
 	move.l a2,world_position_render_state_prefix_state_node_ptr(a0)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a2)
-abs_0_000198A2:
+resume_selected_player_movement_node:
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a2)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a2)
+test_camera_horizontal_scroll_request:
 	tst.w d0
-	beq.b abs_0_0001990A
-	bpl.b abs_0_000198D8
+	beq.b test_camera_vertical_scroll_request
+	bpl.b test_camera_right_scroll_trigger
+test_camera_left_scroll_trigger:
 	move.w app_camera_scroll_left_trigger(a6),d2
 	move.w world_object_shared_prefix_world_x(a4),d0
 	cmp.w d2,d0
-	bcc.b abs_0_0001990A
+	bcc.b test_camera_vertical_scroll_request
 	move.w app_tilemap_scroll_x(a6),d0
-	subi.w #48,d0
-	bmi.b abs_0_0001990A
-	move.w #$FFF0,app_camera_scroll_delta_x(a6)
+    ; Original left guard is 48 pixels for both profiles. Reloads 4/6 move 48/80 pixels per full burst; X service is unclamped. Controlled entry at X=48 can wrap for profile 1.
+	subi.w #CAMERA_MAP_EDGE_GUARD_PIXELS,d0
+	bmi.b test_camera_vertical_scroll_request
+	move.w #CAMERA_SCROLL_NEGATIVE_TILE_DELTA_WORD,app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
 	bra.w begin_camera_scroll
-abs_0_000198D8:
+test_camera_right_scroll_trigger:
 	move.w world_object_shared_prefix_world_x(a4),d0
-	addi.w #24,d0
+	addi.w #CAMERA_PLAYER_RIGHT_TRIGGER_PAD,d0
 	move.w app_camera_scroll_right_trigger(a6),d2
 	cmp.w d2,d0
-	bcs.b abs_0_0001990A
+	bcs.b test_camera_vertical_scroll_request
 	move.w app_tilemap_scroll_x(a6),d0
-	addi.w #368,d0
+	addi.w #CAMERA_RIGHT_MAP_GUARD_PIXELS,d0
 	move.w app_tilemap_width(a6),d1
-	lsl.w #4,d1
+	lsl.w #WORLD_TILE_PIXEL_SHIFT,d1
 	cmp.w d1,d0
-	bcc.w abs_0_000199AA
-	move.w #$10,app_camera_scroll_delta_x(a6)
+	bcc.w return_from_player_movement
+	move.w #WORLD_TILE_PIXEL_SIZE,app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
 	bra.w begin_camera_scroll
-abs_0_0001990A:
+test_camera_vertical_scroll_request:
 	tst.w d1
-	beq.w abs_0_000199AA
-	bpl.b abs_0_0001994C
+	beq.w return_from_player_movement
+	bpl.b test_camera_down_scroll_or_top_wrap
 	move.w world_object_shared_prefix_world_y(a4),d0
-	cmp.w #$10,d0
-	bcc.b abs_0_00019934
+	cmp.w #WORLD_TILE_PIXEL_SIZE,d0
+	bcc.b test_camera_up_scroll_trigger
+wrap_camera_and_player_to_bottom:
 	move.w app_tilemap_height(a6),d0
-	subq.w #8,d0
-	lsl.w #4,d0
+	subq.w #CAMERA_VIEWPORT_TILE_ROWS,d0
+	lsl.w #WORLD_TILE_PIXEL_SHIFT,d0
 	move.w d0,app_tilemap_scroll_y(a6)
-	addi.w #80,d0
+	addi.w #CAMERA_WRAP_BOTTOM_PLAYER_OFFSET,d0
 	move.w d0,world_object_shared_prefix_world_y(a4)
 	bra.w request_camera_refresh
-abs_0_00019934:
+test_camera_up_scroll_trigger:
 	move.w app_camera_scroll_top_trigger(a6),d2
 	cmp.w d2,d0
-	bcc.w abs_0_000199AA
+	bcc.w return_from_player_movement
 	clr.w app_camera_scroll_delta_x(a6)
-	move.w #$FFF0,app_camera_scroll_delta_y(a6)
+	move.w #CAMERA_SCROLL_NEGATIVE_TILE_DELTA_WORD,app_camera_scroll_delta_y(a6)
 	bra.w begin_camera_scroll
-abs_0_0001994C:
+test_camera_down_scroll_or_top_wrap:
 	move.w world_object_shared_prefix_world_y(a4),d0
 	move.w app_tilemap_height(a6),d1
-	subq.w #3,d1
-	lsl.w #4,d1
+	subq.w #CAMERA_BOTTOM_WRAP_GUARD_ROWS,d1
+	lsl.w #WORLD_TILE_PIXEL_SHIFT,d1
 	cmp.w d1,d0
-	bcs.b abs_0_0001996A
+	bcs.b test_camera_down_scroll_trigger
+wrap_camera_and_player_to_top:
 	clr.w app_tilemap_scroll_y(a6)
-	move.w #$10,world_object_shared_prefix_world_y(a4)
+	move.w #WORLD_TILE_PIXEL_SIZE,world_object_shared_prefix_world_y(a4)
 	bra.w request_camera_refresh
-abs_0_0001996A:
+test_camera_down_scroll_trigger:
 	move.w app_camera_scroll_bottom_trigger(a6),d2
-	addi.w #32,d0
+	addi.w #CAMERA_PLAYER_BOTTOM_TRIGGER_PAD,d0
 	cmp.w d2,d0
-	bcs.b abs_0_000199AA
+	bcs.b return_from_player_movement
 	clr.w app_camera_scroll_delta_x(a6)
-	move.w #$10,app_camera_scroll_delta_y(a6)
+	move.w #WORLD_TILE_PIXEL_SIZE,app_camera_scroll_delta_y(a6)
 	bra.w begin_camera_scroll
     ; Hold the current animation header after idle or blocked movement: reset index/phase, set held-header mode and clear skip-update. This node dereference has no local null guard.
 hold_player_movement_animation:
@@ -12095,9 +12116,9 @@ hold_player_movement_animation:
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
 	bset.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)
 	bclr.b #ANIM_MODE_SKIP_UPDATE_BIT,WorldPositionStateNode_mode_flags(a0)
-	move.w #$1,player_movement_script_delay_ticks.l
+	move.w #PLAYER_IDLE_SCRIPT_DELAY_TICKS,player_movement_script_delay_ticks.l
 	bclr.b #6,app_status_flags(a6)
-abs_0_000199AA:
+return_from_player_movement:
 	rts
 measure_status_message_spacing_units:
 	move.l a0,-(a7)
@@ -12282,8 +12303,8 @@ continue_self_destruct_key_input:
 	beq.b abs_0_00019C32
 	clr.w app_camera_scroll_delta_x(a6)
 	clr.w app_camera_scroll_delta_y(a6)
-	bset.b #4,app_status_flags(a6)
-	move.b #$2,app_camera_scroll_ticks_remaining(a6)
+	bset.b #APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT,app_status_flags(a6)
+	move.b #CAMERA_REFRESH_SERVICE_TICKS,app_camera_scroll_ticks_remaining(a6)
 	bsr.w swap_tilemap_context
 	move.l #$4000,app_tilemap_base(a6)
 	rts
@@ -12466,7 +12487,7 @@ fill_raster_row_byte_offsets:
 	move.w #$81,app_tilemap_height(a6)
 	move.l #$4000,app_tilemap_base(a6)
 	bsr.w build_world_tilemap_pointer_grid
-	move.w #$1,app_camera_scroll_profile_index(a6)
+	move.w #CAMERA_SCROLL_INSET_PROFILE_INDEX,app_camera_scroll_profile_index(a6)
     ; Cold startup copies sixteen rows' first four words into two 64-byte cursor payloads before title/scratch reuse. Last four words are skipped; later copies need current-source evidence.
 	moveq.l #15,d7
 	lea.l cursor_sprite_initial_rows_shared_scratch.l,a0
@@ -12634,6 +12655,7 @@ camera_scroll_profiles:
 	dc.w $0004	; scroll_countdown_reload_word
 	dc.w $0000	; horizontal_trigger_margin
 	dc.w $0000	; vertical_trigger_margin
+camera_scroll_profile_inset_margins:
 	dc.w $0006	; scroll_countdown_reload_word
 	dc.w $0020	; horizontal_trigger_margin
 	dc.w $0010	; vertical_trigger_margin
@@ -12652,14 +12674,14 @@ configure_camera_scroll_triggers:
 	add.w d2,d0
 	add.w d2,d2
 	move.w d0,app_camera_scroll_left_trigger(a6)
-	addi.w #320,d0
+	addi.w #CAMERA_VIEWPORT_WIDTH_PIXELS,d0
 	sub.w d2,d0
 	move.w d0,app_camera_scroll_right_trigger(a6)
 	move.w app_tilemap_scroll_y(a6),d0
 	add.w d3,d0
 	add.w d3,d3
 	move.w d0,app_camera_scroll_top_trigger(a6)
-	addi.w #128,d0
+	addi.w #CAMERA_VIEWPORT_HEIGHT_PIXELS,d0
 	sub.w d3,d0
 	move.w d0,app_camera_scroll_bottom_trigger(a6)
 	rts
