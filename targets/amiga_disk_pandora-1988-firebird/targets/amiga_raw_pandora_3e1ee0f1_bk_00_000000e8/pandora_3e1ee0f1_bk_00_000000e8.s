@@ -974,6 +974,8 @@ INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED	EQU	3
 INTERACTION_FLAG_TECHNICIAN_COMPLETED	EQU	2
 INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING	EQU	5
 INTF_CLRALL	EQU	$7FFF
+INVENTORY_ITEM_SLOT_BYTES	EQU	inventory_item_slot_SIZEOF
+INVENTORY_TRADE_VALUE_DISP	EQU	inventory_item_slot_trade_value
 ITEM_ID_ACID	EQU	$3
 ITEM_ID_ALIEN_EGG	EQU	$6B
 ITEM_ID_AMIGA_COMPUTING	EQU	$71
@@ -1082,6 +1084,7 @@ MESSAGE_PALETTE_FLASH_STEPS	EQU	20
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
+NPC_TRADE_OFFER_BYTES	EQU	npc_trade_offer_entry_SIZEOF
 PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
 PRIEST_PASSAGE_CLOSED_PIXELS	EQU	$24C28
 PRIEST_PASSAGE_OPEN_PIXELS	EQU	$1E928
@@ -1196,7 +1199,13 @@ TITLE_STAR_LIFETIME_MASK	EQU	63
 TITLE_STAR_LIFETIME_RESEED_AT	EQU	16
 TITLE_STAR_LIFETIME_RESET	EQU	64
 TITLE_STAR_MIN_VISIBLE_LIFETIME	EQU	17
+TRADE_COMBAT_ITEM_RANGE_COUNT	EQU	15
+TRADE_FEEDBACK_AUDIO_SEQUENCE	EQU	$112
+TRADE_FIRST_NORMAL_ITEM_ID	EQU	2
+TRADE_OR_COMBAT_OBJECT_SKIP_MASK	EQU	$12
+TRADE_TABLE_LAST_ENTRY	EQU	3
 UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
+UI_FLAG_COMBAT_ACTIVE	EQU	1
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 UI_FLAG_SCROLLING_MESSAGE_ACTIVE	EQU	6
@@ -1259,9 +1268,14 @@ WORLD_MACRO_LAST_ROW	EQU	WORLD_MACRO_ROWS-1
 WORLD_MACRO_ROW_BYTES	EQU	WORLD_MACRO_TILE_SIDE*WORLD_GRID_ROW_BYTES
 WORLD_OBJECT_COMPLETION_CALLBACK_DISP	EQU	world_object_shared_prefix_interaction_completion_callback
 WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
+WORLD_OBJECT_FLAGS_DISP	EQU	world_object_shared_prefix_world_object_flags
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
+WORLD_OBJECT_INVENTORY_PTR_DISP	EQU	world_object_shared_prefix_inventory_slots_ptr
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
 WORLD_OBJECT_SCRIPT_TRAVERSAL_BLOCK_MASK	EQU	$42
+WORLD_OBJECT_SELECTED_ITEM_DISP	EQU	world_object_shared_prefix_selected_item_id
+WORLD_OBJECT_TRADE_COMBAT_DISABLED_BIT	EQU	4
+WORLD_OBJECT_TRADE_OFFER_READY_BIT	EQU	3
 WORLD_POSITION_SECURITY_CHECKPOINT_BIT	EQU	7
 WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOINT_BIT)|$08
 WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
@@ -5982,7 +5996,7 @@ abs_0_000127C4:
 	cmp.b #ITEM_ID_BENT_COIN,d0
 	bne.w return_from_inventory_key_scan
 	lea.l announce_item_trade(pc),a0
-	bsr.w abs_0_00017CFE
+	bsr.w return_from_trade_announcement
 	rts
 open_nearby_object_inventory_panel:
 	bset.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
@@ -6534,69 +6548,72 @@ abs_0_00012ECE:
 abs_0_00012EE0:
 	dc.b $39,$39,$39,$39,$00,$00
 service_nearby_trade_or_combat:
-	btst.b #1,player_world_object_world_object_flags.l
-	bne.b abs_0_00012F16
-	btst.b #1,app_ui_flags(a6)
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
+	bne.b return_from_nearby_trade_or_combat
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
 	bne.w service_combat_encounter
 	move.l app_nearest_object_ptr(a6),d0
-	beq.b abs_0_00012F16
+	beq.b return_from_nearby_trade_or_combat
 	movea.l d0,a5
 	move.l d0,app_interaction_object_ptr(a6)
 	move.b world_object_shared_prefix_world_object_flags(a5),d0
-	andi.b #18,d0
-	bne.b abs_0_00012F16
+	andi.b #TRADE_OR_COMBAT_OBJECT_SKIP_MASK,d0
+	bne.b return_from_nearby_trade_or_combat
 	bsr.w is_player_within_world_object_interaction_range
-	bcs.b abs_0_00012F18
-abs_0_00012F16:
+	bcs.b test_thief_automatic_item_take
+return_from_nearby_trade_or_combat:
 	rts
-abs_0_00012F18:
+test_thief_automatic_item_take:
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
-	cmp.b #$44,d0
-	bne.b abs_0_00012F44
-	move.b $0046(a4),d0
-	cmp.b #$2,d0
-	bcs.b abs_0_00012F44
-	clr.b $0046(a4)
+	cmp.b #ITEM_ID_THIEF,d0
+	bne.b choose_trade_or_combat_response
+	move.b WORLD_OBJECT_SELECTED_ITEM_DISP(a4),d0
+	cmp.b #TRADE_FIRST_NORMAL_ITEM_ID,d0
+	bcs.b choose_trade_or_combat_response
+    ; Thief handling precedes trade-ready/fire checks: clear held IDs 2..255, queue this object message and request ID recheck. No item is copied into the thief inventory.
+	clr.b WORLD_OBJECT_SELECTED_ITEM_DISP(a4)
 	movea.l world_object_shared_prefix_interaction_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	bsr.w refresh_selected_item_name_display
 	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
-	bra.b abs_0_00012F16
-abs_0_00012F44:
-	btst.b #3,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_00012F56
+	bra.b return_from_nearby_trade_or_combat
+choose_trade_or_combat_response:
+	btst.b #WORLD_OBJECT_TRADE_OFFER_READY_BIT,world_object_shared_prefix_world_object_flags(a5)
+	bne.b exchange_ready_trade_if_fire
+    ; Predicate C=0 enters combat; C=1 returns. A counteroffer sets object bit 3, but exchange occurs only on a later visit with fire pressed.
 	bsr.w validate_npc_item_trade
-	bcs.b abs_0_00012F16
+	bcs.b return_from_nearby_trade_or_combat
 	bra.w initialize_combat_encounter
-abs_0_00012F56:
+exchange_ready_trade_if_fire:
 	tst.b app_input_fire_pressed_ff(a6)
-	beq.b abs_0_00012F16
+	beq.b return_from_nearby_trade_or_combat
 	move.b player_world_object_selected_item_id.l,d6
 	move.b world_object_shared_prefix_selected_item_id(a5),d5
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
-	moveq.l #3,d7
+	moveq.l #TRADE_TABLE_LAST_ENTRY,d7
     ; Mutation searches four 2B entries. If an item ID is unmatched, control falls through and writes at table+8; the four-entry read prefix does not bound all writes.
-abs_0_00012F6C:
+find_npc_selected_inventory_entry:
 	cmp.b (a0),d5	; operand 1: inventory_item_slot_item_id at (a0)
-	beq.b abs_0_00012F76
-	addq.l #2,a0
-	dbf.w d7,abs_0_00012F6C
-abs_0_00012F76:
+	beq.b replace_inventory_id_with_player_item
+	addq.l #INVENTORY_ITEM_SLOT_BYTES,a0
+	dbf.w d7,find_npc_selected_inventory_entry
+replace_inventory_id_with_player_item:
 	move.b d5,player_world_object_selected_item_id.l
 	move.b d6,(a0)	; operand 2: inventory_item_slot_item_id at (a0)
 	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a1
-	moveq.l #3,d7
-abs_0_00012F84:
+	moveq.l #TRADE_TABLE_LAST_ENTRY,d7
+find_consumed_player_offer_entry:
 	cmp.b (a1),d6	; operand 1: npc_trade_offer_entry_item_id at (a1)
-	beq.b abs_0_00012F8E
-	addq.l #2,a1
-	dbf.w d7,abs_0_00012F84
-abs_0_00012F8E:
+	beq.b consume_offer_and_update_inventory_value
+	addq.l #NPC_TRADE_OFFER_BYTES,a1
+	dbf.w d7,find_consumed_player_offer_entry
+    ; Search misses use entry+8/+9 beyond the four-pair owners. Inventory ID is written before offer search, so aliased tables can match that new ID and clear it. Preserve ordered effects.
+consume_offer_and_update_inventory_value:
 	clr.b (a1)	; operand 1: npc_trade_offer_entry_item_id at (a1)
 	move.b npc_trade_offer_entry_trade_threshold(a1),inventory_item_slot_trade_value(a0)
-	bclr.b #3,world_object_shared_prefix_world_object_flags(a5)
+	bclr.b #WORLD_OBJECT_TRADE_OFFER_READY_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bsr.w announce_item_trade
-	move.b d6,$0046(a5)
+	move.b d6,WORLD_OBJECT_SELECTED_ITEM_DISP(a5)
 	bsr.w display_current_item_name
 	bsr.w refresh_selected_item_name_display
 	bsr.w clear_inventory_item_selection_flags
@@ -13848,124 +13865,128 @@ display_current_item_name:
 	rts
 clear_inventory_item_selection_flags:
 	lea.l world_object_ptr_table(pc),a0
-abs_0_00017BAA:
+clear_next_world_object_trade_ready_flag:
 	move.l (a0)+,d0
-	beq.b abs_0_00017BB8
+	beq.b return_from_trade_ready_flag_clear
 	movea.l d0,a1
-	bclr.b #3,world_object_shared_prefix_world_object_flags(a1)
-	bra.b abs_0_00017BAA
-abs_0_00017BB8:
+	bclr.b #WORLD_OBJECT_TRADE_OFFER_READY_BIT,world_object_shared_prefix_world_object_flags(a1)
+	bra.b clear_next_world_object_trade_ready_flag
+return_from_trade_ready_flag_clear:
 	rts
+    ; C=0 requests combat in the nearby caller. C=1 suppresses it, including accepted/missing offers. Selection may copy an inventory combat item; no item is consumed by this predicate.
 validate_npc_item_trade:
-	btst.b #4,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_00017C0A
+	btst.b #WORLD_OBJECT_TRADE_COMBAT_DISABLED_BIT,world_object_shared_prefix_world_object_flags(a5)
+	bne.b return_trade_predicate_without_combat
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	bsr.w is_tradeable_item_id
-	bcs.b abs_0_00017C06
+	bcs.b return_trade_predicate_with_combat
 	lea.l player_world_object.l,a4
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	bsr.w is_tradeable_item_id
-	bcs.w abs_0_00017BF2
+	bcs.w select_first_npc_combat_inventory_item
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	cmp.b #$2,d0
+	cmp.b #TRADE_FIRST_NORMAL_ITEM_ID,d0
 	bcc.b evaluate_npc_trade_offer
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
-	cmp.b #$2,d0
+	cmp.b #TRADE_FIRST_NORMAL_ITEM_ID,d0
 	bcc.b evaluate_npc_trade_offer
-abs_0_00017BF2:
-	movea.l $0014(a5),a0
-	moveq.l #3,d7
-abs_0_00017BF8:
+select_first_npc_combat_inventory_item:
+	movea.l WORLD_OBJECT_INVENTORY_PTR_DISP(a5),a0
+	moveq.l #TRADE_TABLE_LAST_ENTRY,d7
+scan_next_npc_combat_inventory_slot:
 	move.b (a0),d0
 	bsr.w is_tradeable_item_id
 	bcs.b select_npc_trade_item
-	addq.l #2,a0
-	dbf.w d7,abs_0_00017BF8
-abs_0_00017C06:
+	addq.l #INVENTORY_ITEM_SLOT_BYTES,a0
+	dbf.w d7,scan_next_npc_combat_inventory_slot
+return_trade_predicate_with_combat:
 	move.w d0,d0
 	rts
-abs_0_00017C0A:
+return_trade_predicate_without_combat:
 	move #$1,ccr
 	rts
 select_npc_trade_item:
-	move.b (a0),$0046(a5)
+	move.b (a0),WORLD_OBJECT_SELECTED_ITEM_DISP(a5)
 	bsr.w display_current_item_name
-	bra.b abs_0_00017C06
+	bra.b return_trade_predicate_with_combat
 evaluate_npc_trade_offer:
 	movea.l world_object_shared_prefix_trade_offer_table_ptr(a5),a2
-	moveq.l #3,d7
+	moveq.l #TRADE_TABLE_LAST_ENTRY,d7
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
-	cmp.b #$2,d0
-	bcs.b abs_0_00017C0A
-abs_0_00017C2A:
+	cmp.b #TRADE_FIRST_NORMAL_ITEM_ID,d0
+	bcs.b return_trade_predicate_without_combat
+find_player_item_in_npc_offer_table:
 	cmp.b (a2),d0	; operand 1: npc_trade_offer_entry_item_id at (a2)
-	beq.b abs_0_00017C36
-	addq.l #2,a2
-	dbf.w d7,abs_0_00017C2A
-	bra.b abs_0_00017C0A
+	beq.b test_matched_offer_threshold
+	addq.l #NPC_TRADE_OFFER_BYTES,a2
+	dbf.w d7,find_player_item_in_npc_offer_table
+	bra.b return_trade_predicate_without_combat
     ; Matched offer requires unsigned threshold < NPC state. Counteroffers skip IDs <2, choose the smallest threshold-minus-value gap 1..127, and keep the first slot on ties.
-abs_0_00017C36:
+test_matched_offer_threshold:
 	move.b npc_trade_offer_entry_trade_threshold(a2),d0
 	cmp.b world_object_shared_prefix_item_state(a5),d0
-	bcc.b abs_0_00017C46
+	bcc.b reject_offer_and_select_npc_combat_item
 	bsr.b select_nearest_trade_offer
-	bcs.b abs_0_00017C0A
-	bra.b abs_0_00017C0A
-abs_0_00017C46:
+	bcs.b return_trade_predicate_without_combat
+	bra.b return_trade_predicate_without_combat
+reject_offer_and_select_npc_combat_item:
 	lea.l npc_trade_rejection_message(pc),a0
 	bsr.w enqueue_status_message
-	bra.b abs_0_00017BF2
+	bra.b select_first_npc_combat_inventory_item
 npc_trade_rejection_message:
 	dc.b "Give me that, LET GO",$00
 npc_trade_counteroffer_message:
 	dc.b "I'll give you what I'm carrying for that",$00
+    ; Read four 2B slots, skip IDs 0/1, and select the first smallest positive threshold-value gap below 128. Success selects and latches without consuming an inventory entry.
 select_nearest_trade_offer:
 	move.b d0,d2
 	moveq.l #-1,d3
-	movea.l $0014(a5),a0
+	movea.l WORLD_OBJECT_INVENTORY_PTR_DISP(a5),a0
 	moveq.l #0,d1
-	moveq.l #3,d7
-abs_0_00017C9A:
+	moveq.l #TRADE_TABLE_LAST_ENTRY,d7
+test_next_counteroffer_inventory_slot:
 	move.b (a0),d0
-	cmp.b #$2,d0
-	bcs.b abs_0_00017CB6
+	cmp.b #TRADE_FIRST_NORMAL_ITEM_ID,d0
+	bcs.b advance_counteroffer_inventory_slot
 	move.b d0,d1
-	move.b $0001(a0),d0
+	move.b INVENTORY_TRADE_VALUE_DISP(a0),d0
 	sub.b d2,d0
-	bcc.b abs_0_00017CB6
+	bcc.b advance_counteroffer_inventory_slot
 	neg.b d0
 	cmp.b d3,d0
-	bcc.b abs_0_00017CB6
+	bcc.b advance_counteroffer_inventory_slot
 	move.b d0,d3
 	movea.l a0,a1
-abs_0_00017CB6:
-	addq.l #2,a0
-	dbf.w d7,abs_0_00017C9A
+advance_counteroffer_inventory_slot:
+	addq.l #INVENTORY_ITEM_SLOT_BYTES,a0
+	dbf.w d7,test_next_counteroffer_inventory_slot
 	tst.b d1
-	beq.b abs_0_00017CDE
+	beq.b return_without_counteroffer
 	tst.b d3
-	bmi.b abs_0_00017CDE
-	move.b (a1),$0046(a5)
-	bset.b #3,$0048(a5)
+	bmi.b return_without_counteroffer
+	move.b (a1),WORLD_OBJECT_SELECTED_ITEM_DISP(a5)
+	bset.b #WORLD_OBJECT_TRADE_OFFER_READY_BIT,WORLD_OBJECT_FLAGS_DISP(a5)
 	bsr.w display_current_item_name
 	lea.l npc_trade_counteroffer_message(pc),a0
 	bsr.w enqueue_status_message
 	move.w d0,d0
 	rts
-abs_0_00017CDE:
+return_without_counteroffer:
 	move #$1,ccr
 	rts
+    ; C=1 exactly for BYTE IDs 7..21. D0.B becomes (id-7) modulo 256; upper 24 bits survive. The caller uses this range for combat selection, despite the historic function name.
 is_tradeable_item_id:
-	subq.b #7,d0
-	cmp.b #$F,d0
+	subq.b #ITEM_ID_PHOTOSABRE,d0
+	cmp.b #TRADE_COMBAT_ITEM_RANGE_COUNT,d0
 	rts
 announce_item_trade:
 	lea.l objects_traded_message(pc),a0
 	bsr.w enqueue_status_message
-	move.w #$112,d0
+	move.w #TRADE_FEEDBACK_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_00017CFE:
+return_from_trade_announcement:
 	rts
+    ; This literal has no NUL: the next MOVE.L D0,D7 opcode contributes $2E then $00. The status scanner sees one extra dot before termination; code/data ownership is unchanged.
 objects_traded_message:
 	dc.b "..... YOU HAVE TRADED OBJECTS ...."
 start_trade_result_countdown:

@@ -1643,7 +1643,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("rsset_use_site_bindings", _M68kAnalysisRssetUseSiteBinding * 128),
         ("manual_representations_inline", _M68kAnalysisManualRepresentation * 4),
         ("manual_representations", ctypes.POINTER(_M68kAnalysisManualRepresentation)),
-        ("target_equates", _M68kAnalysisTargetEquate * 512),
+        ("target_equates", _M68kAnalysisTargetEquate * 1024),
         ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
         ("manual_data_references", _M68kAnalysisManualDataReference * 512),
         ("abstract_regions", _M68kAnalysisAbstractRegion * 128),

@@ -400,8 +400,9 @@ or runtime guard enforcement is not implemented.
 
 Operand symbol presentations may select a canonical source declaration as well
 as a platform symbol or target equate. Immediate target EQUs must match the
-decoded unsigned or signed value before append. A requested presentation can
-replace a generated immediate-address name; explicit source/SDK names remain
+decoded unsigned or signed value before append. Decoded bit-number immediates
+carry no byte width; equal-value EQUs remain valid for these operands. A requested
+presentation can replace a generated immediate-address name; explicit source/SDK names remain
 protected. A value EQU keeps resolved address-analysis facts but creates no
 unused source-label obligation inside an asset. The append preflight resolves one native
 render-plan declaration and persists `source_symbol` with `section_index`,

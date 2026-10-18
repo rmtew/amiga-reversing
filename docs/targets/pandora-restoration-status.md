@@ -4163,3 +4163,56 @@ semantics do not require changing ownership or assembly dependency resolution.
 The preparation benchmark was not repeated. The next useful gameplay swath is
 the remaining item-transfer/inventory effect code around the completion callbacks.
 The broader full-game and alternate-layout gates remain open.
+
+## Trade selection, exchange and thief item loss
+
+The nearby-object service and its direct trade helpers now have connected local
+names and symbolic item IDs, readiness bits, field offsets and four-entry table
+bounds. Existing public helper names remain unchanged. In particular,
+`is_tradeable_item_id` sets carry for IDs 7..21 after subtracting 7 from the low
+byte; this range drives combat-item selection. The main predicate returns carry
+clear to request combat and carry set to suppress it. Its carry is not a general
+trade-success result. A matched offer enters counteroffer selection only when
+its threshold is strictly below the object's unsigned item state; the caller
+returns carry set even if that selection succeeds with carry clear.
+
+Counteroffers inspect four inventory pairs, skip IDs 0 and 1, and keep the first
+smallest positive threshold/value gap. Only gaps 1..127 succeed. Selection copies
+the ID and sets readiness bit 3 without consuming the slot. A later service visit
+with fire pressed performs the exchange. Disabled objects are skipped; thief
+handling clears held IDs 2..255 before readiness/fire checks and does not write
+the received item into the thief inventory. Clearing readiness visits all 35
+original table entries, including inactive objects.
+
+Exchange preserves the original ordering and boundary behavior. The first
+matching inventory ID is replaced before the offer search. A failed four-entry
+search leaves its cursor at entry+8, so subsequent accesses can use +8/+9 beyond
+the existing eight-byte owner. Exact table aliasing can make the earlier ID write
+become the offer match and then be cleared. The owner bounds are retained. The
+announcement also retains its original code/data boundary: its literal has no
+NUL, and the following `MOVE.L D0,D7` opcode supplies another dot followed by NUL.
+
+Twenty-five original-code CPU cases cover all item bytes, every threshold/state
+and threshold/value pair, first matches and ties, all 25 found/missing exchange
+index pairs, exact aliasing, all NPC flag bytes, all normal thief-taken IDs, and
+complete paths through initialized original UI/audio routines. These are flat-RAM
+witnesses with valid original records and a separate stack; they do not establish
+DMA completion, arbitrary record lifetimes or full-game reachability.
+
+The 78 accepted actions comprise 21 local labels, 14 equates, 36 operand bindings
+and seven semantic comments. The target had reached the native 512-equate limit;
+the coordinated bound is now 1,024. Forty-eight focused framework checks and all
+819 native checks pass, including full-capacity cloning, both assemblers, duplicate
+updates, real atomic overflow refusal and direct Python/C policy loading.
+Bit-number operands carry no byte width;
+the immediate-EQU validation now accepts equal decoded values for them while
+retaining atomic refusal for mismatches. Six additional cases cover `BTST`,
+`BSET` and `BCLR` through the normal catalog, C and vasm. The earlier preparation
+benchmark was not repeated.
+
+Every previous annotation and hardware/SDK expression, owner bound, asset, raw
+gap and history prefix passes preservation checks. C and vasm reproduce all
+376,832 original bytes; the receipt and supporting evidence are recorded in
+`docs/validation/pandora-trade-selection.json`. The next connected question is
+how selected combat items supply encounter statistics and defeat/transfer effects.
+The broader full-game and alternate-layout gates remain open.

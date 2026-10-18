@@ -163,15 +163,15 @@ static int test_target_equates_full_capacity_clone(void) {
   source.target_equates[source.target_equate_count - 1U].value_style_id =
     M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL;
   snprintf(source.target_equates[source.target_equate_count - 1U].value_expr,
-    sizeof(source.target_equates[0].value_expr), "constant_0+511");
+    sizeof(source.target_equates[0].value_expr), "constant_0+%u", (unsigned)(M68K_ANALYSIS_TARGET_EQUATE_LIMIT - 1U));
   M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
   M68K_C_ASSERT_U32(source.target_equate_count, copy.target_equate_count);
   M68K_C_ASSERT(memcmp(source.target_equates, copy.target_equates, sizeof(source.target_equates)) == 0);
   memset(source.target_equates, 0, sizeof(source.target_equates));
   m68k_analysis_policy_destroy(&source);
-  M68K_C_ASSERT_STR("constant_511", copy.target_equates[copy.target_equate_count - 1U].name);
-  M68K_C_ASSERT_STR("constant_0+511", copy.target_equates[copy.target_equate_count - 1U].value_expr);
-  M68K_C_ASSERT_INT(511, copy.target_equates[copy.target_equate_count - 1U].value);
+  M68K_C_ASSERT_STR("constant_1023", copy.target_equates[copy.target_equate_count - 1U].name);
+  M68K_C_ASSERT_STR("constant_0+1023", copy.target_equates[copy.target_equate_count - 1U].value_expr);
+  M68K_C_ASSERT_INT(1023, copy.target_equates[copy.target_equate_count - 1U].value);
   m68k_analysis_policy_destroy(&copy);
   return 0;
 }

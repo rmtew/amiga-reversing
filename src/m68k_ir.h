@@ -71,7 +71,12 @@ typedef struct M68kRenderPolicy {
 #error Entry comment limit must fit its uint16_t counter
 #endif
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
-#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 512U
+/* Whole-game restoration accumulates named constants across subsystems.
+ * Keep the bounded policy mirror and exported client capacity coordinated. */
+#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 1024U
+#if M68K_ANALYSIS_TARGET_EQUATE_LIMIT > UINT16_MAX
+#error Target equate limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT 512U
 #if M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT > UINT16_MAX

@@ -2409,7 +2409,9 @@ def _validate_candidate_equate_capacity(
             if width not in {2, 4} or equates[symbol] != value:
                 raise ValueError("absolute symbol representation EQU value must match the decoded address")
         elif representation.get("element_kind") == "immediate" and symbol in equates:
-            if width not in {1, 2, 4} or equates[symbol] not in (value, representation.get("signed_value")):
+            # Bit-number immediates have a decoded value but no byte width.
+            # Their EQU still must equal that canonical unsigned/signed value.
+            if width not in {None, 1, 2, 4} or equates[symbol] not in (value, representation.get("signed_value")):
                 raise ValueError("immediate symbol representation EQU value must match the decoded value")
         elif representation.get("element_kind") in {"immediate", "absolute_address"} and symbol not in equates:
             constant = platform_constant_value_with_c_backend(binary_source, str(symbol))
