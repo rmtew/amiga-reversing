@@ -5467,6 +5467,10 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
           representation->target_equate_index == 0U ||
           representation->target_equate_index > lookup->policy->target_equate_count ||
           lookup->policy->target_equates[representation->target_equate_index - 1U].value != indexed_displacement)) return -1;
+      if (is_base_displacement && (m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_DISPLACEMENT ||
+          lookup == NULL || lookup->policy == NULL || representation->target_equate_index == 0U ||
+          representation->target_equate_index > lookup->policy->target_equate_count ||
+          lookup->policy->target_equates[representation->target_equate_index - 1U].value != displacement)) return -1;
       if (is_absolute && (lookup == NULL || lookup->policy == NULL ||
           representation->target_equate_index == 0U ||
           representation->target_equate_index > lookup->policy->target_equate_count ||

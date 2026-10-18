@@ -522,6 +522,11 @@ def listing_element_action_catalog(
         actions.append(_context_log_action(
             "representation.symbol", "Use displacement symbol", "set_representation", context,
             {"representation": "symbol"}, _symbol_representation_parameter_schema()))
+    if (element_kind == "displacement" and context.get("width_bytes") == 2
+            and (value := _optional_int(context.get("value"))) is not None and -32768 <= value <= 32767):
+        actions.append(_context_log_action(
+            "representation.symbol", "Use displacement symbol", "set_representation", context,
+            {"representation": "symbol"}, _symbol_representation_parameter_schema()))
     if (element_kind == "displacement"
             and (displacement := _optional_int(context.get("displacement"))) is not None
             and 0 <= displacement <= 32767):
@@ -5088,6 +5093,11 @@ def _representation_payload(
             value = _optional_int((element_context or {}).get("value"))
             if value is None or not -128 <= value <= 127 or (element_context or {}).get("width_bytes") != 1:
                 raise ValueError("indexed displacement requires a native signed byte")
+        if element_kind == "displacement":
+            element_context = selected_listing_element_context(row, element_context or {})
+            value = _optional_int(element_context.get("value"))
+            if value is None or not -32768 <= value <= 32767 or element_context.get("width_bytes") != 2:
+                raise ValueError("displacement requires a native signed word")
         if element_kind == "absolute_address":
             element_context = selected_listing_element_context(row, element_context or {})
             value = _optional_int((element_context or {}).get("value"))

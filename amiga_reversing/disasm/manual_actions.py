@@ -2368,6 +2368,9 @@ def _validate_candidate_equate_capacity(
         if representation.get("element_kind") == "indexed_displacement":
             if width != 1 or type(value) is not int or not -128 <= value <= 127 or symbol not in equates or equates[symbol] != value:
                 raise ValueError("indexed displacement requires an equal-valued canonical EQU")
+        elif representation.get("element_kind") == "displacement":
+            if width != 2 or type(value) is not int or not -32768 <= value <= 32767 or symbol not in equates or equates[symbol] != value:
+                raise ValueError("displacement requires an equal-valued canonical EQU")
         elif representation.get("element_kind") == "absolute_address" and symbol in equates:
             if width not in {2, 4} or equates[symbol] != value:
                 raise ValueError("absolute symbol representation EQU value must match the decoded address")

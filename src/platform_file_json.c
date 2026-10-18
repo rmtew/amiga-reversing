@@ -7000,10 +7000,17 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
       if (json_builder_append(builder, "}}") != 0) return -1;
     } else {
       if (json_builder_appendf(builder,
-            "{\"kind\":\"displacement\",\"operand_index\":%u,\"text\":null,\"value\":null,"
+            "{\"kind\":\"displacement\",\"operand_index\":%u,\"text\":null,",
+            (unsigned)operand_index) != 0) return -1;
+      /* Only d16(An) carries an encoded signed word; plain (An) does not. */
+      if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT) {
+        if (json_builder_appendf(builder, "\"value\":%d,\"signed_value\":%d,\"width_bits\":16,\"width_bytes\":2,",
+              (int)displacement, (int)displacement) != 0) return -1;
+      } else if (json_builder_append(builder, "\"value\":null,") != 0) return -1;
+      if (json_builder_appendf(builder,
             "\"register\":null,\"base_register\":\"A%u\",\"displacement\":%d,"
             "\"segment_addr\":null,\"metadata\":{}}",
-            (unsigned)operand_index, (unsigned)base_reg, (int)displacement) != 0)
+            (unsigned)base_reg, (int)displacement) != 0)
         return -1;
     }
     emitted = 1;

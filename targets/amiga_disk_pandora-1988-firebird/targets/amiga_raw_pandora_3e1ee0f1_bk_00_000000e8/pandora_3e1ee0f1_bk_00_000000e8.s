@@ -114,9 +114,8 @@ app_text_plane_mask RS.B 1
 app_ui_flags RS.B 1
 app_input_fire_pressed_ff RS.B 1
 app_ticker_highlight_rgb12 RS.W 1
-app_scrolling_message_queue_head RS.L 1
-    RS.B 60
-app_0272 RS.L 1
+app_scrolling_message_queue_head RS.B 64
+app_message_queue_limit RS.L 1
 app_scrolling_message_queue_tail RS.L 1
 app_message_palette_flash_countdown RS.B 1
 app_status_flags RS.B 1
@@ -137,7 +136,7 @@ app_camera_scroll_delta_y RS.W 1
 app_tile_pointer_grid_byte_size RS.L 1
 app_tile_pointer_grid_end RS.L 1
 app_tile_pointer_grid_row_stride_bytes RS.L 1
-app_02A6 RS.B 1
+app_context_flags RS.B 1
 app_nearby_object_prompt_countdown RS.B 1
 app_active_world_object_ptr_table RS.L 1
 active_world_object_count RS.W 1
@@ -846,6 +845,10 @@ APP_STARTUP_CLEAR_LAST_BYTE	EQU	875
 APP_STATE_BASE	EQU	$39FC
 APP_STATUS_CAMERA_SCROLL_ACTIVE_BIT	EQU	4
 APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
+ASCII_CARRIAGE_RETURN	EQU	13
+ASCII_CASE_FOLD_BIT	EQU	5
+ASCII_LOWERCASE_A	EQU	97
+ASCII_SPACE	EQU	32
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 CAMERA_BOTTOM_WRAP_GUARD_ROWS	EQU	3
 CAMERA_MAP_EDGE_GUARD_PIXELS	EQU	48
@@ -860,6 +863,7 @@ CAMERA_VIEWPORT_TILE_ROWS	EQU	8
 CAMERA_VIEWPORT_WIDTH_PIXELS	EQU	320
 CAMERA_WRAP_BOTTOM_PLAYER_OFFSET	EQU	80
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
+CONTEXT_STATUS_MESSAGE_ACTIVE_BIT	EQU	5
 _custom	EQU	$DFF000
 CUSTOM_COLOR00_REGISTER	EQU	_custom+color
 DMAF_CLRALL	EQU	$7FFF
@@ -996,6 +1000,11 @@ KEYBOARD_INVENTORY_KEY_STATE	EQU	$39BC
 KEYBOARD_IRQ_ACK_MASK	EQU	INTF_RBF|INTF_PORTS|INTF_TBE
 KEYBOARD_PAUSE_KEY_STATE	EQU	$39CC
 KEYBOARD_STATE_BASE	EQU	$397C
+MESSAGE_FAILURE_CCR	EQU	$1
+MESSAGE_FLASH_PHASE_BIT	EQU	2
+MESSAGE_FLASH_TINT_RGB12	EQU	$F55
+MESSAGE_FLASH_WHITE_RGB12	EQU	$FFF
+MESSAGE_PALETTE_FLASH_STEPS	EQU	20
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
@@ -1017,6 +1026,8 @@ SCENE_TILE_BLTSIZE	EQU	(64<<6)|1
 SCENE_TILE_COPY_CONTROL	EQU	$9F0
 SCENE_WORLD_PAIR_MODULO	EQU	160-4
 SCENE_WORLD_WORD_MODULO	EQU	160-2
+SCROLLING_ENQUEUE_LOCKED_SR	EQU	$2700
+SCROLLING_ENQUEUE_RETURN_SR	EQU	$2000
 SECURITY_CHECKPOINT_HEALTH_DAMAGE	EQU	51
 SECURITY_CLEARANCE_VARIANT_COUNT	EQU	6
 SECURITY_DAMAGE_FLASH_SERVICE_STEPS	EQU	31
@@ -1034,6 +1045,20 @@ SELF_DESTRUCT_STATE_ACCEPT_CARDS	EQU	$1
 SELF_DESTRUCT_STATE_ARMED	EQU	$FF
 SELF_DESTRUCT_STATE_AWAIT_DISK	EQU	$0
 SELF_DESTRUCT_STATE_REJECTED	EQU	$2
+STATUS_BAND_BASE	EQU	$77800
+STATUS_BAND_CLEAR_LAST_GROUP	EQU	63
+STATUS_TEXT_CURSOR_ROW	EQU	24
+STATUS_TEXT_PLANE_MASK	EQU	$8
+STATUS_TICKER_ROW0_BASE	EQU	$778A0
+TICKER_GLYPH_INDEX_SHIFT	EQU	3
+TICKER_GLYPH_LAST_ROW	EQU	6
+TICKER_ROW0_INSERT_OFFSET	EQU	$78C7
+TICKER_ROW1_INSERT_OFFSET	EQU	$7967
+TICKER_ROW2_INSERT_OFFSET	EQU	$7A07
+TICKER_ROW3_INSERT_OFFSET	EQU	$7AA7
+TICKER_ROW4_INSERT_OFFSET	EQU	$7B47
+TICKER_ROW5_INSERT_OFFSET	EQU	$7BE7
+TICKER_ROW6_INSERT_OFFSET	EQU	$7C87
 TILE_ID_SELF_DESTRUCT_A	EQU	$18E
 TILE_ID_SELF_DESTRUCT_B	EQU	$190
 TILE_ID_TERMINAL_A	EQU	$9C
@@ -1051,6 +1076,7 @@ TITLE_STAR_MIN_VISIBLE_LIFETIME	EQU	17
 UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
+UI_FLAG_SCROLLING_MESSAGE_ACTIVE	EQU	6
 UI_HIT_BACKGROUND_STORAGE	EQU	$77D00
 UI_INVENTORY_KEY_BLOCK_MASK	EQU	3
 UI_INVENTORY_KEY_LATCH_BIT	EQU	3
@@ -1412,7 +1438,7 @@ abs_0_0001066C:
 	btst.b #1,player_world_object_world_object_flags.l
 	beq.b check_main_keyboard_shortcuts
 abs_0_00010676:
-	btst.b #5,app_02A6(a6)
+	btst.b #CONTEXT_STATUS_MESSAGE_ACTIVE_BIT,app_context_flags(a6)
 	bne.b check_main_keyboard_shortcuts
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
 	bne.b check_main_keyboard_shortcuts
@@ -5860,12 +5886,12 @@ handle_inventory_panel_input:
 	bsr.w handle_inventory_panel_selection
 	bsr.b update_inventory_panel_player_palette
 	st.b app_inventory_selection_latched(a6)
-	bclr.b #7,app_02A6(a6)
+	bclr.b #7,app_context_flags(a6)
 	move.b $0046(a4),d0
 	subi.b #ITEM_ID_LASER_RIFLE,d0
 	cmp.b #$2,d0
 	bcc.b abs_0_00012918
-	bset.b #7,app_02A6(a6)
+	bset.b #7,app_context_flags(a6)
 abs_0_00012918:
 	rts
 start_inventory_cursor_move:
@@ -5980,7 +6006,7 @@ handle_inventory_panel_selection:
 	subi.w #0,d2
 	cmp.w #$C0,d2
 	bne.b transfer_selected_item_to_carried_inventory
-	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
     ; With valid cursor rows and zero index high byte, nearby selection swaps only the record item ID, retaining value. ANDI.B masks low bits; invalid cursor states are not bounded here.
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
 	move.b $0(a0,d1.w),d2
@@ -6060,106 +6086,108 @@ resolve_item_name:
 	adda.w d0,a0
 	move.l a0,d0
 	rts
-abs_0_00012B9A:
+blank_scrolling_message_text:
 	dcb.b $29,$20
 	dc.b $00
 enqueue_blank_scrolling_message:
-	lea.l abs_0_00012B9A(pc),a0
+	lea.l blank_scrolling_message_text(pc),a0
+    ; Forces SR=$2700 on entry and SR=$2000 on every return; does not restore caller SR. The final SR write clears the earlier rejection carry. Shares sixteen pointer slots with status messages.
 enqueue_scrolling_message:
-	move #$2700,sr
-	btst.b #5,app_02A6(a6)
-	bne.b abs_0_00012C00
+	move #SCROLLING_ENQUEUE_LOCKED_SR,sr
+	btst.b #CONTEXT_STATUS_MESSAGE_ACTIVE_BIT,app_context_flags(a6)
+	bne.b scrolling_enqueue_rejected
 	move.l a0,d0
 	tst.l d0
-	beq.b abs_0_00012C00
+	beq.b scrolling_enqueue_rejected
 	movea.l app_scrolling_message_queue_tail(a6),a1
-	lea.l app_0272(a6),a2
+	lea.l app_message_queue_limit(a6),a2
 	cmpa.l a2,a1
-	bcc.b abs_0_00012C00
+	bcc.b scrolling_enqueue_rejected
 	move.l a0,(a1)+
 	move.l a1,app_scrolling_message_queue_tail(a6)
 	clr.l (a1)
-	bset.b #6,app_ui_flags(a6)
-	bne.b abs_0_00012BFC
-	move.b #$14,app_message_palette_flash_countdown(a6)
-abs_0_00012BFC:
+	bset.b #UI_FLAG_SCROLLING_MESSAGE_ACTIVE,app_ui_flags(a6)
+	bne.b scrolling_enqueue_success
+	move.b #MESSAGE_PALETTE_FLASH_STEPS,app_message_palette_flash_countdown(a6)
+scrolling_enqueue_success:
 	move.w d0,d0
-	bra.b abs_0_00012C04
-abs_0_00012C00:
-	move #$1,ccr
-abs_0_00012C04:
-	move #$2000,sr
+	bra.b scrolling_enqueue_force_supervisor_return
+scrolling_enqueue_rejected:
+	move #MESSAGE_FAILURE_CCR,ccr
+scrolling_enqueue_force_supervisor_return:
+	move #SCROLLING_ENQUEUE_RETURN_SR,sr
 	rts
 dequeue_scrolling_message:
 	lea.l app_scrolling_message_queue_head(a6),a0
-	lea.l app_0272(a6),a1
-abs_0_00012C12:
+	lea.l app_message_queue_limit(a6),a1
+shift_scrolling_message_queue_slot:
 	move.l $0004(a0),(a0)+
 	cmpa.l a1,a0
-	bne.b abs_0_00012C12
+	bne.b shift_scrolling_message_queue_slot
 	subq.l #4,app_scrolling_message_queue_tail(a6)
 	tst.l app_scrolling_message_queue_head(a6)
 	rts
+    ; Fold every byte >= a by clearing bit five, with no z limit. Render current byte (even NUL), then test the next byte for queue advance. Copy glyph rows 1-7; shift 39 bytes in each row.
 update_scrolling_message_ticker:
 	tst.w app_scrolling_message_timer(a6)
-	beq.b abs_0_00012C2E
+	beq.b test_message_palette_flash
 	subq.w #1,app_scrolling_message_timer(a6)
-abs_0_00012C2E:
+test_message_palette_flash:
 	move.b app_message_palette_flash_countdown(a6),d0
 	tst.b d0
-	beq.b abs_0_00012C50
-	move.w #$FFF,d1
+	beq.b test_scrolling_message_active
+	move.w #MESSAGE_FLASH_WHITE_RGB12,d1
 	subq.b #1,d0
-	beq.b abs_0_00012C48
-	btst #2,d0
-	beq.b abs_0_00012C48
-	move.w #$F55,d1
-abs_0_00012C48:
+	beq.b store_message_flash_color_and_count
+	btst #MESSAGE_FLASH_PHASE_BIT,d0
+	beq.b store_message_flash_color_and_count
+	move.w #MESSAGE_FLASH_TINT_RGB12,d1
+store_message_flash_color_and_count:
 	move.w d1,app_ticker_highlight_rgb12(a6)
 	move.b d0,app_message_palette_flash_countdown(a6)
-abs_0_00012C50:
-	btst.b #6,app_ui_flags(a6)
-	beq.w abs_0_00012CAE
+test_scrolling_message_active:
+	btst.b #UI_FLAG_SCROLLING_MESSAGE_ACTIVE,app_ui_flags(a6)
+	beq.w finish_scrolling_message_ticker
 	bsr.w scroll_message_ticker_left
 	movea.l app_scrolling_message_queue_head(a6),a0
 	moveq.l #0,d0
 	move.b (a0)+,d0
 	move.l a0,app_scrolling_message_queue_head(a6)
-	cmp.b #$61,d0
-	bcs.b abs_0_00012C74
-	bclr #5,d0
-abs_0_00012C74:
-	lsl.w #3,d0
+	cmp.b #ASCII_LOWERCASE_A,d0
+	bcs.b select_scrolling_message_glyph_rows
+	bclr #ASCII_CASE_FOLD_BIT,d0
+select_scrolling_message_glyph_rows:
+	lsl.w #TICKER_GLYPH_INDEX_SHIFT,d0
 	add.l app_font_glyph_bitmap_table_ptr(a6),d0
 	movea.l d0,a2
 	addq.l #1,a2
 	movea.l #FRAMEBUFFER_BANK0_BASE,a1	; bitmap memory plane 4 base $00070000
-	move.b (a2)+,$78C7(a1)
-	move.b (a2)+,$7967(a1)
-	move.b (a2)+,$7A07(a1)
-	move.b (a2)+,$7AA7(a1)
-	move.b (a2)+,$7B47(a1)
-	move.b (a2)+,$7BE7(a1)
-	move.b (a2)+,$7C87(a1)
+	move.b (a2)+,TICKER_ROW0_INSERT_OFFSET(a1)
+	move.b (a2)+,TICKER_ROW1_INSERT_OFFSET(a1)
+	move.b (a2)+,TICKER_ROW2_INSERT_OFFSET(a1)
+	move.b (a2)+,TICKER_ROW3_INSERT_OFFSET(a1)
+	move.b (a2)+,TICKER_ROW4_INSERT_OFFSET(a1)
+	move.b (a2)+,TICKER_ROW5_INSERT_OFFSET(a1)
+	move.b (a2)+,TICKER_ROW6_INSERT_OFFSET(a1)
 	tst.b (a0)
-	beq.b abs_0_00012CA8
-abs_0_00012CA4:
+	beq.b advance_scrolling_message_queue
+scrolling_ticker_success:
 	move.w d0,d0
-	bra.b abs_0_00012CB8
-abs_0_00012CA8:
+	bra.b return_from_scrolling_message_ticker
+advance_scrolling_message_queue:
 	bsr.w dequeue_scrolling_message
-	bne.b abs_0_00012CA4
-abs_0_00012CAE:
-	bclr.b #6,app_ui_flags(a6)
-	move #$1,ccr
-abs_0_00012CB8:
+	bne.b scrolling_ticker_success
+finish_scrolling_message_ticker:
+	bclr.b #UI_FLAG_SCROLLING_MESSAGE_ACTIVE,app_ui_flags(a6)
+	move #MESSAGE_FAILURE_CCR,ccr
+return_from_scrolling_message_ticker:
 	rts
 scroll_message_ticker_left:
-	movea.l #$778A0,a0
+	movea.l #STATUS_TICKER_ROW0_BASE,a0
 	movea.l a0,a1
 	addq.l #1,a1
-	moveq.l #6,d1
-abs_0_00012CC6:
+	moveq.l #TICKER_GLYPH_LAST_ROW,d1
+shift_next_scrolling_message_row:
 	movem.l a0-a1,-(a7)
 	move.b (a1)+,(a0)+
 	move.b (a1)+,(a0)+
@@ -6201,9 +6229,9 @@ abs_0_00012CC6:
 	move.b (a1)+,(a0)+
 	move.b (a1)+,(a0)+
 	movem.l (a7)+,a0-a1
-	lea.l $00A0(a0),a0
-	lea.l $00A0(a1),a1
-	dbf.w d1,abs_0_00012CC6
+	lea.l FRAMEBUFFER_RASTER_ROW_BYTES(a0),a0
+	lea.l FRAMEBUFFER_RASTER_ROW_BYTES(a1),a1
+	dbf.w d1,shift_next_scrolling_message_row
 	rts
 service_keyboard_pause_gate:
 	lea.l KEYBOARD_PAUSE_KEY_STATE.l,a0
@@ -6352,7 +6380,7 @@ abs_0_00012F18:
 	movea.l world_object_shared_prefix_interaction_message_ptr(a5),a0
 	bsr.w enqueue_status_message
 	bsr.w refresh_selected_item_name_display
-	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	bra.b abs_0_00012F16
 abs_0_00012F44:
 	btst.b #3,world_object_shared_prefix_world_object_flags(a5)
@@ -10567,7 +10595,7 @@ update_nearby_object_detection:
 	move.w world_object_shared_prefix_world_x(a4),d4
 	move.w world_object_shared_prefix_world_y(a4),d5
 	move.w #WORLD_PROXIMITY_INITIAL_THRESHOLD,d0
-	bset.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
+	bset.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_context_flags(a6)
 scan_world_objects_for_proximity:
 	move.l (a1)+,d2
 	beq.w update_nearby_object_context
@@ -10592,7 +10620,7 @@ abs_0_0001833A:
 	bclr.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,world_object_shared_prefix_world_object_flags(a5)
 	cmp.w d0,d3
 	bcc.b next_world_object_proximity_candidate
-	bclr.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
+	bclr.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_context_flags(a6)
 	move.w d3,d0
 	move.w d0,app_nearest_object_distance(a6)
 	bset.b #WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT,world_object_shared_prefix_world_object_flags(a5)
@@ -10606,7 +10634,7 @@ abs_0_0001833A:
 	subq.w #1,d0
 	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
 latch_changed_nearby_object_context:
-	bset.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
+	bset.b #NEARBY_CONTEXT_CHANGED_BIT,app_context_flags(a6)
     ; Latch first context visit before inactive and NULL-message guards. Bit 2 does not prove a prompt was queued; bit 5 can remain set on multiple admitted objects.
 	bset.b #WORLD_OBJECT_CONTEXT_VISITED_BIT,world_object_shared_prefix_world_object_flags(a5)
 	bne.b next_world_object_proximity_candidate
@@ -10626,9 +10654,9 @@ update_nearby_object_context:
 	bsr.w process_active_world_object_chains
 	btst.b #2,app_ui_flags(a6)
 	bne.w abs_0_00018492
-	btst.b #NEARBY_CONTEXT_CHANGED_BIT,app_02A6(a6)
+	btst.b #NEARBY_CONTEXT_CHANGED_BIT,app_context_flags(a6)
 	bne.w show_nearby_object_context_prompt
-	btst.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_02A6(a6)
+	btst.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_context_flags(a6)
 	bne.b clear_nearby_object_context_prompt
 	movea.l app_nearest_object_ptr(a6),a5
 	btst.b #1,player_world_object_world_object_flags.l
@@ -10656,7 +10684,7 @@ abs_0_0001840E:
 	bne.b abs_0_0001848E
 	bra.b abs_0_00018492
 clear_nearby_object_context_prompt:
-	bset.b #NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT,app_02A6(a6)
+	bset.b #NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT,app_context_flags(a6)
 	bne.b abs_0_00018492
 	lea.l nearby_character_overlay.l,a5
 	moveq.l #0,d0
@@ -10675,7 +10703,7 @@ show_nearby_object_context_prompt:
 	bne.b abs_0_0001848E
 	move.b #$3C,app_nearby_object_prompt_countdown(a6)
 	moveq.l #-11,d0
-	and.b d0,app_02A6(a6)
+	and.b d0,app_context_flags(a6)
 	lea.l nearby_character_overlay.l,a0
 	movea.l app_nearest_object_ptr(a6),a5
 	move.l world_object_shared_prefix_item_name_ptr.w(a5),ui_overlay_descriptor_line_0_ptr(a0)
@@ -10932,7 +10960,7 @@ abs_0_000186F4:
 	jsr enqueue_game_outcome_and_rank_messages.l
 	jsr abs_0_0005D31A.l
 finish_id_possession_recheck:
-	bclr.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	bclr.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
     ; Use (X+12)/48 and (Y+24)/48 to index 30 macrocell columns. Four selector intervals map to tiers 0..3; FF means unrestricted. Original map only: no coordinate or selector-table bounds guard.
@@ -11145,7 +11173,7 @@ abs_0_000189DA:
 	bne.b abs_0_000189DA
 	move.b d0,-(a0)
 	clr.b world_object_shared_prefix_selected_item_id(a4)
-	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	lea.l salvage_item_eligibility_bits.l,a0
 	bsr.w test_msb_first_bitset_bit
 	beq.b abs_0_000189FA
@@ -11839,7 +11867,7 @@ abs_0_0001962A:
 	or.w d0,d2
 	beq.w hold_player_movement_animation
 	lea.l player_world_object.l,a4
-	btst.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	btst.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	beq.b abs_0_00019644
 	bsr.w enforce_id_card_requirement
     ; Probe candidate frame bounds: X motion samples its chosen X edge at maxY-4; Y motion samples left+3, midpoint and right-4 at maxY-3 for negative Y, or maxY for positive Y.
@@ -12120,39 +12148,41 @@ hold_player_movement_animation:
 	bclr.b #6,app_status_flags(a6)
 return_from_player_movement:
 	rts
+    ; Count space runs plus one if any nonspace byte occurs; not a word count. Stop at NUL/CR. Restore A0; return A1 after the terminator. D0 is WORD-sized.
 measure_status_message_spacing_units:
 	move.l a0,-(a7)
 	moveq.l #0,d0
 	clr.w d3
-abs_0_000199B2:
+status_spacing_reset_space_run:
 	clr.w d2
-abs_0_000199B4:
+status_spacing_read_next_byte:
 	move.b (a0)+,d1
-	beq.b abs_0_000199D8
-	cmp.b #$D,d1
-	beq.b abs_0_000199D8
-	cmp.b #$20,d1
-	bne.b abs_0_000199CE
+	beq.b return_status_spacing_units
+	cmp.b #ASCII_CARRIAGE_RETURN,d1
+	beq.b return_status_spacing_units
+	cmp.b #ASCII_SPACE,d1
+	bne.b status_spacing_count_first_nonspace
 	bset #0,d2
-	bne.b abs_0_000199B4
+	bne.b status_spacing_read_next_byte
 	addq.w #1,d0
-	bra.b abs_0_000199B4
-abs_0_000199CE:
+	bra.b status_spacing_read_next_byte
+status_spacing_count_first_nonspace:
 	bset #0,d3
-	bne.b abs_0_000199B2
+	bne.b status_spacing_reset_space_run
 	addq.w #1,d0
-	bra.b abs_0_000199B2
-abs_0_000199D8:
+	bra.b status_spacing_reset_space_run
+return_status_spacing_units:
 	movea.l a0,a1
 	movea.l (a7)+,a0
 	rts
+    ; Clear an active ticker and reuse its queue. Duration is ten times spacing units modulo WORD, stored before the full-queue test even when a status message is already active.
 enqueue_status_message:
-	bclr.b #6,app_ui_flags(a6)
-	beq.b abs_0_000199F2
+	bclr.b #UI_FLAG_SCROLLING_MESSAGE_ACTIVE,app_ui_flags(a6)
+	beq.b measure_and_queue_status_message
 	lea.l app_scrolling_message_queue_head(a6),a1
 	move.l a1,app_scrolling_message_queue_tail(a6)
 	bsr.w clear_status_message_band
-abs_0_000199F2:
+measure_and_queue_status_message:
 	bsr.b measure_status_message_spacing_units
 	add.w d0,d0
 	movea.w d0,a2
@@ -12161,41 +12191,42 @@ abs_0_000199F2:
 	add.w a2,d0
 	move.w d0,app_status_message_service_ticks_remaining(a6)
 	movea.l app_scrolling_message_queue_tail(a6),a1
-	lea.l app_0272(a6),a2
+	lea.l app_message_queue_limit(a6),a2
 	cmpa.l a2,a1
-	bcc.b abs_0_00019A28
+	bcc.b status_enqueue_full
 	move.l a0,(a1)+
 	move.l a1,app_scrolling_message_queue_tail(a6)
 	clr.l (a1)
-	bset.b #5,app_02A6(a6)
-	bne.b abs_0_00019A24
+	bset.b #CONTEXT_STATUS_MESSAGE_ACTIVE_BIT,app_context_flags(a6)
+	bne.b status_enqueue_success
 	movea.l a0,a3
 	bsr.w draw_status_message_line
-abs_0_00019A24:
+status_enqueue_success:
 	move.w d0,d0
-	bra.b abs_0_00019A2C
-abs_0_00019A28:
-	move #$1,ccr
-abs_0_00019A2C:
+	bra.b return_from_status_enqueue
+status_enqueue_full:
+	move #MESSAGE_FAILURE_CCR,ccr
+return_from_status_enqueue:
 	rts
 dequeue_status_message:
 	lea.l app_scrolling_message_queue_head(a6),a0
-	lea.l app_0272(a6),a1
-abs_0_00019A36:
+	lea.l app_message_queue_limit(a6),a1
+shift_status_message_queue_slot:
 	move.l $0004(a0),(a0)+
 	cmpa.l a1,a0
-	bne.b abs_0_00019A36
+	bne.b shift_status_message_queue_slot
 	subq.l #4,app_scrolling_message_queue_tail(a6)
 	tst.l app_scrolling_message_queue_head(a6)
 	rts
+    ; Active status decrements a WORD duration without a zero guard: zero wraps to $FFFF. Expiry shifts sixteen pointers; both dequeue routines decrement tail even if called empty.
 service_status_message_duration:
 	movem.l d0-d1/a0-a3,-(a7)
-	btst.b #5,app_02A6(a6)
-	beq.b abs_0_00019A90
+	btst.b #CONTEXT_STATUS_MESSAGE_ACTIVE_BIT,app_context_flags(a6)
+	beq.b return_from_status_duration_service
 	subq.w #1,app_status_message_service_ticks_remaining(a6)
-	bne.b abs_0_00019A90
+	bne.b return_from_status_duration_service
 	bsr.b dequeue_status_message
-	beq.b abs_0_00019A82
+	beq.b finish_empty_status_message_queue
 	bsr.w clear_status_message_band
 	movea.l app_scrolling_message_queue_head(a6),a0
 	bsr.w measure_status_message_spacing_units
@@ -12208,34 +12239,34 @@ service_status_message_duration:
 	movea.l a0,a3
 	bsr.w draw_status_message_line
 	move.w d0,d0
-	bra.b abs_0_00019A90
-abs_0_00019A82:
+	bra.b return_from_status_duration_service
+finish_empty_status_message_queue:
 	bsr.w clear_status_message_band
-	bclr.b #5,app_02A6(a6)
-	move #$1,ccr
-abs_0_00019A90:
+	bclr.b #CONTEXT_STATUS_MESSAGE_ACTIVE_BIT,app_context_flags(a6)
+	move #MESSAGE_FAILURE_CCR,ccr
+return_from_status_duration_service:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
 draw_status_message_line:
-	move.b #$8,app_text_plane_mask(a6)
+	move.b #STATUS_TEXT_PLANE_MASK,app_text_plane_mask(a6)
 	moveq.l #0,d0
-	moveq.l #24,d1
+	moveq.l #STATUS_TEXT_CURSOR_ROW,d1
 	bsr.w set_text_cursor_in_overlay_plane
 	move.l a0,app_proportional_text_word_cursor_ptr(a6)
 	clr.b app_proportional_text_pixel_shift(a6)
 	bsr.w draw_proportional_ui_text_string
 	rts
 clear_status_message_band:
-	movea.l #$77800,a2
+	movea.l #STATUS_BAND_BASE,a2
 	moveq.l #0,d0
-	move.w #$3F,d7
-abs_0_00019ABE:
+	move.w #STATUS_BAND_CLEAR_LAST_GROUP,d7
+clear_next_status_band_group:
 	move.l d0,(a2)+
 	move.l d0,(a2)+
 	move.l d0,(a2)+
 	move.l d0,(a2)+
 	move.l d0,(a2)+
-	dbf.w d7,abs_0_00019ABE
+	dbf.w d7,clear_next_status_band_group
 	rts
 self_destruct_insert_disk_text:
 	dc.b "PLEASE INSERT S.D.I. DISK",$0D
@@ -12366,7 +12397,7 @@ abs_0_00019D76:
 	bne.b abs_0_00019DA8
 	clr.b player_world_object_selected_item_id.l
 	bsr.w refresh_selected_item_name_display
-	bset.b #6,app_02A6(a6)
+	bset.b #6,app_context_flags(a6)
 	addq.b #1,app_self_destruct_state(a6)
 	move.w #$110,d0
 	jsr start_feedback_audio_sequence.l
@@ -12591,7 +12622,7 @@ abs_0_0001A056:
 	move.w #$EEE,app_ticker_highlight_rgb12(a6)
 	clr.b app_ui_flags(a6)
 	clr.b app_status_flags(a6)
-	clr.b app_02A6(a6)
+	clr.b app_context_flags(a6)
 	clr.b app_game_event_flags(a6)
     ; Reset all interaction latches, including diabetic advice; this can rearm its hint independently of the installed pose controller.
 	clr.b app_world_interaction_flags(a6)
@@ -12648,7 +12679,7 @@ abs_0_0001A10A:
 abs_0_0001A12E:
 	move.l #player_position_state,player_position_descriptor.l
 	clr.b app_nearby_object_prompt_countdown(a6)
-	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_02A6(a6)
+	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
 	movea.l (a7)+,a5
 	rts
 camera_scroll_profiles:

@@ -3691,3 +3691,54 @@ values, and all prior SDK expressions/comments and 86 assets are preserved apart
 from the explicitly corrected active-flag implication. Both histories retain
 their original prefixes. One final C/vasm gate reproduces all 376,832 original
 bytes, receipt `2eba1a598b0b07ee392231a37b72113ed2bd5f8ad6d95943da0df698373a0b00`.
+
+## Shared message FIFO, status duration and scrolling ticker
+
+The eleven connected status/ticker entries now have complete local labels and
+shared state names. Their queue is sixteen LONG pointers followed by a fixed
+zero sentinel; the tail points at the next insertion slot. Both dequeue routines
+shift all sixteen pointers and decrement the tail even when called empty. The
+existing head declaration covers the complete inline pointer table, while the
+limit and mixed context/status flag byte retain their original offsets.
+
+Scrolling enqueue forces SR=$2700 on entry and SR=$2000 on every return, clearing
+the earlier rejection carry instead of restoring caller SR. Status enqueue
+stores ten times the measured spacing units modulo WORD before testing capacity,
+even with an active status message or a full queue. The measurement counts space
+runs plus one if any nonspace occurs, stopping at NUL or CR. Active duration zero
+wraps to $FFFF; no guard is added. Switching from scrolling to status clears the
+scrolling flag, resets the shared queue and clears the status band.
+
+The ticker services its timer and palette flash even while inactive. It folds
+every byte at or above ASCII `a` by clearing bit five, without a `z` upper bound.
+It renders the current byte, including NUL, and then tests the next byte for
+queue advancement. Seven rows each shift 39 bytes and receive glyph rows 1-7 at
+their named insertion positions. Band clearing covers exactly 1280 bytes.
+
+Six original-code tests cover controlled FIFO capacity/empty shifts, SR/CCR
+returns, duration reset and wrap, timer/flash behavior, all 256 ticker byte
+inputs, live queue cursors and exact band fences. The controlled font atlas and
+RAM inputs do not establish actual-font bounds, arbitrary pointer validity or
+gameplay reachability. The next-message duration test stops before proportional
+text rendering; transitive renderer effects remain outside that prefix.
+
+A small canonical command extension names fixed signed-word `d16(An)`
+displacements through equal-valued target EQUs, with a second native decoded-byte
+check. It preserves the base register, source auto-update and explicit zero-word
+extension. Plain indirect, auto-update and PC-relative forms do not offer that
+command. Sixteen new displacement cases, ten indexed-displacement checks, fourteen
+hardware rendering regressions, four aggregate extent checks and the six message
+tests pass. A second gap misclassified SR/CCR as source labels when rewriting
+symbolic operands. The symbolic parser now retains the existing native special-
+register classification; sixteen forward/backward EQU cases cover MOVE and
+ORI/ANDI/EORI against numeric forms and independent vasm. All 66 focused and
+819 native tests pass. The separate pre-existing Hunk numeric-pointer regression
+remains deferred.
+
+All 100 actions are accepted: 26 names, 27 constants, 39 operand presentations,
+three shared-state declarations and five behavior comments. No generic local
+labels remain in the selected eleven entries. All prior SDK expressions and
+comments, all 86 assets and both history prefixes are preserved.
+The final C/vasm gate reproduces all 376,832 original bytes with unchanged reviewed
+source SHA256 `b71dbba8dc222e54edfb5226d2b954622c3bf243117f918a281601858a724737`, receipt
+`fdf376b1ece01529ad6c7f9072682937fce0cf06d1d2a0aaa53d95e229fafc41`.

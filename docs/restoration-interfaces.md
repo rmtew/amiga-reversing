@@ -420,6 +420,12 @@ scale. This names the fixed displacement only. It does not resolve the dynamic
 index, infer a structure field, or prove array bounds. PC-indexed and full-extension
 forms are outside this command's scope.
 
+Fixed `d16(An)` operands similarly expose a signed-word `displacement` element.
+Its symbol presentation requires an equal-valued canonical EQU and a second
+native decoded-value check. The encoded word and base register remain intact,
+including an explicit word extension for zero. Plain indirect, auto-update and
+PC-relative operands do not offer this fixed-displacement command.
+
 Function-summary commands also accept type-neutral `abi_pointer` inputs in
 single-register or register-tuple locations. Combined with `identity_input`
 results, these express shared save/restore wrappers without imposing a fixed
