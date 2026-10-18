@@ -3932,3 +3932,88 @@ again reproduces all 376,832 original bytes, receipt
 The comment revision changes no implementation; existing native/focused/CPU
 results are reused. New coverage is in `tests/test_one_past_record_cursor.py`
 and `tests/test_pandora_tilemap_grid.py`.
+
+## Combat clocks, initialized selector alias and paired hit feedback
+
+The detailed attack scheduler now has an original-code execution model, beyond
+its earlier entry names and health-branch observations. Opponent reload one adds
+two charge units, while other reloads add one; player reload one adds one and
+other reloads add two. Both decrement BYTE counters before testing expiry, so
+zero wraps. Only the opponent charge low BYTE is tested against 23; an attempted
+attack clears the whole charge WORD before its comparand check. Player charge
+updates instead reset unsigned WORD values above forty. Its descriptor flag WORD
+must be negative before either clock or gauge work occurs.
+
+Player fire tests the charge low BYTE: below seventeen clears charge, 17..22
+selects half damage, 23..24 full damage, and 25..255 preserves charge. The later
+gauge service can advance charge on the same visit. The old signed-versus-borrow
+health note remains unchanged; tests expose wrapped positive opponent subtraction
+results that survive where the player branch would defeat. This documents
+original behavior, not a proposed gameplay correction.
+
+The formerly anonymous selector is a concrete alias in the normal workspace.
+With A6=`$39FC`, displacement `$7EE` reads the low WORD of grid cell 122:
+`$39FC+$7EE = $4000+122*4+2 = $41EA`. Its low BYTE at `$41EB` also selects hit
+patterns. The original builder expands macro ID 131's r1c2 offset `$6F00` into
+pointer `$23FA8`, supplying WORD `$3FA8` and BYTE `$A8`. Thus this initialized
+context gives the opponent comparand 84 and player/opponent feedback choices
+2/0. All 4,212 original definition offsets have alignment that retains those
+feedback choices. The two read views name this grid-cell relationship, not the
+separate absolute PRNG state at `$7E8..$7EF`.
+
+A new CPU witness runs the real grid builder with its stack outside the grid,
+then executes both hit helpers and the 83/84 gate boundary against that stored
+selector. Existing original-payload Copperline combat captures corroborate
+A6=`$39FC`; they did not capture the selector and are not a new emulator run.
+This is an initialized producer/consumer connection, not complete writer
+coverage or a probability/distribution claim. Later cell changes, replacement
+pixel offsets and remapped workspaces remain open.
+
+Eight frame choices, the independently selected idle frame, and the second
+visual descriptor/render state gain exact nonoverlapping owners totaling 232
+bytes. Their reciprocal pointers, field accesses and all 512 selector cases
+support the existing frame/descriptor/render types. The pointer table owns only
+eight LONGs; its ninth unselected LONG remains raw. The two helpers update both
+current and previous geometry and set ten-visit timers; expiry and explicit clear
+update only current geometry. Normal-return contracts retain their tested
+register identities and preserve unknown memory/escape effects. These contracts
+require valid original records and a disjoint ABI stack; they do not prove alias
+exclusion or lifetime for arbitrary replacements.
+
+The per-object unsigned comparison consumes BYTE +$41. All 35 typed initializers
+now expose that BYTE; +$40 remains unknown, while a symbolic WORD displacement
+names the actual spanning read. Seven equipment pairs retain their byte widths;
+lookup and full-register fallback differ in high-WORD and carry behavior.
+Kriptonite reduction precedes Icelord/Thief overrides. Gauge tests compare every
+CPU-written pixel byte and surrounding memory for all 41 normal charge states.
+
+Thirteen distinct new CPU cases cover 256 item bytes, 24 equipment-override
+cases, 144 opponent-clock states, 1,274 comparison boundaries, 2,560 health
+subtractions, 1,536 player-fire states, 97 player-clock/gate states, 41 complete
+gauge buffers, 512 feedback selections and sixteen timer pairs, plus the grid
+alias witness. The 819 native checks are rerun after fixing a projection/render
+omission exposed by the eight explicit table references. Each bounded absolute
+reference now projects independently inside its array owner. Scalar array output
+honors those spans. A canonical target that disagrees with the selected source
+address retains its encoded-value symbol. The eight combat LONGs use the standard
+encoded-value EQU spellings with explicit canonical targets and bidirectional
+xrefs; this change introduces no new materialization/owner-expression inference.
+The 150 focused checks cover
+all three widths, removal, rejected crossing spans, native xrefs, exact rebuilt
+bytes and mapping disagreement. Prior unaffected hardware results are reused.
+The bounded one-past cursor behavior, SDK annotations, unknown
+8-byte gap and previous font/scratch/ownership limits remain intact. The unrelated
+Hunk numeric-pointer regression remains deferred. Full evidence and precise
+limits are in `docs/validation/pandora-combat-scheduler.json`.
+
+An additional opt-in bootstrap-copy fixture reports `full_source_policy_load_view`
+where it expects `overlaid_by_runtime_copy`; it is not counted as passing. This
+bootstrap-discovery boundary also reproduces with the published renderer in an
+isolated temporary library and is recorded in the evidence file. The focused
+reference tests explicitly preserve encoded values for suppressed copies.
+
+The final C/vasm gate reproduces all 376,832 original bytes, receipt
+`470e345b4786dd4f48489e7bc3c342975714bc47e017a8174a516ef6a65c69fd`.
+The prior annotation audit passes, including all eight existing star-pixel pointer names. The earlier exact
+gate was rejected for generalizing those scalar pointers; the corrected guard
+applies only within wider owners. No target actions were accepted at that gate.

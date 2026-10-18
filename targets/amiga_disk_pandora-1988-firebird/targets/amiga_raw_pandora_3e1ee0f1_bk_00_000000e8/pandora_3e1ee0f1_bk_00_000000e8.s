@@ -27,6 +27,14 @@
 ;     absolute[$0001309A-$0001309E] refs=1 access=a
 ;     absolute[$000195E2-$000195E6] refs=1 access=a
 ;     absolute[$0001A862] refs=2 access=a
+;     absolute[$000584F8-$000584FC] refs=1 access=a
+;     absolute[$0005850A-$0005850E] refs=1 access=a
+;     absolute[$0005851C-$00058520] refs=1 access=a
+;     absolute[$0005852E-$00058532] refs=1 access=a
+;     absolute[$00058540-$00058544] refs=1 access=a
+;     absolute[$00058552-$00058556] refs=1 access=a
+;     absolute[$00058564-$00058568] refs=1 access=a
+;     absolute[$00058576-$0005857A] refs=1 access=a
 ;     absolute[$000585A6-$000585AA] refs=1 access=a
 ;     absolute[$0005C312-$0005C316] refs=1 access=a
 ;     absolute[$0007D000] refs=1 access=a
@@ -193,7 +201,7 @@ app_copper_interrupt_callback RS.L 1
 app_vertical_blank_callback RS.L 1
 app_blitter_interrupt_callback RS.L 1
     RS.B 1154
-app_07EE RS.W 1
+app_combat_grid_cell_122_low_word RS.W 1
     RSSET $0287
 app_earth_orbit_countdown_bcd_low_byte RS.B 1
     RSSET $02BB
@@ -205,7 +213,7 @@ app_02BD RS.B 1
     RSSET $02C9
 app_configured_camera_scroll_ticks RS.B 1
     RSSET $07EF
-app_07EF RS.B 1
+app_combat_grid_cell_122_low_byte RS.B 1
     RSSET $07F0
 app_SIZEOF EQU __RS
 
@@ -287,7 +295,8 @@ world_object_shared_prefix_world_z RS.W 1
     RS.B 6
 world_object_shared_prefix_hit_points RS.W 1
 world_object_shared_prefix_initial_hit_points RS.W 1
-    RS.B 2
+    RS.B 1
+world_object_shared_prefix_combat_attack_check_value RS.B 1
 world_object_shared_prefix_proximity_distance RS.W 1
 world_object_shared_prefix_behavior_script_delay_ticks RS.W 1
 world_object_shared_prefix_selected_item_id RS.B 1
@@ -895,6 +904,27 @@ CAMERA_VIEWPORT_HEIGHT_PIXELS	EQU	128
 CAMERA_VIEWPORT_TILE_ROWS	EQU	8
 CAMERA_VIEWPORT_WIDTH_PIXELS	EQU	320
 CAMERA_WRAP_BOTTOM_PLAYER_OFFSET	EQU	80
+COMBAT_ATTACK_CHECK_WORD_DISP	EQU	world_object_shared_prefix_combat_attack_check_value-1
+COMBAT_ATTACK_WINDOW_END	EQU	25
+COMBAT_CHARGE_CELL_SHIFT	EQU	3
+COMBAT_CHARGE_CELL_REMAINDER_MASK	EQU	(1<<COMBAT_CHARGE_CELL_SHIFT)-1
+COMBAT_CHARGE_ROW_GROUPS	EQU	6
+COMBAT_CHARGE_CLEAR_LAST_GROUP	EQU	COMBAT_CHARGE_ROW_GROUPS-1
+COMBAT_DEFAULT_ATTACK_DAMAGE	EQU	5
+COMBAT_DEFAULT_CHARGE_RELOAD	EQU	3
+COMBAT_FEEDBACK_CHOICE_COUNT	EQU	8
+COMBAT_FEEDBACK_CHOICE_MASK	EQU	COMBAT_FEEDBACK_CHOICE_COUNT-1
+COMBAT_FEEDBACK_POINTER_SHIFT	EQU	2
+COMBAT_FEEDBACK_POINTER_MASK	EQU	COMBAT_FEEDBACK_CHOICE_MASK<<COMBAT_FEEDBACK_POINTER_SHIFT
+COMBAT_FEEDBACK_SERVICE_TICKS	EQU	10
+COMBAT_FULL_DAMAGE_FIRST_CHARGE	EQU	23
+COMBAT_HALF_DAMAGE_FIRST_CHARGE	EQU	17
+COMBAT_ICELORD_SONICDRIVER_DAMAGE	EQU	20
+COMBAT_PLAYER_CHARGE_MAX	EQU	40
+COMBAT_SPECIAL_ATTACK_RELOAD	EQU	2
+COMBAT_SPECIAL_HIGH_DAMAGE	EQU	50
+COMBAT_WEAPON_PARAMETER_COUNT	EQU	7
+COMBAT_WORLD_X_BIAS	EQU	10000
 COMPACT_GLYPH_INDEX_SHIFT	EQU	3
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
 CONTEXT_STATUS_MESSAGE_ACTIVE_BIT	EQU	5
@@ -1268,6 +1298,14 @@ dblk_ref_h0_00010CF0	EQU	$10CF0
 dblk_ref_h0_00010CFC	EQU	$10CFC
 dblk_ref_h0_00010D08	EQU	$10D08
 dblk_ref_h0_00010D14	EQU	$10D14
+dblk_ref_h0_000484F8_runtime_000584F8	EQU	$584F8
+dblk_ref_h0_0004850A_runtime_0005850A	EQU	$5850A
+dblk_ref_h0_0004851C_runtime_0005851C	EQU	$5851C
+dblk_ref_h0_0004852E_runtime_0005852E	EQU	$5852E
+dblk_ref_h0_00048540_runtime_00058540	EQU	$58540
+dblk_ref_h0_00048552_runtime_00058552	EQU	$58552
+dblk_ref_h0_00048564_runtime_00058564	EQU	$58564
+dblk_ref_h0_00048576_runtime_00058576	EQU	$58576
 dblk_ref_h0_0004859A_runtime_0005859A	EQU	$5859A
 dblk_ref_h0_000485A6_runtime_000585A6	EQU	$585A6
 dblk_ref_h0_00048CD0_runtime_00058CD0	EQU	$58CD0
@@ -6670,7 +6708,7 @@ world_object_sort_source_ptrs:
 	dc.l technician_positions_4B1DA_2	; descriptor_ptr
 abs_0_0001318E:
 	dc.l ranged_hit_visual_descriptor	; pointer_table
-	dc.l abs_0_000585A6	; pointer_table
+	dc.l opponent_combat_hit_visual_descriptor	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_18	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_19	; pointer_table
 	dc.l world_position_descriptors_position_state_ptr_20	; pointer_table
@@ -13455,9 +13493,9 @@ abs_0_0001778A:
     ; The temporary world-X bias uses WORD arithmetic. Camera midpoint uses wrapping WORD sums followed by logical shifts; the X low byte is masked to a boundary of 16 pixels.
 initialize_combat_encounter:
 	btst.b #2,app_ui_flags(a6)
-	beq.b abs_0_0001779E
+	beq.b activate_combat_panels
 	bsr.w close_inventory_panel
-abs_0_0001779E:
+activate_combat_panels:
 	bset.b #1,app_ui_flags(a6)
 	lea.l opponent_health_overlay.l,a5
 	bsr.w enqueue_ui_overlay_update
@@ -13465,7 +13503,7 @@ abs_0_0001779E:
 	bsr.w enqueue_ui_overlay_update
 	clr.w app_player_attack_charge(a6)
 	clr.w app_opponent_attack_charge(a6)
-	move.w #$2710,d2
+	move.w #COMBAT_WORLD_X_BIAS,d2
 	movea.l app_interaction_object_ptr(a6),a5
 	bset.b #6,world_object_shared_prefix_world_object_flags(a5)
 	move.l world_object_shared_prefix_world_x(a5),-(a7)
@@ -13474,9 +13512,9 @@ abs_0_0001779E:
 	move.b d0,app_opponent_attack_charge_countdown(a6)
 	move.b d0,app_opponent_attack_charge_reload(a6)
 	btst.b #GAME_EVENT_KRIPTONITE_CACHED_BIT,app_game_event_flags(a6)
-	beq.b abs_0_000177EC
+	beq.b store_opponent_combat_damage
 	lsr.b #1,d1
-abs_0_000177EC:
+store_opponent_combat_damage:
 	move.b d1,app_opponent_attack_damage(a6)
 	lea.l player_world_object.l,a5
 	move.l world_object_shared_prefix_world_x(a5),-(a7)
@@ -13489,31 +13527,31 @@ abs_0_000177EC:
 	lea.l player_world_object.l,a4
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
 	cmp.b #ITEM_ID_ICELORD,d0
-	bne.b abs_0_00017856
+	bne.b test_thief_combat_override
 	move.b world_object_shared_prefix_selected_item_id(a4),d0
 	cmp.b #ITEM_ID_SONICBLASTER,d0
-	bne.b abs_0_0001783E
-	moveq.l #2,d0
+	bne.b test_icelord_sonicdriver_override
+	moveq.l #COMBAT_SPECIAL_ATTACK_RELOAD,d0
 	move.b d0,app_player_attack_charge_countdown(a6)
 	move.b d0,app_player_attack_charge_reload(a6)
-	move.b #$32,app_player_attack_damage(a6)
-	bra.b abs_0_0001786C
-abs_0_0001783E:
+	move.b #COMBAT_SPECIAL_HIGH_DAMAGE,app_player_attack_damage(a6)
+	bra.b position_combat_visual_midpoint
+test_icelord_sonicdriver_override:
 	cmp.b #ITEM_ID_SONICDRIVER,d0
-	bne.b abs_0_0001786C
-	moveq.l #2,d0
+	bne.b position_combat_visual_midpoint
+	moveq.l #COMBAT_SPECIAL_ATTACK_RELOAD,d0
 	move.b d0,app_player_attack_charge_countdown(a6)
 	move.b d0,app_player_attack_charge_reload(a6)
-	move.b #$14,app_player_attack_damage(a6)
-	bra.b abs_0_0001786C
-abs_0_00017856:
+	move.b #COMBAT_ICELORD_SONICDRIVER_DAMAGE,app_player_attack_damage(a6)
+	bra.b position_combat_visual_midpoint
+test_thief_combat_override:
 	cmp.b #ITEM_ID_THIEF,d0
-	bne.b abs_0_0001786C
-	moveq.l #2,d0
+	bne.b position_combat_visual_midpoint
+	moveq.l #COMBAT_SPECIAL_ATTACK_RELOAD,d0
 	move.b d0,app_opponent_attack_charge_countdown(a6)
 	move.b d0,app_opponent_attack_charge_reload(a6)
-	move.b #$32,app_opponent_attack_damage(a6)
-abs_0_0001786C:
+	move.b #COMBAT_SPECIAL_HIGH_DAMAGE,app_opponent_attack_damage(a6)
+position_combat_visual_midpoint:
 	movem.l (a7)+,d0-d1
 	lea.l combat_visual_position_descriptor.l,a0
 	add.w d0,d1
@@ -13527,11 +13565,11 @@ abs_0_0001786C:
 	move.w d1,world_position_descriptor_prefix_world_x(a0)
 	move.b world_object_shared_prefix_item_definition_id(a5),d0
 	cmp.b #ITEM_ID_PRIEST,d0
-	bne.b abs_0_000178A8
+	bne.b initialize_combat_hit_feedback
 	bsr.w request_camera_refresh
 	move.w #$B8,world_position_descriptor_prefix_world_x(a0)
 	move.w #$19C,world_position_descriptor_prefix_world_y(a0)
-abs_0_000178A8:
+initialize_combat_hit_feedback:
 	clr.b app_player_hit_feedback_ticks_remaining(a6)
 	clr.b app_opponent_hit_feedback_ticks_remaining(a6)
 	lea.l combat_active_animation_node.l,a0
@@ -13541,25 +13579,27 @@ abs_0_000178A8:
 	move.l #$1E928,$64C0.w
     ; The early nonpositive player-health byte branch inherits A4. Player damage tests borrow/equality; opponent damage tests signed-negative/equality, giving different byte-underflow behavior.
 service_combat_encounter:
-	tst.b abs_0_0005C35F.l
+	tst.b player_world_object_health_low_byte.l
 	bmi.w handle_combat_player_defeat
 	beq.w handle_combat_player_defeat
 	movea.l app_interaction_object_ptr(a6),a5
 	subq.b #1,app_opponent_attack_charge_countdown(a6)
 	bne.b process_player_combat_attack
+    ; Opponent reload 1 adds two charge units; other reloads add one. Countdown zero wraps as BYTE. On expiry only the charge low byte is compared with 23; an attempted attack clears the WORD.
 	move.b app_opponent_attack_charge_reload(a6),d0
 	move.b d0,app_opponent_attack_charge_countdown(a6)
 	subq.b #1,d0
-	bne.b abs_0_000178F4
+	bne.b increment_opponent_attack_charge
 	addq.w #1,app_opponent_attack_charge(a6)
-abs_0_000178F4:
+increment_opponent_attack_charge:
 	addq.w #1,app_opponent_attack_charge(a6)
 	move.w app_opponent_attack_charge(a6),d0
-	cmp.b #$17,d0
+	cmp.b #COMBAT_FULL_DAMAGE_FIRST_CHARGE,d0
 	bcs.b process_player_combat_attack
 	clr.w app_opponent_attack_charge(a6)
-	move.w app_07EE(a6),d0
-	move.w $0040(a5),d1
+    ; At A6=$39FC this reads grid cell 122 low WORD ($41EA). Builder supplies $3FA8: compare value at object+$41 >=84. Other writers/workspaces are not excluded; this is not the absolute PRNG.
+	move.w app_combat_grid_cell_122_low_word(a6),d0
+	move.w COMBAT_ATTACK_CHECK_WORD_DISP(a5),d1
 	moveq.l #-1,d2
 	and.b d2,d0
 	lsr.b #1,d0
@@ -13573,31 +13613,32 @@ abs_0_000178F4:
 	bcs.w handle_combat_player_defeat
 	move.b d0,world_object_shared_prefix_hit_points+1(a4)
 	bsr.w show_player_combat_hit_feedback
+    ; Fire tests only charge.B: below 17 clears charge, 17..22 uses half damage, 23..24 full damage; 25..255 retains charge. The later gauge service can advance charge again on this visit.
 process_player_combat_attack:
 	tst.b app_input_fire_pressed_ff(a6)
-	beq.w abs_0_00017980
+	beq.w redraw_combat_status_and_charge
 	move.w app_player_attack_charge(a6),d0
-	cmp.b #$19,d0
-	bcc.w abs_0_00017980
-	cmp.b #$17,d0
-	bcc.b abs_0_00017968
-	cmp.b #$11,d0
-	bcc.b abs_0_00017960
+	cmp.b #COMBAT_ATTACK_WINDOW_END,d0
+	bcc.w redraw_combat_status_and_charge
+	cmp.b #COMBAT_FULL_DAMAGE_FIRST_CHARGE,d0
+	bcc.b select_full_player_attack_damage
+	cmp.b #COMBAT_HALF_DAMAGE_FIRST_CHARGE,d0
+	bcc.b select_half_player_attack_damage
 	clr.w app_player_attack_charge(a6)
-	bra.w abs_0_00017980
-abs_0_00017960:
+	bra.w redraw_combat_status_and_charge
+select_half_player_attack_damage:
 	move.b app_player_attack_damage(a6),d0
 	lsr.b #1,d0
-	bra.b abs_0_0001796C
-abs_0_00017968:
+	bra.b apply_player_attack_damage
+select_full_player_attack_damage:
 	move.b app_player_attack_damage(a6),d0
-abs_0_0001796C:
+apply_player_attack_damage:
 	clr.w app_player_attack_charge(a6)
-	sub.b d0,$003D(a5)
+	sub.b d0,world_object_shared_prefix_hit_points+1(a5)
 	bmi.w handle_combat_opponent_defeat
 	beq.w handle_combat_opponent_defeat
 	bsr.w show_opponent_combat_hit_feedback
-abs_0_00017980:
+redraw_combat_status_and_charge:
 	lea.l opponent_health_overlay.l,a4
 	movea.l app_interaction_object_ptr(a6),a5
 	bsr.w draw_object_health_status
@@ -13627,31 +13668,31 @@ handle_combat_opponent_defeat:
 	movea.l app_interaction_object_ptr(a6),a5
 finish_combat_encounter:
 	move.l $0008(a5),d0
-	beq.b abs_0_00017A06
+	beq.b restore_defeated_object_position_state
 	move.l #$24C28,$64C0.w
 	movea.l d0,a0
 	movem.l a4-a5,-(a7)
     ; A4/A5 are saved around this call. Completion precedes state restore and setting flag bit 1; callback carry is not used. Register preservation does not imply pointer immutability.
 	jsr (a0)
 	movem.l (a7)+,a4-a5
-abs_0_00017A06:
+restore_defeated_object_position_state:
 	bsr.w exchange_world_object_position_states
-	bset.b #1,$0048(a5)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bclr.b #1,app_ui_flags(a6)
 	lea.l combat_visual_render_state.l,a0
 	clr.l (a0)	; operand 1: world_position_render_state_prefix_current_geometry_ptr at (a0)
-	move.w #$2710,d2
-	sub.w d2,$0030(a5)
-	move.w $0030(a5),d0
+	move.w #COMBAT_WORLD_X_BIAS,d2
+	sub.w d2,world_object_shared_prefix_world_x(a5)
+	move.w world_object_shared_prefix_world_x(a5),d0
 	andi.b #240,d0
-	move.w d0,$0030(a5)
+	move.w d0,world_object_shared_prefix_world_x(a5)
 	bsr.w copy_world_object_xy_to_position_descriptor
 	lea.l player_world_object.l,a5
 	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
-	beq.b abs_0_00017A4E
+	beq.b restore_remaining_combat_world_x
 	movea.l app_interaction_object_ptr(a6),a5
 	bclr.b #6,world_object_shared_prefix_world_object_flags(a5)
-abs_0_00017A4E:
+restore_remaining_combat_world_x:
 	sub.w d2,world_object_shared_prefix_world_x(a5)
 	bsr.w copy_world_object_xy_to_position_descriptor
 	bsr.w clear_combat_hit_feedback
@@ -13668,14 +13709,15 @@ abs_0_00017A4E:
     ; Direct hit-snapshot restore follows nearby-distance redraw and waits for its prior packet. Return is asynchronous; a later combat entry recaptures via bit6.
 	bsr.w restore_ui_overlay_background
 	rts
+    ; Selector bits 2..4 choose player feedback; bits 0..2 choose opponent feedback. The original grid builder fixes choices 2/0 at normal A6. Set current/previous geometry and a ten-visit timer.
 show_player_combat_hit_feedback:
 	movem.l d0/a0-a5,-(a7)
 	jsr start_player_combat_hit_audio.l
-	move.b #$A,app_player_hit_feedback_ticks_remaining(a6)
+	move.b #COMBAT_FEEDBACK_SERVICE_TICKS,app_player_hit_feedback_ticks_remaining(a6)
 	moveq.l #0,d0
-	move.b app_07EF(a6),d0
-	andi.b #28,d0
-	lea.l abs_0_000585E6.l,a0
+	move.b app_combat_grid_cell_122_low_byte(a6),d0
+	andi.b #COMBAT_FEEDBACK_POINTER_MASK,d0
+	lea.l combat_hit_feedback_geometry_ptrs.l,a0
 	movea.l $0(a0,d0.w),a1
 	lea.l ranged_hit_visual_state.l,a2
 	movea.l world_position_render_state_prefix_position_descriptor_ptr(a2),a3
@@ -13683,54 +13725,55 @@ show_player_combat_hit_feedback:
 	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a2)
 	lea.l player_world_object.l,a5
 	move.w world_object_shared_prefix_world_x(a5),d0
-	subi.w #10000,d0
+	subi.w #COMBAT_WORLD_X_BIAS,d0
 	move.w d0,world_position_descriptor_prefix_world_x(a3)
 	move.w world_object_shared_prefix_world_y(a5),world_position_descriptor_prefix_world_y(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
+    ; Both hit helpers copy actor X-10000 and Y to their separate descriptors and preserve general registers on normal return. Expiry/clear writes only current geometry; previous geometry remains.
 show_opponent_combat_hit_feedback:
 	movem.l d0/a0-a5,-(a7)
 	jsr start_opponent_combat_hit_audio.l
-	move.b #$A,app_opponent_hit_feedback_ticks_remaining(a6)
+	move.b #COMBAT_FEEDBACK_SERVICE_TICKS,app_opponent_hit_feedback_ticks_remaining(a6)
 	moveq.l #0,d0
-	move.b app_07EF(a6),d0
-	andi.b #7,d0
-	lsl.b #2,d0
-	lea.l abs_0_000585E6.l,a0
+	move.b app_combat_grid_cell_122_low_byte(a6),d0
+	andi.b #COMBAT_FEEDBACK_CHOICE_MASK,d0
+	lsl.b #COMBAT_FEEDBACK_POINTER_SHIFT,d0
+	lea.l combat_hit_feedback_geometry_ptrs.l,a0
 	movea.l $0(a0,d0.w),a1
-	lea.l abs_0_000585CC.l,a2
-	movea.l $0010(a2),a3
-	move.l a1,$0000(a2)
-	move.l a1,$0004(a2)
+	lea.l opponent_combat_hit_visual_state.l,a2
+	movea.l world_position_render_state_prefix_position_descriptor_ptr(a2),a3
+	move.l a1,world_position_render_state_prefix_current_geometry_ptr.w(a2)
+	move.l a1,world_position_render_state_prefix_previous_geometry_ptr(a2)
 	movea.l app_interaction_object_ptr(a6),a5
 	move.w world_object_shared_prefix_world_x(a5),d0
-	subi.w #10000,d0
-	move.w d0,$0004(a3)
-	move.w world_object_shared_prefix_world_y(a5),$0006(a3)
+	subi.w #COMBAT_WORLD_X_BIAS,d0
+	move.w d0,world_position_descriptor_prefix_world_x(a3)
+	move.w world_object_shared_prefix_world_y(a5),world_position_descriptor_prefix_world_y(a3)
 	movem.l (a7)+,d0/a0-a5
 	rts
 service_combat_hit_feedback_timers:
 	tst.b app_player_hit_feedback_ticks_remaining(a6)
-	beq.b abs_0_00017B54
+	beq.b service_opponent_hit_feedback_timer
 	subq.b #1,app_player_hit_feedback_ticks_remaining(a6)
-	bne.b abs_0_00017B54
+	bne.b service_opponent_hit_feedback_timer
 	lea.l ranged_hit_visual_state.l,a0
-	move.l #abs_0_00058588,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
-abs_0_00017B54:
+	move.l #combat_hit_feedback_idle_geometry,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
+service_opponent_hit_feedback_timer:
 	tst.b app_opponent_hit_feedback_ticks_remaining(a6)
-	beq.b abs_0_00017B6C
+	beq.b return_from_combat_feedback_timers
 	subq.b #1,app_opponent_hit_feedback_ticks_remaining(a6)
-	bne.b abs_0_00017B6C
-	lea.l abs_0_000585CC.l,a0
-	move.l #abs_0_00058588,(a0)
-abs_0_00017B6C:
+	bne.b return_from_combat_feedback_timers
+	lea.l opponent_combat_hit_visual_state.l,a0
+	move.l #combat_hit_feedback_idle_geometry,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
+return_from_combat_feedback_timers:
 	rts
 clear_combat_hit_feedback:
 	lea.l ranged_hit_visual_state.l,a0
-	lea.l abs_0_000585CC.l,a1
-	lea.l abs_0_00058588.l,a2
+	lea.l opponent_combat_hit_visual_state.l,a1
+	lea.l combat_hit_feedback_idle_geometry.l,a2
 	move.l a2,(a0)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a0)
-	move.l a2,(a1)
+	move.l a2,(a1)	; operand 2: world_position_render_state_prefix_current_geometry_ptr at (a1)
 	rts
 display_current_item_name:
 	move.l a5,-(a7)
@@ -14210,33 +14253,34 @@ clear_item_receptacle_proximity:
 incorrect_receptacle_item_message:
 	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
+    ; Negative descriptor flag WORD gates all work. Reload 1 adds one charge unit; others add two. Updated charge WORD >40 resets to zero. Six groups clear 24 packed rows x5 bytes before drawing.
 advance_and_draw_player_attack_charge:
 	lea.l hit_feedback_overlay.l,a5
 	tst.w ui_overlay_descriptor_state_flags(a5)
-	bpl.w abs_0_000182D2
+	bpl.w return_from_combat_charge_gauge
 	subq.b #1,app_player_attack_charge_countdown(a6)
-	bne.w abs_0_000181B2
+	bne.w draw_player_attack_charge_gauge
 	move.b app_player_attack_charge_reload(a6),d0
 	move.b d0,app_player_attack_charge_countdown(a6)
 	cmp.b #$1,d0
-	beq.b abs_0_000181A2
+	beq.b increment_player_attack_charge
 	addq.w #1,app_player_attack_charge(a6)
-abs_0_000181A2:
+increment_player_attack_charge:
 	addq.w #1,app_player_attack_charge(a6)
-	moveq.l #40,d0
+	moveq.l #COMBAT_PLAYER_CHARGE_MAX,d0
 	cmp.w app_player_attack_charge(a6),d0
-	bcc.b abs_0_000181B2
+	bcc.b draw_player_attack_charge_gauge
 	clr.w app_player_attack_charge(a6)
-abs_0_000181B2:
+draw_player_attack_charge_gauge:
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d0
 	addq.b #1,d1
 	bsr.w set_text_cursor_in_overlay_plane
-	moveq.l #5,d7
-	lea.l $00A0(a0),a1
-	moveq.l #40,d0
-abs_0_000181CA:
+	moveq.l #COMBAT_CHARGE_CLEAR_LAST_GROUP,d7
+	lea.l FRAMEBUFFER_RASTER_ROW_BYTES(a0),a1
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d0
+clear_next_combat_charge_row_group:
 	movea.l a1,a0
 	clr.b (a0)+
 	clr.w (a0)+
@@ -14257,20 +14301,20 @@ abs_0_000181CA:
 	clr.w (a0)+
 	clr.w (a0)+
 	adda.l d0,a1
-	dbf.w d7,abs_0_000181CA
+	dbf.w d7,clear_next_combat_charge_row_group
 	lea.l combat_charge_full_cell_patterns(pc),a0
 	move.w app_player_attack_charge(a6),d7
 	move.w d7,d6
-	andi.w #7,d6
-	lsr.w #3,d7
-	beq.b abs_0_00018216
+	andi.w #COMBAT_CHARGE_CELL_REMAINDER_MASK,d6
+	lsr.w #COMBAT_CHARGE_CELL_SHIFT,d7
+	beq.b mask_partial_combat_charge_cell
 	subq.w #1,d7
-abs_0_0001820A:
+draw_next_full_combat_charge_cell:
 	move.l (a0)+,d1
 	bsr.b draw_combat_charge_pattern_cell
 	bsr.w advance_stored_text_origin_byte
-	dbf.w d7,abs_0_0001820A
-abs_0_00018216:
+	dbf.w d7,draw_next_full_combat_charge_cell
+mask_partial_combat_charge_cell:
 	lea.l combat_charge_partial_cell_masks(pc),a3
     ; At charge 40, five pattern longwords are consumed. The following longword read fetches the first four mask bytes; zero remainder then skips the partial-cell draw.
 	move.l (a0),d0
@@ -14286,11 +14330,11 @@ abs_0_00018216:
 	and.b d1,d0
 	exg d0,d1
 	tst.b d6
-	beq.w abs_0_000182D2
+	beq.w return_from_combat_charge_gauge
 draw_combat_charge_pattern_cell:
 	movea.l app_text_cursor_ptr(a6),a2
-	moveq.l #40,d0
-	lea.l $00A0(a2),a2
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d0
+	lea.l FRAMEBUFFER_RASTER_ROW_BYTES(a2),a2
 	rol.l #8,d1
 	move.b d1,(a2)
 	rol.l #8,d1
@@ -14362,7 +14406,7 @@ draw_combat_charge_pattern_cell:
 	rol.l #8,d1
 	adda.l d0,a2
 	move.b d1,(a2)
-abs_0_000182D2:
+return_from_combat_charge_gauge:
 	rts
 combat_charge_full_cell_patterns:
 	dc.l $FE00FEFE,$FE00FEFE,$FE00FEFE,$00FEFE00	; lookup_table
@@ -14649,21 +14693,22 @@ health_status_good:
 health_status_dead:
 	dc.b 'D','E','A','D',$00	; health_status_strings
 	dc.b $00
+    ; IDs 7..13 select seven reload/damage pairs and return C=1. Other BYTE IDs return 3/5 with C=0. Lookup clears only D0/D1 low WORDs; fallback MOVEQ replaces the full registers.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 resolve_selected_item_combat_parameters:
 	clr.w d0
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	subq.b #ITEM_ID_PHOTOSABRE,d0
-	cmp.b #$7,d0
-	bcc.b abs_0_0001866A
+	cmp.b #COMBAT_WEAPON_PARAMETER_COUNT,d0
+	bcc.b use_default_item_combat_parameters
 	clr.w d1
 	move.b weapon_combat_damage_table(pc,d0.w),d1
 	move.b weapon_combat_charge_reload_table(pc,d0.w),d0
 	move #$1,ccr
 	rts
-abs_0_0001866A:
-	moveq.l #3,d0
-	moveq.l #5,d1
+use_default_item_combat_parameters:
+	moveq.l #COMBAT_DEFAULT_CHARGE_RELOAD,d0
+	moveq.l #COMBAT_DEFAULT_ATTACK_DAMAGE,d1
 	rts
 weapon_combat_charge_reload_table:
 	dc.b $04,$05,$02,$01,$04,$03,$02	; lookup_table
@@ -14892,7 +14937,7 @@ finish_security_checkpoint_player_death:
 	bsr.w draw_object_health_status
     ; With the initialized static defeat state (NULL node), exchange clears bit 0 at absolute $A and WORD at $10. No NULL guard exists; these original low-memory writes are not owned-node accesses.
 	jsr exchange_world_object_position_states.l
-	bset.b #1,$0048(a5)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	bra.w return_from_security_checkpoint_service
     ; A normal flash reload of 31 uses palette indices 1..30, then restores the saved color. All 32 WORDs remain physical data; the endpoints are not normal flash outputs.
 select_security_flash_palette_color:
@@ -15480,7 +15525,7 @@ finish_ranged_hit_object_defeat:
 	jsr (a0)
 abs_0_000193F6:
 	bsr.w exchange_world_object_position_states
-	bset.b #1,$0048(a5)
+	bset.b #1,world_object_shared_prefix_world_object_flags(a5)
 	addq.b #1,app_defeated_object_count(a6)
 	move.w #$11B,d0
 	jsr start_feedback_audio_sequence.l
@@ -16322,9 +16367,9 @@ initialize_world_state:
 	move.w initial_ranged_weapon_ammunition.l,ranged_weapon_ammunition_remaining.l
 	move.w #$BB8,app_self_destruct_service_ticks_remaining(a6)
 	move.l #$24C28,$64C0.w
-	move.w #$2710,d0
+	move.w #COMBAT_WORLD_X_BIAS,d0
 	move.w d0,ranged_hit_visual_descriptor_world_x.l
-	move.w d0,abs_0_000585AA.l
+	move.w d0,opponent_combat_hit_visual_descriptor_world_x.l
 	move.w #GAMEPLAY_RESTART_COLOR2_RGB12,initial_gameplay_palette_color_2.l
 	lea.l KEYBOARD_STATE_BASE.l,a0
 	moveq.l #KEYBOARD_CLEAR_LAST_LONGWORD,d7
@@ -20066,19 +20111,71 @@ scene_pixel_cells_for_mask_bank_56:
 scene_pixel_cells_for_mask_bank_55:
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_55.bin"
 ; bitmap
-	dc.b $00,$04,$3C,$78,$00,$06,$5A,$98,$00,$02,$00,$10,$00,$10,$00,$00
-	dc.b $00,$00,$00,$04,$3D,$78,$00,$06,$5A,$D8,$00,$02,$00,$10,$00,$10
-	dc.b $00,$00,$00,$00,$00,$04,$3E,$78,$00,$06,$5B,$18,$00,$02,$00,$10
-	dc.b $00,$10,$00,$00,$00,$00,$00,$04,$3F,$78,$00,$06,$5B,$58,$00,$02
-	dc.b $00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$40,$78,$00,$06,$5B,$98
-	dc.b $00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$41,$78,$00,$06
-	dc.b $5B,$D8,$00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04,$42,$78
-	dc.b $00,$06,$5C,$18,$00,$02,$00,$10,$00,$10,$00,$00,$00,$00,$00,$04
-	dc.b $43,$78,$00,$06,$5C,$58,$00,$02
-	dc.b $00,$10,$00,$10,$00,$00,$00,$00
-abs_0_00058588:
-	dc.b $00,$05,$D5,$DE,$00,$05,$D5,$DE,$00,$02,$00,$10,$00,$20,$00,$00
-	dc.b $00,$00
+combat_hit_feedback_geometry_records:
+	dc.l scene_pixel_cells_for_mask_bank_22	; bitplane_data_ptr
+	dc.l scene_mask_bank_22	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$100	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$40	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$200	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$80	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$300	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$C0	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$400	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$100	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$500	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$140	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$600	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$180	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_22+$700	; bitplane_data_ptr
+	dc.l scene_mask_bank_22+$1C0	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+combat_hit_feedback_idle_geometry:
+	dc.l blank_sprite_data	; bitplane_data_ptr
+	dc.l $0005D5DE	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
 ranged_hit_visual_descriptor:
 	dc.l ranged_hit_visual_state	; position_state_ptr
 ranged_hit_visual_descriptor_world_x:
@@ -20086,10 +20183,13 @@ ranged_hit_visual_descriptor_world_x:
 	dc.w $0000	; world_y
 	dc.w $0000	; previous_world_x
 	dc.w $0000	; previous_world_y
-abs_0_000585A6:
-	dc.b $00,$05,$85,$CC
-abs_0_000585AA:
-	dcb.b $8,$00
+opponent_combat_hit_visual_descriptor:
+	dc.l opponent_combat_hit_visual_state	; position_state_ptr
+opponent_combat_hit_visual_descriptor_world_x:
+	dc.w $0000	; world_x
+	dc.w $0000	; world_y
+	dc.w $0000	; previous_world_x
+	dc.w $0000	; previous_world_y
 ranged_hit_visual_state:
 	dc.l $00000000	; current_geometry_ptr
 	dc.l $00000000	; previous_geometry_ptr
@@ -20101,13 +20201,26 @@ ranged_hit_visual_state_state_node_ptr:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-abs_0_000585CC:
-	dcb.b $11,$00
-	dc.b $05,$85,$A6,$00,$00,$00,$00,$00,$00
-abs_0_000585E6:
-	dc.b $00,$05,$84,$F8,$00,$05,$85,$0A,$00,$05,$85,$1C,$00,$05,$85,$2E
-	dc.b $00,$05,$85,$40,$00,$05
-	dc.b $85,$52,$00,$05,$85,$64,$00,$05,$85,$76,$00,$05,$85,$88
+opponent_combat_hit_visual_state:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $0000	; world_x_offset
+	dc.w $0000	; world_y_offset
+	dc.l opponent_combat_hit_visual_descriptor	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+combat_hit_feedback_geometry_ptrs:
+	dc.l dblk_ref_h0_000484F8_runtime_000584F8	; pointer_table
+	dc.l dblk_ref_h0_0004850A_runtime_0005850A
+	dc.l dblk_ref_h0_0004851C_runtime_0005851C
+	dc.l dblk_ref_h0_0004852E_runtime_0005852E
+	dc.l dblk_ref_h0_00048540_runtime_00058540
+	dc.l dblk_ref_h0_00048552_runtime_00058552
+	dc.l dblk_ref_h0_00048564_runtime_00058564
+	dc.l dblk_ref_h0_00048576_runtime_00058576
+	dc.b $00,$05,$85,$88
 ranged_hit_visual_geometry_frames:
 	dc.l scene_pixel_cells_for_mask_bank_50	; bitplane_data_ptr
 	dc.l scene_mask_bank_50	; mask_data_ptr
@@ -20211,7 +20324,8 @@ world_object_musician_gap_36:
 	dc.w $0023	; hit_points
 	dc.w $0023	; initial_hit_points
 world_object_musician_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -21467,7 +21581,8 @@ world_object_squash_player_gap_36:
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
 world_object_squash_player_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -21703,7 +21818,8 @@ world_object_wackobrain_actor_gap_36:
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
 world_object_wackobrain_actor_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -22228,7 +22344,8 @@ world_object_thief_gap_36:
 	dc.w $005A	; hit_points
 	dc.w $005A	; initial_hit_points
 world_object_thief_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_GOLD_KEY	; selected_item_id
@@ -22464,7 +22581,8 @@ world_object_priest_gap_36:
 	dc.w $0043	; hit_points
 	dc.w $0043	; initial_hit_points
 world_object_priest_gap_40:
-	dc.w $00C8	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $C8	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -22711,7 +22829,8 @@ world_object_icelord_gap_36:
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
 world_object_icelord_gap_40:
-	dc.w $00D2	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $D2	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_THERMOLANCE	; selected_item_id
@@ -22987,7 +23106,8 @@ world_object_hooligan_gap_36:
 	dc.w $003C	; hit_points
 	dc.w $003C	; initial_hit_points
 world_object_hooligan_gap_40:
-	dc.w $0073	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $73	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_IRIDIUM_MACE	; selected_item_id
@@ -23419,7 +23539,8 @@ world_object_entry_officer_gap_36:
 	dc.w $003C	; hit_points
 	dc.w $003C	; initial_hit_points
 world_object_entry_officer_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_ID_AMY	; selected_item_id
@@ -23593,7 +23714,8 @@ world_object_death_fly_gap_36:
 	dc.w $005A	; hit_points
 	dc.w $005A	; initial_hit_points
 world_object_death_fly_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_DEATHSTING	; selected_item_id
@@ -23692,7 +23814,8 @@ world_object_driffid_gap_36:
 	dc.w $0047	; hit_points
 	dc.w $0047	; initial_hit_points
 world_object_driffid_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -23827,7 +23950,8 @@ world_object_captain_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_captain_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -23885,7 +24009,8 @@ world_object_resource_officer_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_resource_officer_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -23943,7 +24068,8 @@ world_object_engineer_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_engineer_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24001,7 +24127,8 @@ world_object_science_officer_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_science_officer_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24059,7 +24186,8 @@ world_object_medic_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_medic_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24109,7 +24237,8 @@ world_object_awol_officer_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_awol_officer_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24167,7 +24296,8 @@ world_object_lieutenant_commander_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_lieutenant_commander_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24252,7 +24382,8 @@ world_object_commander_gap_36:
 	dc.w $0000	; hit_points
 	dc.w $0000	; initial_hit_points
 world_object_commander_gap_40:
-	dc.w $0000	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $00	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24311,7 +24442,8 @@ world_object_menial_droid_gap_36:
 	dc.w $0028	; hit_points
 	dc.w $0028	; initial_hit_points
 world_object_menial_droid_gap_40:
-	dc.w $0041	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $41	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_ELECTRUNCHON	; selected_item_id
@@ -24471,7 +24603,8 @@ world_object_gardener_gap_36:
 	dc.w $002D	; hit_points
 	dc.w $002D	; initial_hit_points
 world_object_gardener_gap_40:
-	dc.w $0023	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $23	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24667,7 +24800,8 @@ world_object_technician_gap_36:
 	dc.w $0044	; hit_points
 	dc.w $0044	; initial_hit_points
 world_object_technician_gap_40:
-	dc.w $0073	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $73	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -24895,7 +25029,8 @@ world_object_robomechanic_gap_36:
 	dc.w $005A	; hit_points
 	dc.w $005A	; initial_hit_points
 world_object_robomechanic_gap_40:
-	dc.w $00DC	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $DC	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25026,7 +25161,8 @@ world_object_doctor_gap_36:
 	dc.w $0032	; hit_points
 	dc.w $0032	; initial_hit_points
 world_object_doctor_gap_40:
-	dc.w $0055	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $55	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_KNUCKLEDUSTER	; selected_item_id
@@ -25261,7 +25397,8 @@ world_object_diabetic_gap_36:
 	dc.w $001E	; hit_points
 	dc.w $001E	; initial_hit_points
 world_object_diabetic_gap_40:
-	dc.w $0019	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $19	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25371,7 +25508,8 @@ world_object_security_officer_gap_36:
 	dc.w $0041	; hit_points
 	dc.w $0041	; initial_hit_points
 world_object_security_officer_gap_40:
-	dc.w $00AA	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $AA	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25461,7 +25599,8 @@ world_object_bank_manager_gap_36:
 	dc.w $0028	; hit_points
 	dc.w $0028	; initial_hit_points
 world_object_bank_manager_gap_40:
-	dc.w $004B	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $4B	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25537,7 +25676,8 @@ world_object_chemist_gap_36:
 	dc.w $0032	; hit_points
 	dc.w $0032	; initial_hit_points
 world_object_chemist_gap_40:
-	dc.w $0019	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $19	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25611,7 +25751,8 @@ world_object_secdroid_alpha_1_gap_36:
 	dc.w $0041	; hit_points
 	dc.w $0041	; initial_hit_points
 world_object_secdroid_alpha_1_gap_40:
-	dc.w $00A0	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $A0	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25645,7 +25786,8 @@ world_object_secdroid_delta_1_gap_36:
 	dc.w $0055	; hit_points
 	dc.w $0055	; initial_hit_points
 world_object_secdroid_delta_1_gap_40:
-	dc.w $00A0	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $A0	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25679,7 +25821,8 @@ world_object_secdroid_delta_2_gap_36:
 	dc.w $004B	; hit_points
 	dc.w $004B	; initial_hit_points
 world_object_secdroid_delta_2_gap_40:
-	dc.w $00BE	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $BE	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25713,7 +25856,8 @@ world_object_secdroid_pi_gap_36:
 	dc.w $004B	; hit_points
 	dc.w $004B	; initial_hit_points
 world_object_secdroid_pi_gap_40:
-	dc.w $00A0	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $A0	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25747,7 +25891,8 @@ world_object_secdroid_omega_gap_36:
 	dc.w $005F	; hit_points
 	dc.w $005F	; initial_hit_points
 world_object_secdroid_omega_gap_40:
-	dc.w $00BE	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $BE	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -25781,7 +25926,8 @@ world_object_secdroid_alpha_2_gap_36:
 	dc.w $0037	; hit_points
 	dc.w $0037	; initial_hit_points
 world_object_secdroid_alpha_2_gap_40:
-	dc.w $005A	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $5A	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -26399,7 +26545,8 @@ world_object_pianist_actor_gap_36:
 	dc.w $001D	; hit_points
 	dc.w $001D	; initial_hit_points
 world_object_pianist_actor_gap_40:
-	dc.w $006E	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $6E	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 	dc.b ITEM_ID_EMPTY	; selected_item_id
@@ -26547,11 +26694,12 @@ player_world_object_world_x:
 player_world_object_gap_36:
 	dc.b $00,$00,$00,$00,$00,$00	; typed data block gap
 	dc.b $00	; hit_points (first 1 of 2 bytes)
-abs_0_0005C35F:
+player_world_object_health_low_byte:
 	dc.b $5F
 	dc.w $005F	; initial_hit_points
 player_world_object_gap_40:
-	dc.w $0064	; typed data block gap
+	dc.b $00	; typed data block gap
+	dc.b $64	; combat_attack_check_value
 	dc.w $0000	; proximity_distance
 	dc.w $0000	; behavior_script_delay_ticks
 player_world_object_selected_item_id:

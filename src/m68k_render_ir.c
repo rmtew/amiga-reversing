@@ -2906,6 +2906,20 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
         break;
       }
     }
+    {
+      const M68kAnalysisManualRepresentation *representation = lookup_manual_representation_at(
+        lookup, section->section_index, current);
+      if (representation != NULL && representation->size <= chunk_size &&
+          render_asm_manual_symbol_representation(preview, lookup, section->section_index, current,
+            representation->size, cursor == 0U ? comment : NULL)) {
+        if (io_logical_pc != NULL) *io_logical_pc += representation->size;
+        cursor += representation->size;
+        continue;
+      }
+      /* A later scalar interpretation is a boundary within the same owner. */
+      chunk_size = next_manual_representation_offset(lookup, section->section_index,
+        current, current + chunk_size) - current;
+    }
     if (width == 2U) {
       const M68kRenderPlannedExpression *expression = m68k_render_plan_find_expression(
         &preview->asm_source_plan, (uint32_t)section->section_index, current, UINT32_MAX,
@@ -3141,6 +3155,25 @@ static uint8_t resolve_rendered_data_pointer_expression(const M68kRenderLookup *
   }
   if (item != NULL && item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY)
     return resolve_runtime_only_pointer_expression(lookup, item, value, out_expression);
+  /* Interior references use the bounded-owner projection. Preserve the
+   * existing scalar pointer/domain path for exact-width owners. */
+  if (lookup->policy != NULL && item != NULL && item->size > 4U) {
+    uint16_t index;
+    for (index = 0U; index < lookup->policy->manual_runtime_address_ref_count &&
+        index < M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT; ++index) {
+      const M68kAnalysisManualRuntimeAddressRef *ref = &lookup->policy->manual_runtime_address_refs[index];
+      uint32_t logical = 0U;
+      if (!ref->has_section_index || ref->section_index != section->section_index || ref->offset != offset ||
+          ref->size != 4U || !ref->has_target || !ref->has_runtime_address || ref->runtime_address != value ||
+          strcmp(ref->owner_kind, "data_block_interpreted_ref") != 0) continue;
+      if (!lookup_source_logical_address(lookup, ref->target_section_index, ref->target_offset, &logical) ||
+          logical != value) {
+        out_expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
+        snprintf(out_expression->reason, sizeof(out_expression->reason), "unmapped_reference_target");
+        return out_expression->outcome;
+      }
+    }
+  }
   if (item != NULL && item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE)
     return resolve_mapped_source_pointer_expression(lookup, decode, accepted_start, value, out_expression);
   if (item != NULL && item->is_pointer != 0U && item->size == 4U && item->has_target != 0U &&
@@ -3989,6 +4022,9 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
         render_asm_relocation_expr(preview, lookup, relocation);
       } else if (render_asm_pointer_table_raw_long(preview, section, lookup, item, item->offset + cursor,
           cursor == 0U ? comment_text : NULL)) {
+        ;
+      } else if (render_asm_manual_symbol_representation(preview, lookup, section->section_index,
+          item->offset + cursor, 4U, cursor == 0U ? comment_text : NULL)) {
         ;
       } else {
         render_asm_dc_l_values(preview, section->data, item->offset + cursor, 4U,

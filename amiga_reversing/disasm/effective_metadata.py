@@ -2364,7 +2364,7 @@ def _apply_manual_seed_projection(
                 element_representation = _data_block_element_representation(effective_layout, element)
                 if element_representation is not None:
                     manual_representations.append(element_representation)
-    # Each encoded word has its own canonical ref, even inside a wider array.
+    # Each encoded value has its own canonical ref, even inside a wider array.
     relative_ref_interpretations = dict(data_block_reference_interpretations)
     for effective_layout in effective_data_block_layouts:
         for element in effective_layout.elements:
@@ -2378,6 +2378,33 @@ def _apply_manual_seed_projection(
                 )
                 if interpreted_data_reference is not None:
                     manual_data_references.append(interpreted_data_reference)
+                # Absolute references also own individual encoded values inside
+                # arrays/records. Keep the durable owner intact; only the ref's
+                # display/xref projection uses this bounded scalar span.
+                if ref.get("reference_kind") != "absolute":
+                    continue
+                offset = _manual_seed_int(ref, "offset")
+                width = _manual_seed_int(ref, "width")
+                if offset is None or width not in {1, 2, 4}:
+                    continue
+                owners = [element for element in effective_layout.elements
+                          if element.offset <= offset
+                          and offset + width <= element.offset + element.width]
+                if len(owners) != 1:
+                    continue
+                owner = owners[0]
+                if owner.offset == offset and owner.width == width:
+                    continue  # Exact elements were projected above.
+                leaf = replace(owner, offset=offset, width=width, reference_interpretation=ref)
+                representation = _data_block_element_interpreted_ref_representation(effective_layout, leaf)
+                equate = _data_block_interpreted_ref_equate(ref)
+                if representation is None or equate is None:
+                    continue
+                target_equates.append(equate)
+                manual_representations.append(representation)
+                runtime_ref = _data_block_element_interpreted_ref_runtime_address_ref(effective_layout, leaf)
+                if runtime_ref is not None:
+                    manual_runtime_address_refs.append(runtime_ref)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     merged_manual_runtime_address_refs = {
         (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr, ref.target_hunk, ref.target_offset): ref
