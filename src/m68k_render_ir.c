@@ -2591,7 +2591,7 @@ static const M68kAnalysisManualRepresentation *lookup_manual_representation_at(
   return NULL;
 }
 
-static const M68kAnalysisManualRepresentation *lookup_manual_operand_representation(
+const M68kAnalysisManualRepresentation *lookup_manual_operand_representation(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, size_t operand_index) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
@@ -5491,8 +5491,10 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
         sizeof(operand->symbol_ref.name), representation->source_symbol_section, representation->source_symbol_offset);
       continue;
     }
+    /* A requested presentation may replace an automatic address name, including
+     * an immediate feeding typed pointer storage. Keep explicit source/SDK names. */
     if ((operand->symbol_ref.has_name != 0U &&
-          (!is_absolute || operand->symbol_ref.name_is_generated == 0U)) ||
+          ((!is_absolute && !is_immediate) || operand->symbol_ref.name_is_generated == 0U)) ||
         (!is_immediate && !is_base_displacement && !is_absolute && !is_indexed_displacement)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
@@ -7633,6 +7635,7 @@ static int runtime_address_ref_operand_can_render_materialized_label(const M68kR
   const M68kDecodeCandidate *candidate;
   M68kInstructionIR instruction;
   const M68kOperandIR *operand;
+  const M68kAnalysisManualRepresentation *representation;
   uint32_t value = 0U;
   if (lookup == NULL || decode == NULL || fact == NULL || !fact->has_runtime_address ||
       fact->has_sink_address || fact->reason >= M68K_DECODE_IR_MAX_OPERANDS ||
@@ -7653,6 +7656,10 @@ static int runtime_address_ref_operand_can_render_materialized_label(const M68kR
   if (!m68k_ir_operand_immediate_value(operand, &value) && !operand_absolute_offset_local(operand, &value))
     return 0;
   if (value != fact->runtime_address) return 0;
+  representation = lookup_manual_operand_representation(lookup, fact->section_index,
+    fact->offset, fact->reason);
+  if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+      representation->target_equate_index != 0U) return 0;
   return !amiga_abs_exec_base_load_should_stay_absolute(lookup, &instruction, fact->reason, operand, fact);
 }
 
@@ -10138,6 +10145,7 @@ static void attach_planned_address_value_source_symbols(const M68kRenderLookup *
     const M68kSectionAnalysisIR *analysis_section = &source_analysis->sections[section_index];
     for (index = 0U; index < analysis_section->address_value_count; ++index) {
       const M68kAddressValueIR *fact = &analysis_section->address_values[index];
+      const M68kAnalysisManualRepresentation *representation;
       if (fact->producer_section_index != section->section_index || fact->producer_offset != candidate->offset ||
           fact->terminal_kind != M68K_ADDRESS_VALUE_TERMINAL_RESOLVED || fact->has_target == 0U ||
           fact->render_outcome != M68K_ADDRESS_VALUE_RENDER_SYMBOLIC || fact->has_source_expression == 0U ||
@@ -10146,6 +10154,12 @@ static void attach_planned_address_value_source_symbols(const M68kRenderLookup *
           immediate_value != fact->source_value) {
         continue;
       }
+      representation = lookup_manual_operand_representation(lookup, section->section_index,
+        candidate->offset, fact->producer_operand_index);
+      /* A value EQU does not consume this automatic source label. Do not leave
+       * an unused interior label behind when the final presentation replaces it. */
+      if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+          representation->target_equate_index != 0U) continue;
       attach_operand_label_symbol(lookup, instruction, fact->producer_operand_index, section->section_index,
         candidate->offset, fact->target_section_index, fact->target_offset);
     }

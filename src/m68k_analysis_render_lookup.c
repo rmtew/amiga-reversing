@@ -13275,9 +13275,16 @@ static void render_lookup_materialize_typed_address_target(M68kRenderLookup *loo
   *target_offset_out = target_offset;
   *resolution = M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED;
   if (provenance != NULL && provenance->kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE) {
-    render_lookup_mark_label(lookup, target_section_index, target_offset);
-    render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
-    render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    const M68kAnalysisManualRepresentation *representation = lookup_manual_operand_representation(lookup,
+      provenance->section_index, provenance->offset, provenance->producer_operand_index);
+    /* Keep the resolved analysis target, but a value EQU does not require a
+     * source declaration inside the target's data owner. */
+    if (representation == NULL || representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+        representation->target_equate_index == 0U) {
+      render_lookup_mark_label(lookup, target_section_index, target_offset);
+      render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
+      render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    }
   }
 }
 

@@ -4103,6 +4103,63 @@ annotation and SDK/hardware expression, owner extent, asset, raw gap and history
 prefix passes the preservation audit. The C/vasm gate reproduces all 376,832
 original bytes, receipt `77904b2974ba3faf4cc3ab7d80d89d7e764f007e9ec67de99c7302dda96dc734`.
 See `docs/validation/pandora-proximity-audio.json` for evidence and limits.
-The separate bootstrap fixture boundary remains unchanged. The next connected
-world-grid question is the fixed reset store at `$64C0`, whose gameplay role
-remains unassigned.
+The separate bootstrap fixture boundary remains unchanged. The fixed reset store
+at `$64C0` is resolved further in the following post-encounter section.
+
+## Post-encounter passage and global item-state effects
+
+The fixed absolute pointer at `$64C0` now names cell `(12,26)` of the original
+90-column grid. Original macro selector 450, subcell 6, initializes it to tile
+247, whose movement-block bit is set. Combat setup selects tile 49, whose bit is
+clear. World restart restores tile 247. Completion restores tile 247 only when
+the object's completion pointer is non-NULL, before calling it; NULL skips that
+store. Priest completion selects tile 49 again. These are fixed-grid writes;
+a different current `app_tilemap_base` does not redirect them. Complete indirect
+writer/alias closure remains open.
+
+Priest completion then enqueues the original 52-byte boast and falls through to
+a shared `-15` item-state update. Bank-manager and thief completion use `+15`.
+The sentinel table contains 35 original records, including the player. The
+helper skips only inactive bit 1 and adds `D0.B` modulo 256: no saturation or
+active-count bound, and duplicate pointers apply repeatedly. Item state retains
+its established name; health, hostility or another gameplay meaning is not
+proved. Every other record byte and the helper's general registers retain
+identity in the checked returns. The original message spelling is preserved.
+
+Three exact completion fields now carry explicit canonical references with
+native incoming/outgoing coordinate checks; the existing readable callback
+names and all owner extents remain intact. The local table-loop names, pointer
+alias, named tile values, completion-field displacement and string name complete
+this connected source family without changing behavior.
+
+Seventeen original-code cases cover every byte delta/state pair, every flag
+byte, both broadcasts over all 35 original records, duplicate/null tables, real
+priest/bank-manager/thief callbacks and five completion-prefix variants. The
+completion witnesses stop before state exchange at source `$7A06`; the existing
+later NULL-node boundary is not repaired or counted as a passing full-combat
+path. Flat RAM, valid original records and a disjoint stack are explicit limits;
+bounded trace summaries are not treated as complete write logs.
+
+All 31 actions are accepted, including seven presentation corrections. Every
+prior annotation, hardware/SDK expression, callback spelling, owner bound, asset,
+raw gap and history prefix passes the preservation audit. C/vasm reproduces all
+376,832 original bytes, receipt
+`1709c3d5c52e0a53dfd7c188d8e8f607cfc7ad72756990d7973b10f71e79a852`.
+Evidence and limits are in `docs/validation/pandora-post-encounter-effects.json`.
+
+The renderer now honors an explicit immediate value EQU over an automatic
+address name while preserving explicit source/SDK names. Resolved pointer
+analysis targets remain available, but unused automatic interior labels no
+longer force existing assets inline. Mismatched immediate EQU values refuse
+before append. All 819 native and 192 focused framework checks pass, including
+eight new cases for direct/register-mediated stores in local and runtime
+address models, retained targets, complete asset extents, C/vasm equality and
+atomic refusal.
+
+Two provisional forward asset-label expressions were replaced by equal numeric
+runtime EQUs, with the proved owner/offset relationships retained in the evidence.
+The C assembler's forward source-expression boundary is separate work; these
+semantics do not require changing ownership or assembly dependency resolution.
+The preparation benchmark was not repeated. The next useful gameplay swath is
+the remaining item-transfer/inventory effect code around the completion callbacks.
+The broader full-game and alternate-layout gates remain open.

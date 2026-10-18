@@ -36,6 +36,9 @@
 ;     absolute[$00058564-$00058568] refs=1 access=a
 ;     absolute[$00058576-$0005857A] refs=1 access=a
 ;     absolute[$000585A6-$000585AA] refs=1 access=a
+;     absolute[$0005B0CE-$0005B0D2] refs=1 access=a
+;     absolute[$0005B10A-$0005B10E] refs=1 access=a
+;     absolute[$0005B112-$0005B116] refs=1 access=a
 ;     absolute[$0005C312-$0005C316] refs=1 access=a
 ;     absolute[$0007D000] refs=1 access=a
 ;     absolute[$0007D380] refs=1 access=a
@@ -1080,6 +1083,8 @@ NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 PLAYER_IDLE_SCRIPT_DELAY_TICKS	EQU	1
+PRIEST_PASSAGE_CLOSED_PIXELS	EQU	$24C28
+PRIEST_PASSAGE_OPEN_PIXELS	EQU	$1E928
 PRNG_ADVANCE_LAST_BIT	EQU	31
 PRNG_FEEDBACK_BIT_MASK	EQU	$1
 PRNG_FEEDBACK_TAP_SHIFT	EQU	3
@@ -1247,10 +1252,12 @@ WORLD_GRID_R2C1_DISP	EQU	2*WORLD_GRID_ROW_BYTES+TILE_GRID_POINTER_BYTES
 WORLD_GRID_R2C2_DISP	EQU	2*WORLD_GRID_ROW_BYTES+TILE_GRID_TWO_POINTER_BYTES
 WORLD_MACRO_ROWS	EQU	43
 WORLD_GRID_ROWS	EQU	WORLD_MACRO_ROWS*WORLD_MACRO_TILE_SIDE
+WORLD_ITEM_STATE_INCREMENT	EQU	15
 WORLD_MACRO_COLUMN_BYTES	EQU	WORLD_MACRO_TILE_SIDE*TILE_GRID_POINTER_BYTES
 WORLD_MACRO_LAST_COLUMN	EQU	WORLD_MACRO_COLUMNS-1
 WORLD_MACRO_LAST_ROW	EQU	WORLD_MACRO_ROWS-1
 WORLD_MACRO_ROW_BYTES	EQU	WORLD_MACRO_TILE_SIDE*WORLD_GRID_ROW_BYTES
+WORLD_OBJECT_COMPLETION_CALLBACK_DISP	EQU	world_object_shared_prefix_interaction_completion_callback
 WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
@@ -1358,8 +1365,12 @@ dblk_ref_h0_00048CD0_runtime_00058CD0	EQU	$58CD0
 dblk_ref_h0_00048CDC_runtime_00058CDC	EQU	$58CDC
 dblk_ref_h0_00048CE8_runtime_00058CE8	EQU	$58CE8
 dblk_ref_h0_00048CF4_runtime_00058CF4	EQU	$58CF4
+dblk_ref_h0_0004B0CE_runtime_0005B0CE	EQU	$5B0CE
+dblk_ref_h0_0004B10A_runtime_0005B10A	EQU	$5B10A
+dblk_ref_h0_0004B112_runtime_0005B112	EQU	$5B112
 dblk_ref_h0_0004C312_runtime_0005C312	EQU	$5C312
 entity_edge_blit_scratch_capacity	EQU	$1B3A8
+fixed_priest_passage_tile_ptr	EQU	$64C0
 imm_ref_h0_00050000_rt_00070000	EQU	$70000
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_trap_0_instruction_vector	EQU	$80
@@ -13624,7 +13635,7 @@ initialize_combat_hit_feedback:
 	lea.l combat_visual_render_state.l,a1
 	move.l a0,world_position_render_state_prefix_state_node_ptr(a1)
 	clr.w WorldPositionStateNode_frame_index_and_phase(a0)
-	move.l #$1E928,$64C0.w
+	move.l #PRIEST_PASSAGE_OPEN_PIXELS,fixed_priest_passage_tile_ptr.w
     ; The early nonpositive player-health byte branch inherits A4. Player damage tests borrow/equality; opponent damage tests signed-negative/equality, giving different byte-underflow behavior.
 service_combat_encounter:
 	tst.b player_world_object_health_low_byte.l
@@ -13714,10 +13725,11 @@ handle_combat_player_defeat:
 handle_combat_opponent_defeat:
 	addq.b #1,app_defeated_object_count(a6)
 	movea.l app_interaction_object_ptr(a6),a5
+    ; Only a non-NULL completion callback restores the fixed passage to blocked tile 247 before the call. NULL skips that store; the priest callback then replaces it with walkable tile 49.
 finish_combat_encounter:
-	move.l $0008(a5),d0
+	move.l WORLD_OBJECT_COMPLETION_CALLBACK_DISP(a5),d0
 	beq.b restore_defeated_object_position_state
-	move.l #$24C28,$64C0.w
+	move.l #PRIEST_PASSAGE_CLOSED_PIXELS,fixed_priest_passage_tile_ptr.w
 	movea.l d0,a0
 	movem.l a4-a5,-(a7)
     ; A4/A5 are saved around this call. Completion precedes state restore and setting flag bit 1; callback carry is not used. Register preservation does not imply pointer immutability.
@@ -14780,15 +14792,16 @@ exchange_world_object_position_states:
 adjust_active_world_object_item_state:
 	movem.l d1/a0/a5,-(a7)
 	lea.l world_object_ptr_table.l,a0
-abs_0_000186B0:
+    ; Sentinel table has 35 original records, including player. Skip only inactive bit 1; add D0.B modulo 256 to item state. Duplicate pointers apply repeatedly; no active-count bound.
+adjust_next_active_world_object_item_state:
 	move.l (a0)+,d1
-	beq.b abs_0_000186C4
+	beq.b finish_active_world_object_item_state_adjustment
 	movea.l d1,a5
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_000186B0
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
+	bne.b adjust_next_active_world_object_item_state
 	add.b d0,world_object_shared_prefix_item_state(a5)
-	bra.b abs_0_000186B0
-abs_0_000186C4:
+	bra.b adjust_next_active_world_object_item_state
+finish_active_world_object_item_state_adjustment:
 	movem.l (a7)+,d1/a0/a5
 	rts
     ; Movement recheck accepts IDs 48..55 in selected item, four carried or four pocket slots. Preserve D0-D7/A0-A5 and consume the pending bit; failure stages player defeat.
@@ -16416,7 +16429,8 @@ initialize_world_state:
 	move.l a5,-(a7)
 	move.w initial_ranged_weapon_ammunition.l,ranged_weapon_ammunition_remaining.l
 	move.w #WORLD_RESTART_SELF_DESTRUCT_STEPS,app_self_destruct_service_ticks_remaining(a6)
-	move.l #$24C28,$64C0.w
+    ; Fixed 90-column grid cell (12,26) starts at $64C0. Reset writes blocked tile 247, matching macro selector 450, subcell 6; current app_tilemap_base does not redirect this absolute store.
+	move.l #PRIEST_PASSAGE_CLOSED_PIXELS,fixed_priest_passage_tile_ptr.w
 	move.w #COMBAT_WORLD_X_BIAS,d0
 	move.w d0,ranged_hit_visual_descriptor_world_x.l
 	move.w d0,opponent_combat_hit_visual_descriptor_world_x.l
@@ -24778,10 +24792,11 @@ initialize_player_and_fixed_animation_nodes:
 	lea.l secdroid_alpha_2_primary_position_state(pc),a4
 	move.l a0,world_position_render_state_prefix_current_geometry_ptr.w(a4)
 	rts
+    ; Open fixed cell (12,26), enqueue the boast, then fall through to item-state -15 for each active listed object. Bank-manager/thief callbacks use +15; item state is not proven health.
 complete_priest_interaction:
-	move.l #$1E928,$64C0.w
+	move.l #PRIEST_PASSAGE_OPEN_PIXELS,fixed_priest_passage_tile_ptr.w
 decrease_active_world_object_item_state:
-	lea.l abs_0_0005D096.l,a0
+	lea.l priest_completion_boast_message.l,a0
 	jsr enqueue_status_message.l
 	moveq.l #-15,d0
 	jmp adjust_active_world_object_item_state.l
@@ -24798,10 +24813,10 @@ toggle_diabetic_attachment_hold:
 	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,(a0)	; operand 2: WorldPositionStateNode_mode_flags at (a0)
 	rts
 complete_bank_manager_interaction:
-	moveq.l #15,d0
+	moveq.l #WORLD_ITEM_STATE_INCREMENT,d0
 	jmp adjust_active_world_object_item_state.l
 complete_thief_interaction:
-	moveq.l #15,d0
+	moveq.l #WORLD_ITEM_STATE_INCREMENT,d0
 	jmp adjust_active_world_object_item_state.l
     ; Player defeat skips the handoff; otherwise transfer the item, empty its slot, inhibit script dispatch and exchange states. Queue/UI/audio effects remain separate.
 collect_world_object_item:
@@ -27625,11 +27640,8 @@ abs_0_0005D063:
 abs_0_0005D07F:
 	dc.b $22,$54,$68,$6F,$75,$20,$73,$68,$61,$6C,$74,$20,$6E,$6F,$74,$20
 	dc.b $6B,$69,$6C,$6C,$2E,$22,$00
-abs_0_0005D096:
-	dc.b $22,$49,$20,$61,$6D,$20,$6E,$6F,$77,$20,$73,$74,$6F,$6E,$67,$65
-	dc.b $72,$20,$74,$68,$61,$6E,$20,$79,$6F,$75,$20,$63,$6F,$75,$6C,$64
-	dc.b $20,$70,$6F,$73,$73,$69,$62,$6C,$79,$20,$69,$6D,$61,$67,$69,$6E
-	dc.b $65,$2E,$22,$00
+priest_completion_boast_message:
+	dc.b $22,"I am now stonger than you could possibly imagine.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 abs_0_0005D0CA:
 	dc.b $22,$49,$20,$6E,$65,$65,$64,$20,$73,$75,$6E,$6C,$69,$67,$68,$74
 	dc.b $22,$00

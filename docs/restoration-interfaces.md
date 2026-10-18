@@ -299,6 +299,12 @@ ranges remain governed by native analysis. First adoption requires the current
 canonical source to match freshly rendered inline source. Explicit ZIP export
 continues to select its own presentation independently.
 
+Forward EQU expressions over source or asset labels are not supported end to end
+by the current C assembler, even when vasm accepts them. For a proved address
+value, a numeric named EQU avoids that forward dependency while the evidence
+retains its canonical owner/offset relationship. Extending forward dependency
+resolution is separate work; do not accept a slice on vasm equality alone.
+
 Custom pointer fields can explicitly declare `pointer_address_domain` as
 `mapped_source` or `runtime_only`; omission retains the existing `legacy`
 behavior. `mapped_source` requires a unique eligible source mapping and an
@@ -393,7 +399,11 @@ records address provenance and interrupt/context requirements. Conditional build
 or runtime guard enforcement is not implemented.
 
 Operand symbol presentations may select a canonical source declaration as well
-as a platform symbol or target equate. The append preflight resolves one native
+as a platform symbol or target equate. Immediate target EQUs must match the
+decoded unsigned or signed value before append. A requested presentation can
+replace a generated immediate-address name; explicit source/SDK names remain
+protected. A value EQU keeps resolved address-analysis facts but creates no
+unused source-label obligation inside an asset. The append preflight resolves one native
 render-plan declaration and persists `source_symbol` with `section_index`,
 `source_offset`, `runtime_view` (0/1) and `encoded_value`. It checks the current
 native operand value/width and address view before writing history. No Python

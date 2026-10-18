@@ -1012,6 +1012,8 @@ const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, s
 int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
   uint32_t size);
 const char *lookup_instruction_comment(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+const M68kAnalysisManualRepresentation *lookup_manual_operand_representation(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, size_t operand_index);
 const M68kRenderStringSpan *lookup_string_span_at_offset(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset);
 int append_comment_part_local(char *comment, size_t comment_size, const char *part);
