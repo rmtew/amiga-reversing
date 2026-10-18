@@ -1103,6 +1103,11 @@ KEYBOARD_PAUSE_KEY_STATE	EQU	$39CC
 KEYBOARD_STATE_BASE	EQU	$397C
 MASKED_FRAME_COPY_CONTROL	EQU	SRCA|SRCB|SRCC|DEST|BLITTER_COOKIE_CUT_MINTERM
 MASKED_FRAME_PLANE_COUNT_SHIFT	EQU	2
+MERCENARY_ASSASSIN_MINIMUM_DEFEATS	EQU	10
+MERCENARY_KILLER_MINIMUM_DEFEATS	EQU	5
+MERCENARY_MAD_PSYCHO_MINIMUM_DEFEATS	EQU	14
+MERCENARY_RUTHLESS_MINIMUM_DEFEATS	EQU	12
+MERCENARY_SON_OF_SATAN_MINIMUM_DEFEATS	EQU	18
 MESSAGE_FAILURE_CCR	EQU	$1
 MESSAGE_FLASH_PHASE_BIT	EQU	2
 MESSAGE_FLASH_TINT_RGB12	EQU	$F55
@@ -1179,6 +1184,9 @@ SCENE_TILE_BLTSIZE	EQU	(64<<6)|1
 SCENE_TILE_COPY_CONTROL	EQU	$9F0
 SCENE_WORLD_PAIR_MODULO	EQU	160-4
 SCENE_WORLD_WORD_MODULO	EQU	160-2
+SCIENCE_SALVAGE_LAST_RANK_INDEX	EQU	4
+SCIENCE_SALVAGE_MINIMUM_COUNT	EQU	6
+SCIENCE_SALVAGE_RANK_COUNT	EQU	5
 SCROLLING_ENQUEUE_LOCKED_SR	EQU	$2700
 SCROLLING_ENQUEUE_RETURN_SR	EQU	$2000
 SECURITY_CHECKPOINT_HEALTH_DAMAGE	EQU	51
@@ -27287,65 +27295,70 @@ enqueue_game_outcome_and_rank_messages:
 	bset.b #GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT,app_game_event_flags(a6)
 	bne.b abs_0_0005C9AC
 	tst.b app_self_destruct_state(a6)
-	bpl.b abs_0_0005C9CC
+	bpl.b select_undestroyed_pandora_outcome
 	lea.l pandora_destroyed_earth_saved_message(pc),a0
+    ; Test the Earth deadline WORD only for zero, without validating BCD. Self-destruct BYTE sign has priority over the escape flag.
 	tst.w app_earth_orbit_countdown_bcd(a6)
-	bne.b abs_0_0005C9DC
+	bne.b queue_outcome_and_count_carried_salvage
 	lea.l pandora_destroyed_earth_uncertain_message(pc),a0
-	bra.b abs_0_0005C9DC
-abs_0_0005C9CC:
+	bra.b queue_outcome_and_count_carried_salvage
+select_undestroyed_pandora_outcome:
 	lea.l escape_without_destroying_pandora_message(pc),a0
 	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_0005C9DC
+	bne.b queue_outcome_and_count_carried_salvage
 	lea.l pandora_mystery_unsolved_message(pc),a0
-abs_0_0005C9DC:
+queue_outcome_and_count_carried_salvage:
 	jsr enqueue_status_message.l
 	lea.l app_carried_item_ids(a6),a1
 	moveq.l #3,d7
 	moveq.l #0,d0
 	lea.l salvage_item_eligibility_bits.l,a0
-abs_0_0005C9F0:
+test_next_carried_item_for_outcome_salvage:
 	move.b (a1)+,d0
 	jsr test_msb_first_bitset_bit.l
-	beq.b abs_0_0005C9FE
+	beq.b advance_outcome_carried_item_loop
+    ; Count four carried IDs, including duplicates; pockets and holding are excluded. Each eligible ID increments the salvage BYTE with wrap, before rank selection.
 	addq.b #1,app_salvage_item_count(a6)
-abs_0_0005C9FE:
-	dbf.w d7,abs_0_0005C9F0
+advance_outcome_carried_item_loop:
+	dbf.w d7,test_next_carried_item_for_outcome_salvage
 	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_0005CA18
+	bne.b select_escaped_rank_prefix
+    ; Original non-escape path sets bit 1 in the held-item ID, not the player flags. Preserve this mutation even if the message queue is full.
 	bset.b #1,player_world_object_selected_item_id.l
 	lea.l posthumous_mercenary_rank_prefix(pc),a0
-	bra.b abs_0_0005CA2A
-abs_0_0005CA18:
+	bra.b queue_rank_prefix_and_select_rating
+select_escaped_rank_prefix:
 	move.b app_salvage_item_count(a6),d0
 	lea.l mercenary_guild_rank_prefix(pc),a0
-	cmp.b #$6,d0
-	bcs.b abs_0_0005CA2A
+	cmp.b #SCIENCE_SALVAGE_MINIMUM_COUNT,d0
+	bcs.b queue_rank_prefix_and_select_rating
 	lea.l science_and_salvage_rank_prefix(pc),a0
-abs_0_0005CA2A:
+queue_rank_prefix_and_select_rating:
 	jsr enqueue_status_message.l
 	btst.b #GAME_EVENT_ESCAPE_TRIGGERED_BIT,app_game_event_flags(a6)
-	bne.b abs_0_0005CA3C
+	bne.b select_escaped_rank_rating
 	bsr.b select_defeat_rank_message
-	bra.b abs_0_0005CA64
-abs_0_0005CA3C:
+	bra.b queue_final_rank_rating
+select_escaped_rank_rating:
 	move.b app_salvage_item_count(a6),d0
-	cmp.b #$6,d0
-	bcc.b abs_0_0005CA4A
+	cmp.b #SCIENCE_SALVAGE_MINIMUM_COUNT,d0
+	bcc.b clamp_science_salvage_rank_index
 	bsr.b select_defeat_rank_message
-	bra.b abs_0_0005CA64
-abs_0_0005CA4A:
+	bra.b queue_final_rank_rating
+    ; Escape and salvage BYTE >= 6 select index min(count-6,4). Non-escape always uses defeat rank, irrespective of salvage count.
+clamp_science_salvage_rank_index:
 	clr.w d0
 	move.b app_salvage_item_count(a6),d0
-	subi.b #6,d0
-	cmp.w #$5,d0
-	bcs.b abs_0_0005CA5C
-	moveq.l #4,d0
-abs_0_0005CA5C:
+	subi.b #SCIENCE_SALVAGE_MINIMUM_COUNT,d0
+	cmp.w #SCIENCE_SALVAGE_RANK_COUNT,d0
+	bcs.b load_science_salvage_rank_message
+	moveq.l #SCIENCE_SALVAGE_LAST_RANK_INDEX,d0
+load_science_salvage_rank_message:
 	add.w d0,d0
 	add.w d0,d0
 	movea.l salvage_rank_message_ptrs(pc,d0.w),a0
-abs_0_0005CA64:
+    ; All three enqueue attempts occur after setting the one-shot latch. Full queue does not roll back counts or holding; final rating still replaces the shared duration.
+queue_final_rank_rating:
 	jsr enqueue_status_message.l
 	rts
 salvage_rank_message_ptrs:
@@ -27353,23 +27366,23 @@ salvage_rank_message_ptrs:
 	dc.l $0005CD57	; lookup_table
 select_defeat_rank_message:
 	move.b app_defeated_object_count(a6),d0
-	lea.l abs_0_0005CC87(pc),a0
-	cmp.b #$5,d0
-	bcs.b abs_0_0005CABA
-	lea.l abs_0_0005CC99(pc),a0
-	cmp.b #$A,d0
-	bcs.b abs_0_0005CABA
-	lea.l abs_0_0005CCA8(pc),a0
-	cmp.b #$C,d0
-	bcs.b abs_0_0005CABA
-	lea.l abs_0_0005CCB9(pc),a0
-	cmp.b #$E,d0
-	bcs.b abs_0_0005CABA
-	lea.l abs_0_0005CCCA(pc),a0
-	cmp.b #$12,d0
-	bcs.b abs_0_0005CABA
-	lea.l abs_0_0005CCDE(pc),a0
-abs_0_0005CABA:
+	lea.l mercenary_rank_dog_meat_message(pc),a0
+	cmp.b #MERCENARY_KILLER_MINIMUM_DEFEATS,d0
+	bcs.b return_selected_mercenary_rank
+	lea.l mercenary_rank_killer_message(pc),a0
+	cmp.b #MERCENARY_ASSASSIN_MINIMUM_DEFEATS,d0
+	bcs.b return_selected_mercenary_rank
+	lea.l mercenary_rank_assassin_message(pc),a0
+	cmp.b #MERCENARY_RUTHLESS_MINIMUM_DEFEATS,d0
+	bcs.b return_selected_mercenary_rank
+	lea.l mercenary_rank_ruthless_message(pc),a0
+	cmp.b #MERCENARY_MAD_PSYCHO_MINIMUM_DEFEATS,d0
+	bcs.b return_selected_mercenary_rank
+	lea.l mercenary_rank_mad_psycho_message(pc),a0
+	cmp.b #MERCENARY_SON_OF_SATAN_MINIMUM_DEFEATS,d0
+	bcs.b return_selected_mercenary_rank
+	lea.l mercenary_rank_son_of_satan_message(pc),a0
+return_selected_mercenary_rank:
 	rts
 self_destruct_evacuation_warning:
 	dc.b "WARNING, PLEASE  DISEMBARK  IMMEDIATELY.",$00
@@ -27391,17 +27404,17 @@ science_and_salvage_rank_prefix:
 	dc.b "THE  GALACTIC  SCIENCE  AND  SALVAGE  ARCANA  RATE  YOUR  FIND  AS",$00
 mercenary_guild_rank_prefix:
 	dc.b "THE  MERCENARY  SHOCK  TROOPERS  GUILD  HAVE  CLASSED  YOU  AS",$00
-abs_0_0005CC87:
+mercenary_rank_dog_meat_message:
 	dc.b ". . DOG  MEAT . .",$00
-abs_0_0005CC99:
+mercenary_rank_killer_message:
 	dc.b ". . KILLER . .",$00
-abs_0_0005CCA8:
+mercenary_rank_assassin_message:
 	dc.b ". . ASSASSIN . .",$00
-abs_0_0005CCB9:
+mercenary_rank_ruthless_message:
 	dc.b ". . RUTHLESS . .",$00
-abs_0_0005CCCA:
+mercenary_rank_mad_psycho_message:
 	dc.b ". . MAD  PSYCHO . .",$00
-abs_0_0005CCDE:
+mercenary_rank_son_of_satan_message:
 	dc.b ". . SON  OF  SATAN . .",$00
 	dc.b ". . QUITE  USEFUL . .",$00
 	dc.b ". . EXTREMELY  USEFUL . .",$00

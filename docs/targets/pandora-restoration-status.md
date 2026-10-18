@@ -4554,3 +4554,29 @@ receipt c6b7d374f3711a317f3aa54ad1336e01cfeb5dbeebfad4009c6e6e44ee9e757d.
 Five new typed-media tests, 40 existing package/policy tests, one full native/vasm
 integration case and 820 native checks passed. Details and asset hashes:
 `docs/validation/pandora-typed-media-incbin.json`.
+
+### Outcome and rank selection
+
+The connected outcome selector now names eleven branch stages and six literal
+mercenary rating messages. Eight shared threshold/index constants replace ten
+matching literals. The existing numeric salvage pointer table remains intact.
+Nine new unpatched original-code CPU tests call the real status FIFO routines.
+They cover all 256 self-destruct BYTE values across escape and zero/nonzero Earth
+deadline inputs, all 256 defeat counts, all 128 prelatched event bytes, all 256
+wrapping salvage counts with four duplicate eligible items, all 256 held IDs on
+the posthumous path, repeated calls and queue occupancies 0/14/15/16.
+
+The latch precedes all work. Negative self-destruct state takes priority; the
+Earth WORD is tested for zero only. Exactly four carried IDs contribute, with
+duplicates and BYTE wrap. Escape with count >= 6 selects science rating
+min(count-6,4); otherwise mercenary thresholds are 5/10/12/14/18. Non-escape
+always selects posthumous mercenary and sets bit 1 of the held-item ID, not
+player flags. Full FIFO does not undo these effects; final rating still replaces
+the shared duration. These are explicit copied-view CPU inputs, not a claim of
+ordinary-gameplay reachability.
+
+All 376,832 bytes match the original through C and vasm. Prior comments, types,
+owner bounds, 126 assets, SDK and pointer expressions, raw gaps and histories
+remain preserved. See `docs/validation/pandora-outcome-ranks.json` for native
+coordinates, incoming references, test domains and the verification receipt.
+Unselected atlas semantic use remains unknown.
