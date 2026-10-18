@@ -4638,3 +4638,23 @@ gameplay or hardware claim. C and vasm match all 376,832 original bytes, receipt
 and histories are preserved. All 126 assets, 2,112 typed tile fields and the
 128-byte INCBIN policy remain intact; atlas gameplay use stays unknown. Unchanged
 framework, console/outcome and package checks are reused; no new framework code.
+
+### NPC feedback and secondary playback
+
+Accepted 73 connected annotations for four feedback bodies and the secondary
+voice producer/dispatcher/service: branch names, typed field/sizeof constants,
+SDK AUDx writes and the 41-byte gardener message. Thirteen original-code tests in
+`tests/test_pandora_feedback_playback.py` cover byte gates/counters/selectors,
+Wackobrain's 43 declared headers, shared-channel preemption and real expiry/reset
+paths, envelope/period boundaries and the paired interval WORD copy. Wackobrain
+restarts on every eligible matching-geometry visit; the other handlers share
+channel-2 ticks, and inactive reset can retain a pending nonzero count. Expiry
+precedes update-disable; signed period clamping affects only the register write.
+Sequence $214 has only its self-loop in current incoming references; external
+use remains unknown. RAM/MMIO shadows establish no DMA, audible output or ordinary
+gameplay call order. Before target mutation, an actual 26-byte instruction image
+preflighted all EQU, zero-word/indexed-field and SDK forms through C and vasm.
+Full-target C/vasm reproduces all 376,832 bytes, receipt `e3550d98e205676d94c1181fdd2315846eae564cc504c78c2f5be09e0a729330`.
+Prior annotations, field/type/owner bounds, SDK/pointer forms and histories pass
+preservation; all 126 assets, 2,112 typed tile fields and compact 128-byte INCBIN
+policy remain unchanged. Earlier unchanged checks are reused; atlas use is unknown.

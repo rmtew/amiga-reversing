@@ -901,7 +901,17 @@ ASCII_CARRIAGE_RETURN	EQU	13
 ASCII_CASE_FOLD_BIT	EQU	5
 ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
+AUDIO_CHANNEL_REGISTER_BYTES	EQU	ac_SIZEOF
 AUDIO_PLAYER_MODE_PROXIMITY	EQU	2
+AUDIO_SECONDARY_CONFIGURATION_BYTES	EQU	audio_sequence_channel_configuration_SIZEOF
+AUDIO_SECONDARY_CONFIGURATION_LAST_WORD	EQU	AUDIO_SECONDARY_CONFIGURATION_BYTES/2-1
+AUDIO_SECONDARY_DMA_CONFIGURATION_BYTES	EQU	audio_channel_dma_configuration_SIZEOF
+AUDIO_SECONDARY_DMA_ENABLE_MASK	EQU	DMAF_SETCLR|DMAF_MASTER
+AUDIO_SECONDARY_DMA_START_PENDING_DISP	EQU	audio_channel_dma_configuration_start_pending
+AUDIO_SECONDARY_MINIMUM_REGISTER_PERIOD	EQU	124
+AUDIO_SECONDARY_PRIME_LENGTH_WORDS	EQU	64
+AUDIO_SECONDARY_START_DELAY_INITIAL_COUNT	EQU	512
+AUDIO_SECONDARY_STATE_BYTES	EQU	audio_channel_playback_state_SIZEOF
 BITMAP_PIXELS_PER_BYTE_SHIFT	EQU	3
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 BLITTER_A_OR_C_MINTERM	EQU	ABC|ABNC|ANBC|ANBNC|NABC|NANBC
@@ -969,6 +979,7 @@ DMAF_CLRALL	EQU	$7FFF
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
 ESCAPE_AUDIO_PLAYER_MODE	EQU	1
+FEEDBACK_AUDIO_SEQUENCE_214	EQU	$214
 FRAMEBUFFER_BANK0_BASE	EQU	$70000
 FRAMEBUFFER_BANK1_BASE	EQU	$78000
 FRAMEBUFFER_LAST_RASTER_ROW	EQU	199
@@ -986,6 +997,7 @@ GAME_EVENT_MOBIAN_BRAIN_HEAL_LATCH_BIT	EQU	0
 GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
+GARDENER_FEEDBACK_AUDIO_SEQUENCE	EQU	$217
 ID_FAILURE_OR_HANDOFF_AUDIO_SEQUENCE	EQU	$102
 ID_POSSESSION_VARIANT_COUNT	EQU	8
 INPUT_DIRECTION_DOWN_BIT	EQU	1
@@ -1106,6 +1118,7 @@ KEYBOARD_PAUSE_KEY_STATE	EQU	$39CC
 KEYBOARD_STATE_BASE	EQU	$397C
 MASKED_FRAME_COPY_CONTROL	EQU	SRCA|SRCB|SRCC|DEST|BLITTER_COOKIE_CUT_MINTERM
 MASKED_FRAME_PLANE_COUNT_SHIFT	EQU	2
+MENIAL_DROID_FEEDBACK_AUDIO_SEQUENCE	EQU	$213
 MERCENARY_ASSASSIN_MINIMUM_DEFEATS	EQU	10
 MERCENARY_KILLER_MINIMUM_DEFEATS	EQU	5
 MERCENARY_MAD_PSYCHO_MINIMUM_DEFEATS	EQU	14
@@ -1290,6 +1303,7 @@ VIEW_CLIP_LEFT_BIT	EQU	$2
 VIEW_CLIP_REJECT	EQU	$F
 VIEW_CLIP_RIGHT_BIT	EQU	$3
 VIEW_CLIP_TOP_BIT	EQU	$0
+WACKOBRAIN_FEEDBACK_AUDIO_SEQUENCE	EQU	$8
 WORK_BUFFER_PALETTE_INPUT_BASE	EQU	UI_HIT_BACKGROUND_STORAGE+$2E0
 WORLD_CMD_ADD_X	EQU	0
 WORLD_CMD_ADD_Y	EQU	1
@@ -1338,6 +1352,7 @@ WORLD_OBJECT_TRADE_COMBAT_DISABLED_BIT	EQU	4
 WORLD_OBJECT_TRADE_OFFER_READY_BIT	EQU	3
 WORLD_POSITION_SECURITY_CHECKPOINT_BIT	EQU	7
 WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOINT_BIT)|$08
+WORLD_POSITION_CURRENT_GEOMETRY_DISP	EQU	world_position_state_record_current_geometry_ptr
 WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
@@ -24521,8 +24536,8 @@ world_object_gardener:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_gardener	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005CE5B	; context_message_ptr
-	dc.l abs_0_0005CE5B	; interaction_message_ptr
+	dc.l gardener_bloop_message	; context_message_ptr
+	dc.l gardener_bloop_message	; interaction_message_ptr
 	dc.l gardener_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
 	dc.l gardener_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -27468,10 +27483,8 @@ abs_0_0005CE38:
 	dc.b $22,$48,$41,$20,$48,$41,$20,$48,$41,$20,$48,$41,$20,$48,$41,$20
 	dc.b $48,$45,$20,$48,$45,$20,$48,$45,$20,$48,$45,$20,$48,$45,$20,$48
 	dc.b $45,$22,$00
-abs_0_0005CE5B:
-	dc.b $22,$42,$4C,$4F,$4F,$50,$31,$30,$30,$31,$31,$31,$31,$30,$42,$4C
-	dc.b $45,$45,$50,$42,$4C,$4F,$4F,$50,$42,$45,$45,$50,$30,$30,$30,$30
-	dc.b $31,$31,$31,$30,$31,$30,$31,$22,$00
+gardener_bloop_message:
+	dc.b $22,"BLOOP10011110BLEEPBLOOPBEEP00001110101",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 chemist_reading_request_message:
 	dc.b $22,"I",$22,"d like some good reading, if you have any.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 chemist_winter_discontent_quote:
@@ -27688,77 +27701,79 @@ return_without_technician_item_response:
     ; Poll the listed animation targets and maintain feedback pending state. Audio may start, but every normal return clears carry; the dispatcher skips the +$10 message.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_wackobrain:
-	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_0005D460
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
+	bne.b return_from_wackobrain_feedback
 	bset.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
-	bne.b abs_0_0005D464
-	moveq.l #8,d0
+	bne.b poll_fixed_wackobrain_current_geometry
+	moveq.l #WACKOBRAIN_FEEDBACK_AUDIO_SEQUENCE,d0
 	bsr.w start_feedback_audio_sequence
-abs_0_0005D460:
+return_from_wackobrain_feedback:
 	move.w d0,d0
 	rts
-abs_0_0005D464:
+    ; Poll the fixed Wackobrain descriptor current geometry, independently of A5. Matching any of four headers restarts on every eligible visit, even if geometry stays unchanged.
+poll_fixed_wackobrain_current_geometry:
 	movea.l wackobrain_actor_positions_49492_2.l,a0
-	movea.l $0000(a0),a0
+	movea.l WORLD_POSITION_CURRENT_GEOMETRY_DISP.w(a0),a0
 	cmpa.l #wackobrain_actor_frames_49492_1,a0
-	beq.b abs_0_0005D48E
+	beq.b restart_wackobrain_feedback_at_matching_geometry
 	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_10,a0
-	beq.b abs_0_0005D48E
+	beq.b restart_wackobrain_feedback_at_matching_geometry
 	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_17,a0
-	beq.b abs_0_0005D48E
+	beq.b restart_wackobrain_feedback_at_matching_geometry
 	cmpa.l #wackobrain_actor_frames_49492_1_bitplane_data_ptr_24,a0
-	bne.b abs_0_0005D460
-abs_0_0005D48E:
+	bne.b return_from_wackobrain_feedback
+restart_wackobrain_feedback_at_matching_geometry:
 	bclr.b #INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING,app_world_interaction_flags(a6)
 	bra.b interact_with_wackobrain
     ; UI flag bit 1 inhibits starting feedback. Pending feedback polls channel-2 ticks. Audio or pending state can change, but every normal return clears carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_menial_droid:
-	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_0005D4B0
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
+	bne.b return_from_menial_droid_feedback
 	bset.b #INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
-	bne.b abs_0_0005D4B4
-	move.w #$213,d0
+	bne.b poll_menial_droid_secondary_voice_ticks
+	move.w #MENIAL_DROID_FEEDBACK_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_0005D4B0:
+return_from_menial_droid_feedback:
 	move.w d0,d0
 	rts
-abs_0_0005D4B4:
+    ; All three pending handlers poll the same channel-2 tick BYTE, without testing active. A clear pending bit starts immediately and can replace another handler voice; other pending bits persist.
+poll_menial_droid_secondary_voice_ticks:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
-	bne.b abs_0_0005D4B0
+	bne.b return_from_menial_droid_feedback
 	bclr.b #INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_menial_droid
     ; UI flag bit 1 inhibits starting feedback. Pending feedback polls channel-2 ticks. Audio or pending state can change, but every normal return clears carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_gardener:
-	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_0005D4DE
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
+	bne.b return_from_gardener_feedback
 	bset.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bne.b update_gardener_feedback_audio
-	move.w #$217,d0
+	move.w #GARDENER_FEEDBACK_AUDIO_SEQUENCE,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_0005D4DE:
+return_from_gardener_feedback:
 	move.w d0,d0
 	rts
 update_gardener_feedback_audio:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
-	bne.b abs_0_0005D4DE
+	bne.b return_from_gardener_feedback
 	bclr.b #INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b interact_with_gardener
 update_interaction_audio_sequence_214:
-	btst.b #1,app_ui_flags(a6)
-	bne.b abs_0_0005D50C
-	bset.b #3,app_world_interaction_audio_flags(a6)
-	bne.b abs_0_0005D510
-	move.w #$214,d0
+	btst.b #UI_FLAG_COMBAT_ACTIVE,app_ui_flags(a6)
+	bne.b return_from_sequence_214_feedback
+	bset.b #INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING,app_world_interaction_audio_flags(a6)
+	bne.b poll_sequence_214_secondary_voice_ticks
+	move.w #FEEDBACK_AUDIO_SEQUENCE_214,d0
 	jsr start_feedback_audio_sequence.l
-abs_0_0005D50C:
+return_from_sequence_214_feedback:
 	move.w d0,d0
 	rts
-abs_0_0005D510:
+poll_sequence_214_secondary_voice_ticks:
 	tst.b audio_channel_playback_states_playback_ticks_remaining_2.l
-	bne.b abs_0_0005D50C
-	bclr.b #3,app_world_interaction_audio_flags(a6)
+	bne.b return_from_sequence_214_feedback
+	bclr.b #INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING,app_world_interaction_audio_flags(a6)
 	bra.b update_interaction_audio_sequence_214
     ; This object must hold the squash ball and its latch must be clear. The shared tail writes cooldown 250 and sets carry; other paths clear carry.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
@@ -28865,32 +28880,33 @@ start_audio_sequence:
 	moveq.l #0,d7
 	lea.l audio_channel_dma_configurations(pc),a4
 	move.b audio_effect_channel_index(pc),d7
-	mulu.w #$C,d7
-	st.b $B(a4,d7.w)
+	mulu.w #AUDIO_SECONDARY_DMA_CONFIGURATION_BYTES,d7
+	st.b AUDIO_SECONDARY_DMA_START_PENDING_DISP(a4,d7.w)
 	ext.w d0
-	mulu.w #$16,d0
+	mulu.w #AUDIO_SECONDARY_CONFIGURATION_BYTES,d0
 	lea.l audio_channel_playback_states(pc),a1
 	moveq.l #1,d2
 	lea.l _custom+aud0+ac_len.l,a0
 	move.b audio_effect_channel_index(pc),d1
-abs_0_0005E430:
+advance_to_selected_secondary_audio_channel:
 	subq.b #1,d1
-	bmi.b abs_0_0005E440
-	adda.w #$26,a1
+	bmi.b prime_selected_secondary_voice
+	adda.w #AUDIO_SECONDARY_STATE_BYTES,a1
 	add.w d2,d2
-	adda.w #$10,a0
-	bra.b abs_0_0005E430
-abs_0_0005E440:
+	adda.w #AUDIO_CHANNEL_REGISTER_BYTES,a0
+	bra.b advance_to_selected_secondary_audio_channel
+prime_selected_secondary_voice:
 	sf.b audio_channel_playback_state_active(a1)
 	move.w d2,_custom+dmacon.l
-	move.w #$40,(a0)
+	move.w #AUDIO_SECONDARY_PRIME_LENGTH_WORDS,(a0)
 	lea.l audio_sequence_channel_configurations(pc),a0
 	adda.w d0,a0
 	movea.l a1,a2
-	moveq.l #10,d0
-abs_0_0005E458:
+	moveq.l #AUDIO_SECONDARY_CONFIGURATION_LAST_WORD,d0
+copy_next_secondary_voice_configuration_word:
 	move.w (a0)+,(a1)+
-	dbf.w d0,abs_0_0005E458
+	dbf.w d0,copy_next_secondary_voice_configuration_word
+    ; This WORD copies both adjacent interval BYTEs into the reset and delta countdown BYTEs. Preserve the two individual field types and the original paired access.
 	move.w audio_channel_playback_state_period_reset_interval(a2),audio_channel_playback_state_period_reset_countdown(a2)
 	move.b #$1,audio_channel_playback_state_sequence_countdown(a2)
 	move.b audio_channel_playback_state_sequence_index(a2),d0
@@ -28900,9 +28916,9 @@ abs_0_0005E458:
 	movea.w $0(a0,d0.w),a0
 	adda.l a3,a0
 	move.l a0,audio_channel_playback_state_volume_sequence_cursor(a2)
-	move.w #$200,d0
-abs_0_0005E484:
-	dbf.w d0,abs_0_0005E484
+	move.w #AUDIO_SECONDARY_START_DELAY_INITIAL_COUNT,d0
+wait_secondary_voice_start_delay:
+	dbf.w d0,wait_secondary_voice_start_delay
 	st.b audio_channel_playback_state_active(a2)
 	rts
 advance_audio_shift_state:
@@ -28919,111 +28935,114 @@ audio_shift_state_words:
 	dc.w $6F80,$1B34	; mutable_audio_shift_state
 dispatch_audio_channel_updates:
 	bsr.b advance_audio_shift_state
+    ; Known service calls supply A0=_custom+16*channel, A1=the 38-byte playback state and A4=the 12-byte DMA configuration. The shared AUD0 offsets therefore address the selected AUDx.
 	lea.l audio_channel_playback_states(pc),a1
 	tst.b audio_channel_playback_state_active(a1)
-	beq.b abs_0_0005E4C8
+	beq.b dispatch_secondary_audio_channel_1
 	lea.l _custom.l,a0
 	moveq.l #1,d2
 	lea.l audio_channel_dma_configurations(pc),a4
 	bsr.b service_audio_channel_playback
-abs_0_0005E4C8:
+dispatch_secondary_audio_channel_1:
 	lea.l audio_channel_playback_states_period_delta_1(pc),a1
 	tst.b audio_channel_playback_state_active(a1)
-	beq.b abs_0_0005E4E0
+	beq.b dispatch_secondary_audio_channel_2
 	lea.l _custom+adkconr.l,a0
 	moveq.l #2,d2
 	lea.l audio_channel_dma_configurations_sample_ptr_1(pc),a4
 	bsr.b service_audio_channel_playback
-abs_0_0005E4E0:
+dispatch_secondary_audio_channel_2:
 	lea.l audio_channel_playback_states_period_delta_2(pc),a1
 	tst.b audio_channel_playback_state_active(a1)
-	beq.b abs_0_0005E4F8
+	beq.b dispatch_secondary_audio_channel_3
 	lea.l _custom+dskpt.l,a0
 	moveq.l #4,d2
 	lea.l audio_channel_dma_configurations_sample_ptr_2(pc),a4
 	bsr.b service_audio_channel_playback
-abs_0_0005E4F8:
+dispatch_secondary_audio_channel_3:
 	lea.l audio_channel_playback_states_period_delta_3(pc),a1
 	tst.b audio_channel_playback_state_active(a1)
-	beq.b abs_0_0005E510
+	beq.b return_from_secondary_audio_dispatch
 	lea.l _custom+serdat.l,a0
 	moveq.l #8,d2
 	lea.l audio_channel_dma_configurations_sample_ptr_3(pc),a4
 	bsr.b service_audio_channel_playback
-abs_0_0005E510:
+return_from_secondary_audio_dispatch:
 	rts
+    ; Duration decrements before update-disable. One expires; zero wraps to 255. Expiry clears software active/pending, then may reinstall the saved DMA configuration.
 service_audio_channel_playback:
 	subq.b #1,audio_channel_playback_state_playback_ticks_remaining(a1)
-	bne.b abs_0_0005E550
+	bne.b test_secondary_voice_update_disabled
 	sf.b audio_channel_playback_state_active(a1)
 	move.w d2,_custom+dmacon.l
 	sf.b audio_channel_dma_configuration_start_pending(a4)
 	tst.b audio_channel_dma_configuration_enabled(a4)
-	beq.b abs_0_0005E54E
+	beq.b return_after_secondary_voice_expiry
 	move.l audio_channel_dma_configuration_sample_ptr.w(a4),aud0+ac_ptr(a0)	; sound_sample pointer
 	move.w audio_channel_dma_configuration_sample_length(a4),aud0+ac_len(a0)
 	move.w audio_channel_dma_configuration_sample_period(a4),aud0+ac_per(a0)	; audio period
 	move.w audio_channel_dma_configuration_sample_volume(a4),aud0+ac_vol(a0)
-	ori.w #33280,d2
+	ori.w #AUDIO_SECONDARY_DMA_ENABLE_MASK,d2
 	move.w d2,_custom+dmacon.l
-abs_0_0005E54E:
+return_after_secondary_voice_expiry:
 	rts
-abs_0_0005E550:
+test_secondary_voice_update_disabled:
 	tst.b audio_channel_playback_state_update_disabled(a1)
-	beq.b abs_0_0005E558
+	beq.b service_secondary_period_delta_pair
 	rts
-abs_0_0005E558:
+service_secondary_period_delta_pair:
 	tst.b audio_channel_playback_state_period_delta_interval(a1)
-	beq.b abs_0_0005E580
+	beq.b apply_secondary_period_delta_and_reset
 	subq.b #1,audio_channel_playback_state_period_delta_countdown(a1)
-	bne.b abs_0_0005E580
+	bne.b apply_secondary_period_delta_and_reset
 	move.b audio_channel_playback_state_period_delta_interval(a1),audio_channel_playback_state_period_delta_countdown(a1)
 	move.l audio_channel_playback_state_period_delta_step_pair(a1),d0
 	move.b audio_channel_playback_state_period_delta_select(a1),d1
 	ror.b #1,d1
-	bcs.b abs_0_0005E578
+	bcs.b store_secondary_period_pair_phase
 	swap.w d0
-abs_0_0005E578:
+store_secondary_period_pair_phase:
 	move.b d1,audio_channel_playback_state_period_delta_select(a1)
 	add.w d0,audio_channel_playback_state_current_period(a1)
-abs_0_0005E580:
+apply_secondary_period_delta_and_reset:
 	move.w audio_channel_playback_state_period_delta.w(a1),d1
 	add.w d1,audio_channel_playback_state_current_period(a1)
 	tst.b audio_channel_playback_state_period_reset_interval(a1)
-	beq.b abs_0_0005E5A0
+	beq.b service_secondary_volume_envelope
 	subq.b #1,audio_channel_playback_state_period_reset_countdown(a1)
-	bne.b abs_0_0005E5A0
+	bne.b service_secondary_volume_envelope
 	move.b audio_channel_playback_state_period_reset_interval(a1),audio_channel_playback_state_period_reset_countdown(a1)
 	move.w audio_channel_playback_state_period_reset_value(a1),audio_channel_playback_state_current_period(a1)
-abs_0_0005E5A0:
+service_secondary_volume_envelope:
 	subq.b #1,audio_channel_playback_state_sequence_countdown(a1)
-	bne.b abs_0_0005E5BE
+	bne.b clamp_secondary_register_period
 	move.b audio_channel_playback_state_sequence_interval(a1),audio_channel_playback_state_sequence_countdown(a1)
 	movea.l audio_channel_playback_state_volume_sequence_cursor(a1),a2
     ; Secondary envelope: negative byte retains pointer and previous volume. Reload H gives H eligible service visits (zero wraps 256), unlike primary H+1; duration/update-disable gates apply.
 	move.b (a2)+,d0
-	bmi.b abs_0_0005E5BE
+	bmi.b clamp_secondary_register_period
 	move.l a2,audio_channel_playback_state_volume_sequence_cursor(a1)
 	ext.w d0
-	move.w d0,$00A8(a0)
-abs_0_0005E5BE:
+	move.w d0,aud0+ac_vol(a0)
+    ; Signed WORD values below 124, including $8000..$FFFF, write period 124. The wrapped stored period is not clamped; this bound applies only to the hardware register write.
+clamp_secondary_register_period:
 	move.w audio_channel_playback_state_current_period(a1),d1
-	cmp.w #$7C,d1
-	bge.b abs_0_0005E5CA
-	moveq.l #124,d1
-abs_0_0005E5CA:
-	move.w d1,$00A6(a0)
+	cmp.w #AUDIO_SECONDARY_MINIMUM_REGISTER_PERIOD,d1
+	bge.b write_secondary_register_period
+	moveq.l #AUDIO_SECONDARY_MINIMUM_REGISTER_PERIOD,d1
+write_secondary_register_period:
+	move.w d1,aud0+ac_per(a0)	; audio period
 	move.l audio_channel_playback_state_sample_address_offset_pair(a1),d1
 	move.b audio_channel_playback_state_sample_address_offset_select(a1),d0
 	ror.b #1,d0
-	bcs.b abs_0_0005E5DC
+	bcs.b store_secondary_sample_offset_phase
 	swap.w d1
-abs_0_0005E5DC:
+store_secondary_sample_offset_phase:
 	move.b d0,audio_channel_playback_state_sample_address_offset_select(a1)
 	movea.l audio_sample_address_base(pc),a1
 	adda.w d1,a1
-	move.l a1,$00A0(a0)
-	ori.w #33280,d2
+	move.l a1,aud0+ac_ptr(a0)	; sound_sample pointer
+	ori.w #AUDIO_SECONDARY_DMA_ENABLE_MASK,d2
 	move.w d2,_custom+dmacon.l
 	rts
 audio_channel_playback_states:
