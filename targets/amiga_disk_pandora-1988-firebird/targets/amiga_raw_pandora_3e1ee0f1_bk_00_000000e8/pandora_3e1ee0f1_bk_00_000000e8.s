@@ -1058,12 +1058,14 @@ WORLD_DEPTH_SORT_LAST_INDEX	EQU	WORLD_DEPTH_SORT_DESCRIPTOR_COUNT-1
 WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
+WORLD_OBJECT_SCRIPT_TRAVERSAL_BLOCK_MASK	EQU	$42
 WORLD_POSITION_SECURITY_CHECKPOINT_BIT	EQU	7
 WORLD_POSITION_CHECKPOINT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_SECURITY_CHECKPOINT_BIT)|$08
 WORLD_POSITION_FRONT_GROUP_BIT	EQU	6
 WORLD_POSITION_FRONT_INITIAL_FLAGS	EQU	(1<<WORLD_POSITION_FRONT_GROUP_BIT)|$02
 WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
+WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
 _ciaa	EQU	$BFE001
 _custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
@@ -1317,7 +1319,7 @@ setup_runtime_hardware_and_display:
 	bsr.w abs_0_0001079E
 	jsr initialize_player_and_fixed_animation_nodes.l
 	bsr.w run_eligible_world_object_scripts
-	bsr.w abs_0_000124F0
+	bsr.w repeat_inherited_object_xy_copy_for_world_table
 	bsr.w advance_active_descriptor_animation_chains
 	bsr.w update_nearby_object_detection
 	bsr.w snapshot_entity_draw_state
@@ -5381,55 +5383,55 @@ robomechanic_script_command_003A:
 	dc.l world_object_robomechanic_behavior_script	; target_pointer
 process_active_world_object_chains:
 	move.l app_active_world_object_ptr_table(a6),d0
-	beq.b abs_0_00012488
+	beq.b return_from_counted_descriptor_draw
 	movea.l d0,a1
 	move.w active_world_object_count(a6),d7
-	beq.b abs_0_00012488
+	beq.b return_from_counted_descriptor_draw
 	subq.w #1,d7
-abs_0_00012476:
+draw_next_counted_descriptor_chain:
 	movea.l (a1)+,a0
 	movem.l d7/a1,-(a7)
 	bsr.w draw_entity_geometry_chain
 	movem.l (a7)+,d7/a1
-	dbf.w d7,abs_0_00012476
-abs_0_00012488:
+	dbf.w d7,draw_next_counted_descriptor_chain
+return_from_counted_descriptor_draw:
 	rts
 update_active_world_object_tile_regions:
 	move.l app_active_world_object_ptr_table(a6),d0
-	beq.b abs_0_000124AC
+	beq.b return_from_counted_background_restore
 	movea.l d0,a1
 	move.w active_world_object_count(a6),d7
-	beq.b abs_0_00012488
+	beq.b return_from_counted_descriptor_draw
 	subq.w #1,d7
-abs_0_0001249A:
+restore_next_counted_descriptor_background:
 	movea.l (a1)+,a0
 	movem.l d7/a1,-(a7)
 	bsr.w restore_entity_background
 	movem.l (a7)+,d7/a1
-	dbf.w d7,abs_0_0001249A
-abs_0_000124AC:
+	dbf.w d7,restore_next_counted_descriptor_background
+return_from_counted_background_restore:
 	rts
     ; Save current XY and geometry pointers as the footprint used by dirty-tile restoration.
 snapshot_entity_draw_state:
 	move.l app_active_world_object_ptr_table(a6),d0
-	beq.b abs_0_000124DE
+	beq.b return_from_draw_state_snapshot
 	movea.l d0,a0
 	move.w active_world_object_count(a6),d7
-	beq.b abs_0_000124DE
+	beq.b return_from_draw_state_snapshot
 	subq.w #1,d7
-abs_0_000124BE:
+snapshot_next_counted_descriptor:
 	movea.l (a0)+,a1
 	move.l world_position_descriptor_prefix_world_x(a1),world_position_descriptor_prefix_previous_world_x(a1)
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
-	beq.b abs_0_000124DA
-abs_0_000124CC:
+	beq.b advance_snapshot_descriptor_count
+snapshot_next_attachment_geometry:
 	movea.l d0,a2
 	move.l world_position_state_record_current_geometry_ptr.w(a2),world_position_state_record_previous_geometry_ptr(a2)
 	move.l world_position_state_record_attachment_state_ptr(a2),d0
-	bne.b abs_0_000124CC
-abs_0_000124DA:
-	dbf.w d7,abs_0_000124BE
-abs_0_000124DE:
+	bne.b snapshot_next_attachment_geometry
+advance_snapshot_descriptor_count:
+	dbf.w d7,snapshot_next_counted_descriptor
+return_from_draw_state_snapshot:
 	rts
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 copy_world_object_xy_to_position_descriptor:
@@ -5437,59 +5439,62 @@ copy_world_object_xy_to_position_descriptor:
 	movea.l world_object_shared_prefix_position_descriptor_ptr(a5),a0
 	move.l world_object_shared_prefix_world_x(a5),world_position_descriptor_prefix_world_x(a0)
 	movea.l (a7)+,a0
-abs_0_000124EE:
+return_from_world_object_xy_copy:
 	rts
-    ; This loop advances A0 through the pointer table while the callee selects A5. The entries do not update A5; its object input is inherited.
-abs_0_000124F0:
+    ; Walk A1 over the NULL-terminated object table; A0 receives each entry, but the callee copies XY from inherited A5. Entries do not select A5.
+repeat_inherited_object_xy_copy_for_world_table:
 	lea.l world_object_ptr_table(pc),a1
-abs_0_000124F4:
+read_next_world_pointer_for_xy_copy:
 	move.l (a1)+,d0
-	beq.b abs_0_000124EE
+	beq.b return_from_world_object_xy_copy
 	movea.l d0,a0
 	bsr.b copy_world_object_xy_to_position_descriptor
-	bra.b abs_0_000124F4
+	bra.b read_next_world_pointer_for_xy_copy
 advance_active_descriptor_animation_chains:
 	move.l app_active_world_object_ptr_table(a6),d0
-	beq.b abs_0_0001253A
+	beq.b return_from_counted_descriptor_animation
 	move.w active_world_object_count(a6),d7
-	beq.b abs_0_0001253A
+	beq.b return_from_counted_descriptor_animation
 	movea.l d0,a0
 	subq.w #1,d7
-abs_0_0001250E:
+animate_next_counted_descriptor:
 	movea.l (a0)+,a1
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
-	beq.b abs_0_00012536
+	beq.b advance_animation_descriptor_count
 	movea.l d0,a4
 	movem.l d7/a0,-(a7)
-abs_0_0001251C:
-	btst.b #0,$0018(a4)
-	bne.b abs_0_00012528
+    ; KNOWN: type A4=Target code-entry register seed:world_position_state_record
+test_attachment_animation_visibility:
+	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a4)
+	bne.b read_next_animation_attachment
 	bsr.w advance_entity_animation
-abs_0_00012528:
-	move.l $0014(a4),d0
-	beq.b abs_0_00012532
+    ; KNOWN: type A4=Target code-entry register seed:world_position_state_record
+read_next_animation_attachment:
+	move.l world_position_state_record_attachment_state_ptr(a4),d0
+	beq.b restore_animation_traversal_loop_state
 	movea.l d0,a4
-	bra.b abs_0_0001251C
-abs_0_00012532:
+	bra.b test_attachment_animation_visibility
+restore_animation_traversal_loop_state:
 	movem.l (a7)+,d7/a0
-abs_0_00012536:
-	dbf.w d7,abs_0_0001250E
-abs_0_0001253A:
+advance_animation_descriptor_count:
+	dbf.w d7,animate_next_counted_descriptor
+return_from_counted_descriptor_animation:
 	rts
 run_eligible_world_object_scripts:
 	lea.l world_object_ptr_table(pc),a0
-abs_0_00012540:
+read_next_world_object_for_script_service:
 	move.l (a0)+,d0
-	beq.b abs_0_0001255C
+	beq.b return_from_world_script_traversal
 	movea.l d0,a5
-	move.b $0048(a5),d0
-	andi.b #66,d0
-	bne.b abs_0_00012540
+    ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
+	move.b world_object_shared_prefix_world_object_flags(a5),d0
+	andi.b #WORLD_OBJECT_SCRIPT_TRAVERSAL_BLOCK_MASK,d0
+	bne.b read_next_world_object_for_script_service
 	move.l a0,-(a7)
 	jsr run_world_object_behavior_script.l
 	movea.l (a7)+,a0
-	bra.b abs_0_00012540
-abs_0_0001255C:
+	bra.b read_next_world_object_for_script_service
+return_from_world_script_traversal:
 	rts
 add_rgb12_color_components:
 	movem.l d1-d6,-(a7)
@@ -8996,7 +9001,7 @@ draw_entity_geometry:
 	bsr.w clip_tile_region_to_view
 	cmp.b #VIEW_CLIP_REJECT,d4
 	beq.w mark_geometry_outside_view
-	bclr.b #0,world_position_state_record_interaction_flags(a0)
+	bclr.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a0)
     ; Clip preserves A2 geometry, A4 mask and A3 pixels. Computed top skip advances mask by 2*stride_words*skip and four-plane pixels by four times that. Original +1 is retained.
 	move.w world_position_collision_bounds_world_y_extent(a2),d7
 	tst.b d4
@@ -9170,7 +9175,7 @@ draw_geometry_return:
 	movem.l (a7)+,a0/a5
 	rts
 mark_geometry_outside_view:
-	bset.b #0,world_position_state_record_interaction_flags(a0)
+	bset.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a0)
 	bra.b draw_geometry_return
 draw_geometry_fully_visible:
 	bra.b draw_geometry_horizontal_span_setup
@@ -10093,7 +10098,7 @@ abs_0_00017E04:
 	move.l world_position_descriptor_prefix_position_state_ptr.w(a1),d0
 	beq.w abs_0_00017F02
 	movea.l d0,a2
-	btst.b #0,world_position_state_record_interaction_flags(a2)
+	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a2)
 	bne.w abs_0_00017F02
 	btst.b #4,world_position_state_record_world_object_flags(a2)
 	bne.w abs_0_00017F08
@@ -11585,7 +11590,7 @@ match_ranged_hit_descriptor_to_world_object:
 	cmpa.l world_object_shared_prefix_position_descriptor_ptr(a5),a1
 	bne.b match_ranged_hit_descriptor_to_world_object
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
-	btst.b #0,world_position_state_record_interaction_flags(a0)
+	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a0)
 	bne.b abs_0_000193A4
 	bsr.w activate_ranged_hit_visual_and_return_descriptor
     ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix
@@ -11639,7 +11644,7 @@ handle_ranged_effect_blocked_tile:
 	rts
 handle_ranged_hit_without_world_object:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a1),a0
-	btst.b #0,world_position_state_record_interaction_flags(a0)
+	btst.b #WORLD_STATE_OUTSIDE_VIEW_BIT,world_position_state_record_interaction_flags(a0)
 	bne.b abs_0_0001942E
 	bsr.w activate_ranged_hit_visual_and_return_descriptor
     ; KNOWN: type A1=Target code-entry register seed:world_position_descriptor_prefix

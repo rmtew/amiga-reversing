@@ -3571,3 +3571,39 @@ and runtime anchors, five grounded register seeds and 32 operand presentations.
 Original annotations and all 86 assets are preserved. C and independent vasm
 reproduce all 376,832 original bytes, receipt
 `0b1854723ec06b09bf3c35cca5f88e29baefe866bab6f6edf012e49ef01e64c5`.
+
+## Counted descriptor and world-table traversal family
+
+Nineteen local block names complete the seven connected draw, background,
+snapshot, XY-copy, animation and script-traversal routines. Three grounded
+register facts expose the animation attachment/flag fields and script object's
+flags, including the retained A4 owner after direct animation update.
+The shared outside-view flag is named at both geometry producers and all four
+known consumers; the script wrapper's complete flag-1/flag-6 mask is symbolic.
+No additional meaning is assigned to flag 6.
+
+Six original-code tests exercise NULL-table and zero-count exits, exact counted
+snapshot scope, linked attachment geometry, draw/restore loop-state preservation
+with empty geometry, visibility-gated animation and all 35 script-table entries.
+The XY wrapper traverses A1, assigns entries to A0, but repeatedly copies from
+inherited A5; the old comment's A0 cursor typo is corrected without claiming it
+updates every table object. Valid finite chains are test preconditions, not a
+claim of cycle or pointer guards. The script wrapper skips blocked objects before
+even servicing delay, unlike direct interpreter calls. The unreferenced background
+wrapper is named from its code; absence of direct references is not proof it is
+unreachable.
+
+The backend is unchanged; its 819 native tests and prior geometry/animation
+checks are reused. The separately deferred failing test remains
+`tests/test_c_backend.py::test_real_dll_data_block_custom_struct_unaligned_repeated_field_reassembles`.
+It uses one custom type and the Hunk renderer was unchanged by the earlier
+64-to-256 capacity adjustment: the numeric-pointer/relocation defect predates
+that adjustment and is outside this raw-image restoration family.
+
+All 32 actions are accepted: 19 block names, three grounded register seeds,
+two constants, seven operand presentations and the cursor-comment correction.
+All three recovered field uses render symbolically, and no generic local labels
+remain in the selected seven routines. Original SDK expressions/comments and
+all 86 assets are preserved; both histories retain their original prefixes.
+C and independent vasm reproduce every original byte, final receipt
+`85ce60d127764d10ed0fc559bcc42e10cd6aa50c64da1a2a877029d0f6632c66`.
