@@ -136,9 +136,9 @@ def test_static_field_seed_postincrement_advances_to_next_field_cursor(tmp_path)
 
 
 @pytest.mark.parametrize("instruction_tail", [
-    "302032104e75",  # Predecrement source remains unsupported.
+    "302032104e75",  # Predecrement enters an unmodelled prefix field gap.
     "205832104e75",  # MOVEA.L (A0)+,A0 also writes the updated base.
-    "b15832104e75",  # CMPM.W (A0)+,(A0)+ has ambiguous same-base phases.
+    "b14832104e75",  # CMPM.W (A0)+,(A0)+ has ambiguous same-base phases.
     "309832104e75",  # MOVE.W (A0)+,(A0) also uses the updated base.
     "32d832104e75",  # MOVE.W (A0)+,(A1)+ has multiple EA updates.
 ])

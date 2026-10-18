@@ -404,6 +404,14 @@ format, unused storage or relocation safety. Unclassified bytes remain excluded
 from automatic asset extraction, and existing label, expression, fixup, ORG and
 range-overlap guards still apply.
 
+Typed record cursors support bounded ordinary source reads and destination
+stores through postincrement or predecrement EAs. Generated access/width metadata
+determines the field address and signed cursor step. Field references on these
+modes are comment-only so their encoded syntax and bytes stay intact. A7,
+multi-register transfers, multiple EA updates, conflicting base uses, pointer-table
+cursors and accesses outside the known record keep their conservative boundary.
+This is type/field evidence, not memory ownership or alias-exclusion proof.
+
 Brief address-register indexed operands expose their encoded signed-byte
 `indexed_displacement` as an element. `representation.symbol` accepts only an
 equal-valued canonical target EQU; the native renderer checks the actual decoded

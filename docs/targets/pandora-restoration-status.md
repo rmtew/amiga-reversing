@@ -3607,3 +3607,51 @@ remain in the selected seven routines. Original SDK expressions/comments and
 all 86 assets are preserved; both histories retain their original prefixes.
 C and independent vasm reproduce every original byte, final receipt
 `85ce60d127764d10ed0fc559bcc42e10cd6aa50c64da1a2a877029d0f6632c66`.
+
+## RGB12 arithmetic, initial palette and transition consumers
+
+The six component/palette primitives, current-palette hardware writer and
+countdown-driven gameplay transition form one connected family. Their four
+palette loops, transition body/return and initial palette/color-two alias are
+named together. Existing six-byte `rgb12_accumulator` records are reused as four
+grounded A2 input facts. Shared masks, shifts, strides and 8/16/32-color DBF
+counts replace their supported literal operands in the primitives and callers.
+The initial gameplay palette is sixteen RGB12 WORDs; restart restores only its
+color-two WORD to AAA. The writer consumes exactly 32 bytes through eight LONG
+stores beginning at the SDK `_custom+color` address.
+
+Original arithmetic uses modulo-65536 component updates and WORD/BYTE packing,
+with no clamping; out-of-range component bits can overlap neighboring output
+bits. The leaf input D0 is ignored. Unpack copies each complete input WORD into
+the palette while only its three low nibbles become Q4 accumulators. DBF helpers
+process uint16(D7)+1 records and have no empty-count guard. Register restoration
+and output fences are explicit; arbitrary source/output aliasing is not proven.
+The title gradient's component storage still shares cursor-initializer scratch,
+and the work-buffer stack-splicing paths retain their existing reachability and
+phase-exclusion limits.
+
+Setup's counter of 25 services waits eight calls, then adds seventeen palette
+steps. The health-update latch is checked when the decremented counter reaches
+one. Five new bounded original-code tests cover 160 add/subtract cases, all 4096
+RGB12 combinations with upper input bits, six counted palette spans, all 256
+counter inputs, the complete setup countdown and initial palette/reset/writer
+fences. Source preflight exposed the source-only auto-update typing boundary.
+The bounded cursor path now also models ordinary destination stores and
+predecrement reads; generated metadata determines access roles and widths.
+Field identities remain comment-only so original EA modes and bytes survive.
+A7, multiple updates, multi-register transfers, conflicting bases and accesses
+outside the known record remain conservative boundaries. The focused negative
+fixture labeled CMPM used EOR bytes; vasm confirms the corrected CMPM encoding.
+The rebuilt backend passes all 819 native tests, 26 cursor tests, 18 static
+field-cursor checks and 19 palette/hardware cases. The separate pre-existing
+Hunk numeric-pointer regression remains deferred.
+
+All 70 actions are accepted: eight names, fifteen constants, four type seeds,
+35 operand presentations, one palette owner, three element revisions and four
+behavior comments. The final owner contains two WORD-array elements (2+14
+colors) split at its retained color-two alias. All eighteen component reads and
+writes have native field references; auto-update forms retain their exact EA
+syntax with comment-only symbols. Prior SDK expressions/comments and all 86
+assets are preserved, and both histories retain their original prefixes.
+C and independent vasm reproduce all 376,832 original bytes, final receipt
+`598506087f5d02a3d815885bb375175ddf37d91cfdfe2f080e12a789446d6d5e`.

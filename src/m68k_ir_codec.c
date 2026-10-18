@@ -464,7 +464,8 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
      * assemblers. Keep the encoded addressing mode; the render plan retains
      * the field identity as a comment-only symbol access. */
     return append_format(out_text, out_text_size, inout_used, "(a%u)", (unsigned)operand->value.ea_reg);
-  if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT)
+  if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+      m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_PREDECREMENT)
     /* The field is comment-only: reuse the decoded operand's exact EA syntax. */
     return append_ea_text(out_text, out_text_size, inout_used, &operand->value, '\0', 0U, 0U, 0U);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2) {
@@ -808,7 +809,8 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
       } else if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) == 0) {
           if (operand->value.ea_mode != 2U &&
-              m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT)
+              m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+              m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_PREDECREMENT)
             mark_rendered_operand_symbol(&result, operand_index);
         } else if (append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
             operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0) {

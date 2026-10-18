@@ -847,6 +847,8 @@ APP_STATE_BASE	EQU	$39FC
 APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
+_custom	EQU	$DFF000
+CUSTOM_COLOR00_REGISTER	EQU	_custom+color
 DMAF_CLRALL	EQU	$7FFF
 ENTITY_EDGE_SCRATCH_BOUND_BYTES	EQU	$300
 ENTITY_MAX_INITIAL_FRAME_HEIGHT	EQU	48
@@ -854,6 +856,10 @@ FRAMEBUFFER_BANK0_BASE	EQU	$70000
 FRAMEBUFFER_BANK1_BASE	EQU	$78000
 FRAMEBUFFER_LAST_RASTER_ROW	EQU	199
 FRAMEBUFFER_RASTER_ROW_BYTES	EQU	160
+GAMEPLAY_FADE_ACTIVE_REMAINING_LIMIT	EQU	17
+GAMEPLAY_FADE_HEALTH_UPDATE_REMAINING	EQU	1
+GAMEPLAY_FADE_SETUP_STEPS	EQU	25
+GAMEPLAY_RESTART_COLOR2_RGB12	EQU	$AAA
 GAME_EVENT_ESCAPE_CARD_OK_BIT	EQU	4
 GAME_EVENT_ESCAPE_TRIGGERED_BIT	EQU	3
 GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT	EQU	2
@@ -980,6 +986,16 @@ KEYBOARD_STATE_BASE	EQU	$397C
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
+RGB12_ACCUMULATOR_FRACTION_BITS	EQU	4
+RGB12_ACCUMULATOR_STRIDE	EQU	6
+RGB12_COMPONENT_BITS	EQU	4
+RGB12_COMPONENT_MASK	EQU	$F
+RGB12_GAMEPLAY_LAST_COLOR	EQU	15
+RGB12_GREEN_COMPONENT_MASK	EQU	$F0
+RGB12_RED_COMPONENT_MASK	EQU	$F00
+RGB12_RED_COMPONENT_SHIFT	EQU	8
+RGB12_TITLE_GRADIENT_LAST_COLOR	EQU	31
+RGB12_TITLE_STAR_LAST_COLOR	EQU	7
 SCENE_EDGE_COPY_SOURCE_MODULO	EQU	4-2
 SCENE_EDGE_PAIR_MODULO	EQU	16-4
 SCENE_PLANE_WORD_MODULO	EQU	40-2
@@ -1067,7 +1083,6 @@ WORLD_PROXIMITY_ANIMATION_DISTANCE	EQU	44
 WORLD_PROXIMITY_INITIAL_THRESHOLD	EQU	90
 WORLD_STATE_OUTSIDE_VIEW_BIT	EQU	0
 _ciaa	EQU	$BFE001
-_custom	EQU	$DFF000
 absolute_slot_000007E8	EQU	$7E8
 absolute_slot_000010F0	EQU	$10F0
 absolute_slot_00002204	EQU	$2204
@@ -1306,7 +1321,7 @@ setup_runtime_hardware_and_display:
 	move.l a0,app_copper_interrupt_callback(a6)
 	lea.l gameplay_split_display_copper_list(pc),a0
 	move.l a0,cop1lc(a5)	; copper_list pointer
-	lea.l abs_0_0001076E(pc),a0
+	lea.l initial_gameplay_palette_rgb12(pc),a0
 	move.l a0,app_current_palette(a6)
 	bsr.w start_seeded_zero_copy_blit
     ; Render both fixed buffer banks ($78000, then $70000). Initial front/display is $78000 and back is $70000; these chip-visible placements are not arbitrary-base relocation.
@@ -1326,7 +1341,7 @@ setup_runtime_hardware_and_display:
 	bsr.w wait_for_next_frame_counter
 	lea.l _custom.l,a5
 	move.w #DMAF_SETCLR|DMAF_RASTER|DMAF_SPRITE,dmacon(a5)
-	move.b #$19,app_palette_transition_steps_remaining(a6)
+	move.b #GAMEPLAY_FADE_SETUP_STEPS,app_palette_transition_steps_remaining(a6)
 	bra.b wait_for_completed_frame
     ; Exchange front/back pointers, select the new front for display, then clear completion bit 5 before waiting for the next completed frame callback.
 swap_front_back_display_buffers:
@@ -1446,7 +1461,7 @@ noop_runtime_callback:
 	rts
 apply_current_palette:
 	movea.l app_current_palette(a6),a0
-	movea.l #$DFF180,a1
+	movea.l #CUSTOM_COLOR00_REGISTER,a1
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
@@ -1456,11 +1471,11 @@ apply_current_palette:
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
 	rts
-abs_0_0001076E:
-	dc.b $08,$88,$06,$66
-abs_0_00010772:
-	dc.b $0A,$AA,$0E,$4E,$08,$0C,$0E,$00,$00,$8E,$00,$2C,$00,$A0,$00,$60
-	dc.b $0E,$C0,$0E,$A6,$0A,$60,$06,$20,$00,$00,$0E,$EE
+initial_gameplay_palette_rgb12:
+	dc.w $0888,$0666	; mutable_initial_rgb12_palette
+initial_gameplay_palette_color_2:
+	dc.w $0AAA,$0E4E,$080C,$0E00,$008E,$002C,$00A0,$0060	; mutable_initial_rgb12_palette
+	dc.w $0EC0,$0EA6,$0A60,$0620,$0000,$0EEE	; mutable_initial_rgb12_palette
     ; Snapshot the long frame counter and wait until it changes; preserve D0. This requires the active frame callback to keep advancing the counter.
 wait_for_next_frame_counter:
 	move.l d0,-(a7)
@@ -1914,9 +1929,9 @@ initialize_starfield:
 	lea.l title_current_raster_gradient_rgb12(pc),a0
 	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
-	moveq.l #31,d7
+	moveq.l #RGB12_TITLE_GRADIENT_LAST_COLOR,d7
 	jsr clear_rgb12_palette_components.l
-	moveq.l #7,d7
+	moveq.l #RGB12_TITLE_STAR_LAST_COLOR,d7
 	lea.l title_star_palette_fractional_components(pc),a2
 	lea.l title_current_rgb12_palette(pc),a0
 	lea.l title_star_palette_rgb12_increments(pc),a1
@@ -1935,7 +1950,7 @@ finish_starfield_initialization:
 	lea.l title_star_palette_fractional_components(pc),a0
 	moveq.l #23,d7
 abs_0_00010D76:
-	clr.w (a0)+
+	clr.w (a0)+	; operand 1: rgb12_accumulator_red_q4 at (a0)+
 	dbf.w d7,abs_0_00010D76
 	bset.b #2,app_status_flags(a6)
 	move.b #$10,app_title_star_palette_steps_remaining(a6)
@@ -1958,7 +1973,7 @@ advance_starfield_after_pixel_render:
 	dbf.w d7,update_next_star_record
 	btst.b #2,app_status_flags(a6)
 	beq.b abs_0_00010DDE
-	moveq.l #7,d7
+	moveq.l #RGB12_TITLE_STAR_LAST_COLOR,d7
 	lea.l title_star_palette_fractional_components(pc),a2
 	lea.l title_current_rgb12_palette(pc),a0
 	lea.l title_star_palette_rgb12_increments(pc),a1
@@ -2148,7 +2163,7 @@ abs_0_00011052:
 	lea.l title_current_raster_gradient_rgb12(pc),a0
 	lea.l title_raster_gradient_rgb12_increments(pc),a1
 	movea.l #cursor_sprite_initial_rows_shared_scratch,a2
-	moveq.l #31,d7
+	moveq.l #RGB12_TITLE_GRADIENT_LAST_COLOR,d7
 	bsr.w add_rgb12_palette_components
 abs_0_00011070:
 	bsr.w poll_joystick1_directions_and_fire
@@ -5496,116 +5511,124 @@ read_next_world_object_for_script_service:
 	bra.b read_next_world_object_for_script_service
 return_from_world_script_traversal:
 	rts
+    ; Add packed D1 nibbles to three Q4 WORDs with wrap, then repack without clamping. Input D0 is ignored. A2 and D1-D6 are preserved; out-of-range components can bleed into adjacent output bits.
+    ; KNOWN: type A2=Target code-entry register seed:rgb12_accumulator
 add_rgb12_color_components:
 	movem.l d1-d6,-(a7)
-	move.w (a2)+,d4
-	move.w (a2)+,d3
-	move.w (a2),d2
-	moveq.l #15,d6
+	move.w (a2)+,d4	; operand 1: rgb12_accumulator_red_q4 at (a2)+
+	move.w (a2)+,d3	; operand 1: rgb12_accumulator_green_q4 at (a2)+
+	move.w (a2),d2	; operand 1: rgb12_accumulator_blue_q4 at (a2)
+	moveq.l #RGB12_COMPONENT_MASK,d6
 	move.w d1,d5
 	and.w d6,d5
 	add.w d5,d2
-	move.w d2,(a2)
-	lsr.w #4,d2
+	move.w d2,(a2)	; operand 2: rgb12_accumulator_blue_q4 at (a2)
+	lsr.w #RGB12_ACCUMULATOR_FRACTION_BITS,d2
 	move.w d1,d5
-	lsr.b #4,d5
+	lsr.b #RGB12_COMPONENT_BITS,d5
 	and.w d6,d5
 	add.w d5,d3
-	move.w d3,-(a2)
-	lsr.w #4,d3
+	move.w d3,-(a2)	; operand 2: rgb12_accumulator_green_q4 at -(a2)
+	lsr.w #RGB12_ACCUMULATOR_FRACTION_BITS,d3
 	move.w d1,d5
-	lsr.w #8,d5
+	lsr.w #RGB12_RED_COMPONENT_SHIFT,d5
 	and.w d6,d5
 	add.w d5,d4
-	move.w d4,-(a2)
-	lsr.w #4,d4
+	move.w d4,-(a2)	; operand 2: rgb12_accumulator_red_q4 at -(a2)
+	lsr.w #RGB12_ACCUMULATOR_FRACTION_BITS,d4
 	moveq.l #0,d0
 	move.w d4,d0
-	lsl.w #8,d0
-	lsl.b #4,d3
+	lsl.w #RGB12_RED_COMPONENT_SHIFT,d0
+	lsl.b #RGB12_COMPONENT_BITS,d3
 	move.b d2,d0
 	or.b d3,d0
 	movem.l (a7)+,d1-d6
 	rts
+    ; Subtract packed D1 nibbles with WORD wrap; no floor or saturation. Repack uses the original WORD/BYTE shifts and merges. Input D0 is ignored; A2 and D1-D6 are preserved.
+    ; KNOWN: type A2=Target code-entry register seed:rgb12_accumulator
 subtract_rgb12_color_components:
 	movem.l d1-d6,-(a7)
-	move.w (a2)+,d4
-	move.w (a2)+,d3
-	move.w (a2),d2
-	moveq.l #15,d6
+	move.w (a2)+,d4	; operand 1: rgb12_accumulator_red_q4 at (a2)+
+	move.w (a2)+,d3	; operand 1: rgb12_accumulator_green_q4 at (a2)+
+	move.w (a2),d2	; operand 1: rgb12_accumulator_blue_q4 at (a2)
+	moveq.l #RGB12_COMPONENT_MASK,d6
 	move.w d1,d5
 	and.w d6,d5
 	sub.w d5,d2
-	move.w d2,(a2)
-	lsr.w #4,d2
+	move.w d2,(a2)	; operand 2: rgb12_accumulator_blue_q4 at (a2)
+	lsr.w #RGB12_ACCUMULATOR_FRACTION_BITS,d2
 	move.w d1,d5
-	lsr.b #4,d5
+	lsr.b #RGB12_COMPONENT_BITS,d5
 	and.w d6,d5
 	sub.w d5,d3
-	move.w d3,-(a2)
-	lsr.w #4,d3
+	move.w d3,-(a2)	; operand 2: rgb12_accumulator_green_q4 at -(a2)
+	lsr.w #RGB12_ACCUMULATOR_FRACTION_BITS,d3
 	move.w d1,d5
-	lsr.w #8,d5
+	lsr.w #RGB12_RED_COMPONENT_SHIFT,d5
 	and.w d6,d5
 	sub.w d5,d4
-	move.w d4,-(a2)
-	lsr.w #4,d4
+	move.w d4,-(a2)	; operand 2: rgb12_accumulator_red_q4 at -(a2)
+	lsr.w #RGB12_ACCUMULATOR_FRACTION_BITS,d4
 	moveq.l #0,d0
 	move.w d4,d0
-	lsl.w #8,d0
-	lsl.b #4,d3
+	lsl.w #RGB12_RED_COMPONENT_SHIFT,d0
+	lsl.b #RGB12_COMPONENT_BITS,d3
 	move.b d2,d0
 	or.b d3,d0
 	movem.l (a7)+,d1-d6
 	rts
+    ; Process uint16(D7)+1 colors; DBF has no empty-count guard. Each leaf restores A2 before its six-byte advance. Wrapper preserves D0-D1/D7/A0-A2; no alias or phase-exclusion proof.
 add_rgb12_palette_components:
 	movem.l d0-d1/d7/a0-a2,-(a7)
-abs_0_000125E2:
+add_next_rgb12_palette_entry:
 	move.w (a0)+,d0
 	move.w (a1)+,d1
 	bsr.w add_rgb12_color_components
 	move.w d0,-$0002(a0)
-	addq.l #6,a2
-	dbf.w d7,abs_0_000125E2
+	addq.l #RGB12_ACCUMULATOR_STRIDE,a2
+	dbf.w d7,add_next_rgb12_palette_entry
 	movem.l (a7)+,d0-d1/d7/a0-a2
 	rts
 subtract_rgb12_palette_components:
 	movem.l d0-d1/d7/a0-a2,-(a7)
-abs_0_000125FE:
+subtract_next_rgb12_palette_entry:
 	move.w (a0)+,d0
 	move.w (a1)+,d1
 	bsr.b subtract_rgb12_color_components
 	move.w d0,-$0002(a0)
-	addq.l #6,a2
-	dbf.w d7,abs_0_000125FE
+	addq.l #RGB12_ACCUMULATOR_STRIDE,a2
+	dbf.w d7,subtract_next_rgb12_palette_entry
 	movem.l (a7)+,d0-d1/d7/a0-a2
 	rts
+    ; Copy each full input WORD to the palette, but unpack only its RGB nibbles into Q4 components. D0/D1 are clobbered; D2/D7/A0-A2 are preserved. DBF processes uint16(D7)+1 entries.
 unpack_rgb12_palette_components:
 	movem.l d2/d7/a0-a2,-(a7)
-abs_0_00012618:
+    ; KNOWN: type A2=Target code-entry register seed:rgb12_accumulator
+unpack_next_rgb12_palette_entry:
 	move.w (a1)+,d0
 	move.w d0,(a0)+
 	move.w d0,d1
-	andi.w #3840,d1
-	lsr.w #4,d1
-	move.w d1,(a2)+
+	andi.w #RGB12_RED_COMPONENT_MASK,d1
+	lsr.w #RGB12_COMPONENT_BITS,d1
+	move.w d1,(a2)+	; operand 2: rgb12_accumulator_red_q4 at (a2)+
 	move.w d0,d1
-	andi.w #240,d1
-	move.w d1,(a2)+
-	andi.w #15,d0
-	lsl.w #4,d0
-	move.w d0,(a2)+
-	dbf.w d7,abs_0_00012618
+	andi.w #RGB12_GREEN_COMPONENT_MASK,d1
+	move.w d1,(a2)+	; operand 2: rgb12_accumulator_green_q4 at (a2)+
+	andi.w #RGB12_COMPONENT_MASK,d0
+	lsl.w #RGB12_ACCUMULATOR_FRACTION_BITS,d0
+	move.w d0,(a2)+	; operand 2: rgb12_accumulator_blue_q4 at (a2)+
+	dbf.w d7,unpack_next_rgb12_palette_entry
 	movem.l (a7)+,d2/d7/a0-a2
 	rts
 clear_rgb12_palette_components:
 	movem.l d7/a0-a2,-(a7)
-abs_0_00012644:
+    ; KNOWN: type A2=Target code-entry register seed:rgb12_accumulator
+clear_next_rgb12_palette_entry:
 	clr.w (a0)+
-	clr.w (a2)+
-	clr.w (a2)+
-	clr.w (a2)+
-	dbf.w d7,abs_0_00012644
+	clr.w (a2)+	; operand 1: rgb12_accumulator_red_q4 at (a2)+
+	clr.w (a2)+	; operand 1: rgb12_accumulator_green_q4 at (a2)+
+	clr.w (a2)+	; operand 1: rgb12_accumulator_blue_q4 at (a2)+
+	dbf.w d7,clear_next_rgb12_palette_entry
 	movem.l (a7)+,d7/a0-a2
 	rts
 set_copper_interrupt_callback_atomic:
@@ -5766,19 +5789,19 @@ build_carried_item_name_list:
 	clr.w d0
 	move.b (a2)+,d0
 	bsr.w resolve_item_name
-	move.l a0,(a1)+
+	move.l a0,(a1)+	; operand 2: ui_overlay_descriptor_line_0_ptr at (a1)+
 	clr.w d0
 	move.b (a2)+,d0
 	bsr.w resolve_item_name
-	move.l a0,(a1)+
+	move.l a0,(a1)+	; operand 2: ui_overlay_descriptor_line_1_ptr at (a1)+
 	clr.w d0
 	move.b (a2)+,d0
 	bsr.w resolve_item_name
-	move.l a0,(a1)+
+	move.l a0,(a1)+	; operand 2: ui_overlay_descriptor_line_2_ptr at (a1)+
 	clr.w d0
 	move.b (a2),d0
 	bsr.w resolve_item_name
-	move.l a0,(a1)
+	move.l a0,(a1)	; operand 2: ui_overlay_descriptor_line_3_ptr at (a1)
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
 reset_inventory_panel_state:
@@ -5915,13 +5938,13 @@ abs_0_00012A0C:
 	add.w d0,d0
 	move.w $0(a4,d0.w),d0
 	add.l a5,d0
-	move.l d0,(a2)+
+	move.l d0,(a2)+	; operand 2: ui_overlay_descriptor_x at (a2)+
 	moveq.l #0,d0
 	move.b (a1)+,d0
 	add.w d0,d0
 	move.w $0(a4,d0.w),d0
 	add.l a5,d0
-	move.l d0,(a3)+
+	move.l d0,(a3)+	; operand 2: ui_overlay_descriptor_x at (a3)+
 	dbf.w d7,abs_0_00012A0C
 	movem.l (a7)+,d7/a2-a5
 	rts
@@ -9188,7 +9211,7 @@ prepare_work_buffer_arguments:
 	lea.l gameplay_current_rgb12_palette(pc),a0
 	lea.l gameplay_palette_fractional_components(pc),a2
 	lea.l WORK_BUFFER_PALETTE_INPUT_BASE.l,a1
-	moveq.l #15,d7
+	moveq.l #RGB12_GAMEPLAY_LAST_COLOR,d7
 	rts
     ; Net SP+2 before RTS splices the return low WORD with the next stack WORD. At the four copied-view BSR sites, the 24-bit target leaves the verified payload; these are not balanced returns.
 return_work_buffer_argument:
@@ -10067,25 +10090,25 @@ abs_0_00017D9C:
 	rts
 service_gameplay_palette_transition:
 	move.b app_palette_transition_steps_remaining(a6),d0
-	beq.b abs_0_00017DEE
+	beq.b return_from_gameplay_palette_transition
 	subq.b #1,d0
 	move.b d0,app_palette_transition_steps_remaining(a6)
-	cmp.b #$11,d0
-	bcc.b abs_0_00017DEE
-	cmp.b #$1,d0
-	bne.b abs_0_00017DD6
+	cmp.b #GAMEPLAY_FADE_ACTIVE_REMAINING_LIMIT,d0
+	bcc.b return_from_gameplay_palette_transition
+	cmp.b #GAMEPLAY_FADE_HEALTH_UPDATE_REMAINING,d0
+	bne.b add_gameplay_palette_transition_step
 	bset.b #GAME_EVENT_FADE_HEALTH_DISPLAY_LATCH_BIT,app_game_event_flags(a6)
-	bne.b abs_0_00017DD6
+	bne.b add_gameplay_palette_transition_step
 	lea.l player_health_overlay.l,a4
 	lea.l player_world_object.l,a5
 	bsr.w draw_object_health_status
-abs_0_00017DD6:
+add_gameplay_palette_transition_step:
 	lea.l gameplay_current_rgb12_palette.l,a0
 	lea.l gameplay_palette_increment_rgb12.l,a1
 	lea.l gameplay_palette_fractional_components.l,a2
-	moveq.l #15,d7
+	moveq.l #RGB12_GAMEPLAY_LAST_COLOR,d7
 	bsr.w add_rgb12_palette_components
-abs_0_00017DEE:
+return_from_gameplay_palette_transition:
 	rts
 update_world_object_interactions:
 	lea.l player_world_object.l,a4
@@ -10678,7 +10701,7 @@ partition_next_world_descriptor:
 	movea.l world_position_descriptor_prefix_position_state_ptr.w(a3),a2
 	btst.b #WORLD_POSITION_FRONT_GROUP_BIT,world_position_state_record_world_object_flags(a2)
 	beq.b partition_world_descriptor_check_back_group
-	move.l a3,(a0)+
+	move.l a3,(a0)+	; operand 2: world_position_descriptor_source_reference_descriptor_ptr at (a0)+
 	subq.w #1,d7
 	bra.b advance_world_descriptor_partition
 partition_world_descriptor_check_back_group:
@@ -11024,7 +11047,7 @@ service_security_damage_palette_flash:
 	beq.b store_security_flash_palette_color
 	subq.b #1,app_security_damage_flash_ticks_remaining(a6)
 	bne.b select_security_flash_palette_color
-	move.w app_security_saved_palette_color(a6),abs_0_00010772.l
+	move.w app_security_saved_palette_color(a6),initial_gameplay_palette_color_2.l
 	tst.b world_object_shared_prefix_hit_points+1(a5)
 	bmi.b finish_security_checkpoint_player_death
 	bne.b return_from_security_checkpoint_service
@@ -11053,7 +11076,7 @@ select_security_flash_palette_color:
 	add.w d0,d0
 	move.w security_checkpoint_damage_flash_rgb12_colors(pc,d0.w),d0
 store_security_flash_palette_color:
-	move.w d0,abs_0_00010772.l
+	move.w d0,initial_gameplay_palette_color_2.l
 	rts
 security_checkpoint_damage_flash_rgb12_colors:
 	dc.w $0000,$0EEE,$0000,$0EEE,$0000,$0EEE,$0000,$0EEE	; security_checkpoint_alert_palette
@@ -11065,7 +11088,7 @@ security_checkpoint_damage_flash_rgb12_colors:
 begin_security_checkpoint_response:
 	move.l a5,d0
 	beq.b abs_0_00018982
-	move.w abs_0_00010772.l,app_security_saved_palette_color(a6)
+	move.w initial_gameplay_palette_color_2.l,app_security_saved_palette_color(a6)
 	jsr start_paired_feedback_audio_sequences.l
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 	addq.b #1,app_security_checkpoint_response_active(a6)
@@ -12468,7 +12491,7 @@ initialize_world_state:
 	move.w #$2710,d0
 	move.w d0,ranged_hit_visual_descriptor_world_x.l
 	move.w d0,abs_0_000585AA.l
-	move.w #$AAA,abs_0_00010772.l
+	move.w #GAMEPLAY_RESTART_COLOR2_RGB12,initial_gameplay_palette_color_2.l
 	lea.l KEYBOARD_STATE_BASE.l,a0
 	moveq.l #KEYBOARD_CLEAR_LAST_LONGWORD,d7
 clear_next_keyboard_state_longword:
@@ -12529,7 +12552,7 @@ abs_0_00019FC4:
 	lea.l gameplay_current_rgb12_palette.l,a0
 	lea.l gameplay_palette_increment_rgb12.l,a1
 	lea.l gameplay_palette_fractional_components.l,a2
-	moveq.l #15,d7
+	moveq.l #RGB12_GAMEPLAY_LAST_COLOR,d7
 	bsr.w clear_rgb12_palette_components
 	moveq.l #0,d0
 	move.l d0,app_carried_item_ids(a6)
@@ -12539,8 +12562,8 @@ abs_0_00019FC4:
 	lea.l pocket_inventory_overlay_line_0_ptr.l,a1
 	moveq.l #3,d7
 abs_0_0001A056:
-	move.l d0,(a0)+
-	move.l d0,(a1)+
+	move.l d0,(a0)+	; operand 2: ui_overlay_descriptor_x at (a0)+
+	move.l d0,(a1)+	; operand 2: ui_overlay_descriptor_x at (a1)+
 	dbf.w d7,abs_0_0001A056
 	lea.l player_holding_overlay_line_0_ptr.l,a0
 	move.l d0,(a0)	; operand 2: ui_overlay_descriptor_line_0_ptr at (a0)
