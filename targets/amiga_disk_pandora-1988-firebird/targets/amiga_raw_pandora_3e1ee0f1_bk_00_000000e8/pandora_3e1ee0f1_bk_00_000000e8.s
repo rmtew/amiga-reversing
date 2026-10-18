@@ -6441,7 +6441,7 @@ handle_inventory_panel_selection:
 	cmp.b world_object_shared_prefix_selected_item_id(a5),d2
 	bne.b refresh_selected_nearby_inventory_row
 	clr.b world_object_shared_prefix_selected_item_id(a5)
-	move.l #abs_0_0001A25D,nearby_carrying_overlay_line_0_ptr.l
+	move.l #item_name_empty,nearby_carrying_overlay_line_0_ptr.l
 refresh_selected_nearby_inventory_row:
 	move.l d0,-(a7)
 	bsr.w build_carried_item_name_list
@@ -17041,327 +17041,331 @@ expand_next_world_macro_tile:
 	rts
 item_name_string_table:
 	dc.b $00
-abs_0_0001A25D:
-	dc.b $00
-abs_0_0001A25E:
-	dc.b "     NOTHING",$00
-abs_0_0001A26B:
-	dc.b "Wrench",$00
-abs_0_0001A272:
-	dc.b "Acid",$00
-abs_0_0001A277:
-	dc.b "Electroboost",$00
-abs_0_0001A284:
-	dc.b "Sonicdriver",$00
-abs_0_0001A290:
-	dc.b "Spanner",$00
-abs_0_0001A298:
-	dc.b "PHOTOSABRE",$00
-abs_0_0001A2A3:
-	dc.b "IRIDIUM MACE",$00
-abs_0_0001A2B0:
-	dc.b "ELECTRUNCHON",$00
-abs_0_0001A2BD:
-	dc.b "SHOCKWHIP",$00
-abs_0_0001A2C7:
-	dc.b "THERMOLANCE",$00
-abs_0_0001A2D3:
-	dc.b "DEATHSTING",$00
-abs_0_0001A2DE:
-	dc.b "KNUCKLEDUSTER",$00
-abs_0_0001A2EC:
-	dc.b "LASER RIFLE",$00
-abs_0_0001A2F8:
-	dc.b "PULSE CANNON",$00
-abs_0_0001A305:
-	dc.b "Ostronn egg",$00
-abs_0_0001A311:
-	dc.b "Vulcann vase",$00
-abs_0_0001A31E:
-	dc.b "Broken ORAK",$00
-abs_0_0001A32A:
-	dc.b "Instant PGGB",$00
-abs_0_0001A337:
-	dc.b "Sandworm shell",$00
-abs_0_0001A346:
-	dc.b "Wookey wig",$00
-abs_0_0001A351:
-	dc.b "Prophylactic",$00
-abs_0_0001A35E:
-	dc.b "Sonicblaster",$00
-abs_0_0001A36B:
-	dc.b "Cargo chute",$00
-abs_0_0001A377:
-	dc.b "Code WHITE",$00
-abs_0_0001A382:
-	dc.b "Code BLUE",$00
-abs_0_0001A38C:
-	dc.b "Code GREY",$00
-abs_0_0001A396:
-	dc.b "Code SCARLET",$00
-abs_0_0001A3A3:
-	dc.b "Code OCHRE",$00
-abs_0_0001A3AE:
-	dc.b "Code BLACK",$00
-abs_0_0001A3B9:
-	dc.b "SDI disk",$00
-abs_0_0001A3C2:
-	dc.b "Bottle of gin",$00
-abs_0_0001A3D0:
-	dc.b "Insulin",$00
-abs_0_0001A3D8:
-	dc.b "Hypodermic",$00
-abs_0_0001A3E3:
-	dc.b "Insecticide",$00
-abs_0_0001A3EF:
-	dc.b "Shakespeare",$00
-abs_0_0001A3FB:
-	dc.b "Bible",$00
-abs_0_0001A401:
-	dc.b "Light box",$00
-abs_0_0001A40B:
-	dc.b "Globe",$00
-abs_0_0001A411:
-	dc.b "Squash ball",$00
-abs_0_0001A41D:
-	dc.b "ID Commander",$00
-abs_0_0001A42A:
-	dc.b "ID Lt Commander",$00
-abs_0_0001A43A:
-	dc.b "ID Engineer",$00
-abs_0_0001A446:
-	dc.b "ID Scientist",$00
-abs_0_0001A453:
-	dc.b "ID Medic",$00
-abs_0_0001A45C:
-	dc.b "ID Resource ofcr",$00
-abs_0_0001A46D:
-	dc.b "ID Amy",$00
-abs_0_0001A474:
-	dc.b "ID AWOL ofcr",$00
-abs_0_0001A481:
-	dc.b "Captain",$00
-abs_0_0001A489:
-	dc.b "Commander",$00
-abs_0_0001A493:
-	dc.b "Lt Commander",$00
-abs_0_0001A4A0:
-	dc.b "Engineer",$00
-abs_0_0001A4A9:
-	dc.b "Science ofcr",$00
-abs_0_0001A4B6:
-	dc.b "Medic",$00
-abs_0_0001A4BC:
-	dc.b "AWOL officer",$00
-abs_0_0001A4C9:
-	dc.b "Rsrc officer",$00
-abs_0_0001A4D6:
-	dc.b "Musician",$00
-abs_0_0001A4DF:
-	dc.b "Robomechanic",$00
-abs_0_0001A4EC:
-	dc.b "Icelord",$00
-abs_0_0001A4F4:
-	dc.b "Sec officer",$00
-abs_0_0001A500:
-	dc.b "Thief",$00
-abs_0_0001A506:
-	dc.b "Chemist",$00
-abs_0_0001A50E:
-	dc.b "Diabetic",$00
-abs_0_0001A517:
-	dc.b "Gardener",$00
-abs_0_0001A520:
-	dc.b "Death Fly",$00
-abs_0_0001A52A:
-	dc.b "Priest",$00
-abs_0_0001A531:
-	dc.b "Driffid",$00
-abs_0_0001A539:
-	dc.b "Technician",$00
-abs_0_0001A544:
-	dc.b "Squash player",$00
-abs_0_0001A552:
-	dc.b "Doctor",$00
-abs_0_0001A559:
-	dc.b "Hooligan",$00
-abs_0_0001A562:
-	dc.b "Bank manager",$00
-abs_0_0001A56F:
-	dc.b "Cleaner robot",$00
-abs_0_0001A57D:
-	dc.b "Menial droid",$00
-abs_0_0001A58A:
-	dc.b "Entry officer",$00
-abs_0_0001A598:
-	dc.b "Secdroid ALPHA 1",$00
-abs_0_0001A5A9:
-	dc.b "Secdroid ALPHA 2",$00
-abs_0_0001A5BA:
-	dc.b "Secdroid DELTA 1",$00
-abs_0_0001A5CB:
-	dc.b "Secdroid DELTA 2",$00
-abs_0_0001A5DC:
-	dc.b "Secdroid PI",$00
-abs_0_0001A5E8:
-	dc.b "Secdroid OMEGA",$00
-abs_0_0001A5F7:
-	dc.b "Pianist",$00
-abs_0_0001A5FF:
-	dc.b "Flight ctrlr",$00
-abs_0_0001A60C:
-	dc.b "Cook",$00
-abs_0_0001A611:
-	dc.b "Barman",$00
-abs_0_0001A618:
-	dc.b "Defence ctrlr",$00
-abs_0_0001A626:
-	dc.b "Wackobrain",$00
-abs_0_0001A631:
-	dc.b "Glass",$00
-abs_0_0001A637:
-	dc.b "Bent coin",$00
-abs_0_0001A641:
-	dc.b "Kwik Kleen",$00
-abs_0_0001A64C:
-	dc.b "Gold key",$00
-abs_0_0001A655:
-	dc.b "Megabio Feed",$00
-abs_0_0001A662:
-	dc.b "Mobian brain",$00
-abs_0_0001A66F:
-	dc.b "Ice pendant",$00
-abs_0_0001A67B:
-	dc.b "Sugar cube",$00
-abs_0_0001A686:
-	dc.b "Alien egg",$00
-abs_0_0001A690:
-	dc.b "Kriptonite",$00
-abs_0_0001A69B:
-	dc.b "Deltan icon",$00
-abs_0_0001A6A7:
-	dc.b "Pool 8 ball",$00
-abs_0_0001A6B3:
-	dc.b "Araknoid eye",$00
-abs_0_0001A6C0:
-	dc.b "Kzin 97 ball",$00
-abs_0_0001A6CD:
-	dc.b "Amiga Computing"
+    ; ID 0 selects this empty string; ID 1 selects five spaces plus NOTHING. Panel fallback and raw inventory refresh choose IDs differently. Keep the two display values distinct.
+item_name_empty:
+	dc.b $00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_nothing:
+	dc.b "     NOTHING",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_wrench:
+	dc.b "Wrench",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_acid:
+	dc.b "Acid",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_electroboost:
+	dc.b "Electroboost",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_sonicdriver:
+	dc.b "Sonicdriver",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_spanner:
+	dc.b "Spanner",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_photosabre:
+	dc.b "PHOTOSABRE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_iridium_mace:
+	dc.b "IRIDIUM MACE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_electrunchon:
+	dc.b "ELECTRUNCHON",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_shockwhip:
+	dc.b "SHOCKWHIP",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_thermolance:
+	dc.b "THERMOLANCE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_deathsting:
+	dc.b "DEATHSTING",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_knuckleduster:
+	dc.b "KNUCKLEDUSTER",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+    ; IDs 14..18 share LASER RIFLE text. Shared text does not merge inventory IDs or establish identical combat behavior; consumers retain their own ID predicates.
+item_name_laser_rifle:
+	dc.b "LASER RIFLE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_pulse_cannon:
+	dc.b "PULSE CANNON",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_ostronn_egg:
+	dc.b "Ostronn egg",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_vulcann_vase:
+	dc.b "Vulcann vase",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_broken_orak:
+	dc.b "Broken ORAK",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_instant_pggb:
+	dc.b "Instant PGGB",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_sandworm_shell:
+	dc.b "Sandworm shell",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_wookey_wig:
+	dc.b "Wookey wig",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_prophylactic:
+	dc.b "Prophylactic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_sonicblaster:
+	dc.b "Sonicblaster",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_cargo_chute:
+	dc.b "Cargo chute",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_code_white:
+	dc.b "Code WHITE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_code_blue:
+	dc.b "Code BLUE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_code_grey:
+	dc.b "Code GREY",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_code_scarlet:
+	dc.b "Code SCARLET",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_code_ochre:
+	dc.b "Code OCHRE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_code_black:
+	dc.b "Code BLACK",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_sdi_disk:
+	dc.b "SDI disk",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_bottle_of_gin:
+	dc.b "Bottle of gin",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_insulin:
+	dc.b "Insulin",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_hypodermic:
+	dc.b "Hypodermic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_insecticide:
+	dc.b "Insecticide",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_shakespeare:
+	dc.b "Shakespeare",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_bible:
+	dc.b "Bible",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_light_box:
+	dc.b "Light box",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_globe:
+	dc.b "Globe",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_squash_ball:
+	dc.b "Squash ball",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_commander:
+	dc.b "ID Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_lt_commander:
+	dc.b "ID Lt Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_engineer:
+	dc.b "ID Engineer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_scientist:
+	dc.b "ID Scientist",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_medic:
+	dc.b "ID Medic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_resource_ofcr:
+	dc.b "ID Resource ofcr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_amy:
+	dc.b "ID Amy",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_id_awol_ofcr:
+	dc.b "ID AWOL ofcr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_captain:
+	dc.b "Captain",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_commander:
+	dc.b "Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_lt_commander:
+	dc.b "Lt Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_engineer:
+	dc.b "Engineer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_science_ofcr:
+	dc.b "Science ofcr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_medic:
+	dc.b "Medic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_awol_officer:
+	dc.b "AWOL officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_rsrc_officer:
+	dc.b "Rsrc officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_musician:
+	dc.b "Musician",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_robomechanic:
+	dc.b "Robomechanic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_icelord:
+	dc.b "Icelord",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_sec_officer:
+	dc.b "Sec officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_thief:
+	dc.b "Thief",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_chemist:
+	dc.b "Chemist",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_diabetic:
+	dc.b "Diabetic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_gardener:
+	dc.b "Gardener",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_death_fly:
+	dc.b "Death Fly",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_priest:
+	dc.b "Priest",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_driffid:
+	dc.b "Driffid",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_technician:
+	dc.b "Technician",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_squash_player:
+	dc.b "Squash player",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_doctor:
+	dc.b "Doctor",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_hooligan:
+	dc.b "Hooligan",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_bank_manager:
+	dc.b "Bank manager",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_cleaner_robot:
+	dc.b "Cleaner robot",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_menial_droid:
+	dc.b "Menial droid",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_entry_officer:
+	dc.b "Entry officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_secdroid_alpha_1:
+	dc.b "Secdroid ALPHA 1",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_secdroid_alpha_2:
+	dc.b "Secdroid ALPHA 2",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_secdroid_delta_1:
+	dc.b "Secdroid DELTA 1",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_secdroid_delta_2:
+	dc.b "Secdroid DELTA 2",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_secdroid_pi:
+	dc.b "Secdroid PI",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_secdroid_omega:
+	dc.b "Secdroid OMEGA",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_pianist:
+	dc.b "Pianist",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_flight_ctrlr:
+	dc.b "Flight ctrlr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_cook:
+	dc.b "Cook",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_barman:
+	dc.b "Barman",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_defence_ctrlr:
+	dc.b "Defence ctrlr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_wackobrain:
+	dc.b "Wackobrain",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_glass:
+	dc.b "Glass",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_bent_coin:
+	dc.b "Bent coin",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_kwik_kleen:
+	dc.b "Kwik Kleen",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_gold_key:
+	dc.b "Gold key",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_megabio_feed:
+	dc.b "Megabio Feed",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_mobian_brain:
+	dc.b "Mobian brain",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_ice_pendant:
+	dc.b "Ice pendant",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_sugar_cube:
+	dc.b "Sugar cube",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_alien_egg:
+	dc.b "Alien egg",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_kriptonite:
+	dc.b "Kriptonite",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_deltan_icon:
+	dc.b "Deltan icon",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_pool_8_ball:
+	dc.b "Pool 8 ball",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_araknoid_eye:
+	dc.b "Araknoid eye",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+item_name_kzin_97_ball:
+	dc.b "Kzin 97 ball",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+    ; This 15-byte name has no local NUL. Readers stop at the following offset WORD's high byte ($00). Keep name and table extents separate; a changed table byte can extend the text.
+item_name_amiga_computing:
+	dc.b "Amiga Computing"	; mode=required, data_role=string, unit=byte, encoding=ascii
+    ; 114 ID slots reference 103 strings. Five display names have shared aliases. Signed resolver and unsigned refresh agree within this prefix; it is not an encoded ID guard.
 item_name_offset_table:
-	dc.w abs_0_0001A25D-item_name_string_table	; lookup_table
-	dc.w abs_0_0001A25E-item_name_string_table
-	dc.w abs_0_0001A26B-item_name_string_table
-	dc.w abs_0_0001A272-item_name_string_table
-	dc.w abs_0_0001A277-item_name_string_table
-	dc.w abs_0_0001A284-item_name_string_table
-	dc.w abs_0_0001A290-item_name_string_table
-	dc.w abs_0_0001A298-item_name_string_table
-	dc.w abs_0_0001A2A3-item_name_string_table
-	dc.w abs_0_0001A2B0-item_name_string_table
-	dc.w abs_0_0001A2BD-item_name_string_table
-	dc.w abs_0_0001A2C7-item_name_string_table
-	dc.w abs_0_0001A2D3-item_name_string_table
-	dc.w abs_0_0001A2DE-item_name_string_table
-	dc.w abs_0_0001A2EC-item_name_string_table
-	dc.w abs_0_0001A2EC-item_name_string_table
-	dc.w abs_0_0001A2EC-item_name_string_table
-	dc.w abs_0_0001A2EC-item_name_string_table
-	dc.w abs_0_0001A2EC-item_name_string_table
-	dc.w abs_0_0001A2F8-item_name_string_table
-	dc.w abs_0_0001A305-item_name_string_table
-	dc.w abs_0_0001A305-item_name_string_table
-	dc.w abs_0_0001A305-item_name_string_table
-	dc.w abs_0_0001A305-item_name_string_table
-	dc.w abs_0_0001A311-item_name_string_table
-	dc.w abs_0_0001A31E-item_name_string_table
-	dc.w abs_0_0001A32A-item_name_string_table
-	dc.w abs_0_0001A337-item_name_string_table
-	dc.w abs_0_0001A346-item_name_string_table
-	dc.w abs_0_0001A351-item_name_string_table
-	dc.w abs_0_0001A35E-item_name_string_table
-	dc.w abs_0_0001A36B-item_name_string_table
-	dc.w abs_0_0001A377-item_name_string_table
-	dc.w abs_0_0001A382-item_name_string_table
-	dc.w abs_0_0001A38C-item_name_string_table
-	dc.w abs_0_0001A396-item_name_string_table
-	dc.w abs_0_0001A3A3-item_name_string_table
-	dc.w abs_0_0001A3AE-item_name_string_table
-	dc.w abs_0_0001A3B9-item_name_string_table
-	dc.w abs_0_0001A3C2-item_name_string_table
-	dc.w abs_0_0001A3D0-item_name_string_table
-	dc.w abs_0_0001A3D8-item_name_string_table
-	dc.w abs_0_0001A3E3-item_name_string_table
-	dc.w abs_0_0001A3EF-item_name_string_table
-	dc.w abs_0_0001A3FB-item_name_string_table
-	dc.w abs_0_0001A401-item_name_string_table
-	dc.w abs_0_0001A40B-item_name_string_table
-	dc.w abs_0_0001A411-item_name_string_table
-	dc.w abs_0_0001A41D-item_name_string_table
-	dc.w abs_0_0001A42A-item_name_string_table
-	dc.w abs_0_0001A43A-item_name_string_table
-	dc.w abs_0_0001A446-item_name_string_table
-	dc.w abs_0_0001A453-item_name_string_table
-	dc.w abs_0_0001A45C-item_name_string_table
-	dc.w abs_0_0001A46D-item_name_string_table
-	dc.w abs_0_0001A474-item_name_string_table
-	dc.w abs_0_0001A481-item_name_string_table
-	dc.w abs_0_0001A489-item_name_string_table
-	dc.w abs_0_0001A493-item_name_string_table
-	dc.w abs_0_0001A4A0-item_name_string_table
-	dc.w abs_0_0001A4A9-item_name_string_table
-	dc.w abs_0_0001A4B6-item_name_string_table
-	dc.w abs_0_0001A4BC-item_name_string_table
-	dc.w abs_0_0001A4C9-item_name_string_table
-	dc.w abs_0_0001A4D6-item_name_string_table
-	dc.w abs_0_0001A4DF-item_name_string_table
-	dc.w abs_0_0001A4EC-item_name_string_table
-	dc.w abs_0_0001A4F4-item_name_string_table
-	dc.w abs_0_0001A500-item_name_string_table
-	dc.w abs_0_0001A506-item_name_string_table
-	dc.w abs_0_0001A50E-item_name_string_table
-	dc.w abs_0_0001A517-item_name_string_table
-	dc.w abs_0_0001A520-item_name_string_table
-	dc.w abs_0_0001A52A-item_name_string_table
-	dc.w abs_0_0001A531-item_name_string_table
-	dc.w abs_0_0001A539-item_name_string_table
-	dc.w abs_0_0001A544-item_name_string_table
-	dc.w abs_0_0001A552-item_name_string_table
-	dc.w abs_0_0001A559-item_name_string_table
-	dc.w abs_0_0001A562-item_name_string_table
-	dc.w abs_0_0001A56F-item_name_string_table
-	dc.w abs_0_0001A57D-item_name_string_table
-	dc.w abs_0_0001A58A-item_name_string_table
-	dc.w abs_0_0001A598-item_name_string_table
-	dc.w abs_0_0001A5A9-item_name_string_table
-	dc.w abs_0_0001A5BA-item_name_string_table
-	dc.w abs_0_0001A5BA-item_name_string_table
-	dc.w abs_0_0001A5BA-item_name_string_table
-	dc.w abs_0_0001A5CB-item_name_string_table
-	dc.w abs_0_0001A5DC-item_name_string_table
-	dc.w abs_0_0001A5E8-item_name_string_table
-	dc.w abs_0_0001A5E8-item_name_string_table
-	dc.w abs_0_0001A5F7-item_name_string_table
-	dc.w abs_0_0001A5F7-item_name_string_table
-	dc.w abs_0_0001A5FF-item_name_string_table
-	dc.w abs_0_0001A60C-item_name_string_table
-	dc.w abs_0_0001A611-item_name_string_table
-	dc.w abs_0_0001A618-item_name_string_table
-	dc.w abs_0_0001A626-item_name_string_table
-	dc.w abs_0_0001A631-item_name_string_table
-	dc.w abs_0_0001A637-item_name_string_table
-	dc.w abs_0_0001A641-item_name_string_table
-	dc.w abs_0_0001A64C-item_name_string_table
-	dc.w abs_0_0001A655-item_name_string_table
-	dc.w abs_0_0001A662-item_name_string_table
-	dc.w abs_0_0001A66F-item_name_string_table
-	dc.w abs_0_0001A67B-item_name_string_table
-	dc.w abs_0_0001A686-item_name_string_table
-	dc.w abs_0_0001A690-item_name_string_table
-	dc.w abs_0_0001A69B-item_name_string_table
-	dc.w abs_0_0001A6A7-item_name_string_table
-	dc.w abs_0_0001A6B3-item_name_string_table
-	dc.w abs_0_0001A6C0-item_name_string_table
-	dc.w abs_0_0001A6CD-item_name_string_table
+	dc.w item_name_empty-item_name_string_table	; item_name_offset_lookup
+	dc.w item_name_nothing-item_name_string_table
+	dc.w item_name_wrench-item_name_string_table
+	dc.w item_name_acid-item_name_string_table
+	dc.w item_name_electroboost-item_name_string_table
+	dc.w item_name_sonicdriver-item_name_string_table
+	dc.w item_name_spanner-item_name_string_table
+	dc.w item_name_photosabre-item_name_string_table
+	dc.w item_name_iridium_mace-item_name_string_table
+	dc.w item_name_electrunchon-item_name_string_table
+	dc.w item_name_shockwhip-item_name_string_table
+	dc.w item_name_thermolance-item_name_string_table
+	dc.w item_name_deathsting-item_name_string_table
+	dc.w item_name_knuckleduster-item_name_string_table
+	dc.w item_name_laser_rifle-item_name_string_table
+	dc.w item_name_laser_rifle-item_name_string_table
+	dc.w item_name_laser_rifle-item_name_string_table
+	dc.w item_name_laser_rifle-item_name_string_table
+	dc.w item_name_laser_rifle-item_name_string_table
+	dc.w item_name_pulse_cannon-item_name_string_table
+	dc.w item_name_ostronn_egg-item_name_string_table
+	dc.w item_name_ostronn_egg-item_name_string_table
+	dc.w item_name_ostronn_egg-item_name_string_table
+	dc.w item_name_ostronn_egg-item_name_string_table
+	dc.w item_name_vulcann_vase-item_name_string_table
+	dc.w item_name_broken_orak-item_name_string_table
+	dc.w item_name_instant_pggb-item_name_string_table
+	dc.w item_name_sandworm_shell-item_name_string_table
+	dc.w item_name_wookey_wig-item_name_string_table
+	dc.w item_name_prophylactic-item_name_string_table
+	dc.w item_name_sonicblaster-item_name_string_table
+	dc.w item_name_cargo_chute-item_name_string_table
+	dc.w item_name_code_white-item_name_string_table
+	dc.w item_name_code_blue-item_name_string_table
+	dc.w item_name_code_grey-item_name_string_table
+	dc.w item_name_code_scarlet-item_name_string_table
+	dc.w item_name_code_ochre-item_name_string_table
+	dc.w item_name_code_black-item_name_string_table
+	dc.w item_name_sdi_disk-item_name_string_table
+	dc.w item_name_bottle_of_gin-item_name_string_table
+	dc.w item_name_insulin-item_name_string_table
+	dc.w item_name_hypodermic-item_name_string_table
+	dc.w item_name_insecticide-item_name_string_table
+	dc.w item_name_shakespeare-item_name_string_table
+	dc.w item_name_bible-item_name_string_table
+	dc.w item_name_light_box-item_name_string_table
+	dc.w item_name_globe-item_name_string_table
+	dc.w item_name_squash_ball-item_name_string_table
+	dc.w item_name_id_commander-item_name_string_table
+	dc.w item_name_id_lt_commander-item_name_string_table
+	dc.w item_name_id_engineer-item_name_string_table
+	dc.w item_name_id_scientist-item_name_string_table
+	dc.w item_name_id_medic-item_name_string_table
+	dc.w item_name_id_resource_ofcr-item_name_string_table
+	dc.w item_name_id_amy-item_name_string_table
+	dc.w item_name_id_awol_ofcr-item_name_string_table
+	dc.w item_name_captain-item_name_string_table
+	dc.w item_name_commander-item_name_string_table
+	dc.w item_name_lt_commander-item_name_string_table
+	dc.w item_name_engineer-item_name_string_table
+	dc.w item_name_science_ofcr-item_name_string_table
+	dc.w item_name_medic-item_name_string_table
+	dc.w item_name_awol_officer-item_name_string_table
+	dc.w item_name_rsrc_officer-item_name_string_table
+	dc.w item_name_musician-item_name_string_table
+	dc.w item_name_robomechanic-item_name_string_table
+	dc.w item_name_icelord-item_name_string_table
+	dc.w item_name_sec_officer-item_name_string_table
+	dc.w item_name_thief-item_name_string_table
+	dc.w item_name_chemist-item_name_string_table
+	dc.w item_name_diabetic-item_name_string_table
+	dc.w item_name_gardener-item_name_string_table
+	dc.w item_name_death_fly-item_name_string_table
+	dc.w item_name_priest-item_name_string_table
+	dc.w item_name_driffid-item_name_string_table
+	dc.w item_name_technician-item_name_string_table
+	dc.w item_name_squash_player-item_name_string_table
+	dc.w item_name_doctor-item_name_string_table
+	dc.w item_name_hooligan-item_name_string_table
+	dc.w item_name_bank_manager-item_name_string_table
+	dc.w item_name_cleaner_robot-item_name_string_table
+	dc.w item_name_menial_droid-item_name_string_table
+	dc.w item_name_entry_officer-item_name_string_table
+	dc.w item_name_secdroid_alpha_1-item_name_string_table
+	dc.w item_name_secdroid_alpha_2-item_name_string_table
+	dc.w item_name_secdroid_delta_1-item_name_string_table
+	dc.w item_name_secdroid_delta_1-item_name_string_table
+	dc.w item_name_secdroid_delta_1-item_name_string_table
+	dc.w item_name_secdroid_delta_2-item_name_string_table
+	dc.w item_name_secdroid_pi-item_name_string_table
+	dc.w item_name_secdroid_omega-item_name_string_table
+	dc.w item_name_secdroid_omega-item_name_string_table
+	dc.w item_name_pianist-item_name_string_table
+	dc.w item_name_pianist-item_name_string_table
+	dc.w item_name_flight_ctrlr-item_name_string_table
+	dc.w item_name_cook-item_name_string_table
+	dc.w item_name_barman-item_name_string_table
+	dc.w item_name_defence_ctrlr-item_name_string_table
+	dc.w item_name_wackobrain-item_name_string_table
+	dc.w item_name_glass-item_name_string_table
+	dc.w item_name_bent_coin-item_name_string_table
+	dc.w item_name_kwik_kleen-item_name_string_table
+	dc.w item_name_gold_key-item_name_string_table
+	dc.w item_name_megabio_feed-item_name_string_table
+	dc.w item_name_mobian_brain-item_name_string_table
+	dc.w item_name_ice_pendant-item_name_string_table
+	dc.w item_name_sugar_cube-item_name_string_table
+	dc.w item_name_alien_egg-item_name_string_table
+	dc.w item_name_kriptonite-item_name_string_table
+	dc.w item_name_deltan_icon-item_name_string_table
+	dc.w item_name_pool_8_ball-item_name_string_table
+	dc.w item_name_araknoid_eye-item_name_string_table
+	dc.w item_name_kzin_97_ball-item_name_string_table
+	dc.w item_name_amiga_computing-item_name_string_table
 terminal_item_deposited_message:
 	dc.b " ITEM DEPOSITED",$00
 pandora_title_logo_text:

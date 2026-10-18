@@ -5066,3 +5066,52 @@ with C and vasm, SHA-256
 receipt `4ae079c141db2ab5fe4c70e7908f9020adf5c28582f20282f18328c06d187ebc`. Whole prior source/comments/types/owners,all126 assets,
 2112 tile fields,128-byte INCBIN policy,SDK forms,pointer expressions,raw gaps and
 append-only histories remain preserved. No further NPC route exploration was used.
+
+### Shared item and character display-name catalog
+
+Accepted 222 facts complete the display-name pool and its references: 103
+purpose-based names with explicit ASCII extents, one 114-WORD array in the
+existing owner, 114 signed base-relative bidirectional references, and four
+alias/boundary comments. All relative WORD expressions reference the names.
+The existing 228-byte offset-table owner retains its identifier, bounds, role and name. Its stride-two array has no
+explicit HEX representation: every WORD has a canonical string-minus-base
+binding. These explicit references preserve source quality where required string
+facts suppress native heuristic expressions. No overlapping string owner was
+introduced, and all 284 earlier manual data references remain intact. Existing
+item-ID constants and world-object role names are preserved. Character and item display names share
+this catalog; the labels identify text, not unique actor or inventory identities.
+
+Five alias groups remain explicit: IDs 14..18 share LASER RIFLE, 20..23 share
+Ostronn egg, 85..87 share Secdroid DELTA 1, 90..91 share Secdroid OMEGA and 92..93
+share Pianist. ID 0 selects an empty string; ID 1 selects five spaces plus NOTHING.
+Raw inventory refresh and display fallback retain their different ID selection.
+The final Amiga Computing name occupies 15 bytes with no local NUL. Original text
+consumers terminate on the following first offset WORD's high byte, $00. An
+explicit CPU-fixture change to that WORD extends the read by two printable bytes;
+this establishes the dependency without claiming ordinary table mutation.
+
+Five new original-code cases in `tests/test_pandora_item_name_catalog.py` pass.
+The fixture records all 103 physical strings, their 114 ID mappings and exact
+terminators. Every name passes through the real compact font's CPU writes and
+through the proportional map/cursor path with all planes disabled. Full inventory
+refresh covers all 114 mappings across both four-slot panels while preserving IDs
+and saved registers. CPU RAM writes and packet/cursor behavior do not establish
+displayed pixels, DMA timing or audio hardware output. No instructions are patched.
+Existing renderer arithmetic, signed resolver/unsigned refresh and out-of-prefix
+limits are reused; resolver IDs 114..127 and refresh IDs 114..255 remain outside
+the supplied name-table prefix. The published MOVEA.W signed/unsigned boundary,
+ordinary MOVE.W and independent oracle coverage is unchanged and was not rerun.
+
+Isolated normal-command preflights reproduce all 1,382 original bytes covering
+the pool and offset table with C and vasm, including empty/padded strings and the
+non-NUL final extent and all 115 array/reference commands. Native query preflight
+confirms all 114 target links across the 103 strings; current-target alias and
+final-name queries corroborate their projected links. The combined owner
+and dependent-reference request was rejected before any append; the owning array
+was staged first at a fresh revision. Five normal interpretation batches were
+followed by one final full gate after all annotations settled: all 376,832 bytes
+match with C and vasm, SHA-256 `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`,
+receipt `5f4038698d62dd80035cd8c135bc65b8f58012ceb046fce266acc94a27157100`. Whole prior source/comments, types and owner bounds,
+SDK/pointer forms, all 126 assets, 2,112 tile fields, 128-byte INCBIN policy, raw
+gaps and append-only histories remain preserved. No framework or runtime-runner
+change was needed.
