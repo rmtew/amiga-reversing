@@ -48,6 +48,7 @@
 ;   required OS floor: unknown
 ;   evidence: no recovered OS calls
 
+    INCLUDE "devices/inputevent.i"
     INCLUDE "graphics/copper.i"
     INCLUDE "graphics/display.i"
     INCLUDE "hardware/adkbits.i"
@@ -813,6 +814,25 @@ ui_border_planar_row_plane_2_pixels RS.B 1
 ui_border_planar_row_plane_3_pixels RS.B 1
 ui_border_planar_row_SIZEOF EQU __RS
 
+; STRUCT keyboard_state_table
+    RSRESET
+    RS.B 11
+keyboard_state_table_scroll_profile_0_held_ff RS.B 1
+keyboard_state_table_scroll_profile_1_held_ff RS.B 1
+    RS.B 51
+keyboard_state_table_inventory_space_held_ff RS.B 1
+    RS.B 15
+keyboard_state_table_pause_f1_held_ff RS.B 1
+    RS.B 5
+keyboard_state_table_warm_restart_f7_held_ff RS.B 1
+    RS.B 41
+keyboard_state_table_SIZEOF EQU __RS
+
+; STRUCT keyboard_key_state
+    RSRESET
+keyboard_key_state_held_ff RS.B 1
+keyboard_key_state_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -822,6 +842,8 @@ ANIM_MODE_HOLD_AT_END_MASK	EQU	1<<ANIM_MODE_HOLD_AT_END_BIT
 ANIM_MODE_HOLD_HEADER_BIT	EQU	$0
 ANIM_MODE_HOLD_HEADER_MASK	EQU	$1
 ANIM_MODE_SKIP_UPDATE_BIT	EQU	$1
+APP_STARTUP_CLEAR_LAST_BYTE	EQU	875
+APP_STATE_BASE	EQU	$39FC
 APP_STATUS_FRAME_COMPLETE_BIT	EQU	5
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 CONTEXT_ID_RECHECK_PENDING_BIT	EQU	4
@@ -842,6 +864,10 @@ GAME_EVENT_OUTCOME_MESSAGE_LATCH_BIT	EQU	6
 GAME_EVENT_SELF_DESTRUCT_EXPIRED_BIT	EQU	5
 GAME_EXIT_DELAY_SERVICE_STEPS	EQU	70
 ID_POSSESSION_VARIANT_COUNT	EQU	8
+INPUT_DIRECTION_DOWN_BIT	EQU	1
+INPUT_DIRECTION_LEFT_BIT	EQU	2
+INPUT_DIRECTION_RIGHT_BIT	EQU	3
+INPUT_DIRECTION_UP_BIT	EQU	0
 INTERACTION_AUDIO_FLAG_GARDENER_FEEDBACK_PENDING	EQU	2
 INTERACTION_AUDIO_FLAG_MENIAL_DROID_FEEDBACK_PENDING	EQU	1
 INTERACTION_AUDIO_FLAG_SEQUENCE_214_PENDING	EQU	$3
@@ -942,7 +968,15 @@ ITEM_ID_THIEF	EQU	$44
 ITEM_ID_WACKOBRAIN	EQU	$62
 ITEM_ID_WOOKEY_WIG	EQU	$1C
 ITEM_ID_WRENCH	EQU	$2
+JOY1DAT_LEFT_INPUT_BIT	EQU	9
+JOY1DAT_PAIR_MASK	EQU	3
+JOY1DAT_RIGHT_INPUT_BIT	EQU	1
+JOY1DAT_UPPER_PAIR_SHIFT	EQU	8
+KEYBOARD_CLEAR_LAST_LONGWORD	EQU	31
+KEYBOARD_INVENTORY_KEY_STATE	EQU	$39BC
 KEYBOARD_IRQ_ACK_MASK	EQU	INTF_RBF|INTF_PORTS|INTF_TBE
+KEYBOARD_PAUSE_KEY_STATE	EQU	$39CC
+KEYBOARD_STATE_BASE	EQU	$397C
 NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
@@ -988,6 +1022,8 @@ UI_BODY_BACKGROUND_STORAGE	EQU	$7F0
 UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 UI_HIT_BACKGROUND_STORAGE	EQU	$77D00
+UI_INVENTORY_KEY_BLOCK_MASK	EQU	3
+UI_INVENTORY_KEY_LATCH_BIT	EQU	3
 UI_OVERLAY_BLIT_ROW_BYTES	EQU	40
 UI_OVERLAY_BORDER_DBF_BIAS	EQU	3
 UI_OVERLAY_CALLBACK_READY_BIT	EQU	7
@@ -997,6 +1033,8 @@ UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
 UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
 UI_OVERLAY_TITLE_FIRST_CHARACTER	EQU	'A'
 UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
+UI_PAUSE_ACTIVE_BIT	EQU	7
+UI_PAUSE_INHIBIT_BIT	EQU	0
 VIEW_CLIP_BOTTOM_BIT	EQU	$1
 VIEW_CLIP_LEFT_BIT	EQU	$2
 VIEW_CLIP_REJECT	EQU	$F
@@ -1200,19 +1238,19 @@ copy_image_backward_bytes:
 runtime_supervisor_stack_top:
 	dc.b $00,$00,$00,$10
     ; Warm restart waits for blitter busy to clear before setup/title CPU reuse of shared scratch. Render helpers may return with the final scratch read active; this wait closes that transition.
-abs_0_00010456:
+wait_for_blitter_then_restart_runtime:
 	lea.l _custom+dmaconr.l,a5
     ; A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)
-abs_0_0001045C:
+wait_for_restart_blitter_idle:
 	move.w (a5),d0
-	btst #14,d0
-	bne.b abs_0_0001045C
+	btst #DMAB_BLTDONE,d0
+	bne.b wait_for_restart_blitter_idle
 	move #$2700,sr
-	bra.b abs_0_00010498
+	bra.b setup_runtime_hardware_and_display
     ; Clear $36C bytes at fixed workspace $39FC, then install TRAP0 to enter supervisor setup. This workspace is separate from the copied program image.
 initialize_runtime_workspace:
-	lea.l absolute_slot_000039FC.l,a0
-	move.w #$36B,d0
+	lea.l APP_STATE_BASE.l,a0
+	move.w #APP_STARTUP_CLEAR_LAST_BYTE,d0
 clear_runtime_workspace_bytes:
 	clr.b (a0)+
 	dbf.w d0,clear_runtime_workspace_bytes
@@ -1223,9 +1261,9 @@ clear_runtime_workspace_bytes:
     ; Set SR=$2700 and bind A6=$39FC. This TRAP0 handler falls into setup without RTE; the later A7 reset discards the trap frame.
 supervisor_runtime_entry:
 	move #$2700,sr
-	lea.l absolute_slot_000039FC.l,a6
+	lea.l APP_STATE_BASE.l,a6
 	jsr initialize_world_tilemap_state.l
-abs_0_00010498:
+setup_runtime_hardware_and_display:
 	lea.l _custom.l,a5
 	lea.l noop_runtime_callback(pc),a0
 	move.w #$7FFF,d0
@@ -1339,36 +1377,37 @@ wait_for_completed_frame:
 	jsr start_feedback_audio_sequence.l
 abs_0_0001066C:
 	btst.b #1,player_world_object_world_object_flags.l
-	beq.b abs_0_00010688
+	beq.b check_main_keyboard_shortcuts
 abs_0_00010676:
 	btst.b #5,app_02A6(a6)
-	bne.b abs_0_00010688
+	bne.b check_main_keyboard_shortcuts
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
-	bne.b abs_0_00010688
-	bra.w abs_0_00010456
-abs_0_00010688:
+	bne.b check_main_keyboard_shortcuts
+	bra.w wait_for_blitter_then_restart_runtime
+check_main_keyboard_shortcuts:
 	btst.b #4,app_status_flags(a6)
-	bne.b abs_0_000106D2
-	lea.l absolute_slot_0000397C.l,a0
-	tst.b $0056(a0)
-	beq.b abs_0_000106A2
-	jmp abs_0_00010456.l
-abs_0_000106A2:
-	tst.b $000B(a0)
-	beq.b abs_0_000106BA
+	bne.b continue_main_frame_exchange
+	lea.l KEYBOARD_STATE_BASE.l,a0
+    ; KNOWN: type A0=Target code-entry register seed:keyboard_state_table
+	tst.b keyboard_state_table_warm_restart_f7_held_ff(a0)
+	beq.b check_camera_profile_0_key
+	jmp wait_for_blitter_then_restart_runtime.l
+check_camera_profile_0_key:
+	tst.b keyboard_state_table_scroll_profile_0_held_ff(a0)
+	beq.b check_camera_profile_1_key
 	tst.w app_camera_scroll_profile_index(a6)
-	beq.b abs_0_000106D2
+	beq.b continue_main_frame_exchange
 	clr.w app_camera_scroll_profile_index(a6)
 	jsr configure_camera_scroll_triggers.l
-	bra.b abs_0_000106D2
-abs_0_000106BA:
-	tst.b $000C(a0)
-	beq.b abs_0_000106D2
+	bra.b continue_main_frame_exchange
+check_camera_profile_1_key:
+	tst.b keyboard_state_table_scroll_profile_1_held_ff(a0)
+	beq.b continue_main_frame_exchange
 	tst.w app_camera_scroll_profile_index(a6)
-	bne.b abs_0_000106D2
+	bne.b continue_main_frame_exchange
 	move.w #$1,app_camera_scroll_profile_index(a6)
 	jsr configure_camera_scroll_triggers.l
-abs_0_000106D2:
+continue_main_frame_exchange:
 	bra.w swap_front_back_display_buffers
 return_immediately:
 	rts
@@ -1465,33 +1504,33 @@ poll_joystick1_directions_and_fire:
 	not.w d1
 	moveq.l #0,d0
 	moveq.l #0,d2
-	btst #1,d1
-	bne.b abs_0_00010816
-	bset #3,d0
+	btst #JOY1DAT_RIGHT_INPUT_BIT,d1
+	bne.b test_joystick_left_input
+	bset #INPUT_DIRECTION_RIGHT_BIT,d0
 	moveq.l #1,d2
-abs_0_00010816:
-	btst #9,d1
-	bne.b abs_0_00010822
-	bset #2,d0
+test_joystick_left_input:
+	btst #JOY1DAT_LEFT_INPUT_BIT,d1
+	bne.b store_joystick_horizontal_step
+	bset #INPUT_DIRECTION_LEFT_BIT,d0
 	moveq.l #-1,d2
-abs_0_00010822:
+store_joystick_horizontal_step:
 	move.w d2,app_input_x_step(a6)
 	moveq.l #0,d2
-	andi.b #3,d1
-	beq.b abs_0_0001083A
-	cmp.b #$3,d1
-	beq.b abs_0_0001083A
-	bset #1,d0
+	andi.b #JOY1DAT_PAIR_MASK,d1
+	beq.b test_joystick_up_input
+	cmp.b #JOY1DAT_PAIR_MASK,d1
+	beq.b test_joystick_up_input
+	bset #INPUT_DIRECTION_DOWN_BIT,d0
 	moveq.l #1,d2
-abs_0_0001083A:
-	lsr.w #8,d1
-	andi.b #3,d1
-	beq.b abs_0_0001084E
-	cmp.b #$3,d1
-	beq.b abs_0_0001084E
-	bset #0,d0
+test_joystick_up_input:
+	lsr.w #JOY1DAT_UPPER_PAIR_SHIFT,d1
+	andi.b #JOY1DAT_PAIR_MASK,d1
+	beq.b store_joystick_vertical_step
+	cmp.b #JOY1DAT_PAIR_MASK,d1
+	beq.b store_joystick_vertical_step
+	bset #INPUT_DIRECTION_UP_BIT,d0
 	moveq.l #-1,d2
-abs_0_0001084E:
+store_joystick_vertical_step:
 	move.w d2,app_input_y_step(a6)
 	move.w d0,app_input_direction_mask(a6)
 	rts
@@ -1503,11 +1542,11 @@ poll_keyboard_serial_input:
 	beq.b acknowledge_keyboard_serial_input
 	lea.l _ciaa.l,a0
 	moveq.l #0,d0
-	lea.l absolute_slot_0000397C.l,a1
+	lea.l KEYBOARD_STATE_BASE.l,a1
 	move.b ciasdr(a0),d0
 	ror.b #1,d0
 	not.b d0
-	bclr #7,d0
+	bclr #IECODEB_UP_PREFIX,d0
 	seq.b $0(a1,d0.l)
 	bne.b acknowledge_keyboard_serial_input
 	move.b d0,app_last_pressed_raw_key(a6)
@@ -1539,7 +1578,7 @@ acknowledge_keyboard_serial_input:
     ; Save D0/A0-A1/A5-A6 and bind workspace/custom bases. Callbacks must return with A5 still pointing to custom registers for acknowledgement; other clobbers need separate contracts.
 handle_level_3_interrupts:
 	movem.l d0/a0-a1/a5-a6,-(a7)
-	lea.l absolute_slot_000039FC.l,a6
+	lea.l APP_STATE_BASE.l,a6
 	lea.l _custom.l,a5
     ; Sample raw INTREQR without INTENA filtering. Prefer Copper, then VBL, then BLIT; service/ack one selected source and return. If none matches, clear remaining sampled request bits.
 	move.w intreqr(a5),d0	; interrupt request state
@@ -1604,7 +1643,7 @@ handle_vertical_blank_frame_update:
 	move.w d1,(a0)+
 	move.l app_cursor_sprite0_dma_ptr(a6),sprpt(a5)	; sprite pointer
 	move.l app_cursor_sprite1_dma_ptr(a6),sprpt+$04(a5)	; sprite pointer
-	btst.b #7,app_ui_flags(a6)
+	btst.b #UI_PAUSE_ACTIVE_BIT,app_ui_flags(a6)
 	bne.b service_frame_audio_and_keyboard
 	bsr.w update_scrolling_message_ticker
     ; Preserve D2-D7/A3-A6 around audio service, in addition to the callback D1/A2 save. This wrapper does not prove the other helpers preserve all remaining registers.
@@ -5624,18 +5663,18 @@ abs_0_000126E6:
 update_inventory_panel_availability:
 	lea.l player_world_object.l,a4
 	btst.b #1,world_object_shared_prefix_world_object_flags(a4)
-	bne.b abs_0_00012712
+	bne.b return_from_inventory_key_scan
 	move.b app_ui_flags(a6),d0
-	andi.b #3,d0
-	bne.b abs_0_00012712
-	tst.b absolute_slot_000039BC.l
+	andi.b #UI_INVENTORY_KEY_BLOCK_MASK,d0
+	bne.b return_from_inventory_key_scan
+	tst.b KEYBOARD_INVENTORY_KEY_STATE.l
 	bne.b toggle_inventory_panel
-	bclr.b #3,app_ui_flags(a6)
-abs_0_00012712:
+	bclr.b #UI_INVENTORY_KEY_LATCH_BIT,app_ui_flags(a6)
+return_from_inventory_key_scan:
 	rts
 toggle_inventory_panel:
-	bset.b #3,app_ui_flags(a6)
-	bne.b abs_0_00012712
+	bset.b #UI_INVENTORY_KEY_LATCH_BIT,app_ui_flags(a6)
+	bne.b return_from_inventory_key_scan
 	move.w #$311,d0
 	jsr start_feedback_audio_sequence.l
 	bset.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
@@ -5691,7 +5730,7 @@ abs_0_000127C4:
 	bsr.w enqueue_ui_overlay_update
 	bsr.w finalize_inventory_selection
 	cmp.b #ITEM_ID_BENT_COIN,d0
-	bne.w abs_0_00012712
+	bne.w return_from_inventory_key_scan
 	lea.l announce_item_trade(pc),a0
 	bsr.w abs_0_00017CFE
 	rts
@@ -6123,25 +6162,27 @@ abs_0_00012CC6:
 	dbf.w d1,abs_0_00012CC6
 	rts
 service_keyboard_pause_gate:
-	lea.l absolute_slot_000039CC.l,a0
-	btst.b #0,app_ui_flags(a6)
-	bne.b abs_0_00012D58
-	tst.b (a0)
-	beq.b abs_0_00012D58
-	bset.b #7,app_ui_flags(a6)
-	bsr.b abs_0_00012D46
+	lea.l KEYBOARD_PAUSE_KEY_STATE.l,a0
+    ; KNOWN: type A0=Target code-entry register seed:keyboard_key_state
+	btst.b #UI_PAUSE_INHIBIT_BIT,app_ui_flags(a6)
+	bne.b return_from_pause_polling
+	tst.b (a0)	; operand 1: keyboard_key_state_held_ff at (a0)
+	beq.b return_from_pause_polling
+	bset.b #UI_PAUSE_ACTIVE_BIT,app_ui_flags(a6)
+	bsr.b wait_for_pause_key_resume_sequence
 	rts
-abs_0_00012D46:
+    ; KNOWN: type A0=Target code-entry register seed:keyboard_key_state
+wait_for_pause_key_resume_sequence:
 	tst.b (a0)
-	bne.b abs_0_00012D46
-abs_0_00012D4A:
+	bne.b wait_for_pause_key_resume_sequence
+wait_for_resume_key_press:
 	tst.b (a0)
-	beq.b abs_0_00012D4A
-abs_0_00012D4E:
+	beq.b wait_for_resume_key_press
+wait_for_resume_key_release:
 	tst.b (a0)
-	bne.b abs_0_00012D4E
-	bclr.b #7,app_ui_flags(a6)
-abs_0_00012D58:
+	bne.b wait_for_resume_key_release
+	bclr.b #UI_PAUSE_ACTIVE_BIT,app_ui_flags(a6)
+return_from_pause_polling:
 	rts
 update_earth_orbit_countdown_display:
 	subq.b #1,app_earth_orbit_countdown_divider(a6)
@@ -11264,16 +11305,17 @@ abs_0_00019024:
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
-	beq.b abs_0_00019062
+	beq.b check_terminal_restart_key
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
-	bne.b abs_0_00019062
-	jmp abs_0_00010456.l
-abs_0_00019062:
-	lea.l absolute_slot_0000397C.l,a0
-	tst.b $0056(a0)
-	beq.b abs_0_00019074
-	jmp abs_0_00010456.l
-abs_0_00019074:
+	bne.b check_terminal_restart_key
+	jmp wait_for_blitter_then_restart_runtime.l
+check_terminal_restart_key:
+	lea.l KEYBOARD_STATE_BASE.l,a0
+    ; KNOWN: type A0=Target code-entry register seed:keyboard_state_table
+	tst.b keyboard_state_table_warm_restart_f7_held_ff(a0)
+	beq.b continue_terminal_key_input
+	jmp wait_for_blitter_then_restart_runtime.l
+continue_terminal_key_input:
 	bsr.w update_terminal_selected_item
 	btst.b #2,app_ui_flags(a6)
 	bne.b abs_0_0001901E
@@ -12194,16 +12236,17 @@ abs_0_00019C38:
 	bsr.w update_earth_orbit_countdown_display
 	jsr advance_pseudorandom_state.l
 	btst.b #1,player_world_object_world_object_flags.l
-	beq.b abs_0_00019C76
+	beq.b check_self_destruct_restart_key
 	subq.b #1,app_game_exit_service_ticks_remaining(a6)
-	bne.b abs_0_00019C76
-	jmp abs_0_00010456.l
-abs_0_00019C76:
-	lea.l absolute_slot_0000397C.l,a0
-	tst.b $0056(a0)
-	beq.b abs_0_00019C88
-	jmp abs_0_00010456.l
-abs_0_00019C88:
+	bne.b check_self_destruct_restart_key
+	jmp wait_for_blitter_then_restart_runtime.l
+check_self_destruct_restart_key:
+	lea.l KEYBOARD_STATE_BASE.l,a0
+    ; KNOWN: type A0=Target code-entry register seed:keyboard_state_table
+	tst.b keyboard_state_table_warm_restart_f7_held_ff(a0)
+	beq.b continue_self_destruct_key_input
+	jmp wait_for_blitter_then_restart_runtime.l
+continue_self_destruct_key_input:
 	bsr.w process_self_destruct_card_input
 	btst.b #2,app_ui_flags(a6)
 	bne.b abs_0_00019C32
@@ -12421,11 +12464,11 @@ initialize_world_state:
 	move.w d0,ranged_hit_visual_descriptor_world_x.l
 	move.w d0,abs_0_000585AA.l
 	move.w #$AAA,abs_0_00010772.l
-	lea.l absolute_slot_0000397C.l,a0
-	moveq.l #31,d7
-abs_0_00019F60:
+	lea.l KEYBOARD_STATE_BASE.l,a0
+	moveq.l #KEYBOARD_CLEAR_LAST_LONGWORD,d7
+clear_next_keyboard_state_longword:
 	clr.l (a0)+
-	dbf.w d7,abs_0_00019F60
+	dbf.w d7,clear_next_keyboard_state_longword
     ; For these six receptacles, clear flags byte 5, including proximity bit 0. Restore a nonzero saved attachment and clear its saved pointer; otherwise keep the current attachment.
 	lea.l scene_restart_receptacle_state_ptrs.l,a0
 	moveq.l #5,d7

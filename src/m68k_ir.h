@@ -77,7 +77,12 @@ typedef struct M68kRenderPolicy {
 #if M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT > UINT16_MAX
 #error Manual data reference limit must fit its uint16_t counter
 #endif
-#define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
+/* Recovered shared types accumulate across target subsystems. Storage remains
+ * heap-backed and bounded; the old 64-type limit blocked complete targets. */
+#define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 256U
+#if M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT > UINT16_MAX
+#error Custom struct limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT 192U

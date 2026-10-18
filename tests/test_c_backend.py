@@ -1177,6 +1177,10 @@ class _M68kAnalysisRegisterSeed(ctypes.Structure):
         ("name", ctypes.c_char * 64),
         ("type_name", ctypes.c_char * 64),
         ("context_name", ctypes.c_char * 64),
+        ("hardware_stride", ctypes.c_uint16),
+        ("hardware_index_values", ctypes.c_uint16 * 8),
+        ("hardware_index_count", ctypes.c_uint8),
+        ("hardware_index_register", ctypes.c_uint8),
     ]
 
 
@@ -4442,8 +4446,8 @@ after_data:
         (2, 2, "magic", "UWORD"),
         (4, 4, "next_offset", "APTR"),
     ]
-    assert "DataHeader.magic" in rendered
-    assert "DataHeader.next_offset" in rendered
+    assert "DataHeader_magic" in rendered and "; magic" in rendered
+    assert "DataHeader_next_offset" in rendered and "; next_offset" in rendered
     assert "; STRUCT DataHeader\n    RSRESET\nDataHeader_magic RS.W 1\n" in rendered
     assert "data_header_next_offset:" not in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
@@ -4496,7 +4500,7 @@ after_data:
         assert metadata_path is not None
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
 
-    assert "OddStrideRecord.next_offset" in rendered
+    assert "OddStrideRecord_next_offset" in rendered and "; next_offset" in rendered
     # This Hunk stores non-relocated numeric longs.  Symbolizing them would
     # invent relocations, so pointer semantics must preserve the bytes here.
     assert "dc.l odd_stride_records_gap_6_1" not in rendered
@@ -9813,19 +9817,21 @@ def test_real_dll_custom_struct_seed_renders_typed_field(tmp_path: Path) -> None
             "operand_index": 0,
             "base_register": "A0",
             "displacement": 8,
+            "base_cursor": 0,
             "field_offset": 8,
             "struct_size": 16,
             "field_size": 4,
             "root_struct_name": "GamePlayer",
             "owner_struct_name": "GamePlayer",
             "field_name": "player_score",
-            "field_expr": "player_score",
+            "field_expr": "GamePlayer_player_score",
             "inherited": 0,
             "nested": 0,
             "type_provenance_kind_id": 11,
             "type_provenance_kind": "policy_seed",
             "type_provenance_section": 0,
             "type_provenance_offset": 0,
+            "type_provenance_operand_index": 0,
         }
     ]
     assert any("player_score(a0)" in row["text"] for row in combined["listing"]["rows"])
@@ -12277,3 +12283,28 @@ def test_real_dll_extract_disk_entry_reports_c_error() -> None:
 
     with pytest.raises(RuntimeError, match="C disk backend DLL failed:"):
         extract_disk_entry_with_c_backend(disk_path, "missing/file")
+
+
+@pytest.mark.parametrize('count', [65, 256, 257])
+def test_custom_struct_metadata_beyond_old_limit_and_new_boundary(tmp_path: Path, count: int) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / 'keys.bin'
+    binary.write_bytes(bytes.fromhex('102800504e75'))  # MOVE.B 80(A0),D0; RTS.
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+                             address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+                             code_start_offset=0, display_path=str(binary),
+                             analysis_cache_path=tmp_path / 'binary.analysis')
+    metadata = tmp_path / 'types.json'
+    metadata.write_text(json.dumps({
+        'entry_register_seeds': [{'hunk': 0, 'entry_offset': 0, 'kind': 'struct_ptr', 'register': 'A0', 'note': 'Recovered key state',
+                                  'struct_name': f'RecoveredType{count-1}'}],
+        'custom_structs': [
+            {'name': f'RecoveredType{i}', 'size': 128, 'fields': [
+                {'name': 'held_ff', 'type': 'UBYTE', 'offset': 80, 'size': 1}]}
+            for i in range(count)]}))
+    if count == 257:
+        with pytest.raises(RuntimeError, match='failed parsing target metadata custom struct'):
+            render_project_source_with_c_backend(source, metadata_path=metadata, project_root=PROJECT_ROOT)
+    else:
+        rendered = render_project_source_with_c_backend(source, metadata_path=metadata, project_root=PROJECT_ROOT)
+        assert f'RecoveredType{count-1}_held_ff(a0)' in rendered

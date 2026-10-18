@@ -3533,3 +3533,41 @@ CPU fixtures. C and independent vasm reproduce all 376,832 original bytes,
 receipt `250068d4cd806cbc836da926448527437faa6aea344d11315d9c57999cb037d8`.
 Existing source annotations, all 86 assets and both history prefixes are
 preserved; no generic local labels remain in the selected renderer units.
+
+## Keyboard, joystick and key-consumer family
+
+The 128-byte keyboard state producer and its main/modal consumers share a sparse
+key-table type. Only the five consumed keys are named: two camera profiles,
+Space inventory, F1 pause and F7 warm restart. A one-byte key-state type covers
+the pause helper. Runtime address constants identify the table, its Space/F1
+entries and the app-state base; they assert neither allocation nor relocation
+closure. Cold startup clears 876 app bytes, while world restart clears exactly
+128 key bytes. The app-state address anchor does not claim the sparse app type's
+full extent.
+
+Joystick masks retain opposed direction bits; signed steps favor left and up.
+Inventory processing keeps its press latch across blocked releases. Pause waits
+for release/press/release, inhibits the scrolling ticker, and leaves frame audio
+and keyboard service active. Three F7 consumers enter the same Blitter-idle wait
+and shared hardware setup. The absent-PORTS acknowledgement path still inherits
+A0; its uncertain CIA write and the existing keyboard relocation limitations
+remain unresolved.
+
+Eight new bounded original-code tests cover every serial press/release byte,
+all 32 joystick/fire combinations, pause transitions, inventory gates, exact
+clear fences, three restart consumers and camera-key priority. Together with
+existing interrupt, hardware-rendering and overlay regressions, 30 tests pass.
+The rebuilt native backend passes all 819 tests. Its fixed custom-type capacity
+is raised from 64 to 256 because Pandora's 63 existing types left insufficient
+space for this family; three new tests cover 65/256 success and 257 refusal.
+The legacy metadata test ABI now includes hardware-indexed seed fields, and
+stale field-rendering expectations match current qualified symbols/comments.
+The broader custom-type selection has nine passes and one separate unresolved
+Hunk regression: a non-relocated numeric pointer is symbolized as a source
+address. That Hunk renderer path is unchanged by this family.
+
+The 78 accepted actions comprise two types, 21 block/routine names, 18 constants
+and runtime anchors, five grounded register seeds and 32 operand presentations.
+Original annotations and all 86 assets are preserved. C and independent vasm
+reproduce all 376,832 original bytes, receipt
+`0b1854723ec06b09bf3c35cca5f88e29baefe866bab6f6edf012e49ef01e64c5`.
