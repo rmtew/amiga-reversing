@@ -4620,3 +4620,21 @@ fields/types/owners, 126 assets, SDK/pointer forms, raw gaps and history prefixe
 are preserved. The 128-byte INCBIN policy and 2,112 typed tile fields remain intact;
 unselected atlas gameplay use is still unknown. Receipt, native xrefs and test
 domains: `docs/validation/pandora-self-destruct-console.json`.
+
+### NPC item-response callbacks and selected service
+
+Restored eight connected callbacks, their range/cooldown helpers and carry-controlled
+message path: 48 accepted actions name thirteen branches, the four-pointer chemist
+quote table, twelve exact ASCII messages (487 bytes), and matching constants/fields.
+Eleven original-code tests in `tests/test_pandora_item_responses.py` cover all item
+and latch bytes, range edges, all four choices through the real PRNG, inactive/panel
+gates, cooldown WORD boundaries, and real carry/null/full-FIFO dispatch. Musician
+gin sets a one-time latch without a cooldown; the chemist's latched Bible case can
+fall through to NPC-held Shakespeare. Dispatch uses the +$10 interaction message;
+queue refusal preserves callback effects. A decrement reaching zero dispatches on
+the next eligible selected-object visit. Controlled RAM/queue calls add no ordinary
+gameplay or hardware claim. C and vasm match all 376,832 original bytes, receipt
+`aafb863b5f05ecc104195d4b75d9c7bf941281c0b20e914e0045e86d0ffe6c46`. Prior comments, fields/types/owners, SDK/pointer forms, raw gaps
+and histories are preserved. All 126 assets, 2,112 typed tile fields and the
+128-byte INCBIN policy remain intact; atlas gameplay use stays unknown. Unchanged
+framework, console/outcome and package checks are reused; no new framework code.

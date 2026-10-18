@@ -933,6 +933,7 @@ CHECKPOINT_ENGINEER_SEEN_BIT	EQU	2
 CHECKPOINT_FIRST_AUTHORIZATION_AUDIO_SEQUENCE	EQU	$118
 CHECKPOINT_LT_COMMANDER_SEEN_BIT	EQU	1
 CHECKPOINT_TALL_VERTICAL_BIAS	EQU	32
+CHEMIST_QUOTE_POINTER_BYTE_MASK	EQU	12
 COMBAT_ATTACK_CHECK_WORD_DISP	EQU	world_object_shared_prefix_combat_attack_check_value-1
 COMBAT_ATTACK_WINDOW_END	EQU	25
 COMBAT_CHARGE_CELL_SHIFT	EQU	3
@@ -1001,6 +1002,7 @@ INTERACTION_FLAG_PROXIMITY_AUDIO_ACTIVE	EQU	0
 INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED	EQU	3
 INTERACTION_FLAG_TECHNICIAN_COMPLETED	EQU	2
 INTERACTION_FLAG_WACKOBRAIN_FEEDBACK_PENDING	EQU	5
+INTERACTION_MESSAGE_REQUEST_CCR	EQU	1
 INTF_CLRALL	EQU	$7FFF
 INVENTORY_ITEM_SLOT_BYTES	EQU	inventory_item_slot_SIZEOF
 INVENTORY_TRADE_VALUE_DISP	EQU	inventory_item_slot_trade_value
@@ -1320,10 +1322,14 @@ WORLD_MACRO_LAST_COLUMN	EQU	WORLD_MACRO_COLUMNS-1
 WORLD_MACRO_LAST_ROW	EQU	WORLD_MACRO_ROWS-1
 WORLD_MACRO_ROW_BYTES	EQU	WORLD_MACRO_TILE_SIDE*WORLD_GRID_ROW_BYTES
 WORLD_OBJECT_COMPLETION_CALLBACK_DISP	EQU	world_object_shared_prefix_interaction_completion_callback
+WORLD_OBJECT_CONTEXT_COOLDOWN_RELOAD	EQU	250
 WORLD_OBJECT_CONTEXT_VISITED_BIT	EQU	2
 WORLD_OBJECT_FLAGS_DISP	EQU	world_object_shared_prefix_world_object_flags
 WORLD_OBJECT_HIT_POINTS_DISP	EQU	world_object_shared_prefix_hit_points
 WORLD_OBJECT_INACTIVE_BIT	EQU	1
+WORLD_OBJECT_INTERACTION_EXCLUSIVE_X	EQU	24
+WORLD_OBJECT_INTERACTION_EXCLUSIVE_Y	EQU	16
+WORLD_OBJECT_INTERACTION_MESSAGE_DISP	EQU	world_object_shared_prefix_interaction_message_ptr
 WORLD_OBJECT_INVENTORY_PTR_DISP	EQU	world_object_shared_prefix_inventory_slots_ptr
 WORLD_OBJECT_PROXIMITY_IMPROVEMENT_BIT	EQU	5
 WORLD_OBJECT_SCRIPT_TRAVERSAL_BLOCK_MASK	EQU	$42
@@ -5944,18 +5950,18 @@ is_player_within_world_object_interaction_range:
 	lea.l player_world_object.l,a4
 	move.w world_object_shared_prefix_world_y(a4),d0
 	sub.w world_object_shared_prefix_world_y(a5),d0
-	bpl.b abs_0_00012676
+	bpl.b test_world_interaction_vertical_distance
 	neg.w d0
-abs_0_00012676:
-	cmp.w #$10,d0
-	bcc.b abs_0_0001268C
+test_world_interaction_vertical_distance:
+	cmp.w #WORLD_OBJECT_INTERACTION_EXCLUSIVE_Y,d0
+	bcc.b return_world_interaction_range_flags
 	move.w world_object_shared_prefix_world_x(a4),d0
 	sub.w world_object_shared_prefix_world_x(a5),d0
-	bpl.b abs_0_00012688
+	bpl.b test_world_interaction_horizontal_distance
 	neg.w d0
-abs_0_00012688:
-	cmp.w #$18,d0
-abs_0_0001268C:
+test_world_interaction_horizontal_distance:
+	cmp.w #WORLD_OBJECT_INTERACTION_EXCLUSIVE_X,d0
+return_world_interaction_range_flags:
 	rts
     ; C set iff unsigned WORD player+(16,31) is strictly inside descriptor+state+geometry origin and origin+extent bounds. Equality fails; arithmetic wraps at 16 bits. D0-D2/A0-A2 preserved.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
@@ -14642,40 +14648,42 @@ next_world_object_proximity_candidate:
 update_nearby_object_context:
 	bsr.w partition_world_object_update_ptrs
 	bsr.w process_active_world_object_chains
-	btst.b #2,app_ui_flags(a6)
-	bne.w abs_0_00018492
+	btst.b #UI_FLAG_INVENTORY_PANEL_ACTIVE,app_ui_flags(a6)
+	bne.w return_from_nearby_context_update
 	btst.b #NEARBY_CONTEXT_CHANGED_BIT,app_context_flags(a6)
 	bne.w show_nearby_object_context_prompt
 	btst.b #NEARBY_CONTEXT_NO_CANDIDATE_BIT,app_context_flags(a6)
 	bne.b clear_nearby_object_context_prompt
 	movea.l app_nearest_object_ptr(a6),a5
-	btst.b #1,player_world_object_world_object_flags.l
-	bne.b abs_0_0001840E
-	btst.b #1,world_object_shared_prefix_world_object_flags(a5)
-	bne.b abs_0_0001840E
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
+	bne.b finish_nearby_interaction_prompt_timer
+	btst.b #WORLD_OBJECT_INACTIVE_BIT,world_object_shared_prefix_world_object_flags(a5)
+	bne.b finish_nearby_interaction_prompt_timer
 	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
 	beq.b invoke_nearby_object_interaction
+    ; A nonzero cooldown consumes this selected-object service visit. Reaching zero still returns; callback dispatch begins on the next eligible visit, not during this decrement.
 	subq.w #1,d0
 	move.w d0,world_object_shared_prefix_context_prompt_cooldown(a5)
-	bra.b abs_0_0001840E
+	bra.b finish_nearby_interaction_prompt_timer
 invoke_nearby_object_interaction:
 	move.l world_object_shared_prefix_interaction_callback(a5),d0
-	beq.b abs_0_0001840E
+	beq.b finish_nearby_interaction_prompt_timer
 	movea.l d0,a0
     ; Carry set requests the nonzero +$10 message; clear skips it. The 13 known initial targets preserve A5. Audio and diabetic handlers may act or queue messages while returning carry clear.
 	jsr (a0)
-	bcc.b abs_0_0001840E
-	move.l $0010(a5),d0
-	beq.b abs_0_0001840E
+	bcc.b finish_nearby_interaction_prompt_timer
+    ; Carry requests the +$10 interaction message; +$0C context text uses a separate proximity path. FIFO refusal does not undo callback latches, response-pointer writes or cooldown.
+	move.l WORLD_OBJECT_INTERACTION_MESSAGE_DISP(a5),d0
+	beq.b finish_nearby_interaction_prompt_timer
 	movea.l d0,a0
 	bsr.w enqueue_status_message
-abs_0_0001840E:
+finish_nearby_interaction_prompt_timer:
 	tst.b app_nearby_object_prompt_countdown(a6)
-	bne.b abs_0_0001848E
-	bra.b abs_0_00018492
+	bne.b decrement_nearby_context_prompt_timer
+	bra.b return_from_nearby_context_update
 clear_nearby_object_context_prompt:
 	bset.b #NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT,app_context_flags(a6)
-	bne.b abs_0_00018492
+	bne.b return_from_nearby_context_update
 	lea.l nearby_character_overlay.l,a5
 	moveq.l #0,d0
 	bsr.w resolve_item_name
@@ -14687,10 +14695,10 @@ clear_nearby_object_context_prompt:
 	bsr.b render_context_prompt
 	clr.l app_nearest_object_ptr(a6)
 	clr.b app_nearby_object_prompt_countdown(a6)
-	bra.b abs_0_00018492
+	bra.b return_from_nearby_context_update
 show_nearby_object_context_prompt:
 	tst.b app_nearby_object_prompt_countdown(a6)
-	bne.b abs_0_0001848E
+	bne.b decrement_nearby_context_prompt_timer
 	move.b #$3C,app_nearby_object_prompt_countdown(a6)
 	moveq.l #-11,d0
 	and.b d0,app_context_flags(a6)
@@ -14706,9 +14714,9 @@ show_nearby_object_context_prompt:
 	bsr.b render_context_prompt
 	lea.l nearby_character_overlay.l,a5
 	bsr.b render_context_prompt
-abs_0_0001848E:
+decrement_nearby_context_prompt_timer:
 	subq.b #1,app_nearby_object_prompt_countdown(a6)
-abs_0_00018492:
+return_from_nearby_context_update:
 	rts
 render_context_prompt:
 	moveq.l #0,d0
@@ -20230,8 +20238,8 @@ world_object_musician:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_musician	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005CD69	; context_message_ptr
-	dc.l abs_0_0005CD94	; interaction_message_ptr
+	dc.l musician_drink_request_message	; context_message_ptr
+	dc.l musician_captains_colours_response	; interaction_message_ptr
 	dc.l musician_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
 	dc.l musician_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -21491,8 +21499,8 @@ world_object_squash_player:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_squash_player	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005D178	; context_message_ptr
-	dc.l abs_0_0005D1A5	; interaction_message_ptr
+	dc.l squash_player_ball_request_message	; context_message_ptr
+	dc.l squash_player_no_racquet_response	; interaction_message_ptr
 	dc.l squash_player_inventory_slots	; inventory_slots_ptr
 	dc.l squash_player_trade_offers	; trade_offer_table_ptr
 	dc.l squash_player_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -24716,8 +24724,8 @@ world_object_technician:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_technician	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005D138	; context_message_ptr
-	dc.l abs_0_0005D166	; interaction_message_ptr
+	dc.l technician_earth_reminder_request_message	; context_message_ptr
+	dc.l technician_drink_response	; interaction_message_ptr
 	dc.l technician_inventory_slots	; inventory_slots_ptr
 	dc.l technician_trade_offers	; trade_offer_table_ptr
 	dc.l technician_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -25592,7 +25600,7 @@ world_object_chemist:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_chemist	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005CE84	; context_message_ptr
+	dc.l chemist_reading_request_message	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
 	dc.l chemist_inventory_slots	; inventory_slots_ptr
 	dc.l chemist_trade_offers	; trade_offer_table_ptr
@@ -27439,14 +27447,10 @@ mercenary_rank_son_of_satan_message:
 	dc.b ". . VERY  PROFITABLE . .",$00
 	dc.b ". . HIGHLY  VALUABLE . .",$00
 	dc.b ". . PRICELESS . .",$00
-abs_0_0005CD69:
-	dc.b $22,$47,$69,$76,$65,$20,$6D,$65,$20,$61,$20,$64,$72,$69,$6E,$6B
-	dc.b $2C,$61,$6E,$64,$20,$49,$22,$6C,$6C,$20,$70,$6C,$61,$79,$20,$79
-	dc.b $6F,$75,$20,$61,$20,$73,$6F,$6E,$67,$22,$00
-abs_0_0005CD94:
-	dc.b $22,$54,$68,$65,$20,$43,$61,$70,$74,$61,$69,$6E,$73,$20,$63,$6F
-	dc.b $6C,$6F,$75,$72,$73,$20,$61,$72,$65,$20,$72,$65,$64,$2C,$20,$79
-	dc.b $65,$6C,$6C,$6F,$77,$20,$61,$6E,$64,$20,$62,$6C,$75,$65,$22,$00
+musician_drink_request_message:
+	dc.b $22,"Give me a drink,and I",$22,"ll play you a song",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+musician_captains_colours_response:
+	dc.b $22,"The Captains colours are red, yellow and blue",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 abs_0_0005CDC4:
 	dc.b $22,$42,$72,$65,$61,$6B,$64,$6F,$77,$6E,$20,$69,$6D,$6D,$69,$6E
 	dc.b $65,$6E,$74,$2E,$2E,$2E,$2E,$72,$65,$71,$75,$69,$72,$65,$20,$62
@@ -27468,29 +27472,18 @@ abs_0_0005CE5B:
 	dc.b $22,$42,$4C,$4F,$4F,$50,$31,$30,$30,$31,$31,$31,$31,$30,$42,$4C
 	dc.b $45,$45,$50,$42,$4C,$4F,$4F,$50,$42,$45,$45,$50,$30,$30,$30,$30
 	dc.b $31,$31,$31,$30,$31,$30,$31,$22,$00
-abs_0_0005CE84:
-	dc.b $22,$49,$22,$64,$20,$6C,$69,$6B,$65,$20,$73,$6F,$6D,$65,$20,$67
-	dc.b $6F,$6F,$64,$20,$72,$65,$61,$64,$69,$6E,$67,$2C,$20,$69,$66,$20
-	dc.b $79,$6F,$75,$20,$68,$61,$76,$65,$20,$61,$6E,$79,$2E,$22,$00
-abs_0_0005CEB3:
-	dc.b $22,$54,$68,$69,$73,$20,$69,$73,$20,$74,$68,$65,$20,$77,$69,$6E
-	dc.b $74,$65,$72,$20,$6F,$66,$20,$6F,$75,$72,$20,$64,$69,$73,$63,$6F
-	dc.b $6E,$74,$65,$6E,$74,$2E,$2E,$22,$00
-abs_0_0005CEDC:
-	dc.b $22,$43,$6F,$6D,$70,$61,$72,$65,$20,$79,$65,$20,$74,$6F,$20,$61
-	dc.b $20,$73,$75,$6D,$6D,$65,$72,$73,$20,$64,$61,$79,$2E,$2E,$22,$00
-abs_0_0005CEFC:
-	dc.b $22,$41,$20,$68,$6F,$72,$73,$65,$2C,$20,$61,$20,$68,$6F,$72,$73
-	dc.b $65,$2C,$20,$6D,$79,$20,$6B,$69,$6E,$67,$64,$6F,$6D,$20,$66,$6F
-	dc.b $72,$20,$61,$20,$68,$6F,$72,$73,$65,$22,$00
-abs_0_0005CF27:
-	dc.b $22,$52,$6F,$6D,$65,$6F,$2C,$20,$52,$6F,$6D,$65,$6F,$20,$77,$68
-	dc.b $65,$72,$65,$66,$6F,$72,$65,$20,$61,$72,$74,$20,$74,$68,$6F,$75
-	dc.b $2E,$2E,$2E,$22,$00
-abs_0_0005CF4C:
-	dc.b $22,$4F,$68,$20,$6E,$6F,$2C,$20,$6E,$6F,$74,$20,$61,$20,$42,$69
-	dc.b $62,$6C,$65,$20,$62,$61,$73,$68,$65,$72,$20,$49,$20,$68,$6F,$70
-	dc.b $65,$2E,$2E,$2E,$22,$00
+chemist_reading_request_message:
+	dc.b $22,"I",$22,"d like some good reading, if you have any.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+chemist_winter_discontent_quote:
+	dc.b $22,"This is the winter of our discontent..",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+chemist_summer_day_quote:
+	dc.b $22,"Compare ye to a summers day..",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+chemist_horse_quote:
+	dc.b $22,"A horse, a horse, my kingdom for a horse",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+chemist_romeo_quote:
+	dc.b $22,"Romeo, Romeo wherefore art thou...",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+chemist_bible_response:
+	dc.b $22,"Oh no, not a Bible basher I hope...",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 abs_0_0005CF72:
 	dc.b $22,$48,$65,$6C,$70,$20,$6D,$65,$2C,$20,$49,$20,$6E,$65,$65,$64
 	dc.b $20,$61,$20,$73,$79,$72,$69,$6E,$67,$65,$22,$00
@@ -27523,22 +27516,14 @@ driffid_light_box_response:
 	dc.b $22,"That really feels good",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 driffid_megabio_feed_response:
 	dc.b $22,"That stuff is disgusting",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
-abs_0_0005D138:
-	dc.b $22,$49,$20,$77,$61,$6E,$74,$20,$61,$20,$72,$65,$6D,$69,$6E,$64
-	dc.b $65,$72,$20,$6F,$66,$20,$77,$68,$61,$74,$20,$45,$61,$72,$74,$68
-	dc.b $20,$6C,$6F,$6F,$6B,$65,$64,$20,$6C,$69,$6B,$65,$22,$00
-abs_0_0005D166:
-	dc.b $22,$45,$6E,$6A,$6F,$79,$20,$74,$68,$65,$20,$64,$72,$69,$6E,$6B
-	dc.b $22,$00
-abs_0_0005D178:
-	dc.b $22,$49,$20,$6E,$65,$65,$64,$20,$61,$20,$73,$71,$75,$61,$73,$68
-	dc.b $20,$62,$61,$6C,$6C,$2C,$20,$74,$68,$65,$72,$65,$20,$69,$73,$6E
-	dc.b $22,$74,$20,$6F,$6E,$65,$20,$68,$65,$72,$65,$22,$00
-abs_0_0005D1A5:
-	dc.b $22,$54,$68,$61,$6E,$6B,$73,$2C,$20,$61,$6C,$74,$68,$6F,$75,$67
-	dc.b $68,$20,$49,$20,$64,$6F,$6E,$22,$74,$20,$68,$61,$76,$65,$20,$61
-	dc.b $20,$73,$71,$75,$61,$73,$68,$20,$72,$61,$63,$71,$75,$65,$74,$22
-	dc.b $00
+technician_earth_reminder_request_message:
+	dc.b $22,"I want a reminder of what Earth looked like",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+technician_drink_response:
+	dc.b $22,"Enjoy the drink",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+squash_player_ball_request_message:
+	dc.b $22,"I need a squash ball, there isn",$22,"t one here",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+squash_player_no_racquet_response:
+	dc.b $22,"Thanks, although I don",$22,"t have a squash racquet",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
 abs_0_0005D1D6:
 	dc.b $22,$54,$68,$65,$20,$6D,$65,$64,$69,$63,$20,$6D,$65,$73,$73,$65
 	dc.b $64,$2C,$20,$74,$68,$65,$20,$6D,$65,$64,$69,$63,$20,$64,$69,$65
@@ -27618,22 +27603,23 @@ clear_security_checkpoint_audio_state:
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_musician:
 	jsr is_player_within_world_object_interaction_range.l
-	bcc.b abs_0_0005D39E
-	move.b $0046(a4),d0
+	bcc.b return_without_musician_item_response
+	move.b WORLD_OBJECT_SELECTED_ITEM_DISP(a4),d0
 	cmp.b #ITEM_ID_BOTTLE_OF_GIN,d0
-	bne.b abs_0_0005D39E
+	bne.b return_without_musician_item_response
+    ; This musician latch is set before the dispatcher attempts a message. It has no cooldown reload and remains set if the shared FIFO refuses the message.
 	bset.b #INTERACTION_FLAG_MUSICIAN_COMPLETED,app_world_interaction_flags(a6)
-	bne.b abs_0_0005D39E
-	move #$1,ccr
+	bne.b return_without_musician_item_response
+	move #INTERACTION_MESSAGE_REQUEST_CCR,ccr
 	rts
-abs_0_0005D39E:
+return_without_musician_item_response:
 	move.w d0,d0
 	rts
     ; Request the current object context message with carry set and a 250-count cooldown. This shared tail changes neither inventory nor animation state.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 request_world_object_context_message:
-	move.w #$FA,world_object_shared_prefix_context_prompt_cooldown(a5)
-	move #$1,ccr
+	move.w #WORLD_OBJECT_CONTEXT_COOLDOWN_RELOAD,world_object_shared_prefix_context_prompt_cooldown(a5)
+	move #INTERACTION_MESSAGE_REQUEST_CCR,ccr
 	rts
     ; A laser rifle in the player selected-item byte takes the shared cooldown and carry-set path. Other values return carry clear.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
@@ -27648,20 +27634,21 @@ interact_with_sec_officer:
 interact_with_chemist:
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_BIBLE,d0
-	bne.b abs_0_0005D3DC
+	bne.b test_chemist_held_shakespeare
 	bset.b #INTERACTION_FLAG_CHEMIST_BIBLE_COMPLETED,app_world_interaction_flags(a6)
-	bne.b abs_0_0005D3DC
-	move.l #abs_0_0005CF4C,world_object_shared_prefix_interaction_message_ptr(a5)
+	bne.b test_chemist_held_shakespeare
+	move.l #chemist_bible_response,world_object_shared_prefix_interaction_message_ptr(a5)
 	bra.b request_world_object_context_message
-abs_0_0005D3DC:
+    ; An already-latched Bible case falls through to NPC-held Shakespeare. Later visits can therefore advance the PRNG and request another quote without clearing the Bible latch.
+test_chemist_held_shakespeare:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SHAKESPEARE,d0
-	bne.b abs_0_0005D3F8
+	bne.b return_without_chemist_item_response
 	jsr advance_pseudorandom_state.l
-	andi.w #12,d0
-	move.l abs_0_0005D416(pc,d0.w),world_object_shared_prefix_interaction_message_ptr(a5)
+	andi.w #CHEMIST_QUOTE_POINTER_BYTE_MASK,d0
+	move.l chemist_shakespeare_response_ptrs(pc,d0.w),world_object_shared_prefix_interaction_message_ptr(a5)
 	bra.b request_world_object_context_message
-abs_0_0005D3F8:
+return_without_chemist_item_response:
 	move.w d0,d0
 	rts
     ; Choose a response using the player bent-coin check, store it at +$10, then use the shared cooldown/carry-set path. The dispatcher attempts message enqueue.
@@ -27670,16 +27657,16 @@ interact_with_bank_manager:
 	lea.l bank_manager_bent_coin_response(pc),a0
 	move.b player_world_object_selected_item_id.l,d0
 	cmp.b #ITEM_ID_BENT_COIN,d0
-	beq.b abs_0_0005D410
+	beq.b store_bank_manager_item_response
 	lea.l bank_manager_default_response(pc),a0
-abs_0_0005D410:
+store_bank_manager_item_response:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
 	bra.b request_world_object_context_message
-abs_0_0005D416:
-	dc.l abs_0_0005CEB3	; mode=required, data_role=pointer_table, unit=pointer
-	dc.l abs_0_0005CEDC
-	dc.l abs_0_0005CEFC
-	dc.l abs_0_0005CF27
+chemist_shakespeare_response_ptrs:
+	dc.l chemist_winter_discontent_quote	; mode=required, data_role=pointer_table, unit=pointer
+	dc.l chemist_summer_day_quote
+	dc.l chemist_horse_quote
+	dc.l chemist_romeo_quote
     ; Nonzero defeated-object count takes the shared cooldown/carry-set path. Zero returns carry clear. Carry does not express general interaction success.
     ; KNOWN: type A5=Target code-entry register seed:world_object_shared_prefix
 interact_with_priest:
@@ -27692,10 +27679,10 @@ interact_with_priest:
 interact_with_technician:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_GLOBE,d0
-	bne.b abs_0_0005D446
+	bne.b return_without_technician_item_response
 	bset.b #INTERACTION_FLAG_TECHNICIAN_COMPLETED,app_world_interaction_flags(a6)
 	beq.w request_world_object_context_message
-abs_0_0005D446:
+return_without_technician_item_response:
 	move.w d0,d0
 	rts
     ; Poll the listed animation targets and maintain feedback pending state. Audio may start, but every normal return clears carry; the dispatcher skips the +$10 message.
@@ -27778,10 +27765,10 @@ abs_0_0005D510:
 interact_with_squash_player:
 	move.b world_object_shared_prefix_selected_item_id(a5),d0
 	cmp.b #ITEM_ID_SQUASH_BALL,d0
-	bne.b abs_0_0005D534
+	bne.b return_without_squash_player_item_response
 	bset.b #INTERACTION_FLAG_SQUASH_PLAYER_COMPLETED,app_world_interaction_flags(a6)
 	beq.w request_world_object_context_message
-abs_0_0005D534:
+return_without_squash_player_item_response:
 	move.w d0,d0
 	rts
     ; Player insecticide, light box or megabio feed selects a +$10 response and the cooldown/carry-set path. Other selected-item values return carry clear.
@@ -27790,16 +27777,16 @@ interact_with_driffid:
 	move.b player_world_object_selected_item_id.l,d0
 	lea.l driffid_insecticide_response(pc),a0
 	cmp.b #ITEM_ID_INSECTICIDE,d0
-	beq.b abs_0_0005D560
+	beq.b store_driffid_item_response
 	lea.l driffid_light_box_response(pc),a0
 	cmp.b #ITEM_ID_LIGHT_BOX,d0
-	beq.b abs_0_0005D560
+	beq.b store_driffid_item_response
 	lea.l driffid_megabio_feed_response(pc),a0
 	cmp.b #ITEM_ID_MEGABIO_FEED,d0
-	beq.b abs_0_0005D560
+	beq.b store_driffid_item_response
 	move.w d0,d0
 	rts
-abs_0_0005D560:
+store_driffid_item_response:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
 	bra.w request_world_object_context_message
     ; Insulin with the needle and strict range triggers one self-destruct hint; selected items and pose stay unchanged here. Queue refusal still leaves the advice latch set.
