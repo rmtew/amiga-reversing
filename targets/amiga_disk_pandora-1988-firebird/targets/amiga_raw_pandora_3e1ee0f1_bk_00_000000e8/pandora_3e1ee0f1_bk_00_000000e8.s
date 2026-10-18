@@ -796,6 +796,23 @@ audio_note_offset_operand_opcode RS.B 1
 audio_note_offset_operand_note_offset_byte RS.B 1
 audio_note_offset_operand_SIZEOF EQU __RS
 
+; STRUCT ui_overlay_title_mask_glyph
+    RSRESET
+ui_overlay_title_mask_glyph_mask_row_0 RS.B 1
+ui_overlay_title_mask_glyph_mask_row_1 RS.B 1
+ui_overlay_title_mask_glyph_mask_row_2 RS.B 1
+ui_overlay_title_mask_glyph_mask_row_3 RS.B 1
+ui_overlay_title_mask_glyph_mask_row_4 RS.B 1
+ui_overlay_title_mask_glyph_SIZEOF EQU __RS
+
+; STRUCT ui_border_planar_row
+    RSRESET
+ui_border_planar_row_plane_0_pixels RS.B 1
+ui_border_planar_row_plane_1_pixels RS.B 1
+ui_border_planar_row_plane_2_pixels RS.B 1
+ui_border_planar_row_plane_3_pixels RS.B 1
+ui_border_planar_row_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -972,10 +989,13 @@ UI_FLAG_INVENTORY_PANEL_ACTIVE	EQU	$2
 UI_FLAG_NEARBY_OBJECT_INVENTORY	EQU	$4
 UI_HIT_BACKGROUND_STORAGE	EQU	$77D00
 UI_OVERLAY_BLIT_ROW_BYTES	EQU	40
+UI_OVERLAY_BORDER_DBF_BIAS	EQU	3
 UI_OVERLAY_CALLBACK_READY_BIT	EQU	7
+UI_OVERLAY_CELL_ROW_BYTES	EQU	1280
 UI_OVERLAY_SAVED_BACKGROUND_BIT	EQU	5
 UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
 UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
+UI_OVERLAY_TITLE_FIRST_CHARACTER	EQU	'A'
 UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
 VIEW_CLIP_BOTTOM_BIT	EQU	$1
 VIEW_CLIP_LEFT_BIT	EQU	$2
@@ -7684,7 +7704,7 @@ abs_0_00016204:
 copy_ui_border_cell_to_text_cursor:
 	movem.l d0/a0-a1,-(a7)
 	movea.l app_text_cursor_ptr(a6),a1
-	moveq.l #40,d0
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d0
 	move.b (a0)+,(a1)
 	adda.l d0,a1
 	move.b (a0)+,(a1)
@@ -7756,21 +7776,22 @@ advance_stored_text_origin_byte:
 	addq.l #1,d0
 	move.l d0,app_text_cursor_ptr(a6)
 	rts
-abs_0_000162A8:
+    ; Valid A-Z titles AND five mask rows across four packed planes from cursor+320. Stored cursor becomes origin+320+length, even for empty text. BYTE indices wrap; no alphabet/buffer guard.
+draw_ui_overlay_title_masks:
 	movea.l app_text_cursor_ptr(a6),a1
 	lea.l $0140(a1),a1
-abs_0_000162B0:
+mask_next_ui_overlay_title_character:
 	clr.w d0
 	move.b (a0)+,d0
-	beq.w abs_0_0001632C
-	subi.b #65,d0
+	beq.w store_ui_overlay_title_cursor
+	subi.b #UI_OVERLAY_TITLE_FIRST_CHARACTER,d0
 	move.w d0,d1
 	add.w d0,d0
 	add.w d0,d0
 	add.w d1,d0
-	lea.l abs_0_0001AF9E(pc),a2
+	lea.l ui_overlay_title_mask_font(pc),a2
 	adda.w d0,a2
-	moveq.l #40,d0
+	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d0
 	movea.l a1,a3
 	move.b (a2)+,d1
 	and.b d1,(a3)
@@ -7818,8 +7839,8 @@ abs_0_000162B0:
 	and.b d1,(a3)
 	adda.l d0,a3
 	addq.l #1,a1
-	bra.b abs_0_000162B0
-abs_0_0001632C:
+	bra.b mask_next_ui_overlay_title_character
+store_ui_overlay_title_cursor:
 	move.l a1,app_text_cursor_ptr(a6)
 	rts
     ; Snapshot overlay pixels into bitmap_ptr: packed rows=height*32, words=ceil(width/2), display stride 40. Wait for the blitter request; return does not wait for the new DMA.
@@ -7986,11 +8007,11 @@ draw_ui_overlay_border_and_title:
 	lea.l ui_border_horizontal_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_width(a5),d7
-	subq.b #3,d7
-abs_0_00016532:
+	subq.b #UI_OVERLAY_BORDER_DBF_BIAS,d7
+draw_next_ui_overlay_top_edge_cell:
 	bsr.w copy_ui_border_cell_to_text_cursor
 	bsr.w advance_stored_text_origin_byte
-	dbf.w d7,abs_0_00016532
+	dbf.w d7,draw_next_ui_overlay_top_edge_cell
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	addq.b #1,d0
 	move.b ui_overlay_descriptor_height(a5),d1
@@ -8000,11 +8021,11 @@ abs_0_00016532:
 	lea.l ui_border_horizontal_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_width(a5),d7
-	subq.b #3,d7
-abs_0_0001655E:
+	subq.b #UI_OVERLAY_BORDER_DBF_BIAS,d7
+draw_next_ui_overlay_bottom_edge_cell:
 	bsr.w copy_ui_border_cell_to_text_cursor
 	bsr.w advance_stored_text_origin_byte
-	dbf.w d7,abs_0_0001655E
+	dbf.w d7,draw_next_ui_overlay_bottom_edge_cell
 	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
@@ -8012,11 +8033,11 @@ abs_0_0001655E:
 	lea.l ui_border_vertical_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_height(a5),d7
-	subq.b #3,d7
-abs_0_00016584:
+	subq.b #UI_OVERLAY_BORDER_DBF_BIAS,d7
+draw_next_ui_overlay_left_edge_cell:
 	bsr.w copy_ui_border_cell_to_text_cursor
-	addi.l #1280,app_text_cursor_ptr(a6)
-	dbf.w d7,abs_0_00016584
+	addi.l #UI_OVERLAY_CELL_ROW_BYTES,app_text_cursor_ptr(a6)
+	dbf.w d7,draw_next_ui_overlay_left_edge_cell
 	move.b ui_overlay_descriptor_width(a5),d0
 	subq.b #1,d0
 	add.b ui_overlay_descriptor_x.w(a5),d0
@@ -8026,17 +8047,17 @@ abs_0_00016584:
 	lea.l ui_border_vertical_cell(pc),a0
 	clr.w d7
 	move.b ui_overlay_descriptor_height(a5),d7
-	subq.b #3,d7
-abs_0_000165B4:
+	subq.b #UI_OVERLAY_BORDER_DBF_BIAS,d7
+draw_next_ui_overlay_right_edge_cell:
 	bsr.w copy_ui_border_cell_to_text_cursor
-	addi.l #1280,app_text_cursor_ptr(a6)
-	dbf.w d7,abs_0_000165B4
+	addi.l #UI_OVERLAY_CELL_ROW_BYTES,app_text_cursor_ptr(a6)
+	dbf.w d7,draw_next_ui_overlay_right_edge_cell
 	move.b ui_overlay_descriptor_title_x_offset(a5),d0
 	add.b ui_overlay_descriptor_x.w(a5),d0
 	move.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
 	movea.l ui_overlay_descriptor_title_ptr(a5),a0
-	bsr.w abs_0_000162A8
+	bsr.w draw_ui_overlay_title_masks
 	move.l (a7)+,d7
 	rts
     ; With stable line pointers, only the contiguous non-NULL prefix is read: a NULL leaves A4 unchanged for later visits. Line styles retain their prefix indices.
@@ -13606,34 +13627,360 @@ ascii_32_through_127_glyph_indices:
 	dc.b $19,$1A,$1B,$1C,$1D,$1E,$1F,$20,$21,$22,$23,$00,$00,$00,$00,$00	; proportional_ui_character_map
 	dc.b $00,$24,$25,$26,$27,$28,$29,$2A,$2B,$2C,$2D,$2E,$2F,$30,$31,$32	; proportional_ui_character_map
 	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$3D,$00,$00,$00,$00,$00	; proportional_ui_character_map
-abs_0_0001AF9E:
-	dc.b $C7,$93,$39,$01,$39,$03,$39,$03,$39,$03,$81,$1F,$3F,$1F,$81,$03
-	dc.b $31,$39,$31,$03,$01,$3F,$07,$3F,$01,$01,$3F,$07,$3F,$3F,$81,$1F
-	dc.b $31,$19,$81,$39,$39,$01,$39,$39,$83,$C7,$C7,$C7,$83,$F9,$F9,$F9
-	dc.b $39,$83,$39,$33,$07,$33,$39,$3F,$3F,$3F,$3F,$01,$39,$11,$01,$29
-	dc.b $39,$39,$19,$09,$21,$31,$83,$11,$39,$11,$83,$03,$39,$03,$3F,$3F
-	dc.b $83,$11,$39,$13,$89,$03,$39,$03,$27,$33,$81,$3F,$83,$F9,$03,$01
-	dc.b $C7,$C7,$C7,$C7,$39,$39,$39,$39,$83,$39,$39,$39,$93,$C7,$39,$29
-	dc.b $29,$01,$93,$39,$93,$C7,$93,$39,$39,$93,$C7,$C7,$C7,$01,$E3,$C7
-	dc.b $8F,$01
+ui_overlay_title_mask_font:
+	dc.b $C7	; mask_row_0
+	dc.b $93	; mask_row_1
+	dc.b $39	; mask_row_2
+	dc.b $01	; mask_row_3
+	dc.b $39	; mask_row_4
+ui_overlay_title_glyph_B:
+	dc.b $03	; mask_row_0
+	dc.b $39	; mask_row_1
+	dc.b $03	; mask_row_2
+	dc.b $39	; mask_row_3
+	dc.b $03	; mask_row_4
+ui_overlay_title_glyph_C:
+	dc.b $81	; mask_row_0
+	dc.b $1F	; mask_row_1
+	dc.b $3F	; mask_row_2
+	dc.b $1F	; mask_row_3
+	dc.b $81	; mask_row_4
+ui_overlay_title_glyph_D:
+	dc.b $03	; mask_row_0
+	dc.b $31	; mask_row_1
+	dc.b $39	; mask_row_2
+	dc.b $31	; mask_row_3
+	dc.b $03	; mask_row_4
+ui_overlay_title_glyph_E:
+	dc.b $01	; mask_row_0
+	dc.b $3F	; mask_row_1
+	dc.b $07	; mask_row_2
+	dc.b $3F	; mask_row_3
+	dc.b $01	; mask_row_4
+ui_overlay_title_glyph_F:
+	dc.b $01	; mask_row_0
+	dc.b $3F	; mask_row_1
+	dc.b $07	; mask_row_2
+	dc.b $3F	; mask_row_3
+	dc.b $3F	; mask_row_4
+ui_overlay_title_glyph_G:
+	dc.b $81	; mask_row_0
+	dc.b $1F	; mask_row_1
+	dc.b $31	; mask_row_2
+	dc.b $19	; mask_row_3
+	dc.b $81	; mask_row_4
+ui_overlay_title_glyph_H:
+	dc.b $39	; mask_row_0
+	dc.b $39	; mask_row_1
+	dc.b $01	; mask_row_2
+	dc.b $39	; mask_row_3
+	dc.b $39	; mask_row_4
+ui_overlay_title_glyph_I:
+	dc.b $83	; mask_row_0
+	dc.b $C7	; mask_row_1
+	dc.b $C7	; mask_row_2
+	dc.b $C7	; mask_row_3
+	dc.b $83	; mask_row_4
+ui_overlay_title_glyph_J:
+	dc.b $F9	; mask_row_0
+	dc.b $F9	; mask_row_1
+	dc.b $F9	; mask_row_2
+	dc.b $39	; mask_row_3
+	dc.b $83	; mask_row_4
+ui_overlay_title_glyph_K:
+	dc.b $39	; mask_row_0
+	dc.b $33	; mask_row_1
+	dc.b $07	; mask_row_2
+	dc.b $33	; mask_row_3
+	dc.b $39	; mask_row_4
+ui_overlay_title_glyph_L:
+	dc.b $3F	; mask_row_0
+	dc.b $3F	; mask_row_1
+	dc.b $3F	; mask_row_2
+	dc.b $3F	; mask_row_3
+	dc.b $01	; mask_row_4
+ui_overlay_title_glyph_M:
+	dc.b $39	; mask_row_0
+	dc.b $11	; mask_row_1
+	dc.b $01	; mask_row_2
+	dc.b $29	; mask_row_3
+	dc.b $39	; mask_row_4
+ui_overlay_title_glyph_N:
+	dc.b $39	; mask_row_0
+	dc.b $19	; mask_row_1
+	dc.b $09	; mask_row_2
+	dc.b $21	; mask_row_3
+	dc.b $31	; mask_row_4
+ui_overlay_title_glyph_O:
+	dc.b $83	; mask_row_0
+	dc.b $11	; mask_row_1
+	dc.b $39	; mask_row_2
+	dc.b $11	; mask_row_3
+	dc.b $83	; mask_row_4
+ui_overlay_title_glyph_P:
+	dc.b $03	; mask_row_0
+	dc.b $39	; mask_row_1
+	dc.b $03	; mask_row_2
+	dc.b $3F	; mask_row_3
+	dc.b $3F	; mask_row_4
+ui_overlay_title_glyph_Q:
+	dc.b $83	; mask_row_0
+	dc.b $11	; mask_row_1
+	dc.b $39	; mask_row_2
+	dc.b $13	; mask_row_3
+	dc.b $89	; mask_row_4
+ui_overlay_title_glyph_R:
+	dc.b $03	; mask_row_0
+	dc.b $39	; mask_row_1
+	dc.b $03	; mask_row_2
+	dc.b $27	; mask_row_3
+	dc.b $33	; mask_row_4
+ui_overlay_title_glyph_S:
+	dc.b $81	; mask_row_0
+	dc.b $3F	; mask_row_1
+	dc.b $83	; mask_row_2
+	dc.b $F9	; mask_row_3
+	dc.b $03	; mask_row_4
+ui_overlay_title_glyph_T:
+	dc.b $01	; mask_row_0
+	dc.b $C7	; mask_row_1
+	dc.b $C7	; mask_row_2
+	dc.b $C7	; mask_row_3
+	dc.b $C7	; mask_row_4
+ui_overlay_title_glyph_U:
+	dc.b $39	; mask_row_0
+	dc.b $39	; mask_row_1
+	dc.b $39	; mask_row_2
+	dc.b $39	; mask_row_3
+	dc.b $83	; mask_row_4
+ui_overlay_title_glyph_V:
+	dc.b $39	; mask_row_0
+	dc.b $39	; mask_row_1
+	dc.b $39	; mask_row_2
+	dc.b $93	; mask_row_3
+	dc.b $C7	; mask_row_4
+ui_overlay_title_glyph_W:
+	dc.b $39	; mask_row_0
+	dc.b $29	; mask_row_1
+	dc.b $29	; mask_row_2
+	dc.b $01	; mask_row_3
+	dc.b $93	; mask_row_4
+ui_overlay_title_glyph_X:
+	dc.b $39	; mask_row_0
+	dc.b $93	; mask_row_1
+	dc.b $C7	; mask_row_2
+	dc.b $93	; mask_row_3
+	dc.b $39	; mask_row_4
+ui_overlay_title_glyph_Y:
+	dc.b $39	; mask_row_0
+	dc.b $93	; mask_row_1
+	dc.b $C7	; mask_row_2
+	dc.b $C7	; mask_row_3
+	dc.b $C7	; mask_row_4
+ui_overlay_title_glyph_Z:
+	dc.b $01	; mask_row_0
+	dc.b $E3	; mask_row_1
+	dc.b $C7	; mask_row_2
+	dc.b $8F	; mask_row_3
+	dc.b $01	; mask_row_4
 ui_border_top_left_cell:
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$00,$00,$C0,$FF,$00,$00,$C0,$FF,$00,$00	; data
-	dc.b $C0,$FF,$00,$00,$C0,$FF,$00,$00,$C3,$FC,$00,$00,$C3,$FC,$00,$00
+	dc.b $FF	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
 ui_border_top_right_cell:
-	dc.b $FF,$FF,$00,$00,$FF,$FE,$00,$00,$03,$FC,$00,$00,$03,$FC,$00,$00	; data
-	dc.b $03,$FC,$00,$00,$03,$FC,$00,$00,$C3,$3C,$00,$00,$C3,$7C,$00,$00
+	dc.b $FF	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $FE	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $3C	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $7C	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
 ui_border_horizontal_cell:
-	dc.b $FF,$FF,$00,$00,$FF,$FF,$00,$00,$00,$FF,$00,$00,$00,$FF,$00,$00	; data
-	dc.b $00,$FF,$00,$00,$00,$FF,$00,$00,$FF,$00,$00,$00,$FF,$00,$00,$00
+	dc.b $FF	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $00	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $00	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $00	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $00	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $00	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $00	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
 ui_border_vertical_cell:
-	dc.b $C3,$FC,$00,$00,$C3,$FC,$00,$00,$C3,$FC,$00,$00,$C3,$FC,$00,$00	; data
-	dc.b $C3,$FC,$00,$00,$C3,$FC,$00,$00,$C3,$FC,$00,$00,$C3,$FC,$00,$00
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
 ui_border_bottom_left_cell:
-	dc.b $C3,$FD,$00,$00,$C3,$FF,$00,$00,$C0,$FF,$00,$00,$C0,$FF,$00,$00	; data
-	dc.b $C0,$FF,$00,$00,$C0,$FF,$00,$00,$FF,$80,$00,$00,$FF,$00,$00,$00
+	dc.b $C3	; plane_0_pixels
+	dc.b $FD	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C0	; plane_0_pixels
+	dc.b $FF	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $80	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $00	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
 ui_border_bottom_right_cell:
-	dc.b $C3,$FC,$00,$00,$C3,$FC,$00,$00,$03,$FC,$00,$00,$03,$FC,$00,$00	; data
-	dc.b $03,$FC,$00,$00,$03,$FC,$00,$00,$FF,$00,$00,$00,$FF,$00,$00,$00
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $C3	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $03	; plane_0_pixels
+	dc.b $FC	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $00	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
+	dc.b $FF	; plane_0_pixels
+	dc.b $00	; plane_1_pixels
+	dc.b $00	; plane_2_pixels
+	dc.b $00	; plane_3_pixels
 engineer_inventory_slots:
 	dc.b ITEM_ID_SONICDRIVER	; item_id
 	dc.b $00	; trade_value

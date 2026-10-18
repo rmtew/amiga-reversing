@@ -3508,3 +3508,28 @@ rotation cases. The unchanged native backend reuses its 819-test regression
 result. Duplicate per-operand catalog reads were removed; the atomic endpoint
 still validates every native selector and revision. Final C/vasm full-payload
 receipt: `44d982824b2e1574d0b8998c3d66792c9a5823dfbdf906c42c03e0d1f9c5b413`.
+
+
+## Overlay title masks and planar border records
+
+The five-byte A-Z title font now has 26 named glyph records with explicit mask
+rows. Six existing 32-byte border owners retain their IDs, names and extents,
+with eight four-plane pixel rows each. Two shared types expose all 322 bytes as
+semantic fields. Eight renderer/resource/edge-loop labels and three constants
+complete the local unit; nine operand presentations reuse the shared 40-byte
+stride and name the character base, edge DBF bias and 1280-byte cell-row step.
+
+Three original-code tests cover 47 input scenarios: all 26 glyphs, all ten
+initialized descriptor titles, empty text, four unchecked bytes and all six
+border cells. Titles AND each mask across four packed planes from cursor+320;
+even an empty title stores that adjusted cursor. BYTE subtraction wraps without
+an alphabet guard, so unsupported input can consume neighboring resources.
+The existing dimension-wrap and destination/ownership limits remain explicit.
+
+20 existing overlay/descriptor regressions and the three new CPU tests pass.
+The native backend is unchanged, so its 819-test gate is reused. Per-scenario
+fixture reconstruction is avoided by exercising the family in three bounded
+CPU fixtures. C and independent vasm reproduce all 376,832 original bytes,
+receipt `250068d4cd806cbc836da926448527437faa6aea344d11315d9c57999cb037d8`.
+Existing source annotations, all 86 assets and both history prefixes are
+preserved; no generic local labels remain in the selected renderer units.
