@@ -112,15 +112,20 @@ static int eligible(const M68kObject *object, const M68kRenderPlan *plan,
 
 /* A coalesced asset needs its native role comment once. Keep every other
  * annotation, including comments containing the role plus additional text. */
-static int role_comment(const char *comment, size_t length, uint32_t flags) {
-  const char *role = flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP ? "bitmap" :
-    flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA ? "opaque_data" : "sound_sample";
+static int exact_comment(const char *comment, size_t length, const char *text) {
+  if (text == NULL || text[0] == '\0') return 0;
   if (!length || *comment != ';') return 0;
   ++comment; --length;
   while (length && (*comment == ' ' || *comment == '\t')) { ++comment; --length; }
   while (length && (comment[length - 1U] == ' ' || comment[length - 1U] == '\t' ||
       comment[length - 1U] == '\r' || comment[length - 1U] == '\n')) --length;
-  return length == strlen(role) && !memcmp(comment, role, length);
+  return length == strlen(text) && !memcmp(comment, text, length);
+}
+
+static int role_comment(const char *comment, size_t length, uint32_t flags) {
+  const char *role = flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP ? "bitmap" :
+    flags == M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA ? "opaque_data" : "sound_sample";
+  return exact_comment(comment, length, role);
 }
 
 static int append_asset_source(JsonBuilder *source, const M68kRenderPlanRow *row, const char *path, const char *alias,
@@ -136,6 +141,13 @@ static int append_asset_source(JsonBuilder *source, const M68kRenderPlanRow *row
       *emitted = 1;
       if (comment) {
         size_t comment_size = length - (size_t)(comment - cursor);
+        /* Inline analysis retains every field. The binary companion carries
+           those bytes; do not repeat its generated field names in assembly.
+           Explicit comments and annotations with additional text survive. */
+        if (exact_comment(comment, comment_size, row->generated_field_comment)) {
+          cursor = end + 1;
+          continue;
+        }
         int is_role = role_comment(comment, comment_size, row->data_class_flags);
         if ((!is_role || !*role_emitted) && json_builder_append_len(source, comment, comment_size) != 0) return -1;
         if (is_role) *role_emitted = 1;

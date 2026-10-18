@@ -1276,6 +1276,9 @@ def _data_block_custom_struct_field_entity(
         name=name,
         type="data",
         unit=_data_block_unit_for_address(addr, field.size),
+        # Media classification is independent of the retained field type.
+        # Other (possibly descriptive) layout roles are not native subtypes.
+        subtype=layout.role if layout.role in {"bitmap", "sound_sample", "opaque_data"} else None,
         struct_name=struct.name,
         field_name=field.name,
         field_type=field.type,

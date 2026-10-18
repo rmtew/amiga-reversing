@@ -4538,3 +4538,19 @@ bounds, 86 assets, pointer forms, raw gaps and history prefixes pass
 preservation. Earlier unchanged tile-grid, packet and display CPU proofs are
 reused; no new gameplay confidence, full audit or preparation benchmark is
 claimed. The remaining semantic use of the unselected cells stays unknown.
+
+### Typed tile assets retain compact source packaging
+
+The 33 unselected atlas cells now render as individual 128-byte INCBIN assets.
+Their atlas-index labels, exact owner bounds, sixteen-row arrays and all 2,112
+typed plane fields remain in analysis. This corrects the expanded pixel WORD
+output of the preceding slice without assigning unknown gameplay meanings.
+The general binary-assets threshold is 128 bytes; seven other already-classified
+small bitmap spans now export as well (40 new assets, 126 total). All 86 prior
+asset identities, bytes and bounds remain unchanged. Source outside the exported
+numeric payloads, SDK expressions, pointer forms, raw gaps and history prefixes
+are preserved. All 376,832 bytes match the original through both C and vasm,
+receipt c6b7d374f3711a317f3aa54ad1336e01cfeb5dbeebfad4009c6e6e44ee9e757d.
+Five new typed-media tests, 40 existing package/policy tests, one full native/vasm
+integration case and 820 native checks passed. Details and asset hashes:
+`docs/validation/pandora-typed-media-incbin.json`.

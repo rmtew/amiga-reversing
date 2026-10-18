@@ -708,6 +708,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00041d28-size-000000a0",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_41",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_41.bin",
+        "sha256": "5fda18f1dbc27d761c2273fc171c8f78ade9ef7bce58350aab190ff9a9c3a654",
+        "size": 160,
+        "source_offset": 269608,
+        "source_row_count": 10,
+        "source_row_id": 34394,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-00041dc8-size-00000ba0",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -798,6 +813,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00045730-size-000000b0",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_48",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_48.bin",
+        "sha256": "905cc8bc9add0ccfe7fe0ba1670b64141d8996755d4562bf767bd3e99699ccee",
+        "size": 176,
+        "source_offset": 284464,
+        "source_row_count": 11,
+        "source_row_id": 35330,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-000457e0-size-00000100",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -843,6 +873,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00045dc8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_52",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_52.bin",
+        "sha256": "75d619c431edda7aebb2ec59dd6125b097628a80a00e79add15b42821c47e748",
+        "size": 128,
+        "source_offset": 286152,
+        "source_row_count": 8,
+        "source_row_id": 35440,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-00045e48-size-000001e0",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -855,6 +900,21 @@
         "source_offset": 286280,
         "source_row_count": 30,
         "source_row_id": 35449,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00046028-size-000000f0",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "scene_pixel_cells_for_mask_bank_54",
+        "name_is_generated": false,
+        "path": "assets/scene_pixel_cells_for_mask_bank_54.bin",
+        "sha256": "08c35618b9591fe509b43bd6c9138bbb932c2b8c6ba43538a722026b9228099c",
+        "size": 240,
+        "source_offset": 286760,
+        "source_row_count": 15,
+        "source_row_id": 35480,
         "source_section_index": 0
       },
       {
@@ -978,6 +1038,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0000d6a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_012",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_012.bin",
+        "sha256": "03c4d86d4027a74d36673a883d5fce56726b243eca8fa136e1222b4bf087c846",
+        "size": 128,
+        "source_offset": 54952,
+        "source_row_count": 64,
+        "source_row_id": 18904,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0000d728-size-00000d80",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -990,6 +1065,21 @@
         "source_offset": 55080,
         "source_row_count": 217,
         "source_row_id": 18969,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000e4a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_040",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_040.bin",
+        "sha256": "ccf3dd9419ad9862d10124a49708b327b77c9a1ec8b54e0183682a94f11f3c14",
+        "size": 128,
+        "source_offset": 58536,
+        "source_row_count": 64,
+        "source_row_id": 19187,
         "source_section_index": 0
       },
       {
@@ -1008,6 +1098,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0000e628-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_043",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_043.bin",
+        "sha256": "dc9a400bcb577cdd36d6ddaced9bbe822fa412f29802793247a25702ffa39962",
+        "size": 128,
+        "source_offset": 58920,
+        "source_row_count": 64,
+        "source_row_id": 19273,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0000e6a8-size-00000180",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1020,6 +1125,21 @@
         "source_offset": 59048,
         "source_row_count": 25,
         "source_row_id": 19338,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000e828-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_047",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_047.bin",
+        "sha256": "a052c81012dfd61b91d2ffffad884618d883d24a5087a42a49f6fcc0ca2b37a8",
+        "size": 128,
+        "source_offset": 59432,
+        "source_row_count": 64,
+        "source_row_id": 19364,
         "source_section_index": 0
       },
       {
@@ -1038,6 +1158,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0000e9a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_050",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_050.bin",
+        "sha256": "952de258925215e035c0f9b2bdb5f5f83928138ff2f92ef151c4d65534d5b62f",
+        "size": 128,
+        "source_offset": 59816,
+        "source_row_count": 64,
+        "source_row_id": 19446,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0000ea28-size-00000280",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1050,6 +1185,66 @@
         "source_offset": 59944,
         "source_row_count": 40,
         "source_row_id": 19511,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000eca8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_056",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_056.bin",
+        "sha256": "a3f30eab958daf739b29fd4c7381c3915450f5a9c941d5d6fb492069e30646bb",
+        "size": 128,
+        "source_offset": 60584,
+        "source_row_count": 64,
+        "source_row_id": 19552,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000ed28-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_057",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_057.bin",
+        "sha256": "19b1fe109afae539c970dd7de8adbcbb5af03c73daa961103e46d2a31ed06748",
+        "size": 128,
+        "source_offset": 60712,
+        "source_row_count": 8,
+        "source_row_id": 19617,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000eda8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_058",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_058.bin",
+        "sha256": "05b34d1b24452b32a5e6c89a60c4b03be8939a9e923860cacf66da7d884bb162",
+        "size": 128,
+        "source_offset": 60840,
+        "source_row_count": 64,
+        "source_row_id": 19626,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000ee28-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_059",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_059.bin",
+        "sha256": "4a6bf1e50b4f9222783020ff6d1621e9848fca5f545fc697f7ad3d69c681f752",
+        "size": 128,
+        "source_offset": 60968,
+        "source_row_count": 64,
+        "source_row_id": 19691,
         "source_section_index": 0
       },
       {
@@ -1068,6 +1263,36 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0000efa8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_062",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_062.bin",
+        "sha256": "45f1cd5a2aeb40a4aa1573eb3075d2b60bbacf8de3eb3d6bf4fdd148c9ca3a5e",
+        "size": 128,
+        "source_offset": 61352,
+        "source_row_count": 64,
+        "source_row_id": 19773,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f028-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_063",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_063.bin",
+        "sha256": "9b9d217f92568738ea5c4a886d557bbf72f4e755aa35d2817789282b983a07fd",
+        "size": 128,
+        "source_offset": 61480,
+        "source_row_count": 64,
+        "source_row_id": 19838,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0000f0a8-size-00000380",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1080,6 +1305,111 @@
         "source_offset": 61608,
         "source_row_count": 60,
         "source_row_id": 19903,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f428-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_071",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_071.bin",
+        "sha256": "87a91743b2e1037c601f522ed8562be175d5dd8c1588951913e5656ef3b3944d",
+        "size": 128,
+        "source_offset": 62504,
+        "source_row_count": 64,
+        "source_row_id": 19964,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f4a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_072",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_072.bin",
+        "sha256": "9b594694d384ebf7dd6e326f772317d2d376a005b1ba77cdd3e9ed09d089c2e6",
+        "size": 128,
+        "source_offset": 62632,
+        "source_row_count": 64,
+        "source_row_id": 20029,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f528-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_073",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_073.bin",
+        "sha256": "01b0551e1dbe69b32e54e45961a961d2daf966ad53c6b0bc52ba446b4b39a4aa",
+        "size": 128,
+        "source_offset": 62760,
+        "source_row_count": 64,
+        "source_row_id": 20094,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f5a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_074",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_074.bin",
+        "sha256": "b0cdb43d566447e5dbba38a2c08f7e4ba43ea6b52c7d321e0d614da11442a338",
+        "size": 128,
+        "source_offset": 62888,
+        "source_row_count": 64,
+        "source_row_id": 20159,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f628-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_075",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_075.bin",
+        "sha256": "0ece7431473e335c7f82fe35a1eb0fe3fb1c80d11f72f8122987a5f0969cf26a",
+        "size": 128,
+        "source_offset": 63016,
+        "source_row_count": 64,
+        "source_row_id": 20224,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f6a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_076",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_076.bin",
+        "sha256": "8b2f2c4efac5c34ce538b1b94feea44fc7b013734925afc26f7ed7b7af0d3ff4",
+        "size": 128,
+        "source_offset": 63144,
+        "source_row_count": 64,
+        "source_row_id": 20289,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0000f728-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_077",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_077.bin",
+        "sha256": "daba459fe62b111bb10d159a3c4414efb9c46bdaa58ebe58cc2419d38402635c",
+        "size": 128,
+        "source_offset": 63272,
+        "source_row_count": 64,
+        "source_row_id": 20354,
         "source_section_index": 0
       },
       {
@@ -1098,6 +1428,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0000fda8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_090",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_090.bin",
+        "sha256": "6d11b1dedf11ec226356c1fb6216ba38312e06b8d6e54e098b7261de18bc3dfd",
+        "size": 128,
+        "source_offset": 64936,
+        "source_row_count": 64,
+        "source_row_id": 20516,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0000fe28-size-00000200",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1110,6 +1455,21 @@
         "source_offset": 65064,
         "source_row_count": 32,
         "source_row_id": 20581,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00010028-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_095",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_095.bin",
+        "sha256": "a6a4e52a641a9936d3da42cadac2bdd83a2cb4aedbc343aefe6440410be1db08",
+        "size": 128,
+        "source_offset": 65576,
+        "source_row_count": 64,
+        "source_row_id": 20614,
         "source_section_index": 0
       },
       {
@@ -1128,6 +1488,51 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-000103a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_102",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_102.bin",
+        "sha256": "c914443bf0eac20447f59018675ad4ffae4dcc74997d4a1aa5680aed7a463b21",
+        "size": 128,
+        "source_offset": 66472,
+        "source_row_count": 64,
+        "source_row_id": 20728,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00010428-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_103",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_103.bin",
+        "sha256": "37ee8eb1b931115ed1150fc51bf127ef313a5f2cc4993dde5a1b29869194b804",
+        "size": 128,
+        "source_offset": 66600,
+        "source_row_count": 8,
+        "source_row_id": 20793,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-000104a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_104",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_104.bin",
+        "sha256": "17015cb504d53fff726b3b5aae239e028e0222c75b57f17a6e63caca30ee35ba",
+        "size": 128,
+        "source_offset": 66728,
+        "source_row_count": 64,
+        "source_row_id": 20802,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-00010528-size-00000780",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1140,6 +1545,21 @@
         "source_offset": 66856,
         "source_row_count": 120,
         "source_row_id": 20867,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00010ca8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_120",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_120.bin",
+        "sha256": "24f497fb2bf0c5b01822e63f8aba7978296ef535a6e4606e6f991e652e1985c1",
+        "size": 128,
+        "source_offset": 68776,
+        "source_row_count": 64,
+        "source_row_id": 20988,
         "source_section_index": 0
       },
       {
@@ -1158,6 +1578,51 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00012328-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_165",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_165.bin",
+        "sha256": "72c5ebb86f00d4139598b800ac886f07322b1e5f1ba68b61c03827028a75424c",
+        "size": 128,
+        "source_offset": 74536,
+        "source_row_count": 64,
+        "source_row_id": 21409,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-000123a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_166",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_166.bin",
+        "sha256": "1436e095af0c07b2a9fb7fb600bce514d89dd0819b54866b94c1d28ea10b3c40",
+        "size": 128,
+        "source_offset": 74664,
+        "source_row_count": 8,
+        "source_row_id": 21474,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00012428-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_167",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_167.bin",
+        "sha256": "559475a0616314fab0d382f14c866f057bb6801318913852c55f1f824069df86",
+        "size": 128,
+        "source_offset": 74792,
+        "source_row_count": 64,
+        "source_row_id": 21483,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-000124a8-size-00000480",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1170,6 +1635,21 @@
         "source_offset": 74920,
         "source_row_count": 79,
         "source_row_id": 21548,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00012928-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_177",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_177.bin",
+        "sha256": "0ebe5b178caa015b1324369f9ce5fe01b3702005f8a990efff54c4bf564b7fd6",
+        "size": 128,
+        "source_offset": 76072,
+        "source_row_count": 64,
+        "source_row_id": 21628,
         "source_section_index": 0
       },
       {
@@ -1188,6 +1668,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00016d28-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_313",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_313.bin",
+        "sha256": "8239a54820e8139ed388a0f032773f3b98d702545dc7f66f46b6c22337195eeb",
+        "size": 128,
+        "source_offset": 93480,
+        "source_row_count": 64,
+        "source_row_id": 22830,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-00016da8-size-00001a80",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1200,6 +1695,21 @@
         "source_offset": 93608,
         "source_row_count": 425,
         "source_row_id": 22895,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00018828-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_367",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_367.bin",
+        "sha256": "c5ef75fe82de4e938f8316466063854874507c52c7085a9604e19651321336f4",
+        "size": 128,
+        "source_offset": 100392,
+        "source_row_count": 64,
+        "source_row_id": 23321,
         "source_section_index": 0
       },
       {
@@ -1218,6 +1728,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-00018a28-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_371",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_371.bin",
+        "sha256": "7699ff3d26d0ffdda2dd34a6a72e16f87f493ac802e93305e552103d605321c9",
+        "size": 128,
+        "source_offset": 100904,
+        "source_row_count": 64,
+        "source_row_id": 23411,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-00018aa8-size-00000480",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1230,6 +1755,36 @@
         "source_offset": 101032,
         "source_row_count": 72,
         "source_row_id": 23476,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00018f28-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_381",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_381.bin",
+        "sha256": "35f380bc00613c384b47ca572790b7da1ed090e598eaca2bf3b2ca9f4565caf2",
+        "size": 128,
+        "source_offset": 102184,
+        "source_row_count": 64,
+        "source_row_id": 23549,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-00018fa8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_382",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_382.bin",
+        "sha256": "aba0442c2befe4ae1fb7ed4d5915ea2bdaf98c74db078d972a1f728ccaf5fea8",
+        "size": 128,
+        "source_offset": 102312,
+        "source_row_count": 64,
+        "source_row_id": 23614,
         "source_section_index": 0
       },
       {
@@ -1248,6 +1803,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0001b928-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_465",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_465.bin",
+        "sha256": "d95276c0b9029aca83737f8e198c8e451294014c1272f6cc8a0f602634b3c5c1",
+        "size": 128,
+        "source_offset": 112936,
+        "source_row_count": 64,
+        "source_row_id": 24342,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0001b9a8-size-00000c00",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1263,6 +1833,21 @@
         "source_section_index": 0
       },
       {
+        "asset_id": "section-0000-offset-0001c5a8-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_490",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_490.bin",
+        "sha256": "676fb7a047b9f025edc4da80c3ca6212f466dfa29babefed9cd3e95c964c5176",
+        "size": 128,
+        "source_offset": 116136,
+        "source_row_count": 64,
+        "source_row_id": 24609,
+        "source_section_index": 0
+      },
+      {
         "asset_id": "section-0000-offset-0001c628-size-00000400",
         "classification": "bitmap",
         "data_class_flags": 32,
@@ -1275,6 +1860,21 @@
         "source_offset": 116264,
         "source_row_count": 64,
         "source_row_id": 24674,
+        "source_section_index": 0
+      },
+      {
+        "asset_id": "section-0000-offset-0001ca28-size-00000080",
+        "classification": "bitmap",
+        "data_class_flags": 32,
+        "kind": "asset",
+        "name": "world_tile_pixels_499",
+        "name_is_generated": false,
+        "path": "assets/world_tile_pixels_499.bin",
+        "sha256": "1096e9cb5f26e6d38d2e0bb97f395c5a4ea1f6c31aa517069d0ee665e05195b9",
+        "size": 128,
+        "source_offset": 117288,
+        "source_row_count": 64,
+        "source_row_id": 24739,
         "source_section_index": 0
       },
       {
@@ -1407,19 +2007,19 @@
       {
         "kind": "source",
         "path": "pandora_3e1ee0f1_bk_00_000000e8.s",
-        "sha256": "d0778afb3895eeec72d1bc9400310ca065736d9ab07e4256487724ec84bf82a6",
-        "size": 1180443
+        "sha256": "d627550cdc9913a28468e616e1d936a4b5bc26cb1484a78517f17e5fcacbc48f",
+        "size": 1116551
       }
     ],
-    "metadata_hash": "943ec67a9ea8142c3e57ec321938a2b824043cdd60e40a657febae560caff00c",
+    "metadata_hash": "c956ce6454c6b513ddfca9e048759acd114475a2862266630b43cdd281f1fa5e",
     "policy": {
       "id": "native-evidenced-opaque-v1",
-      "minimum_asset_size": 256
+      "minimum_asset_size": 128
     },
     "schema": "amiga-reversing-source-package-v1",
     "source": "pandora_3e1ee0f1_bk_00_000000e8.s",
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "c663b39e03ce3340395bbe860032919638b7ee985273ec97d11b92cf78a39e74"
+  "sha256": "8cae14144208e1229d2e40606f61d44c4bad73e7d760d061c0430e2aae71da15"
 }

@@ -255,6 +255,7 @@ static void copy_asm_source_plan_row_metadata(M68kRenderPlanRow *row, const M68k
   memcpy(row->label_line_runtime_addresses, source->label_line_runtime_addresses,
     sizeof(row->label_line_runtime_addresses));
   if (source->data_class_flags != 0U) m68k_render_plan_row_set_data_class_flags(row, source->data_class_flags);
+  memcpy(row->generated_field_comment, source->generated_field_comment, sizeof(row->generated_field_comment));
   if (source->has_source_range)
     m68k_render_plan_row_set_source_range(row, source->source_section_index, source->source_offset,
       source->source_size);
@@ -11625,6 +11626,9 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,
                 structured_item->size);
               m68k_render_plan_row_set_data_class_flags(row, structured_data_item_role_flags(structured_item));
+              if (row != NULL)
+                snprintf(row->generated_field_comment, sizeof(row->generated_field_comment), "%s",
+                  structured_item->field_name);
               if (!structured_item_updated_pc) asm_logical_pc += structured_item->size;
             }
             offset += structured_item->size;

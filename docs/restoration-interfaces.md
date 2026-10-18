@@ -473,3 +473,11 @@ undo restores the preceding style and redo restores the edit. An explicit manual
 edit also replaces a matching legacy metadata presentation. Different operands,
 sections and spans remain independent, and conflicting raw metadata remains an
 error rather than silently picking a winner.
+
+Typed custom-structure fields inherit an owning layout's explicit `bitmap`,
+`sound_sample` or `opaque_data` role for the existing binary-assets export.
+Other descriptive roles do not become media classifications. Inline analysis
+retains every typed field. The package projection omits an exact generated
+field-name comment when coalescing its numeric bytes into INCBIN; manual, role
+and additional comments survive. Interior labels, expressions, fixups, ORG and
+overlap guards continue to bound or prevent extraction.
