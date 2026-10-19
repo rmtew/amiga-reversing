@@ -775,7 +775,7 @@ audio_player_global_state_SIZEOF EQU __RS
     RS.B 1312
 audio_player_base_view_globals RS.B 18
 audio_player_base_view_sample_7_waveform_direction RS.W 1
-audio_player_base_view_sample_7_word_write_offset RS.W 1
+audio_player_base_view_sample_7_word_write_byte_offset RS.W 1
     RS.B 504
 audio_player_base_view_sample_7_length_words RS.W 1
     RS.B 1436
@@ -886,6 +886,12 @@ world_tile_planar_row_plane_2_pixels RS.W 1
 world_tile_planar_row_plane_3_pixels RS.W 1
 world_tile_planar_row_SIZEOF EQU __RS
 
+; STRUCT audio_sample_header
+    RSRESET
+audio_sample_header_byte_length RS.L 1
+audio_sample_header_period_divisor RS.W 1
+audio_sample_header_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -909,7 +915,9 @@ ASCII_LOWERCASE_A	EQU	97
 ASCII_SPACE	EQU	32
 AUDIO_CHANNEL_REGISTER_BYTES	EQU	ac_SIZEOF
 AUDIO_DURATION_TOKEN_BIAS	EQU	223
+AUDIO_MUTABLE_WAVE_DMA_WORDS	EQU	$20
 AUDIO_NOTE_INDEX_MASK	EQU	255
+AUDIO_PERIOD_DIVIDEND	EQU	$369E99
 AUDIO_PLAYER_MODE_PROXIMITY	EQU	2
 AUDIO_PRIMARY_CHANNEL_COUNT	EQU	4
 AUDIO_PRIMARY_DELTA_ENABLED_BIT	EQU	1
@@ -921,6 +929,7 @@ AUDIO_PRIMARY_SILENCE_LENGTH_WORDS	EQU	32
 AUDIO_PRIMARY_STATE_BYTES	EQU	audio_channel_runtime_state_SIZEOF
 AUDIO_PRIMARY_VOLUME_SCALE_SHIFT	EQU	6
 AUDIO_PROGRAM_DMA_RELOAD_OPCODE	EQU	$83
+AUDIO_SAMPLE_LAST_INDEX	EQU	$A
 AUDIO_SAMPLE_METADATA_BYTES	EQU	audio_sample_metadata_SIZEOF
 AUDIO_SECONDARY_CONFIGURATION_BYTES	EQU	audio_sequence_channel_configuration_SIZEOF
 AUDIO_SECONDARY_CONFIGURATION_LAST_WORD	EQU	AUDIO_SECONDARY_CONFIGURATION_BYTES/2-1
@@ -931,12 +940,18 @@ AUDIO_SECONDARY_MINIMUM_REGISTER_PERIOD	EQU	124
 AUDIO_SECONDARY_PRIME_LENGTH_WORDS	EQU	64
 AUDIO_SECONDARY_START_DELAY_INITIAL_COUNT	EQU	512
 AUDIO_SECONDARY_STATE_BYTES	EQU	audio_channel_playback_state_SIZEOF
+AUDIO_SILENCE_BUFFER_BYTES	EQU	$40
 AUDIO_STREAM_TERMINAL_BIT	EQU	7
 AUDIO_STREAM_VALUE_MASK	EQU	127
 AUDIO_TOKEN_DURATION_FIRST	EQU	$E0
 AUDIO_TOKEN_PITCH_FIRST	EQU	$A0
 AUDIO_TOKEN_SAMPLE_FIRST	EQU	$C0
 AUDIO_TOKEN_VOLUME_FIRST	EQU	$B0
+AUDIO_WAVE_HALF_LAST_WORD	EQU	$F
+AUDIO_WAVE_HIGH_PCM_PAIR	EQU	$3F3F
+AUDIO_WAVE_LOWER_TURN_BYTE_OFFSET	EQU	$20
+AUDIO_WAVE_LOW_PCM_PAIR	EQU	$C0C0
+AUDIO_WAVE_UPPER_TURN_BYTE_OFFSET	EQU	$2C
 BITMAP_PIXELS_PER_BYTE_SHIFT	EQU	3
 BITMAP_WORD_ALIGNMENT_MASK	EQU	($FF&~1)
 BLITTER_A_OR_C_MINTERM	EQU	ABC|ABNC|ANBC|ANBNC|NABC|NANBC
@@ -28324,7 +28339,7 @@ initialize_audio_player:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
 	lea.l initialize_audio_player(pc),a3
 	bsr.w reset_audio_channels
-	bsr.w initialize_audio_sample_metadata
+	bsr.w initialize_audio_sample_bank_once
     ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 	sf.b audio_player_base_view_globals+10(a3)
 	lea.l audio_channel_state_records(pc),a1
@@ -28418,20 +28433,20 @@ update_audio_channels:
     ; Sample 7: guarded init sets 0/32 after 64B fill; known updates cycle 12 states at even offsets 32..44. Raw 0/0 adds transient 0..30. Requires valid pointer/no other writers; phase unknown.
 mutate_audio_sample_7_waveform:
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
-	move.w audio_sample_7_word_write_offset(pc),d0
+	move.w audio_sample_7_word_write_byte_offset(pc),d0
 	tst.w audio_player_base_view_sample_7_waveform_direction(a3)
 	bmi.b write_sample_7_decreasing_offset
-	move.w #$C0C0,$0(a0,d0.w)
-	addq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
-	cmpi.w #44,audio_player_base_view_sample_7_word_write_offset(a3)
+	move.w #AUDIO_WAVE_LOW_PCM_PAIR,$0(a0,d0.w)
+	addq.w #2,audio_player_base_view_sample_7_word_write_byte_offset(a3)
+	cmpi.w #AUDIO_WAVE_UPPER_TURN_BYTE_OFFSET,audio_player_base_view_sample_7_word_write_byte_offset(a3)
 	bne.b finish_sample_7_increasing_offset_write
 	not.w audio_player_base_view_sample_7_waveform_direction(a3)
 finish_sample_7_increasing_offset_write:
 	bra.b begin_primary_audio_channel_pass
 write_sample_7_decreasing_offset:
-	move.w #$3F3F,$0(a0,d0.w)
-	subq.w #2,audio_player_base_view_sample_7_word_write_offset(a3)
-	cmpi.w #32,audio_player_base_view_sample_7_word_write_offset(a3)
+	move.w #AUDIO_WAVE_HIGH_PCM_PAIR,$0(a0,d0.w)
+	subq.w #2,audio_player_base_view_sample_7_word_write_byte_offset(a3)
+	cmpi.w #AUDIO_WAVE_LOWER_TURN_BYTE_OFFSET,audio_player_base_view_sample_7_word_write_byte_offset(a3)
 	bne.b begin_primary_audio_channel_pass
 	not.w audio_player_base_view_sample_7_waveform_direction(a3)
 begin_primary_audio_channel_pass:
@@ -28795,9 +28810,9 @@ audio_player_globals_gap_D:
 audio_player_globals_silence_sample_ptr:
 	dc.l $00000000	; silence_sample_ptr
 audio_sample_7_waveform_direction:
-	dc.w $0000
-audio_sample_7_word_write_offset:
-	dc.w $0000
+	dc.w $0000	; mutable_audio_waveform_cursor
+audio_sample_7_word_write_byte_offset:
+	dc.w $0000	; mutable_audio_waveform_cursor
     ; Original address slots are NULL. Initializers install source pointers; cursors mutate during service. Shared domains do not certify live addresses, DMA extents or lifetimes.
 audio_channel_state_records:
 	dc.b $00	; channel_flags
@@ -29315,49 +29330,50 @@ audio_channel_transpose_minus3:
 	dcb.b $10,$82
 	dc.b $80
     ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
-initialize_audio_sample_metadata:
+initialize_audio_sample_bank_once:
 	tst.b audio_player_base_view_globals+8(a3)
-	bne.w abs_0_0005E3EA
+	bne.w return_from_audio_sample_bank_initialization
     ; Initialize 11 length/divisor/payload records; payloads are referenced directly, with no decompression on this path.
 	lea.l audio_sample_record_stream(pc),a0
 	lea.l audio_sample_metadata(pc),a5
-	moveq.l #10,d1
-abs_0_0005E38A:
-	move.l (a0)+,d2
-	move.w (a0)+,d3
+	moveq.l #AUDIO_SAMPLE_LAST_INDEX,d1
+    ; KNOWN: type A0=Target code-entry register seed:audio_sample_header
+scan_next_audio_sample_header:
+	move.l (a0)+,d2	; operand 1: audio_sample_header_byte_length at (a0)+
+	move.w (a0)+,d3	; operand 1: audio_sample_header_period_divisor at (a0)+
 	move.l a0,audio_sample_metadata_sample_ptr.w(a5)
 	adda.l d2,a0
 	lsr.l #1,d2
 	move.w d2,audio_sample_metadata_sample_length(a5)
-	move.l #$369E99,d2
+	move.l #AUDIO_PERIOD_DIVIDEND,d2
 	divu.w d3,d2
 	move.w d2,audio_sample_metadata_sample_period(a5)
-	adda.w #$C,a5
-	dbf.w d1,abs_0_0005E38A
+	adda.w #AUDIO_SAMPLE_METADATA_BYTES,a5
+	dbf.w d1,scan_next_audio_sample_header
 	move.l a0,audio_player_base_view_globals+14(a3)
-	adda.w #$40,a0
+	adda.w #AUDIO_SILENCE_BUFFER_BYTES,a0
 	move.l a0,audio_player_base_view_secondary_sample_address_base(a3)
 	st.b audio_player_base_view_globals+8(a3)
     ; Sample 7's 64-byte payload becomes 32 bytes 0xC0 then 32 bytes 0x3F; later indexed-write bounds remain unproven.
 	movea.l audio_sample_metadata_sample_ptr_7(pc),a0
-	move.w #$F,d1
-abs_0_0005E3C6:
-	move.w #$C0C0,(a0)+
-	dbf.w d1,abs_0_0005E3C6
-	move.w #$F,d1
-abs_0_0005E3D2:
-	move.w #$3F3F,(a0)+
-	dbf.w d1,abs_0_0005E3D2
-	move.w #$20,audio_player_base_view_sample_7_length_words(a3)
-	move.w #$20,audio_player_base_view_sample_7_word_write_offset(a3)
+	move.w #AUDIO_WAVE_HALF_LAST_WORD,d1
+fill_mutable_audio_wave_low_half:
+	move.w #AUDIO_WAVE_LOW_PCM_PAIR,(a0)+
+	dbf.w d1,fill_mutable_audio_wave_low_half
+	move.w #AUDIO_WAVE_HALF_LAST_WORD,d1
+fill_mutable_audio_wave_high_half:
+	move.w #AUDIO_WAVE_HIGH_PCM_PAIR,(a0)+
+	dbf.w d1,fill_mutable_audio_wave_high_half
+	move.w #AUDIO_MUTABLE_WAVE_DMA_WORDS,audio_player_base_view_sample_7_length_words(a3)
+	move.w #AUDIO_WAVE_LOWER_TURN_BYTE_OFFSET,audio_player_base_view_sample_7_word_write_byte_offset(a3)
 	clr.w audio_player_base_view_sample_7_waveform_direction(a3)
-abs_0_0005E3EA:
+return_from_audio_sample_bank_initialization:
 	rts
 start_audio_sequence:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	lea.l initialize_audio_player(pc),a3
-	bsr.w initialize_audio_sample_metadata
+	bsr.w initialize_audio_sample_bank_once
     ; Unchecked packed selector: high byte is channel 0..3; low byte is configuration 0..28. EXT.W sign-extends the low byte for the 22-byte lookup; the channel selects playback and DMA records.
     ; KNOWN: type A3=Target code-entry register seed:audio_player_base_view
 	move.w d0,audio_player_base_view_effect_channel_and_configuration(a3)
@@ -30140,84 +30156,78 @@ volume_selector_15_values_with_hold_flag:
 	dc.b $00,$80
 	dc.b $4E,$71
 audio_sample_record_stream:
-	dc.l $000013EE
-period_divisor:
-	dc.w $2102
+	dc.l $000013EE	; byte_length
+	dc.w $2102	; period_divisor
 audio_sample_00_payload:
 	INCBIN "assets/audio_sample_00_payload.bin"
 ; sound_sample
-byte_length_2:
-	dc.l $00000C4C
-period_divisor_2:
-	dc.w $2102
+audio_sample_01_header:
+	dc.l $00000C4C	; byte_length
+	dc.w $2102	; period_divisor
 audio_sample_01_payload:
 	INCBIN "assets/audio_sample_01_payload.bin"
 ; sound_sample
-byte_length_3:
-	dc.l $0000121A
-period_divisor_3:
-	dc.w $2102
+audio_sample_02_header:
+	dc.l $0000121A	; byte_length
+	dc.w $2102	; period_divisor
 audio_sample_02_payload:
 	INCBIN "assets/audio_sample_02_payload.bin"
 ; sound_sample
-byte_length_4:
-	dc.l $0000157C
-period_divisor_4:
-	dc.w $49D4
+audio_sample_03_header:
+	dc.l $0000157C	; byte_length
+	dc.w $49D4	; period_divisor
 audio_sample_03_payload:
 	INCBIN "assets/audio_sample_03_payload.bin"
 ; sound_sample
-byte_length_5:
-	dc.l $000014B4
-period_divisor_5:
-	dc.w $34BC
+audio_sample_04_header:
+	dc.l $000014B4	; byte_length
+	dc.w $34BC	; period_divisor
 audio_sample_04_payload:
 	INCBIN "assets/audio_sample_04_payload.bin"
 ; sound_sample
-byte_length_6:
-	dc.l $000007D0
-period_divisor_6:
-	dc.w $3EE4
+audio_sample_05_header:
+	dc.l $000007D0	; byte_length
+	dc.w $3EE4	; period_divisor
 audio_sample_05_payload:
 	INCBIN "assets/audio_sample_05_payload.bin"
 ; sound_sample
-byte_length_7:
-	dc.l $00000040
-period_divisor_7:
-	dc.w $2134
+audio_sample_06_header:
+	dc.l $00000040	; byte_length
+	dc.w $2134	; period_divisor
 audio_sample_06_payload:
 	dc.b $3E,$37,$30,$28,$21,$1B,$12,$0C,$06,$FF,$F8,$F0,$E9,$E1,$DB,$D3	; sound_sample
 	dc.b $2F,$28,$21,$1A,$12,$0C,$05,$FE,$F8,$EF,$E9,$E1,$DB,$D3,$CC,$C5
 	dc.b $3E,$37,$30,$28,$21,$1A,$12,$0C,$05,$FF,$F8,$F0,$E9,$E1,$D9,$D2
 	dc.b $2F,$28,$21,$1A,$12,$0B,$04,$FE,$F8,$EF,$E9,$E1,$D9,$D2,$CC,$C5
-byte_length_8:
-	dc.l $00000040
-period_divisor_8:
-	dc.w $2134
+audio_sample_07_header:
+	dc.l $00000040	; byte_length
+	dc.w $2134	; period_divisor
 audio_sample_07_payload_mutable:
 	dcb.b $10,$C0	; sound_sample
 	dcb.b $10,$C0
 	dcb.b $10,$3E
 	dcb.b $10,$3E
-byte_length_9:
-	dc.l $00000010
-period_divisor_9:
-	dc.w $2134
-audio_sample_08_payload:
+audio_sample_08_header:
+	dc.l $00000010	; byte_length
+	dc.w $2134	; period_divisor
+audio_square_wave_16_bytes:
 	dcb.b $8,$C0	; sound_sample
+audio_square_wave_16_bytes_positive_half:
 	dcb.b $8,$3D	; sound_sample
-byte_length_10:
-	dc.l $00000008
-period_divisor_10:
-	dc.w $2134
-audio_sample_09_payload:
-	dc.b $C0,$C0,$C0,$C0,$3D,$3D,$3D,$3D	; sound_sample
-byte_length_11:
-	dc.l $00000004
-period_divisor_11:
-	dc.w $2134
-audio_sample_10_payload:
-	dc.b $C0,$C0,$3D,$3D	; sound_sample
+audio_sample_09_header:
+	dc.l $00000008	; byte_length
+	dc.w $2134	; period_divisor
+audio_square_wave_8_bytes:
+	dc.b $C0,$C0,$C0,$C0	; sound_sample
+audio_square_wave_8_bytes_positive_half:
+	dc.b $3D,$3D,$3D,$3D	; sound_sample
+audio_sample_10_header:
+	dc.l $00000004	; byte_length
+	dc.w $2134	; period_divisor
+audio_square_wave_4_bytes:
+	dc.b $C0,$C0	; sound_sample
+audio_square_wave_4_bytes_positive_half:
+	dc.b $3D,$3D	; sound_sample
     ; Initializer leaves A0 here after 11 sample records and stores it as the silence pointer. Known silence paths program 32 DMA words; this 64-byte source window is initially zero.
 audio_silence_payload:
 	dcb.b $40,$00	; sound_sample

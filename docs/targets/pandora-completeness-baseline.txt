@@ -5,14 +5,14 @@ Payload classification (disjoint bytes per source section):
 
 Units: 265 function candidates; 557 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 14305}.
+Supported payload purpose bytes by section: {'0': 40523}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
-Structure: {'resolved_native_access_records': 967, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 563}.
+Structure: {'resolved_native_access_records': 969, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 563}.
 Unresolved native operand forms: {'field_gap': 5, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
-Presentation: 64 generic label review signals.
+Presentation: 50 generic label review signals.
 Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
 Native asset encoding: bitmap, 118 chunks, bytes by section {'0': 241376}; game roles require separate purpose evidence.
 Native asset encoding: opaque_data, 1 chunks, bytes by section {'0': 27792}; game roles require separate purpose evidence.
@@ -75,7 +75,7 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-37dfc00d6c084b149f0c9591c0f8e781: s0 [0x4af24,0x4af7e) graphics/medium, accepted, whole_scope.
     Five retained gardener frame headers selected by the adjacent additional looping controller under supplied state.
     Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
-  purpose-3b5a4a24485c41f69f996f937587f2aa: s0 [0xb0e0,0xb120) game_data/high, accepted, whole_scope.
-    8 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
-    Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
-  45 additional bounded assessments are retained in the JSON report.
+  purpose-3a45ce4e8cad46eba1565431aa592ffb: s0 [0x51d3e,0x532c0) audio/high, accepted, whole_scope.
+    Sample 03 length/divisor header and its exact raw PCM payload supplied to the primary Paula metadata table.
+    Limits: Stored input format and conditional metadata/DMA staging only. Recorded sound identity, audible output, arbitrary selector bounds, all writers and exclusive lifetime are not established. Sample7 payload has a separate existing assessment and is excluded here.
+  61 additional bounded assessments are retained in the JSON report.

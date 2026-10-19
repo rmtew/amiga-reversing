@@ -5814,3 +5814,52 @@ source inspection would be needed to inspect that hook; this dependent path is
 stopped. No actual bank30 DMA read or last-frame packet is captured. Original
 payload, generated source, classifications, 6,494 unknown payload bytes and 750
 workspace coordinate-gap bytes remain unchanged.
+
+### Primary sample-bank formats and waveform source (2026-10-19)
+
+One connected restoration swath adds and accepts 95 catalog interpretations.
+The [inventory and proof](../validation/pandora-primary-sample-bank.json) cover
+the eleven variable-length records at `$4EAD8..$5500A`: 66 header bytes and
+25,840 PCM payload bytes. All headers now use one six-byte
+`audio_sample_header` schema, with qualified header identities instead of
+generic `byte_length_N` labels. The first `audio_sample_record_stream` anchor
+is preserved. Headers are separated by their payloads, not a contiguous array.
+
+The guarded constructor, its three loops and return have purpose names. Nine
+constants name the DBF terminal index, original period dividend, silence span,
+waveform halves/levels, DMA WORD count and directional turn offsets. The period
+dividend is not derived from the runtime PAL profile. A scoped header-cursor
+input contract gives the two original postincrement reads their field names.
+The 132-byte runtime descriptor table retains its eleven initial NULL pointer
+fields: the constructor relation is documented without inventing encoded source
+pointers to each payload.
+
+The 16-, 8- and 4-byte stored square-wave cycles now expose negative and positive
+halves (`C0` / `3D`). Recorded sound identities remain unknown. Sample7's stored
+`C0` / `3E` bytes and its original runtime `C0` / `3F` initialization remain
+distinct and unchanged. Its WORD cursor is now correctly named as a **byte
+offset for a WORD write** in both the base view and source storage. The turn
+constants do not assert global index, writer, allocation or lifetime closure.
+
+Sixteen bounded purpose assessments add **26,218 supported bytes**, including
+the constructor/writer, runtime descriptors, cursor state and silence buffer.
+The already assessed 64-byte sample7 payload is excluded from new credit.
+Supported payload purpose rises **14,305 -> 40,523 bytes** across 73 assessments;
+this is separate from native classification. Unknown payload remains **6,494
+bytes**, and the app coordinate gap remains **750 bytes**. There are still 265
+function candidates, 557 declared owners and 126 asset chunks. Native resolved
+field records rise **967 -> 969**; the 32 unresolved identities remain. Generic
+label review signals fall **64 -> 50**, without a semantic-completion percentage.
+
+Seven relevant original-CPU cases and the Pandora hardware-readability guard
+pass. Full C and independent vasm output match all 376,832 original bytes,
+SHA256 `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`,
+receipt `75e097551ee0eca7a800788ca9faaadaab2ab4d629e224e0e76ade863a76ffb2`.
+All 126 asset identities/paths/sizes/hashes and all 16 SDK includes retain their
+bytes; only native listing-row positions shift. Both durable histories retain
+their prior prefixes. No framework change or new DMA experiment was needed.
+
+The existing reachable draw values reconcile cheaply to a configured envelope
+`$3152E..$316FE` (two WORDs, 30 rows, modulo12), not the modeled final bank30
+packet. This is addressed-storage arithmetic, not observed DMA or meaningful
+image-content bounds. The bank30 uncertainty remains parked.
