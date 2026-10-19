@@ -5271,3 +5271,40 @@ and reproduced all 376,832 bytes with C and vasm: receipt
 SDK forms, types, prior annotations and raw gaps remain byte-identical to
 `7247bc48`. The next batch investigates the four native conflict ranges (32
 bytes); they are not cleared by semantic-purpose bookkeeping.
+
+## Native conflict reconciliation (2026-10-19)
+
+All 32 previously reported conflict bytes were exporter accounting artifacts.
+The native orphan signals had already distinguished these cases, but the range
+exporter treated every candidate near data as conflicting ownership, including
+suppressed candidates and candidates merely adjacent to data. It now exports a
+conflict only for an unresolved candidate that actually overlaps data. Other
+signals remain available for review; this does not promote code or resolve an
+uncertain candidate by bookkeeping.
+
+The four source ranges, with exclusive ends, reconcile as follows:
+
+| Source range | Bytes | Existing native evidence | Correct classification |
+| --- | ---: | --- | --- |
+| `$1094..$109E` | 10 | Unresolved terminal-decode candidate; following text is adjacent, not overlapping | Unknown |
+| `$E652..$E65A` | 8 | Candidate suppressed by accepted bitmap data | Structured data |
+| `$F6C4..$F6CA` | 6 | Candidate suppressed by accepted bitmap data | Structured data |
+| `$453B8..$453C0` | 8 | Candidate suppressed by accepted bitmap data | Structured data |
+
+The regenerated partition therefore has zero native ownership-conflict bytes,
+339,120 structured-data bytes and 8,236 unknown bytes. Other classes are
+unchanged. The ten-byte candidate remains open as
+`orphan_code_candidate:h0:$00001094-$0000109e`, with low confidence and no durable
+executable evidence. Neither reachability nor deadness is established. The
+bitmap encoding intersection now includes all 241,376 bitmap bytes. Explicit
+purpose coverage remains 122 bytes; clearing a false conflict adds no semantic
+purpose credit.
+
+Validation includes the full native C unit suite, eight exporter status/relation
+cases retaining a genuine unresolved-overlap positive case, and two native
+end-to-end tests preserving both suppressed-overlap and unresolved-adjacency
+signals without promoting them into executable control flow. The fresh target
+gate reproduced all 376,832 original bytes with C and vasm, receipt
+`24b0743585c46ebf5a4e135dc0af33d39b70775485ccba22ed535c2d78e6d6a4`.
+Source text, package manifest, all 126 assets, Manual Action Log and Decision
+Journal remain byte-identical to `a6d8ee95`. No target annotations were changed.

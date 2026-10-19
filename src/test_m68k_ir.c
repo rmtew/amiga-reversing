@@ -9037,6 +9037,11 @@ static int test_facts_v2_orphan_signal_suppresses_structured_data_overlap(void) 
     M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_SUPPRESSED_BY_STRUCTURED_DATA) != 0U);
   M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
     M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_NEGATIVE_WEAK_TEXT_EVIDENCE) != 0U);
+  {
+    size_t range_index;
+    for (range_index = 0U; range_index < source_analysis.sections[0].range_ownership_count; ++range_index)
+      M68K_C_ASSERT(source_analysis.sections[0].range_ownerships[range_index].kind != M68K_RANGE_OWNERSHIP_CONFLICT);
+  }
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status_id\":3,\"status\":\"suppressed\"") != NULL);
@@ -16927,31 +16932,45 @@ static int test_source_quality_analyze_uses_covering_cfg_terminal_run_end(void) 
 }
 
 static int test_source_quality_analyze_exports_orphan_conflict_ranges(void) {
-  M68kSourceAnalysisIR source_analysis;
-  M68kSectionAnalysisIR section_analysis;
-  M68kOrphanCodeSignalIR signal;
-  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
-  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
-  section_analysis.section_index = 0U;
-  section_analysis.section_size = 32U;
-  memset(&signal, 0, sizeof(signal));
-  signal.offset = 12U;
-  signal.size = 4U;
-  signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
-  signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
-  signal.nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP;
-  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_orphan_code_signal(&section_analysis, &signal));
-  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
-  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
-  M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].range_ownership_count);
-  M68K_C_ASSERT_INT(12, (int)source_analysis.sections[0].range_ownerships[0].start_offset);
-  M68K_C_ASSERT_INT(16, (int)source_analysis.sections[0].range_ownerships[0].end_offset);
-  M68K_C_ASSERT_INT(M68K_RANGE_OWNERSHIP_CONFLICT,
-    source_analysis.sections[0].range_ownerships[0].kind);
-  M68K_C_ASSERT_INT(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED,
-    source_analysis.sections[0].range_ownerships[0].conflict_state);
-  m68k_ir_section_analysis_destroy(&section_analysis);
-  m68k_ir_source_analysis_destroy(&source_analysis);
+  static const struct { uint8_t status, relation; uint32_t size; int expected; } cases[] = {
+    {M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP, 4U, 1},
+    {M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP, 4U, 0},
+    {M68K_ORPHAN_CODE_SIGNAL_REJECTED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP, 4U, 0},
+    {M68K_ORPHAN_CODE_SIGNAL_LINKED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP, 4U, 0},
+    {M68K_ORPHAN_CODE_SIGNAL_PROMOTED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP, 4U, 0},
+    {M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_BEFORE, 4U, 0},
+    {M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER, 4U, 0},
+    {M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED, M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_NONE, 4U, 0}
+  };
+  size_t index;
+  for (index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+    M68kSourceAnalysisIR source_analysis;
+    M68kSectionAnalysisIR section_analysis;
+    M68kOrphanCodeSignalIR signal;
+    M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+    M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+    section_analysis.section_index = 0U;
+    section_analysis.section_size = 32U;
+    memset(&signal, 0, sizeof(signal));
+    signal.offset = 12U; signal.size = cases[index].size;
+    signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
+    signal.status = cases[index].status;
+    signal.nearby_data_relation = cases[index].relation;
+    M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_orphan_code_signal(&section_analysis, &signal));
+    M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+    M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL, NULL));
+    M68K_C_ASSERT_INT(cases[index].expected, (int)source_analysis.sections[0].range_ownership_count);
+    M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].orphan_code_signal_count);
+    M68K_C_ASSERT_INT(cases[index].status, source_analysis.sections[0].orphan_code_signals[0].status);
+    if (cases[index].expected) {
+      M68K_C_ASSERT_INT(12, (int)source_analysis.sections[0].range_ownerships[0].start_offset);
+      M68K_C_ASSERT_INT(16, (int)source_analysis.sections[0].range_ownerships[0].end_offset);
+      M68K_C_ASSERT_INT(M68K_RANGE_OWNERSHIP_CONFLICT, source_analysis.sections[0].range_ownerships[0].kind);
+      M68K_C_ASSERT_INT(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED, source_analysis.sections[0].range_ownerships[0].conflict_state);
+    }
+    m68k_ir_section_analysis_destroy(&section_analysis);
+    m68k_ir_source_analysis_destroy(&source_analysis);
+  }
   return 0;
 }
 

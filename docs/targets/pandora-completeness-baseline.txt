@@ -1,7 +1,7 @@
 Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 
 Payload classification (disjoint bytes per source section):
-  section 0: 376832 bytes; code=24260, conflict=32, structured_data=339098, table=1050, text=4166, unknown=8226
+  section 0: 376832 bytes; code=24260, structured_data=339120, table=1050, text=4166, unknown=8236
 
 Units: 265 function candidates; 543 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
@@ -16,7 +16,7 @@ Verification: exact_original_layout; final review: not assessed; relocation read
 
 Selected unresolved identities (full list in JSON):
   payload:s0:52:456 (unknown)
-  payload:s0:1094:109e (conflict)
+  payload:s0:1094:109e (unknown)
   payload:s0:1113:1114 (unknown)
   payload:s0:14b6:14b8 (unknown)
   payload:s0:2b7d:2b7e (unknown)

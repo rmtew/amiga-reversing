@@ -13414,7 +13414,11 @@ static int append_orphan_conflict_ranges_for_section(M68kSectionAnalysisIR *sect
   for (index = 0U; index < section->orphan_code_signal_count; ++index) {
     const M68kOrphanCodeSignalIR *signal = &section->orphan_code_signals[index];
     M68kRangeOwnershipIR range;
-    if (signal->size == 0U || signal->nearby_data_relation == M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_NONE)
+    /* A suppressed/rejected candidate is not a live code claim. Likewise,
+       neighboring data is context, not overlapping ownership. Keep those
+       orphan signals for review without manufacturing a storage conflict. */
+    if (signal->size == 0U || signal->status != M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED ||
+        signal->nearby_data_relation != M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP)
       continue;
     memset(&range, 0, sizeof(range));
     range.start_offset = signal->offset;
