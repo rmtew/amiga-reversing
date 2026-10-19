@@ -481,3 +481,56 @@ retains every typed field. The package projection omits an exact generated
 field-name comment when coalescing its numeric bytes into INCBIN; manual, role
 and additional comments survive. Interior labels, expressions, fixups, ORG and
 overlap guards continue to bound or prevent extraction.
+
+## Read-only completeness accounting
+
+```sh
+python -m amiga_reversing.tools.restoration_accounting --target TARGET \
+  --verification-receipt RECEIPT.json \
+  --json-output accounting.json --text-output accounting.txt
+```
+
+This offline report builds one native artifact from the current canonical
+metadata; it needs no running server. It reads the Manual Action Log, validates
+the Decision Journal and asset identities, and rejects canonical inputs that
+change during collection. Only the requested report files are written; target
+facts, source and review decisions are unchanged. The optional receipt is reused
+only when its original, source and package hashes match and both C and vasm
+reported exact original-layout output. Accounting never runs or substitutes a
+new verification gate. The native source-plan DTO includes canonical stored and
+allocated section extents, keeping BSS and allocation tails out of payload totals.
+
+The JSON (`restoration-accounting/v1`) and compact text view separate:
+
+- Disjoint native payload classification, provisional/conflicting claims and
+  unknown gaps, with coordinate identities and native evidence anchors.
+- Base-relative workspace envelopes, aliases, overlaps, unknown gaps, declared
+  runtime regions and absolute observations. Coordinate spaces have no additive
+  grand total; mapped-source views do not create extra payload bytes. Hardware,
+  vectors and external cells are separate, including observations of unknown width.
+- Discovered function candidates, declared data owners, explicit array/typed
+  record counts and asset emission chunks. Their complete semantic denominators
+  and unproved function/resource boundaries remain unknown.
+- Purpose/confidence, native field and reference resolution, presentation signals,
+  original-layout verification, final review and relocation readiness.
+
+Native accepted classification is not semantic acceptance. The current canonical
+models record useful annotation evidence, declared roles, ABI summaries and
+review decisions, but have no separate bounded assessment of *complete purpose*.
+This first report therefore exposes purpose/confidence as not separately assessed;
+it does not promote names, comments, accepted formatting or INCBIN into proof.
+Existing evidence remains discoverable through owner IDs, source coordinates,
+MAL citations, native function-entry evidence and the Decision Journal. No parallel
+tracker or assembly-comment metadata is introduced.
+
+RSSET accounting uses native normalized layout/base identities. Its observed
+minimum/maximum envelope is not a proved workspace allocation bound: unknown
+prefix/suffix extents remain outside the denominator. Missing declarations or
+observed accesses never prove unused storage. Data-layout `padding` elements
+retain their explicit classification; workspace reserved/padding/unused intent is
+reported unavailable where the canonical model does not encode it. Dynamic field
+indices, unresolved references and indirect sites remain separate obligations.
+Generic names are review signals only. No overall percentage is computed.
+
+The Pandora baseline is in [pandora-completeness-baseline.json](targets/pandora-completeness-baseline.json)
+and [pandora-completeness-baseline.txt](targets/pandora-completeness-baseline.txt).

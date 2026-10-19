@@ -1,0 +1,28 @@
+Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
+
+Payload classification (disjoint bytes per source section):
+  section 0: 376832 bytes; code=24260, conflict=32, structured_data=339098, table=1050, text=4166, unknown=8226
+
+Units: 265 function candidates; 543 declared data owners; 126 asset emission chunks.
+Complete function/object/resource denominators: unknown.
+Purpose and confidence: not separately assessed; no semantic completion claim.
+Workspace (coordinate views are not additive):
+  [1, 'app', '__amiga_app_base__']: envelope [0,2032), 788 declared bytes; {'field': 788, 'unknown': 1244}; full extent unknown.
+Hardware/external: 27 observed union bytes; denominator unknown.
+Structure: {'resolved_native_access_records': 964, 'unresolved_native_access_records': 35}; reference target statuses {'accepted_target': 563}.
+Presentation: 80 generic label review signals.
+Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
+
+Selected unresolved identities (full list in JSON):
+  payload:s0:52:456 (unknown)
+  payload:s0:1094:109e (conflict)
+  payload:s0:1113:1114 (unknown)
+  payload:s0:14b6:14b8 (unknown)
+  payload:s0:2b7d:2b7e (unknown)
+  payload:s0:2b9a:2bc4 (unknown)
+  payload:s0:2ee0:2ee6 (unknown)
+  payload:s0:6a16:6a1e (unknown)
+  payload:s0:7176:7182 (unknown)
+  payload:s0:718f:7190 (unknown)
+  payload:s0:8179:817a (unknown)
+  payload:s0:864b:864c (unknown)

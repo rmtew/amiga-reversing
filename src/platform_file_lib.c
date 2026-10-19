@@ -13815,6 +13815,19 @@ int platform_file_facts_v2_listing_artifact_source_plan_json_alloc(PlatformFileL
         (unsigned)label->source_section_index, (unsigned)label->source_offset) ||
         json_builder_append_json_string(&builder, label->name) || json_builder_append(&builder, "}")) goto failed;
   }
+  if (json_builder_append(&builder, "],\"sections\":[")) goto failed;
+  for (index = 0U; index < artifact->object.section_count; ++index) {
+    const M68kSection *section = &artifact->object.sections[index];
+    /* Export canonical storage extents. Analysis section_size includes the
+       allocation tail and must not be mistaken for stored payload bytes. */
+    if ((index && json_builder_append(&builder, ",")) || json_builder_appendf(&builder,
+        "{\"section_index\":%u,\"kind\":\"%s\",\"stored_size\":%u,\"allocation_size\":%u}",
+        (unsigned)index,
+        section->kind == M68K_SECTION_CODE ? "code" :
+        section->kind == M68K_SECTION_DATA ? "data" :
+        section->kind == M68K_SECTION_BSS ? "bss" : "unknown",
+        (unsigned)section->data_size, (unsigned)section->size)) goto failed;
+  }
   if (json_builder_append(&builder, "]}")) goto failed;
   *out_text = json_builder_build(&builder); json_builder_destroy(&builder);
   return *out_text ? 0 : -1;

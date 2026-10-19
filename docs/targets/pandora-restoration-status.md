@@ -5160,3 +5160,48 @@ Preservation checks retain all 398 prior manual data references, previous
 owners/layouts/types/RSSET regions, authored comments, 126 assets, 2,112 tile
 fields, 128-byte INCBIN policy, SDK hardware forms and unproved raw gaps.
 Manual Action Log and Decision Journal append exactly 53 records each.
+
+
+## Read-only completeness baseline (2026-10-19)
+
+The generic `restoration_accounting` command now derives independent accounting
+from native ownership/CFG/type facts, the native source plan, effective metadata,
+MAL/Decision Journal and the source-package manifest. The compact text baseline
+is `docs/targets/pandora-completeness-baseline.txt`; the machine baseline is
+`docs/targets/pandora-completeness-baseline.json`. It is a reproducible snapshot,
+not a second tracker. Canonical input hashes bind it to the overlay checkpoint.
+Target annotations and assembly remain unchanged by this feature.
+
+Pandora's 376,832 stored bytes partition into 24,260 code, 339,098 structured data,
+1,050 table, 4,166 text, 8,226 unknown and 32 native-conflict bytes. Compatible
+broad data owners and leaf tables/strings share bytes without false conflict or
+double counting; the four explicit native conflicts retain stable identities.
+These classifications are not purpose-completeness claims. The report finds
+265 function candidates (218 CFG-supported, 40 ambiguous, seven partial), 543
+declared data owners and 126 asset emission chunks. Complete function/object/
+semantic-resource denominators and purpose/confidence assessments remain unknown.
+
+The app layout's observed [0,2032) envelope has 788 declared union bytes and
+1,244 unknown bytes; its true allocation bounds and gap intent remain unproved.
+Hardware/external observations account for 27 known-width union bytes and seven
+unknown-extent observations. Native typed accesses include 964 resolved and 35
+unresolved records; all 563 native data-reference records have accepted targets.
+Eight indirect sites remain explicitly unresolved; the other native statuses
+remain distinct from proof of complete transfer closure. Eighty generic labels
+are review signals, not a demand for mechanical renaming.
+
+The existing source/package-bound C+vasm receipt is reused as original-layout
+verification. Final semantic review and relocation readiness are not assessed.
+No overall percentage or implicit unused/padding inference is made. The native
+source-plan DTO now exposes stored versus allocated extents, so BSS and trailing
+workspace cannot inflate payload coverage; missing bounds remain unknown.
+
+Validation includes 23 focused accounting tests, native raw/Hunk read-only and
+BSS/exact-render checks, and the existing source-package and canonical-symbol/
+operand regressions. Cases cover unknown gaps, compatible/nested owners, alias
+unions, explicit/provisional conflicts, classification with unknown purpose,
+partial RSSET/data layouts, INCBIN aliases, zero-width hardware observations,
+stable unresolved identities, exact output with semantic gaps, stale receipts
+and protection against canonical output paths. Ruff and diff checks pass.
+Two independent projections of the same captured canonical facts produce
+identical machine output; canonical target input hashes remain unchanged.

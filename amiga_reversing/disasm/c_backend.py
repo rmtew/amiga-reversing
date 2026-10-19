@@ -2210,7 +2210,7 @@ class CListingArtifact:
         return analysis, profile
 
     def source_plan_payload(self) -> dict[str, object]:
-        """Internal canonical row coordinates for schema-derived presentations."""
+        """Canonical row coordinates and stored/allocation extents for projections."""
         return cast(dict[str, object], json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc)))
 
