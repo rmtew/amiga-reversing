@@ -1564,6 +1564,7 @@ bitmap_00075050_lo	EQU	bitmap_00075050-(bitmap_00075050_hi*$10000)
 bitmap_00075078	EQU	$75078
 bitmap_00075078_hi	EQU	bitmap_00075078/$10000
 bitmap_00075078_lo	EQU	bitmap_00075078-(bitmap_00075078_hi*$10000)
+blank_graphics_mask_data	EQU	$5D5DE
 dblk_ref_h0_000095E2_runtime_000195E2	EQU	$195E2
 dblk_ref_h0_00010CC0	EQU	$10CC0
 dblk_ref_h0_00010CCC	EQU	$10CCC
@@ -20368,7 +20369,7 @@ combat_hit_feedback_geometry_records:
 	dc.w $0000	; y_offset
 combat_hit_feedback_idle_geometry:
 	dc.l blank_sprite_data	; bitplane_data_ptr
-	dc.l $0005D5DE	; mask_data_ptr
+	dc.l blank_graphics_mask_data	; mask_data_ptr
 	dc.w $0002	; row_stride_words
 	dc.w $0010	; frame_height
 	dc.w $0020	; frame_width
@@ -27185,7 +27186,7 @@ player_final_pose_geometry_frames:
 	dc.w $0000	; y_offset
 player_escape_geometry:
 	dc.l blank_sprite_data	; bitplane_data_ptr
-	dc.l $0005D5DE	; mask_data_ptr
+	dc.l blank_graphics_mask_data	; mask_data_ptr
 	dc.w $0002	; row_stride_words
 	dc.w $0020	; frame_height
 	dc.w $0020	; frame_width
@@ -28123,7 +28124,38 @@ diabetic_try_self_destruct_hint:
 	jsr enqueue_status_message.l
 	bra.b diabetic_return_without_context_prompt
 blank_sprite_data:
-	dcb.b $200,$00
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
 initialize_audio_player:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
 	lea.l initialize_audio_player(pc),a3

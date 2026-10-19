@@ -5462,3 +5462,53 @@ Fresh native accounting confirms exactly three removed unresolved identities
 (five field gaps and 27 indexed records). Payload/workspace byte gaps remain
 8,236/750. Supported purpose is now 12,242 payload bytes and 948 bytes in the
 separate app-relative view; these are not an overall completion claim.
+
+### Shared zero graphics bank (2026-10-19)
+
+The previously unclassified 512 bytes at source `$4D5DE..$4D7DE` form the shared
+zero graphics bank already named `blank_sprite_data`. This boundary comes from
+original consumers: the idle feedback frame at `$48588` has stride 2 and height
+16 (256 nominal planar bytes, 64 mask bytes); the second final-pose frame at
+`$4C5A4` has stride 2 and height 32 (512 planar bytes, 128 mask bytes). Both pixel
+and mask pointers select runtime `$5D5DE`. The maximum pixel extent ends at the
+separately decoded audio entry; every original bank byte is zero. A normal data
+owner with WORD representation now accounts for the full bank.
+
+The same base is selected by the game-exit palette prefix, cursor hiding and
+negative-modulo overlay clearing. The two existing frame mask fields now render
+`blank_graphics_mask_data`, a 128-byte alias in their existing runtime mask
+namespace. Their runtime-only domain and the shared frame schema are unchanged;
+the stored zero resource is not reclassified as a generated mask allocation.
+The original `blank_sprite_data` symbol and SDK register expressions remain.
+Three purpose assessments cover the bank and the two 18-byte frame headers.
+
+Thirteen original CPU checks pass: header/extent and exact sixteen-color palette
+checks, ten existing overlay packets, and cursor hiding. These are stored-data
+and CPU pointer/register contracts. They do not establish actual DMA output,
+exclusive allocation, all consumers, ordinary gameplay reachability, immutability
+or lifetime closure. The 768-byte scratch capacity view at `$B3A8` remains
+separate from its 256-byte initial file owner: it does not establish the initial
+meaning of the following unknown payload. Likewise, zero runs elsewhere and the
+supervisor stack-top address alone do not establish allocation extents.
+
+The five remaining non-dynamic native field records were reviewed: four are
+script LEA advances at the command extent; `$790A` is a WORD probe beyond the
+shared object prefix, with a low-byte consumer that does not justify a new
+shared field. The 27 genuinely dynamic indexed records retain their obligations.
+
+Final C+vasm verification reproduces all 376,832 original bytes, receipt
+`628f4c08f2678cda95fda587dd65cd95d805668c97560f1def0730f2ff0416fb`.
+Six MAL records and six decisions append to the preserved histories. All 126 asset identities, payload hashes, bounds, classifications
+and SDK includes remain unchanged; generated source-row IDs shift with the
+new explicit WORD-array rows. Source review after the first exact gate caught
+the still-empty owner representation; a normal explicit array element completed it before
+this final verification. No framework code or SDK presentation was changed.
+
+Fresh native accounting: unknown payload falls from 8,236 to 7,724 bytes
+(512 recovered); structured data rises to 339,632 bytes, with zero conflicts.
+There are now 544 declared data owners. Supported payload purpose rises from
+12,242 to 12,790 bytes, covering the bank and two frame headers; separate
+app-relative purpose remains 948 bytes and its gap remains 750 bytes. Native
+operand resolution remains 967 resolved and 32 unresolved (five field gaps,
+27 dynamic indexed records). These counters are not whole-program semantic
+completion or complete allocation denominators.
