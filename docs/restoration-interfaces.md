@@ -500,7 +500,7 @@ reported exact original-layout output. Accounting never runs or substitutes a
 new verification gate. The native source-plan DTO includes canonical stored and
 allocated section extents, keeping BSS and allocation tails out of payload totals.
 
-The JSON (`restoration-accounting/v1`) and compact text view separate:
+The JSON (`restoration-accounting/v2`) and compact text view separate:
 
 - Disjoint native payload classification, provisional/conflicting claims and
   unknown gaps, with coordinate identities and native evidence anchors.
@@ -514,14 +514,35 @@ The JSON (`restoration-accounting/v1`) and compact text view separate:
 - Purpose/confidence, native field and reference resolution, presentation signals,
   original-layout verification, final review and relocation readiness.
 
-Native accepted classification is not semantic acceptance. The current canonical
-models record useful annotation evidence, declared roles, ABI summaries and
-review decisions, but have no separate bounded assessment of *complete purpose*.
-This first report therefore exposes purpose/confidence as not separately assessed;
-it does not promote names, comments, accepted formatting or INCBIN into proof.
-Existing evidence remains discoverable through owner IDs, source coordinates,
-MAL citations, native function-entry evidence and the Decision Journal. No parallel
-tracker or assembly-comment metadata is introduced.
+Native accepted classification is not semantic acceptance. Purpose/confidence now
+has a minimal typed `PurposeAssessment` fact, replayed from the same Manual Action
+Log projection as other target facts. `target.purpose.assess` and
+`target.purpose.remove` are normal target catalog commands; creation/removal and
+undo/redo use the existing append-only replay path. There is no second tracker.
+The facts do not enter native analysis/rendering policy or assembly comments.
+
+An assessment declares `coordinate_space` (source with `section_index`,
+base_relative with exact `layout_name`/`base_symbol`, or absolute), nonempty
+`start`/`end`, a purpose category, concrete `purpose`, explicit low/medium/high
+`confidence`, `coverage` and `limits`. `whole_scope` concerns the stated purpose
+throughout that interval; it does not assert complete fields, all writers,
+reachability, control-flow closure, resource boundaries or relocation safety.
+`partial_scope` deliberately leaves byte-level purpose coverage unresolved.
+
+Restoration interpretations carry the existing canonical row evidence and reason.
+The existing Decision Journal owns acceptance, deferral and rejection; its normal
+current-subject exact-verification requirement remains in force. Only accepted,
+evidence-bearing whole-scope claims support purpose byte accounting. Confidence
+is never promoted by acceptance. Unreviewed, deferred, rejected, partial,
+unmapped and overlapping claims remain explicit; overlaps are review obligations,
+not summed coverage or automatically averaged confidence. Untouched regions remain
+unassessed even when names, comments, schemas or INCBIN already exist.
+
+The report separately inventories native asset encoding classes and declared
+schema instance counts. This exposes bitmap/sample evidence underneath the coarse
+`structured_data` ownership class without bulk assigning game purpose. The owner
+IDs, scope coordinates, MAL action IDs, journal decisions, native entry evidence
+and listing links retain the evidence trail.
 
 RSSET accounting uses native normalized layout/base identities. Its observed
 minimum/maximum envelope is not a proved workspace allocation bound: unknown
@@ -530,7 +551,11 @@ observed accesses never prove unused storage. Data-layout `padding` elements
 retain their explicit classification; workspace reserved/padding/unused intent is
 reported unavailable where the canonical model does not encode it. Dynamic field
 indices, unresolved references and indirect sites remain separate obligations.
-Generic names are review signals only. No overall percentage is computed.
+Generic names are review signals only; each has a canonical source-coordinate
+listing link. Unknown workspace gaps include links to named neighboring field
+uses and navigation facts; neighbor use does not prove that the gap is used.
+These URLs are relative to the resident project-server origin. No overall
+percentage is computed.
 
 The Pandora baseline is in [pandora-completeness-baseline.json](targets/pandora-completeness-baseline.json)
 and [pandora-completeness-baseline.txt](targets/pandora-completeness-baseline.txt).

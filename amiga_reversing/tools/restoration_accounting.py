@@ -28,6 +28,7 @@ from amiga_reversing.disasm.manual_actions import (
     manual_action_interpretation,
 )
 from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.disasm.purpose_assessments import reviewed_assessments
 
 
 def _hash(data):
@@ -179,6 +180,9 @@ def account_target(target_id, *, receipt=None):
         verification=verification,
         provenance={**before, "original_size": len(original)},
         history=history,
+        purpose_assessments=reviewed_assessments(
+            projection.purpose_assessments, decisions
+        ),
     )
     if _snapshot(paths) != before:
         raise ValueError("Canonical inputs changed during accounting; reinspect")

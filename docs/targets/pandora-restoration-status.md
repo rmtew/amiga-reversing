@@ -5205,3 +5205,69 @@ stable unresolved identities, exact output with semantic gaps, stale receipts
 and protection against canonical output paths. Ruff and diff checks pass.
 Two independent projections of the same captured canonical facts produce
 identical machine output; canonical target input hashes remain unchanged.
+
+
+## Explicit purpose/confidence and a representative semantic baseline (2026-10-19)
+
+The accounting feature now has a typed, bounded `PurposeAssessment` fact in the
+canonical Manual Action Log projection. Normal `target.purpose.assess` and
+`target.purpose.remove` catalog commands use the existing validated append,
+replay, undo/redo and Decision Journal. This follows the existing separate-facet
+pattern used for region facts; it creates no second tracker. Purpose claims stay
+outside native analysis/rendering policy, so their metadata never appears in
+assembly comments or changes the generated source. No architectural user
+decision was required to add this independent evidence dimension.
+
+Each claim explicitly declares coordinate space/bounds, purpose category,
+concrete purpose, confidence, whole/partial scope and limits. Source scopes,
+qualified base-relative layouts and observed absolute domains remain separate.
+Only evidence-bearing, journal-accepted whole-scope claims support purpose bytes.
+Low confidence is not promoted by acceptance; partial, provisional, deferred,
+rejected, unmapped and overlapping claims earn no whole-scope credit. A supported
+scope establishes the stated purpose, not complete fields, all writers, runtime
+reachability, display/audio output, transfer closure or relocation readiness.
+
+Three reviewed examples establish 122 distinct bytes: the 32-byte top-left UI
+border cell (graphics), 64-byte mutable sample-7 buffer (audio), and 26-byte
+terminal salvage marker render prefix (game data), all explicitly high confidence
+with conditional limits. Evidence reuses original CPU tests and inspected
+producer/consumer dataflow. The marker has six current native typed-pointer
+records, including reciprocal descriptor and geometry links. The sample pointer
+is computed by the original header walk and checked by guarded-initialization
+CPU scenarios; its lack of ordinary static symbol references is not used as an
+inference. The other 376,710 payload bytes remain purpose-unassessed. Names,
+comments, accepted annotation counts and INCBIN are not imported as understanding.
+
+The 339,098-byte `structured_data` counter is a coarse ownership/storage class:
+native lowering mixes primitive BYTE/WORD/LONG fields from images, sample data,
+records and other owners. It is not a purpose taxonomy. The report now exposes
+existing native asset encoding evidence separately: 118 bitmap chunks / 241,376
+union bytes, seven sound-sample chunks / 26,324 bytes, and one opaque tail /
+27,792 bytes. The corresponding intersections with the coarse structured-data
+class are retained explicitly (overlapping dimensions must not be summed).
+Declared shared-schema instances are also indexed. Such encoding/layout evidence
+can guide finer restoration; a concrete game role still needs scoped consumer
+and behaviour evidence, as in the three examples above.
+
+All 80 generic-label signals have source-coordinate listing links. Unknown
+RSSET gaps retain their stable qualified identities and get neighboring field-use
+links where evidence permits. Native app-slot references can retain generic
+`app_XXXX` display aliases after field renaming; the report joins them by qualified
+native app-slot layout and offset only when that domain is unambiguous. Equal
+displacements in competing bases are not joined. Neighbor use never proves gap
+use or unused/padding/reserved intent. The true workspace allocation extent stays
+unknown.
+
+Validation: 46 focused purpose/accounting tests pass, including native exact
+output/no-comment-leak checks and normal existing-journal review. A broader
+298-test action/catalog/replay/review/metadata regression run passed before the
+final report-only link/format refinements. A full standard native collector
+regenerated the baseline; deterministic reprojection of those same unchanged
+facts verifies every result against it while adding qualified gap links.
+Three MAL records and three journal decisions append to preserved history.
+The required current-subject gate ran once, reused the resident native artifact,
+and reproduced all 376,832 bytes with C and vasm: receipt
+`7b52b651eb82f372edbc119ab221a02484c96a6fa55086899045a5be94036b32`. Source text, package manifest, all126 assets,
+SDK forms, types, prior annotations and raw gaps remain byte-identical to
+`7247bc48`. The next batch investigates the four native conflict ranges (32
+bytes); they are not cleared by semantic-purpose bookkeeping.

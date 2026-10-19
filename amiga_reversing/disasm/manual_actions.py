@@ -189,6 +189,8 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_RUNTIME_OBSERVATION_VIEW = "remove_manual_runtime_observation_view"
     CREATE_MANUAL_RUNTIME_DATA_RANGE = "create_manual_runtime_data_range"
     REMOVE_MANUAL_RUNTIME_DATA_RANGE = "remove_manual_runtime_data_range"
+    CREATE_PURPOSE_ASSESSMENT = "create_purpose_assessment"
+    REMOVE_PURPOSE_ASSESSMENT = "remove_purpose_assessment"
     CREATE_MANUAL_MEMORY_REGION = "create_manual_memory_region"
     REMOVE_MANUAL_MEMORY_REGION = "remove_manual_memory_region"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -255,6 +257,7 @@ class ManualActionLogProjection:
     inactive_action_ids: tuple[str, ...]
     diagnostics: tuple[dict[str, object], ...]
     review_items: tuple[dict[str, object], ...]
+    purpose_assessments: tuple[dict[str, object], ...] = ()
     memory_regions: tuple[dict[str, object], ...] = ()
     source_output_policy: dict[str, object] | None = None
 
@@ -1889,6 +1892,7 @@ def _project_actions(
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    purpose_assessments: dict[str, dict[str, object]] = {}
     memory_regions: dict[str, dict[str, object]] = {}
     runtime_data_ranges: dict[int, dict[str, object]] = {}
     removed_runtime_data_ranges: dict[int, dict[str, object]] = {}
@@ -2274,6 +2278,19 @@ def _project_actions(
             removed = dict(existing_range or data_range)
             removed["cleanup_action_id"] = action.action_id
             removed_runtime_data_ranges[range_key] = removed
+        elif action.kind is ManualActionKind.CREATE_PURPOSE_ASSESSMENT:
+            from amiga_reversing.disasm.purpose_assessments import PurposeAssessment
+            assessment = PurposeAssessment.from_dict(_action_object(action, "purpose_assessment")).to_dict()
+            identity = assessment["assessment_id"]
+            if identity in purpose_assessments:
+                raise ValueError("purpose assessment identity already exists; remove before replacement")
+            purpose_assessments[identity] = {**assessment, "action_id": action.action_id,
+                                             "interpretation": manual_action_interpretation(action.payload)}
+        elif action.kind is ManualActionKind.REMOVE_PURPOSE_ASSESSMENT:
+            identity = _action_ref(action,"assessment_id")
+            if identity not in purpose_assessments:
+                raise ValueError("purpose assessment removal requires an existing identity")
+            purpose_assessments.pop(identity)
         elif action.kind is ManualActionKind.CREATE_MANUAL_MEMORY_REGION:
             from amiga_reversing.disasm.memory_regions import validate_region
             region = validate_region(dict(_action_object(action, "memory_region")))
@@ -2358,6 +2375,7 @@ def _project_actions(
         removed_execution_views=tuple(removed_execution_views.values()),
         runtime_observation_views=tuple(runtime_observation_views.values()),
         removed_runtime_observation_views=tuple(removed_runtime_observation_views.values()),
+        purpose_assessments=tuple(purpose_assessments.values()),
         memory_regions=tuple(memory_regions.values()),
         runtime_data_ranges=tuple(runtime_data_ranges.values()),
         removed_runtime_data_ranges=tuple(removed_runtime_data_ranges.values()),

@@ -353,6 +353,9 @@ _PRESENTATION_MANUAL_ACTION_KINDS = {
     ManualActionKind.CREATE_MANUAL_RSSET_USE_SITE_BINDING,
     ManualActionKind.REMOVE_MANUAL_RSSET_USE_SITE_BINDING,
     ManualActionKind.RESOLVE_REVIEW_ITEM,
+    # Purpose claims affect accounting/review, never the native source artifact.
+    ManualActionKind.CREATE_PURPOSE_ASSESSMENT,
+    ManualActionKind.REMOVE_PURPOSE_ASSESSMENT,
 }
 
 

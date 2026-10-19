@@ -123,8 +123,8 @@ def test_known_classification_authored_name_and_comment_do_not_prove_purpose():
     )
     r = report(analysis(ownership(0, 20, "text")), metadata(seeded_entities=(e,)))
     assert r["payload_sections"][0]["classification_bytes"] == {"text": 20}
-    assert r["payload_sections"][0]["purpose"]["status"] == "not_separately_assessed"
-    assert r["purpose"]["status"] == "not_separately_assessed"
+    assert r["payload_sections"][0]["purpose"]["status"] == "not_assessed"
+    assert r["purpose"]["status"] == "not_assessed"
     assert r["units"]["data"]["string_seed_count"] == 1
     assert r["final_review"]["status"] == "not_assessed"
 
@@ -215,7 +215,7 @@ def test_partial_data_layout_explicit_padding_and_array_counts_stay_separate():
     r = report(m=metadata(data_block_layouts=(owner,)))
     d = r["units"]["data"]["owners"][0]
     assert d["layout_bytes"] == {"element": 4, "padding": 2, "unknown": 6}
-    assert d["array_record_count"] == 2 and d["purpose"] == "not_separately_assessed"
+    assert d["array_record_count"] == 2 and d["purpose"]["status"] == "not_assessed"
     assert r["units"]["data"]["complete_object_denominator"] is None
 
 
@@ -269,7 +269,7 @@ def test_function_candidates_share_bytes_and_do_not_claim_complete_boundaries():
         "unknown": 12,
     }
     assert all(
-        c["purpose"] == "not_separately_assessed"
+        c["purpose"]["status"] == "not_assessed"
         for c in r["units"]["code"]["candidates"]
     )
 
@@ -484,7 +484,7 @@ def test_stored_payload_allocation_tail_and_bss_are_separate_domains():
     assert r["payload_sections"][0]["classification_bytes"] == {"code": 8}
     tails = r["workspace"]["section_allocations"]
     assert [w["denominator_bytes"] for w in tails] == [12, 12]
-    assert all(w["purpose"] == "not_separately_assessed" for w in tails)
+    assert all(w["purpose"]["status"] == "not_assessed" for w in tails)
     missing = build_accounting(target_id="fixture", analysis=a, metadata=metadata())
     assert missing["payload_sections"] == [] and len(missing["unbounded_sections"]) == 2
     assert all(s["stored_bytes"] is None for s in missing["unbounded_sections"])

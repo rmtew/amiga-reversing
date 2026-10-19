@@ -121,6 +121,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
         _target_memory_region_action(),
+        _target_purpose_assessment_action(),
+        _target_purpose_assessment_remove_action(),
         _target_runtime_data_range_action(),
         _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
@@ -185,6 +187,15 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_runtime_observation_view":
         return "remove_manual_runtime_observation_view", {"runtime_observation_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_purpose_assessment":
+        from amiga_reversing.disasm.purpose_assessments import PurposeAssessment
+        value = {"assessment_id": "purpose-"+uuid.uuid4().hex, **params}
+        return "create_purpose_assessment", {"purpose_assessment": PurposeAssessment.from_dict(value).to_dict()}
+    if action.get("action") == "remove_purpose_assessment":
+        identity = params.get("assessment_id")
+        if not isinstance(identity,str) or not identity.strip():
+            raise ValueError("purpose removal requires assessment_id")
+        return "remove_purpose_assessment", {"assessment_id": identity}
     if action.get("action") == "create_manual_memory_region":
         from amiga_reversing.disasm.memory_regions import validate_region
         return "create_manual_memory_region", {"memory_region": validate_region(dict(params))}
@@ -6738,3 +6749,24 @@ def _target_memory_region_action() -> dict[str, object]:
             "memory_class": {"type": "string", "enum": ["cpu_ram"]},
             "lifetime": {"type": "string", "enum": ["persistent"]},
             "dma_access": {"type": "string", "enum": ["none", "chip"]}}})
+
+
+def _target_purpose_assessment_action() -> dict[str, object]:
+    from amiga_reversing.disasm.purpose_assessments import CATEGORIES, CONFIDENCES
+    return _context_log_action("target.purpose.assess", "Assess bounded semantic purpose",
+        "create_purpose_assessment", {"kind":"target"}, {},
+        {"type":"object", "required":["coordinate_space","start","end","category","purpose","confidence","coverage","limits"],
+         "properties":{"coordinate_space":{"type":"string","enum":["source","base_relative","absolute"]},
+                       "start":{"type":"integer"},"end":{"type":"integer"},
+                       "section_index":{"type":"integer","minimum":0},
+                       "layout_name":{"type":"string"},"base_symbol":{"type":"string"},
+                       "category":{"type":"string","enum":list(CATEGORIES)},
+                       "purpose":{"type":"string"},"confidence":{"type":"string","enum":list(CONFIDENCES)},
+                       "coverage":{"type":"string","enum":["whole_scope","partial_scope"]},
+                       "limits":{"type":"string"}}})
+
+
+def _target_purpose_assessment_remove_action() -> dict[str, object]:
+    return _context_log_action("target.purpose.remove", "Remove purpose assessment",
+        "remove_purpose_assessment", {"kind":"target"}, {},
+        {"type":"object","required":["assessment_id"],"properties":{"assessment_id":{"type":"string"}}})

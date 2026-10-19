@@ -5,7 +5,8 @@ Payload classification (disjoint bytes per source section):
 
 Units: 265 function candidates; 543 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Purpose and confidence: not separately assessed; no semantic completion claim.
+Supported payload purpose bytes by section: {'0': 122}.
+Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 788 declared bytes; {'field': 788, 'unknown': 1244}; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
@@ -26,3 +27,23 @@ Selected unresolved identities (full list in JSON):
   payload:s0:718f:7190 (unknown)
   payload:s0:8179:817a (unknown)
   payload:s0:864b:864c (unknown)
+
+Generic label links (relative to the resident server):
+  abs_0_00010000: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=0
+  abs_0_0001001E: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=30
+  abs_0_00010046: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=70
+Workspace gap boundary links (neighbor uses do not prove gap use):
+  workspace:1d7c9f63bcf438c3e22f:36c:7ee: unknown intent; app_blitter_interrupt_callback: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=2350; app_combat_grid_cell_122_low_word: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=30982
+  workspace:1d7c9f63bcf438c3e22f:33f:356: unknown intent; app_world_interaction_audio_flags: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=316208; app_nearest_object_distance: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=33618
+  workspace:1d7c9f63bcf438c3e22f:1f8:20a: unknown intent; app_geometry_clipped_y_span: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=28730; app_inventory_cursor_sprite_flags: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=38060
+
+Explicit purpose scopes (not complete semantic reconstruction):
+  purpose-34f28358dd39466b98414fc92bcae972: s0 [0xb020,0xb040) graphics/high, accepted, whole_scope.
+    32-byte top-left overlay border cell, consumed as eight planar rows with four plane bytes per row by the original cell-copy routine.
+    Limits: CPU copy/packing purpose only. Palette interpretation, emitted display pixels, DMA timing and exclusive storage lifetime remain unassessed.
+  purpose-8717b9bb52e64423ad350ff4baf543dc: s0 [0x54f9c,0x54fdc) audio/high, accepted, whole_scope.
+    Mutable 64-byte sample-7 waveform buffer: the guarded initializer fills two 32-byte halves and the inspected waveform writer updates this buffer for audio staging.
+    Limits: Conditional on the reviewed initialized sample pointer. Playback reachability, audible output, all writers and exclusive lifetime are not established.
+  purpose-976a2b45d7bc47f4ac4fe8634ff2f737: s0 [0x491fa,0x49214) game_data/high, accepted, whole_scope.
+    26-byte render-state prefix of the terminal salvage deposit world marker. Links current/previous geometry and its position descriptor; the original admitted-ray path can move that marker.
+    Limits: The declared prefix is assessed, not a following interaction pointer. Complete field behaviour, actual DMA/display output and lifetime are not established.
