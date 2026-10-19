@@ -1,18 +1,18 @@
 Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 
 Payload classification (disjoint bytes per source section):
-  section 0: 376832 bytes; code=24260, structured_data=340192, table=1050, text=4639, unknown=6691
+  section 0: 376832 bytes; code=24260, structured_data=340288, table=1050, text=4740, unknown=6494
 
-Units: 265 function candidates; 555 declared data owners; 126 asset emission chunks.
+Units: 265 function candidates; 557 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 14094}.
+Supported payload purpose bytes by section: {'0': 14305}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
-Workspace (coordinate views are not additive):
+Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
 Structure: {'resolved_native_access_records': 967, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 563}.
 Unresolved native operand forms: {'field_gap': 5, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
-Presentation: 66 generic label review signals.
+Presentation: 64 generic label review signals.
 Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
 Native asset encoding: bitmap, 118 chunks, bytes by section {'0': 241376}; game roles require separate purpose evidence.
 Native asset encoding: opaque_data, 1 chunks, bytes by section {'0': 27792}; game roles require separate purpose evidence.
@@ -24,13 +24,13 @@ Selected unresolved identities (full list in JSON):
   payload:s0:1113:1114 (unknown)
   payload:s0:14b6:14b8 (unknown)
   payload:s0:2b7d:2b7e (unknown)
-  payload:s0:2b9a:2bc4 (unknown)
-  payload:s0:2ee0:2ee6 (unknown)
+  payload:s0:2ee5:2ee6 (unknown)
   payload:s0:6a16:6a1e (unknown)
-  payload:s0:7176:7182 (unknown)
   payload:s0:718f:7190 (unknown)
   payload:s0:8179:817a (unknown)
   payload:s0:864b:864c (unknown)
+  payload:s0:8671:8677 (unknown)
+  payload:s0:8678:867e (unknown)
 
 Generic label links (relative to the resident server):
   abs_0_00010000: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=0
@@ -78,4 +78,4 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-3b5a4a24485c41f69f996f937587f2aa: s0 [0xb0e0,0xb120) game_data/high, accepted, whole_scope.
     8 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
     Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
-  34 additional bounded assessments are retained in the JSON report.
+  45 additional bounded assessments are retained in the JSON report.

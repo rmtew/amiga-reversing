@@ -886,7 +886,7 @@ def format_accounting(report):
         "Complete function/object/resource denominators: unknown.",
         f"Supported payload purpose bytes by section: { {str(s['section']): s['purpose']['bytes_by_status'].get('supported', 0) for s in report['payload_sections']} }.",
         f"Purpose: {report['purpose']['status']}; confidence comes only from explicit assessments; no overall semantic completion claim.",
-        "Workspace (coordinate views are not additive):",
+        "Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):",
     ]
     for w in report["workspace"]["base_layouts"]:
         lines.append(

@@ -5687,3 +5687,53 @@ resolved and 32 unresolved (five field gaps, 27 dynamic indexed records), with
 unchanged unresolved field identities. Generic label signals remain 66. These
 are bounded storage/local-reader gains, with the player boundary blocker and
 ordinary activation limits retained.
+
+### Combined declaration/text audit and coordinate boundary (2026-10-19)
+
+The 242-byte audit recovers **197 bytes**: six complete strings (101 bytes),
+the overlay startup-clear tail (64 bytes in sixteen LONG units), and two retained
+offer runs (32 bytes). Original descriptor pointers link `HIT`/`ENMY` to the two
+overlay titles. The formatter text ends after four characters and NUL; its sixth
+byte remains unknown. A supported partial-range command excludes the neighboring
+instruction. Retained terminal blank text and `gunfire.dat` have stored bounds,
+without an activation or file-load claim. The light-box/gin offer runs each keep
+two separate four-entry prefixes; supplied original scans/threshold loads are
+checked, without asserting incoming activation or a current/initial relationship.
+
+The two unreferenced 16-byte zero tails and extra formatter byte remain unknown
+(**33 bytes**). Both seven-byte weapon tables use existing bounded byte seeds,
+and all 256 item-byte cases establish the seven pairs and fallback. Nevertheless,
+full-image native ownership still covers only one byte per table, unlike the
+isolated bounded-seed preflight: **12 bytes remain a native ownership/policy-
+reconciliation blocker**. No new array or resize feature is added.
+
+One bounded pass retains all **6,260 bytes** in the three large spans. The
+3,840-byte `$B4A8..$C3A8` run has 178 nonzero bytes in its first 768 bytes and a
+3,072-byte zero suffix. Its candidate blocks fail the known cursor seed's
+skipped-half invariant (16/34/50 nonzero skipped bytes versus zero); no cursor
+variants are inferred. The 1,392-byte `$39DC8..$3A338` run is zero, and the
+1,028-byte `$52..$456` span is stack-adjacent, not a proved allocation. Cached
+native direct-target sets are empty inside these spans; derived accesses and
+initial file meaning remain unclosed. Scratch writes do not establish that meaning.
+
+The original clear writes app `[0,$36C)` and stops at `$3D68`; the grid builder
+separately selects `$4000` (app `+$604`). A guarded CPU check leaves the 664
+intervening bytes untouched. These are write/root bounds, not allocation bounds.
+General report wording now clarifies that observed-envelope gaps imply neither
+allocated nor unused storage. All **750 coordinate-gap bytes** remain unknown,
+including the other 86 prefix-gap bytes. The player owner overlap and deferred
+font-grouping opportunity are unchanged.
+
+Six original CPU checks and all 24 accounting tests pass. Final C/vasm receipt
+`b45c5b16a2a82b644116d62ddc49782d68d547b080a3d4ec4f3e8a8804e9a8b9`
+reproduces all 376,832 bytes. Prior readable literals, SDK expressions, compact
+WORD blank bank and all 126 asset/SDK identities remain intact. Two owners are
+added; only the prior clear-tail owner's elements change. Both histories preserve
+their prefixes and append 26 records each.
+
+Fresh accounting leaves **6,494 unknown payload bytes**, with 340,288 structured
+bytes, 4,740 text bytes, 557 owners, zero conflicts and 64 generic label signals.
+Supported purpose is 14,305 bytes across 57 assessments (a separate evidence view).
+The 967 resolved/32 unresolved native accesses and unresolved field identities
+remain unchanged. The audit closes 197 bytes, retains 33 evidence-limited bytes
+and exposes the remaining 12-byte native coverage gap without an extra detour.

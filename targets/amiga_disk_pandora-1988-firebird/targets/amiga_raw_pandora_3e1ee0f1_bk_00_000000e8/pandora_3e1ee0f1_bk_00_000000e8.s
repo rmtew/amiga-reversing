@@ -6521,8 +6521,7 @@ resolve_item_name:
 	move.l a0,d0
 	rts
 blank_scrolling_message_text:
-	dcb.b $29,$20
-	dc.b $00
+	dc.b "                                         ",$00
 enqueue_blank_scrolling_message:
 	lea.l blank_scrolling_message_text(pc),a0
     ; Forces SR=$2700 on entry and SR=$2000 on every return; does not restore caller SR. The final SR write clears the earlier rejection carry. Shares sixteen pointer slots with status messages.
@@ -6794,7 +6793,8 @@ store_next_four_digit_text_byte:
 	movem.l (a7)+,d0-d2/d7/a0-a1
 	rts
 four_digit_formatted_text:
-	dc.b $39,$39,$39,$39,$00,$00
+	dc.b "9999",$00
+	dc.b $00
 service_nearby_trade_or_combat:
 	btst.b #WORLD_OBJECT_INACTIVE_BIT,player_world_object_world_object_flags.l
 	bne.b return_from_nearby_trade_or_combat
@@ -7153,7 +7153,7 @@ opponent_health_overlay_y:
 	dc.b $0F	; text_color
 	dc.b $00	; state_flags
 	dc.b $00	; line_style_flags
-	dc.l abs_0_0001AAF9	; title_ptr
+	dc.l opponent_health_overlay_title_text	; title_ptr
 	dc.l $00000000	; line_0_ptr
 	dc.l $00000000	; line_1_ptr
 	dc.l $00000000	; line_2_ptr
@@ -7191,7 +7191,7 @@ hit_feedback_overlay_y:
 	dc.b $0D	; text_color
 	dc.b UI_OVERLAY_SAVE_BACKGROUND_MASK	; state_flags
 	dc.b $00	; line_style_flags
-	dc.l abs_0_0001AAF5	; title_ptr
+	dc.l hit_feedback_overlay_title_text	; title_ptr
 	dc.l $00000000	; line_0_ptr
 	dc.l $00000000	; line_1_ptr
 	dc.l $00000000	; line_2_ptr
@@ -13402,7 +13402,8 @@ mark_geometry_outside_view:
 	bra.b draw_geometry_return
 draw_geometry_fully_visible:
 	bra.b draw_geometry_horizontal_span_setup
-	dc.b $67,$75,$6E,$66,$69,$72,$65,$2E,$64,$61,$74,$00
+retained_gunfire_data_filename:
+	dc.b "gunfire.dat",$00
 abs_0_00017182:
 	dc.b "pandora1.pi1",$00
 	dc.b $00
@@ -15475,8 +15476,8 @@ terminal_clearance_pi:
 	dc.b 'P','i',' ',' ',' ',$00	; Terminal clearance display text
 terminal_clearance_omega:
 	dc.b 'O','m','e','g','a',$00	; Terminal clearance display text
-	dcb.b $20,$20
-	dc.b $00
+retained_terminal_blank_text:
+	dc.b "                                ",$00
 	dc.b "Terminal mode",$00
 terminal_access_denied_text:
 	dc.b "ACCESS DENIED...",$00
@@ -17425,7 +17426,8 @@ ui_overlay_update_queue:
 	dc.l $00000000
 	dc.l $00000000
     ; Startup clears these 16 LONGs after the 16 registry pointers. Callback processing does not scan them. Registration has no corresponding bound; ownership and later lifetimes remain open.
-	dcb.b $40,$00
+ui_overlay_startup_clear_tail:
+	dcb.l $10,$00000000	; ui_overlay_startup_clear_tail
 compact_font_ascii_32_through_90:
 	dc.b $00	; bitmap_row_0
 	dc.b $00	; bitmap_row_1
@@ -17917,10 +17919,10 @@ abs_0_0001AAE8:
 	dc.b "BODY",$00
 abs_0_0001AAED:
 	dc.b "HOLDING",$00
-abs_0_0001AAF5:
-	dc.b $48,$49,$54,$00
-abs_0_0001AAF9:
-	dc.b $45,$4E,$4D,$59,$00
+hit_feedback_overlay_title_text:
+	dc.b "HIT",$00
+opponent_health_overlay_title_text:
+	dc.b "ENMY",$00
 proportional_ui_font_glyphs:
 	dc.w $0006	; advance_width_word
 	dc.w $3800	; bitmap_row_0
@@ -19495,7 +19497,24 @@ chemist_initial_trade_offers:
 	dc.b $00	; trade_threshold
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $2D,$14,$00,$00,$00,$00,$00,$00,$2D,$14,$00,$00,$00,$00,$00,$00
+retained_light_box_offer_prefix_pair:
+	dc.b $2D	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+retained_light_box_offer_prefix_repeat:
+	dc.b $2D	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
 technician_trade_offers:
 	dc.b ITEM_ID_GLOBE	; item_id
 	dc.b $28	; trade_threshold
@@ -19532,7 +19551,24 @@ robomechanic_initial_trade_offers:
 	dc.b $00	; trade_threshold
 	dc.b ITEM_ID_EMPTY	; item_id
 	dc.b $00	; trade_threshold
-	dc.b $27,$14,$00,$00,$00,$00,$00,$00,$27,$14,$00,$00,$00,$00,$00,$00
+retained_gin_offer_prefix_pair:
+	dc.b $27	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+retained_gin_offer_prefix_repeat:
+	dc.b $27	; item_id
+	dc.b $14	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
+	dc.b $00	; item_id
+	dc.b $00	; trade_threshold
 squash_player_trade_offers:
 	dc.b ITEM_ID_POOL_8_BALL	; item_id
 	dc.b $14	; trade_threshold
