@@ -5,14 +5,14 @@ Payload classification (disjoint bytes per source section):
 
 Units: 265 function candidates; 557 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 40523}.
+Supported payload purpose bytes by section: {'0': 41805}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
-Structure: {'resolved_native_access_records': 969, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 563}.
+Structure: {'resolved_native_access_records': 973, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 563}.
 Unresolved native operand forms: {'field_gap': 5, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
-Presentation: 50 generic label review signals.
+Presentation: 48 generic label review signals.
 Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
 Native asset encoding: bitmap, 118 chunks, bytes by section {'0': 241376}; game roles require separate purpose evidence.
 Native asset encoding: opaque_data, 1 chunks, bytes by section {'0': 27792}; game roles require separate purpose evidence.
@@ -72,10 +72,10 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-34f28358dd39466b98414fc92bcae972: s0 [0xb020,0xb040) graphics/high, accepted, whole_scope.
     32-byte top-left overlay border cell, consumed as eight planar rows with four plane bytes per row by the original cell-copy routine.
     Limits: CPU copy/packing purpose only. Palette interpretation, emitted display pixels, DMA timing and exclusive storage lifetime remain unassessed.
+  purpose-361f283aa4874af0bd6b6f4154a3b113: s0 [0x7244,0x7718) graphics/high, accepted, whole_scope.
+    Enumerate59 original planar input banks, fixed RAM mask destinations and bounded group/cell counts, then invoke the shared mask builder.
+    Limits: Original constant call packets and conditional CPU input/output contract only. No individual image grouping, all-caller/writer closure, exclusive storage lifetime, runtime allocation, pixel output or actual DMA-read bound.
   purpose-37dfc00d6c084b149f0c9591c0f8e781: s0 [0x4af24,0x4af7e) graphics/medium, accepted, whole_scope.
     Five retained gardener frame headers selected by the adjacent additional looping controller under supplied state.
     Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
-  purpose-3a45ce4e8cad46eba1565431aa592ffb: s0 [0x51d3e,0x532c0) audio/high, accepted, whole_scope.
-    Sample 03 length/divisor header and its exact raw PCM payload supplied to the primary Paula metadata table.
-    Limits: Stored input format and conditional metadata/DMA staging only. Recorded sound identity, audible output, arbitrary selector bounds, all writers and exclusive lifetime are not established. Sample7 payload has a separate existing assessment and is excluded here.
-  61 additional bounded assessments are retained in the JSON report.
+  63 additional bounded assessments are retained in the JSON report.

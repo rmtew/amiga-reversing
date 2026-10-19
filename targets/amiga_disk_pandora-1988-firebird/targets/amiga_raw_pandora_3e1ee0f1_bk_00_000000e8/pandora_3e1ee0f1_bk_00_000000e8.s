@@ -1207,6 +1207,7 @@ NEARBY_CONTEXT_CHANGED_BIT	EQU	1
 NEARBY_CONTEXT_EMPTY_PROMPT_LATCH_BIT	EQU	3
 NEARBY_CONTEXT_NO_CANDIDATE_BIT	EQU	2
 NPC_TRADE_OFFER_BYTES	EQU	npc_trade_offer_entry_SIZEOF
+PLANAR_CELL_BYTE_SHIFT	EQU	3
 PLAYER_DEFEAT_ACTIVE_FRAME_COUNT	EQU	13
 PLAYER_DEFEAT_PHASE_INCREMENT	EQU	40
 PLAYER_HORIZONTAL_PROBE_BOTTOM_INSET	EQU	4
@@ -13787,28 +13788,31 @@ initialize_scene_and_animation_mask_banks:
 	move.w #$37C,d7
 	bsr.w generate_four_plane_mask_bank
 	rts
+    ; OR four plane WORDs per cell into one mask WORD for D7+1 cells. Save and restore D0, D7, A0 and A1; the bank wrapper advances the cursors.
 generate_four_plane_cell_masks:
 	movem.l d0/d7/a0-a1,-(a7)
-abs_0_0001771C:
-	move.w (a0)+,d0
-	or.w (a0)+,d0
-	or.w (a0)+,d0
-	or.w (a0)+,d0
+    ; KNOWN: type A0=Target code-entry register seed:world_tile_planar_row
+combine_next_four_plane_cell_into_mask:
+	move.w (a0)+,d0	; operand 1: world_tile_planar_row_plane_0_pixels at (a0)+
+	or.w (a0)+,d0	; operand 1: world_tile_planar_row_plane_1_pixels at (a0)+
+	or.w (a0)+,d0	; operand 1: world_tile_planar_row_plane_2_pixels at (a0)+
+	or.w (a0)+,d0	; operand 1: world_tile_planar_row_plane_3_pixels at (a0)+
 	move.w d0,(a1)+
-	dbf.w d7,abs_0_0001771C
+	dbf.w d7,combine_next_four_plane_cell_into_mask
 	movem.l (a7)+,d0/d7/a0-a1
 	rts
+    ; D6 is the last group index; D7 is cells/group. Advance A0 by 8*D7 and A1 by 2*D7 after each saved-cursor call. WORD strides wrap and ADDA.W sign-extends them; counts are unchecked.
 generate_four_plane_mask_bank:
 	move.w d7,d0
-	lsl.w #3,d0
+	lsl.w #PLANAR_CELL_BYTE_SHIFT,d0
 	move.w d7,d1
 	add.w d1,d1
 	subq.w #1,d7
-abs_0_0001773A:
+generate_next_mask_bank_group:
 	bsr.b generate_four_plane_cell_masks
 	adda.w d0,a0
 	adda.w d1,a1
-	dbf.w d6,abs_0_0001773A
+	dbf.w d6,generate_next_mask_bank_group
 	rts
 abs_0_00017746:
 	bsr.b draw_title_glyph

@@ -5863,3 +5863,35 @@ The existing reachable draw values reconcile cheaply to a configured envelope
 `$3152E..$316FE` (two WORDs, 30 rows, modulo12), not the modeled final bank30
 packet. This is addressed-storage arithmetic, not observed DMA or meaningful
 image-content bounds. The bank30 uncertainty remains parked.
+
+## Planar mask reader and constant input contracts
+
+Nine accepted facts connect the original mask reader to the existing shared
+`world_tile_planar_row` format, name its two loop stages, expose the eight-byte
+stride shift and document its count/cursor contracts. Four postincrement reads
+now identify the four plane WORD fields. The inner helper saves/restores D0,
+D7, A0 and A1; the wrapper advances cursors using WORD strides and ADDA.W sign
+extension. Arbitrary counts remain unchecked.
+
+All 59 original initializer packets execute in the CPU fixtures and produce the
+expected mask WORDs from 172,640 input bytes into 43,160 mask bytes. Tests check
+source preservation, output end fences and final cursor extents; a separate
+case checks the helper's saved full registers. All 315 inspected instruction
+encodings match the original. Sixty CPU cases and the hardware-readability
+guard pass. C and independent vasm reproduce all 376,832 original bytes;
+receipt `12fd3b4db1206de0bb1d0cebbc7ba0327f72e267a77a38bd35a517377db3ea21`.
+All 126 assets, 16 SDK includes and both history prefixes are preserved.
+
+Supported source purpose rises by 1,282 bytes to 41,805 across 75 assessments;
+resolved native field records rise from 969 to 973, and generic labels fall from
+50 to 48. Classification, 6,494 unknown payload bytes and all 40 unresolved
+structure identities remain unchanged.
+
+Physical type bindings for the 56 flat input banks remain unapplied: their
+20,620 cells expand to 82,480 named WORD fields, exceeding the documented
+32,768 native named-label capacity. Normal preflight refused that request before
+history append. Existing physical arrays and the three six-frame groupings
+remain intact. This is a bulk-typing capacity limit; the shared reader contract
+is accepted. Individual image grouping, complete writers/lifetimes, allocation
+and actual DMA reads remain unproved. The packet inventory and precise blocker
+are in [the validation record](../validation/pandora-planar-mask-inputs.json).
