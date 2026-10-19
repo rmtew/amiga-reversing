@@ -892,6 +892,26 @@ audio_sample_header_byte_length RS.L 1
 audio_sample_header_period_divisor RS.W 1
 audio_sample_header_SIZEOF EQU __RS
 
+; STRUCT world_tile_planar_cell
+    RSRESET
+world_tile_planar_cell_row_00 RS.B 8
+world_tile_planar_cell_row_01 RS.B 8
+world_tile_planar_cell_row_02 RS.B 8
+world_tile_planar_cell_row_03 RS.B 8
+world_tile_planar_cell_row_04 RS.B 8
+world_tile_planar_cell_row_05 RS.B 8
+world_tile_planar_cell_row_06 RS.B 8
+world_tile_planar_cell_row_07 RS.B 8
+world_tile_planar_cell_row_08 RS.B 8
+world_tile_planar_cell_row_09 RS.B 8
+world_tile_planar_cell_row_10 RS.B 8
+world_tile_planar_cell_row_11 RS.B 8
+world_tile_planar_cell_row_12 RS.B 8
+world_tile_planar_cell_row_13 RS.B 8
+world_tile_planar_cell_row_14 RS.B 8
+world_tile_planar_cell_row_15 RS.B 8
+world_tile_planar_cell_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -15426,46 +15446,166 @@ modal_tilemap_context:
 	dc.w $0000	; tile_column
 	dc.w $0000	; tile_row
 tile_pointers:
-	dc.l $0002CEA8,$0002CF28,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002CFA8,$0002CFA8,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002CFA8,$0002CFA8,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002CFA8,$0002CFA8,$0002CFA8,$0002CFA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D028,$0002D0A8,$0002D128,$0002D1A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D2A8,$0002D328,$0002D3A8,$0002D428	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D2A8,$0002D4A8,$0002D528,$0002D5A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D2A8,$0002D628,$0002D6A8,$0002D728	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D2A8,$0002D7A8,$0002D828,$0002D8A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D2A8,$0002D928,$0002D9A8,$0002D8A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D228,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0001F9A8,$0001F9A8,$0001F9A8,$0001F9A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002D2A8,$0002DA28,$0002DAA8,$0002D8A8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002DB28,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002DBA8,$0002DBA8,$0002DBA8,$0002DBA8	; Modal 20 by 8 tile pointer grid
-	dc.l $0002DC28,$0002DBA8,$0002DBA8,$0002DCA8	; Modal 20 by 8 tile pointer grid
+	dc.l modal_tile_bitmaps	; Modal 20 by 8 tile pointer grid
+	dc.l modal_tile_bitmaps+$80
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$100
+	dc.l modal_tile_bitmaps+$180
+	dc.l modal_tile_bitmaps+$200
+	dc.l modal_tile_bitmaps+$280
+	dc.l modal_tile_bitmaps+$300
+	dc.l modal_tile_bitmaps+$380
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l modal_tile_bitmaps+$400
+	dc.l modal_tile_bitmaps+$480
+	dc.l modal_tile_bitmaps+$500
+	dc.l modal_tile_bitmaps+$580
+	dc.l modal_tile_bitmaps+$380
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l modal_tile_bitmaps+$400
+	dc.l modal_tile_bitmaps+$600
+	dc.l modal_tile_bitmaps+$680
+	dc.l modal_tile_bitmaps+$700
+	dc.l modal_tile_bitmaps+$380
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l modal_tile_bitmaps+$400
+	dc.l modal_tile_bitmaps+$780
+	dc.l modal_tile_bitmaps+$800
+	dc.l modal_tile_bitmaps+$880
+	dc.l modal_tile_bitmaps+$380
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l modal_tile_bitmaps+$400
+	dc.l modal_tile_bitmaps+$900
+	dc.l modal_tile_bitmaps+$980
+	dc.l modal_tile_bitmaps+$A00
+	dc.l modal_tile_bitmaps+$380
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l modal_tile_bitmaps+$400
+	dc.l modal_tile_bitmaps+$A80
+	dc.l modal_tile_bitmaps+$B00
+	dc.l modal_tile_bitmaps+$A00
+	dc.l modal_tile_bitmaps+$380
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l world_tile_pixels_078_through_089+$200
+	dc.l modal_tile_bitmaps+$400
+	dc.l modal_tile_bitmaps+$B80
+	dc.l modal_tile_bitmaps+$C00
+	dc.l modal_tile_bitmaps+$A00
+	dc.l modal_tile_bitmaps+$C80
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D80
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$D00
+	dc.l modal_tile_bitmaps+$E00
 terminal_proximity_object_table:
 	dc.l terminal_message_earth_warning	; message_ptr
 	dc.l terminal_message_orange_freak	; message_ptr
@@ -20040,32 +20180,32 @@ title_glyph_Z:
 	dc.l $01FF8000,$03FF0000,$07FE0000,$0FFC0000
 	dc.l $1FFFFFF0,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8
 	dc.l $1FFFFFF8,$0FFFFFF0,$00000000,$00000000
-world_tile_pixels_000_through_011:
+world_tile_pixels_000_through_011:	; ARRAY world_tile_planar_cell[12]
 	INCBIN "assets/world_tile_pixels_000_through_011.bin"
 ; bitmap
 world_tile_pixels_012:
 	INCBIN "assets/world_tile_pixels_012.bin"
-world_tile_pixels_013_through_039:
+world_tile_pixels_013_through_039:	; ARRAY world_tile_planar_cell[27]
 	INCBIN "assets/world_tile_pixels_013_through_039.bin"
 ; bitmap
 world_tile_pixels_040:
 	INCBIN "assets/world_tile_pixels_040.bin"
-world_tile_pixels_041_through_042:
+world_tile_pixels_041_through_042:	; ARRAY world_tile_planar_cell[2]
 	INCBIN "assets/world_tile_pixels_041_through_042.bin"
 ; bitmap
 world_tile_pixels_043:
 	INCBIN "assets/world_tile_pixels_043.bin"
-world_tile_pixels_044_through_046:
+world_tile_pixels_044_through_046:	; ARRAY world_tile_planar_cell[3]
 	INCBIN "assets/world_tile_pixels_044_through_046.bin"
 ; bitmap
 world_tile_pixels_047:
 	INCBIN "assets/world_tile_pixels_047.bin"
-world_tile_pixels_048_through_049:
+world_tile_pixels_048_through_049:	; ARRAY world_tile_planar_cell[2]
 	INCBIN "assets/world_tile_pixels_048_through_049.bin"
 ; bitmap
 world_tile_pixels_050:
 	INCBIN "assets/world_tile_pixels_050.bin"
-world_tile_pixels_051_through_055:
+world_tile_pixels_051_through_055:	; ARRAY world_tile_planar_cell[5]
 	INCBIN "assets/world_tile_pixels_051_through_055.bin"
 ; bitmap
 world_tile_pixels_056:
@@ -20077,14 +20217,14 @@ world_tile_pixels_058:
 	INCBIN "assets/world_tile_pixels_058.bin"
 world_tile_pixels_059:
 	INCBIN "assets/world_tile_pixels_059.bin"
-world_tile_pixels_060_through_061:
+world_tile_pixels_060_through_061:	; ARRAY world_tile_planar_cell[2]
 	INCBIN "assets/world_tile_pixels_060_through_061.bin"
 ; bitmap
 world_tile_pixels_062:
 	INCBIN "assets/world_tile_pixels_062.bin"
 world_tile_pixels_063:
 	INCBIN "assets/world_tile_pixels_063.bin"
-world_tile_pixels_064_through_070:
+world_tile_pixels_064_through_070:	; ARRAY world_tile_planar_cell[7]
 	INCBIN "assets/world_tile_pixels_064_through_070.bin"
 ; bitmap
 world_tile_pixels_071:
@@ -20101,17 +20241,17 @@ world_tile_pixels_076:
 	INCBIN "assets/world_tile_pixels_076.bin"
 world_tile_pixels_077:
 	INCBIN "assets/world_tile_pixels_077.bin"
-world_tile_pixels_078_through_089:
+world_tile_pixels_078_through_089:	; ARRAY world_tile_planar_cell[12]
 	INCBIN "assets/world_tile_pixels_078_through_089.bin"
 ; bitmap
 world_tile_pixels_090:
 	INCBIN "assets/world_tile_pixels_090.bin"
-world_tile_pixels_091_through_094:
+world_tile_pixels_091_through_094:	; ARRAY world_tile_planar_cell[4]
 	INCBIN "assets/world_tile_pixels_091_through_094.bin"
 ; bitmap
 world_tile_pixels_095:
 	INCBIN "assets/world_tile_pixels_095.bin"
-world_tile_pixels_096_through_101:
+world_tile_pixels_096_through_101:	; ARRAY world_tile_planar_cell[6]
 	INCBIN "assets/world_tile_pixels_096_through_101.bin"
 ; bitmap
 world_tile_pixels_102:
@@ -20121,12 +20261,12 @@ world_tile_pixels_103:
 ; bitmap
 world_tile_pixels_104:
 	INCBIN "assets/world_tile_pixels_104.bin"
-world_tile_pixels_105_through_119:
+world_tile_pixels_105_through_119:	; ARRAY world_tile_planar_cell[15]
 	INCBIN "assets/world_tile_pixels_105_through_119.bin"
 ; bitmap
 world_tile_pixels_120:
 	INCBIN "assets/world_tile_pixels_120.bin"
-world_tile_pixels_121_through_164:
+world_tile_pixels_121_through_164:	; ARRAY world_tile_planar_cell[44]
 	INCBIN "assets/world_tile_pixels_121_through_164.bin"
 ; bitmap
 world_tile_pixels_165:
@@ -20136,52 +20276,52 @@ world_tile_pixels_166:
 ; bitmap
 world_tile_pixels_167:
 	INCBIN "assets/world_tile_pixels_167.bin"
-world_tile_pixels_168_through_176:
+world_tile_pixels_168_through_176:	; ARRAY world_tile_planar_cell[9]
 	INCBIN "assets/world_tile_pixels_168_through_176.bin"
 ; bitmap
 world_tile_pixels_177:
 	INCBIN "assets/world_tile_pixels_177.bin"
-world_tile_pixels_178_through_312:
+world_tile_pixels_178_through_312:	; ARRAY world_tile_planar_cell[135]
 	INCBIN "assets/world_tile_pixels_178_through_312.bin"
 ; bitmap
 world_tile_pixels_313:
 	INCBIN "assets/world_tile_pixels_313.bin"
-world_tile_pixels_314_through_366:
+world_tile_pixels_314_through_366:	; ARRAY world_tile_planar_cell[53]
 	INCBIN "assets/world_tile_pixels_314_through_366.bin"
 ; bitmap
 world_tile_pixels_367:
 	INCBIN "assets/world_tile_pixels_367.bin"
-world_tile_pixels_368_through_370:
+world_tile_pixels_368_through_370:	; ARRAY world_tile_planar_cell[3]
 	INCBIN "assets/world_tile_pixels_368_through_370.bin"
 ; bitmap
 world_tile_pixels_371:
 	INCBIN "assets/world_tile_pixels_371.bin"
-world_tile_pixels_372_through_380:
+world_tile_pixels_372_through_380:	; ARRAY world_tile_planar_cell[9]
 	INCBIN "assets/world_tile_pixels_372_through_380.bin"
 ; bitmap
 world_tile_pixels_381:
 	INCBIN "assets/world_tile_pixels_381.bin"
 world_tile_pixels_382:
 	INCBIN "assets/world_tile_pixels_382.bin"
-world_tile_pixels_383_through_464:
+world_tile_pixels_383_through_464:	; ARRAY world_tile_planar_cell[82]
 	INCBIN "assets/world_tile_pixels_383_through_464.bin"
 ; bitmap
 world_tile_pixels_465:
 	INCBIN "assets/world_tile_pixels_465.bin"
-world_tile_pixels_466_through_489:
+world_tile_pixels_466_through_489:	; ARRAY world_tile_planar_cell[24]
 	INCBIN "assets/world_tile_pixels_466_through_489.bin"
 ; bitmap
 world_tile_pixels_490:
 	INCBIN "assets/world_tile_pixels_490.bin"
-world_tile_pixels_491_through_498:
+world_tile_pixels_491_through_498:	; ARRAY world_tile_planar_cell[8]
 	INCBIN "assets/world_tile_pixels_491_through_498.bin"
 ; bitmap
 world_tile_pixels_499:
 	INCBIN "assets/world_tile_pixels_499.bin"
-world_tile_pixels_500_through_507:
+world_tile_pixels_500_through_507:	; ARRAY world_tile_planar_cell[8]
 	INCBIN "assets/world_tile_pixels_500_through_507.bin"
 ; bitmap
-modal_tile_bitmaps:
+modal_tile_bitmaps:	; ARRAY world_tile_planar_cell[29]
 	INCBIN "assets/modal_tile_bitmaps.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_01:	; ARRAY world_tile_planar_row[384]

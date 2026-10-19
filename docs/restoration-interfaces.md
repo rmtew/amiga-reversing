@@ -187,13 +187,25 @@ native range, retaining the shared field schema and canonical count/stride.
 Native static-data analysis derives record indices and interior field cursors
 from the range; source rendering keeps ordinary references and authored
 interior labels through the existing range planner. Logical fields do not each
-consume a policy label or item. This path supports 2..65,535 records, exact
+consume a policy label or item. This path supports 1..65,535 records, exact
 record strides, complete field coverage and default/hex scalar presentation.
-The public declaration shows `ARRAY type[count]` once; collecting its data into
-an asset does not repeat its owner name as a comment for every row.
+Embedded custom records also qualify when every declared record has its exact
+declared size and the complete recursive layout has one scalar width. This
+retains composition (for example, a cell containing rows) without expanding
+all logical fields or inferring an array from an oversized embedded field.
+For multiple records the public declaration shows `ARRAY type[count]` once;
+collecting its data into an asset does not repeat its owner name as a comment
+for every row.
+
+Typed pointer-table entries into a bounded source owner render as the owner's
+name plus an offset. Their canonical reference targets remain the actual source
+locations. This avoids introducing automatic interior labels that split bitmap
+assets; explicit interior labels retain their authored source boundary. Pointer
+expressions still have to reproduce the stored numeric value exactly.
 
 Explicit `kind: struct` presentations remain expanded. Mixed widths, pointers,
-nested records, gaps/strided padding, value-specific representations and authored
+unknown/cyclic or size-mismatched embedded records, gaps/strided padding,
+value-specific representations and authored
 expressions depending on generated field aliases also keep the existing leaf
 projection. Expanded leaves still count against the native capacities. This
 preserves field-specific rendering rather than dropping its semantics to make

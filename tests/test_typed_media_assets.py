@@ -26,7 +26,9 @@ def typed_media(tmp_path, role, interior_label=False):
             source_end=130+128*index,name=f'cell_{index}',role=role,default_unit='word'))
         actions.append(owner)
         actions.append(target_catalog_manual_payload('target.data_block.element.set',dict(
-            layout_id=owner[1]['data_block_layout']['layout_id'],offset=0,width=128,kind='array',
+            # Exercise explicit leaf presentation; packed ARRAY export has
+            # separate coverage in test_compact_struct_arrays.py.
+            layout_id=owner[1]['data_block_layout']['layout_id'],offset=0,width=128,kind='struct',
             array_count=16,array_stride=8,binding_kind='custom_struct',type_id='PlanarRow')))
     if interior_label:actions.append(target_catalog_manual_payload('target.code_label.add',dict(hunk=0,addr=4,name='interior_anchor')))
     append_manual_actions(target,actions=[(ManualActionKind(kind),payload) for kind,payload in actions],binary_source=source)

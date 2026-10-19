@@ -5958,3 +5958,50 @@ sizes, hashes and bytes. Unknown payload falls from 6,494 to 6,446 bytes;
 supported source purpose rises from 41,805 to 41,853 across 76 assessments.
 Prior field-access records, unresolved structure records and the 48 generic
 label signals remain unchanged.
+
+## Shared world and modal tile cell formats
+
+The 25 established world-tile banks and the modal tile bank contain 504 cells
+across 64,512 source bytes. Their existing owners, labels, cell counts and
+128-byte strides are retained. The shared `world_tile_planar_cell` contains
+sixteen embedded `world_tile_planar_row` records, exposing 32,256 logical WORD
+fields through the existing four-plane row format. The 33 separately restored
+unselected cells retain their existing sixteen-row bindings.
+
+The original macro map selects exactly the 475 world cells in these banks.
+The stored 20x8 modal pointer grid addresses all 29 modal cells and world cell
+82; its 160 entries receive the shared cell pointee contract. These are original
+stored selections and conditional reader contracts. They do not establish every
+later consumer/writer, ordinary gameplay admission, actual displayed pixels,
+DMA completion, complete allocation/lifetime or alternate-layout safety. The
+retained feedback-entry activation limit from `4c7a6b1c` remains open.
+
+The compact-array projection now accepts fully covered embedded custom records
+with one common scalar width. It retains declared composition and rejects
+unknown/cyclic or size-mismatched records, mixed widths, pointers, gaps and
+field-specific presentations. Both ordinary embedded aliases and aliases from
+a leading record that inherits the public owner name keep the leaf path.
+Native capacities and the ABI are unchanged. A generic 640-record fixture
+retains 40,960 logical WORD fields as one range and reproduces all bytes through
+C and vasm; interior/one-past cursors and compact INCBIN export are covered.
+Typed table references now use bounded owner-plus-offset expressions, avoiding
+automatic interior labels that expand INCBIN banks. Single-record arrays also
+retain compact storage; authored interior names keep their source boundary.
+The 144 renderer/pointer/package checks, 59 metadata checks, five explicit-media
+checks and 820 native cases pass, alongside the earlier 36 related tile/pointer
+checks. The inventory and bounded evidence are in
+[the validation record](../validation/pandora-tile-cell-formats.json).
+
+All 55 facts have final accepted review against receipt
+`26bdb38da5361365b9a5ce4c7893a3228f9a5694d045279f22036fff0aa25b78`;
+C and independent vasm reproduce all 376,832 original bytes. All 126 assets
+and 16 SDK includes retain their identities, classifications, paths, sizes,
+hashes and actual bytes. All 557 owners and physical groupings, prior types and
+contracts, and both history prefixes are preserved. Effective entities remain
+18,304; logical fields use 26 compact cell ranges.
+
+Supported source purpose rises by 65,152 bytes to 107,005 across 103 assessments.
+Accepted native reference targets rise from 563 to 723. The 640-byte modal grid
+moves from structured data to pointer-table classification. Unknown payload
+remains 6,446 bytes, native field records remain 973 resolved/32 unresolved,
+and the prior unresolved identity set and 48 generic-label signals are unchanged.

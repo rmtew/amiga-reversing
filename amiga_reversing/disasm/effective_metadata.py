@@ -1424,6 +1424,44 @@ def _data_block_bound_struct_entities(
     return tuple(entities)
 
 
+def _packed_struct_scalar_prototype(
+    struct: CustomStructMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+    seen: frozenset[str] = frozenset(),
+) -> CustomStructFieldMetadata | None:
+    """Find the common scalar unit of fully covered, embedded records.
+
+    Embedded records must match their declared size exactly. This permits
+    composition of an existing row format without inventing repetitions from
+    a field's byte width; unknown, cyclic or heterogeneous layouts stay leaves.
+    """
+    if struct.name in seen or not struct.fields or struct.size <= 0:
+        return None
+    cursor = 0
+    prototype = None
+    for field in sorted(struct.fields, key=lambda item: item.offset):
+        if (field.offset != cursor or field.size <= 0
+                or field.pointer_struct or field.value_kind != "scalar"
+                or field.pointer_address_domain or field.pointer_symbol_group):
+            return None
+        if field.type.upper() == "STRUCT":
+            nested = custom_structs.get(field.struct)
+            if nested is None or nested.size != field.size:
+                return None
+            scalar = _packed_struct_scalar_prototype(nested, custom_structs, seen | {struct.name})
+            if scalar is None:
+                return None
+        else:
+            if field.struct or field.size not in {1, 2, 4}:
+                return None
+            scalar = field
+        if prototype is not None and scalar.size != prototype.size:
+            return None
+        prototype = prototype or scalar
+        cursor += field.size
+    return prototype if cursor == struct.size else None
+
+
 def _data_block_compact_struct_array_entity(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -1447,21 +1485,17 @@ def _data_block_compact_struct_array_entity(
     binding = element.type_binding or {}
     count = _manual_seed_int(binding, "array_count") or element.array_count or 1
     stride = element.array_stride or struct.size
-    if (not 1 < count <= 65535 or stride != struct.size
+    if (not 1 <= count <= 65535 or stride != struct.size
             or element.width != count * stride
             or element.representation not in {None, ManualRepresentationStyle.HEX}):
         return None
-    fields = sorted(struct.fields, key=lambda field: field.offset)
-    width = fields[0].size
+    scalar = _packed_struct_scalar_prototype(struct, custom_structs)
+    if scalar is None:
+        return None
+    width = scalar.size
     start, end = _data_block_element_span(layout, element)
     if (width not in {1, 2, 4} or end > layout.source_end
             or _data_block_unit_for_address(start, width) != _data_block_unit_from_width(width)):
-        return None
-    if (len(fields) * width != struct.size or any(
-            field.offset != index * width or field.size != width
-            or field.type.upper() == "STRUCT" or field.struct or field.pointer_struct
-            or field.value_kind != "scalar" or field.pointer_address_domain or field.pointer_symbol_group
-            for index, field in enumerate(fields))):
         return None
     # A value-specific presentation must keep its exact field boundary. This
     # also preserves existing symbolic scalar instructions and encoded refs;
@@ -1475,14 +1509,24 @@ def _data_block_compact_struct_array_entity(
     # An authored expression may deliberately name an old derived field alias.
     # Keep that representation rather than silently removing its declaration.
     if base_label:
-        prefixes = tuple(label for field in fields
+        alias_fields = list(struct.fields)
+        leading = struct
+        # A leading embedded record inherits the public owner name in the
+        # leaf path, so its aliases omit that embedding field's name.
+        while True:
+            first = min(leading.fields, key=lambda field: field.offset)
+            if first.offset != 0 or first.type.upper() != "STRUCT":
+                break
+            leading = custom_structs[first.struct]
+            alias_fields.extend(leading.fields)
+        prefixes = tuple(label for field in alias_fields
                          if (label := _data_block_typed_field_label(base_label, field.name, None)))
         expressions = [rep.symbol for rep in representations if rep.symbol]
         expressions.extend(eq.value_expression for eq in equates if eq.value_expression)
         if any(prefix in expression for expression in expressions for prefix in prefixes):
             return None
     prototype = _data_block_custom_struct_field_entity(
-        layout, element, struct, fields[0], 0, 0, base_label,
+        layout, element, struct, replace(scalar, offset=0), 0, 0, base_label,
     )
     if prototype is None:
         return None
