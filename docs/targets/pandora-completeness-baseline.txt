@@ -1,11 +1,11 @@
 Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 
 Payload classification (disjoint bytes per source section):
-  section 0: 376832 bytes; code=24260, structured_data=340288, table=1050, text=4740, unknown=6494
+  section 0: 376832 bytes; code=24308, structured_data=340288, table=1050, text=4740, unknown=6446
 
-Units: 265 function candidates; 557 declared data owners; 126 asset emission chunks.
+Units: 273 function candidates; 557 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 41805}.
+Supported payload purpose bytes by section: {'0': 41853}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
@@ -78,4 +78,4 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-37dfc00d6c084b149f0c9591c0f8e781: s0 [0x4af24,0x4af7e) graphics/medium, accepted, whole_scope.
     Five retained gardener frame headers selected by the adjacent additional looping controller under supplied state.
     Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
-  63 additional bounded assessments are retained in the JSON report.
+  64 additional bounded assessments are retained in the JSON report.

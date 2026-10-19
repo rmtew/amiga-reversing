@@ -5931,3 +5931,30 @@ can shift; the 910-cell bank's numeric presentation reduces from 543 to 455 rows
 Classification, purpose credit and all 40 unresolved structure identities remain
 unchanged; this batch enriches the retained formats rather than claiming new
 payload coverage.
+
+## Retained feedback selector entries
+
+Eight code-entry facts and eight explicit labels restore the previously unknown
+48-byte span `0x4D2CE..0x4D2FE`. Each six-byte entry loads a packed channel/configuration
+selector into D0.W and tail-branches to the existing shared feedback handler.
+Six select channel 3/configuration 0; the others select channel 2/configuration 0
+and channel 2/configuration 17. Names describe these established selectors and
+retain distinct entry identities without inventing game-event or sound names.
+
+The focused original-CPU test covers all eight entries with two D0 upper words
+and four flag-byte inputs: 64 cases. It stops at the actual audio callee before
+MMIO and checks the selector, preserved registers, title-service bit, 52-byte
+MOVEM save and real return PC. No instruction bytes are patched. The current
+native incoming-reference query finds no static references to this span;
+ordinary activation, dynamic callers and audible/DMA behavior remain unproved.
+The bounded assessment and entry inventory are retained in
+[the validation record](../validation/pandora-retained-audio-entries.json).
+
+C and independent vasm reproduce all 376,832 original bytes; final receipt
+`76386fbb85d4e3f05f79fc9f2d9330c908b022f0fbc603cf1a7d1ceb8aa6d850`.
+The 17 facts and 17 decisions preserve both prior history prefixes. All 126
+assets and 16 SDK includes retain their identities, classifications, paths,
+sizes, hashes and bytes. Unknown payload falls from 6,494 to 6,446 bytes;
+supported source purpose rises from 41,805 to 41,853 across 76 assessments.
+Prior field-access records, unresolved structure records and the 48 generic
+label signals remain unchanged.

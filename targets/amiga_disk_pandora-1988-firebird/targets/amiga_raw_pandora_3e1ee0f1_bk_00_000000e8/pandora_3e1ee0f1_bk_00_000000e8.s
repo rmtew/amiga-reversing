@@ -28052,9 +28052,30 @@ npc_item_handoff_message:
 	dc.b '"','D','o','n','"','t',' ','m','o','v','e','.',' ','Y','o','u'	; message
 	dc.b ' ','n','e','e','d',' ','I','.','D','.',',',' ','o','n','l','y'
 	dc.b ' ','y','o','u',' ','c','a','n','.','.','.','"',$00
-	dc.b $30,$3C,$03,$00,$60,$5C,$30,$3C,$02,$00,$60,$56,$30,$3C,$03,$00
-	dc.b $60,$50,$30,$3C,$03,$00,$60,$4A,$30,$3C,$03,$00,$60,$44,$30,$3C
-	dc.b $03,$00,$60,$3E,$30,$3C,$03,$00,$60,$38,$30,$3C,$02,$11,$60,$32
+retained_feedback_channel3_config0_entry_1:
+	move.w #$300,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel2_config0_entry_2:
+	move.w #$200,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel3_config0_entry_3:
+	move.w #$300,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel3_config0_entry_4:
+	move.w #$300,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel3_config0_entry_5:
+	move.w #$300,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel3_config0_entry_6:
+	move.w #$300,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel3_config0_entry_7:
+	move.w #$300,d0
+	bra.b start_feedback_audio_sequence
+retained_feedback_channel2_config17_entry_8:
+	move.w #$211,d0
+	bra.b start_feedback_audio_sequence
 start_brain_pickup_feedback_audio:
 	move.w #BRAIN_PICKUP_AUDIO_SEQUENCE,d0
 	bra.b start_feedback_audio_sequence
