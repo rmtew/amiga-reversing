@@ -457,6 +457,8 @@ def build_accounting(
     refs = Counter()
     indirect_status = Counter()
     unresolved = []
+    unresolved_forms = Counter()
+    unresolved_layouts = defaultdict(Counter)
     for section in analysis.get("sections", []):
         sid = section["section_index"]
         accesses["resolved_native_access_records"] += len(
@@ -464,11 +466,16 @@ def build_accounting(
         )
         for a in section.get("recovered_platform_unresolved_typed_accesses", []):
             accesses["unresolved_native_access_records"] += 1
+            form = a.get("classification") or "unknown"
+            unresolved_forms[form] += 1
+            unresolved_layouts[a.get("root_struct_name") or "unknown"][form] += 1
             unresolved.append(
                 {
                     "id": f"field:s{sid}:{a['offset']:x}:{a.get('operand_index', 0)}",
                     "kind": "field_access",
                     "evidence": a,
+                    "section_index": sid,
+                    "listing_url": f"/{target_id}?section_index={sid}&source_offset={a['offset']}",
                 }
             )
         for ref in section.get("data_references", []):
@@ -553,6 +560,20 @@ def build_accounting(
         else:
             a["scope_status"] = "absolute_claim_without_payload_mapping"
     mapped = [a for a in assessments if a["scope_status"] == "mapped"]
+    for item in unresolved:
+        if item["kind"] != "field_access":
+            continue
+        selected = [
+            a for a in mapped
+            if a["coordinate_space"] == "source"
+            and a.get("section_index") == item["section_index"]
+        ]
+        offset = item["evidence"]["offset"]
+        # A known routine purpose is context, never proof that its dynamic
+        # operand resolves to a particular field or stays inside an owner.
+        item["instruction_purpose_context"] = unit_purpose_summary(
+            purpose_intervals(offset, offset + 1, selected)
+        )
     for s in payload:
         selected = [
             a
@@ -797,6 +818,12 @@ def build_accounting(
         "purpose": purpose,
         "structure": {
             "field_access_records": dict(sorted(accesses.items())),
+            "unresolved_access_forms": dict(sorted(unresolved_forms.items())),
+            "unresolved_access_layouts": {
+                name: dict(sorted(forms.items()))
+                for name, forms in sorted(unresolved_layouts.items())
+            },
+            "unresolved_access_meaning": "Native operand resolution status; indexed access, array traversal and address formation can remain unresolved despite an evidence-backed enclosing routine purpose.",
             "data_reference_target_status": dict(sorted(refs.items())),
             "indirect_site_status": dict(sorted(indirect_status.items())),
             "manual_reference_declarations": len(metadata.manual_data_references),
@@ -863,7 +890,7 @@ def format_accounting(report):
     ]
     for w in report["workspace"]["base_layouts"]:
         lines.append(
-            f"  {w['layout_identity']}: envelope [{w['observed_start']},{w['observed_end']}), {w['declared_union_bytes']} declared bytes; {w['classification_bytes']}; full extent unknown."
+            f"  {w['layout_identity']}: envelope [{w['observed_start']},{w['observed_end']}), {w['declared_union_bytes']} declared bytes; {w['classification_bytes']}; supported purpose {w['purpose']['bytes_by_status'].get('supported', 0)} bytes; full extent unknown."
         )
     for w in report["workspace"]["section_allocations"]:
         lines.append(
@@ -872,11 +899,13 @@ def format_accounting(report):
     lines += [
         f"Hardware/external: {report['hardware_external']['observed_union_bytes']} observed union bytes; denominator unknown.",
         f"Structure: {report['structure']['field_access_records']}; reference target statuses {report['structure']['data_reference_target_status']}.",
+        f"Unresolved native operand forms: {report['structure']['unresolved_access_forms']}; these are resolution statuses, not counts of unknown behaviour.",
         f"Presentation: {len(report['presentation']['generic_label_signals'])} generic label review signals.",
         f"Verification: {report['verification']['status']}; final review: not assessed; relocation readiness: not assessed.",
-        "",
-        "Selected unresolved identities (full list in JSON):",
     ]
+    for category, evidence in report["structure"]["data_evidence_inventory"]["native_asset_encoding_classes"].items():
+        lines.append(f"Native asset encoding: {category}, {evidence['chunks']} chunks, bytes by section {evidence['union_bytes_by_section']}; game roles require separate purpose evidence.")
+    lines += ["", "Selected unresolved identities (full list in JSON):"]
     choices = [
         {"id": c["id"], "kind": c["classification"]}
         for s in report["payload_sections"]
@@ -913,4 +942,7 @@ def format_accounting(report):
         )
         lines.append(f"    {a['purpose']}")
         lines.append(f"    Limits: {a['limits']}")
+    omitted = len(report["purpose"]["assessments"]) - 12
+    if omitted > 0:
+        lines.append(f"  {omitted} additional bounded assessments are retained in the JSON report.")
     return "\n".join(lines) + "\n"

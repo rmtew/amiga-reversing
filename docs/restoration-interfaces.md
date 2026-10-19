@@ -551,6 +551,12 @@ observed accesses never prove unused storage. Data-layout `padding` elements
 retain their explicit classification; workspace reserved/padding/unused intent is
 reported unavailable where the canonical model does not encode it. Dynamic field
 indices, unresolved references and indirect sites remain separate obligations.
+Unresolved operand records are grouped by native classification and root layout,
+with source listing links. Each can link to an explicitly assessed enclosing
+instruction purpose while retaining its original unresolved status. Such context
+does not prove the dynamic index, field selection or owner bounds. The text view
+also shows supported workspace purpose bytes and the separate native bitmap,
+sample and opaque asset inventories; none of these dimensions are additive.
 Generic names are review signals only; each has a canonical source-coordinate
 listing link. Unknown workspace gaps include links to named neighboring field
 uses and navigation facts; neighbor use does not prove that the gap is used.

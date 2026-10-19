@@ -5308,3 +5308,93 @@ gate reproduced all 376,832 original bytes with C and vasm, receipt
 `24b0743585c46ebf5a4e135dc0af33d39b70775485ccba22ed535c2d78e6d6a4`.
 Source text, package manifest, all 126 assets, Manual Action Log and Decision
 Journal remain byte-identical to `a6d8ee95`. No target annotations were changed.
+
+## Connected display workspace and tile-grid purpose (2026-10-19)
+
+The next family was selected by inspecting the 35 native unresolved operand
+records together with the workspace gaps, rather than treating either inventory
+as blank or wholly unanalysed memory. The tile builder accounts for nine of the
+27 `indexed_dynamic` records: its original multiply-by-18 and nine WORD reads
+select an existing shared 3x3 definition. The native resolver still cannot prove
+each dynamic address; the algorithm and original stored tables already have
+stronger semantic evidence than that resolution status suggests.
+
+One published batch adds three workspace declarations and 12 bounded purpose
+assessments. Four original immediate LONG writes select
+bank 0 at `$2AAA`, `$2ADC`, `$2B52` and `$9F1C`; all four now render with the
+four-byte `app_framebuffer_bank0_ptr` field at A6+$1E0. A new parameterized
+original-CPU check verifies each assignment and
+untouched adjacent bytes. The slot's consumer, active rendering role and lifetime
+remain unproved. No read is invented from adjacent text/display fields.
+
+The assessments integrate existing producer/consumer and CPU evidence in bulk:
+
+| Scope | Established purpose and evidence boundary |
+| --- | --- |
+| App `$000..$190` | Exactly 200 WORD row offsets, initialized to 160*y; text indexing can exceed this table for masked y>=25 |
+| App `$1D4..$1E8` | Front/back/display pointer flow, the four fixed-bank pointer writes, and mutable text cursor; pointer roles remain distinct |
+| App `$1BA..$1C6`, `$29A..$2A6` | Tile column/row/base/dimensions and derived size/end/stride; modal exchange can leave derived metadata stale |
+| App `$604..$7F0` | First 123 LONG pointers of the fixed `$4000` grid, including the established combat selector's low-WORD alias |
+| Source `$3502..$3F16` | All 1,290 stored macro-tile IDs, 43 rows by 30 |
+| Source `$3F16..$5FFE` | All 468 nine-WORD definition records, with unsigned pixel offsets and unchecked signed WORD record-index arithmetic |
+| Source `$A198..$A25C` | Complete original grid-builder routine and its current-metadata footer |
+| Source `$AF9E..$B020`, `$B040..$B0E0` | All 26 title masks and five remaining border cells; the previously assessed first border cell is excluded |
+
+`tests/test_pandora_tilemap_grid.py` independently models all 11,610 output
+pointers and compares the entire original 46,440-byte grid, guards, saved
+registers and footer state. It also tests modified/invalid IDs and wrapped WORD
+arithmetic. `tests/test_pandora_framebuffer_lifetime.py` checks the whole row
+table, both text-origin paths, world-bank exchange and four vblank plane
+pointers. `tests/test_pandora_overlay_title_masks.py` exercises all masks, ten
+initialized titles, unchecked byte indices and all six border cells. These are
+CPU storage/address contracts, not actual DMA pixels, gameplay reachability or
+exclusive lifetime proofs. Purposes come from these consumers and checks, not
+from labels or declared encoding alone.
+
+The other eight native `field_gap` records also need interpretation before
+changing a layout. Four are LEA instructions advancing by a command's existing
+ten-byte size (`$1210`, `$132E`, `$1366`, `$139E`), not reads of an absent member.
+Three read IDs from later two-byte inventory records (`$27F8`, `$27FE`, `$2804`);
+the existing inventory cursor test checks the staged IDs and preserved value
+bytes. The last is a WORD probe at object+$40 (`$790A`), whose following
+instructions compare its low byte; it does not justify expanding the shared
+object prefix. The remaining dynamic families retain their exact native
+records and original array/overlap semantics; they are not mechanically cleared.
+
+The report now groups unresolved operands by native form and root layout, links
+them to the listing, and separately attaches explicitly assessed enclosing
+instruction purpose. All 35 statuses remain unresolved; nine acquire supported
+grid-builder context without claiming field/index resolution. The text report
+also exposes the native 118 bitmap / seven sample / one opaque asset inventories
+underneath coarse storage classification. Encoding evidence does not establish
+every resource's game role.
+
+The largest apparent gap was not wholly unknown: the fixed `$4000` tile grid is
+also A6+$604 when A6 is `$39FC`. Its first 122 complete pointers occupy 488 bytes,
+followed by the high WORD of pointer 122; that pointer's existing low WORD at
+A6+$7EE and BYTE at +$7EF retain their overlapping combat views. The new prefix
+and high-WORD declarations recover 490 gap bytes without overlapping those
+existing fields or expanding the app envelope. The complete-grid CPU test and
+`test_original_grid_builder_supplies_the_overlapping_combat_selector` establish
+the absolute writer and exact alias, including original pointer `$00023FA8`.
+No allocation or exclusive workspace/grid lifetime is inferred.
+
+Together with the four-byte slot, this reduces declaration-gap bytes in the
+observed app envelope from 1,244 to 750. That is not an unknown-behaviour count.
+The remaining `$36C..$604` gap stays unclassified: initialization clearing ends
+at `$36C`, and absent named references do not prove unused or padding intent.
+Likewise, unassessed legacy purpose metadata does not
+invalidate existing evidence-backed restoration. Allocation bounds, complete
+dynamic consumers and relocation readiness remain open.
+
+Validation: 79 focused accounting/purpose and original-CPU tests pass, including
+the additional grid/combat alias scenario. The final C and vasm gate reproduces
+all 376,832 original bytes, receipt
+`dee441b449490fa783ffec8a040f6a6158dbda5b02fed7574837b5cec2b6325a`.
+All 126 asset records and SDK include identities are unchanged; the source diff
+contains only three workspace declarations, the reduced raw gap and four
+symbolic operands. Fifteen MAL records and fifteen journal decisions append to
+preserved histories. The updated purpose totals are 11,612 payload bytes and
+936 bytes in the separate app-relative view; these coordinate domains are not
+added together. Native payload classification and the 35 unresolved operand
+statuses remain independent of those assessments.

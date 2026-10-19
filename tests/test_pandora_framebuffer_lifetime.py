@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import pytest
 
-from tests.test_pandora_state_transitions import BASE, cpu_fixture
-from tests.test_pandora_overlay_pipeline import overlay_fixture
+from tests.test_pandora_overlay_pipeline import overlay_fixture as overlay_fixture
+from tests.test_pandora_state_transitions import BASE
+from tests.test_pandora_state_transitions import cpu_fixture as cpu_fixture
 
 pytestmark = pytest.mark.parametrize('cpu_fixture', [0x1000000], indirect=True)
 APP = 0x39FC
@@ -24,7 +25,7 @@ def test_original_row_producer_writes_exactly_200_word_offsets(cpu_fixture):
     assert cpu.d[1] == 400 and cpu.d[7] & 0xFFFF == 0xFFFF
 
 
-@pytest.mark.parametrize('x,y', [(0, 0), (39, 24), (24, 17), (63, 31), (0xFFFF, 0xFFFF)])
+@pytest.mark.parametrize(('x', 'y'), [(0, 0), (39, 24), (24, 17), (63, 31), (0xFFFF, 0xFFFF)])
 def test_text_origins_distinguish_front_buffer_from_fixed_overlay(cpu_fixture, x, y):
     cpu, memory, schemas, read, write, run = cpu_fixture
     fill_rows(cpu, memory, run)
@@ -68,7 +69,7 @@ def test_vblank_prefix_installs_four_interleaved_plane_pointers(overlay_fixture,
     assert [read(hw[f'BPL{i+1}PTH']) for i in range(4)] == [front+40*i for i in range(4)]
 
 
-@pytest.mark.parametrize('descriptor,buffer,extent', [(0x335A, 0x77D00, 0x300), (0x33DE, 0x7F0, 0x900)])
+@pytest.mark.parametrize(('descriptor', 'buffer', 'extent'), [(0x335A, 0x77D00, 0x300), (0x33DE, 0x7F0, 0x900)])
 def test_initialized_snapshot_packets_use_packed_storage_outside_screen_fetch(overlay_fixture, descriptor, buffer, extent):
     cpu, memory, fields, read, write, run, hw, slots, queue, make_descriptor = overlay_fixture
     fill_rows(cpu, memory, run)
@@ -142,3 +143,15 @@ def test_prepared_palette_input_reads_last_32_hit_snapshot_bytes(cpu_fixture):
     assert [read(components+2*i, 2) for i in range(48)] == [16*(i//3) for i in range(48)]
     # This executes the preparation and palette leaf, not the stack-trampoline
     # overlay/fade caller or its unproven gameplay phase ordering.
+
+
+@pytest.mark.parametrize('source', [0x2AAA, 0x2ADC, 0x2B52, 0x9F1C])
+def test_all_fixed_bank_pointer_writers_touch_only_the_four_byte_slot(cpu_fixture, source):
+    cpu, memory, schemas, read, write, run = cpu_fixture
+    cpu.a[6] = APP
+    memory[APP+0x1DC:APP+0x1E8] = b'\xA5'*12
+    run(source, stop=source+8, budget=2)
+    assert read(APP+0x1E0) == 0x70000
+    assert memory[APP+0x1DC:APP+0x1E0] == b'\xA5'*4
+    assert memory[APP+0x1E4:APP+0x1E8] == b'\xA5'*4
+    # This proves the original writers and extent, not a consumer or lifetime.

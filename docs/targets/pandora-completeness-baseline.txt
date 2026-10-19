@@ -5,14 +5,18 @@ Payload classification (disjoint bytes per source section):
 
 Units: 265 function candidates; 543 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 122}.
+Supported payload purpose bytes by section: {'0': 11612}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive):
-  [1, 'app', '__amiga_app_base__']: envelope [0,2032), 788 declared bytes; {'field': 788, 'unknown': 1244}; full extent unknown.
+  [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 936 bytes; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
 Structure: {'resolved_native_access_records': 964, 'unresolved_native_access_records': 35}; reference target statuses {'accepted_target': 563}.
+Unresolved native operand forms: {'field_gap': 8, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
 Presentation: 80 generic label review signals.
 Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
+Native asset encoding: bitmap, 118 chunks, bytes by section {'0': 241376}; game roles require separate purpose evidence.
+Native asset encoding: opaque_data, 1 chunks, bytes by section {'0': 27792}; game roles require separate purpose evidence.
+Native asset encoding: sound_sample, 7 chunks, bytes by section {'0': 26324}; game roles require separate purpose evidence.
 
 Selected unresolved identities (full list in JSON):
   payload:s0:52:456 (unknown)
@@ -33,17 +37,45 @@ Generic label links (relative to the resident server):
   abs_0_0001001E: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=30
   abs_0_00010046: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=70
 Workspace gap boundary links (neighbor uses do not prove gap use):
-  workspace:1d7c9f63bcf438c3e22f:36c:7ee: unknown intent; app_blitter_interrupt_callback: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=2350; app_combat_grid_cell_122_low_word: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=30982
+  workspace:1d7c9f63bcf438c3e22f:36c:604: unknown intent; app_blitter_interrupt_callback: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=2350
   workspace:1d7c9f63bcf438c3e22f:33f:356: unknown intent; app_world_interaction_audio_flags: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=316208; app_nearest_object_distance: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=33618
   workspace:1d7c9f63bcf438c3e22f:1f8:20a: unknown intent; app_geometry_clipped_y_span: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=28730; app_inventory_cursor_sprite_flags: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=38060
 
 Explicit purpose scopes (not complete semantic reconstruction):
+  purpose-06547df5fac345e2a75c76405e36bd2d: app [0x1e0,0x1e4) graphics/high, accepted, whole_scope.
+    Four-byte pointer slot assigned framebuffer bank0 by three inventory redraw paths and the world/tile initializer.
+    Limits: The four original writes and exact slot bounds are established. No read consumer, active rendering role, liveness or exclusive lifetime is established.
+  purpose-0da3149da0bb4bb8b6991f8d571a6204: app [0x1ba,0x1c6) graphics/high, accepted, whole_scope.
+    Tile viewport column/row, tile-grid base pointer and width/height metadata used by original grid construction, viewport reads and modal exchange.
+    Limits: Current metadata and original WORD arithmetic only. Modal exchange changes the base independently of derived size/stride state; no general bounds, exclusive lifetime or DMA completion claim.
+  purpose-24f5bd60843c4545831c99cb38d677b6: s0 [0xb040,0xb0e0) graphics/high, accepted, whole_scope.
+    Remaining five 32-byte overlay border cells, consumed as eight rows of four packed planar bytes per cell by the original border copier.
+    Limits: CPU copy/packing purpose only. Palette meaning, DMA timing, actual display pixels and exclusive lifetime remain unassessed. The already assessed first cell is excluded.
   purpose-34f28358dd39466b98414fc92bcae972: s0 [0xb020,0xb040) graphics/high, accepted, whole_scope.
     32-byte top-left overlay border cell, consumed as eight planar rows with four plane bytes per row by the original cell-copy routine.
     Limits: CPU copy/packing purpose only. Palette interpretation, emitted display pixels, DMA timing and exclusive storage lifetime remain unassessed.
+  purpose-61c3904e374a47ffae2cb9fd7a179df3: app [0x1d4,0x1e0) graphics/high, accepted, whole_scope.
+    Front/back framebuffer pointers and selected display-bank pointer used by the original world-bank exchange, text-origin and vblank pointer-installation prefix.
+    Limits: CPU pointer flow and four interleaved plane addresses only; no actual DMA/display pixels, scheduler closure or exclusive memory lifetime.
+  purpose-664d7711adfa4601a579d384ae40770a: s0 [0x3f16,0x5ffe) graphics/high, accepted, whole_scope.
+    468 nine-WORD 3x3 tile-definition records; each WORD is an unsigned offset from the tile-pixel base used to build the nine cell pointers.
+    Limits: All original records and original table IDs are checked; modified IDs use unchecked signed WORD index wrap and can address outside the owner. Exact tile game roles and DMA output remain unassessed.
+  purpose-691e71cebf2941fdae7c8ff54d4c4624: app [0x1e4,0x1e8) text/high, accepted, whole_scope.
+    Current text destination cursor produced from front-bank or fixed-overlay origin arithmetic and consumed by the original text/border routines.
+    Limits: Unchecked coordinate arithmetic and CPU cursor flow only; destination allocation, every caller, actual DMA/pixels and exclusive lifetime remain unassessed.
+  purpose-83432655ac7244008702df827974eb18: s0 [0xaf9e,0xb020) graphics/high, accepted, whole_scope.
+    26 five-BYTE uppercase overlay-title masks; each row mask is ANDed into four planar destination bytes by the original title renderer.
+    Limits: Declared A..Z input family and controlled CPU destinations only. Byte indices are unchecked outside the130-byte owner; actual display pixels, all input strings and storage lifetime are unassessed.
   purpose-8717b9bb52e64423ad350ff4baf543dc: s0 [0x54f9c,0x54fdc) audio/high, accepted, whole_scope.
     Mutable 64-byte sample-7 waveform buffer: the guarded initializer fills two 32-byte halves and the inspected waveform writer updates this buffer for audio staging.
     Limits: Conditional on the reviewed initialized sample pointer. Playback reachability, audible output, all writers and exclusive lifetime are not established.
+  purpose-915ca4be457644d9a84f2504e27990e2: s0 [0x3502,0x3f16) game_data/high, accepted, whole_scope.
+    1290 original macro-tile IDs arranged as 43 rows of 30; the grid builder selects nine-offset tile definitions and expands them into90 by 129 cell pointers.
+    Limits: This original stored table and its verified expansion only. Runtime mutation, universal index validity, scene semantics and actual pixel/DMA output are not established.
   purpose-976a2b45d7bc47f4ac4fe8634ff2f737: s0 [0x491fa,0x49214) game_data/high, accepted, whole_scope.
     26-byte render-state prefix of the terminal salvage deposit world marker. Links current/previous geometry and its position descriptor; the original admitted-ray path can move that marker.
     Limits: The declared prefix is assessed, not a following interaction pointer. Complete field behaviour, actual DMA/display output and lifetime are not established.
+  purpose-aa728461dbb345afbc5f09d28db39e50: s0 [0xa198,0xa25c) code/high, accepted, whole_scope.
+    Original macro-tile grid builder: expands43x30 stored IDs into3x3 cell pointers per ID, then computes current-metadata stride, byte size and end pointer.
+    Limits: Purpose and original-table CPU behaviour only. Native indexed operands remain unresolved; invalid IDs and footer metadata retain original WORD wrap. Reachability and every dynamic input are not established.
+  3 additional bounded assessments are retained in the JSON report.

@@ -675,3 +675,25 @@ def test_known_payload_spans_compact_but_keep_native_count_and_unknown_evidence(
     assert (cells[0]["start"], cells[0]["end"]) == (0, 12)
     assert cells[1]["classification"] == "unknown" and cells[1]["evidence"]
     assert cells[1]["id"] == "payload:s0:c:10"
+
+
+def test_unresolved_operand_forms_keep_status_with_assessed_routine_context():
+    from tests.test_purpose_assessments import claim
+
+    a = analysis(ownership(0, 10))
+    a['sections'][0]['recovered_platform_unresolved_typed_accesses'] = [
+        {"offset": 2, "operand_index": 0, "root_struct_name": 'records', "classification": 'indexed_dynamic'},
+        {"offset": 12, "operand_index": 1, "root_struct_name": 'records', "classification": 'field_gap'},
+    ]
+    r = report(a, purpose_assessments=[claim(end=10, category='code')])
+    structure = r['structure']
+    assert structure['field_access_records']['unresolved_native_access_records'] == 2
+    assert structure['unresolved_access_forms'] == {'field_gap': 1, 'indexed_dynamic': 1}
+    assert structure['unresolved_access_layouts'] == {'records': {'field_gap': 1, 'indexed_dynamic': 1}}
+    first, second = [i for i in structure['unresolved'] if i['kind'] == 'field_access']
+    # Stable identities sort lexically; select the actual instruction coordinates.
+    first, second = sorted((first, second), key=lambda i: i['evidence']['offset'])
+    assert first['instruction_purpose_context']['status'] == 'supported_scope'
+    assert second['instruction_purpose_context']['status'] == 'not_assessed'
+    assert first['listing_url'] == '/fixture?section_index=0&source_offset=2'
+    assert first['evidence']['classification'] == 'indexed_dynamic'

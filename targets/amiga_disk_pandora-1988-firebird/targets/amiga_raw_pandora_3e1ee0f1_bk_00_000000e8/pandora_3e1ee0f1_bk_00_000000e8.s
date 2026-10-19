@@ -103,7 +103,7 @@ app_player_move_request_y_step RS.W 1
 app_front_bitplane_base RS.L 1
 app_back_bitplane_base RS.L 1
 app_display_bitplane_base RS.L 1
-    RS.B 4
+app_framebuffer_bank0_ptr RS.L 1
 app_text_cursor_ptr RS.L 1
 app_font_glyph_bitmap_table_ptr RS.L 1
 app_proportional_text_word_cursor_ptr RS.L 1
@@ -209,7 +209,9 @@ app_inventory_panel_object_ptr RS.L 1
 app_copper_interrupt_callback RS.L 1
 app_vertical_blank_callback RS.L 1
 app_blitter_interrupt_callback RS.L 1
-    RS.B 1154
+    RS.B 664
+app_world_tile_pointer_grid_prefix RS.B 488
+app_tile_grid_cell_122_high_word RS.W 1
 app_combat_grid_cell_122_low_word RS.W 1
     RSSET $0287
 app_earth_orbit_countdown_bcd_low_byte RS.B 1
@@ -6453,7 +6455,7 @@ refresh_selected_nearby_inventory_row:
 	bsr.w build_carried_item_name_list
 	move.l (a7)+,d0
 	lea.l body_inventory_overlay(pc),a5
-	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_framebuffer_bank0_ptr(a6)
 	bsr.w redraw_ui_overlay_selected_line_proportional
 return_from_inventory_panel_selection:
 	rts
@@ -6468,7 +6470,7 @@ transfer_selected_item_to_carried_inventory:
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
 	lea.l backpack_inventory_overlay(pc),a5
-	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_framebuffer_bank0_ptr(a6)
 	bra.w redraw_ui_overlay_selected_line_proportional
 handle_item_too_large_for_pockets:
 	movem.l d0/a0,-(a7)
@@ -6501,7 +6503,7 @@ transfer_selected_item_to_pocket_inventory:
 	bsr.w refresh_inventory_panel
 	move.w (a7)+,d0
 	lea.l pocket_inventory_overlay(pc),a5
-	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_framebuffer_bank0_ptr(a6)
 	bra.w redraw_ui_overlay_selected_line_proportional
 item_too_large_for_pockets_message:
 	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
@@ -16803,7 +16805,7 @@ initialize_next_cursor_sprite_row_pair:
 	addq.l #CURSOR_SEED_ROW_SKIP_BYTES,a0
 	dbf.w d7,initialize_next_cursor_sprite_row_pair
 	bsr.w initialize_scene_and_animation_mask_banks
-	move.l #FRAMEBUFFER_BANK0_BASE,$01E0(a6)
+	move.l #FRAMEBUFFER_BANK0_BASE,app_framebuffer_bank0_ptr(a6)
 	rts
     ; Restart resets mission/UI state and all 35 sentinel-listed objects, selecting 67 active descriptors. The complete original reset leaves absolute PRNG bytes $7E8..$7EF unchanged.
 initialize_world_state:
