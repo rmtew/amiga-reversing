@@ -200,7 +200,7 @@ def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_pat
         {
             "addr": 0x200,
             "citation": "manual_action_log:code-start",
-            "comment": "mode=required",
+            "comment": None,
             "hunk": 0,
             "name": "manual_start",
             "review_status": "seeded",
@@ -216,7 +216,7 @@ def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_pat
             "addr": 0x300,
             "c_type": None,
             "citation": "manual_action_log:text-table",
-            "comment": "mode=required, data_role=string, unit=byte, encoding=ascii",
+            "comment": None,
             "end": 0x320,
             "field_name": None,
             "field_type": None,

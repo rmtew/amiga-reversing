@@ -1388,9 +1388,15 @@ UI_OVERLAY_BLIT_ROW_BYTES	EQU	40
 UI_OVERLAY_BORDER_DBF_BIAS	EQU	3
 UI_OVERLAY_CALLBACK_READY_BIT	EQU	7
 UI_OVERLAY_CELL_ROW_BYTES	EQU	1280
+UI_OVERLAY_LINE_POINTER_BASE_OFFSET	EQU	ui_overlay_descriptor_line_0_ptr
+UI_OVERLAY_PACKED_CELL_ROWS_SHIFT	EQU	5
+UI_OVERLAY_POINTER_CLEAR_BYTES	EQU	128
+UI_OVERLAY_POINTER_CLEAR_LAST_LONGWORD	EQU	UI_OVERLAY_POINTER_CLEAR_BYTES/4-1
+UI_OVERLAY_PROPORTIONAL_INITIAL_SHIFT	EQU	PROPORTIONAL_WORD_PIXELS/2
 UI_OVERLAY_SAVED_BACKGROUND_BIT	EQU	5
 UI_OVERLAY_SAVE_BACKGROUND_BIT	EQU	6
 UI_OVERLAY_SAVE_BACKGROUND_MASK	EQU	64
+UI_OVERLAY_TEXT_LINE_COUNT	EQU	6
 UI_OVERLAY_TITLE_FIRST_CHARACTER	EQU	'A'
 UI_OVERLAY_UPDATE_LAST_SLOT	EQU	15
 UI_PAUSE_ACTIVE_BIT	EQU	7
@@ -2630,7 +2636,7 @@ leave_title_on_fire:
 	rts
 	dc.b $33,$EE,$01,$AC,$00,$DF,$F1,$80,$60,$F6
 title_credits_text:
-	dc.b "   CREATED BY: SHAHID AHMAD",$0D	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "   CREATED BY: SHAHID AHMAD",$0D
 	dc.b "               DAVID EASTMAN",$0D
 	dc.b "               TERRY GREER",$0D,$0D
 	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
@@ -6749,7 +6755,7 @@ earth_orbit_spore_release_message:
 humanity_destruction_warning_message:
 	dc.b "TOTAL DESTRUCTION OF HUMANITY IMMINENT.",$00
 hexadecimal_digit_ascii_text:
-	dc.b "0123456789ABCDEF",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "0123456789ABCDEF",$00
 draw_four_digit_value_with_blank_mask:
 	movem.l d0-d2/d7/a0-a1,-(a7)
 	moveq.l #FOUR_DIGIT_LAST_INDEX,d7
@@ -12092,7 +12098,7 @@ save_ui_overlay_background:
 	clr.w d0
 	clr.w d1
 	move.b ui_overlay_descriptor_height(a5),d0
-	lsl.w #5,d0
+	lsl.w #UI_OVERLAY_PACKED_CELL_ROWS_SHIFT,d0
 	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
@@ -12101,14 +12107,14 @@ save_ui_overlay_background:
 	sub.w d1,d2
 	move.l a5,-(a7)
 	lea.l _custom.l,a5
-	lsl.w #6,d0
+	lsl.w #HSIZEBITS,d0
 	or.w d0,d1
-abs_0_00016366:
+wait_for_overlay_capture_blit_request:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016366
+	btst #INTB_BLIT,d0
+	beq.b wait_for_overlay_capture_blit_request
 	move.w #INTF_BLIT,intreq(a5)
-	move.w #$FFFF,bltalwm(a5)
+	move.w #BLITTER_FULL_WORD_MASK,bltalwm(a5)
 	move.l a0,bltapt(a5)	; blitter_source pointer
 	move.l a1,bltdpt(a5)	; blitter_destination pointer
 	move.w d2,bltamod(a5)
@@ -12126,7 +12132,7 @@ restore_ui_overlay_background:
 	clr.w d0
 	clr.w d1
 	move.b ui_overlay_descriptor_height(a5),d0
-	lsl.b #5,d0
+	lsl.b #UI_OVERLAY_PACKED_CELL_ROWS_SHIFT,d0
 	move.b ui_overlay_descriptor_width(a5),d1
 	addq.b #1,d1
 	lsr.b #1,d1
@@ -12135,14 +12141,14 @@ restore_ui_overlay_background:
 	sub.w d1,d2
 	move.l a5,-(a7)
 	lea.l _custom.l,a5
-	lsl.w #6,d0
+	lsl.w #HSIZEBITS,d0
 	or.w d0,d1
-abs_0_000163CE:
+wait_for_overlay_restore_blit_request:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_000163CE
+	btst #INTB_BLIT,d0
+	beq.b wait_for_overlay_restore_blit_request
 	move.w #INTF_BLIT,intreq(a5)
-	move.w #$FFFF,bltalwm(a5)
+	move.w #BLITTER_FULL_WORD_MASK,bltalwm(a5)
 	move.l a1,bltapt(a5)	; blitter_source pointer
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w d2,bltdmod(a5)
@@ -12154,7 +12160,8 @@ abs_0_000163CE:
 	bclr.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
 	bclr.b #UI_OVERLAY_CALLBACK_READY_BIT,ui_overlay_descriptor_state_flags(a5)
 	rts
-abs_0_0001640E:
+    ; Clear all four planes for the selected interior row. Width uses BYTE subtraction before WORD DBF: 0..2 give 254..256 cells. Row arithmetic wraps as BYTE; D0/D7/A0-A2 are restored.
+clear_ui_overlay_text_row:
 	movem.l d0/d7/a0-a2,-(a7)
 	move.b ui_overlay_descriptor_y(a5),d1
 	addq.b #1,d1
@@ -12166,12 +12173,12 @@ abs_0_0001640E:
 	movea.l a0,a2
 	clr.w d7
 	move.b ui_overlay_descriptor_width(a5),d7
-	subq.b #3,d7
-abs_0_00016432:
+	subq.b #UI_OVERLAY_BORDER_DBF_BIAS,d7
+clear_next_ui_overlay_row_cell:
 	movea.l a2,a1
 	bsr.w draw_compact_glyph_with_plane_mask
 	addq.l #1,a2
-	dbf.w d7,abs_0_00016432
+	dbf.w d7,clear_next_ui_overlay_row_cell
 	movem.l (a7)+,d0/d7/a0-a2
 	rts
     ; Clear the rectangle using the zero sprite datum. Width uses floor(width/2); capture and restore use ceil. Original rounding and height arithmetic are retained.
@@ -12182,8 +12189,8 @@ clear_ui_overlay_rectangle:
 	clr.w d0
 	clr.w d1
 	move.b ui_overlay_descriptor_height(a5),d0
-	lsl.w #5,d0
-	lsl.w #6,d0
+	lsl.w #UI_OVERLAY_PACKED_CELL_ROWS_SHIFT,d0
+	lsl.w #HSIZEBITS,d0
 	move.b ui_overlay_descriptor_width(a5),d1
 	lsr.w #1,d1
 	moveq.l #UI_OVERLAY_BLIT_ROW_BYTES,d2
@@ -12195,10 +12202,10 @@ clear_ui_overlay_rectangle:
 	add.w d0,d1
 	move.l a5,-(a7)
 	lea.l _custom.l,a5
-abs_0_00016478:
+wait_for_overlay_clear_blit_request:
 	move.w intreqr(a5),d0	; interrupt request state
-	btst #6,d0
-	beq.b abs_0_00016478
+	btst #INTB_BLIT,d0
+	beq.b wait_for_overlay_clear_blit_request
 	move.w #INTF_BLIT,intreq(a5)
 	clr.w bltcon1(a5)
 	move.w #BC0F_SRCA|BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
@@ -12307,95 +12314,107 @@ draw_ui_overlay_text_lines:
 	move.b ui_overlay_descriptor_text_color(a5),app_text_plane_mask(a6)
 	lea.l ui_overlay_descriptor_line_0_ptr(a5),a4
 	moveq.l #0,d7
-abs_0_000165F0:
-	move.b $0000(a5),d0
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+draw_next_ui_overlay_text_line:
+	move.b ui_overlay_descriptor_x.w(a5),d0
 	move.b d7,d1
 	addq.b #1,d1
-	add.b $0001(a5),d1
+	add.b ui_overlay_descriptor_y(a5),d1
 	bsr.w set_text_cursor_in_overlay_plane
 	move.l a0,app_proportional_text_word_cursor_ptr(a6)
-	move.b #$8,app_proportional_text_pixel_shift(a6)
+	move.b #UI_OVERLAY_PROPORTIONAL_INITIAL_SHIFT,app_proportional_text_pixel_shift(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
 	tst.l (a4)
-	beq.b abs_0_00016624
+	beq.b advance_ui_overlay_text_line_index
 	movea.l (a4)+,a3
-	btst.b d7,$0007(a5)
-	beq.b abs_0_00016620
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+select_ui_overlay_line_text_style:
+	btst.b d7,ui_overlay_descriptor_line_style_flags(a5)
+	beq.b draw_ui_overlay_line_with_compact_font
 	bsr.w draw_proportional_ui_text_string
-	bra.b abs_0_00016624
-abs_0_00016620:
+	bra.b advance_ui_overlay_text_line_index
+draw_ui_overlay_line_with_compact_font:
 	bsr.w draw_compact_text_string
-abs_0_00016624:
+advance_ui_overlay_text_line_index:
 	addq.b #1,d7
-	cmp.b #$6,d7
-	bne.b abs_0_000165F0
+    ; Always visit six line positions, independent of descriptor height. A NULL keeps A4 at that field, so stable pointers expose only the non-NULL prefix; only style bits 0..5 are tested.
+	cmp.b #UI_OVERLAY_TEXT_LINE_COUNT,d7
+	bne.b draw_next_ui_overlay_text_line
 	movem.l (a7)+,d7/a4
 	rts
+    ; Line pointer uses wrapped WORD index*4 with no six-line check. Proportional cursor starts at outer X with phase 8; stored compact cursor is X+1. Clear first uses the same row byte.
     ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
 redraw_ui_overlay_selected_line_proportional:
-	bsr.w abs_0_0001640E
-	move.b $0005(a5),app_text_plane_mask(a6)
+	bsr.w clear_ui_overlay_text_row
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+reload_selected_overlay_text_color:
+	move.b ui_overlay_descriptor_text_color(a5),app_text_plane_mask(a6)
 	add.w d0,d0
 	add.w d0,d0
-	movea.l $C(a5,d0.w),a3
+	movea.l UI_OVERLAY_LINE_POINTER_BASE_OFFSET(a5,d0.w),a3
 	lsr.w #2,d0
 	addq.b #1,d0
-	add.b $0001(a5),d0
+	add.b ui_overlay_descriptor_y(a5),d0
 	move.b d0,d1
-	move.b $0000(a5),d0
+	move.b ui_overlay_descriptor_x.w(a5),d0
 	bsr.w set_text_cursor_in_overlay_plane
 	move.l a0,app_proportional_text_word_cursor_ptr(a6)
-	move.b #$8,app_proportional_text_pixel_shift(a6)
+	move.b #UI_OVERLAY_PROPORTIONAL_INITIAL_SHIFT,app_proportional_text_pixel_shift(a6)
 	addq.l #1,app_text_cursor_ptr(a6)
 	bra.w draw_proportional_ui_text_string
+    ; Clear 32 LONGs: 64-byte registry plus 64-byte tail. SPACE glyph starts immediately afterward. This reset cannot repair a font write made by an injected overfull registration.
 clear_overlay_pointer_storage:
 	lea.l ui_overlay_update_queue(pc),a0
-	moveq.l #31,d7
-abs_0_0001666E:
+	moveq.l #UI_OVERLAY_POINTER_CLEAR_LAST_LONGWORD,d7
+clear_next_ui_overlay_storage_longword:
 	clr.l (a0)+
-	dbf.w d7,abs_0_0001666E
+	dbf.w d7,clear_next_ui_overlay_storage_longword
 	rts
     ; Visit all 16 slots, including past NULL holes. Ready descriptors call a nonnull target with A5=descriptor; registrations persist. A0/D7 are saved around callbacks.
 process_ui_overlay_update_queue:
 	moveq.l #UI_OVERLAY_UPDATE_LAST_SLOT,d7
 	lea.l ui_overlay_update_queue(pc),a0
-abs_0_0001667C:
+visit_next_ui_overlay_callback_slot:
 	move.l (a0)+,d0
-	beq.b abs_0_0001669A
+	beq.b advance_ui_overlay_callback_slot
 	movea.l d0,a5
+    ; TST.W spans the state/style BYTE pair. Its sign is state_flags bit 7; the style byte cannot make a descriptor ready. A NULL callback still suppresses the call.
 	tst.w ui_overlay_descriptor_state_flags(a5)
-	bpl.b abs_0_0001669A
+	bpl.b advance_ui_overlay_callback_slot
 	move.l ui_overlay_descriptor_update_callback(a5),d0
-	beq.b abs_0_0001669A
+	beq.b advance_ui_overlay_callback_slot
 	movea.l d0,a1
 	movem.l d7/a0,-(a7)
 	jsr (a1)
 	movem.l (a7)+,d7/a0
-abs_0_0001669A:
-	dbf.w d7,abs_0_0001667C
+advance_ui_overlay_callback_slot:
+	dbf.w d7,visit_next_ui_overlay_callback_slot
 	rts
     ; Reuse a nonnull-prefix match/first gap; no 16-slot admission bound. Bit6 recaptures even if saved/ready, then clear/draw/set ready. Registration dedup does not preserve a snapshot.
 enqueue_ui_overlay_update:
 	lea.l ui_overlay_update_queue(pc),a0
-abs_0_000166A4:
+find_matching_overlay_or_first_empty_slot:
 	move.l (a0)+,d0
-	beq.b abs_0_000166AE
+	beq.b store_new_ui_overlay_registration
 	cmpa.l d0,a5
-	bne.b abs_0_000166A4
-	bra.b abs_0_000166B0
-abs_0_000166AE:
+	bne.b find_matching_overlay_or_first_empty_slot
+	bra.b capture_registered_overlay_background_if_requested
+    ; An injected 32-nonzero-pointer prefix puts this store in SPACE glyph rows 0..3. The startup clear excludes those bytes, so a later SPACE copy reads the change. Ordinary overflow is unproved.
+store_new_ui_overlay_registration:
 	move.l a5,-(a0)
-abs_0_000166B0:
+capture_registered_overlay_background_if_requested:
 	btst.b #UI_OVERLAY_SAVE_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
-	beq.b abs_0_000166C2
+	beq.b draw_registered_ui_overlay_descriptor
 	bset.b #UI_OVERLAY_SAVED_BACKGROUND_BIT,ui_overlay_descriptor_state_flags(a5)
 	bsr.w save_ui_overlay_background
     ; After optional capture, this clear waits/acks its completion before starting DMA. CPU border/text and ready marking follow without a post-clear software wait.
-abs_0_000166C2:
+draw_registered_ui_overlay_descriptor:
 	bsr.w clear_ui_overlay_rectangle
 	bsr.w draw_ui_overlay_border_and_title
 	bsr.w draw_ui_overlay_text_lines
-	bset.b #UI_OVERLAY_CALLBACK_READY_BIT,$0006(a5)
+    ; KNOWN: type A5=Target code-entry register seed:ui_overlay_descriptor
+mark_registered_overlay_callback_ready:
+	bset.b #UI_OVERLAY_CALLBACK_READY_BIT,ui_overlay_descriptor_state_flags(a5)
 	rts
     ; Wait/ack BLIT; zero 40 bytes, then start 656x80 A-to-D $70000->$70028 (end $7CD28). Reuses hit snapshot/bank1; zero modulos, inherited BLTCON1, no final wait. Allocation bounds remain open.
 start_seeded_zero_copy_blit:
@@ -15438,11 +15457,11 @@ terminal_proximity_object_table:
 terminal_location_message_table_end:
 	dc.l $00000000	; NULL terminates location message scan
 terminal_clearance_heading:
-	dc.b "CLEARANCE:",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "CLEARANCE:",$00
 terminal_card_name_heading:
-	dc.b "CARD NAME:",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "CARD NAME:",$00
 terminal_entry_heading:
-	dc.b "ENTRY:",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ENTRY:",$00
 terminal_clearance_none:
 	dc.b 'N','o','n','e',' ',$00	; Terminal clearance display text
 terminal_clearance_alpha:
@@ -15457,9 +15476,9 @@ terminal_clearance_omega:
 	dc.b $00
 	dc.b "Terminal mode",$00
 terminal_access_denied_text:
-	dc.b "ACCESS DENIED...",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ACCESS DENIED...",$00
 terminal_id_required_text:
-	dc.b "ID REQUIRED",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID REQUIRED",$00
 	dc.b $00
 terminal_message_earth_warning:
 	dc.w $00F0	; world_x
@@ -17043,213 +17062,213 @@ item_name_string_table:
 	dc.b $00
     ; ID 0 selects this empty string; ID 1 selects five spaces plus NOTHING. Panel fallback and raw inventory refresh choose IDs differently. Keep the two display values distinct.
 item_name_empty:
-	dc.b $00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $00
 item_name_nothing:
-	dc.b "     NOTHING",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "     NOTHING",$00
 item_name_wrench:
-	dc.b "Wrench",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Wrench",$00
 item_name_acid:
-	dc.b "Acid",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Acid",$00
 item_name_electroboost:
-	dc.b "Electroboost",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Electroboost",$00
 item_name_sonicdriver:
-	dc.b "Sonicdriver",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Sonicdriver",$00
 item_name_spanner:
-	dc.b "Spanner",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Spanner",$00
 item_name_photosabre:
-	dc.b "PHOTOSABRE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "PHOTOSABRE",$00
 item_name_iridium_mace:
-	dc.b "IRIDIUM MACE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "IRIDIUM MACE",$00
 item_name_electrunchon:
-	dc.b "ELECTRUNCHON",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ELECTRUNCHON",$00
 item_name_shockwhip:
-	dc.b "SHOCKWHIP",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "SHOCKWHIP",$00
 item_name_thermolance:
-	dc.b "THERMOLANCE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "THERMOLANCE",$00
 item_name_deathsting:
-	dc.b "DEATHSTING",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "DEATHSTING",$00
 item_name_knuckleduster:
-	dc.b "KNUCKLEDUSTER",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "KNUCKLEDUSTER",$00
     ; IDs 14..18 share LASER RIFLE text. Shared text does not merge inventory IDs or establish identical combat behavior; consumers retain their own ID predicates.
 item_name_laser_rifle:
-	dc.b "LASER RIFLE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "LASER RIFLE",$00
 item_name_pulse_cannon:
-	dc.b "PULSE CANNON",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "PULSE CANNON",$00
 item_name_ostronn_egg:
-	dc.b "Ostronn egg",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Ostronn egg",$00
 item_name_vulcann_vase:
-	dc.b "Vulcann vase",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Vulcann vase",$00
 item_name_broken_orak:
-	dc.b "Broken ORAK",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Broken ORAK",$00
 item_name_instant_pggb:
-	dc.b "Instant PGGB",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Instant PGGB",$00
 item_name_sandworm_shell:
-	dc.b "Sandworm shell",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Sandworm shell",$00
 item_name_wookey_wig:
-	dc.b "Wookey wig",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Wookey wig",$00
 item_name_prophylactic:
-	dc.b "Prophylactic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Prophylactic",$00
 item_name_sonicblaster:
-	dc.b "Sonicblaster",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Sonicblaster",$00
 item_name_cargo_chute:
-	dc.b "Cargo chute",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Cargo chute",$00
 item_name_code_white:
-	dc.b "Code WHITE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Code WHITE",$00
 item_name_code_blue:
-	dc.b "Code BLUE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Code BLUE",$00
 item_name_code_grey:
-	dc.b "Code GREY",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Code GREY",$00
 item_name_code_scarlet:
-	dc.b "Code SCARLET",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Code SCARLET",$00
 item_name_code_ochre:
-	dc.b "Code OCHRE",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Code OCHRE",$00
 item_name_code_black:
-	dc.b "Code BLACK",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Code BLACK",$00
 item_name_sdi_disk:
-	dc.b "SDI disk",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "SDI disk",$00
 item_name_bottle_of_gin:
-	dc.b "Bottle of gin",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Bottle of gin",$00
 item_name_insulin:
-	dc.b "Insulin",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Insulin",$00
 item_name_hypodermic:
-	dc.b "Hypodermic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Hypodermic",$00
 item_name_insecticide:
-	dc.b "Insecticide",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Insecticide",$00
 item_name_shakespeare:
-	dc.b "Shakespeare",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Shakespeare",$00
 item_name_bible:
-	dc.b "Bible",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Bible",$00
 item_name_light_box:
-	dc.b "Light box",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Light box",$00
 item_name_globe:
-	dc.b "Globe",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Globe",$00
 item_name_squash_ball:
-	dc.b "Squash ball",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Squash ball",$00
 item_name_id_commander:
-	dc.b "ID Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Commander",$00
 item_name_id_lt_commander:
-	dc.b "ID Lt Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Lt Commander",$00
 item_name_id_engineer:
-	dc.b "ID Engineer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Engineer",$00
 item_name_id_scientist:
-	dc.b "ID Scientist",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Scientist",$00
 item_name_id_medic:
-	dc.b "ID Medic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Medic",$00
 item_name_id_resource_ofcr:
-	dc.b "ID Resource ofcr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Resource ofcr",$00
 item_name_id_amy:
-	dc.b "ID Amy",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID Amy",$00
 item_name_id_awol_ofcr:
-	dc.b "ID AWOL ofcr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "ID AWOL ofcr",$00
 item_name_captain:
-	dc.b "Captain",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Captain",$00
 item_name_commander:
-	dc.b "Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Commander",$00
 item_name_lt_commander:
-	dc.b "Lt Commander",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Lt Commander",$00
 item_name_engineer:
-	dc.b "Engineer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Engineer",$00
 item_name_science_ofcr:
-	dc.b "Science ofcr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Science ofcr",$00
 item_name_medic:
-	dc.b "Medic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Medic",$00
 item_name_awol_officer:
-	dc.b "AWOL officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "AWOL officer",$00
 item_name_rsrc_officer:
-	dc.b "Rsrc officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Rsrc officer",$00
 item_name_musician:
-	dc.b "Musician",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Musician",$00
 item_name_robomechanic:
-	dc.b "Robomechanic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Robomechanic",$00
 item_name_icelord:
-	dc.b "Icelord",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Icelord",$00
 item_name_sec_officer:
-	dc.b "Sec officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Sec officer",$00
 item_name_thief:
-	dc.b "Thief",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Thief",$00
 item_name_chemist:
-	dc.b "Chemist",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Chemist",$00
 item_name_diabetic:
-	dc.b "Diabetic",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Diabetic",$00
 item_name_gardener:
-	dc.b "Gardener",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Gardener",$00
 item_name_death_fly:
-	dc.b "Death Fly",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Death Fly",$00
 item_name_priest:
-	dc.b "Priest",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Priest",$00
 item_name_driffid:
-	dc.b "Driffid",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Driffid",$00
 item_name_technician:
-	dc.b "Technician",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Technician",$00
 item_name_squash_player:
-	dc.b "Squash player",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Squash player",$00
 item_name_doctor:
-	dc.b "Doctor",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Doctor",$00
 item_name_hooligan:
-	dc.b "Hooligan",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Hooligan",$00
 item_name_bank_manager:
-	dc.b "Bank manager",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Bank manager",$00
 item_name_cleaner_robot:
-	dc.b "Cleaner robot",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Cleaner robot",$00
 item_name_menial_droid:
-	dc.b "Menial droid",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Menial droid",$00
 item_name_entry_officer:
-	dc.b "Entry officer",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Entry officer",$00
 item_name_secdroid_alpha_1:
-	dc.b "Secdroid ALPHA 1",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Secdroid ALPHA 1",$00
 item_name_secdroid_alpha_2:
-	dc.b "Secdroid ALPHA 2",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Secdroid ALPHA 2",$00
 item_name_secdroid_delta_1:
-	dc.b "Secdroid DELTA 1",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Secdroid DELTA 1",$00
 item_name_secdroid_delta_2:
-	dc.b "Secdroid DELTA 2",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Secdroid DELTA 2",$00
 item_name_secdroid_pi:
-	dc.b "Secdroid PI",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Secdroid PI",$00
 item_name_secdroid_omega:
-	dc.b "Secdroid OMEGA",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Secdroid OMEGA",$00
 item_name_pianist:
-	dc.b "Pianist",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Pianist",$00
 item_name_flight_ctrlr:
-	dc.b "Flight ctrlr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Flight ctrlr",$00
 item_name_cook:
-	dc.b "Cook",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Cook",$00
 item_name_barman:
-	dc.b "Barman",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Barman",$00
 item_name_defence_ctrlr:
-	dc.b "Defence ctrlr",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Defence ctrlr",$00
 item_name_wackobrain:
-	dc.b "Wackobrain",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Wackobrain",$00
 item_name_glass:
-	dc.b "Glass",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Glass",$00
 item_name_bent_coin:
-	dc.b "Bent coin",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Bent coin",$00
 item_name_kwik_kleen:
-	dc.b "Kwik Kleen",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Kwik Kleen",$00
 item_name_gold_key:
-	dc.b "Gold key",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Gold key",$00
 item_name_megabio_feed:
-	dc.b "Megabio Feed",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Megabio Feed",$00
 item_name_mobian_brain:
-	dc.b "Mobian brain",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Mobian brain",$00
 item_name_ice_pendant:
-	dc.b "Ice pendant",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Ice pendant",$00
 item_name_sugar_cube:
-	dc.b "Sugar cube",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Sugar cube",$00
 item_name_alien_egg:
-	dc.b "Alien egg",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Alien egg",$00
 item_name_kriptonite:
-	dc.b "Kriptonite",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Kriptonite",$00
 item_name_deltan_icon:
-	dc.b "Deltan icon",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Deltan icon",$00
 item_name_pool_8_ball:
-	dc.b "Pool 8 ball",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Pool 8 ball",$00
 item_name_araknoid_eye:
-	dc.b "Araknoid eye",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Araknoid eye",$00
 item_name_kzin_97_ball:
-	dc.b "Kzin 97 ball",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Kzin 97 ball",$00
     ; This 15-byte name has no local NUL. Readers stop at the following offset WORD's high byte ($00). Keep name and table extents separate; a changed table byte can extend the text.
 item_name_amiga_computing:
-	dc.b "Amiga Computing"	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "Amiga Computing"
     ; 114 ID slots reference 103 strings. Five display names have shared aliases. Signed resolver and unsigned refresh agree within this prefix; it is not an encoded ID guard.
 item_name_offset_table:
 	dc.w item_name_empty-item_name_string_table	; item_name_offset_lookup
@@ -17369,7 +17388,7 @@ item_name_offset_table:
 terminal_item_deposited_message:
 	dc.b " ITEM DEPOSITED",$00
 pandora_title_logo_text:
-	dc.b "PANDORA",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b "PANDORA",$00
 	dc.b $63,$3A,$5C,$64,$65,$76,$70,$61,$63,$5C
 compact_font_index_origin:
 	dc.b $68,$61,$72,$64,$61,$5C,$00,$00
@@ -17402,6 +17421,7 @@ ui_overlay_update_queue:
 	dc.l $00000000
 	dc.l $00000000
 	dc.l $00000000
+    ; Startup clears these 16 LONGs after the 16 registry pointers. Callback processing does not scan them. Registration has no corresponding bound; ownership and later lifetimes remain open.
 	dcb.b $40,$00
 compact_font_ascii_32_through_90:
 	dc.b $00	; bitmap_row_0
@@ -27648,7 +27668,7 @@ queue_final_rank_rating:
 	jsr enqueue_status_message.l
 	rts
 salvage_rank_message_ptrs:
-	dc.l salvage_rank_quite_useful_message	; mode=required, data_role=pointer_table, unit=pointer
+	dc.l salvage_rank_quite_useful_message	; pointer_table
 	dc.l salvage_rank_extremely_useful_message
 	dc.l salvage_rank_very_profitable_message
 	dc.l salvage_rank_highly_valuable_message
@@ -27706,19 +27726,19 @@ mercenary_rank_mad_psycho_message:
 mercenary_rank_son_of_satan_message:
 	dc.b ". . SON  OF  SATAN . .",$00
 salvage_rank_quite_useful_message:
-	dc.b ". . QUITE  USEFUL . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b ". . QUITE  USEFUL . .",$00
 salvage_rank_extremely_useful_message:
-	dc.b ". . EXTREMELY  USEFUL . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b ". . EXTREMELY  USEFUL . .",$00
 salvage_rank_very_profitable_message:
-	dc.b ". . VERY  PROFITABLE . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b ". . VERY  PROFITABLE . .",$00
 salvage_rank_highly_valuable_message:
-	dc.b ". . HIGHLY  VALUABLE . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b ". . HIGHLY  VALUABLE . .",$00
 salvage_rank_priceless_message:
-	dc.b ". . PRICELESS . .",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b ". . PRICELESS . .",$00
 musician_drink_request_message:
-	dc.b $22,"Give me a drink,and I",$22,"ll play you a song",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Give me a drink,and I",$22,"ll play you a song",$22,$00
 musician_captains_colours_response:
-	dc.b $22,"The Captains colours are red, yellow and blue",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"The Captains colours are red, yellow and blue",$22,$00
 abs_0_0005CDC4:
 	dc.b $22,$42,$72,$65,$61,$6B,$64,$6F,$77,$6E,$20,$69,$6D,$6D,$69,$6E
 	dc.b $65,$6E,$74,$2E,$2E,$2E,$2E,$72,$65,$71,$75,$69,$72,$65,$20,$62
@@ -27737,30 +27757,30 @@ abs_0_0005CE38:
 	dc.b $48,$45,$20,$48,$45,$20,$48,$45,$20,$48,$45,$20,$48,$45,$20,$48
 	dc.b $45,$22,$00
 gardener_bloop_message:
-	dc.b $22,"BLOOP10011110BLEEPBLOOPBEEP00001110101",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"BLOOP10011110BLEEPBLOOPBEEP00001110101",$22,$00
 chemist_reading_request_message:
-	dc.b $22,"I",$22,"d like some good reading, if you have any.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"I",$22,"d like some good reading, if you have any.",$22,$00
 chemist_winter_discontent_quote:
-	dc.b $22,"This is the winter of our discontent..",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"This is the winter of our discontent..",$22,$00
 chemist_summer_day_quote:
-	dc.b $22,"Compare ye to a summers day..",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Compare ye to a summers day..",$22,$00
 chemist_horse_quote:
-	dc.b $22,"A horse, a horse, my kingdom for a horse",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"A horse, a horse, my kingdom for a horse",$22,$00
 chemist_romeo_quote:
-	dc.b $22,"Romeo, Romeo wherefore art thou...",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Romeo, Romeo wherefore art thou...",$22,$00
 chemist_bible_response:
-	dc.b $22,"Oh no, not a Bible basher I hope...",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Oh no, not a Bible basher I hope...",$22,$00
 abs_0_0005CF72:
 	dc.b $22,$48,$65,$6C,$70,$20,$6D,$65,$2C,$20,$49,$20,$6E,$65,$65,$64
 	dc.b $20,$61,$20,$73,$79,$72,$69,$6E,$67,$65,$22,$00
 diabetic_insulin_request_response:
-	dc.b $22,"Get me some insulin, I can help you",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Get me some insulin, I can help you",$22,$00
 diabetic_missing_needle_response:
-	dc.b $22,"I want insulin, but I need a needle first",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"I want insulin, but I need a needle first",$22,$00
 diabetic_self_destruct_hint_part_1:
-	dc.b $22,"Use the captain",$22,"s self destruct initiation disc",$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Use the captain",$22,"s self destruct initiation disc",$00
 diabetic_self_destruct_hint_part_2:
-	dc.b " and the right code cards to destroy Pandora.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b " and the right code cards to destroy Pandora.",$22,$00
 abs_0_0005D040:
 	dc.b $22,$42,$7A,$7A,$7A,$7A,$20,$7A,$7A,$7A,$20,$7A,$7A,$20,$44,$49
 	dc.b $45,$20,$48,$55,$4D,$41,$4E,$20,$7A,$7A,$20,$7A,$7A,$20,$7A,$7A
@@ -27772,24 +27792,24 @@ abs_0_0005D07F:
 	dc.b $22,$54,$68,$6F,$75,$20,$73,$68,$61,$6C,$74,$20,$6E,$6F,$74,$20
 	dc.b $6B,$69,$6C,$6C,$2E,$22,$00
 priest_completion_boast_message:
-	dc.b $22,"I am now stonger than you could possibly imagine.",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"I am now stonger than you could possibly imagine.",$22,$00
 abs_0_0005D0CA:
 	dc.b $22,$49,$20,$6E,$65,$65,$64,$20,$73,$75,$6E,$6C,$69,$67,$68,$74
 	dc.b $22,$00
 driffid_insecticide_response:
-	dc.b $22,"That",$22,"s too small for the real problem",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"That",$22,"s too small for the real problem",$22,$00
 driffid_light_box_response:
-	dc.b $22,"That really feels good",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"That really feels good",$22,$00
 driffid_megabio_feed_response:
-	dc.b $22,"That stuff is disgusting",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"That stuff is disgusting",$22,$00
 technician_earth_reminder_request_message:
-	dc.b $22,"I want a reminder of what Earth looked like",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"I want a reminder of what Earth looked like",$22,$00
 technician_drink_response:
-	dc.b $22,"Enjoy the drink",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Enjoy the drink",$22,$00
 squash_player_ball_request_message:
-	dc.b $22,"I need a squash ball, there isn",$22,"t one here",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"I need a squash ball, there isn",$22,"t one here",$22,$00
 squash_player_no_racquet_response:
-	dc.b $22,"Thanks, although I don",$22,"t have a squash racquet",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Thanks, although I don",$22,"t have a squash racquet",$22,$00
 abs_0_0005D1D6:
 	dc.b $22,$54,$68,$65,$20,$6D,$65,$64,$69,$63,$20,$6D,$65,$73,$73,$65
 	dc.b $64,$2C,$20,$74,$68,$65,$20,$6D,$65,$64,$69,$63,$20,$64,$69,$65
@@ -27805,9 +27825,9 @@ abs_0_0005D234:
 	dc.b $22,$4D,$6F,$6E,$65,$79,$2C,$6D,$6F,$6E,$65,$79,$2C,$6D,$6F,$6E
 	dc.b $65,$79,$2E,$2E,$2E,$22,$00
 bank_manager_bent_coin_response:
-	dc.b $22,"Let me invest that for you, HA HA HA HA",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Let me invest that for you, HA HA HA HA",$22,$00
 bank_manager_default_response:
-	dc.b $22,"Can I interest you in a pension scheme...",$22,$00	; mode=required, data_role=string, unit=byte, encoding=ascii
+	dc.b $22,"Can I interest you in a pension scheme...",$22,$00
 npc_item_handoff_message:
 	dc.b '"','D','o','n','"','t',' ','m','o','v','e','.',' ','Y','o','u'	; message
 	dc.b ' ','n','e','e','d',' ','I','.','D','.',',',' ','o','n','l','y'
@@ -27930,7 +27950,7 @@ store_bank_manager_item_response:
 	move.l a0,world_object_shared_prefix_interaction_message_ptr(a5)
 	bra.b request_world_object_context_message
 chemist_shakespeare_response_ptrs:
-	dc.l chemist_winter_discontent_quote	; mode=required, data_role=pointer_table, unit=pointer
+	dc.l chemist_winter_discontent_quote	; pointer_table
 	dc.l chemist_summer_day_quote
 	dc.l chemist_horse_quote
 	dc.l chemist_romeo_quote

@@ -5115,3 +5115,48 @@ receipt `5f4038698d62dd80035cd8c135bc65b8f58012ceb046fce266acc94a27157100`. Whol
 SDK/pointer forms, all 126 assets, 2,112 tile fields, 128-byte INCBIN policy, raw
 gaps and append-only histories remain preserved. No framework or runtime-runner
 change was needed.
+
+
+## Overlay text, registration and startup-clear tail (2026-10-19)
+
+Restored the connected row-clear, six-line text dispatch, callback readiness and
+registration family with 53 accepted facts: 18 control stages, six constants,
+17 symbolic operands, four continuations of the existing A5 descriptor type,
+seven concrete comments and one 64-byte startup-clear tail owner. The existing
+44-byte descriptor and 16-pointer registry remain shared and unchanged.
+
+Six original-code CPU tests cover four-plane row clearing with BYTE dimension
+wrap; unchecked wrapped WORD selected-line pointer indexing and the two cursor
+phases; all 64 line-style combinations and NULL-prefix dispatch; all 256 state
+bytes crossed with three style values and a NULL callback; and the exact
+128-byte startup clear. An injected 32-nonzero-pointer prefix reaches the first
+SPACE glyph during registration. Clearing the registry and tail excludes that
+font write, which the original compact font copy subsequently reads. This is
+controlled composition evidence; normal gameplay overflow and exclusive tail
+ownership/later lifetime remain unproved. The indexed base aliases the shared
+line_0_ptr field through a canonical EQU; the unchecked index and native
+indexed_dynamic gap remain explicit. Fixtures patch no game instructions and
+make no DMA/pixel claim.
+
+The generic effective-metadata projection now forwards authored seed prose
+without manufacturing comments from mode/data_role/unit/encoding controls.
+Those controls remain in the Manual Action Log and structured metadata. This
+removes 141 routine suffixes (139 strings and two pointer tables) from Pandora;
+all authored comments remain, including metadata-looking authored prose in the
+regression fixtures. Required code/data classification, role, encoding and
+byte equality are tested independently. This is the canonical projection fix,
+not a target-specific source filter. Hardware names such as bpl1mod(a5) and
+aud0+ac_per(a6) remain present.
+
+Validation: 59 effective-metadata tests and 18 selected native renderer tests
+passed. Five overlay CPU tests passed initially; the corrected callback-slot
+fixture then passed separately. Both actual-instruction C/vasm preflights passed
+(17 operand forms plus six EQUs and a guarded 64-byte tail; eight descriptor
+field instructions separately). A single final settled target gate reproduced
+all 376,832 bytes with C and vasm, SHA-256
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`;
+receipt `193965f9dd5548a840d1fac883a24a99dff56cfafe17d2bbd8ae63d63d095316`.
+Preservation checks retain all 398 prior manual data references, previous
+owners/layouts/types/RSSET regions, authored comments, 126 assets, 2,112 tile
+fields, 128-byte INCBIN policy, SDK hardware forms and unproved raw gaps.
+Manual Action Log and Decision Journal append exactly 53 records each.

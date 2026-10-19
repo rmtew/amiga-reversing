@@ -173,15 +173,13 @@ def _manual_action_citation(action_object: Mapping[str, object], id_field: str) 
 
 
 def _manual_seed_comment(seed: dict[str, object]) -> str | None:
-    comment = _manual_seed_text(seed, "comment")
-    if comment is not None:
-        return comment
-    details: list[str] = []
-    for key in ("mode", "data_role", "unit", "encoding"):
-        value = _manual_seed_text(seed, key)
-        if value is not None:
-            details.append(f"{key}={value}")
-    return ", ".join(details) if details else None
+    """Project authored prose, never synthesize renderer comments from controls.
+
+    Mode remains in the Manual Action Log; data role, unit and encoding have
+    their own effective-metadata fields. Treating those controls as prose leaks
+    diagnostics into every normal assembly declaration.
+    """
+    return _manual_seed_text(seed, "comment")
 
 
 def _manual_seed_to_code_entrypoint(seed: dict[str, object]) -> SeededCodeEntrypointMetadata | None:

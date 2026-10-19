@@ -3581,13 +3581,20 @@ helper:
         )
 
     assert policy["implicit_entry_points"] is False
-    assert policy["entrypoints"] == [{"section_index": 0, "offset": 4}]
+    assert policy["entrypoints"] == [{"section_index": 0, "offset": 4, "provenance": "manual_action_log"}]
     block_starts = {block["start_offset"] for block in analysis["sections"][0]["blocks"]}
     assert 0 not in block_starts
     assert {4, 8}.issubset(block_starts)
 
 
-def test_real_dll_required_manual_data_seed_splits_rendered_subrange(tmp_path: Path) -> None:
+@pytest.mark.parametrize("authored_comment", [
+    None,
+    "Keep the original spelling and NUL terminator.",
+    "mode=required, data_role=string, unit=byte, encoding=ascii",
+])
+def test_real_dll_required_manual_data_seed_splits_rendered_subrange(
+    tmp_path: Path, authored_comment: str | None,
+) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -3645,6 +3652,7 @@ after_data:
                     "unit": "byte",
                     "encoding": "ascii",
                     "name": "manual_text",
+                    **({"comment": authored_comment} if authored_comment is not None else {}),
                 },
             },
             sort_keys=True,
@@ -3662,10 +3670,18 @@ after_data:
         )
 
     assert "loc_0_00000000:\n\tbra.b loc_0_00000008\n" in rendered
-    assert (
-        'manual_text:\n\tdc.b "TEXT",$00\t; mode=required, data_role=string, unit=byte, encoding=ascii\n'
-        in rendered
-    )
+    suffix = f"\t; {authored_comment}" if authored_comment is not None else ""
+    assert f'manual_text:\n\tdc.b "TEXT",$00{suffix}\n' in rendered
+    if authored_comment is None:
+        assert "mode=required" not in rendered and "data_role=" not in rendered
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+    entity = next(e for e in effective_target_metadata(target_dir).seeded_entities if e.name == "manual_text")
+    assert (entity.subtype, entity.unit, entity.encoding) == ("string", "byte", "ascii")
+    assert entity.comment == authored_comment
+    log = [json.loads(line) for line in (target_dir / MANUAL_ACTION_LOG_FILE_NAME).read_text().splitlines()]
+    assert log[-1]["seed"]["mode"] == "required"
+    rebuilt, _ = assemble_platform_source_text_with_c_backend("amiga-hunk", rendered, project_root=PROJECT_ROOT)
+    assert rebuilt == binary_path.read_bytes()
     assert "\tdc.b $00\nloc_0_00000008:\n\trts\n" in rendered
 
 
@@ -4114,10 +4130,12 @@ after_data:
             project_root=PROJECT_ROOT,
         )
 
-    assert f"data_role={data_role}" in rendered
-    assert f"unit={unit}" in rendered
-    if encoding is not None:
-        assert f"encoding={encoding}" in rendered
+    # Classification is a structured contract, not a diagnostic ASM comment.
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+    entity = next(e for e in effective_target_metadata(target_dir).seeded_entities if e.addr == 2)
+    assert (entity.subtype, entity.unit, entity.encoding) == (data_role, unit, encoding)
+    assert entity.comment is None
+    assert all(tag not in rendered for tag in ("mode=", "data_role=", "unit=", "encoding="))
     assert "\trts\n" in rendered
     assert rebuilt == binary_path.read_bytes()
     assert direct_profile["direct_rebuild_refused"] is False
@@ -4222,7 +4240,7 @@ after_data:
     assert policy["manual_representations"] == [
         {"section_index": 0, "offset": 2, "size": 4, "style": "character"}
     ]
-    assert "manual_bytes:\n\tdc.b 'A','B','C','D'\t; mode=required, unit=byte\n" in rendered
+    assert "manual_bytes:\n\tdc.b 'A','B','C','D'\n" in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,
