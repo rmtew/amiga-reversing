@@ -94,8 +94,17 @@ def wait_for_memory_access(client, watch):
                     else "unexpected_stop",
                     stop_event=stop,
                 )
-            except CopperlineTimeout:
-                result.update(status="timeout", termination="deadline_interrupt")
+            except CopperlineTimeout as exc:
+                result.update(
+                    status="timeout", termination="deadline_interrupt",
+                    stop_event=exc.stop_event,
+                    deadline_recovery={"resume_stop": exc.stop_event,
+                                       "pause_stop": exc.pause_event},
+                )
+        result["queued_stop_notifications"] = [
+            event for event in getattr(client, "events", ())
+            if event.get("method") == "event.stopped"
+        ]
         result["registers"] = client.registers()
         result["elapsed_seconds"] = round(time.monotonic() - started, 3)
         return result

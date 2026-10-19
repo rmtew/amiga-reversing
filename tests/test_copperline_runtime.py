@@ -135,6 +135,20 @@ def test_access_watch_cleanup_on_error_and_cleanup_failure_is_not_success():
         runtime.wait_for_memory_access(c, access_watch())
 
 
+def test_access_watch_retains_deadline_recovery_and_queued_stop_evidence():
+    c = Client()
+    stop = {"reason": "watchpoint", "pc": 0x16B0E}
+    paused = {"reason": "pause"}
+    c.stop = CopperlineTimeout("expired", stop_event=stop, pause_event=paused)
+    c.events = [{"method": "event.stopped", "params": stop}]
+    result = runtime.wait_for_memory_access(c, access_watch())
+    assert result["status"] == "timeout"
+    assert result["stop_event"] == stop
+    assert result["deadline_recovery"] == {"resume_stop": stop, "pause_stop": paused}
+    assert result["queued_stop_notifications"] == c.events
+    assert c.calls[-1] == ("remove", 1)
+
+
 def test_access_watch_resolves_paused_register_binding_without_wrapping():
     c = Client()
     c.stop = {"reason": "watchpoint"}

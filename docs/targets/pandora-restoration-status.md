@@ -5788,3 +5788,29 @@ does not apply to the configured 68000. No new classification or whole-range
 claim is made: 6,494 payload bytes and 750 workspace coordinate-gap bytes remain
 unknown. The two-byte overfetch remains a programmed-envelope model, not an
 observed chipset transaction.
+
+### Bounded read-watch diagnosis (2026-10-19)
+
+[Follow-up evidence](../../runtime/observations/pandora-read-watch-stop-diagnosis.json)
+confirms the original draw path and CPU watch delivery. A one-second read/cpu
+watch hit the stack WORD at `$10416` during the original MOVEM at `$16B0E`;
+the value matches the saved stack, and the paused PC/SP reflect the completed
+instruction. A subsequent two-second read/blitter watch on the next programmed
+B-source `$31536` timed out despite exact filter readback. Execution advanced
+91 frames and retired 752,370 instructions between the recorded stops, including
+the intervening anchor wait.
+
+A general transport defect was reproduced and corrected: deadline recovery
+discarded the resumed-run and pause reply bodies. The wrapper now retains both
+and the bounded stop-notification snapshot without promoting late events to
+successful observations. The corrected live run contains only pause replies
+and no queued stop notifications, so that defect is not established as the
+cause of the missed blitter control. Focused checks pass: 161 tests, two optional
+tests skipped. No new source inspection was attempted after the prior denials.
+
+The precise remaining question is whether and how this build forwards blitter
+B-source DMA reads to the registered read-watch dispatcher. The denied official
+source inspection would be needed to inspect that hook; this dependent path is
+stopped. No actual bank30 DMA read or last-frame packet is captured. Original
+payload, generated source, classifications, 6,494 unknown payload bytes and 750
+workspace coordinate-gap bytes remain unchanged.

@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "base_commit": "809649613c8dd3e7b024806bd38c6be584c8ecde",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "purpose": "Bounded local diagnosis of the failed blitter read positive control; not a bank30 DMA trace.",
+  "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+  "emulator_version": "copperline 1.0.0",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_output_sha256": "fa44f48572a06a510a63c2fe4ab51b95cf90c41d637f14336b6bdf58d708cf4c",
+  "scenario": "runtime/scenarios/pandora-read-watch-stop-diagnosis.json",
+  "scenario_sha256": "90fedf20efac33bfb537d56207eb30b7892016a4beb9176f30ad5b4b37a91852",
+  "raw_report_sha256": "aff17aa3c48f2019032cab124cf883941ce2fff3b93231a6e569f295f48552d7",
+  "direct_payload_handoff": {
+    "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "size": 376832,
+    "load_address": 131072,
+    "status": "verified"
+  },
+  "reverse_boundary": {
+    "memory_write": "handoff_release",
+    "reverse_anchor": "after_write",
+    "replay_across_write": false,
+    "materialization": {
+      "status": "verified",
+      "entrypoint": 66666,
+      "size": 349040,
+      "copied_sha256": "dbe84fa1cc687a067a185bf54cf2a61df2750f28cb4081f753a44b68f5528abf",
+      "source_consumed_at_entry": true,
+      "input_backing_retained": true,
+      "initialization": null
+    }
+  },
+  "findings": {
+    "draw_path": "Canonical original MOVEM at source6B0E and shifted BLTSIZE at6B0A both reached with byte identity and runtime base10000 confirmed.",
+    "cpu_read_control": "Read/cpu watch on paused A7=10416 hit immediately. Event detail identifies instruction16B0E and value0001, matching the first saved stack WORD. Paused PC16B12 and SP1041E reflect completed MOVEM; anchor SP10416.",
+    "blitter_read_control": "Read/blitter watch on paused A0=31536 configured and echoed correctly. Two-second window ended in client pause, not a watchpoint.",
+    "execution_progress": {
+      "from_cpu_event_frame": 464,
+      "to_final_pause_frame": 555,
+      "retired_instruction_delta": 752370,
+      "scope": "Between the two recorded stops, including the intervening canonical-anchor wait."
+    },
+    "confirmed_wrapper_defect": "Deadline recovery formerly discarded the resumed run and pause reply bodies. They are now attached to CopperlineTimeout and retained by the memory-watch report, together with bounded queued stop notifications.",
+    "causal_limit": "The defect is reproduced by focused transport tests. It is not demonstrated to have caused the old missed controls. In this corrected live run both recovered replies are pause and the queued-stop list is empty.",
+    "engine_scope": "CPU read-watch and successful stop delivery demonstrated. Blitter read-event operation remains unvalidated; no conclusion about absent DMA or bank30 suffix non-use.",
+    "source_access": "No new GitHub source access attempted. Prior source-tree API proxy403 and browser restricted-URL denials remain in force."
+  },
+  "remaining_blocker": "Need an independently observed blitter B-source read, or the official implementation fact that explains why a matching B-source read fails to trigger this filter. The denied source inspection would be needed to inspect the blitter-read-to-watch-dispatch hook; that dependent path is stopped.",
+  "validation": {
+    "focused_tests_passed": 161,
+    "optional_tests_skipped": 2,
+    "source_output_changed": false,
+    "classifications_changed": false,
+    "unknown_payload_bytes": 6494,
+    "workspace_coordinate_gap_bytes": 750
+  },
+  "phases": [
+    {
+      "name": "title_menu_loop",
+      "stable_key": "s0:00000BA8:instruction",
+      "capture": {
+        "registers": {},
+        "memory_reads": []
+      },
+      "resolved_function": {
+        "name": "update_star_motion",
+        "source_start": 2984,
+        "source_end": 3030,
+        "runtime_start": 68520,
+        "runtime_end": 68566
+      },
+      "address": "0x00010ba8",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "breakpoint-hit",
+      "pc": "0x00010ba8",
+      "sp": "0x00010446",
+      "stack_return_address": "0x00010da0",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0xba8"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0xba8",
+        "runtime_base": "0x00010000"
+      }
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "stable_key": "s0:0000079E:instruction",
+      "capture": {
+        "registers": {},
+        "memory_reads": []
+      },
+      "resolved_function": null,
+      "address": "0x0001079e",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "breakpoint-hit",
+      "pc": "0x0001079e",
+      "sp": "0x0001044e",
+      "stack_return_address": "0x00010576",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x79e"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x79e",
+        "runtime_base": "0x00010000"
+      }
+    },
+    {
+      "name": "cpu_movem_stack_read_control",
+      "stable_key": "s0:00006B0E:instruction",
+      "capture": {
+        "registers": {
+          "d0": "0x01060140",
+          "d1": "0x03801f40",
+          "d2": "0x01400000",
+          "d3": "0x03b00330",
+          "d4": "0x00000000",
+          "d5": "0x0000000c",
+          "d6": "0x00001fca",
+          "d7": "0x00000782",
+          "a0": "0x0003152e",
+          "a1": "0x0007db00",
+          "a2": "0x00071fd6",
+          "a3": "0x00031528",
+          "a4": "0x0007db00",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "a7": "0x00010416",
+          "sr": "0x00002000"
+        },
+        "memory_reads": [
+          {
+            "address": "0x00010416",
+            "bytes": "000100100001001e000315280007db00",
+            "base_register": "a7",
+            "offset": 0
+          }
+        ]
+      },
+      "resolved_function": null,
+      "address": "0x00016b0e",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "watchpoint",
+      "pc": "0x00016b0e",
+      "sp": "0x00010416",
+      "stack_return_address": "0x00010010",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x6b0e"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x6b0e",
+        "runtime_base": "0x00010000"
+      },
+      "memory_access_watch": {
+        "requested_watch": {
+          "address": {
+            "base_register": "a7",
+            "offset": 0
+          },
+          "access": "read",
+          "engine": "cpu",
+          "wait_seconds": 1
+        },
+        "armed_watch": {
+          "kind": "watch",
+          "addr": 66582,
+          "access": "read",
+          "class": "cpu"
+        },
+        "registration": {
+          "id": 6
+        },
+        "watch_id": 6,
+        "wait_seconds": 1,
+        "stop_event": {
+          "cck": 32991335,
+          "detail": "Watch $010416: 0001 read by cpu (pc $016B0E, v104 h51)",
+          "frame": 464,
+          "hpos": 63,
+          "pc": 92946,
+          "reason": "watchpoint",
+          "retired_instructions": 5311177,
+          "seconds": 9.301469313300789,
+          "vpos": 104
+        },
+        "backend_watch_state": {
+          "breaks": [
+            {
+              "access": "read",
+              "addr": 66582,
+              "class": "cpu",
+              "id": 6,
+              "kind": "watch"
+            }
+          ]
+        },
+        "filter_confirmed": true,
+        "status": "hit",
+        "termination": "access_observed",
+        "queued_stop_notifications": [],
+        "registers": {
+          "d0": 17170752,
+          "d1": 58728256,
+          "d2": 20971520,
+          "d3": 61866800,
+          "d4": 1,
+          "d5": 16,
+          "d6": 1,
+          "d7": 30,
+          "a0": 202030,
+          "a1": 514816,
+          "a2": 466902,
+          "a3": 202024,
+          "a4": 514816,
+          "a5": 14675968,
+          "a6": 14844,
+          "a7": 66590,
+          "pc": 92946,
+          "sr": 8192,
+          "sp": 66590
+        },
+        "elapsed_seconds": 0.0,
+        "payload_at_stop": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x6b12"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x6b12",
+          "runtime_base": "0x00010000"
+        },
+        "capture": {
+          "registers": {
+            "d0": "0x01060140",
+            "d1": "0x03801f40",
+            "d2": "0x01400000",
+            "d3": "0x03b00330",
+            "d4": "0x00000001",
+            "d5": "0x00000010",
+            "d6": "0x00000001",
+            "d7": "0x0000001e",
+            "a0": "0x0003152e",
+            "a1": "0x0007db00",
+            "a2": "0x00071fd6",
+            "a3": "0x00031528",
+            "a4": "0x0007db00",
+            "a5": "0x00dff000",
+            "a6": "0x000039fc",
+            "a7": "0x0001041e",
+            "sr": "0x00002000"
+          },
+          "memory_reads": [
+            {
+              "address": "0x0001041e",
+              "bytes": "000315280007db0000071f5e0001322a",
+              "base_register": "a7",
+              "offset": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "blitter_B_read_control_with_stop_evidence",
+      "stable_key": "s0:00006B0A:instruction",
+      "capture": {
+        "registers": {
+          "d0": "0x01060140",
+          "d1": "0x03801f40",
+          "d2": "0x01400000",
+          "d3": "0x03b00330",
+          "d4": "0x00000000",
+          "d5": "0x0000000c",
+          "d6": "0x00001fca",
+          "d7": "0x00000782",
+          "a0": "0x00031536",
+          "a1": "0x0007db02",
+          "a2": "0x00071fd8",
+          "a3": "0x00031528",
+          "a4": "0x0007db00",
+          "a5": "0x00dff000",
+          "a6": "0x000039fc",
+          "a7": "0x00010416",
+          "sr": "0x00002000"
+        },
+        "memory_reads": [
+          {
+            "address": "0x00049dc0",
+            "bytes": "00000000000000000000000000000000",
+            "base_register": null,
+            "offset": null
+          },
+          {
+            "address": "0x0005c6a8",
+            "bytes": "00049d08000037f00002000c002000000014",
+            "base_register": null,
+            "offset": null
+          }
+        ]
+      },
+      "resolved_function": null,
+      "address": "0x00016b0a",
+      "status": "timeout",
+      "termination": "deadline_interrupt",
+      "stop_reason": "pause",
+      "pc": "0x00016b0a",
+      "sp": "0x00010416",
+      "stack_return_address": "0x00000010",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x6b0a"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x6b0a",
+        "runtime_base": "0x00010000"
+      },
+      "memory_access_watch": {
+        "requested_watch": {
+          "address": {
+            "base_register": "a0",
+            "offset": 0
+          },
+          "access": "read",
+          "engine": "blitter",
+          "wait_seconds": 2
+        },
+        "armed_watch": {
+          "kind": "watch",
+          "addr": 202038,
+          "access": "read",
+          "class": "blitter"
+        },
+        "registration": {
+          "id": 8
+        },
+        "watch_id": 8,
+        "wait_seconds": 2,
+        "stop_event": {
+          "cck": 39502528,
+          "detail": "paused by client",
+          "frame": 555,
+          "hpos": 215,
+          "pc": 99618,
+          "reason": "pause",
+          "retired_instructions": 6063547,
+          "seconds": 11.137213816591695,
+          "vpos": 304
+        },
+        "backend_watch_state": {
+          "breaks": [
+            {
+              "access": "read",
+              "addr": 202038,
+              "class": "blitter",
+              "id": 8,
+              "kind": "watch"
+            }
+          ]
+        },
+        "filter_confirmed": true,
+        "status": "timeout",
+        "termination": "deadline_interrupt",
+        "deadline_recovery": {
+          "resume_stop": {
+            "cck": 39502528,
+            "detail": "paused by client",
+            "frame": 555,
+            "hpos": 215,
+            "pc": 99618,
+            "reason": "pause",
+            "retired_instructions": 6063547,
+            "seconds": 11.137213816591695,
+            "vpos": 304
+          },
+          "pause_stop": {
+            "cck": 39502528,
+            "detail": "paused by client",
+            "frame": 555,
+            "hpos": 215,
+            "pc": 99618,
+            "reason": "pause",
+            "retired_instructions": 6063547,
+            "seconds": 11.137213816591695,
+            "vpos": 304
+          }
+        },
+        "queued_stop_notifications": [],
+        "registers": {
+          "d0": 12,
+          "d1": 100,
+          "d2": 88,
+          "d3": 104,
+          "d4": 92,
+          "d5": 4294903652,
+          "d6": 65535,
+          "d7": 88,
+          "a0": 78090,
+          "a1": 363632,
+          "a2": 375308,
+          "a3": 376762,
+          "a4": 78378,
+          "a5": 78378,
+          "a6": 14844,
+          "a7": 66634,
+          "pc": 99618,
+          "sr": 8192,
+          "sp": 66634
+        },
+        "elapsed_seconds": 2.003,
+        "payload_at_stop": {
+          "payload_name": "binary.bin",
+          "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+          "sample_size": 16,
+          "matching_offsets": [
+            "0x8522"
+          ],
+          "status": "pc_matched",
+          "payload_offset": "0x8522",
+          "runtime_base": "0x00010000"
+        },
+        "capture": {
+          "registers": {
+            "d0": "0x0000000c",
+            "d1": "0x00000064",
+            "d2": "0x00000058",
+            "d3": "0x00000068",
+            "d4": "0x0000005c",
+            "d5": "0xffff0764",
+            "d6": "0x0000ffff",
+            "d7": "0x00000058",
+            "a0": "0x0001310a",
+            "a1": "0x00058c70",
+            "a2": "0x0005ba0c",
+            "a3": "0x0005bfba",
+            "a4": "0x0001322a",
+            "a5": "0x0001322a",
+            "a6": "0x000039fc",
+            "a7": "0x0001044a",
+            "sr": "0x00002000"
+          },
+          "memory_reads": [
+            {
+              "address": "0x00049dc0",
+              "bytes": "00000000000000000000000000000000",
+              "base_register": null,
+              "offset": null
+            },
+            {
+              "address": "0x0005c6a8",
+              "bytes": "00049d08000037f00002000c002000000014",
+              "base_register": null,
+              "offset": null
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -144,6 +144,30 @@ Reproduce with the public command above, substituting
 `pandora-bank30-access-watch.json` runs the B-source control first and stops on
 its timeout, so it deliberately does not reach the suffix phase in that run.
 
+### Read-watch stop diagnosis
+
+[`pandora-read-watch-stop-diagnosis.json`](../runtime/observations/pandora-read-watch-stop-diagnosis.json)
+records a minimal one-second CPU stack-read control followed by a two-second
+blitter B-source control, using the corresponding scenario of the same name.
+The CPU watch hit at `$10416`: event detail identifies the original MOVEM at
+`$16B0E`, while the paused PC is `$16B12` after its execution. The reported WORD
+matches the saved stack capture. The blitter watch on `$31536` timed out with
+matching filter readback. Execution advanced from frame 464 to 555 and retired
+752,370 instructions between the CPU stop and final pause, including the
+intervening anchor wait. The intended draw path and CPU read-stop delivery are
+validated; blitter read delivery remains unvalidated.
+
+Deadline recovery previously drained and discarded both reply bodies. The
+transport now attaches them as `stop_event` and `pause_event` on
+`CopperlineTimeout`; access-watch reports retain them in `deadline_recovery`
+and retain the bounded queued `event.stopped` snapshot. That queue may include
+earlier stops and is not automatically attributed to the current watch. A late
+watchpoint remains a timeout rather than becoming an in-budget hit. Focused
+tests reproduce the loss and verify preservation in either reply order.
+In this live run, both recovered replies say pause and the notification queue
+is empty, so the defect does not explain this newly missed blitter control.
+No fresh source-access attempts or bank30 classification changes were made.
+
 ## Preserved contracts and deliberate changes
 
 - Canonical stable keys resolve to reviewed observation views. Unique bytes and
