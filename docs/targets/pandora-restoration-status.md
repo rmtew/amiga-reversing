@@ -5737,3 +5737,23 @@ Supported purpose is 14,305 bytes across 57 assessments (a separate evidence vie
 The 967 resolved/32 unresolved native accesses and unresolved field identities
 remain unchanged. The audit closes 197 bytes, retains 33 evidence-limited bytes
 and exposes the remaining 12-byte native coverage gap without an extra detour.
+
+### Dominant-range evidence and bank-30 tracing limit (2026-10-19)
+
+[Persisted observations](../validation/pandora-dominant-payload-evidence.json)
+retain the finite original-CPU probes, packet inputs, 369-header audit and paired
+capacity arithmetic. Bank 30 packs 5,264 pixel/1,316 mask bytes into spans matching
+thirteen full-frame budgets of 6,656/1,664 bytes; suffixes are 1,392/348 bytes.
+This supports a retained-capacity interpretation without proving its original
+reservation or padding intent. Two modeled final-frame draws program a B-channel
+envelope through runtime `$49DCA`, two bytes into the pixel suffix.
+
+Actual chipset reads remain unobserved. The pinned Copperline 1.0.0 executable
+and legal ROM are present, but the supported public session interface exposes
+snapshots and write watches, not chipset read tracing; its parser rejects the
+read-watch request before launch. No emulator replay, alternate control path,
+upgrade or new runtime feature was attempted. This does not establish that the
+underlying emulator fundamentally lacks tracing. Next required evidence is an
+agent-attributed read trace for this single packet, plus producer/reservation
+evidence for the complete suffix. No target facts or classifications change;
+6,494 payload bytes and 750 workspace coordinate-gap bytes remain unknown.
