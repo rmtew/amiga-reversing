@@ -2239,8 +2239,21 @@ static int lookup_policy_static_data_field_offset(const M68kAnalysisPolicy *poli
   return 1;
 }
 
+static int typed_operand_is_runtime_only(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, uint32_t operand_index) {
+  const M68kAnalysisManualRepresentation *representation =
+    lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+  if (lookup == NULL || lookup->policy == NULL || representation == NULL ||
+      representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+      representation->has_source_symbol || representation->target_equate_index == 0U ||
+      representation->target_equate_index > lookup->policy->target_equate_count) return 0;
+  /* A runtime-only workspace may numerically overlap a source image's load
+   * view. The explicit domain does not establish that image's contents/type. */
+  return lookup->policy->target_equates[representation->target_equate_index - 1U].address_domain != 0U;
+}
+
 /* A structured-data item can describe an object whose address is materialised
-   at either its start or a proven interior byte.  The cursor records that
+   at either its start or a proven interior byte. The cursor records that
    interior position relative to the root object for later field resolution. */
 static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
@@ -7509,10 +7522,11 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
           }
         }
       }
-      if (candidate_loads_data_target_to_address_reg(candidate, instruction, &target_section_index, &target_offset,
+      if (!typed_operand_is_runtime_only(lookup, section_index, offset, 0U) &&
+          (candidate_loads_data_target_to_address_reg(candidate, instruction, &target_section_index, &target_offset,
             &dest_reg) ||
           candidate_loads_runtime_address_ref_target_to_address_reg(lookup, section_index, candidate, instruction,
-            &target_section_index, &target_offset, &dest_reg)) {
+            &target_section_index, &target_offset, &dest_reg))) {
         uint16_t static_array_element_count = 0U, static_array_element_index = 0U;
         uint16_t static_conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
         int32_t static_byte_cursor = 0;

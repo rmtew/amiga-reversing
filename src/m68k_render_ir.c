@@ -1123,13 +1123,18 @@ static int render_asm_includes_for_structured_data_item(M68kRenderIRPreview *pre
 static int lookup_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset);
 
-static int policy_has_custom_struct_named(const M68kAnalysisPolicy *policy, const char *struct_name) {
+static const M68kAnalysisCustomStruct *policy_custom_struct_named(
+    const M68kAnalysisPolicy *policy, const char *struct_name) {
   uint16_t index;
-  if (policy == NULL || policy->custom_structs == NULL || struct_name == NULL || struct_name[0] == '\0') return 0;
+  if (policy == NULL || policy->custom_structs == NULL || struct_name == NULL || struct_name[0] == '\0') return NULL;
   for (index = 0U; index < policy->custom_struct_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++index) {
-    if (strcmp(policy->custom_structs[index].name, struct_name) == 0) return 1;
+    if (strcmp(policy->custom_structs[index].name, struct_name) == 0) return &policy->custom_structs[index];
   }
-  return 0;
+  return NULL;
+}
+
+static int policy_has_custom_struct_named(const M68kAnalysisPolicy *policy, const char *struct_name) {
+  return policy_custom_struct_named(policy, struct_name) != NULL;
 }
 
 /* Data-block expansion gives internal array fields generated labels such as
@@ -1337,8 +1342,10 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
     size_t section_index, uint32_t offset, uint32_t *io_logical_pc) {
   const M68kAnalysisStructuredDataItem *item =
     lookup_structured_data_item_at_offset(lookup, section_index, offset);
+  const M68kAnalysisCustomStruct *range_struct = item != NULL && item->field_name[0] == '\0' ?
+    policy_custom_struct_named(preview->analysis_policy, item->struct_name) : NULL;
   char line[sizeof(((M68kRenderPlannedLabel *)0)->name) +
-    sizeof(((M68kAnalysisStructuredDataItem *)0)->struct_name) + 16U];
+    sizeof(((M68kAnalysisStructuredDataItem *)0)->struct_name) + 32U];
   char name[sizeof(((M68kRenderPlannedLabel *)0)->name)];
   char storage_name[sizeof(((M68kRenderPlannedLabel *)0)->storage_name)];
   const M68kRenderPlannedLabel *planned_label;
@@ -1382,7 +1389,11 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
   if (preview->asm_source_row_builder.active)
     m68k_render_plan_row_builder_mark_current_line_label(&preview->asm_source_row_builder, offset,
       has_runtime_address ? 1U : 0U, runtime_address);
-  if (item != NULL && item->struct_name[0] != '\0' &&
+  if (range_struct != NULL && range_struct->size != 0U &&
+      item->size > range_struct->size && item->size % range_struct->size == 0U) {
+    snprintf(line, sizeof(line), "%s:\t; ARRAY %s[%u]\n", name, item->struct_name,
+      (unsigned)(item->size / range_struct->size));
+  } else if (item != NULL && item->struct_name[0] != '\0' &&
       !policy_has_custom_struct_named(preview != NULL ? preview->analysis_policy : NULL, item->struct_name)) {
     snprintf(line, sizeof(line), "%s:\t; STRUCT %s\n", name, item->struct_name);
   } else {
@@ -6375,7 +6386,10 @@ int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, cha
   if (comment == NULL || comment_size == 0U) return 0;
   comment[0] = '\0';
   if (item == NULL) return 0;
-  field_name = item->field_name[0] != '\0' ? item->field_name : item->label;
+  /* A range's public owner label is not a field annotation. In particular it
+   * must not be repeated on every data row and retained thousands of times
+   * when those rows are collected into one INCBIN. */
+  field_name = item->field_name;
   if (item->struct_name[0] != '\0' && field_name != NULL && field_name[0] != '\0') {
     snprintf(comment, comment_size, "%s", field_name);
     return 1;

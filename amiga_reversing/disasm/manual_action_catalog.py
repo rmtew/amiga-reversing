@@ -4501,9 +4501,9 @@ def _data_block_element_type_binding_payload(
         value = params.get(key)
         if isinstance(value, dict | list):
             binding[key] = value
-    if binding_kind == "custom_struct":
+    if binding_kind == "custom_struct" and element["kind"] != "array":
         element["kind"] = "struct"
-    elif binding_kind == "platform_struct":
+    elif binding_kind == "platform_struct" and element["kind"] != "array":
         element["kind"] = "platform_struct"
     elif element.get("kind") == "raw":
         element["kind"] = "scalar"

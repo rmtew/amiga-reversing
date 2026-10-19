@@ -5895,3 +5895,39 @@ remain intact. This is a bulk-typing capacity limit; the shared reader contract
 is accepted. Individual image grouping, complete writers/lifetimes, allocation
 and actual DMA reads remain unproved. The packet inventory and precise blocker
 are in [the validation record](../validation/pandora-planar-mask-inputs.json).
+
+## Compact array typing and shared mask-bank formats
+
+The label-capacity blocker is resolved without increasing either native cap or
+changing the ABI. The catalog retains an explicit `array` kind when binding a
+structure. Packed uniform scalar arrays use the existing native typed-range
+model, with the shared schema and canonical count/stride retained. Explicit
+record views, pointers, gaps and field-specific presentations keep their leaf
+projection. Interior cursors, named anchors and exact source bytes remain
+covered by the regression fixtures.
+
+Fifty-six accepted bank bindings describe 20,620 cells and 82,480 logical WORD
+fields across 164,960 source bytes. The effective entity count stays at 18,304,
+with existing identities preserved. Each bank now has one `ARRAY type[count]`
+declaration and its existing INCBIN; the three six-frame groupings remain intact.
+Native rendering no longer repeats a range's owner name on every data row.
+
+Two further accepted facts declare the cursor seed destinations as runtime
+namespaces with observed 64-byte startup write footprints. The native typer now
+honors that domain instead of borrowing an unrelated structure from a numerically
+overlapping image load view. The original CPU test checks both complete payloads,
+final cursors and unchanged control LONGs; allocation and later lifetime remain
+unproved. The cursor writes retain their previous source presentation.
+
+The 219 selected metadata/catalog/storage checks, 208 range/domain/reference/
+export checks and 820 native unit cases pass. Five failures in an additional
+opt-in backend subset reproduce with the pre-change Python modules and native
+library; their identities are retained in the validation record. Final C and
+independent vasm output match all 376,832 original bytes, receipt
+`151e0e02e6036c05b2b909937782f06606532a53de7438bec4f240d79312bca5`.
+All 126 asset identities, classifications, paths, sizes, hashes and bytes, all
+16 SDK includes and both history prefixes are preserved. Listing-row positions
+can shift; the 910-cell bank's numeric presentation reduces from 543 to 455 rows.
+Classification, purpose credit and all 40 unresolved structure identities remain
+unchanged; this batch enriches the retained formats rather than claiming new
+payload coverage.

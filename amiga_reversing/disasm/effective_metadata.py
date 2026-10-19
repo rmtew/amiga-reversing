@@ -1424,6 +1424,73 @@ def _data_block_bound_struct_entities(
     return tuple(entities)
 
 
+def _data_block_compact_struct_array_entity(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+    representations: Sequence[ManualRepresentationMetadata],
+    equates: Sequence[TargetEquateMetadata],
+) -> SeededEntityMetadata | None:
+    """Project a packed homogeneous array as one typed native range.
+
+    Native static-data typing already resolves a range's record count and
+    interior cursor from its shared struct. There is no reason to allocate a
+    policy item and an automatic label for every scalar leaf just to render
+    an array of words. Explicit ``struct`` presentation and fields requiring
+    individual representations retain the existing leaf projection.
+    """
+    if element.kind is not DataBlockElementKind.ARRAY or element.reference_interpretation:
+        return None
+    struct = _data_block_bound_custom_struct(element, custom_structs)
+    if struct is None or not struct.fields or struct.size <= 0:
+        return None
+    binding = element.type_binding or {}
+    count = _manual_seed_int(binding, "array_count") or element.array_count or 1
+    stride = element.array_stride or struct.size
+    if (not 1 < count <= 65535 or stride != struct.size
+            or element.width != count * stride
+            or element.representation not in {None, ManualRepresentationStyle.HEX}):
+        return None
+    fields = sorted(struct.fields, key=lambda field: field.offset)
+    width = fields[0].size
+    start, end = _data_block_element_span(layout, element)
+    if (width not in {1, 2, 4} or end > layout.source_end
+            or _data_block_unit_for_address(start, width) != _data_block_unit_from_width(width)):
+        return None
+    if (len(fields) * width != struct.size or any(
+            field.offset != index * width or field.size != width
+            or field.type.upper() == "STRUCT" or field.struct or field.pointer_struct
+            or field.value_kind != "scalar" or field.pointer_address_domain or field.pointer_symbol_group
+            for index, field in enumerate(fields))):
+        return None
+    # A value-specific presentation must keep its exact field boundary. This
+    # also preserves existing symbolic scalar instructions and encoded refs;
+    # ordinary incoming references and independent source labels need no
+    # expansion and are handled by the native range/label planner.
+    if any(rep.hunk == layout.hunk and rep.addr < end
+           and (rep.end if rep.end is not None else rep.addr + 1) > start
+           for rep in representations):
+        return None
+    base_label = layout.name if element.offset == 0 and layout.name else element.name
+    # An authored expression may deliberately name an old derived field alias.
+    # Keep that representation rather than silently removing its declaration.
+    if base_label:
+        prefixes = tuple(label for field in fields
+                         if (label := _data_block_typed_field_label(base_label, field.name, None)))
+        expressions = [rep.symbol for rep in representations if rep.symbol]
+        expressions.extend(eq.value_expression for eq in equates if eq.value_expression)
+        if any(prefix in expression for expression in expressions for prefix in prefixes):
+            return None
+    prototype = _data_block_custom_struct_field_entity(
+        layout, element, struct, fields[0], 0, 0, base_label,
+    )
+    if prototype is None:
+        return None
+    return replace(prototype, end=end, field_name=None, field_type=None, c_type=None,
+                   source_owner_start=start if prototype.name else None,
+                   source_owner_size=element.width if prototype.name else None)
+
+
 def _data_block_element_entity(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -2345,10 +2412,16 @@ def _apply_manual_seed_projection(
     # A bound structure emits its fields, not the enclosing element's display
     # representation. Preserve an explicit symbolic identity of an exact scalar
     # field; broad/partial overlaps and pointer identities keep their owners.
-    typed_entities_by_element = {
-        (layout.layout_id, element.offset): _data_block_bound_struct_entities(layout, element, merged_custom_structs)
-        for layout in effective_data_block_layouts for element in layout.elements
-    }
+    typed_entities_by_element = {}
+    for layout in effective_data_block_layouts:
+        for element in layout.elements:
+            compact = _data_block_compact_struct_array_entity(
+                layout, element, merged_custom_structs, manual_representations, target_equates,
+            )
+            typed_entities_by_element[(layout.layout_id, element.offset)] = (
+                (compact,) if compact is not None
+                else _data_block_bound_struct_entities(layout, element, merged_custom_structs)
+            )
     scalar_field_spans = {
         (entity.hunk, entity.addr, entity.end)
         for entities in typed_entities_by_element.values() for entity in entities

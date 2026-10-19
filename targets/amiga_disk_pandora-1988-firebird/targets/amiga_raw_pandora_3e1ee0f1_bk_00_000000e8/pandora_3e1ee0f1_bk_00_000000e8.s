@@ -20184,28 +20184,28 @@ world_tile_pixels_500_through_507:
 modal_tile_bitmaps:
 	INCBIN "assets/modal_tile_bitmaps.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_01:
+scene_pixel_cells_for_mask_bank_01:	; ARRAY world_tile_planar_row[384]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_01.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_02:
+scene_pixel_cells_for_mask_bank_02:	; ARRAY world_tile_planar_row[384]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_02.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_03:
+scene_pixel_cells_for_mask_bank_03:	; ARRAY world_tile_planar_row[448]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_03.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_04:
+scene_pixel_cells_for_mask_bank_04:	; ARRAY world_tile_planar_row[448]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_04.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_05:
+scene_pixel_cells_for_mask_bank_05:	; ARRAY world_tile_planar_row[256]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_05.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_06:
+scene_pixel_cells_for_mask_bank_06:	; ARRAY world_tile_planar_row[432]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_06.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_07:
+scene_pixel_cells_for_mask_bank_07:	; ARRAY world_tile_planar_row[54]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_07.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_13:
+scene_pixel_cells_for_mask_bank_13:	; ARRAY world_tile_planar_row[324]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_13.bin"
 ; bitmap
 world_position_frame_pixels_00_through_05:
@@ -20217,149 +20217,149 @@ world_position_frame_pixels_06_through_11:
 world_position_frame_pixels_12_through_17:
 	INCBIN "assets/world_position_frame_pixels_12_through_17.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_17:
+scene_pixel_cells_for_mask_bank_17:	; ARRAY world_tile_planar_row[948]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_17.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_18:
+scene_pixel_cells_for_mask_bank_18:	; ARRAY world_tile_planar_row[2186]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_18.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_19:
+scene_pixel_cells_for_mask_bank_19:	; ARRAY world_tile_planar_row[960]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_19.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_20:
+scene_pixel_cells_for_mask_bank_20:	; ARRAY world_tile_planar_row[634]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_20.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_21:
+scene_pixel_cells_for_mask_bank_21:	; ARRAY world_tile_planar_row[2172]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_21.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_08:
+scene_pixel_cells_for_mask_bank_08:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_08.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_09:
+scene_pixel_cells_for_mask_bank_09:	; ARRAY world_tile_planar_row[140]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_09.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_10:
+scene_pixel_cells_for_mask_bank_10:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_10.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_11:
+scene_pixel_cells_for_mask_bank_11:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_11.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_12:
+scene_pixel_cells_for_mask_bank_12:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_12.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_22:
+scene_pixel_cells_for_mask_bank_22:	; ARRAY world_tile_planar_row[256]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_22.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_23:
+scene_pixel_cells_for_mask_bank_23:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_23.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_24:
+scene_pixel_cells_for_mask_bank_24:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_24.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_26:
+scene_pixel_cells_for_mask_bank_26:	; ARRAY world_tile_planar_row[888]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_26.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_25:
+scene_pixel_cells_for_mask_bank_25:	; ARRAY world_tile_planar_row[320]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_25.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_27:
+scene_pixel_cells_for_mask_bank_27:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_27.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_28:
+scene_pixel_cells_for_mask_bank_28:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_28.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_29:
+scene_pixel_cells_for_mask_bank_29:	; ARRAY world_tile_planar_row[480]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_29.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_30:
+scene_pixel_cells_for_mask_bank_30:	; ARRAY world_tile_planar_row[658]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_30.bin"
 ; bitmap
 	dcb.b $570,$00
-scene_pixel_cells_for_mask_bank_31:
+scene_pixel_cells_for_mask_bank_31:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_31.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_00:
+scene_pixel_cells_for_mask_bank_00:	; ARRAY world_tile_planar_row[1408]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_00.bin"
 ; bitmap
-scene_pixel_cells_for_910_cell_mask_bank:
+scene_pixel_cells_for_910_cell_mask_bank:	; ARRAY world_tile_planar_row[910]
 	INCBIN "assets/scene_pixel_cells_for_910_cell_mask_bank.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_32:
+scene_pixel_cells_for_mask_bank_32:	; ARRAY world_tile_planar_row[256]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_32.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_33:
+scene_pixel_cells_for_mask_bank_33:	; ARRAY world_tile_planar_row[192]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_33.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_34:
+scene_pixel_cells_for_mask_bank_34:	; ARRAY world_tile_planar_row[34]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_34.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_35:
+scene_pixel_cells_for_mask_bank_35:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_35.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_36:
+scene_pixel_cells_for_mask_bank_36:	; ARRAY world_tile_planar_row[108]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_36.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_37:
+scene_pixel_cells_for_mask_bank_37:	; ARRAY world_tile_planar_row[192]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_37.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_38:
+scene_pixel_cells_for_mask_bank_38:	; ARRAY world_tile_planar_row[62]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_38.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_39:
+scene_pixel_cells_for_mask_bank_39:	; ARRAY world_tile_planar_row[64]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_39.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_40:
+scene_pixel_cells_for_mask_bank_40:	; ARRAY world_tile_planar_row[420]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_40.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_41:
+scene_pixel_cells_for_mask_bank_41:	; ARRAY world_tile_planar_row[20]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_41.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_42:
+scene_pixel_cells_for_mask_bank_42:	; ARRAY world_tile_planar_row[372]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_42.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_43:
+scene_pixel_cells_for_mask_bank_43:	; ARRAY world_tile_planar_row[176]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_43.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_44:
+scene_pixel_cells_for_mask_bank_44:	; ARRAY world_tile_planar_row[133]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_44.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_45:
+scene_pixel_cells_for_mask_bank_45:	; ARRAY world_tile_planar_row[142]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_45.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_46:
+scene_pixel_cells_for_mask_bank_46:	; ARRAY world_tile_planar_row[110]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_46.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_47:
+scene_pixel_cells_for_mask_bank_47:	; ARRAY world_tile_planar_row[904]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_47.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_48:
+scene_pixel_cells_for_mask_bank_48:	; ARRAY world_tile_planar_row[22]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_48.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_49:
+scene_pixel_cells_for_mask_bank_49:	; ARRAY world_tile_planar_row[32]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_49.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_50:
+scene_pixel_cells_for_mask_bank_50:	; ARRAY world_tile_planar_row[112]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_50.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_51:
+scene_pixel_cells_for_mask_bank_51:	; ARRAY world_tile_planar_row[45]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_51.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_52:
+scene_pixel_cells_for_mask_bank_52:	; ARRAY world_tile_planar_row[16]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_52.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_53:
+scene_pixel_cells_for_mask_bank_53:	; ARRAY world_tile_planar_row[60]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_53.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_54:
+scene_pixel_cells_for_mask_bank_54:	; ARRAY world_tile_planar_row[30]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_54.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_57:
+scene_pixel_cells_for_mask_bank_57:	; ARRAY world_tile_planar_row[892]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_57.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_56:
+scene_pixel_cells_for_mask_bank_56:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_56.bin"
 ; bitmap
-scene_pixel_cells_for_mask_bank_55:
+scene_pixel_cells_for_mask_bank_55:	; ARRAY world_tile_planar_row[128]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_55.bin"
 ; bitmap
 combat_hit_feedback_geometry_records:

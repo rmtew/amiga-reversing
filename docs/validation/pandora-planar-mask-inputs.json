@@ -14,7 +14,7 @@
       "last_group_index": 10,
       "cells_per_group": 128,
       "cell_count": 1408,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007244:instruction",
         "s0:0000724A:instruction",
@@ -35,7 +35,7 @@
       "last_group_index": 5,
       "cells_per_group": 64,
       "cell_count": 384,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000725A:instruction",
         "s0:00007260:instruction",
@@ -56,7 +56,7 @@
       "last_group_index": 5,
       "cells_per_group": 64,
       "cell_count": 384,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000726E:instruction",
         "s0:00007274:instruction",
@@ -77,7 +77,7 @@
       "last_group_index": 6,
       "cells_per_group": 64,
       "cell_count": 448,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007282:instruction",
         "s0:00007288:instruction",
@@ -98,7 +98,7 @@
       "last_group_index": 6,
       "cells_per_group": 64,
       "cell_count": 448,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007296:instruction",
         "s0:0000729C:instruction",
@@ -119,7 +119,7 @@
       "last_group_index": 3,
       "cells_per_group": 64,
       "cell_count": 256,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000072AA:instruction",
         "s0:000072B0:instruction",
@@ -140,7 +140,7 @@
       "last_group_index": 7,
       "cells_per_group": 54,
       "cell_count": 432,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000072BE:instruction",
         "s0:000072C4:instruction",
@@ -161,7 +161,7 @@
       "last_group_index": 0,
       "cells_per_group": 54,
       "cell_count": 54,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000072D2:instruction",
         "s0:000072D8:instruction",
@@ -182,7 +182,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000072E6:instruction",
         "s0:000072EC:instruction",
@@ -203,7 +203,7 @@
       "last_group_index": 0,
       "cells_per_group": 140,
       "cell_count": 140,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000072FC:instruction",
         "s0:00007302:instruction",
@@ -224,7 +224,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007312:instruction",
         "s0:00007318:instruction",
@@ -245,7 +245,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007328:instruction",
         "s0:0000732E:instruction",
@@ -266,7 +266,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000733E:instruction",
         "s0:00007344:instruction",
@@ -287,7 +287,7 @@
       "last_group_index": 5,
       "cells_per_group": 54,
       "cell_count": 324,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007354:instruction",
         "s0:0000735A:instruction",
@@ -371,7 +371,7 @@
       "last_group_index": 0,
       "cells_per_group": 948,
       "cell_count": 948,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000073A4:instruction",
         "s0:000073AA:instruction",
@@ -392,7 +392,7 @@
       "last_group_index": 0,
       "cells_per_group": 2186,
       "cell_count": 2186,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000073BA:instruction",
         "s0:000073C0:instruction",
@@ -413,7 +413,7 @@
       "last_group_index": 15,
       "cells_per_group": 60,
       "cell_count": 960,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000073D0:instruction",
         "s0:000073D6:instruction",
@@ -434,7 +434,7 @@
       "last_group_index": 0,
       "cells_per_group": 634,
       "cell_count": 634,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000073E4:instruction",
         "s0:000073EA:instruction",
@@ -455,7 +455,7 @@
       "last_group_index": 0,
       "cells_per_group": 2172,
       "cell_count": 2172,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000073FA:instruction",
         "s0:00007400:instruction",
@@ -476,7 +476,7 @@
       "last_group_index": 7,
       "cells_per_group": 32,
       "cell_count": 256,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007410:instruction",
         "s0:00007416:instruction",
@@ -497,7 +497,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007424:instruction",
         "s0:0000742A:instruction",
@@ -518,7 +518,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000743A:instruction",
         "s0:00007440:instruction",
@@ -539,7 +539,7 @@
       "last_group_index": 4,
       "cells_per_group": 64,
       "cell_count": 320,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007450:instruction",
         "s0:00007456:instruction",
@@ -560,7 +560,7 @@
       "last_group_index": 0,
       "cells_per_group": 888,
       "cell_count": 888,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007464:instruction",
         "s0:0000746A:instruction",
@@ -581,7 +581,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000747A:instruction",
         "s0:00007480:instruction",
@@ -602,7 +602,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007490:instruction",
         "s0:00007496:instruction",
@@ -623,7 +623,7 @@
       "last_group_index": 7,
       "cells_per_group": 60,
       "cell_count": 480,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000074A6:instruction",
         "s0:000074AC:instruction",
@@ -644,7 +644,7 @@
       "last_group_index": 0,
       "cells_per_group": 658,
       "cell_count": 658,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000074BA:instruction",
         "s0:000074C0:instruction",
@@ -665,7 +665,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000074D0:instruction",
         "s0:000074D6:instruction",
@@ -686,7 +686,7 @@
       "last_group_index": 0,
       "cells_per_group": 910,
       "cell_count": 910,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000074E6:instruction",
         "s0:000074EC:instruction",
@@ -707,7 +707,7 @@
       "last_group_index": 3,
       "cells_per_group": 64,
       "cell_count": 256,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000074FC:instruction",
         "s0:00007502:instruction",
@@ -728,7 +728,7 @@
       "last_group_index": 1,
       "cells_per_group": 96,
       "cell_count": 192,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007510:instruction",
         "s0:00007516:instruction",
@@ -749,7 +749,7 @@
       "last_group_index": 0,
       "cells_per_group": 34,
       "cell_count": 34,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007524:instruction",
         "s0:0000752A:instruction",
@@ -770,7 +770,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007538:instruction",
         "s0:0000753E:instruction",
@@ -791,7 +791,7 @@
       "last_group_index": 2,
       "cells_per_group": 36,
       "cell_count": 108,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000754E:instruction",
         "s0:00007554:instruction",
@@ -812,7 +812,7 @@
       "last_group_index": 5,
       "cells_per_group": 32,
       "cell_count": 192,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007562:instruction",
         "s0:00007568:instruction",
@@ -833,7 +833,7 @@
       "last_group_index": 0,
       "cells_per_group": 62,
       "cell_count": 62,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007576:instruction",
         "s0:0000757C:instruction",
@@ -854,7 +854,7 @@
       "last_group_index": 0,
       "cells_per_group": 64,
       "cell_count": 64,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000758A:instruction",
         "s0:00007590:instruction",
@@ -875,7 +875,7 @@
       "last_group_index": 5,
       "cells_per_group": 70,
       "cell_count": 420,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000759E:instruction",
         "s0:000075A4:instruction",
@@ -896,7 +896,7 @@
       "last_group_index": 0,
       "cells_per_group": 20,
       "cell_count": 20,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000075B2:instruction",
         "s0:000075B8:instruction",
@@ -917,7 +917,7 @@
       "last_group_index": 0,
       "cells_per_group": 372,
       "cell_count": 372,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000075C6:instruction",
         "s0:000075CC:instruction",
@@ -938,7 +938,7 @@
       "last_group_index": 0,
       "cells_per_group": 176,
       "cell_count": 176,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000075DC:instruction",
         "s0:000075E2:instruction",
@@ -959,7 +959,7 @@
       "last_group_index": 0,
       "cells_per_group": 133,
       "cell_count": 133,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000075F2:instruction",
         "s0:000075F8:instruction",
@@ -980,7 +980,7 @@
       "last_group_index": 0,
       "cells_per_group": 142,
       "cell_count": 142,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007608:instruction",
         "s0:0000760E:instruction",
@@ -1001,7 +1001,7 @@
       "last_group_index": 0,
       "cells_per_group": 110,
       "cell_count": 110,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000761E:instruction",
         "s0:00007624:instruction",
@@ -1022,7 +1022,7 @@
       "last_group_index": 0,
       "cells_per_group": 904,
       "cell_count": 904,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007632:instruction",
         "s0:00007638:instruction",
@@ -1043,7 +1043,7 @@
       "last_group_index": 0,
       "cells_per_group": 22,
       "cell_count": 22,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007648:instruction",
         "s0:0000764E:instruction",
@@ -1064,7 +1064,7 @@
       "last_group_index": 0,
       "cells_per_group": 32,
       "cell_count": 32,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:0000765C:instruction",
         "s0:00007662:instruction",
@@ -1085,7 +1085,7 @@
       "last_group_index": 6,
       "cells_per_group": 16,
       "cell_count": 112,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007670:instruction",
         "s0:00007676:instruction",
@@ -1106,7 +1106,7 @@
       "last_group_index": 0,
       "cells_per_group": 45,
       "cell_count": 45,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007684:instruction",
         "s0:0000768A:instruction",
@@ -1127,7 +1127,7 @@
       "last_group_index": 0,
       "cells_per_group": 16,
       "cell_count": 16,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007698:instruction",
         "s0:0000769E:instruction",
@@ -1148,7 +1148,7 @@
       "last_group_index": 0,
       "cells_per_group": 60,
       "cell_count": 60,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000076AC:instruction",
         "s0:000076B2:instruction",
@@ -1169,7 +1169,7 @@
       "last_group_index": 0,
       "cells_per_group": 30,
       "cell_count": 30,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000076C0:instruction",
         "s0:000076C6:instruction",
@@ -1190,7 +1190,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000076D4:instruction",
         "s0:000076DA:instruction",
@@ -1211,7 +1211,7 @@
       "last_group_index": 0,
       "cells_per_group": 128,
       "cell_count": 128,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:000076EA:instruction",
         "s0:000076F0:instruction",
@@ -1232,7 +1232,7 @@
       "last_group_index": 0,
       "cells_per_group": 892,
       "cell_count": 892,
-      "shared_cell_type_applied": false,
+      "shared_cell_type_applied": true,
       "evidence_refs": [
         "s0:00007700:instruction",
         "s0:00007706:instruction",
@@ -1245,17 +1245,8 @@
   ],
   "total_input_bytes": 172640,
   "total_mask_bytes": 43160,
-  "catalog_interpretations": 9,
+  "catalog_interpretations": 58,
   "limits": "No individual image grouping, all-writer/lifetime ownership, DMA or emitted-pixel claim. Bank51 also supplies an existing stored-mask alias; this input interpretation does not erase other consumers.",
-  "bulk_typing_blocker": {
-    "status": "preflight_refused_before_history_append",
-    "reason": "named label capacity exceeded (32768)",
-    "requested_bank_bindings": 56,
-    "requested_cell_instances": 20620,
-    "expanded_named_word_fields": 82480,
-    "native_named_label_limit": 32768,
-    "scope": "The shared reader entry contract is retained; physical input arrays remain unchanged. Three existing six-frame groupings are preserved."
-  },
   "reader_shared_type": "world_tile_planar_row",
   "validation": {
     "original_cpu_cases_passed": 60,
@@ -1266,11 +1257,104 @@
     "exact_original_bytes": 376832,
     "framework_exact": true,
     "oracle_comparison_level": "oracle.full_file_match",
-    "verification_receipt": "12fd3b4db1206de0bb1d0cebbc7ba0327f72e267a77a38bd35a517377db3ea21",
-    "accepted_interpretations": 9,
-    "review_revision": "47ff651ae66b0d8a40925740702578ebd910d1556b7c4384d527ca88f57371bf",
+    "verification_receipt": "151e0e02e6036c05b2b909937782f06606532a53de7438bec4f240d79312bca5",
+    "accepted_interpretations": 58,
+    "review_revision": "1d2776fddc9d6f203143934e0e8270e3cf8215e89a6d51d79ffb84c5a3c8e686",
     "assets_preserved": 126,
     "sdk_includes_preserved": 16,
-    "history_prefixes_preserved": true
+    "history_prefixes_preserved": true,
+    "original_cpu_evidence_commit": "8f1d1c74",
+    "previous_reader_receipt": "12fd3b4db1206de0bb1d0cebbc7ba0327f72e267a77a38bd35a517377db3ea21",
+    "typed_array_declarations": 56,
+    "repeated_owner_comments": 0,
+    "unrelated_cursor_planar_accesses": 0,
+    "listing_projection_changes": [
+      {
+        "asset": "scene_pixel_cells_for_910_cell_mask_bank",
+        "source_row_count_before": 543,
+        "source_row_count_after": 455
+      }
+    ]
+  },
+  "bulk_typing": {
+    "status": "accepted",
+    "previous_preflight_reason": "named label capacity exceeded (32768)",
+    "source_array_bindings": 56,
+    "cell_instances": 20620,
+    "logical_word_fields": 82480,
+    "typed_source_bytes": 164960,
+    "native_projection": "one packed typed range per array, with the shared schema retained",
+    "effective_entity_count_before": 18304,
+    "effective_entity_count_after": 18304,
+    "native_structured_item_limit": 32768,
+    "native_named_label_limit": 32768,
+    "existing_six_frame_groupings_preserved": 3,
+    "effective_entity_and_declared_label_identities_preserved": true
+  },
+  "runtime_cursor_seed_footprints": [
+    {
+      "name": "CURSOR_PLANE0_SEED_ROWS_ADDRESS",
+      "runtime_start": 414580,
+      "extent_bytes": 64,
+      "group": "cursor_seed_payloads",
+      "evidence_source_range": [
+        40690,
+        40728
+      ],
+      "limits": "Observed startup write footprint only; not an allocation, exclusive ownership, all-writer or later-lifetime bound."
+    },
+    {
+      "name": "CURSOR_PLANE1_SEED_ROWS_ADDRESS",
+      "runtime_start": 414648,
+      "extent_bytes": 64,
+      "group": "cursor_seed_payloads",
+      "evidence_source_range": [
+        40690,
+        40728
+      ],
+      "limits": "Observed startup write footprint only; not an allocation, exclusive ownership, all-writer or later-lifetime bound."
+    }
+  ],
+  "framework_validation": {
+    "compact_array_cases_passed": 21,
+    "related_metadata_catalog_storage_cases_passed": 219,
+    "range_domain_reference_export_cases_passed": 208,
+    "native_unit_cases_passed": 820,
+    "optin_backend_cases_passed": 11,
+    "preexisting_optin_backend_failures": [
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_data_block_custom_struct_unaligned_repeated_field_reassembles",
+        "outcome": "failed",
+        "last_line": "tests/test_c_backend.py:4524: AssertionError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_listing_artifact_address_helpers_pass_typed_integer_args",
+        "outcome": "failed",
+        "last_line": "amiga_reversing/disasm/project_paths.py:51: FileNotFoundError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_render_plan_data_classes_reach_listing_rows",
+        "outcome": "failed",
+        "last_line": "amiga_reversing/disasm/project_paths.py:51: FileNotFoundError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_starglider_loader_file_handle_slot_stays_untyped",
+        "outcome": "failed",
+        "last_line": "amiga_reversing/disasm/project_paths.py:51: FileNotFoundError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_symbolic_zero_address_displacement_preserves_instruction_width",
+        "outcome": "failed",
+        "last_line": "tests/test_c_backend.py:12283: AssertionError"
+      }
+    ],
+    "failure_comparison_baseline": {
+      "python_revision": "8f1d1c74",
+      "native_library": "pre-change library matching prior tool profile",
+      "native_size": 11385600,
+      "native_mtime_ns": 1792383592326537702
+    },
+    "cap_increase": false,
+    "native_abi_change": false
   }
 }

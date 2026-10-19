@@ -178,9 +178,32 @@ when applicable, plus a command discovered in the catalog. Do not invent locator
 or arbitrary manual payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
 
 Native policy storage permits 32,768 structured-data items and 32,768 named
-labels, allocated on demand. Typed arrays count each expanded leaf field.
-Overflow is refused before history append; the bounded counts still fit the
-existing 16-bit native counters.
+labels, allocated on demand. Overflow is refused before history append; the
+bounded counts still fit the existing 16-bit native counters.
+
+A custom structure bound to an explicit `kind: array` retains that array kind.
+Packed arrays of uniform scalar BYTE/WORD/LONG fields project as one typed
+native range, retaining the shared field schema and canonical count/stride.
+Native static-data analysis derives record indices and interior field cursors
+from the range; source rendering keeps ordinary references and authored
+interior labels through the existing range planner. Logical fields do not each
+consume a policy label or item. This path supports 2..65,535 records, exact
+record strides, complete field coverage and default/hex scalar presentation.
+The public declaration shows `ARRAY type[count]` once; collecting its data into
+an asset does not repeat its owner name as a comment for every row.
+
+Explicit `kind: struct` presentations remain expanded. Mixed widths, pointers,
+nested records, gaps/strided padding, value-specific representations and authored
+expressions depending on generated field aliases also keep the existing leaf
+projection. Expanded leaves still count against the native capacities. This
+preserves field-specific rendering rather than dropping its semantics to make
+an array fit.
+
+An absolute operand explicitly bound to a runtime-domain EQU does not inherit
+a source-image structure merely because its numeric address overlaps an image
+load view. The runtime namespace and a mapped source identity remain distinct;
+ordinary value constants and accepted source identities retain their existing
+analysis paths.
 
 Use `interpret_batch` for a connected set of 1..100 interpretations from the same
 inspected revision:
