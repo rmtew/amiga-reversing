@@ -5512,3 +5512,77 @@ app-relative purpose remains 948 bytes and its gap remains 750 bytes. Native
 operand resolution remains 967 resolved and 32 unresolved (five field gaps,
 27 dynamic indexed records). These counters are not whole-program semantic
 completion or complete allocation denominators.
+
+### Retained NPC animation records and compact typed fills (2026-10-19)
+
+Eight unclassified spans contain a connected family of retained animation data:
+15 additional frame headers, a menial-droid chained controller and return/hold
+controller, a gardener render prefix and looping controller, and 15 additional
+fixed-NPC frame references. The original pointers, adjacent canonical records
+and actual animation reader establish their layouts. In particular, the first
+menial node is the existing **22-byte chained type**: its LONG at +18 points to
+the existing controller at `$4AE50`, rather than being an extra frame entry.
+Its held prefix and seven active pointers occupy the following 32 bytes.
+
+Eight original CPU checks exercise all 15 headers through the geometry-reader
+prefix, the menial successor transition and hold-at-end behavior, the gardener
+loop with unchanged XY, and the additional reference run's eight existing frame
+targets. Pixel/mask pointers fit existing nominal bank prefixes. These are
+conditional reader contracts. Some variants have no established incoming
+reference, so the inferred additional-animation roles receive **medium** purpose
+confidence. Activation, all callers, actual DMA reads/output, complete storage
+allocation and lifetime remain unestablished. No held/active grouping is assigned
+to the separate 15-pointer run. The retained gardener headers store stride 1
+with width 32. Those original values are preserved; the tests establish what
+the current reader loads and nominal prefixes, rather than silently changing
+the stride or claiming a complete frame/DMA footprint. Existing shared schemas,
+owners and workspace contracts remain intact.
+
+The prior zero-bank rendering regression was a renderer omission: typed WORD
+arrays used the numeric-list path, while repeated-fill formatting existed only
+for raw bytes. The normal native renderer now emits `dcb.b/w/l` for uniform
+literal leaves of at least eight units, within a single bounded leaf. It keeps
+pointer/table expressions, value domains, named constants, explicit source-array
+anchors, authored comments and element boundaries. Nonuniform data and scalar
+field interiors retain their existing policy. The typed 256-WORD bank at
+`blank_sprite_data` now renders as one `dcb.w $100,$0000` line; its typed owner
+and purpose remain. The projection no longer fabricates a comment from the
+bare `data` classification; authored comments and named members called `data`
+remain meaningful. Two package-test assertions were updated for the already
+published removal of synthetic `data_role=` suffixes; asset and assembly checks
+remain in place.
+
+Fifteen new compact-fill regression cases cover BYTE/WORD/LONG values, nonuniform
+arrays, aligned and unaligned source-array anchors, interior/start comments,
+separate owners, symbolic scalar entries, interpreted references and named
+members. Every case reassembles with the native assembler and vasm. The 213
+focused Python checks and full native C suite pass, in addition to the eight
+original NPC CPU checks.
+
+The chained record also exposed an embedded-record projection gap: its declared
+18-byte header had been emitted as opaque bytes. Declared custom STRUCT members
+now expand recursively only when the referenced type and exact size agree.
+Leaves retain the embedded schema and reference domains; only the enclosing
+record carries the owner span. Unknown, size-mismatched and cyclic members stay
+opaque. Nine new cases cover single/array records, leading fields, multiple nesting
+levels and those
+conservative fallbacks; valid cases reassemble with both assemblers. This is the
+only currently bound Pandora type with such an embedded member.
+
+Final C+vasm receipt:
+`5e039d975330552015e38433d5c85325fd00c2d194f67610c47ffa6d4dfa778c`.
+All 376,832 original bytes match. Thirty-one MAL records and 31 decisions append
+to preserved histories; all 126 asset identities, hashes, bounds, classifications
+and SDK includes remain unchanged. Generated source-row IDs reflect the new
+fields and compact fills. All 75 non-NULL pointer fields in the restored spans
+render symbolically in the fresh native plan.
+
+Fresh accounting records **502 bytes recovered**: unknown payload falls from
+7,724 to **7,222 bytes**, with structured data at 340,134 bytes and zero conflicts.
+There are 552 declared data owners. Explicit payload purpose is 13,292 bytes;
+the eight new scopes retain their medium confidence and conditional limits.
+The separate app-relative view remains at 948 purpose bytes and a 750-byte gap.
+Native access counts remain 967 resolved and 32 unresolved (five field gaps and
+27 dynamic indexed records), with no changed unresolved field identities. These
+are bounded source/accounting gains, not a whole-program semantic completion
+or complete allocation claim.

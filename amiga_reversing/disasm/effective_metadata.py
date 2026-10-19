@@ -1338,9 +1338,11 @@ def _data_block_bound_struct_entities(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
     custom_structs: Mapping[str, CustomStructMetadata],
+    *,
+    _seen: frozenset[str] = frozenset(),
 ) -> tuple[SeededEntityMetadata, ...]:
     struct = _data_block_bound_struct(element, custom_structs)
-    if struct is None or struct.size <= 0:
+    if struct is None or struct.size <= 0 or struct.name in _seen:
         return ()
     binding = element.type_binding if isinstance(element.type_binding, dict) else {}
     array_count = _manual_seed_int(binding, "array_count") or element.array_count or 1
@@ -1371,12 +1373,32 @@ def _data_block_bound_struct_entities(
                 if gap is None:
                     return ()
                 entities.append(gap)
-            field_entity = _data_block_custom_struct_field_entity(
-                layout, element, struct, field, instance_offset, instance_index, base_label
-            )
-            if field_entity is None:
-                return ()
-            entities.append(field_entity)
+            nested = custom_structs.get(field.struct) if field.type.upper() == "STRUCT" else None
+            nested_entities = ()
+            if nested is not None and nested.size == field.size:
+                # This is a projection of the declared embedded record, not a
+                # new owner or an array inferred from a byte count. Unknown,
+                # cyclic and size-mismatched records keep their opaque field.
+                nested_element = replace(element,
+                    offset=element.offset + instance_offset + field.offset,
+                    width=field.size, array_count=1, array_stride=field.size,
+                    name=_data_block_typed_field_label(base_label, field.name, instance_index),
+                    type_binding={**binding, "bound_type_id": nested.name, "array_count": 1})
+                nested_entities = _data_block_bound_struct_entities(layout, nested_element, custom_structs,
+                    _seen=_seen | {struct.name})
+            if nested_entities:
+                projected = [replace(entity, source_owner_start=None, source_owner_size=None)
+                             for entity in nested_entities]
+                if instance_offset == 0 and field.offset == 0 and base_label:
+                    projected[0] = replace(projected[0], name=base_label)
+                entities.extend(projected)
+            else:
+                field_entity = _data_block_custom_struct_field_entity(
+                    layout, element, struct, field, instance_offset, instance_index, base_label
+                )
+                if field_entity is None:
+                    return ()
+                entities.append(field_entity)
             cursor = field.offset + field.size
         if cursor < struct.size:
             gap = _data_block_custom_struct_gap_entity(
@@ -1410,7 +1432,9 @@ def _data_block_element_entity(
     if end <= addr or end > layout.source_end:
         return None
     name = element.name or (layout.name if element.offset == 0 else None)
-    comment = layout.role
+    # A generic classification is not an authored source comment. Keep specific
+    # roles and independent manual comments, rather than synthesizing '; data'.
+    comment = layout.role if layout.role != "data" else None
     value_domain = _data_block_bound_value_domain(element)
     pointer_struct = _data_block_bound_pointer_struct(element)
     # A pointee contract makes this element a pointer table independently of

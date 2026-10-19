@@ -1,11 +1,11 @@
 Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 
 Payload classification (disjoint bytes per source section):
-  section 0: 376832 bytes; code=24260, structured_data=339632, table=1050, text=4166, unknown=7724
+  section 0: 376832 bytes; code=24260, structured_data=340134, table=1050, text=4166, unknown=7222
 
-Units: 265 function candidates; 544 declared data owners; 126 asset emission chunks.
+Units: 265 function candidates; 552 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 12790}.
+Supported payload purpose bytes by section: {'0': 13292}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
@@ -48,6 +48,9 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-0da3149da0bb4bb8b6991f8d571a6204: app [0x1ba,0x1c6) graphics/high, accepted, whole_scope.
     Tile viewport column/row, tile-grid base pointer and width/height metadata used by original grid construction, viewport reads and modal exchange.
     Limits: Current metadata and original WORD arithmetic only. Modal exchange changes the base independently of derived size/stride state; no general bounds, exclusive lifetime or DMA completion claim.
+  purpose-1c723b7fac874a6084897c5163f28279: s0 [0x4afb6,0x4affa) graphics/medium, accepted, whole_scope.
+    Retained gardener26-byte render-state prefix followed by18-byte looping node and held-plus-five-active frame pointers. Prefix contains NULL geometry/node values, X=-21,Y=8 and the existing descriptor pointer; no actual installation is inferred.
+    Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
   purpose-24f5bd60843c4545831c99cb38d677b6: s0 [0xb040,0xb0e0) graphics/high, accepted, whole_scope.
     Remaining five 32-byte overlay border cells, consumed as eight rows of four packed planar bytes per cell by the original border copier.
     Limits: CPU copy/packing purpose only. Palette meaning, DMA timing, actual display pixels and exclusive lifetime remain unassessed. The already assessed first cell is excluded.
@@ -60,22 +63,19 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-2bd9456dacae4b88b6caf3afe680ea7b: s0 [0x2a48,0x2a7c) code/high, accepted, whole_scope.
     Cursor-derived inventory index and body-column item-ID exchange prefix; other columns branch to their own handlers.
     Limits: WORD index high-byte bits survive the BYTE mask; alignment is established, bounds are not. The separate packed display-ID update and later UI/audio paths are outside this scope.
+  purpose-2ca963732397423781f19cdba8ed0131: s0 [0x4c04a,0x4c086) graphics/medium, accepted, whole_scope.
+    Retained15-LONG frame-reference run targeting eight existing fixed-NPC frame starts. Sequence grouping and an activating controller remain unassessed.
+    Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
   purpose-34f28358dd39466b98414fc92bcae972: s0 [0xb020,0xb040) graphics/high, accepted, whole_scope.
     32-byte top-left overlay border cell, consumed as eight planar rows with four plane bytes per row by the original cell-copy routine.
     Limits: CPU copy/packing purpose only. Palette interpretation, emitted display pixels, DMA timing and exclusive storage lifetime remain unassessed.
+  purpose-37dfc00d6c084b149f0c9591c0f8e781: s0 [0x4af24,0x4af7e) graphics/medium, accepted, whole_scope.
+    Five retained gardener frame headers selected by the adjacent additional looping controller under supplied state.
+    Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
   purpose-3b5a4a24485c41f69f996f937587f2aa: s0 [0xb0e0,0xb120) game_data/high, accepted, whole_scope.
     8 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
     Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
   purpose-51502b2e91f143668a5901805f549d69: s0 [0x4d5de,0x4d7de) graphics/high, accepted, whole_scope.
     Stored 512-byte shared zero graphics bank: nominal blank planar pixels and mask inputs, hidden cursor DMA pointers, zero RGB12 palette and repeated overlay clear source.
     Limits: Original stored data and inspected CPU pointer/register contracts. No actual DMA output, exclusive allocation, all-consumer, lifetime, immutability or ordinary gameplay reachability claim. Runtime mask alias covers only the maximum128-byte nominal mask prefix; frame pointer domains stay unchanged.
-  purpose-61c3904e374a47ffae2cb9fd7a179df3: app [0x1d4,0x1e0) graphics/high, accepted, whole_scope.
-    Front/back framebuffer pointers and selected display-bank pointer used by the original world-bank exchange, text-origin and vblank pointer-installation prefix.
-    Limits: CPU pointer flow and four interleaved plane addresses only; no actual DMA/display pixels, scheduler closure or exclusive memory lifetime.
-  purpose-664d7711adfa4601a579d384ae40770a: s0 [0x3f16,0x5ffe) graphics/high, accepted, whole_scope.
-    468 nine-WORD 3x3 tile-definition records; each WORD is an unsigned offset from the tile-pixel base used to build the nine cell pointers.
-    Limits: All original records and original table IDs are checked; modified IDs use unchecked signed WORD index wrap and can address outside the owner. Exact tile game roles and DMA output remain unassessed.
-  purpose-691e71cebf2941fdae7c8ff54d4c4624: app [0x1e4,0x1e8) text/high, accepted, whole_scope.
-    Current text destination cursor produced from front-bank or fixed-overlay origin arithmetic and consumed by the original text/border routines.
-    Limits: Unchecked coordinate arithmetic and CPU cursor flow only; destination allocation, every caller, actual DMA/pixels and exclusive lifetime remain unassessed.
-  14 additional bounded assessments are retained in the JSON report.
+  22 additional bounded assessments are retained in the JSON report.

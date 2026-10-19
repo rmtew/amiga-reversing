@@ -2887,6 +2887,51 @@ static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLo
     const M68kAnalysisStructuredDataItem *structured_item, size_t section_index, uint32_t probe, int include_labels);
 static int accepted_byte_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset);
 
+/* Only compact literal units within one already-bounded leaf. Pointer tables,
+ * domains and authored expressions keep their individual semantic entries. */
+static int render_asm_uniform_literal_array(M68kRenderIRPreview *preview,
+    const M68kDecodeSectionIR *section, const M68kRenderLookup *lookup,
+    const M68kAnalysisStructuredDataItem *item, uint32_t offset, uint32_t size,
+    uint32_t width, const char *comment) {
+  uint32_t cursor, value;
+  size_t index;
+  char line[192], token[16];
+  const char *suffix;
+  const M68kAnalysisManualRepresentation *representation;
+  if (preview == NULL || section == NULL || section->data == NULL || lookup == NULL || item == NULL ||
+      (item->kind != M68K_ANALYSIS_STRUCTURED_DATA_BYTES && item->kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
+       item->kind != M68K_ANALYSIS_STRUCTURED_DATA_LONGS) ||
+      (width != 1U && width != 2U && width != 4U) || size % width != 0U || size / width < 8U ||
+      item->is_pointer || item->has_target || item->pointer_struct[0] != '\0' || item->has_constant_value ||
+      item->constant_name[0] != '\0' || item->value_domain[0] != '\0' ||
+      offset > section->size || size > section->size - offset) return 0;
+  representation = lookup_manual_representation_at(lookup, section->section_index, offset);
+  if (representation != NULL && representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_HEX) return 0;
+  for (cursor = width; cursor < size; cursor += width) {
+    if (memcmp(section->data + offset, section->data + offset + cursor, width) != 0) return 0;
+  }
+  for (index = 0U; index < preview->asm_source_plan.expression_count; ++index) {
+    const M68kRenderPlannedExpression *expression = &preview->asm_source_plan.expressions[index];
+    if (expression->source_section_index == section->section_index && expression->source_offset >= offset &&
+        expression->source_offset - offset < size) return 0;
+  }
+  value = width == 4U ? m68k_read_u32be(section->data + offset) :
+    width == 2U ? m68k_read_u16be(section->data + offset) : section->data[offset];
+  suffix = width == 4U ? "l" : width == 2U ? "w" : "b";
+  format_numeric_value(token, sizeof(token), width, value);
+  /* Suppress only the synthesized generic role, never an authored comment or
+   * a named structure member, even when its text happens to be 'data'. */
+  if (comment != NULL && strcmp(comment, "data") == 0 && item->comment[0] == '\0' &&
+      item->struct_name[0] == '\0') comment = NULL;
+  if (comment != NULL && comment[0] != '\0')
+    snprintf(line, sizeof(line), "\tdcb.%s $%X,%s\t; %s\n", suffix, (unsigned)(size / width), token, comment);
+  else
+    snprintf(line, sizeof(line), "\tdcb.%s $%X,%s\n", suffix, (unsigned)(size / width), token);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+  return 1;
+}
+
 static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *preview,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRenderLookup *lookup,
     const M68kAnalysisStructuredDataItem *item, uint32_t offset, uint32_t size, uint32_t width,
@@ -2901,8 +2946,22 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
     if (cursor != 0U && render_plan_should_emit_data_label_statement(preview, section, current)) {
       render_asm_label(preview, lookup, section->section_index, current, io_logical_pc);
     }
+    if (cursor != 0U) {
+      render_asm_policy_entry_comments(preview, lookup->policy, section->section_index, current);
+      render_asm_comment_line(preview, lookup_instruction_comment(lookup, section->section_index, current));
+    }
+    if (lookup->policy != NULL) {
+      uint16_t index;
+      for (index = 0U; index < lookup->policy->entry_comment_count && index < M68K_ANALYSIS_ENTRY_COMMENT_LIMIT; ++index) {
+        const M68kAnalysisEntryComment *entry = &lookup->policy->entry_comments[index];
+        if ((!entry->has_section_index || entry->section_index == section->section_index) &&
+            entry->comment[0] != '\0' && entry->offset > current && entry->offset - current < chunk_size)
+          chunk_size = entry->offset - current;
+      }
+    }
     for (probe = 1U; probe < chunk_size; ++probe) {
-      if (render_plan_should_emit_data_label_statement(preview, section, current + probe)) {
+      if (render_plan_should_emit_data_label_statement(preview, section, current + probe) ||
+          lookup_instruction_comment(lookup, section->section_index, current + probe) != NULL) {
         chunk_size = probe;
         break;
       }
@@ -2943,7 +3002,10 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
         }
       }
     }
-    if (width == 4U && chunk_size >= 4U && (chunk_size & 3U) == 0U) {
+    if (render_asm_uniform_literal_array(preview, section, lookup, item, current, chunk_size, width,
+        cursor == 0U ? comment : NULL)) {
+      /* The shared logical-PC update below accounts for every repeated unit. */
+    } else if (width == 4U && chunk_size >= 4U && (chunk_size & 3U) == 0U) {
       render_asm_dc_l_values(preview, section->data, current, chunk_size, cursor == 0U ? comment : NULL);
     } else if (width >= 2U && chunk_size >= 2U && (chunk_size & 1U) == 0U) {
       render_asm_dc_w_values(preview, section->data, current, chunk_size, cursor == 0U ? comment : NULL);
@@ -8090,6 +8152,21 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
     if (lookup_label_has_inbound_target_ref(lookup, section_index, offset) ||
         lookup_label_has_statement_ref(lookup, section_index, offset)) {
       return !lookup_offset_is_inside_relocation_payload(lookup, section_index, offset);
+    }
+    /* Authored source declarations inside a literal leaf remain boundaries.
+     * Automatically expanded field names still follow their existing policy. */
+    if (lookup->policy != NULL && covering_item->size > 4U &&
+        (covering_item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES ||
+         covering_item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS ||
+         covering_item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS)) {
+      uint16_t index;
+      for (index = 0U; index < lookup->policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
+        const M68kAnalysisNamedLabel *label = &lookup->policy->named_labels[index];
+        if (label->is_source_declaration && label->domain == M68K_ANALYSIS_LABEL_DOMAIN_SOURCE &&
+            label->offset == offset &&
+            (label->has_section_index ? label->section_index == section_index : section_index == 0U))
+          return !lookup_offset_is_inside_relocation_payload(lookup, section_index, offset);
+      }
     }
     if ((structured_data_item_is_copper_list(covering_item) || structured_data_item_is_palette(covering_item)) &&
         offset > covering_item->offset && offset - covering_item->offset < covering_item->size &&

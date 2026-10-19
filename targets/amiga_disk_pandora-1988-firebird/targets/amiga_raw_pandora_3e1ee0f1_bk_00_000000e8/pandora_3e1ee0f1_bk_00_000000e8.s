@@ -2192,8 +2192,7 @@ latch_last_gameplay_copper_split:
 	move.l a0,app_copper_interrupt_callback(a6)
 	rts
 title_current_rgb12_palette:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dcb.w $10,$0000	; mutable_rgb12_palette
 title_star_palette_rgb12_increments:
 	dc.w $0000,$0FFF,$0DDD,$0BBB,$0999,$0777,$0555,$0333	; rgb12_palette_increments
 title_star_palette_fractional_components:
@@ -2222,10 +2221,7 @@ title_star_palette_fractional_components:
 	dc.w $0000	; green_q4
 	dc.w $0000	; blue_q4
 title_current_raster_gradient_rgb12:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dcb.w $20,$0000	; mutable_rgb12_palette
 title_raster_gradient_rgb12_increments:
 	dc.w $0000,$0002,$0004,$0006,$0008,$000A,$000C,$000E	; rgb12_palette_increments
 	dc.w $000E,$0022,$0044,$0066,$0088,$00AA,$00CC,$00EE	; rgb12_palette_increments
@@ -7351,8 +7347,7 @@ gameplay_palette_fractional_components:
 	dc.w $0000	; green_q4
 	dc.w $0000	; blue_q4
 gameplay_current_rgb12_palette:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; mutable_rgb12_palette
+	dcb.w $10,$0000	; mutable_rgb12_palette
 gameplay_palette_increment_rgb12:
 	dc.w $0000,$0666,$0AAA,$0EEE,$0600,$0A00,$0E00,$0F33	; rgb12_palette_increments
 	dc.w $00EE,$0FD0,$0EE0,$0EC0,$02F2,$00A2,$0EEE,$0EEE	; rgb12_palette_increments
@@ -17402,7 +17397,7 @@ abs_0_0001A7EA:
 	dc.b $00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69,$63,$73
 	dc.b $2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
 item_pocket_restriction_bits_bytes:
-	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80	; data
+	dc.b $2B,$F8,$31,$DD,$01,$3E,$00,$FF,$FF,$FF,$FF,$FF,$F4,$B0,$80
 salvage_item_eligibility_bits:
 	dc.b %00000000,%00000000,%00000001,%11011000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%00000000,%11011101,%10000000	; msb_first_item_eligibility_bitset
 tile_movement_block_bits:
@@ -19755,239 +19750,239 @@ cursor_sprite_initial_rows_shared_scratch:
 	dc.b $10,$00,$00,$00,$1C
 	dcb.b $C13,$00
 title_glyph_A:
-	dc.l $00000000,$00000000,$0007E000,$0007E000	; data
-	dc.l $000FF000,$000FF000,$001FF800,$001FF800	; data
-	dc.l $003FFC00,$003FFC00,$007FFE00,$007FFE00	; data
-	dc.l $00FE7F00,$00FE7F00,$01FC3F80,$01FC3F80	; data
-	dc.l $03FC3FC0,$03F81FC0,$07F81FE0,$07F80FE0	; data
-	dc.l $0FFFEFF0,$0FFFEFF0,$1FFFE7F8,$1FFFE7F8	; data
-	dc.l $3FE003FC,$3FC003FC,$7FC003FE,$7F8001FE	; data
-	dc.l $7F8001FE,$7F0000FE,$00000000,$00000000	; data
+	dc.l $00000000,$00000000,$0007E000,$0007E000
+	dc.l $000FF000,$000FF000,$001FF800,$001FF800
+	dc.l $003FFC00,$003FFC00,$007FFE00,$007FFE00
+	dc.l $00FE7F00,$00FE7F00,$01FC3F80,$01FC3F80
+	dc.l $03FC3FC0,$03F81FC0,$07F81FE0,$07F80FE0
+	dc.l $0FFFEFF0,$0FFFEFF0,$1FFFE7F8,$1FFFE7F8
+	dc.l $3FE003FC,$3FC003FC,$7FC003FE,$7F8001FE
+	dc.l $7F8001FE,$7F0000FE,$00000000,$00000000
 title_glyph_B:
-	dc.l $00000000,$00000000,$0FFFF800,$0FFFFE00	; data
-	dc.l $0FFFFF00,$0FFFFF00,$0FC0FF80,$0FC07F80	; data
-	dc.l $0FC03F80,$0FC01F80,$0FC03F80,$0FC07F80	; data
-	dc.l $0FC0FF80,$0FC3FF00,$0FCFFF00,$0FCFFC00	; data
-	dc.l $0FCFFC00,$0FCFFE00,$0FCFFF80,$0FC3FF80	; data
-	dc.l $0FC0FFC0,$0FC03FC0,$0FC01FC0,$0FC01FC0	; data
-	dc.l $0FC03FC0,$0FC07FC0,$0FDFFF80,$0FDFFF80	; data
-	dc.l $0FDFFF00,$0FDFF800,$00000000,$00000000	; data
+	dc.l $00000000,$00000000,$0FFFF800,$0FFFFE00
+	dc.l $0FFFFF00,$0FFFFF00,$0FC0FF80,$0FC07F80
+	dc.l $0FC03F80,$0FC01F80,$0FC03F80,$0FC07F80
+	dc.l $0FC0FF80,$0FC3FF00,$0FCFFF00,$0FCFFC00
+	dc.l $0FCFFC00,$0FCFFE00,$0FCFFF80,$0FC3FF80
+	dc.l $0FC0FFC0,$0FC03FC0,$0FC01FC0,$0FC01FC0
+	dc.l $0FC03FC0,$0FC07FC0,$0FDFFF80,$0FDFFF80
+	dc.l $0FDFFF00,$0FDFF800,$00000000,$00000000
 title_glyph_C:
-	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
-	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
-	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
-	dc.l $3FC00000,$3FC00000,$3F800000,$3F800000	; data
-	dc.l $3F800000,$3F800000,$3FC00000,$3FC00000	; data
-	dc.l $3FE00000,$1FF00000,$1FF807C0,$1FFE1FE0	; data
-	dc.l $0FFFFFE0,$07FFFFE0,$07FFFFE0,$03FFFFE0	; data
-	dc.l $01FFFFC0,$007FFF80,$000FFC00,$00000000	; data
+	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0
+	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0
+	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000
+	dc.l $3FC00000,$3FC00000,$3F800000,$3F800000
+	dc.l $3F800000,$3F800000,$3FC00000,$3FC00000
+	dc.l $3FE00000,$1FF00000,$1FF807C0,$1FFE1FE0
+	dc.l $0FFFFFE0,$07FFFFE0,$07FFFFE0,$03FFFFE0
+	dc.l $01FFFFC0,$007FFF80,$000FFC00,$00000000
 title_glyph_D:
-	dc.l $00000000,$0FFFF000,$0FFFFE00,$0FFFFF80	; data
-	dc.l $0FFFFFC0,$0FFFFFE0,$0FFFFFE0,$0FFFFFF0	; data
-	dc.l $0FF87FF8,$0FF01FF8,$0FE00FF8,$0FE007FC	; data
-	dc.l $0FE003FC,$0FE003FC,$0FE001FC,$0FE001FC	; data
-	dc.l $0FE001FC,$0FE001FC,$0FE003FC,$0FE003FC	; data
-	dc.l $0FE007FC,$0FE00FF8,$0FE01FF8,$0FE07FF8	; data
-	dc.l $0FE7FFF0,$0FEFFFE0,$0FFFFFE0,$0FFFFFC0	; data
-	dc.l $0FFFFF80,$0FEFFE00,$0FE7F000,$00000000	; data
+	dc.l $00000000,$0FFFF000,$0FFFFE00,$0FFFFF80
+	dc.l $0FFFFFC0,$0FFFFFE0,$0FFFFFE0,$0FFFFFF0
+	dc.l $0FF87FF8,$0FF01FF8,$0FE00FF8,$0FE007FC
+	dc.l $0FE003FC,$0FE003FC,$0FE001FC,$0FE001FC
+	dc.l $0FE001FC,$0FE001FC,$0FE003FC,$0FE003FC
+	dc.l $0FE007FC,$0FE00FF8,$0FE01FF8,$0FE07FF8
+	dc.l $0FE7FFF0,$0FEFFFE0,$0FFFFFE0,$0FFFFFC0
+	dc.l $0FFFFF80,$0FEFFE00,$0FE7F000,$00000000
 title_glyph_E:
-	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
-	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
-	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FE00000,$1FFFFF80,$1FFFFFC0	; data
-	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
+	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FE00000,$1FFFFF80,$1FFFFFC0
+	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000
 title_glyph_F:
-	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
-	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
-	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
+	dc.l $00000000,$0FFFFF80,$1FFFFFC0,$1FFFFFC0
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0
+	dc.l $1FFFFFC0,$1FFFFF80,$1FE00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$0F800000,$00000000
 title_glyph_G:
-	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0	; data
-	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0	; data
-	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000	; data
-	dc.l $3FC00000,$3FC00000,$3F800000,$3F81FFF8	; data
-	dc.l $3F83FFFC,$3F83FFFC,$3FC3FFFC,$3FC1FFFC	; data
-	dc.l $3FE003FC,$1FF001FC,$1FF801FC,$1FFE03FC	; data
-	dc.l $0FFF8FFC,$07FFFFFC,$07FFFFFC,$03FFFFFC	; data
-	dc.l $01FFFFFC,$007FFFF8,$000FFFE0,$00000000	; data
+	dc.l $00000000,$000FFC00,$007FFF80,$01FFFFC0
+	dc.l $03FFFFE0,$07FFFFF0,$07FFFFF0,$0FFFFFF0
+	dc.l $1FFE1FF0,$1FF807E0,$1FF00000,$3FE00000
+	dc.l $3FC00000,$3FC00000,$3F800000,$3F81FFF8
+	dc.l $3F83FFFC,$3F83FFFC,$3FC3FFFC,$3FC1FFFC
+	dc.l $3FE003FC,$1FF001FC,$1FF801FC,$1FFE03FC
+	dc.l $0FFF8FFC,$07FFFFFC,$07FFFFFC,$03FFFFFC
+	dc.l $01FFFFFC,$007FFFF8,$000FFFE0,$00000000
 title_glyph_H:
-	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FE007F8,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8	; data
-	dc.l $1FFFFFF8,$1FFFFFF8,$1FE007F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$0F8001F0,$00000000	; data
+	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FE007F8,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8
+	dc.l $1FFFFFF8,$1FFFFFF8,$1FE007F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$0F8001F0,$00000000
 title_glyph_I:
-	dc.l $00000000,$00000000,$007FFE00,$00FFFF00	; data
-	dc.l $00FFFF00,$00FFFF00,$007FFE00,$000FF000	; data
-	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
-	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
-	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
-	dc.l $000FF000,$000FF000,$000FF000,$000FF000	; data
-	dc.l $000FF000,$000FF000,$007FFE00,$00FFFF00	; data
-	dc.l $00FFFF00,$00FFFF00,$007FFE00,$00000000	; data
+	dc.l $00000000,$00000000,$007FFE00,$00FFFF00
+	dc.l $00FFFF00,$00FFFF00,$007FFE00,$000FF000
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000
+	dc.l $000FF000,$000FF000,$000FF000,$000FF000
+	dc.l $000FF000,$000FF000,$007FFE00,$00FFFF00
+	dc.l $00FFFF00,$00FFFF00,$007FFE00,$00000000
 title_glyph_J:
-	dc.l $00000000,$00000000,$000007C0,$00000FE0	; data
-	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
-	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
-	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
-	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0	; data
-	dc.l $00000FE0,$00001FE0,$07E03FE0,$0FF87FE0	; data
-	dc.l $0FFFFFE0,$0FFFFFE0,$0FFFFFC0,$07FFFFC0	; data
-	dc.l $03FFFF80,$01FFFE00,$003FF000,$00000000	; data
+	dc.l $00000000,$00000000,$000007C0,$00000FE0
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0
+	dc.l $00000FE0,$00000FE0,$00000FE0,$00000FE0
+	dc.l $00000FE0,$00001FE0,$07E03FE0,$0FF87FE0
+	dc.l $0FFFFFE0,$0FFFFFE0,$0FFFFFC0,$07FFFFC0
+	dc.l $03FFFF80,$01FFFE00,$003FF000,$00000000
 title_glyph_K:
-	dc.l $00000000,$00000000,$0F800F80,$1FC01FC0	; data
-	dc.l $1FC03FC0,$1FC07FC0,$1FC0FF80,$1FC1FF00	; data
-	dc.l $1FC3FE00,$1FC7FC00,$1FCFF800,$1FDFF000	; data
-	dc.l $1FFFE000,$1FFFC000,$1FFF8000,$1FFF0000	; data
-	dc.l $1FFE0000,$1FFE0000,$1FFF0000,$1FFF8000	; data
-	dc.l $1FFFC000,$1FFFE000,$1FDFF000,$1FCFF800	; data
-	dc.l $1FC7FC00,$1FC3FE00,$1FC1FF00,$1FC0FF80	; data
-	dc.l $1FC07F80,$1FC03F80,$0F801F00,$00000000	; data
+	dc.l $00000000,$00000000,$0F800F80,$1FC01FC0
+	dc.l $1FC03FC0,$1FC07FC0,$1FC0FF80,$1FC1FF00
+	dc.l $1FC3FE00,$1FC7FC00,$1FCFF800,$1FDFF000
+	dc.l $1FFFE000,$1FFFC000,$1FFF8000,$1FFF0000
+	dc.l $1FFE0000,$1FFE0000,$1FFF0000,$1FFF8000
+	dc.l $1FFFC000,$1FFFE000,$1FDFF000,$1FCFF800
+	dc.l $1FC7FC00,$1FC3FE00,$1FC1FF00,$1FC0FF80
+	dc.l $1FC07F80,$1FC03F80,$0F801F00,$00000000
 title_glyph_L:
-	dc.l $00000000,$00000000,$0F800000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0	; data
-	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000	; data
+	dc.l $00000000,$00000000,$0F800000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FE00000,$1FFFFF80,$1FFFFFC0,$1FFFFFC0
+	dc.l $1FFFFFC0,$1FFFFFC0,$0FFFFF80,$00000000
 title_glyph_M:
-	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
-	dc.l $FF0001FE,$FF8003FE,$FFC007FE,$FFE00FFE	; data
-	dc.l $FFF01FFE,$FFF83FFE,$FFFC7FFE,$FFFFFFFE	; data
-	dc.l $FFFFFFFE,$FFFFFFFE,$FEFFFEFE,$FE7FFCFE	; data
-	dc.l $FE3FF8FE,$FE1FF0FE,$FE0FE0FE,$FE0000FE	; data
-	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
-	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
-	dc.l $FE0000FE,$FE0000FE,$7C00007C,$00000000	; data
+	dc.l $00000000,$00000000,$7C00007C,$FE0000FE
+	dc.l $FF0001FE,$FF8003FE,$FFC007FE,$FFE00FFE
+	dc.l $FFF01FFE,$FFF83FFE,$FFFC7FFE,$FFFFFFFE
+	dc.l $FFFFFFFE,$FFFFFFFE,$FEFFFEFE,$FE7FFCFE
+	dc.l $FE3FF8FE,$FE1FF0FE,$FE0FE0FE,$FE0000FE
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE
+	dc.l $FE0000FE,$FE0000FE,$7C00007C,$00000000
 title_glyph_N:
-	dc.l $00000000,$00000000,$0FF001F0,$1FF803F8	; data
-	dc.l $1FFC03F8,$1FFC03F8,$1FFE03F8,$1FFF03F8	; data
-	dc.l $1FFF83F8,$1FFFC3F8,$1FFFC3F8,$1FFFE3F8	; data
-	dc.l $1FFFF3F8,$1FFFFBF8,$1FFFFBF8,$1FFFFFF8	; data
-	dc.l $1FDFFFF8,$1FCFFFF8,$1FCFFFF8,$1FC7FFF8	; data
-	dc.l $1FC3FFF8,$1FC1FFF8,$1FC1FFF8,$1FC0FFF8	; data
-	dc.l $1FC07FF8,$1FC03FF8,$1FC03FF8,$1FC01FF8	; data
-	dc.l $1FC00FF8,$1FC007F8,$0F8003F0,$00000000	; data
+	dc.l $00000000,$00000000,$0FF001F0,$1FF803F8
+	dc.l $1FFC03F8,$1FFC03F8,$1FFE03F8,$1FFF03F8
+	dc.l $1FFF83F8,$1FFFC3F8,$1FFFC3F8,$1FFFE3F8
+	dc.l $1FFFF3F8,$1FFFFBF8,$1FFFFBF8,$1FFFFFF8
+	dc.l $1FDFFFF8,$1FCFFFF8,$1FCFFFF8,$1FC7FFF8
+	dc.l $1FC3FFF8,$1FC1FFF8,$1FC1FFF8,$1FC0FFF8
+	dc.l $1FC07FF8,$1FC03FF8,$1FC03FF8,$1FC01FF8
+	dc.l $1FC00FF8,$1FC007F8,$0F8003F0,$00000000
 title_glyph_O:
-	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80	; data
-	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8	; data
-	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE	; data
-	dc.l $7F8001FE,$7F8001FE,$7F0000FE,$7F0000FE	; data
-	dc.l $7F0000FE,$7F0000FE,$7F8001FE,$7F8001FE	; data
-	dc.l $7FC003FE,$3FE007FC,$3FF00FFC,$3FFC3FFC	; data
-	dc.l $1FFFFFF8,$0FFFFFF0,$0FFFFFF0,$07FFFFE0	; data
-	dc.l $01FFFF80,$00FFFF00,$001FF800,$00000000	; data
+	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80
+	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8
+	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE
+	dc.l $7F8001FE,$7F8001FE,$7F0000FE,$7F0000FE
+	dc.l $7F0000FE,$7F0000FE,$7F8001FE,$7F8001FE
+	dc.l $7FC003FE,$3FE007FC,$3FF00FFC,$3FFC3FFC
+	dc.l $1FFFFFF8,$0FFFFFF0,$0FFFFFF0,$07FFFFE0
+	dc.l $01FFFF80,$00FFFF00,$001FF800,$00000000
 title_glyph_P:
-	dc.l $00000000,$0FFFFC00,$1FFFFF00,$1FFFFF80	; data
-	dc.l $1FFFFFC0,$1FFFFFC0,$1FE1FFE0,$1FC07FE0	; data
-	dc.l $1FC03FE0,$1FC01FE0,$1FC00FE0,$1FC00FE0	; data
-	dc.l $1FC00FE0,$1FC01FE0,$1FC03FE0,$1FC07FE0	; data
-	dc.l $1FC1FFC0,$1FDFFFC0,$1FFFFF80,$1FFFFE00	; data
-	dc.l $1FFFF800,$1FDFE000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000	; data
-	dc.l $1FC00000,$1FC00000,$0F800000,$00000000	; data
+	dc.l $00000000,$0FFFFC00,$1FFFFF00,$1FFFFF80
+	dc.l $1FFFFFC0,$1FFFFFC0,$1FE1FFE0,$1FC07FE0
+	dc.l $1FC03FE0,$1FC01FE0,$1FC00FE0,$1FC00FE0
+	dc.l $1FC00FE0,$1FC01FE0,$1FC03FE0,$1FC07FE0
+	dc.l $1FC1FFC0,$1FDFFFC0,$1FFFFF80,$1FFFFE00
+	dc.l $1FFFF800,$1FDFE000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$1FC00000,$1FC00000
+	dc.l $1FC00000,$1FC00000,$0F800000,$00000000
 title_glyph_Q:
-	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80	; data
-	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8	; data
-	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE	; data
-	dc.l $7F8001FE,$7F8001FE,$7F0000FE,$7F0000FE	; data
-	dc.l $7F0000FE,$7F0000FE,$7F8039FE,$7F807DFE	; data
-	dc.l $7FC0FFFE,$3FE0FFFC,$3FF07FFC,$3FFC3FFC	; data
-	dc.l $1FFFFFF8,$0FFFFFFC,$0FFFFFFE,$07FFFFFE	; data
-	dc.l $01FFFFFE,$00FFFEFC,$001FF878,$00000000	; data
+	dc.l $00000000,$001FF800,$00FFFF00,$01FFFF80
+	dc.l $07FFFFE0,$0FFFFFF0,$0FFFFFF0,$1FFFFFF8
+	dc.l $3FFC3FFC,$3FF00FFC,$3FE007FC,$7FC003FE
+	dc.l $7F8001FE,$7F8001FE,$7F0000FE,$7F0000FE
+	dc.l $7F0000FE,$7F0000FE,$7F8039FE,$7F807DFE
+	dc.l $7FC0FFFE,$3FE0FFFC,$3FF07FFC,$3FFC3FFC
+	dc.l $1FFFFFF8,$0FFFFFFC,$0FFFFFFE,$07FFFFFE
+	dc.l $01FFFFFE,$00FFFEFC,$001FF878,$00000000
 title_glyph_R:
-	dc.l $00000000,$0FFFFC00,$1FFFFF00,$1FFFFF80	; data
-	dc.l $1FFFFFC0,$1FFFFFC0,$1FE1FFE0,$1FC07FE0	; data
-	dc.l $1FC03FE0,$1FC01FE0,$1FC00FE0,$1FC00FE0	; data
-	dc.l $1FC00FE0,$1FC01FE0,$1FC03FE0,$1FC07FE0	; data
-	dc.l $1FC1FFC0,$1FCFFFC0,$1FDFFF80,$1FDFFE00	; data
-	dc.l $1FDFF800,$1FDFE000,$1FDFC000,$1FCFE000	; data
-	dc.l $1FC7F000,$1FC3F800,$1FC1FC00,$1FC0FE00	; data
-	dc.l $1FC07F00,$1FC03F80,$0F801F00,$00000000	; data
+	dc.l $00000000,$0FFFFC00,$1FFFFF00,$1FFFFF80
+	dc.l $1FFFFFC0,$1FFFFFC0,$1FE1FFE0,$1FC07FE0
+	dc.l $1FC03FE0,$1FC01FE0,$1FC00FE0,$1FC00FE0
+	dc.l $1FC00FE0,$1FC01FE0,$1FC03FE0,$1FC07FE0
+	dc.l $1FC1FFC0,$1FCFFFC0,$1FDFFF80,$1FDFFE00
+	dc.l $1FDFF800,$1FDFE000,$1FDFC000,$1FCFE000
+	dc.l $1FC7F000,$1FC3F800,$1FC1FC00,$1FC0FE00
+	dc.l $1FC07F00,$1FC03F80,$0F801F00,$00000000
 title_glyph_S:
-	dc.l $00000000,$000FFC00,$00FFFF80,$03FFFFE0	; data
-	dc.l $07FFFFF0,$0FFFFFF8,$1FFE3FF8,$1FF80FF8	; data
-	dc.l $1FF007F8,$1FE001F0,$1FF00000,$1FF80000	; data
-	dc.l $1FFF8000,$0FFFFC00,$0FFFFF80,$07FFFFE0	; data
-	dc.l $01FFFFF0,$001FFFF8,$00007FF8,$00001FFC	; data
-	dc.l $00000FFC,$000007FC,$0F8003FC,$1FE007FC	; data
-	dc.l $3FF00FFC,$3FFE3FF8,$3FFFFFF8,$1FFFFFF0	; data
-	dc.l $0FFFFFE0,$03FFFF80,$003FF800,$00000000	; data
+	dc.l $00000000,$000FFC00,$00FFFF80,$03FFFFE0
+	dc.l $07FFFFF0,$0FFFFFF8,$1FFE3FF8,$1FF80FF8
+	dc.l $1FF007F8,$1FE001F0,$1FF00000,$1FF80000
+	dc.l $1FFF8000,$0FFFFC00,$0FFFFF80,$07FFFFE0
+	dc.l $01FFFFF0,$001FFFF8,$00007FF8,$00001FFC
+	dc.l $00000FFC,$000007FC,$0F8003FC,$1FE007FC
+	dc.l $3FF00FFC,$3FFE3FF8,$3FFFFFF8,$1FFFFFF0
+	dc.l $0FFFFFE0,$03FFFF80,$003FF800,$00000000
 title_glyph_T:
-	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
-	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFF8	; data
-	dc.l $000FF800,$0007F000,$0007F000,$0007F000	; data
-	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
-	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
-	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
-	dc.l $0007F000,$0007F000,$0007F000,$0007F000	; data
-	dc.l $0007F000,$0007F000,$0003E000,$00000000	; data
+	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC
+	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFF8
+	dc.l $000FF800,$0007F000,$0007F000,$0007F000
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000
+	dc.l $0007F000,$0007F000,$0007F000,$0007F000
+	dc.l $0007F000,$0007F000,$0003E000,$00000000
 title_glyph_U:
-	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8	; data
-	dc.l $1FC003F8,$1FE007F8,$1FE007F8,$0FF00FF0	; data
-	dc.l $0FFC3FF0,$0FFFFFF0,$07FFFFE0,$07FFFFE0	; data
-	dc.l $03FFFFC0,$00FFFF00,$003FFC00,$00000000	; data
+	dc.l $00000000,$00000000,$0F8001F0,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FC003F8,$1FC003F8,$1FC003F8
+	dc.l $1FC003F8,$1FE007F8,$1FE007F8,$0FF00FF0
+	dc.l $0FFC3FF0,$0FFFFFF0,$07FFFFE0,$07FFFFE0
+	dc.l $03FFFFC0,$00FFFF00,$003FFC00,$00000000
 title_glyph_V:
-	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
-	dc.l $7F8001FE,$7F8001FE,$3FC003FC,$3FC003FC	; data
-	dc.l $1FE007F8,$1FE007F8,$0FF00FF0,$0FF00FF0	; data
-	dc.l $07F81FE0,$07F81FE0,$03FC3FC0,$03FC3FC0	; data
-	dc.l $01FE7F80,$01FE7F80,$00FFFF00,$00FFFF00	; data
-	dc.l $007FFE00,$007FFE00,$003FFC00,$003FFC00	; data
-	dc.l $001FF800,$001FF800,$000FF000,$000FF000	; data
-	dc.l $0007E000,$0003C000,$00000000,$00000000	; data
+	dc.l $00000000,$00000000,$3E00007C,$7F0000FE
+	dc.l $7F8001FE,$7F8001FE,$3FC003FC,$3FC003FC
+	dc.l $1FE007F8,$1FE007F8,$0FF00FF0,$0FF00FF0
+	dc.l $07F81FE0,$07F81FE0,$03FC3FC0,$03FC3FC0
+	dc.l $01FE7F80,$01FE7F80,$00FFFF00,$00FFFF00
+	dc.l $007FFE00,$007FFE00,$003FFC00,$003FFC00
+	dc.l $001FF800,$001FF800,$000FF000,$000FF000
+	dc.l $0007E000,$0003C000,$00000000,$00000000
 title_glyph_W:
-	dc.l $00000000,$00000000,$7C00007C,$FE0000FE	; data
-	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
-	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE	; data
-	dc.l $FE0000FE,$FE0000FE,$FE07C0FE,$FE1FF0FE	; data
-	dc.l $FE3FF8FE,$FE7FFCFE,$FEFFFEFE,$FFFFFFFE	; data
-	dc.l $FFFFFFFE,$FFFFFFFE,$FFFFFFFE,$FFFE7FFE	; data
-	dc.l $FFFC3FFE,$FFF81FFE,$FFF00FFE,$FFE007FE	; data
-	dc.l $FFC003FE,$FF8001FE,$7E00007C,$00000000	; data
+	dc.l $00000000,$00000000,$7C00007C,$FE0000FE
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE
+	dc.l $FE0000FE,$FE0000FE,$FE0000FE,$FE0000FE
+	dc.l $FE0000FE,$FE0000FE,$FE07C0FE,$FE1FF0FE
+	dc.l $FE3FF8FE,$FE7FFCFE,$FEFFFEFE,$FFFFFFFE
+	dc.l $FFFFFFFE,$FFFFFFFE,$FFFFFFFE,$FFFE7FFE
+	dc.l $FFFC3FFE,$FFF81FFE,$FFF00FFE,$FFE007FE
+	dc.l $FFC003FE,$FF8001FE,$7E00007C,$00000000
 title_glyph_X:
-	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
-	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
-	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
-	dc.l $01FFFF80,$00FFFF00,$007FFE00,$003FFC00	; data
-	dc.l $001FF800,$003FFC00,$007FFE00,$00FFFF00	; data
-	dc.l $01FFFF80,$03FFFFC0,$07FE7FE0,$0FFC3FF0	; data
-	dc.l $1FF81FF8,$3FF00FFC,$3FE007FC,$3FC003FC	; data
-	dc.l $3F8001FC,$1F0000F8,$00000000,$00000000	; data
+	dc.l $00000000,$00000000,$3E00007C,$7F0000FE
+	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC
+	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0
+	dc.l $01FFFF80,$00FFFF00,$007FFE00,$003FFC00
+	dc.l $001FF800,$003FFC00,$007FFE00,$00FFFF00
+	dc.l $01FFFF80,$03FFFFC0,$07FE7FE0,$0FFC3FF0
+	dc.l $1FF81FF8,$3FF00FFC,$3FE007FC,$3FC003FC
+	dc.l $3F8001FC,$1F0000F8,$00000000,$00000000
 title_glyph_Y:
-	dc.l $00000000,$00000000,$3E00007C,$7F0000FE	; data
-	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC	; data
-	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0	; data
-	dc.l $01FFFF80,$00FFFF00,$007FFE00,$003FFC00	; data
-	dc.l $001FF800,$000FF000,$0007E000,$0007E000	; data
-	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
-	dc.l $0007E000,$0007E000,$0007E000,$0007E000	; data
-	dc.l $0007E000,$0007E000,$0003C000,$00000000	; data
+	dc.l $00000000,$00000000,$3E00007C,$7F0000FE
+	dc.l $7F8001FE,$7FC003FE,$7FE007FE,$3FF00FFC
+	dc.l $1FF81FF8,$0FFC3FF0,$07FE7FE0,$03FFFFC0
+	dc.l $01FFFF80,$00FFFF00,$007FFE00,$003FFC00
+	dc.l $001FF800,$000FF000,$0007E000,$0007E000
+	dc.l $0007E000,$0007E000,$0007E000,$0007E000
+	dc.l $0007E000,$0007E000,$0007E000,$0007E000
+	dc.l $0007E000,$0007E000,$0003C000,$00000000
 title_glyph_Z:
-	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC	; data
-	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFFC	; data
-	dc.l $00001FF8,$00003FF0,$00007FE0,$0000FFC0	; data
-	dc.l $0001FF80,$0003FF00,$0007FE00,$000FFC00	; data
-	dc.l $001FF800,$003FF000,$007FE000,$00FFC000	; data
-	dc.l $01FF8000,$03FF0000,$07FE0000,$0FFC0000	; data
-	dc.l $1FFFFFF0,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8	; data
-	dc.l $1FFFFFF8,$0FFFFFF0,$00000000,$00000000	; data
+	dc.l $00000000,$00000000,$0FFFFFF8,$1FFFFFFC
+	dc.l $1FFFFFFC,$1FFFFFFC,$1FFFFFFC,$0FFFFFFC
+	dc.l $00001FF8,$00003FF0,$00007FE0,$0000FFC0
+	dc.l $0001FF80,$0003FF00,$0007FE00,$000FFC00
+	dc.l $001FF800,$003FF000,$007FE000,$00FFC000
+	dc.l $01FF8000,$03FF0000,$07FE0000,$0FFC0000
+	dc.l $1FFFFFF0,$1FFFFFF8,$1FFFFFF8,$1FFFFFF8
+	dc.l $1FFFFFF8,$0FFFFFF0,$00000000,$00000000
 world_tile_pixels_000_through_011:
 	INCBIN "assets/world_tile_pixels_000_through_011.bin"
 ; bitmap
@@ -24580,8 +24575,14 @@ lieutenant_commander_frames_4AB5E_2_bitplane_data_ptr_2:
 	dc.w $0020	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-	dc.b $00,$05,$04,$F8,$00,$06,$85,$38,$00,$02,$00,$12,$00,$20,$00,$00
-	dc.b $00,$00
+lieutenant_commander_additional_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_36+$240	; bitplane_data_ptr
+	dc.l scene_mask_bank_36+$90	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0012	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
 world_object_commander:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
@@ -24697,13 +24698,54 @@ menial_droid_states_4ACCE_1:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
-	dc.b $00,$05,$2E,$E8,$00,$06,$8E,$0C,$00,$01,$00,$06,$00,$10,$00,$00
-	dc.b $00,$01,$00,$05,$2F,$18,$00,$06,$8E,$18,$00,$01,$00,$07,$00,$10
-	dc.b $00,$00,$00,$01,$00,$05,$2F,$50,$00,$06,$8E,$26,$00,$01,$00,$07
-	dc.b $00,$10,$00,$00,$00,$01,$00,$05,$2F,$88,$00,$06,$8E,$34,$00,$01
-	dc.b $00,$07,$00,$10,$00,$00,$00,$01,$00,$05,$2F,$C0,$00,$06,$8E,$42
-	dc.b $00,$01,$00,$09,$00,$10,$00,$00,$00,$01,$00,$05,$30,$08,$00,$06
-	dc.b $8E,$54,$00,$01,$00,$12,$00,$10,$00,$00,$00,$01
+menial_droid_additional_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_44	; bitplane_data_ptr
+	dc.l scene_mask_bank_44	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0006	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+menial_droid_additional_geometry_bitplane_data_ptr_1:
+	dc.l scene_pixel_cells_for_mask_bank_44+$30	; bitplane_data_ptr
+	dc.l scene_mask_bank_44+$C	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0007	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+menial_droid_additional_geometry_bitplane_data_ptr_2:
+	dc.l scene_pixel_cells_for_mask_bank_44+$68	; bitplane_data_ptr
+	dc.l scene_mask_bank_44+$1A	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0007	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+menial_droid_additional_geometry_bitplane_data_ptr_3:
+	dc.l scene_pixel_cells_for_mask_bank_44+$A0	; bitplane_data_ptr
+	dc.l scene_mask_bank_44+$28	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0007	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+menial_droid_additional_geometry_bitplane_data_ptr_4:
+	dc.l scene_pixel_cells_for_mask_bank_44+$D8	; bitplane_data_ptr
+	dc.l scene_mask_bank_44+$36	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0009	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+menial_droid_additional_geometry_bitplane_data_ptr_5:
+	dc.l scene_pixel_cells_for_mask_bank_44+$120	; bitplane_data_ptr
+	dc.l scene_mask_bank_44+$48	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0012	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
 menial_droid_animation_bank_2:
 	dc.l scene_pixel_cells_for_mask_bank_44+$1B0	; bitplane_data_ptr
 	dc.l scene_mask_bank_44+$6C	; mask_data_ptr
@@ -24778,11 +24820,27 @@ menial_droid_states_4AD66_2:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $00	; world_object_flags
-	dc.b $00,$05,$AD,$C0,$07,$40,$00,$05,$AE,$30,$08
-	dcb.b $8,$00
-	dc.b $05,$AE,$50,$00,$05,$AC,$FA,$00,$05,$AC,$FA,$00,$05,$AD,$0C,$00
-	dc.b $05,$AD,$1E,$00,$05,$AD,$30,$00,$05,$AD,$42,$00,$05,$AD,$54,$00
-	dc.b $05,$AD,$66
+menial_droid_chained_animation:
+	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $40	; phase_step
+	dc.l menial_droid_chained_frame_held	; frame_sequence_ptr
+	dc.b $08	; mode_flags
+menial_droid_chained_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+	dc.l menial_droid_animation_bank_3	; next_node_ptr
+menial_droid_chained_frame_held:
+	dc.l menial_droid_additional_geometry	; frame_ptr
+menial_droid_chained_frames_active:
+	dc.l menial_droid_additional_geometry	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_1	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_2	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_3	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_4	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_5	; frame_ptr
+	dc.l menial_droid_animation_bank_2	; frame_ptr
 menial_droid_animation_bank_3:
 	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
 	dc.b $03	; frame_count
@@ -24799,10 +24857,26 @@ menial_droid_sequence_4AE50_1_active:
 	dc.l menial_droid_animation_bank_2	; frame_ptr
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_1	; frame_ptr
 	dc.l menial_droid_animation_bank_2_bitplane_data_ptr_2	; frame_ptr
-	dc.b $00,$05,$AD,$C0,$07,$40,$00,$05,$AE,$84,$04
-	dcb.b $8,$00
-	dc.b $05,$AC,$FA,$00,$05,$AD,$66,$00,$05,$AD,$54,$00,$05,$AD,$42,$00
-	dc.b $05,$AD,$30,$00,$05,$AD,$1E,$00,$05,$AD,$0C,$00,$05,$AC,$FA
+menial_droid_return_animation:
+	dc.l menial_droid_positions_4AD66_1	; position_descriptor_ptr
+	dc.b $07	; frame_count
+	dc.b $40	; phase_step
+	dc.l menial_droid_return_frame_held	; frame_sequence_ptr
+	dc.b $04	; mode_flags
+menial_droid_return_animation_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+menial_droid_return_frame_held:
+	dc.l menial_droid_additional_geometry	; frame_ptr
+menial_droid_return_frames_active:
+	dc.l menial_droid_animation_bank_2	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_5	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_4	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_3	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_2	; frame_ptr
+	dc.l menial_droid_additional_geometry_bitplane_data_ptr_1	; frame_ptr
+	dc.l menial_droid_additional_geometry	; frame_ptr
 world_object_gardener:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_gardener	; interaction_callback
@@ -24858,12 +24932,46 @@ gardener_states_4AEF8_1:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
-	dc.b $00,$05,$33,$10,$00,$06,$8F,$16,$00,$01,$00,$0D,$00,$20,$00,$00
-	dc.b $00,$01,$00,$05,$33,$E0,$00,$06,$8F,$4A,$00,$01,$00,$0F,$00,$20
-	dc.b $00,$00,$00,$00,$00,$05,$34,$D0,$00,$06,$8F,$86,$00,$01,$00,$10
-	dc.b $00,$20,$00,$00,$00,$00,$00,$05,$35,$D0,$00,$06,$8F,$C6,$00,$01
-	dc.b $00,$0E,$00,$20,$00,$00,$00,$00,$00,$05,$36,$B0,$00,$06,$8F,$FE
-	dc.b $00,$01,$00,$0D,$00,$20,$00,$00,$00,$01
+gardener_additional_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_45	; bitplane_data_ptr
+	dc.l scene_mask_bank_45	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000D	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
+gardener_additional_geometry_bitplane_data_ptr_1:
+	dc.l scene_pixel_cells_for_mask_bank_45+$D0	; bitplane_data_ptr
+	dc.l scene_mask_bank_45+$34	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000F	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+gardener_additional_geometry_bitplane_data_ptr_2:
+	dc.l scene_pixel_cells_for_mask_bank_45+$1C0	; bitplane_data_ptr
+	dc.l scene_mask_bank_45+$70	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0010	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+gardener_additional_geometry_bitplane_data_ptr_3:
+	dc.l scene_pixel_cells_for_mask_bank_45+$2C0	; bitplane_data_ptr
+	dc.l scene_mask_bank_45+$B0	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000E	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+gardener_additional_geometry_bitplane_data_ptr_4:
+	dc.l scene_pixel_cells_for_mask_bank_45+$3A0	; bitplane_data_ptr
+	dc.l scene_mask_bank_45+$E8	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $000D	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0001	; y_offset
 gardener_animation_bank_2:
 	dc.l scene_pixel_cells_for_mask_bank_43+$290	; bitplane_data_ptr
 	dc.l scene_mask_bank_43+$A4	; mask_data_ptr
@@ -24888,12 +24996,34 @@ gardener_states_4AF7E_2:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b $02	; world_object_flags
-	dcb.b $C,$00
-	dc.b $FF,$EB,$00,$08,$00,$05,$AF,$90,$00,$00,$00,$00,$00,$00,$00,$05
-	dc.b $AF,$90,$05,$40,$00,$05,$AF,$E2
-	dcb.b $9,$00
-	dc.b $05,$AF,$24,$00,$05,$AF,$24,$00,$05,$AF,$36,$00,$05,$AF,$48,$00
-	dc.b $05,$AF,$5A,$00,$05,$AF,$6C
+gardener_retained_animation:
+	dc.l $00000000	; current_geometry_ptr
+	dc.l $00000000	; previous_geometry_ptr
+	dc.l $00000000	; state_node_ptr
+	dc.w $FFEB	; world_x_offset
+	dc.w $0008	; world_y_offset
+	dc.l gardener_positions_4AF7E_1	; position_descriptor_ptr
+	dc.l $00000000	; attachment_state_ptr
+	dc.b $00	; interaction_flags
+	dc.b $00	; world_object_flags
+gardener_retained_node:
+	dc.l gardener_positions_4AF7E_1	; position_descriptor_ptr
+	dc.b $05	; frame_count
+	dc.b $40	; phase_step
+	dc.l gardener_retained_frame_held	; frame_sequence_ptr
+	dc.b $00	; mode_flags
+gardener_retained_node_gap_B:
+	dc.b $00	; typed data block gap
+	dc.l $00000000	; xy_sequence_ptr
+	dc.w $0000	; frame_index_and_phase
+gardener_retained_frame_held:
+	dc.l gardener_additional_geometry	; frame_ptr
+gardener_retained_frames_active:
+	dc.l gardener_additional_geometry	; frame_ptr
+	dc.l gardener_additional_geometry_bitplane_data_ptr_1	; frame_ptr
+	dc.l gardener_additional_geometry_bitplane_data_ptr_2	; frame_ptr
+	dc.l gardener_additional_geometry_bitplane_data_ptr_3	; frame_ptr
+	dc.l gardener_additional_geometry_bitplane_data_ptr_4	; frame_ptr
     ; Install the positive-X node after the 26-byte player render state. Movement selects directional nodes; idle holds the header pose. General allocation lifetime is not established.
 initialize_player_and_fixed_animation_nodes:
 	lea.l player_move_positive_x_animation.l,a0
@@ -25290,10 +25420,28 @@ robomechanic_states_4B3F2_1:
 	dc.l $00000000	; attachment_state_ptr
 	dc.b $00	; interaction_flags
 	dc.b WORLD_POSITION_FRONT_INITIAL_FLAGS	; world_object_flags
-	dc.b $00,$05,$37,$80,$00,$06,$90,$32,$00,$02,$00,$05,$00,$20,$00,$00
-	dc.b $00,$05,$00,$05,$37,$D0,$00,$06,$90,$46,$00,$02,$00,$05,$00,$20
-	dc.b $00,$00,$00,$05,$00,$05,$38,$20,$00,$06,$90,$5A,$00,$02,$00,$07
-	dc.b $00,$20,$00,$00,$00,$04
+robomechanic_additional_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_46	; bitplane_data_ptr
+	dc.l scene_mask_bank_46	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0005	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0005	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_46+$50	; bitplane_data_ptr
+	dc.l scene_mask_bank_46+$14	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0005	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0005	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_46+$A0	; bitplane_data_ptr
+	dc.l scene_mask_bank_46+$28	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0007	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0004	; y_offset
 robomechanic_animation_bank_2:
 	dc.l scene_pixel_cells_for_mask_bank_46+$110	; bitplane_data_ptr
 	dc.l scene_mask_bank_46+$44	; mask_data_ptr
@@ -26591,10 +26739,22 @@ fixed_npc_frame_sequences_early_3_active:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
-	dc.b $00,$05,$BC,$82,$00,$05,$BC,$CA,$00,$05,$BC,$B8,$00,$05,$BC,$A6
-	dc.b $00,$05,$BC,$94,$00,$05,$BC,$82,$00,$05,$BC,$CA,$00,$05,$BC,$DC
-	dc.b $00,$05,$BC,$5E,$00,$05,$BC,$70,$00,$05,$BC,$CA,$00,$05,$BC,$82
-	dc.b $00,$05,$BC,$94,$00,$05,$BC,$A6,$00,$05,$BC,$B8
+fixed_npc_additional_geometry_refs:
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_7	; frame_ptr
+	dc.l fixed_npc_geometry_headers	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_1	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_2	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_3	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_4	; frame_ptr
+	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_5	; frame_ptr
 fixed_npc_frame_sequences_late:
 	dc.l fixed_npc_geometry_headers_bitplane_data_ptr_6	; frame_ptr
 fixed_npc_frame_sequences_late_0_active:
@@ -28124,38 +28284,7 @@ diabetic_try_self_destruct_hint:
 	jsr enqueue_status_message.l
 	bra.b diabetic_return_without_context_prompt
 blank_sprite_data:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; data
+	dcb.w $100,$0000
 initialize_audio_player:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
 	lea.l initialize_audio_player(pc),a3
@@ -28600,7 +28729,7 @@ set_audio_duration_multiplier_from_signed_byte:
 	move.w d0,audio_player_base_view_globals(a3)
 	bra.w fetch_next_primary_audio_token
 audio_control_opcode_handler_offsets:
-	dc.w advance_audio_sequence_program-initialize_audio_player	; data
+	dc.w advance_audio_sequence_program-initialize_audio_player
 	dc.w enable_audio_pitch_delta-initialize_audio_player
 	dc.w start_audio_silence_sample-initialize_audio_player
 	dc.w enable_audio_channel_dma_and_reload_duration-initialize_audio_player
@@ -28631,9 +28760,9 @@ audio_player_globals_gap_D:
 audio_player_globals_silence_sample_ptr:
 	dc.l $00000000	; silence_sample_ptr
 audio_sample_7_waveform_direction:
-	dc.w $0000	; data
+	dc.w $0000
 audio_sample_7_word_write_offset:
-	dc.w $0000	; data
+	dc.w $0000
     ; Original address slots are NULL. Initializers install source pointers; cursors mutate during service. Shared domains do not certify live addresses, DMA extents or lifetimes.
 audio_channel_state_records:
 	dc.b $00	; channel_flags
@@ -28770,31 +28899,31 @@ audio_pitch_sequence_offset_table:
 	dc.w pitch_selector_11_offsets_with_loop_flag-initialize_audio_player
 	dc.w pitch_selector_12_offsets_with_loop_flag-initialize_audio_player
 pitch_selector_00_offsets_with_loop_flag:
-	dc.b $00,$80	; data
+	dc.b $00,$80
 pitch_selector_01_offsets_with_loop_flag:
-	dc.b $07,$0C,$8F	; data
+	dc.b $07,$0C,$8F
 pitch_selector_02_offsets_with_loop_flag:
-	dc.b $03,$07,$8C	; data
+	dc.b $03,$07,$8C
 pitch_selector_03_offsets_with_loop_flag:
-	dc.b $00,$03,$87	; data
+	dc.b $00,$03,$87
 pitch_selector_04_offsets_with_loop_flag:
-	dc.b $00,$04,$87	; data
+	dc.b $00,$04,$87
 pitch_selector_05_offsets_with_loop_flag:
-	dc.b $00,$8C	; data
+	dc.b $00,$8C
 pitch_selector_06_offsets_with_loop_flag:
-	dc.b $0C,$00,$00,$00,$00,$00,$00,$80	; data
+	dc.b $0C,$00,$00,$00,$00,$00,$00,$80
 pitch_selector_07_offsets_with_loop_flag:
-	dc.b $0C,$00,$00,$00,$00,$00,$80	; data
+	dc.b $0C,$00,$00,$00,$00,$00,$80
 pitch_selector_08_offsets_with_loop_flag:
-	dc.b $0C,$00,$00,$00,$00,$80	; data
+	dc.b $0C,$00,$00,$00,$00,$80
 pitch_selector_09_offsets_with_loop_flag:
-	dc.b $00,$83	; data
+	dc.b $00,$83
 pitch_selector_10_offsets_with_loop_flag:
-	dc.b $00,$84	; data
+	dc.b $00,$84
 pitch_selector_11_offsets_with_loop_flag:
-	dc.b $00,$85	; data
+	dc.b $00,$85
 pitch_selector_12_offsets_with_loop_flag:
-	dc.b $18,$00,$00,$00,$00,$00,$80	; data
+	dc.b $18,$00,$00,$00,$00,$00,$80
 audio_sample_metadata:
 	dc.l $00000000	; sample_ptr
 	dc.l $00000000	; sample_start_byte_offset
@@ -28861,24 +28990,24 @@ audio_player_initialization_presets:
 	dc.w $0A82	; channel_2_configuration_list_offset
 	dc.w $0A8C	; channel_3_configuration_list_offset
 program_offsets_with_wrap_zero:
-	dc.w $07A8,$07A8,$07EF,$07EF,$0818,$0818,$0818,$0818	; data
-	dc.w $0816,$0816,$0816,$0816,$0000	; data
+	dc.w $07A8,$07A8,$07EF,$07EF,$0818,$0818,$0818,$0818
+	dc.w $0816,$0816,$0816,$0816,$0000
 program_offsets_with_wrap_zero_2:
-	dc.w $0841,$0841,$0850,$0861,$085F,$0000	; data
+	dc.w $0841,$0841,$0850,$0861,$085F,$0000
 program_offsets_with_wrap_zero_3:
-	dc.w $087B,$08B9,$08DC,$08DA,$0000	; data
+	dc.w $087B,$08B9,$08DC,$08DA,$0000
 program_offsets_with_wrap_zero_4:
-	dc.w $0929,$0000	; data
+	dc.w $0929,$0000
 tokens_and_operands_with_advance_token:
-	dc.b $B2,$C7	; data
+	dc.b $B2,$C7
 audio_mode_0_program_00_command_0002:
 	dc.b $86	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_00_tokens_0005:
-	dc.b $E3	; data
-	dcb.b $8,$18	; data
-	dc.b $1B,$1B,$1B,$1B,$1B,$1B,$1B	; data
+	dc.b $E3
+	dcb.b $8,$18
+	dc.b $1B,$1B,$1B,$1B,$1B,$1B,$1B
 	dc.b $1B
 	dcb.b $8,$18
 	dc.b $16,$16,$16,$16,$16,$16,$16
@@ -28889,14 +29018,14 @@ audio_mode_0_program_00_tokens_0005:
 	dcb.b $F,$1D
 	dc.b $1D,$80
 tokens_and_operands_with_advance_token_2:
-	dc.b $B2,$C7	; data
+	dc.b $B2,$C7
 audio_mode_0_program_01_command_0002:
 	dc.b $86	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_01_tokens_0005:
-	dc.b $E3	; data
-	dcb.b $F,$18	; data
+	dc.b $E3
+	dcb.b $F,$18
 	dc.b $18
 	dcb.b $F,$1D
 	dc.b $1D,$80
@@ -28904,14 +29033,14 @@ audio_mode_0_program_02:
 	dc.b $88	; opcode
 	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token:
-	dc.b $B2,$C7	; data
+	dc.b $B2,$C7
 audio_mode_0_program_02_command_0004:
 	dc.b $86	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_02_tokens_0007:
-	dc.b $E3	; data
-	dcb.b $F,$1A	; data
+	dc.b $E3
+	dcb.b $F,$1A
 	dc.b $1A
 	dcb.b $F,$18
 	dc.b $18
@@ -28919,75 +29048,75 @@ audio_mode_0_program_02_command_0028:
 	dc.b $88	; opcode
 	dc.b $00	; note_offset_byte
 audio_mode_0_program_02_tokens_002A:
-	dc.b $80	; data
+	dc.b $80
 tokens_and_operands_with_advance_token_3:
-	dc.b $C7,$B7	; data
+	dc.b $C7,$B7
 audio_mode_0_program_03_command_0002:
 	dc.b $86	; opcode
 	dc.b $06	; step
 	dc.b $06	; limit
 audio_mode_0_program_03_tokens_0005:
-	dc.b $FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80	; data
+	dc.b $FF,$24,$27,$24,$22,$24,$27,$29,$1D,$80
 tokens_and_operands_with_advance_token_4:
-	dc.b $C7,$B7	; data
+	dc.b $C7,$B7
 audio_mode_0_program_04_command_0002:
 	dc.b $86	; opcode
 	dc.b $06	; step
 	dc.b $06	; limit
 audio_mode_0_program_04_tokens_0005:
-	dc.b $FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80	; data
+	dc.b $FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80
 audio_mode_0_program_05:
 	dc.b $88	; opcode
 	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_2:
-	dc.b $C0,$FF	; data
+	dc.b $C0,$FF
 audio_mode_0_program_05_command_0004:
 	dc.b $86	; opcode
 	dc.b $01	; step
 	dc.b $02	; limit
 audio_mode_0_program_05_tokens_0007:
-	dc.b $BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26,$26,$24,$24,$32,$32	; data
+	dc.b $BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26,$26,$24,$24,$32,$32
 	dc.b $30,$30
 audio_mode_0_program_05_command_0019:
 	dc.b $88	; opcode
 	dc.b $00	; note_offset_byte
 audio_mode_0_program_05_tokens_001B:
-	dc.b $80	; data
+	dc.b $80
 tokens_and_operands_with_advance_token_5:
-	dc.b $C7,$B7	; data
+	dc.b $C7,$B7
 audio_mode_0_program_06_command_0002:
 	dc.b $86	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_0_program_06_tokens_0005:
-	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6	; data
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6
 audio_mode_0_program_06_command_0011:
 	dc.b $86	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_06_tokens_0014:
-	dc.b $F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7	; data
+	dc.b $F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7
 audio_mode_0_program_06_command_0020:
 	dc.b $86	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_0_program_06_tokens_0023:
-	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6	; data
+	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6
 audio_mode_0_program_06_command_002F:
 	dc.b $86	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_0_program_06_tokens_0032:
-	dc.b $F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80	; data
+	dc.b $F3,$33,$E3,$2E,$33,$F1,$3A,$83,$FF,$83,$39,$80
 tokens_and_operands_with_advance_token_6:
-	dc.b $C2,$BE,$87,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3	; data
+	dc.b $C2,$BE,$87,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$1F,$FB,$21,$E3
 	dc.b $2B,$FF,$2D,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83
 	dc.b $80
 audio_mode_0_program_08:
 	dc.b $88	; opcode
 	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_3:
-	dc.b $E3,$83,$C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32	; data
+	dc.b $E3,$83,$C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32
 	dc.b $2B,$E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E7
 	dc.b $2B,$C1,$B3,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32,$2B
 	dc.b $E7,$2D,$E5,$2B,$32,$30,$29,$E7,$2B,$E5,$2B,$32,$30,$29,$E3,$2B
@@ -28997,76 +29126,76 @@ audio_mode_0_program_08_command_004C:
 	dc.b $88	; opcode
 	dc.b $00	; note_offset_byte
 audio_mode_0_program_08_tokens_004E:
-	dc.b $80	; data
+	dc.b $80
 tokens_and_operands_with_advance_token_7:
-	dc.b $87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3	; data
+	dc.b $87,$E3,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3
 	dc.b $24,$BD,$C5,$24,$BE,$C4,$20,$E2,$BD,$C5,$24,$E0,$BE,$C3,$24,$80
 	dc.b $00
 program_offsets_with_wrap_zero_5:
-	dc.w $0986,$0986,$099D,$099D,$0000	; data
+	dc.w $0986,$0986,$099D,$099D,$0000
 program_offsets_with_wrap_zero_6:
-	dc.w $09AE,$09D2,$0000	; data
+	dc.w $09AE,$09D2,$0000
 program_offsets_with_wrap_zero_7:
-	dc.w $09FB,$0A22,$0000	; data
+	dc.w $09FB,$0A22,$0000
 program_offsets_with_wrap_zero_8:
-	dc.w $0B74,$0B7D,$0A4B,$0A4B,$0A4B,$0A4B,$0B77,$0B80	; data
-	dc.w $0A4B,$0A4B,$0A4B,$0A4B,$0B7A,$0B83,$0A4B,$0A4B	; data
-	dc.w $0A4B,$0A4B,$0000	; data
+	dc.w $0B74,$0B7D,$0A4B,$0A4B,$0A4B,$0A4B,$0B77,$0B80
+	dc.w $0A4B,$0A4B,$0A4B,$0A4B,$0B7A,$0B83,$0A4B,$0A4B
+	dc.w $0A4B,$0A4B,$0000
 tokens_and_operands_with_advance_token_8:
-	dc.b $C7,$B3	; data
+	dc.b $C7,$B3
 audio_mode_1_program_00_command_0002:
 	dc.b $86	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_1_program_00_tokens_0005:
-	dc.b $E1	; data
-	dcb.b $F,$1F	; data
+	dc.b $E1
+	dcb.b $F,$1F
 	dc.b $1F,$80
 tokens_and_operands_with_advance_token_9:
-	dcb.b $10,$1D	; data
+	dcb.b $10,$1D
 	dc.b $80
 tokens_and_operands_with_advance_token_10:
-	dc.b $B5,$87,$C0,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$E5,$37,$EB,$37,$E3	; data
+	dc.b $B5,$87,$C0,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$E5,$37,$EB,$37,$E3
 	dc.b $37,$E9,$37,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$E5,$35,$EB,$35,$E3
 	dc.b $35,$E9,$35,$80
 tokens_and_operands_with_advance_token_11:
-	dc.b $B5	; data
+	dc.b $B5
 audio_mode_1_program_03_command_0001:
 	dc.b $86	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_1_program_03_tokens_0004:
-	dc.b $C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B,$EB,$2B,$E3,$2B	; data
+	dc.b $C7,$E5,$2B,$EB,$2B,$E3,$2B,$E9,$2B,$C6,$E5,$2B,$EB,$2B,$E3,$2B
 	dc.b $E9,$2B,$C7,$E5,$29,$EB,$29,$E3,$29,$E9,$29,$C6,$E5,$29,$EB,$29
 	dc.b $E3,$29,$E9,$29,$80
 tokens_and_operands_with_advance_token_12:
-	dc.b $B5,$87,$C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E	; data
+	dc.b $B5,$87,$C0,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C1,$E5,$2F,$EB,$2E
 	dc.b $E3,$2F,$E9,$2E,$C0,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C1,$E5,$2E
 	dc.b $EB,$2D,$E3,$2E,$E9,$30,$80
 tokens_and_operands_with_advance_token_13:
-	dc.b $B5	; data
+	dc.b $B5
 audio_mode_1_program_05_command_0001:
 	dc.b $86	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_1_program_05_tokens_0004:
-	dc.b $C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F,$EB,$2E,$E3,$2F	; data
+	dc.b $C7,$E5,$2F,$EB,$2E,$E3,$2F,$E9,$2E,$C6,$E5,$2F,$EB,$2E,$E3,$2F
 	dc.b $E9,$2E,$C7,$E5,$2E,$EB,$2D,$E3,$2E,$E9,$2D,$C6,$E5,$2E,$EB,$2D
 	dc.b $E3,$2E,$E9,$2D,$80
 tokens_and_operands_with_advance_token_14:
-	dc.b $E1,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24	; data
+	dc.b $E1,$BE,$C3,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24
 	dc.b $BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$BE,$C3,$24,$BD,$C5,$24,$BE
 	dc.b $C4,$24,$C3,$24,$24,$BD,$C5,$24,$BE,$C4,$24,$BD,$C5,$24,$80
 program_offsets_with_wrap_zero_9:
-	dc.w $0A90,$0000	; data
+	dc.w $0A90,$0000
 program_offsets_with_wrap_zero_10:
-	dc.w $0AC2,$0000	; data
+	dc.w $0AC2,$0000
 program_offsets_with_wrap_zero_11:
-	dc.w $0B71,$0B0F,$0B6E,$0B0F,$0000	; data
+	dc.w $0B71,$0B0F,$0B6E,$0B0F,$0000
 program_offsets_with_wrap_zero_12:
-	dc.w $0B5C,$0000	; data
+	dc.w $0B5C,$0000
 tokens_and_operands_with_advance_token_15:
-	dc.b $C7,$B3	; data
+	dc.b $C7,$B3
 audio_mode_2_program_00_command_0002:
 	dc.b $86	; opcode
 	dc.b $04	; step
@@ -29075,45 +29204,45 @@ audio_mode_2_program_00_command_0005:
 	dc.b $88	; opcode
 	dc.b $03	; note_offset_byte
 audio_mode_2_program_00_tokens_0007:
-	dc.b $E1,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$E0,$18	; data
+	dc.b $E1,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$E0,$18
 	dc.b $24,$17,$23,$16,$22,$E1,$15,$21,$15,$21,$15,$21,$15,$21,$15,$21
 	dc.b $15,$21,$15,$E0,$15,$21,$16,$22,$17,$23,$80
 tokens_and_operands_with_advance_token_16:
-	dc.b $C7	; data
+	dc.b $C7
 audio_mode_2_program_01_command_0001:
 	dc.b $88	; opcode
 	dc.b $03	; note_offset_byte
 audio_mode_2_program_01_tokens_0003:
-	dc.b $B5	; data
+	dc.b $B5
 audio_mode_2_program_01_command_0004:
 	dc.b $86	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_2_program_01_tokens_0007:
-	dc.b $E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8	; data
+	dc.b $E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28,$E1,$27,$E8
 	dc.b $28,$E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2,$28,$E1,$28
 	dc.b $E8,$2B,$C6,$E1,$24,$E3,$28,$E1,$28,$28,$28,$24,$28,$28,$E2,$28
 	dc.b $E1,$27,$E8,$28,$E1,$25,$E3,$28,$E1,$28,$28,$28,$25,$28,$28,$E2
 	dc.b $28,$E1,$28,$E8,$2B,$80
 tokens_and_operands_with_advance_token_17:
-	dc.b $C7	; data
+	dc.b $C7
 audio_mode_2_program_02_command_0001:
 	dc.b $88	; opcode
 	dc.b $03	; note_offset_byte
 audio_mode_2_program_02_tokens_0003:
-	dc.b $B5	; data
+	dc.b $B5
 audio_mode_2_program_02_command_0004:
 	dc.b $86	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_2_program_02_tokens_0007:
-	dc.b $E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8	; data
+	dc.b $E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2A,$E8
 	dc.b $2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B,$E1,$2D
 	dc.b $E8,$30,$C6,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2,$2B
 	dc.b $E1,$2A,$E8,$2B,$E1,$28,$E3,$2B,$E1,$2B,$2D,$2B,$28,$2B,$2D,$E2
 	dc.b $2B,$E1,$2D,$E8,$30,$80
 tokens_and_operands_with_advance_token_18:
-	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18	; data
+	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18
 	dc.b $A0,$80
 audio_global_transpose_minus1:
 	dc.b $85	; command_opcode
@@ -29453,7 +29582,7 @@ audio_channel_playback_states_gap_90_3:
 audio_effect_channel_index:
 	dc.b $00	; lookup_table
 audio_effect_configuration_index:
-	dc.b $00	; data
+	dc.b $00
 audio_channel_dma_configurations:
 	dc.l $00000000	; sample_ptr
 	dc.w $0000	; sample_length
@@ -29903,163 +30032,160 @@ audio_volume_sequence_offset_table:
 	dc.w volume_selector_14_values_with_hold_flag-initialize_audio_player
 	dc.w volume_selector_15_values_with_hold_flag-initialize_audio_player
 volume_selector_00_countdown_reload:
-	dc.b $FF	; data
+	dc.b $FF
 volume_selector_00_values_with_hold_flag:
-	dc.b $22,$A2	; data
+	dc.b $22,$A2
 volume_selector_01_countdown_reload:
-	dc.b $01	; data
+	dc.b $01
 volume_selector_01_values_with_hold_flag:
-	dc.b $20,$18,$10,$08,$80	; data
+	dc.b $20,$18,$10,$08,$80
 volume_selector_02_countdown_reload:
-	dc.b $01	; data
+	dc.b $01
 volume_selector_02_values_with_hold_flag:
-	dc.b $40,$30,$20,$18,$30,$20,$18,$10,$20,$18,$10,$08,$18,$10,$0C,$08	; data
+	dc.b $40,$30,$20,$18,$30,$20,$18,$10,$20,$18,$10,$08,$18,$10,$0C,$08
 	dc.b $10,$0C,$08,$06,$0C,$08,$06,$04,$08,$06,$04,$02,$06,$04,$02,$81
 volume_selector_03_countdown_reload:
-	dc.b $01	; data
+	dc.b $01
 volume_selector_03_values_with_hold_flag:
-	dc.b $40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18	; data
+	dc.b $40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18
 	dc.b $10,$0C,$08,$04,$10,$0C,$0A,$08,$06,$0C,$0A,$08,$06,$04,$0A,$08
 	dc.b $06,$04,$03,$08,$06,$04,$03,$02,$06,$04,$03,$02,$81
 volume_selector_04_countdown_reload:
-	dc.b $01	; data
+	dc.b $01
 volume_selector_04_values_with_hold_flag:
-	dc.b $40,$40,$38,$20,$98	; data
+	dc.b $40,$40,$38,$20,$98
 volume_selector_05_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_05_values_with_hold_flag:
-	dc.b $40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18	; data
+	dc.b $40,$30,$20,$18,$10,$30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18
 	dc.b $10,$0C,$08,$04,$10,$0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04
 	dc.b $02,$01,$80
 volume_selector_06_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_06_values_with_hold_flag:
-	dc.b $38,$30,$A8	; data
+	dc.b $38,$30,$A8
 volume_selector_07_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_07_values_with_hold_flag:
-	dc.b $10,$18,$20,$28,$30,$38,$38,$38,$30,$30,$28,$28,$20,$20,$20,$20	; data
+	dc.b $10,$18,$20,$28,$30,$38,$38,$38,$30,$30,$28,$28,$20,$20,$20,$20
 	dc.b $18,$18,$18,$18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$88
 volume_selector_08_countdown_reload:
-	dc.b $01	; data
+	dc.b $01
 volume_selector_08_values_with_hold_flag:
-	dc.b $28,$20,$18,$10,$08,$04,$18,$10,$08,$04,$82	; data
+	dc.b $28,$20,$18,$10,$08,$04,$18,$10,$08,$04,$82
 volume_selector_09_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_09_values_with_hold_flag:
-	dc.b $30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04,$10	; data
+	dc.b $30,$20,$18,$10,$0C,$20,$18,$10,$0C,$08,$18,$10,$0C,$08,$04,$10
 	dc.b $0C,$08,$04,$02,$0C,$08,$04,$02,$01,$08,$04,$02,$01,$80
 volume_selector_10_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_10_values_with_hold_flag:
-	dc.b $08,$10,$18,$20,$28,$30,$30,$30,$28,$28,$20,$20,$20,$20,$18,$18	; data
+	dc.b $08,$10,$18,$20,$28,$30,$30,$30,$28,$28,$20,$20,$20,$20,$18,$18
 	dc.b $18,$18,$14,$14,$10,$10,$0C,$0C,$0A,$0A,$08,$08,$86
 volume_selector_11_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_11_values_with_hold_flag:
-	dc.b $30,$28,$24,$9A	; data
+	dc.b $30,$28,$24,$9A
 volume_selector_12_countdown_reload:
-	dc.b $02	; data
+	dc.b $02
 volume_selector_12_values_with_hold_flag:
-	dc.b $38,$30,$28,$A0	; data
+	dc.b $38,$30,$28,$A0
 volume_selector_13_countdown_reload:
-	dc.b $FF	; data
+	dc.b $FF
 volume_selector_13_values_with_hold_flag:
-	dc.b $18,$98	; data
+	dc.b $18,$98
 volume_selector_14_countdown_reload:
-	dc.b $FF	; data
+	dc.b $FF
 volume_selector_14_values_with_hold_flag:
-	dc.b $40,$C0	; data
+	dc.b $40,$C0
 volume_selector_15_countdown_reload:
-	dc.b $FF	; data
+	dc.b $FF
 volume_selector_15_values_with_hold_flag:
-	dc.b $00,$80	; data
+	dc.b $00,$80
 	dc.b $4E,$71
 audio_sample_record_stream:
-	dc.l $000013EE	; data
+	dc.l $000013EE
 period_divisor:
-	dc.w $2102	; data
+	dc.w $2102
 audio_sample_00_payload:
 	INCBIN "assets/audio_sample_00_payload.bin"
 ; sound_sample
 byte_length_2:
-	dc.l $00000C4C	; data
+	dc.l $00000C4C
 period_divisor_2:
-	dc.w $2102	; data
+	dc.w $2102
 audio_sample_01_payload:
 	INCBIN "assets/audio_sample_01_payload.bin"
 ; sound_sample
 byte_length_3:
-	dc.l $0000121A	; data
+	dc.l $0000121A
 period_divisor_3:
-	dc.w $2102	; data
+	dc.w $2102
 audio_sample_02_payload:
 	INCBIN "assets/audio_sample_02_payload.bin"
 ; sound_sample
 byte_length_4:
-	dc.l $0000157C	; data
+	dc.l $0000157C
 period_divisor_4:
-	dc.w $49D4	; data
+	dc.w $49D4
 audio_sample_03_payload:
 	INCBIN "assets/audio_sample_03_payload.bin"
 ; sound_sample
 byte_length_5:
-	dc.l $000014B4	; data
+	dc.l $000014B4
 period_divisor_5:
-	dc.w $34BC	; data
+	dc.w $34BC
 audio_sample_04_payload:
 	INCBIN "assets/audio_sample_04_payload.bin"
 ; sound_sample
 byte_length_6:
-	dc.l $000007D0	; data
+	dc.l $000007D0
 period_divisor_6:
-	dc.w $3EE4	; data
+	dc.w $3EE4
 audio_sample_05_payload:
 	INCBIN "assets/audio_sample_05_payload.bin"
 ; sound_sample
 byte_length_7:
-	dc.l $00000040	; data
+	dc.l $00000040
 period_divisor_7:
-	dc.w $2134	; data
+	dc.w $2134
 audio_sample_06_payload:
 	dc.b $3E,$37,$30,$28,$21,$1B,$12,$0C,$06,$FF,$F8,$F0,$E9,$E1,$DB,$D3	; sound_sample
 	dc.b $2F,$28,$21,$1A,$12,$0C,$05,$FE,$F8,$EF,$E9,$E1,$DB,$D3,$CC,$C5
 	dc.b $3E,$37,$30,$28,$21,$1A,$12,$0C,$05,$FF,$F8,$F0,$E9,$E1,$D9,$D2
 	dc.b $2F,$28,$21,$1A,$12,$0B,$04,$FE,$F8,$EF,$E9,$E1,$D9,$D2,$CC,$C5
 byte_length_8:
-	dc.l $00000040	; data
+	dc.l $00000040
 period_divisor_8:
-	dc.w $2134	; data
+	dc.w $2134
 audio_sample_07_payload_mutable:
 	dcb.b $10,$C0	; sound_sample
 	dcb.b $10,$C0
 	dcb.b $10,$3E
 	dcb.b $10,$3E
 byte_length_9:
-	dc.l $00000010	; data
+	dc.l $00000010
 period_divisor_9:
-	dc.w $2134	; data
+	dc.w $2134
 audio_sample_08_payload:
 	dcb.b $8,$C0	; sound_sample
 	dcb.b $8,$3D	; sound_sample
 byte_length_10:
-	dc.l $00000008	; data
+	dc.l $00000008
 period_divisor_10:
-	dc.w $2134	; data
+	dc.w $2134
 audio_sample_09_payload:
 	dc.b $C0,$C0,$C0,$C0,$3D,$3D,$3D,$3D	; sound_sample
 byte_length_11:
-	dc.l $00000004	; data
+	dc.l $00000004
 period_divisor_11:
-	dc.w $2134	; data
+	dc.w $2134
 audio_sample_10_payload:
 	dc.b $C0,$C0,$3D,$3D	; sound_sample
     ; Initializer leaves A0 here after 11 sample records and stores it as the silence pointer. Known silence paths program 32 DMA words; this 64-byte source window is initially zero.
 audio_silence_payload:
-	dcb.b $10,$00	; sound_sample
-	dcb.b $10,$00
-	dcb.b $10,$00
-	dcb.b $10,$00
+	dcb.b $40,$00	; sound_sample
     ; Secondary base is silence end. The 29 original offset pairs select five contiguous 128-byte windows; start programs 64 DMA words. Interleaved or later pointer/length writers remain unproved.
 secondary_audio_waveform_bank:
 	INCBIN "assets/secondary_audio_waveform_bank.bin"
