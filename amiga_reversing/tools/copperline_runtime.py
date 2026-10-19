@@ -13,6 +13,96 @@ from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTi
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
 MAX_SCENARIO_PHASES = 64
+MEMORY_ACCESS_ENGINES = frozenset(
+    ["cpu", "blitter", "disk", "copper"]
+    + [f"bpl{i}" for i in range(1, 9)]
+    + [f"spr{i}" for i in range(8)]
+    + [f"aud{i}" for i in range(4)]
+)
+
+
+def validate_memory_access_watch(watch):
+    """One address/event observation, independent of marker values or snapshots."""
+    address = watch.get("address") if isinstance(watch, dict) else None
+    absolute = type(address) is int and 0 <= address <= 0xFFFFFF
+    relative = (
+        isinstance(address, dict)
+        and set(address) == {"base_register", "offset"}
+        and isinstance(address.get("base_register"), str)
+        and re.fullmatch(r"a[0-7]", address["base_register"]) is not None
+        and type(address.get("offset")) is int
+        and -0x1000000 < address["offset"] < 0x1000000
+    )
+    if (
+        not isinstance(watch, dict)
+        or set(watch) != {"address", "access", "engine", "wait_seconds"}
+        or not (absolute or relative)
+        or watch.get("access") not in ("read", "write", "access")
+        or not isinstance(watch.get("engine"), str)
+        or watch["engine"] not in MEMORY_ACCESS_ENGINES
+        or type(watch.get("wait_seconds")) is not int
+        or not 1 <= watch["wait_seconds"] <= 120
+    ):
+        raise ValueError(
+            "Memory access watch requires a 24-bit integer address or a0..a7/offset binding, access "
+            "read/write/access, supported engine and wait_seconds (1..120); "
+            "no other fields are supported"
+        )
+
+
+def wait_for_memory_access(client, watch):
+    """Wait for one engine-filtered access; retain backend evidence verbatim.
+
+    Only called after a canonical scenario anchor has passed identity checks.
+    The owned session has no other armed watches during this bounded operation.
+    No address-range or access-width semantics are inferred from the stop.
+    """
+    validate_memory_access_watch(watch)
+    address = watch["address"]
+    if isinstance(address, dict):
+        address = client.registers()[address["base_register"]] + address["offset"]
+        if not 0 <= address <= 0xFFFFFF:
+            raise ValueError("Resolved memory access watch address exceeds 24-bit memory")
+    armed = {
+        "kind": "watch", "addr": address,
+        "access": watch["access"], "class": watch["engine"],
+    }
+    registration = client.request("break.add", armed)
+    ident = registration["id"]
+    started = time.monotonic()
+    result = {"requested_watch": dict(watch), "armed_watch": dict(armed),
+              "registration": registration, "watch_id": ident,
+              "wait_seconds": watch["wait_seconds"], "stop_event": None}
+    try:
+        result["backend_watch_state"] = client.request("break.list")
+        state = result["backend_watch_state"]
+        breaks = state.get("breaks", []) if isinstance(state, dict) else []
+        result["filter_confirmed"] = isinstance(breaks, list) and any(
+            isinstance(b, dict) and b.get("id") == ident
+            and all(b.get(k) == v for k, v in armed.items()) for b in breaks
+        )
+        if not result["filter_confirmed"]:
+            result.update(status="not_hit", termination="watch_filter_readback_mismatch")
+        else:
+            try:
+                stop = client.run_until(
+                    {"seconds": 1_000_000_000}, timeout=watch["wait_seconds"]
+                )
+                result.update(
+                    status="hit" if stop.get("reason") == "watchpoint" else "not_hit",
+                    termination="access_observed" if stop.get("reason") == "watchpoint"
+                    else "unexpected_stop",
+                    stop_event=stop,
+                )
+            except CopperlineTimeout:
+                result.update(status="timeout", termination="deadline_interrupt")
+        result["registers"] = client.registers()
+        result["elapsed_seconds"] = round(time.monotonic() - started, 3)
+        return result
+    finally:
+        # A failure to remove the watch must fail the scenario, not leave an
+        # untracked watch that could make a later access appear successful.
+        client.remove_breakpoint(ident)
 
 
 def detect_payload_execution(
@@ -169,9 +259,13 @@ def capture_scenario_state(client, capture):
     custom = capture.get("custom_registers", [])
     validate_custom_registers(custom)
     if custom:
-        result["custom_registers"] = {
-            name if isinstance(name, str) else f"0x{name:03x}": client.request("custom.read", {"reg": name})
-            for name in custom}
+        result["custom_registers"] = {}
+        for name in custom:
+            key = name if isinstance(name, str) else f"0x{name:03x}"
+            try:
+                result["custom_registers"][key] = client.request("custom.read", {"reg": name})
+            except CopperlineError as exc:
+                raise CopperlineError(f"Custom register capture {key} failed: {exc}") from None
     return result
 
 
@@ -371,6 +465,10 @@ def _run_scenario_phase(
     address, seconds = phase.get("breakpoint_address"), phase.get("wait_seconds")
     occurrences = phase.get("occurrences", 1)
     capture_first = phase.get("capture_first", False)
+    if "memory_access_watch" in phase:
+        validate_memory_access_watch(phase["memory_access_watch"])
+        if not isinstance(phase.get("stable_key"), str):
+            raise ValueError("Memory access watch requires a canonical source-row phase")
     if type(occurrences) is not int or not 1 <= occurrences <= 64:
         raise ValueError("Scenario occurrences must be an integer from 1 to 64")
     if type(capture_first) is not bool:
@@ -459,6 +557,21 @@ def _run_scenario_phase(
         if counted and time.monotonic() > deadline:
             item.update(status="timeout", termination="phase_deadline")
             break
+    if item.get("status") == "hit" and "memory_access_watch" in phase:
+        watch = wait_for_memory_access(client, phase["memory_access_watch"])
+        item["memory_access_watch"] = watch
+        watch["payload_at_stop"] = payload_at_pc(
+            client, payload_path, watch["registers"]["pc"],
+        )
+        watch["capture"] = capture_scenario_state(client, phase.get("capture", {}))
+        if watch["status"] != "hit":
+            item.update(status=watch["status"], termination=watch["termination"])
+        elif any(not r.get("expectation", {}).get("matched", True)
+                 for r in watch["capture"]["memory_reads"]):
+            item.update(status="not_hit", termination="watch_capture_expectation_mismatch")
+        item["stop_reason"] = (
+            watch["stop_event"].get("reason") if watch["stop_event"] else watch["termination"]
+        )
     if not counted:
         for key in (
             "occurrences_requested",

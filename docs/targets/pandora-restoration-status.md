@@ -5757,3 +5757,34 @@ underlying emulator fundamentally lacks tracing. Next required evidence is an
 agent-attributed read trace for this single packet, plus producer/reservation
 evidence for the complete suffix. No target facts or classifications change;
 6,494 payload bytes and 750 workspace coordinate-gap bytes remain unknown.
+
+### Bank-30 bounded watch implementation and live limitation (2026-10-19)
+
+The supported Copperline session wrapper now accepts typed memory-access watches
+at verified canonical source anchors. It resolves absolute or paused A-register
+addresses, confirms the exact registered filter through `break.list`, retains
+raw stop evidence, and removes its owned watch on every outcome. Mismatched
+readback fails before resume; marker-value polling remains separate. Focused
+runtime/control/checkpoint/symbol tests pass: 158, with two optional raw-emulator
+tests skipped. Generated target source and analysis facts are unchanged.
+
+[Live evidence](../../runtime/observations/pandora-bank30-access-watch.json)
+records three bounded runs against the original payload. The original shifted
+BLTSIZE instruction at source `$6B0A` was reached with B-source A0=`$3152E`,
+BLTSIZE D7=`$0782` (two WORDs by 30 rows), and B-modulo D5=`12`. A read/blitter
+watch on that programmed source timed out. An independent eight-second watch
+on `$49DC8` also timed out; its registration and backend readback agree exactly
+on address, read access and blitter class. Neither run observed a DMA read.
+
+The failed control prevents treating the suffix timeout as proof of non-use.
+The captured launch is not the modeled final-frame packet (`$49D16`, two WORDs
+by 12 rows, modulo 12). Actual read-event operation and that packet's live
+reachability remain unresolved. Named/numeric packet-register capture batches
+returned RPC `-32007` before arming; the successful watch attempts omit them.
+Official-source inspection was blocked by proxy HTTP 403 and a restricted
+browser URL, with no retries or bypass. Copperline stays at 1.0.0 under the
+existing 68000/OCS profile; the advertised 1.0.1 fast-CPU terminal-window fix
+does not apply to the configured 68000. No new classification or whole-range
+claim is made: 6,494 payload bytes and 750 workspace coordinate-gap bytes remain
+unknown. The two-byte overfetch remains a programmed-envelope model, not an
+observed chipset transaction.

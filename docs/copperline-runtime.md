@@ -54,7 +54,8 @@ AppImage was verified against its published SHA256SUMS before extraction:
 `9ab3e2ecc89beb25344bd1b0d8aa3dcf9370ade8f3b08fdec2fb37e59461f55d`.
 The extracted executable is selected explicitly; binaries are not vendored.
 Startup requires authenticated protocol 1 and emulator version `copperline 1.0.0`.
-See the release's `docs/control.md` for protocol details. Future versions require
+See the release's [control contract](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/control.md)
+for protocol details. Future versions require
 explicit compatibility verification before changing the version check.
 
 The existing user-supplied Kickstart attachment is readable: 524288 bytes,
@@ -75,6 +76,73 @@ bytes, SHA256 `7f225192a177d9c06c54a99210de801ab0c840d4773bd99031aed5c7741a1c95`
 Original disk-image and loader parity are explicitly excluded by the user from
 this task. The absent image is historical input context, not a blocker or a
 required next step; direct-payload scenarios do not require it.
+
+### Bounded engine-filtered memory access observations
+
+A canonical source-row scenario phase may include:
+
+```json
+"memory_access_watch": {
+  "address": 302536,
+  "access": "read",
+  "engine": "blitter",
+  "wait_seconds": 5
+}
+```
+
+The wrapper first reaches the phase's source anchor, verifies original payload
+bytes and canonical mapping, and captures the anchor state. After the last
+requested anchor visit, it arms one `break.add` memory watch with the declared
+address, access and engine (`class` in Copperline), then resumes for a separately
+bounded wall-time window. It retains the actual armed request, owned watch ID,
+raw stop event, elapsed time, registers, payload identification at the stop and
+a second capture using the phase's capture specification. Anchor captures stay
+separate from access-stop captures; expectation failures at either point make
+the phase incomplete. The watch is removed on success, timeout or error; removal
+failure aborts the session. Existing marker-value polling is unchanged.
+The backend's `break.list` must echo the owned ID, kind, address, access and
+engine before the wrapper resumes; missing/coerced fields produce
+`watch_filter_readback_mismatch`. The registration reply and raw readback are
+retained independently of the requested specification.
+
+Addresses are integer 24-bit addresses, or a typed binding such as
+`{"base_register": "a0", "offset": 0}` resolved while paused at the verified
+anchor. The requested binding and actual armed address are both retained;
+out-of-range sums fail without wrapping. Access is `read`, `write` or `access`;
+engine is `cpu`, `blitter`, `disk`, `copper`, `bpl1`..`bpl8`, `spr0`..`spr7`, or
+`aud0`..`aud3`. The watch budget is an integer 1..120 seconds. Unsupported fields,
+including length/range or arbitrary protocol commands, are rejected. The backend
+defines watch address granularity; this interface makes no extra claim about
+access width. A matching watchpoint is attributed through the armed filter in
+the isolated owned session, which has no other concurrent watches. Preserve
+the raw event rather than inventing address, width or engine fields it lacks.
+
+A snapshot read is not a bus access observation. Unexpected stops are incomplete;
+a timeout means only not observed in that window. The CPU PC at a DMA stop need
+not be the instruction that programmed the packet, or even be in the payload.
+Its byte identification is reported independently. Saving a checkpoint requires
+a subsequent canonical source-row phase, because a DMA watch stop does not bind
+the final PC to the arming anchor.
+
+For the current A500OCS/PAL/68000 profile the Copperline 1.0.0 pin is retained.
+The [1.0.1 release notes](https://github.com/CopperlineHQ/Copperline/releases/tag/v1.0.1)
+describe a blitter terminal-window fix for faster CPUs and explicitly state the
+68000 cannot hit that race. No upgrade is needed to expose the documented read
+watch; changing emulator fingerprints would also invalidate local receipt bindings.
+
+The bank30 experiment is recorded in
+[`pandora-bank30-access-watch.json`](../runtime/observations/pandora-bank30-access-watch.json).
+Registration/readback succeeded, but a programmed B-source positive control
+also timed out. No DMA read was observed, so the suffix timeout is not evidence
+of non-use. Packet-register snapshot batches returned RPC `-32007` for named
+and numeric selector sets; the final experiment uses CPU/RAM captures instead.
+Capture errors now identify the failed selector. The final readback guard was
+added after the live capture and tested against that response format; the
+recorded suffix registration satisfies its exact matching predicate.
+Reproduce with the public command above, substituting
+`runtime/scenarios/pandora-bank30-suffix-watch.json` and a fresh state directory.
+`pandora-bank30-access-watch.json` runs the B-source control first and stops on
+its timeout, so it deliberately does not reach the suffix phase in that run.
 
 ## Preserved contracts and deliberate changes
 

@@ -17,6 +17,7 @@ class Client:
         )
         self.calls = []
         self.stop = None
+        self.watch = None
 
     def registers(self):
         return self.regs.copy()
@@ -30,6 +31,7 @@ class Client:
 
     def remove_breakpoint(self, ident):
         self.calls.append(("remove", ident))
+        self.watch = None
 
     def run_until(self, params, timeout):
         self.calls.append(("run", params))
@@ -43,6 +45,10 @@ class Client:
 
     def request(self, method, params=None):
         self.calls.append((method, params))
+        if method == "break.add":
+            self.watch = dict(params, id=1)
+        if method == "break.list":
+            return {"breaks": [self.watch] if self.watch else []}
         if method == "mem.write":
             data = bytes.fromhex(params["data"])
             self.memory[params["addr"] : params["addr"] + len(data)] = data
@@ -53,6 +59,170 @@ def payload(tmp_path):
     p = tmp_path / "payload.bin"
     p.write_bytes(bytes(range(256)) * 2 + b"final unique payload bytes")
     return p
+
+
+def access_watch(**changes):
+    return dict(address=0x49DC8, access="read", engine="blitter", wait_seconds=1,
+                **changes)
+
+
+@pytest.mark.parametrize("changes", [
+    {"address": True}, {"address": -1}, {"address": 0x1000000},
+    {"address": "0x49dc8"}, {"access": "execute"}, {"access": []},
+    {"engine": "dma"}, {"engine": []}, {"wait_seconds": True},
+    {"wait_seconds": 0}, {"wait_seconds": 121}, {"length": 2},
+    {"address": {"base_register": "d0", "offset": 0}},
+    {"address": {"base_register": "a0", "offset": True}},
+    {"address": {"base_register": "a0", "offset": 0, "expression": "pc"}},
+])
+def test_access_watch_schema_rejects_unsupported_shapes_before_rpc(changes):
+    c = Client()
+    watch = access_watch()
+    watch.update(changes)
+    with pytest.raises(ValueError, match="Memory access watch requires"):
+        runtime.wait_for_memory_access(c, watch)
+    assert c.calls == []
+
+
+@pytest.mark.parametrize(("stop", "status"), [
+    ({"reason": "watchpoint", "detail": "blitter read", "pc": 0x16B0E}, "hit"),
+    ({"reason": "breakpoint"}, "not_hit"),
+    (CopperlineTimeout("expired"), "timeout"),
+])
+def test_access_watch_filters_engine_retains_event_and_cleans_up(stop, status):
+    c = Client()
+    c.stop = stop
+    result = runtime.wait_for_memory_access(c, access_watch())
+    assert result["status"] == status
+    assert result["stop_event"] == (None if isinstance(stop, Exception) else stop)
+    assert result["armed_watch"] == {
+        "kind": "watch", "addr": 0x49DC8, "access": "read", "class": "blitter",
+    }
+    assert c.calls[0] == ("break.add", result["armed_watch"])
+    assert c.calls[-1] == ("remove", result["watch_id"])
+    assert result["filter_confirmed"] is True
+
+
+@pytest.mark.parametrize("change", [
+    {"access": "write"}, {"class": "cpu"}, {"addr": 0x49DCA}, {"id": 2},
+])
+def test_access_watch_requires_backend_filter_readback_before_resume(change):
+    c = Client()
+    original = c.request
+    def request(method, params=None):
+        if method == "break.list":
+            return {"breaks": [dict(c.watch, **change)]}
+        return original(method, params)
+    c.request = request
+    result = runtime.wait_for_memory_access(c, access_watch())
+    assert result["filter_confirmed"] is False
+    assert result["termination"] == "watch_filter_readback_mismatch"
+    assert not any(call[0] == "run" for call in c.calls)
+    assert c.calls[-1] == ("remove", 1)
+
+
+def test_access_watch_cleanup_on_error_and_cleanup_failure_is_not_success():
+    c = Client()
+    c.stop = CopperlineError("transport failure")
+    with pytest.raises(CopperlineError, match="transport failure"):
+        runtime.wait_for_memory_access(c, access_watch())
+    assert c.calls[-1] == ("remove", 1)
+    c.stop = {"reason": "watchpoint"}
+    def fail_remove(ident):
+        raise CopperlineError("cannot remove owned watch")
+    c.remove_breakpoint = fail_remove
+    with pytest.raises(CopperlineError, match="cannot remove"):
+        runtime.wait_for_memory_access(c, access_watch())
+
+
+def test_access_watch_resolves_paused_register_binding_without_wrapping():
+    c = Client()
+    c.stop = {"reason": "watchpoint"}
+    watch = access_watch()
+    watch["address"] = {"base_register": "a0", "offset": -2}
+    c.regs["a0"] = 0x49DCA
+    result = runtime.wait_for_memory_access(c, watch)
+    assert result["armed_watch"]["addr"] == 0x49DC8
+    assert result["requested_watch"]["address"] == watch["address"]
+    for value in (1, 0x1000002):
+        c.calls.clear()
+        c.regs["a0"] = value
+        with pytest.raises(ValueError, match="Resolved memory access watch address"):
+            runtime.wait_for_memory_access(c, watch)
+        assert c.calls == []
+
+
+@pytest.mark.parametrize("identity_ok", [False, True])
+def test_access_watch_only_arms_after_verified_canonical_anchor(tmp_path, identity_ok):
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    phase = dict(name="packet", stable_key="s0:00000200:instruction",
+                 breakpoint_address=0x1200, source_offset=0x200,
+                 wait_seconds=1, memory_access_watch=access_watch())
+    if not identity_ok:
+        phase["source_offset"] = 0x201
+    original_run = c.run_until
+    def run(params, timeout):
+        if "pc" in params:
+            return original_run(params, timeout)
+        return {"reason": "watchpoint", "detail": "blitter read"}
+    c.run_until = run
+    result = runtime._run_scenario_phase(c, phase, p, {}, None)
+    armed = [call for call in c.calls if call[0] == "break.add"]
+    assert bool(armed) is identity_ok
+    assert result["status"] == ("hit" if identity_ok else "not_hit")
+    if identity_ok:
+        assert result["payload"]["status"] == "pc_matched"
+        assert result["memory_access_watch"]["status"] == "hit"
+
+
+def test_dma_stop_outside_payload_retains_hit_without_claiming_source_identity(tmp_path):
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    original_run = c.run_until
+    def run(params, timeout):
+        if "pc" in params:
+            return original_run(params, timeout)
+        c.regs["pc"] = 0xFC0000
+        return {"reason": "watchpoint", "pc": 0xFC0000}
+    c.run_until = run
+    phase = dict(name="packet", stable_key="s0:00000200:instruction",
+                 breakpoint_address=0x1200, source_offset=0x200, wait_seconds=1,
+                 runtime_view={"base_addr": 0x1000, "source_start": 0,
+                               "source_end": p.stat().st_size},
+                 memory_access_watch=access_watch())
+    result = runtime._run_scenario_phase(c, phase, p, {}, None)
+    assert result["status"] == "hit"
+    assert result["payload"]["status"] == "pc_matched"
+    assert result["memory_access_watch"]["payload_at_stop"]["status"] == "not_matched"
+
+
+def test_access_timeout_stops_scenario_and_releases_held_input(tmp_path):
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    s = scenario()
+    s["phases"][1].update(stable_key="s0:00000201:instruction",
+                            memory_access_watch=access_watch())
+    original_run = c.run_until
+    def run(params, timeout):
+        if "pc" in params:
+            return original_run(params, timeout)
+        raise CopperlineTimeout("expired")
+    c.run_until = run
+    result = runtime.run_scenario(c, s, p)
+    assert result["phases"][-1]["status"] == "timeout"
+    assert result["phases"][-1]["memory_access_watch"]["stop_event"] is None
+    assert ("joy", {"port": 2, "red": True}) in c.calls
+    assert c.calls[-1] == ("joy", {"port": 2})
+
+
+def test_custom_capture_error_identifies_the_rejected_selector():
+    c = Client()
+    def request(method, params):
+        raise CopperlineError("Copperline RPC error (code -32007)")
+    c.request = request
+    with pytest.raises(CopperlineError, match="capture 0x040 failed.*-32007"):
+        runtime.capture_scenario_state(c, {"custom_registers": [0x40]})
 
 
 def test_payload_identity_is_not_empty_or_ambiguous(tmp_path):

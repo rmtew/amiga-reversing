@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-bank30-access-watch",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "original_packet_read_positive_control",
+      "breakpoint_stable_key": "s0:00006B0A:instruction",
+      "wait_seconds": 20,
+      "memory_access_watch": {
+        "address": {
+          "base_register": "a0",
+          "offset": 0
+        },
+        "access": "read",
+        "engine": "blitter",
+        "wait_seconds": 8
+      },
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 302528,
+            "size": 16
+          },
+          {
+            "address": 378536,
+            "size": 18
+          }
+        ]
+      }
+    },
+    {
+      "name": "bank30_suffix_read_window",
+      "breakpoint_stable_key": "s0:00006B0A:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 302528,
+            "size": 16
+          },
+          {
+            "address": 378536,
+            "size": 18
+          }
+        ]
+      },
+      "memory_access_watch": {
+        "address": 302536,
+        "access": "read",
+        "engine": "blitter",
+        "wait_seconds": 8
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    }
+  ]
+}

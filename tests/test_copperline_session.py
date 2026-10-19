@@ -19,6 +19,23 @@ def test_native_session_plan_is_explicit_and_bounded():
     assert session.plan()["continue_seconds"] == 12
 
 
+@pytest.mark.parametrize("phase", [
+    {"name": "boot", "observable": "direct_payload_handoff",
+     "memory_access_watch": {"address": 0, "access": "read", "engine": "cpu", "wait_seconds": 1}},
+    {"name": "packet", "breakpoint_stable_key": "s0:00006B0A:instruction",
+     "wait_seconds": 1, "memory_access_watch": {"address": 0, "access": "read",
+     "engine": "blitter", "wait_seconds": 1, "class": "cpu"}},
+])
+def test_compile_rejects_unanchored_or_extra_watch_fields_before_listing(tmp_path, phase):
+    first = {"name": "boot", "observable": "direct_payload_handoff"}
+    phases = [phase, {"name": "next"}] if phase["name"] == "boot" else [first, phase]
+    path = tmp_path / "scenario.json"
+    path.write_text(json.dumps({"schema_version": 1, "target_id": "fixture",
+                               "identifier": "invalid", "phases": phases}))
+    with pytest.raises(ValueError, match="Memory access watch requires"):
+        copperline_session.compile_scenario("fixture", path, tmp_path / "compiled.json")
+
+
 @pytest.mark.parametrize("observable", ["direct_payload_handoff", "verified_checkpoint"])
 def test_compile_scenario_resolves_only_canonical_rows_once(
     monkeypatch, tmp_path: Path, observable
@@ -37,6 +54,10 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
                         "name": "title",
                         "breakpoint_stable_key": "s0:00000BA8:instruction:760",
                         "wait_seconds": 10,
+                        "memory_access_watch": {
+                            "address": 0x49DC8, "access": "read",
+                            "engine": "blitter", "wait_seconds": 2,
+                        },
                     },
                     {
                         "name": "inventory",
@@ -100,6 +121,9 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
     assert compiled["phases"][1]["occurrences"] == 64
     assert compiled["phases"][1]["capture_first"] is True
     assert compiled["start_observable"] == observable
+    assert compiled["phases"][0]["memory_access_watch"] == {
+        "address": 0x49DC8, "access": "read", "engine": "blitter", "wait_seconds": 2,
+    }
     assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 

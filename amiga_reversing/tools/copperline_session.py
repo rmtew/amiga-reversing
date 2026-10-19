@@ -21,6 +21,7 @@ from amiga_reversing.tools.runtime_analysis import build_project_listing_artifac
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.copperline_runtime import (
     MAX_SCENARIO_PHASES, observe, validate_memory_expectation, validate_custom_registers,
+    validate_memory_access_watch,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
@@ -220,6 +221,8 @@ def compile_scenario(
             raise ValueError("Scenario phase names must be unique non-empty strings.")
         names.add(name)
         if index == 0:
+            if "memory_access_watch" in phase:
+                raise ValueError("Memory access watch requires a canonical source-row phase.")
             if "occurrences" in phase or "capture_first" in phase:
                 raise ValueError(
                     "Occurrence capture requires a canonical source-row phase."
@@ -248,6 +251,8 @@ def compile_scenario(
                 "Source-row scenario phases require breakpoint_stable_key and wait_seconds (1..120)."
             )
         validate_capture(capture)
+        if "memory_access_watch" in phase:
+            validate_memory_access_watch(phase["memory_access_watch"])
         if transition not in {"continue", "enter_function"}:
             raise ValueError(
                 "Scenario phase transition must be continue or enter_function."
@@ -259,6 +264,8 @@ def compile_scenario(
                 "wait_seconds": wait_seconds,
                 "transition": transition,
                 "capture": capture,
+                **({"memory_access_watch": dict(phase["memory_access_watch"])}
+                   if "memory_access_watch" in phase else {}),
                 **({"occurrences": occurrences} if "occurrences" in phase else {}),
                 **(
                     {"capture_first": capture_first} if "capture_first" in phase else {}
@@ -761,6 +768,11 @@ def _main(argv: list[str] | None = None) -> int:
     ):
         raise ValueError(
             "Scenario direct_payload_contract does not match selected contract."
+        )
+    if (args.checkpoint_save and compiled_scenario
+            and "memory_access_watch" in compiled_scenario["phases"][-1]):
+        raise ValueError(
+            "Checkpoint save requires a final canonical source anchor after any access watch."
         )
     breakpoint_row = (
         resolve_breakpoint_stable_key(args.target, args.breakpoint_stable_key)
