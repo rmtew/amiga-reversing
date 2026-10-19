@@ -27,6 +27,7 @@
 ;     absolute[$0001309A-$0001309E] refs=1 access=a
 ;     absolute[$000195E2-$000195E6] refs=1 access=a
 ;     absolute[$0001A862] refs=2 access=a
+;     absolute[$00055C90-$00055C94] refs=1 access=a
 ;     absolute[$000584F8-$000584FC] refs=1 access=a
 ;     absolute[$0005850A-$0005850E] refs=1 access=a
 ;     absolute[$0005851C-$00058520] refs=1 access=a
@@ -1574,6 +1575,7 @@ dblk_ref_h0_00010CF0	EQU	$10CF0
 dblk_ref_h0_00010CFC	EQU	$10CFC
 dblk_ref_h0_00010D08	EQU	$10D08
 dblk_ref_h0_00010D14	EQU	$10D14
+dblk_ref_h0_00045C90_runtime_00055C90	EQU	$55C90
 dblk_ref_h0_000484F8_runtime_000584F8	EQU	$584F8
 dblk_ref_h0_0004850A_runtime_0005850A	EQU	$5850A
 dblk_ref_h0_0004851C_runtime_0005851C	EQU	$5851C
@@ -20414,7 +20416,8 @@ combat_hit_feedback_geometry_ptrs:
 	dc.l dblk_ref_h0_00048552_runtime_00058552
 	dc.l dblk_ref_h0_00048564_runtime_00058564
 	dc.l dblk_ref_h0_00048576_runtime_00058576
-	dc.b $00,$05,$85,$88
+combat_hit_feedback_retained_idle_geometry_ref:
+	dc.l combat_hit_feedback_idle_geometry	; frame_ptr
 ranged_hit_visual_geometry_frames:
 	dc.l scene_pixel_cells_for_mask_bank_50	; bitplane_data_ptr
 	dc.l scene_mask_bank_50	; mask_data_ptr
@@ -27605,10 +27608,29 @@ item_receptacle_5_attached_geometry:
 	dc.w $0010	; frame_width
 	dc.w $0000	; x_offset
 	dc.w $0000	; y_offset
-	dc.b $00,$05,$5D,$20,$00,$05,$5C,$90,$00,$01,$00,$15,$00,$10,$00,$00
-	dc.b $00,$00,$00,$05,$5D,$C8,$00,$06,$A8,$18,$00,$02,$00,$04,$00,$20
-	dc.b $00,$00,$00,$02,$00,$05,$5E,$08,$00,$06,$A8,$28,$00,$02,$00,$04
-	dc.b $00,$20,$00,$00,$00,$02
+retained_scene_bank_51_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_51+$C0	; bitplane_data_ptr
+	dc.l dblk_ref_h0_00045C90_runtime_00055C90	; mask_data_ptr
+	dc.w $0001	; row_stride_words
+	dc.w $0015	; frame_height
+	dc.w $0010	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0000	; y_offset
+retained_scene_bank_52_geometry:
+	dc.l scene_pixel_cells_for_mask_bank_52	; bitplane_data_ptr
+	dc.l scene_mask_bank_52	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0004	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0002	; y_offset
+	dc.l scene_pixel_cells_for_mask_bank_52+$40	; bitplane_data_ptr
+	dc.l scene_mask_bank_52+$10	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $0004	; frame_height
+	dc.w $0020	; frame_width
+	dc.w $0000	; x_offset
+	dc.w $0002	; y_offset
 combat_encounter_geometry_headers:
 	dc.l scene_pixel_cells_for_mask_bank_00	; bitplane_data_ptr
 	dc.l scene_mask_bank_00	; mask_data_ptr

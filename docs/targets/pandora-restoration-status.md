@@ -5643,3 +5643,47 @@ export-resource span independent of analysis owners, with glyph labels retained
 as source-offset aliases (or slices of one file). This would allow one named
 font asset without merging the glyph analyses or the preceding unknown scratch
 tail. No grouping, media reclassification or asset-count change is made here.
+
+### Retained scene geometry and idle reference (2026-10-19)
+
+Three 18-byte scene headers at `$4C816`, `$4C828` and `$4C83A`, plus the retained
+idle-geometry LONG at `$48606`, account for 58 bytes. They reuse the existing
+frame/pointer schemas in three new owners, with three medium-confidence purpose
+scopes. All seven pointer fields render symbolically. The bank-51 header uses a
+stored-source mask; the bank-52 pair uses generated runtime mask inputs. Source
+review after the first exact gate caught the shared frame type's runtime-only
+mask domain leaving the stored mask numeric. One explicit leaf interpretation
+records `$55C90 -> source $45C90` through the normal catalog, adding its mapping
+alias while preserving the shared type and all generated-mask equates.
+
+Six original CPU cases check four headers' pixel/mask inputs and packed clipping
+bounds, the player's positive-X held selection under supplied mode, and the
+feedback clear routine's direct idle target. The trailing LONG matches that
+target but stays separate from the eight-entry indexed table; its consumption is
+unestablished. Stored layout/local behavior and nominal bank bounds do not prove
+ordinary activation, all consumers, DMA/display output or allocation/lifetime.
+No framework or font-export change is included.
+
+The player held header `$4C376..$4C388` remains unchanged: catalog creation refused
+an overlap with `player_world_object` at `$4C322..$4C377`, one byte beyond its
+84-byte fields. The refused batch appended no actions. Create/rename/describe/
+remove are supported, but bounded owner resize is missing. A follow-up resize
+must retain owner identity and elements/bindings, refusing excluded fields or
+new overlaps. This slice preserves the player owner and completes only the
+nonoverlapping records.
+
+Final C/vasm receipt: `41d66f65aeffcb07271015a4af800db56cfa160fbb61fc4bb26346cb158c1ce2`.
+All 376,832 original bytes match. Prior readable strings, compact fills, SDK
+expressions and all 126 asset identities/bounds/classifications/hashes and SDK
+includes are preserved. Existing owners, types, register seeds, workspace
+contracts and prior equates remain intact. Both histories retain their prefixes
+and append ten records each.
+
+Fresh accounting reduces unknown payload from 6,749 to **6,691 bytes**; structured
+data rises to 340,192 bytes, with 555 declared owners and zero conflicts. Explicit
+supported payload purpose is 14,094 bytes across 46 assessments. The app view
+remains at a 750-byte gap and 948 purpose bytes; native accesses remain 967
+resolved and 32 unresolved (five field gaps, 27 dynamic indexed records), with
+unchanged unresolved field identities. Generic label signals remain 66. These
+are bounded storage/local-reader gains, with the player boundary blocker and
+ordinary activation limits retained.

@@ -1,11 +1,11 @@
 Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 
 Payload classification (disjoint bytes per source section):
-  section 0: 376832 bytes; code=24260, structured_data=340134, table=1050, text=4639, unknown=6749
+  section 0: 376832 bytes; code=24260, structured_data=340192, table=1050, text=4639, unknown=6691
 
-Units: 265 function candidates; 552 declared data owners; 126 asset emission chunks.
+Units: 265 function candidates; 555 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 14036}.
+Supported payload purpose bytes by section: {'0': 14094}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
@@ -78,4 +78,4 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-3b5a4a24485c41f69f996f937587f2aa: s0 [0xb0e0,0xb120) game_data/high, accepted, whole_scope.
     8 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
     Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
-  31 additional bounded assessments are retained in the JSON report.
+  34 additional bounded assessments are retained in the JSON report.
