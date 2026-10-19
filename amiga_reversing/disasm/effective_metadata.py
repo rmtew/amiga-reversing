@@ -410,7 +410,10 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
         kind=kind,
         note=_manual_seed_text(register_seed, "note") or _manual_action_citation(register_seed, "register_seed_id"),
         hardware_indexed=register_seed.get("hardware_indexed"),
-        hunk=_manual_seed_int(register_seed, "hunk") if kind is EntryRegisterSeedKind.HARDWARE_INDEXED else None,
+        array_length=register_seed.get("array_length"),
+        hunk=_manual_seed_int(register_seed, "hunk")
+        if kind is EntryRegisterSeedKind.HARDWARE_INDEXED or register_seed.get("array_length") is not None
+        else None,
         library_name=_manual_seed_text(register_seed, "library_name"),
         struct_name=_manual_seed_text(register_seed, "struct_name"),
         context_name=_manual_seed_text(register_seed, "context_name"),

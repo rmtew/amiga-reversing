@@ -5398,3 +5398,67 @@ preserved histories. The updated purpose totals are 11,612 payload bytes and
 936 bytes in the separate app-relative view; these coordinate domains are not
 added together. Native payload classification and the 35 unresolved operand
 statuses remain independent of those assessments.
+
+## Bounded inventory records: resolve members, retain dynamic addresses (2026-10-19)
+
+Grouping the 35 unresolved operands selected the inventory family: three fixed
+reads of later records and two indexed ID exchanges. Native tracking already
+understood bounded record arrays, but the normal command/metadata path omitted
+their count and the C importer never read its existing `array_length` variable.
+That path now preserves an optional positive record count and section through
+catalog commands, MAL replay/undo and native import. Legacy wire output is
+unchanged when the count is omitted. Native import validates integer bounds and
+matches the specific register; array-offset arithmetic uses a wide intermediate.
+The first target rebuild exposed a renderer precedence bug: recovered array
+fields displaced existing explicit EQUs and correctly failed the expected-symbol
+invariant. A synthetic normal-catalog regression reproduces it. Validated
+displacement EQUs now retain precedence over automatic field expressions;
+symbol/value/width checks and unrelated SDK naming remain intact.
+
+Two A0 contracts describe the existing four-record, eight-byte inventory prefix.
+They reuse the two-byte ID/value schema without extending it or asserting total
+allocation. The fixed reads at `$27F8`, `$27FE`, `$2804` resolve as members of
+records 1, 2 and 3. The two indexed operands now use the existing ID member via
+`INVENTORY_ITEM_ID_DISP`. Their indices remain dynamic: original BYTE masking
+keeps them even but preserves high WORD-byte bits. Six original CPU scenarios
+check all four nominal records and two out-of-prefix indices with value-byte
+and memory guards. Trade misses at +8 and ordered alias effects remain intact.
+
+Eight purpose scopes integrate the staging/exchange prefixes, packed carried,
+pocket and display-ID workspace arrays, and all 69 existing inventory/reset
+table owners (552 bytes in four contiguous groups). Seventy native object-pointer
+outcomes resolve to exactly those 69 starts, counting the shared default once.
+The original 35-object reset test checks all current/initial inventory copies;
+panel and exchange tests establish the ID/value roles. Intervening unrelated
+ranges are excluded. No complete allocation, all-consumer or lifetime claim is
+made, and the byte-ID arrays retain their separate representation.
+
+Remaining native groups after resolving the three fixed inventory members:
+
+| Shared cause/family | Records | Retained obligation |
+| --- | ---: | --- |
+| Inventory indexed ID exchange | 2 | Even stride does not bound the index |
+| Script command LEA advances | 4 | Address formation at the command extent, not missing members |
+| Tile-definition indexed reads | 9 | Known record roles; dynamic addresses remain unresolved |
+| Audio indexed cursors/configurations | 6 | Dynamic address/stride context remains explicit |
+| Backward descriptor-reference lookups | 4 | Indexed reference-domain bounds remain unresolved |
+| Frame/XY sequence indexing | 3 | Dynamic sequence selection remains unresolved |
+| Script-relative WORD copy | 2 | Computed addresses outside the four-byte command header; do not invent fields |
+| Overlay line-pointer indexing | 1 | Unchecked selected-line index |
+| Combat WORD probe beyond shared prefix | 1 | Low-byte consumer does not justify expanding the shared owner |
+
+Validation: 211 focused Python checks and the full native C suite pass, including
+explicit-EQU/typed-array precedence and legacy SDK presentations. One successful
+C+vasm gate reproduces all 376,832 bytes, receipt
+`fb39f6877f5427e223bdf81a850d667bbe8fb30c1736df8a1cbf817d0d942b54`.
+Thirteen MAL records and thirteen decisions append to preserved histories.
+All 126 asset payloads, bounds, classifications and SDK includes are unchanged;
+generated asset row IDs shift with the three added source-plan rows. The hardware
+fixture recognizes the previously published equal-valued silence-length EQU and
+checks its canonical value while retaining SDK spelling/comment checks.
+
+Fresh native accounting confirms exactly three removed unresolved identities
+(`$27F8`, `$27FE`, `$2804`) and none added: 967 resolved records, 32 unresolved
+(five field gaps and 27 indexed records). Payload/workspace byte gaps remain
+8,236/750. Supported purpose is now 12,242 payload bytes and 948 bytes in the
+separate app-relative view; these are not an overall completion claim.

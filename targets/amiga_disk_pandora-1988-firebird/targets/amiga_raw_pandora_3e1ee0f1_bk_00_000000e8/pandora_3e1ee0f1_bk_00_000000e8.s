@@ -1067,6 +1067,7 @@ INVENTORY_CURSOR_Y_LIMIT_EXCLUSIVE	EQU	164
 INVENTORY_CURSOR_Y_MOVE_SERVICES	EQU	4
 INVENTORY_FIRST_NONEMPTY_ITEM_ID	EQU	2
 INVENTORY_HELD_ITEM_PALETTE_BITS	EQU	$A0
+INVENTORY_ITEM_ID_DISP	EQU	0
 INVENTORY_ITEM_PALETTE_COLOR_4_OFFSET	EQU	8
 INVENTORY_ITEM_PALETTE_COLOR_5_OFFSET	EQU	10
 INVENTORY_ITEM_PALETTE_COLOR_6_OFFSET	EQU	12
@@ -6233,6 +6234,7 @@ queue_nearby_overlays_after_panel_close:
 open_nearby_object_inventory_panel:
 	bset.b #UI_FLAG_NEARBY_OBJECT_INVENTORY,app_ui_flags(a6)
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
+    ; KNOWN: type A0=Target code-entry register seed:inventory_item_slot
 	move.b (a0),app_inventory_display_item_ids(a6)	; operand 1: inventory_item_slot_item_id at (a0)
     ; Stage four record IDs as contiguous display bytes, skipping each record value BYTE. Name resolution reads those four bytes; the inventory records remain separate.
 	move.b INVENTORY_ITEM_SLOT_BYTES(a0),app_inventory_display_item_id_1(a6)
@@ -6441,8 +6443,9 @@ handle_inventory_panel_selection:
 	bset.b #CONTEXT_ID_RECHECK_PENDING_BIT,app_context_flags(a6)
     ; With valid cursor rows and zero index high byte, nearby selection swaps only the record item ID, retaining value. ANDI.B masks low bits; invalid cursor states are not bounded here.
 	movea.l world_object_shared_prefix_inventory_slots_ptr(a5),a0
-	move.b $0(a0,d1.w),d2
-	move.b world_object_shared_prefix_selected_item_id(a4),$0(a0,d1.w)
+    ; KNOWN: type A0=Target code-entry register seed:inventory_item_slot
+	move.b INVENTORY_ITEM_ID_DISP(a0,d1.w),d2
+	move.b world_object_shared_prefix_selected_item_id(a4),INVENTORY_ITEM_ID_DISP(a0,d1.w)
 	lea.l app_inventory_display_item_ids(a6),a1
 	move.b world_object_shared_prefix_selected_item_id(a4),$0(a1,d0.w)
 	move.b d2,world_object_shared_prefix_selected_item_id(a4)

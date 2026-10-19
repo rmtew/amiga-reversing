@@ -238,9 +238,15 @@ class EntryRegisterSeedMetadata:
     cleanup_scope: dict[str, object] | None = None
     hardware_indexed: dict[str, object] | None = None
     hunk: int | None = None
+    array_length: int | None = None
 
     def __post_init__(self) -> None:
         assert isinstance(self.kind, EntryRegisterSeedKind)
+        if self.array_length is not None and (
+            type(self.array_length) is not int or not 1 <= self.array_length <= 65535
+            or self.kind != EntryRegisterSeedKind.STRUCT_PTR or not self.struct_name
+        ):
+            raise ValueError("array_length requires a struct pointer and 1..65535 elements")
         if self.kind != EntryRegisterSeedKind.HARDWARE_INDEXED:
             if self.hardware_indexed is not None:
                 raise ValueError("indexed hardware input requires hardware_indexed kind")
@@ -300,6 +306,7 @@ class EntryRegisterSeedMetadata:
             kind=_entry_register_seed_kind(kind),
             hardware_indexed=payload.get("hardware_indexed"),
             hunk=payload.get("hunk"),
+            array_length=payload.get("array_length"),
             note=note,
             library_name=library_name,
             struct_name=struct_name,
@@ -2173,6 +2180,8 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
             seed.pop("hardware_indexed", None)
         if seed.get("hunk") is None:
             seed.pop("hunk", None)
+        if seed.get("array_length") is None:
+            seed.pop("array_length", None)
     # Optional address-domain declarations do not change the legacy wire shape.
     for representation in payload.get("manual_representations", ()):
         if representation.get("source_symbol") is None:

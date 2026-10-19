@@ -108,6 +108,14 @@ existing short replay. Multiple traced producer destinations are reported as
 exhaustive caller, lifetime, or callback-effects contract.
 
 For mutation parameters use `--request request.json` (or `--request -` for stdin).
+`target.code.register_seed.add` and the row's `semantic.register.struct_ptr`
+accept optional `array_length` (1..65535 records). It is a bounded typed-prefix
+contract, not allocation ownership or proof that a dynamic index stays inside
+it. The count and source section survive normal MAL replay/undo and native
+import; fixed record members can resolve while indexed and out-of-prefix
+accesses remain explicit. Omit the count to retain the existing type contract
+and any independently inferred array bounds. Only struct pointers accept it;
+omitted counts retain legacy metadata serialization.
 RSSET region renaming requires an explicit `size` from the current declaration.
 An omitted extent can otherwise become four bytes and cover neighboring fields.
 Existing add/edit defaults and historical records remain supported.

@@ -4447,13 +4447,13 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     field_displacement = (int16_t)effective_displacement;
     if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].array_element_count != 0U &&
         struct_size != 0U) {
-      int32_t array_offset = (int32_t)state->addr_regs[base_reg].array_element_index * (int32_t)struct_size +
+      int64_t array_offset = (int64_t)state->addr_regs[base_reg].array_element_index * (int64_t)struct_size +
         effective_displacement;
-      if (array_offset >= 0 && (uint32_t)array_offset <
-          (uint32_t)state->addr_regs[base_reg].array_element_count * struct_size) {
-        array_element_addend = (int16_t)((int32_t)((uint32_t)array_offset / struct_size) -
+      if (array_offset >= 0 && (uint64_t)array_offset <
+          (uint64_t)state->addr_regs[base_reg].array_element_count * struct_size) {
+        array_element_addend = (int16_t)((int32_t)((uint64_t)array_offset / struct_size) -
           (int32_t)state->addr_regs[base_reg].array_element_index);
-        field_displacement = (int16_t)((uint32_t)array_offset % struct_size);
+        field_displacement = (int16_t)((uint64_t)array_offset % struct_size);
       }
     }
     if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, access_size, &field)) {

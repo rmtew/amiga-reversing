@@ -5453,7 +5453,17 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
     int is_immediate = m68k_ir_operand_immediate_value(operand, &value);
     int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
     int is_absolute = operand_absolute_offset_local(operand, &value);
+    int manual_displacement_symbol;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+    manual_displacement_symbol = representation != NULL &&
+      representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+      lookup != NULL && lookup->policy != NULL && representation->target_equate_index != 0U &&
+      representation->target_equate_index <= lookup->policy->target_equate_count &&
+      ((is_base_displacement && m68k_instruction_operand_decoded_ea_shape(operand) ==
+          M68K_SIM_EA_SHAPE_DISPLACEMENT &&
+        lookup->policy->target_equates[representation->target_equate_index - 1U].value == displacement) ||
+       (is_indexed_displacement &&
+        lookup->policy->target_equates[representation->target_equate_index - 1U].value == indexed_displacement));
     if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
       char field[96];
       const char *symbol;
@@ -5492,9 +5502,11 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
         sizeof(operand->symbol_ref.name), representation->source_symbol_section, representation->source_symbol_offset);
       continue;
     }
-    /* A requested presentation may replace an automatic address name, including
-     * an immediate feeding typed pointer storage. Keep explicit source/SDK names. */
-    if ((operand->symbol_ref.has_name != 0U &&
+    /* A validated displacement EQU remains the explicit presentation when
+     * improved typing supplies an automatic field/array expression. Its exact
+     * value and EA width are checked below. Other source/SDK names retain the
+     * existing precedence, including immediate pointer storage. */
+    if ((operand->symbol_ref.has_name != 0U && !manual_displacement_symbol &&
           ((!is_absolute && !is_immediate) || operand->symbol_ref.name_is_generated == 0U)) ||
         (!is_immediate && !is_base_displacement && !is_absolute && !is_indexed_displacement)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);

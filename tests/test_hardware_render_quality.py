@@ -12,7 +12,10 @@ from amiga_reversing.disasm.binary_source import (
     RawAddressModel,
     RawBinarySource,
 )
-from amiga_reversing.disasm.effective_metadata import effective_metadata_file
+from amiga_reversing.disasm.effective_metadata import (
+    effective_metadata_file,
+    effective_target_metadata,
+)
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_action_catalog import listing_catalog_manual_payload
 from amiga_reversing.disasm.manual_actions import (
@@ -38,6 +41,10 @@ def test_pandora_retains_reviewed_hardware_rendering():
         pytest.skip("Pandora generated source is not installed")
     actual = Counter(source.read_text().splitlines())
     expected = Counter(baseline["lines"])
+    metadata = effective_target_metadata(source.parent)
+    equates = {e.name: e.value for e in metadata.target_equates}
+    for name, value in baseline.get("equate_values", {}).items():
+        assert equates[name] == value
     assert not (expected - actual), expected - actual
 
 
@@ -230,3 +237,17 @@ def test_offset_domain_native_replay_deduplicates_and_rejects_conflicts(tmp_path
     metadata.write_text(json.dumps({"manual_representations": [conflict]}))
     with pytest.raises(RuntimeError):
         c_backend.render_project_source_with_c_backend(source, metadata_path=metadata)
+
+
+@pytest.mark.parametrize(('offset', 'symbol'), [(0x96, 'dmacon'), (0x108, 'bpl1mod')])
+def test_legacy_sdk_presentation_is_not_treated_as_a_canonical_equate(tmp_path, offset, symbol):
+    source, original = fixture(tmp_path, f' lea.l $DFF000.l,a5\n move.w d0,${offset:X}(a5)\n rts\n')
+    # Historical accepted hardware-domain facts project to this SDK-symbol
+    # presentation, without a target_equate_index. Keep that path distinct.
+    metadata = tmp_path / 'legacy.json'
+    metadata.write_text(json.dumps({'manual_representations': [{
+        'hunk': 0, 'addr': 6, 'end': 10, 'style': 'symbol',
+        'element_kind': 'a5_hardware_ref', 'operand_index': 1, 'symbol': symbol}]}))
+    rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata)
+    assert f'move.w d0,{symbol}(a5)' in rendered
+    exact(source, rendered, original)

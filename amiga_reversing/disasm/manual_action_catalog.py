@@ -5148,6 +5148,12 @@ def _register_seed_payload(row: Mapping[str, object], params: Mapping[str, objec
         "context_name": context_name_value,
         "note": "Manual semantic helper",
     }
+    array_length = _struct_pointer_array_length(params)
+    if array_length is not None:
+        if kind != "struct_ptr":
+            raise ValueError("array_length requires a struct pointer")
+        register_seed["array_length"] = array_length
+        register_seed["hunk"] = _int_field(row, "section_index", fallback="hunk", default=0)
     row_index = _optional_int(row.get("row_index"))
     if row_index is not None:
         register_seed["row_index"] = row_index
@@ -5330,6 +5336,7 @@ def _struct_pointer_parameter_schema() -> dict[str, object]:
         "properties": {
             "struct_name": {"type": "string"},
             "context_name": {"type": "string"},
+            "array_length": {"type": "integer", "minimum": 1, "maximum": 65535},
             "source_evidence_id": {"type": "string"},
             "source_family": {"type": "string"},
             "source_evidence_status": {"type": "string"},
@@ -6022,6 +6029,7 @@ def _target_code_register_seed_action() -> dict[str, object]:
                 "register": {"type": "string"},
                 "struct_name": {"type": "string"},
                 "context_name": {"type": "string"},
+                "array_length": {"type": "integer", "minimum": 1, "maximum": 65535},
             },
             "required": ["hunk", "addr", "register", "struct_name"],
         },
@@ -6114,6 +6122,15 @@ def _target_code_label_payload(params: Mapping[str, object]) -> dict[str, object
     }
 
 
+def _struct_pointer_array_length(params: Mapping[str, object]) -> int | None:
+    if "array_length" not in params:
+        return None
+    value = params["array_length"]
+    if type(value) is not int or not 1 <= value <= 65535:
+        raise ValueError("array_length requires 1..65535 elements")
+    return value
+
+
 def _target_code_register_seed_payload(params: Mapping[str, object]) -> dict[str, object]:
     hunk = _optional_int(params.get("hunk"))
     addr = _optional_int(params.get("addr"))
@@ -6143,6 +6160,9 @@ def _target_code_register_seed_payload(params: Mapping[str, object]) -> dict[str
     context_name = params.get("context_name")
     if isinstance(context_name, str) and context_name.strip():
         seed["context_name"] = context_name.strip()
+    array_length = _struct_pointer_array_length(params)
+    if array_length is not None:
+        seed["array_length"] = array_length
     return seed
 
 

@@ -2208,8 +2208,10 @@ static int append_metadata_register_seed_local(const char *object_start, const c
   uint8_t seed_kind;
   int has_entry_offset = 0;
   int has_hunk = 0;
+  int has_array_length = 0;
   if (!json_number_field_local(object_start, object_end, "entry_offset", &entry_offset, &has_entry_offset) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_number_field_local(object_start, object_end, "array_length", &array_length, &has_array_length) ||
       !json_optional_string_field_local(object_start, object_end, "register", register_name, sizeof(register_name)) ||
       !json_optional_string_field_local(object_start, object_end, "kind", kind, sizeof(kind)) ||
       !json_optional_string_field_local(object_start, object_end, "struct_name", struct_name, sizeof(struct_name)) ||
@@ -2217,6 +2219,15 @@ static int append_metadata_register_seed_local(const char *object_start, const c
     return 0;
   }
   seed_kind = analysis_register_seed_kind_id_from_text_local(kind);
+  if (has_array_length && (seed_kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+      array_length == 0U || array_length > UINT16_MAX)) return 0;
+  if (has_array_length) {
+    const char *value = json_skip_ws_local(json_find_key_local(object_start, object_end, "array_length"), object_end);
+    if (value >= object_end || *value < '0' || *value > '9') return 0;
+    while (value < object_end && *value >= '0' && *value <= '9') ++value;
+    value = json_skip_ws_local(value, object_end);
+    if (value >= object_end || (*value != ',' && *value != '}')) return 0;
+  }
   if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
     if (!has_entry_offset) return 0;
     return append_metadata_hardware_indexed_seed_local(object_start, object_end, policy,
@@ -2238,9 +2249,13 @@ static int append_metadata_register_seed_local(const char *object_start, const c
       M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
       if (seed->kind == seed_kind && seed->has_entry_offset == (uint8_t)(has_entry_offset ? 1U : 0U) &&
           (!has_entry_offset || seed->entry_offset == entry_offset) &&
-          (!has_hunk || (seed->has_section_index && seed->section_index == hunk)) &&
+          seed->has_section_index && seed->section_index == (has_hunk ? hunk : 0U) &&
+          seed->reg_index == (uint8_t)(register_name[1] - '0') &&
+          seed->reg_kind == ((register_name[0] == 'A' || register_name[0] == 'a')
+            ? M68K_ANALYSIS_REGISTER_ADDRESS : M68K_ANALYSIS_REGISTER_DATA) &&
           strcmp(seed->name, name) == 0 && strcmp(seed->type_name, struct_name) == 0 &&
           strcmp(seed->context_name, context_name) == 0) {
+        if (seed->array_element_count != 0U && seed->array_element_count != array_length) return 0;
         seed->array_element_count = (uint16_t)array_length;
       }
     }
