@@ -1,0 +1,446 @@
+{
+  "starting_commit": "57af8454ad7cc281b5b2ddd9cd2b27b72f42b0ef",
+  "inspected_revision": "8aa19cf802705cf2925e5cb08b427e75b1009fa7c8672564837c839595488bf6",
+  "question": "What shared pixel-cell pointee and nested frame formats are established by original geometry headers, mask packets, column/plane traversal and initialized frame pointers?",
+  "source_evidence_refs": [
+    "s0:00006F96:instruction",
+    "s0:00007126:instruction",
+    "s0:0000715C:instruction",
+    "s0:00007378:instruction",
+    "s0:0000738C:instruction",
+    "s0:000073A0:instruction",
+    "s0:00048A6C:data",
+    "s0:00048A7E:data",
+    "s0:00048A90:data",
+    "s0:00048AA2:data",
+    "s0:00048AB4:data",
+    "s0:00048AC6:data",
+    "s0:00048AD8:data",
+    "s0:00048AEA:data",
+    "s0:00048AFC:data",
+    "s0:00048B0E:data",
+    "s0:00048B20:data",
+    "s0:00048B32:data",
+    "s0:00048B44:data",
+    "s0:00048B56:data",
+    "s0:00048B68:data",
+    "s0:00048B7A:data",
+    "s0:00048B8C:data",
+    "s0:00048B9E:data",
+    "s0:00048A74:data",
+    "s0:00048A76:data",
+    "s0:00048AE0:data",
+    "s0:00048AE2:data",
+    "s0:00048B4C:data",
+    "s0:00048B4E:data",
+    "s0:00048A78:data",
+    "s0:00048AE4:data"
+  ],
+  "source_bytes": 7680,
+  "frames": 18,
+  "logical_plane_words": 3840,
+  "headers": [
+    {
+      "header_source": 297580,
+      "pixel_source": 143992,
+      "bank": "world_position_frame_pixels_00_through_05",
+      "frame_index": 0,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 516692,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297598,
+      "pixel_source": 144504,
+      "bank": "world_position_frame_pixels_00_through_05",
+      "frame_index": 1,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 516820,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297616,
+      "pixel_source": 145016,
+      "bank": "world_position_frame_pixels_00_through_05",
+      "frame_index": 2,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 516948,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297634,
+      "pixel_source": 145528,
+      "bank": "world_position_frame_pixels_00_through_05",
+      "frame_index": 3,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 517076,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297652,
+      "pixel_source": 146040,
+      "bank": "world_position_frame_pixels_00_through_05",
+      "frame_index": 4,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 517204,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297670,
+      "pixel_source": 146552,
+      "bank": "world_position_frame_pixels_00_through_05",
+      "frame_index": 5,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 517332,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297688,
+      "pixel_source": 147064,
+      "bank": "world_position_frame_pixels_06_through_11",
+      "frame_index": 0,
+      "row_word_columns": 1,
+      "height": 32,
+      "nominal_width": 16,
+      "frame_bytes": 256,
+      "mask_runtime": 517460,
+      "mask_bytes": 64
+    },
+    {
+      "header_source": 297706,
+      "pixel_source": 147320,
+      "bank": "world_position_frame_pixels_06_through_11",
+      "frame_index": 1,
+      "row_word_columns": 1,
+      "height": 32,
+      "nominal_width": 16,
+      "frame_bytes": 256,
+      "mask_runtime": 517524,
+      "mask_bytes": 64
+    },
+    {
+      "header_source": 297724,
+      "pixel_source": 147576,
+      "bank": "world_position_frame_pixels_06_through_11",
+      "frame_index": 2,
+      "row_word_columns": 1,
+      "height": 32,
+      "nominal_width": 16,
+      "frame_bytes": 256,
+      "mask_runtime": 517588,
+      "mask_bytes": 64
+    },
+    {
+      "header_source": 297742,
+      "pixel_source": 147832,
+      "bank": "world_position_frame_pixels_06_through_11",
+      "frame_index": 3,
+      "row_word_columns": 1,
+      "height": 32,
+      "nominal_width": 16,
+      "frame_bytes": 256,
+      "mask_runtime": 517652,
+      "mask_bytes": 64
+    },
+    {
+      "header_source": 297760,
+      "pixel_source": 148088,
+      "bank": "world_position_frame_pixels_06_through_11",
+      "frame_index": 4,
+      "row_word_columns": 1,
+      "height": 32,
+      "nominal_width": 16,
+      "frame_bytes": 256,
+      "mask_runtime": 517716,
+      "mask_bytes": 64
+    },
+    {
+      "header_source": 297778,
+      "pixel_source": 148344,
+      "bank": "world_position_frame_pixels_06_through_11",
+      "frame_index": 5,
+      "row_word_columns": 1,
+      "height": 32,
+      "nominal_width": 16,
+      "frame_bytes": 256,
+      "mask_runtime": 517780,
+      "mask_bytes": 64
+    },
+    {
+      "header_source": 297796,
+      "pixel_source": 148600,
+      "bank": "world_position_frame_pixels_12_through_17",
+      "frame_index": 0,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 517844,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297814,
+      "pixel_source": 149112,
+      "bank": "world_position_frame_pixels_12_through_17",
+      "frame_index": 1,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 517972,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297832,
+      "pixel_source": 149624,
+      "bank": "world_position_frame_pixels_12_through_17",
+      "frame_index": 2,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 518100,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297850,
+      "pixel_source": 150136,
+      "bank": "world_position_frame_pixels_12_through_17",
+      "frame_index": 3,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 518228,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297868,
+      "pixel_source": 150648,
+      "bank": "world_position_frame_pixels_12_through_17",
+      "frame_index": 4,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 518356,
+      "mask_bytes": 128
+    },
+    {
+      "header_source": 297886,
+      "pixel_source": 151160,
+      "bank": "world_position_frame_pixels_12_through_17",
+      "frame_index": 5,
+      "row_word_columns": 2,
+      "height": 32,
+      "nominal_width": 32,
+      "frame_bytes": 512,
+      "mask_runtime": 518484,
+      "mask_bytes": 128
+    }
+  ],
+  "banks": [
+    {
+      "name": "world_position_frame_pixels_00_through_05",
+      "layout_id": "catalog-a6632203b7f64b05925dd95cb698d3c3",
+      "source_start": 143992,
+      "source_end": 147064,
+      "frame_count": 6,
+      "frame_stride": 512,
+      "sha256": "7c7cdf7b19a076e270cd3183544ad1b62571ad6c830e36174631e79e21d79c2f",
+      "mask_runtime_start": 516692,
+      "mask_bytes": 768
+    },
+    {
+      "name": "world_position_frame_pixels_06_through_11",
+      "layout_id": "catalog-4844ff412f3a46dab8b4a9507ea82ecc",
+      "source_start": 147064,
+      "source_end": 148600,
+      "frame_count": 6,
+      "frame_stride": 256,
+      "sha256": "31d1bf823f8f738c8b266d9b39686fb8170354ea13bad2ff26f886dfb9091f64",
+      "mask_runtime_start": 517460,
+      "mask_bytes": 384
+    },
+    {
+      "name": "world_position_frame_pixels_12_through_17",
+      "layout_id": "catalog-8696d9038c2d4a45a0989a1cdb33f531",
+      "source_start": 148600,
+      "source_end": 151672,
+      "frame_count": 6,
+      "frame_stride": 512,
+      "sha256": "da325b0ab5950fbb3f4b91cb7214ee5592f9996dfc797957dade6df910288ac4",
+      "mask_runtime_start": 517844,
+      "mask_bytes": 768
+    }
+  ],
+  "pointee_contract": {
+    "type": "world_tile_planar_row",
+    "bytes": 8,
+    "header_fields": 368,
+    "zero_carrier_source": 316894,
+    "zero_carrier_bytes": 512,
+    "scope": "Initial stored targets and pixel-reader contract; no complete allocation or later-write closure",
+    "values_in_bitmap_chunks": 366,
+    "values_in_existing_zero_carrier": 2
+  },
+  "limits": "Original stored geometry, mask initializer and conditional four-plane reader contracts only. Per-image physical grouping is preserved; ordinary gameplay admission, actual display/DMA completion, all future writers/consumers, exclusive allocation/lifetime and alternate-layout safety remain unproved.",
+  "validation": {
+    "focused_original_cpu_cases": 3,
+    "test_file": "tests/test_pandora_planar_masks.py",
+    "selection": "world_position_frame_pixels",
+    "passed": true,
+    "checks": [
+      "original constant packets",
+      "exact generated mask words",
+      "output fences",
+      "source preservation",
+      "final cursors"
+    ],
+    "unchanged_framework_checks_reused_from_commit": "57af8454ad7cc281b5b2ddd9cd2b27b72f42b0ef",
+    "framework_implementation_changed": false
+  },
+  "format": {
+    "word_column_type": "world_tile_planar_row",
+    "word_column_bytes": 8,
+    "planes_per_column": 4,
+    "wide_row_type": "world_position_planar_row_32px",
+    "wide_row_columns": 2,
+    "wide_row_bytes": 16,
+    "frame_rows": 32,
+    "frame_types": [
+      "world_position_planar_frame_16x32",
+      "world_position_planar_frame_32x32"
+    ]
+  },
+  "projection_check": {
+    "effective_frame_pointer_occurrences": 368,
+    "effective_pointee": "world_tile_planar_row",
+    "frame_pointer_domain": "mapped_source",
+    "renderer_view_pointer_domain": "unchanged legacy",
+    "specific_field_edits": 2,
+    "base_schema_edits": 2,
+    "reason": "Existing field-specific declarations override base custom-structure fields. The two exact field facts were updated, then both the shared schemas and all368 physical header leaves were checked in effective metadata before final regeneration."
+  },
+  "action_ids": [
+    "manual-28a4036c41584de3911e61529b9ae9c0",
+    "manual-85fc3d86c00945b69af308f9ecc671e4",
+    "manual-1640e35bf97f424abee2fe4907618d75",
+    "manual-74eb407541444088aec0303d955316dc",
+    "manual-80177f24d9d343de88cf24b1714e2a4d",
+    "manual-21fad0f055584c6f812053c06e99867a",
+    "manual-bd109ec39f194683bb14a9e00d5cf5f9",
+    "manual-5efb05fa5f3d47cc901115d3df23b751",
+    "manual-9386a7816ed548b3a23b434944ddb61e",
+    "manual-4bcf81e9510b40439e55b64c7aa99286",
+    "manual-e45ea032968e479fa14e4491dd48c721",
+    "manual-50484bfa3a7c4502a79b8223de46d18d",
+    "manual-237a2b87afbb413c8f0d724a274ce33f"
+  ],
+  "decision_ids": [
+    "restoration-e1044d5e456c4faf9e564883972025bb",
+    "restoration-da8d897a4d194d39b8f0ccc9b6e40fa8",
+    "restoration-e5176c6699ad4913b4484ee2656d9d24",
+    "restoration-aebbb35c870e4cfcaf1579ffef446b00",
+    "restoration-24160e21aaad4be7aa64a8e801b6571d",
+    "restoration-6aeb4fe63f394709b9cc139b37c17136",
+    "restoration-8f5d97ed1bd34bd8bc4e4907a980cc7c",
+    "restoration-fc06e28b96214d10b7180280c7e02836",
+    "restoration-f1b7683daa2745dd9079c917c68d8498",
+    "restoration-5b1aacd93252478cbbc368a9bcda3b7e",
+    "restoration-f548c46f024349ad823f6db05497d6c1",
+    "restoration-7a88943072a04a2dbdefbf4e88c14839",
+    "restoration-51ecf2ecc8ef45d9b6a82a90dc452e54"
+  ],
+  "verification": {
+    "receipt_id": "90a46255f8907855f805219487a666c397d1f1a097682ccd400cc797e9724314",
+    "revision": "5154ccc79bec1545dc7ab55067d254a7fdbc78e2df4ed5d55ec6672b1c028682",
+    "subject_revision": "7fe3c0b45d106bdb6355946198b9a2764e6a196fe05920940b503e47b1fc94bb",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "b328cc46bfa2e410efbdfd6fd0ab55c5137b4ebbac94cb377f45da90abf6b924",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "preservation": {
+    "declared_owners": 557,
+    "physical_groupings": "unchanged",
+    "assets": 126,
+    "sdk_includes": 16,
+    "all_non_source_package_files": "identities, classifications, paths, sizes, hashes and actual bytes unchanged",
+    "prior_struct_properties": "unchanged except two pixel-pointer pointee/value-kind properties",
+    "mask_pointer_domains_and_all_other_contracts": "unchanged",
+    "manual_actions_appended": 13,
+    "accepted_decisions_appended": 13,
+    "prior_history_bytes": "unchanged prefixes",
+    "effective_entities": 18304,
+    "current_bitmap_chunks_with_source_format_bindings": 118,
+    "current_bitmap_chunk_bytes": 241376,
+    "limits": "These are current emission chunks, not complete game-resource/image denominators. Flat scene banks retain unproved individual image grouping."
+  },
+  "native_reference_inventory": {
+    "incoming_frame_bank_references_before": 3,
+    "incoming_frame_bank_references_after": 3,
+    "kind": "original initializer code references",
+    "note": "This batch adds format/pointee contracts; it does not claim additional native reference edges for the header occurrences."
+  },
+  "progress": {
+    "new_frame_source_format_bytes": 7680,
+    "new_logical_plane_words": 3840,
+    "effective_pixel_pointer_occurrences": 368,
+    "supported_source_purpose_bytes": {
+      "before": 107005,
+      "after": 114685,
+      "gain": 7680
+    },
+    "purpose_assessments": {
+      "before": 103,
+      "after": 106
+    },
+    "unknown_payload_bytes": {
+      "before": 6446,
+      "after": 6446
+    },
+    "accepted_native_reference_targets": {
+      "before": 723,
+      "after": 723
+    },
+    "native_field_access_records": {
+      "resolved": 973,
+      "unresolved": 32,
+      "changed": false
+    },
+    "prior_unresolved_identity_set": "unchanged",
+    "generic_label_signals": {
+      "before": 48,
+      "after": 48
+    },
+    "classification_partition": "unchanged"
+  }
+}

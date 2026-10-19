@@ -5,7 +5,7 @@ Payload classification (disjoint bytes per source section):
 
 Units: 273 function candidates; 557 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 107005}.
+Supported payload purpose bytes by section: {'0': 114685}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
@@ -78,4 +78,4 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-2bd9456dacae4b88b6caf3afe680ea7b: s0 [0x2a48,0x2a7c) code/high, accepted, whole_scope.
     Cursor-derived inventory index and body-column item-ID exchange prefix; other columns branch to their own handlers.
     Limits: WORD index high-byte bits survive the BYTE mask; alignment is established, bounds are not. The separate packed display-ID update and later UI/audio paths are outside this scope.
-  91 additional bounded assessments are retained in the JSON report.
+  94 additional bounded assessments are retained in the JSON report.

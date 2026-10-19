@@ -6005,3 +6005,46 @@ Accepted native reference targets rise from 563 to 723. The 640-byte modal grid
 moves from structured data to pointer-table classification. Unknown payload
 remains 6,446 bytes, native field records remain 973 resolved/32 unresolved,
 and the prior unresolved identity set and 48 generic-label signals are unchanged.
+
+## Shared animation pixel formats and frame-pointer contracts
+
+The three existing six-frame image banks retain their owners and frame pitches
+of 512, 256 and 512 bytes. Eighteen stored headers establish 32x32, 16x32 and
+32x32 frames respectively. Their source format is now composed from the shared
+eight-byte four-plane word-column: a 32-pixel row contains two adjacent columns,
+and each complete frame contains 32 rows. These bindings cover 7,680 bytes and
+3,840 logical plane WORDs without flattening the accepted frame groupings.
+
+The geometry reader multiplies the column count by eight for raster-row pitch,
+advances pixels by eight bytes per horizontal column, and starts the four plane
+sources at offsets 0/2/4/6. This layout is not the conventional arrangement of
+two adjacent words from one plane. All eighteen mask pointers match the
+original six-group initializer footprints. The three focused original CPU cases
+pass mask values, output fences, unchanged source bytes and final cursors;
+unchanged renderer and framework checks from `57af8454` are reused.
+
+Both geometry views now give the pixel pointer the shared word-column pointee
+contract. Of 368 original header values, 366 are aligned to eight-byte cells in
+existing bitmap chunks; two use the already documented 512-byte shared zero
+carrier. This is a first-cell format and conditional reader contract. It does
+not close every other frame's extent, later mutation, ordinary activation,
+actual pixel/DMA output, allocation/lifetime or alternate-layout safety. Mask
+pointer domains and all other existing field properties remain intact. Declared
+frame bytes describe the pixel format; shifted two-WORD packets can still read
+a neighboring WORD, as the existing CPU packet contracts document.
+The inventory and bounded evidence are in
+[the validation record](../validation/pandora-animation-pixel-formats.json).
+
+All 13 actions have accepted review against final receipt
+`90a46255f8907855f805219487a666c397d1f1a097682ccd400cc797e9724314`;
+C and independent vasm reproduce all 376,832 original bytes. The effective
+projection is checked after the two field-specific updates. All 557 owners,
+physical groupings, 126 asset files, 16 SDK includes and prior history bytes are
+preserved; effective entities remain 18,304. Every currently emitted bitmap
+chunk now has a source-format binding: 118 chunks across 241,376 bytes. This
+does not establish individual image grouping for the flat scene banks.
+
+Supported source purpose increases by 7,680 bytes to 114,685 across 106
+assessments. Classification and 6,446 unknown bytes remain unchanged, as do
+723 accepted native reference targets, 973 resolved/32 unresolved field records,
+the prior unresolved identity set and 48 generic-label signals.

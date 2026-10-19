@@ -912,6 +912,84 @@ world_tile_planar_cell_row_14 RS.B 8
 world_tile_planar_cell_row_15 RS.B 8
 world_tile_planar_cell_SIZEOF EQU __RS
 
+; STRUCT world_position_planar_row_32px
+    RSRESET
+world_position_planar_row_32px_word_column_0 RS.B 8
+world_position_planar_row_32px_word_column_1 RS.B 8
+world_position_planar_row_32px_SIZEOF EQU __RS
+
+; STRUCT world_position_planar_frame_16x32
+    RSRESET
+world_position_planar_frame_16x32_row_00 RS.B 8
+world_position_planar_frame_16x32_row_01 RS.B 8
+world_position_planar_frame_16x32_row_02 RS.B 8
+world_position_planar_frame_16x32_row_03 RS.B 8
+world_position_planar_frame_16x32_row_04 RS.B 8
+world_position_planar_frame_16x32_row_05 RS.B 8
+world_position_planar_frame_16x32_row_06 RS.B 8
+world_position_planar_frame_16x32_row_07 RS.B 8
+world_position_planar_frame_16x32_row_08 RS.B 8
+world_position_planar_frame_16x32_row_09 RS.B 8
+world_position_planar_frame_16x32_row_10 RS.B 8
+world_position_planar_frame_16x32_row_11 RS.B 8
+world_position_planar_frame_16x32_row_12 RS.B 8
+world_position_planar_frame_16x32_row_13 RS.B 8
+world_position_planar_frame_16x32_row_14 RS.B 8
+world_position_planar_frame_16x32_row_15 RS.B 8
+world_position_planar_frame_16x32_row_16 RS.B 8
+world_position_planar_frame_16x32_row_17 RS.B 8
+world_position_planar_frame_16x32_row_18 RS.B 8
+world_position_planar_frame_16x32_row_19 RS.B 8
+world_position_planar_frame_16x32_row_20 RS.B 8
+world_position_planar_frame_16x32_row_21 RS.B 8
+world_position_planar_frame_16x32_row_22 RS.B 8
+world_position_planar_frame_16x32_row_23 RS.B 8
+world_position_planar_frame_16x32_row_24 RS.B 8
+world_position_planar_frame_16x32_row_25 RS.B 8
+world_position_planar_frame_16x32_row_26 RS.B 8
+world_position_planar_frame_16x32_row_27 RS.B 8
+world_position_planar_frame_16x32_row_28 RS.B 8
+world_position_planar_frame_16x32_row_29 RS.B 8
+world_position_planar_frame_16x32_row_30 RS.B 8
+world_position_planar_frame_16x32_row_31 RS.B 8
+world_position_planar_frame_16x32_SIZEOF EQU __RS
+
+; STRUCT world_position_planar_frame_32x32
+    RSRESET
+world_position_planar_frame_32x32_row_00 RS.B 16
+world_position_planar_frame_32x32_row_01 RS.B 16
+world_position_planar_frame_32x32_row_02 RS.B 16
+world_position_planar_frame_32x32_row_03 RS.B 16
+world_position_planar_frame_32x32_row_04 RS.B 16
+world_position_planar_frame_32x32_row_05 RS.B 16
+world_position_planar_frame_32x32_row_06 RS.B 16
+world_position_planar_frame_32x32_row_07 RS.B 16
+world_position_planar_frame_32x32_row_08 RS.B 16
+world_position_planar_frame_32x32_row_09 RS.B 16
+world_position_planar_frame_32x32_row_10 RS.B 16
+world_position_planar_frame_32x32_row_11 RS.B 16
+world_position_planar_frame_32x32_row_12 RS.B 16
+world_position_planar_frame_32x32_row_13 RS.B 16
+world_position_planar_frame_32x32_row_14 RS.B 16
+world_position_planar_frame_32x32_row_15 RS.B 16
+world_position_planar_frame_32x32_row_16 RS.B 16
+world_position_planar_frame_32x32_row_17 RS.B 16
+world_position_planar_frame_32x32_row_18 RS.B 16
+world_position_planar_frame_32x32_row_19 RS.B 16
+world_position_planar_frame_32x32_row_20 RS.B 16
+world_position_planar_frame_32x32_row_21 RS.B 16
+world_position_planar_frame_32x32_row_22 RS.B 16
+world_position_planar_frame_32x32_row_23 RS.B 16
+world_position_planar_frame_32x32_row_24 RS.B 16
+world_position_planar_frame_32x32_row_25 RS.B 16
+world_position_planar_frame_32x32_row_26 RS.B 16
+world_position_planar_frame_32x32_row_27 RS.B 16
+world_position_planar_frame_32x32_row_28 RS.B 16
+world_position_planar_frame_32x32_row_29 RS.B 16
+world_position_planar_frame_32x32_row_30 RS.B 16
+world_position_planar_frame_32x32_row_31 RS.B 16
+world_position_planar_frame_32x32_SIZEOF EQU __RS
+
 ANIM_ACTIVE_FRAME_OFFSET	EQU	WorldPositionDescriptorPointer_SIZEOF
 ANIM_ACTIVE_X_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_x_offset
 ANIM_ACTIVE_Y_OFFSET	EQU	WorldPositionXYOffset_SIZEOF+WorldPositionXYOffset_y_offset
@@ -20348,13 +20426,13 @@ scene_pixel_cells_for_mask_bank_07:	; ARRAY world_tile_planar_row[54]
 scene_pixel_cells_for_mask_bank_13:	; ARRAY world_tile_planar_row[324]
 	INCBIN "assets/scene_pixel_cells_for_mask_bank_13.bin"
 ; bitmap
-world_position_frame_pixels_00_through_05:
+world_position_frame_pixels_00_through_05:	; ARRAY world_position_planar_frame_32x32[6]
 	INCBIN "assets/world_position_frame_pixels_00_through_05.bin"
 ; bitmap
-world_position_frame_pixels_06_through_11:
+world_position_frame_pixels_06_through_11:	; ARRAY world_position_planar_frame_16x32[6]
 	INCBIN "assets/world_position_frame_pixels_06_through_11.bin"
 ; bitmap
-world_position_frame_pixels_12_through_17:
+world_position_frame_pixels_12_through_17:	; ARRAY world_position_planar_frame_32x32[6]
 	INCBIN "assets/world_position_frame_pixels_12_through_17.bin"
 ; bitmap
 scene_pixel_cells_for_mask_bank_17:	; ARRAY world_tile_planar_row[948]
