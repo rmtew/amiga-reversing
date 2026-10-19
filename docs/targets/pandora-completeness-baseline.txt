@@ -1,18 +1,18 @@
 Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 
 Payload classification (disjoint bytes per source section):
-  section 0: 376832 bytes; code=24260, structured_data=340134, table=1050, text=4166, unknown=7222
+  section 0: 376832 bytes; code=24260, structured_data=340134, table=1050, text=4639, unknown=6749
 
 Units: 265 function candidates; 552 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 13292}.
+Supported payload purpose bytes by section: {'0': 14036}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
 Structure: {'resolved_native_access_records': 967, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 563}.
 Unresolved native operand forms: {'field_gap': 5, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
-Presentation: 80 generic label review signals.
+Presentation: 66 generic label review signals.
 Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
 Native asset encoding: bitmap, 118 chunks, bytes by section {'0': 241376}; game roles require separate purpose evidence.
 Native asset encoding: opaque_data, 1 chunks, bytes by section {'0': 27792}; game roles require separate purpose evidence.
@@ -60,6 +60,9 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-2894c8098eaf4b669ad38edde3a388eb: s0 [0xb130,0xb250) game_data/high, accepted, whole_scope.
     36 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
     Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
+  purpose-29b942f31db04545be85c0616f700dc4: s0 [0x4cb22,0x4cb92) text/high, accepted, whole_scope.
+    Two complete ending messages selected by the original outcome producers; preserve the embedded0x22 punctuation byte in EARTH-S text instead of splitting their storage spans.
+    Limits: Initial stored bytes, static pointer associations and supplied original-reader contexts. Ordinary gameplay activation, all callers/writers, exclusive lifetime, complete allocation and emitted display pixels are not established. Quote bytes remain0x22; CR bytes remain0x0D; no punctuation or control normalization.
   purpose-2bd9456dacae4b88b6caf3afe680ea7b: s0 [0x2a48,0x2a7c) code/high, accepted, whole_scope.
     Cursor-derived inventory index and body-column item-ID exchange prefix; other columns branch to their own handlers.
     Limits: WORD index high-byte bits survive the BYTE mask; alignment is established, bounds are not. The separate packed display-ID update and later UI/audio paths are outside this scope.
@@ -75,7 +78,4 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-3b5a4a24485c41f69f996f937587f2aa: s0 [0xb0e0,0xb120) game_data/high, accepted, whole_scope.
     8 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
     Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
-  purpose-51502b2e91f143668a5901805f549d69: s0 [0x4d5de,0x4d7de) graphics/high, accepted, whole_scope.
-    Stored 512-byte shared zero graphics bank: nominal blank planar pixels and mask inputs, hidden cursor DMA pointers, zero RGB12 palette and repeated overlay clear source.
-    Limits: Original stored data and inspected CPU pointer/register contracts. No actual DMA output, exclusive allocation, all-consumer, lifetime, immutability or ordinary gameplay reachability claim. Runtime mask alias covers only the maximum128-byte nominal mask prefix; frame pointer domains stay unchanged.
-  22 additional bounded assessments are retained in the JSON report.
+  31 additional bounded assessments are retained in the JSON report.

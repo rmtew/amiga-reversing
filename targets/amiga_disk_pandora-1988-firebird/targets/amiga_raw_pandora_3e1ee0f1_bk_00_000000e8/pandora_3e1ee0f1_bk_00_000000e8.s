@@ -16530,20 +16530,20 @@ self_destruct_insert_disk_text:
 	dc.b "TO INITIATE THE PANDORA",$0D
 	dc.b "SELF DESTRUCT SEQUENCE.",$00
 self_destruct_insert_cards_text:
-	dc.b "PANDORA SELF DESTRUCT PROGRAM."
-	dc.b $0D,$0D,$49,$4E,$53,$45,$52,$54,$20,$54,$48,$45,$20,$54,$48,$52
-	dc.b $45,$45,$20,$43,$4F,$44,$45,$20,$43,$41,$52,$44,$53,$2E,$2E,$2E
-	dc.b $0D,$0D,$00
+	dc.b "PANDORA SELF DESTRUCT PROGRAM.",$0D,$0D
+	dc.b "INSERT THE THREE CODE CARDS...",$0D,$0D
+	dc.b $00
 self_destruct_card_number_labels:
-	dc.b $31,$3A,$0D,$32,$3A,$0D,$33,$3A,$00
+	dc.b "1:",$0D
+	dc.b "2:",$0D
+	dc.b "3:",$00
 self_destruct_rejected_cards_text:
 	dc.b "INVALID SEQUENCE: CARDS TAKEN",$0D
 	dc.b "PLEASE CONTACT YOUR BRANCH",$0D
 	dc.b "MANAGER FOR FURTHER DETAILS.",$00
 self_destruct_accepted_cards_text:
-	dc.b "CORRECT SEQUENCE..."
-	dc.b $0D,$53,$45,$4C,$46,$20,$44,$45,$53,$54,$52,$55,$43,$54,$20,$49
-	dc.b $4E,$49,$54,$49,$41,$54,$45,$44,$2E,$0D,$0D
+	dc.b "CORRECT SEQUENCE...",$0D
+	dc.b "SELF DESTRUCT INITIATED.",$0D,$0D
 	dc.b "HAVE A NICE DAY, CAPTAIN.",$00
     ; Collect the SDI disk and three code cards in the shared backdrop. Inventory, messages and Earth deadline remain serviced here; armed self-destruct countdown advances in the main loop.
 run_self_destruct_modal_loop:
@@ -22544,7 +22544,7 @@ world_object_thief:
 	dc.l $00000000	; interaction_callback
 	dc.l complete_thief_interaction	; interaction_completion_callback
 	dc.l $00000000	; context_message_ptr
-	dc.l abs_0_0005CE38	; interaction_message_ptr
+	dc.l thief_laughter_response	; interaction_message_ptr
 	dc.l thief_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
 	dc.l thief_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -22780,8 +22780,8 @@ world_object_priest:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_priest	; interaction_callback
 	dc.l complete_priest_interaction	; interaction_completion_callback
-	dc.l abs_0_0005D063	; context_message_ptr
-	dc.l abs_0_0005D07F	; interaction_message_ptr
+	dc.l priest_blessing_message	; context_message_ptr
+	dc.l priest_thou_shalt_not_kill_response	; interaction_message_ptr
 	dc.l priest_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
 	dc.l priest_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -23305,8 +23305,8 @@ world_object_hooligan:
 	dc.l $00000000	; item_name_ptr
 	dc.l request_world_object_context_message	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005D1F9	; context_message_ptr
-	dc.l abs_0_0005D220	; interaction_message_ptr
+	dc.l hooligan_challenge_message	; context_message_ptr
+	dc.l hooligan_tool_response	; interaction_message_ptr
 	dc.l hooligan_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
 	dc.l hooligan_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -23913,7 +23913,7 @@ world_object_death_fly:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005D040	; context_message_ptr
+	dc.l death_fly_die_human_message	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
 	dc.l death_fly_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
@@ -24013,7 +24013,7 @@ world_object_driffid:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_driffid	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005D0CA	; context_message_ptr
+	dc.l driffid_sunlight_message	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
 	dc.l driffid_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
@@ -25369,8 +25369,8 @@ world_object_robomechanic:
 	dc.l $00000000	; item_name_ptr
 	dc.l request_world_object_context_message	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005CDC4	; context_message_ptr
-	dc.l abs_0_0005CDEA	; interaction_message_ptr
+	dc.l robomechanic_breakdown_message	; context_message_ptr
+	dc.l robomechanic_adjustments_response	; interaction_message_ptr
 	dc.l robomechanic_inventory_slots	; inventory_slots_ptr
 	dc.l robomechanic_trade_offers	; trade_offer_table_ptr
 	dc.l robomechanic_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -25519,7 +25519,7 @@ world_object_doctor:
 	dc.l $00000000	; item_name_ptr
 	dc.l $00000000	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005D1D6	; context_message_ptr
+	dc.l doctor_medic_messed_message	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
 	dc.l doctor_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
@@ -25755,7 +25755,7 @@ world_object_diabetic:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_diabetic	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005CF72	; context_message_ptr
+	dc.l diabetic_syringe_request_message	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
 	dc.l diabetic_inventory_slots	; inventory_slots_ptr
 	dc.l diabetic_trade_offers	; trade_offer_table_ptr
@@ -25866,8 +25866,8 @@ world_object_security_officer:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_sec_officer	; interaction_callback
 	dc.l $00000000	; interaction_completion_callback
-	dc.l abs_0_0005CE00	; context_message_ptr
-	dc.l abs_0_0005CE20	; interaction_message_ptr
+	dc.l security_officer_sonicblaster_message	; context_message_ptr
+	dc.l security_officer_be_careful_response	; interaction_message_ptr
 	dc.l security_officer_inventory_slots	; inventory_slots_ptr
 	dc.l security_officer_trade_offers	; trade_offer_table_ptr
 	dc.l security_officer_initial_inventory_slots	; initial_inventory_slots_ptr
@@ -25957,7 +25957,7 @@ world_object_bank_manager:
 	dc.l $00000000	; item_name_ptr
 	dc.l interact_with_bank_manager	; interaction_callback
 	dc.l complete_bank_manager_interaction	; interaction_completion_callback
-	dc.l abs_0_0005D234	; context_message_ptr
+	dc.l bank_manager_money_message	; context_message_ptr
 	dc.l $00000000	; interaction_message_ptr
 	dc.l bank_manager_inventory_slots	; inventory_slots_ptr
 	dc.l shared_empty_inventory_trade_slots	; trade_offer_table_ptr
@@ -27864,13 +27864,9 @@ self_destruct_evacuation_warning:
 pandora_destroyed_earth_saved_message:
 	dc.b "CONGRATULATIONS:  PANDORA  IS  DESTROYED,  EARTH  IS  SAVED.",$00
 pandora_destroyed_earth_uncertain_message:
-	dc.b "PANDORA  IS  DESTROYED, BUT  EARTH"
-	dc.b $22
-	dc.b "S  FATE  IS  UNCERTAIN.",$00
+	dc.b "PANDORA  IS  DESTROYED, BUT  EARTH",$22,"S  FATE  IS  UNCERTAIN.",$00
 escape_without_destroying_pandora_message:
-	dc.b "YOU  HAVE  ESCAPED, BUT  EARTH"
-	dc.b $22
-	dc.b "S  FUTURE  IS  BLEAK.",$00
+	dc.b "YOU  HAVE  ESCAPED, BUT  EARTH",$22,"S  FUTURE  IS  BLEAK.",$00
 pandora_mystery_unsolved_message:
 	dc.b "YOU  HAVE  FAILED  TO  SOLVE  THE  MYSTERY  OF  PANDORA.",$00
 posthumous_mercenary_rank_prefix:
@@ -27905,23 +27901,16 @@ musician_drink_request_message:
 	dc.b $22,"Give me a drink,and I",$22,"ll play you a song",$22,$00
 musician_captains_colours_response:
 	dc.b $22,"The Captains colours are red, yellow and blue",$22,$00
-abs_0_0005CDC4:
-	dc.b $22,$42,$72,$65,$61,$6B,$64,$6F,$77,$6E,$20,$69,$6D,$6D,$69,$6E
-	dc.b $65,$6E,$74,$2E,$2E,$2E,$2E,$72,$65,$71,$75,$69,$72,$65,$20,$62
-	dc.b $6F,$6F,$73,$74,$22,$00
-abs_0_0005CDEA:
-	dc.b $22,$52,$65,$71,$75,$69,$72,$65,$20,$61,$64,$6A,$75,$73,$74,$6D
-	dc.b $65,$6E,$74,$73,$22,$00
-abs_0_0005CE00:
-	dc.b $22,$53,$6F,$6D,$65,$6F,$6E,$65,$20,$73,$74,$6F,$6C,$65,$20,$6D
-	dc.b $79,$20,$73,$6F,$6E,$69,$63,$62,$6C,$61,$73,$74,$65,$72,$22,$00
-abs_0_0005CE20:
-	dc.b $22,$42,$45,$20,$43,$41,$52,$45,$46,$55,$4C,$20,$57,$49,$54,$48
-	dc.b $20,$54,$48,$41,$54,$2E,$22,$00
-abs_0_0005CE38:
-	dc.b $22,$48,$41,$20,$48,$41,$20,$48,$41,$20,$48,$41,$20,$48,$41,$20
-	dc.b $48,$45,$20,$48,$45,$20,$48,$45,$20,$48,$45,$20,$48,$45,$20,$48
-	dc.b $45,$22,$00
+robomechanic_breakdown_message:
+	dc.b $22,"Breakdown imminent....require boost",$22,$00
+robomechanic_adjustments_response:
+	dc.b $22,"Require adjustments",$22,$00
+security_officer_sonicblaster_message:
+	dc.b $22,"Someone stole my sonicblaster",$22,$00
+security_officer_be_careful_response:
+	dc.b $22,"BE CAREFUL WITH THAT.",$22,$00
+thief_laughter_response:
+	dc.b $22,"HA HA HA HA HA HE HE HE HE HE HE",$22,$00
 gardener_bloop_message:
 	dc.b $22,"BLOOP10011110BLEEPBLOOPBEEP00001110101",$22,$00
 chemist_reading_request_message:
@@ -27936,9 +27925,8 @@ chemist_romeo_quote:
 	dc.b $22,"Romeo, Romeo wherefore art thou...",$22,$00
 chemist_bible_response:
 	dc.b $22,"Oh no, not a Bible basher I hope...",$22,$00
-abs_0_0005CF72:
-	dc.b $22,$48,$65,$6C,$70,$20,$6D,$65,$2C,$20,$49,$20,$6E,$65,$65,$64
-	dc.b $20,$61,$20,$73,$79,$72,$69,$6E,$67,$65,$22,$00
+diabetic_syringe_request_message:
+	dc.b $22,"Help me, I need a syringe",$22,$00
 diabetic_insulin_request_response:
 	dc.b $22,"Get me some insulin, I can help you",$22,$00
 diabetic_missing_needle_response:
@@ -27947,21 +27935,16 @@ diabetic_self_destruct_hint_part_1:
 	dc.b $22,"Use the captain",$22,"s self destruct initiation disc",$00
 diabetic_self_destruct_hint_part_2:
 	dc.b " and the right code cards to destroy Pandora.",$22,$00
-abs_0_0005D040:
-	dc.b $22,$42,$7A,$7A,$7A,$7A,$20,$7A,$7A,$7A,$20,$7A,$7A,$20,$44,$49
-	dc.b $45,$20,$48,$55,$4D,$41,$4E,$20,$7A,$7A,$20,$7A,$7A,$20,$7A,$7A
-	dc.b $7A,$22,$00
-abs_0_0005D063:
-	dc.b $22,$4D,$61,$79,$20,$74,$68,$65,$20,$6C,$6F,$72,$64,$20,$62,$65
-	dc.b $20,$77,$69,$74,$68,$20,$79,$6F,$75,$2E,$22,$00
-abs_0_0005D07F:
-	dc.b $22,$54,$68,$6F,$75,$20,$73,$68,$61,$6C,$74,$20,$6E,$6F,$74,$20
-	dc.b $6B,$69,$6C,$6C,$2E,$22,$00
+death_fly_die_human_message:
+	dc.b $22,"Bzzzz zzz zz DIE HUMAN zz zz zzz",$22,$00
+priest_blessing_message:
+	dc.b $22,"May the lord be with you.",$22,$00
+priest_thou_shalt_not_kill_response:
+	dc.b $22,"Thou shalt not kill.",$22,$00
 priest_completion_boast_message:
 	dc.b $22,"I am now stonger than you could possibly imagine.",$22,$00
-abs_0_0005D0CA:
-	dc.b $22,$49,$20,$6E,$65,$65,$64,$20,$73,$75,$6E,$6C,$69,$67,$68,$74
-	dc.b $22,$00
+driffid_sunlight_message:
+	dc.b $22,"I need sunlight",$22,$00
 driffid_insecticide_response:
 	dc.b $22,"That",$22,"s too small for the real problem",$22,$00
 driffid_light_box_response:
@@ -27976,20 +27959,14 @@ squash_player_ball_request_message:
 	dc.b $22,"I need a squash ball, there isn",$22,"t one here",$22,$00
 squash_player_no_racquet_response:
 	dc.b $22,"Thanks, although I don",$22,"t have a squash racquet",$22,$00
-abs_0_0005D1D6:
-	dc.b $22,$54,$68,$65,$20,$6D,$65,$64,$69,$63,$20,$6D,$65,$73,$73,$65
-	dc.b $64,$2C,$20,$74,$68,$65,$20,$6D,$65,$64,$69,$63,$20,$64,$69,$65
-	dc.b $64,$22,$00
-abs_0_0005D1F9:
-	dc.b $22,$43,$6F,$6D,$65,$20,$6F,$76,$65,$72,$20,$65,$72,$65,$20,$69
-	dc.b $66,$20,$79,$6F,$75,$20,$66,$69,$6E,$6B,$20,$79,$6F,$75,$22,$72
-	dc.b $65,$20,$61,$72,$64,$22,$00
-abs_0_0005D220:
-	dc.b $22,$57,$68,$65,$72,$65,$22,$73,$20,$79,$6F,$75,$72,$20,$74,$6F
-	dc.b $6F,$6C,$22,$00
-abs_0_0005D234:
-	dc.b $22,$4D,$6F,$6E,$65,$79,$2C,$6D,$6F,$6E,$65,$79,$2C,$6D,$6F,$6E
-	dc.b $65,$79,$2E,$2E,$2E,$22,$00
+doctor_medic_messed_message:
+	dc.b $22,"The medic messed, the medic died",$22,$00
+hooligan_challenge_message:
+	dc.b $22,"Come over ere if you fink you",$22,"re ard",$22,$00
+hooligan_tool_response:
+	dc.b $22,"Where",$22,"s your tool",$22,$00
+bank_manager_money_message:
+	dc.b $22,"Money,money,money...",$22,$00
 bank_manager_bent_coin_response:
 	dc.b $22,"Let me invest that for you, HA HA HA HA",$22,$00
 bank_manager_default_response:

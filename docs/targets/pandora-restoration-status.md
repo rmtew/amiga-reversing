@@ -5586,3 +5586,60 @@ Native access counts remain 967 resolved and 32 unresolved (five field gaps and
 27 dynamic indexed records), with no changed unresolved field identities. These
 are bounded source/accounting gains, not a whole-program semantic completion
 or complete allocation claim.
+
+### Complete NPC, console and ending messages (2026-10-19)
+
+Twenty complete NUL-terminated text spans now include their original quote
+and CR bytes. Fourteen NPC messages are named from the existing context or
+interaction pointer members of ten original world objects. The other six
+retain the self-destruct prompt/card-label/rejected/accepted and ending names;
+seven original LEA prefixes establish those roots. Three original CPU checks
+verify the stored boundaries and original pointer loads, then consume every
+full span through the compact reader with independent glyph-byte, cursor and
+RAM-write expectations. Embedded punctuation remains byte `$22`, including the
+`EARTH` punctuation and NPC quotations; CR remains `$0D`.
+
+Nine purpose scopes cover the complete stored text and these local contracts.
+Storage and pointer associations are established; ordinary activation, all
+callers/writers, lifetime/allocation closure and actual display output remain
+unassessed. This batch changes target facts and focused checks, without a
+framework change. Generated-source review requires readable complete messages,
+all fourteen NPC references using their names, the compact WORD-fill bank and
+unchanged SDK expressions and assets.
+
+Readability review after the first exact gate caught automatic recognition
+regressing the related rejected-card middle line to hex. Its complete original
+86-byte span is now explicit too, with its original producer and reader checked.
+Final source review also requires every previously readable original data-string
+literal to remain readable; exact bytes alone do not satisfy this check.
+
+The final settled C/vasm receipt is
+`9612c71d5e55aa78510deb55d25df9f8e17cb0d112944252837c6dc7600252b0`:
+all 376,832 original bytes match. Four focused tests pass (three original CPU
+message checks and the existing hardware-rendering guard). All 221 previous
+readable data literals remain inside quoted data literals. Both histories retain
+their complete prefixes and append 29 records each. All 126 asset payloads,
+bounds, classifications and SDK include identities remain unchanged; the zero
+bank stays one `dcb.w $100,$0000` directive.
+
+Fresh accounting recovers **473 bytes**, reducing unknown payload from 7,222 to
+**6,749 bytes** and raising text to 4,639 bytes. Structured data remains 340,134
+bytes, with 552 declared owners and zero conflicts. Explicit supported payload
+purpose is 14,036 bytes across 43 assessments; these overlapping evidence views
+are not additional classified bytes. Generic label signals fall from 80 to 66.
+The separate app view remains at 948 purpose bytes and a 750-byte gap. Native
+accesses remain 967 resolved and 32 unresolved (five field gaps and 27 dynamic
+indexed records), with the same unresolved field identities.
+
+Export opportunity, deferred: `$C3A8..$D0A8` is a contiguous 3,328-byte A–Z
+large-glyph prefix (26 existing 128-byte owners, including the retained nonstandard
+W selector). The original selector/32-row copy establishes the related prefix;
+it does not bound unchecked nonalphabet inputs or prove allocation lifetime.
+These owners currently have role `data` and render inline. Native package export
+already coalesces eligible contiguous rows, but requires supported media flags,
+the same region ID and no interior labels (`m68k_source_package.c`, `eligible`
+and `joins_asset_run`). A minimal general addition is an evidence-backed named
+export-resource span independent of analysis owners, with glyph labels retained
+as source-offset aliases (or slices of one file). This would allow one named
+font asset without merging the glyph analyses or the preceding unknown scratch
+tail. No grouping, media reclassification or asset-count change is made here.
