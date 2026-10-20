@@ -1543,6 +1543,37 @@ def validate_base_displacement_reference(ref: Mapping[str, object], *, source_hu
         raise ValueError("base_displacement does not accept runtime_address")
 
 
+def validate_base_displacement_range(ref: Mapping[str, object], *, source_hunk: int | None = None) -> None:
+    """A packed WORD range with one explicit source-coordinate base and scale.
+
+    source_value/target_offset describe the first WORD only. The native reader
+    decodes every WORD from the pinned input, retaining the original raw bits.
+    """
+    width = ref.get("width", ref.get("size"))
+    scale = ref.get("scale")
+    base = ref.get("base_locator")
+    integer = lambda value: isinstance(value, int) and not isinstance(value, bool)
+    if not integer(width) or not 2 <= width <= 131070 or width % 2:
+        raise ValueError("base_displacement_range requires a packed range of 1..65535 WORDs")
+    if not isinstance(ref.get("signed"), bool) or not integer(scale) or not 1 <= scale <= 0xFFFFFFFF:
+        raise ValueError("base_displacement_range requires explicit signedness and positive uint32 scale")
+    if not isinstance(base, Mapping):
+        raise ValueError("base_displacement_range requires explicit base_locator")
+    bh, bo = base.get("hunk"), base.get("offset")
+    th, to, raw = ref.get("target_hunk"), ref.get("target_offset"), ref.get("source_value")
+    if any(not integer(v) or not 0 <= v <= 0xFFFFFFFF for v in (bh, bo, th, to)):
+        raise ValueError("base_displacement_range requires uint32 base and first target locators")
+    if bh != th or (source_hunk is not None and bh != source_hunk):
+        raise ValueError("base_displacement_range requires source, base and targets in the same section")
+    if not integer(raw) or not 0 <= raw <= 0xFFFF:
+        raise ValueError("base_displacement_range source_value must retain first encoded WORD bits")
+    decoded = raw - 0x10000 if ref["signed"] and raw >= 0x8000 else raw
+    if bo + decoded * scale != to:
+        raise ValueError("base_displacement_range first target must equal base plus decoded WORD times scale")
+    if "runtime_address" in ref:
+        raise ValueError("base_displacement_range does not accept runtime_address")
+
+
 def validate_base_displacement_owner(
     ref: Mapping[str, object], element: Mapping[str, object], *, defer_struct_leaf: bool = False,
 ) -> None:
@@ -1566,7 +1597,8 @@ def validate_base_displacement_owner(
         and binding.get("binding_kind") in {"custom_struct", "platform_struct"}
         and isinstance(binding.get("bound_type_id"), str) and bool(binding.get("bound_type_id"))
     )
-    if not (scalar_word or array_word or deferred_struct) or offset < owner_offset or offset + 2 > owner_offset + width:
+    span = ref.get("width", 2) if ref.get("reference_kind") == "base_displacement_range" else 2
+    if not (scalar_word or array_word or deferred_struct) or offset < owner_offset or offset + span > owner_offset + width:
         raise ValueError("base_displacement requires a scalar word or aligned word-array entry")
 
 
@@ -1590,15 +1622,19 @@ class ManualDataReferenceMetadata:
     seed_origin: TargetMetadataSeedOrigin
     review_status: TargetMetadataReviewStatus
     citation: str
+    scale: int = 1
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
-        if self.reference_kind != "base_displacement":
+        if self.reference_kind not in {"base_displacement", "base_displacement_range"}:
             raise ValueError("manual_data_references supports only base_displacement")
-        validate_base_displacement_reference(
-            {**asdict(self), "base_locator": {"hunk": self.base_hunk, "offset": self.base_offset}},
-            source_hunk=self.hunk, source_addr=self.addr,
-        )
+        ref = {**asdict(self), "base_locator": {"hunk": self.base_hunk, "offset": self.base_offset}}
+        if self.reference_kind == "base_displacement_range":
+            validate_base_displacement_range(ref, source_hunk=self.hunk)
+            if not 0 <= self.addr <= 0xFFFFFFFF - self.size:
+                raise ValueError("base_displacement_range source span overflows uint32")
+        else:
+            validate_base_displacement_reference(ref, source_hunk=self.hunk, source_addr=self.addr)
         assert isinstance(self.owner_element_offset, int) and not isinstance(self.owner_element_offset, bool)
         assert 0 <= self.owner_element_offset <= 0xFFFFFFFF
         assert self.owner_kind == "data_block_interpreted_ref"
@@ -1622,6 +1658,7 @@ class ManualDataReferenceMetadata:
             seed_origin=_target_metadata_seed_origin(payload["seed_origin"]),
             review_status=_target_metadata_review_status(payload["review_status"]),
             citation=cast(str, payload["citation"]),
+            scale=cast(int, payload.get("scale", 1)),
         )
 
 

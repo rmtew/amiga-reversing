@@ -6048,3 +6048,48 @@ Supported source purpose increases by 7,680 bytes to 114,685 across 106
 assessments. Classification and 6,446 unknown bytes remain unchanged, as do
 723 accepted native reference targets, 973 resolved/32 unresolved field records,
 the prior unresolved identity set and 48 generic-label signals.
+
+## Terrain offset and record-index relations
+
+The existing 43x30 macro map contains 1,290 unsigned WORD indices into 468
+18-byte definition records. Each record retains its nine named WORD offsets
+into the pixel atlas. All 4,212 offsets are unsigned byte distances from source
+`$D0A8`, aligned to 128-byte cells, with a maximum of `$FD80`. The 1,074 offsets
+with bit 15 set must remain zero-extended. The original builder's clearing,
+unsigned multiplication and long address additions establish both encodings;
+its CPU test reproduces the complete 90x129 pointer grid and output fences.
+
+Two compact range declarations now expose all 5,502 relations across 11,004
+source bytes. The native reader retains each raw WORD, signedness, scale and
+precise source/base/target coordinates; both xref roles are queryable. All 5,502
+native records match the original binary independently. The existing 398
+scalar declarations and 512-declaration capacity remain intact: the family
+consumes two slots, giving 400 declarations. Native accepted reference targets
+increase from 723 to 6,225.
+
+The generated source replaces exactly 4,212 numeric pixel offsets with bounded
+image-owner expressions. Every other source line is unchanged, including the
+compact numeric macro map, SDK hardware symbols and all field annotations.
+A same-owner record index keeps its raw numeric form instead of emitting a
+cancelling owner-minus-owner expression. The reusable scaled form still
+supports independently named records; C and vasm tests cover that spelling,
+unsigned `$FFFF`, signed offsets and a 600-entry range. Invalid spans, mixed or
+padded typed leaves, overlapping owners, wrong raw values and out-of-bounds
+later targets are rejected.
+
+All 146 reference-family tests, 135 related compact/pointer/package tests,
+821 native cases and the original builder case pass. Both facts have accepted
+review against receipt `89bce423b714742ae0f888f3436aad84e608eb33f16216c2368680dbc3223db7`. C and independent vasm reproduce
+all 376,832 original bytes. All 557 owners, 73 types, 18,304 effective entities,
+126 asset files, 16 SDK includes, physical groupings and prior history bytes
+remain preserved. The inventory, exact receipt and full native parity check
+are in [the validation record](../validation/pandora-terrain-reference-encodings.json).
+
+This describes stored encodings and conditional reader behavior. The original
+map selects 453 of the 468 records and 475 atlas cells; all records reference
+476 cells, including cell 499 only in an unselected record. Arbitrary future
+indices, allocation/lifetime, activation and actual DMA output remain outside
+this proof. Supported source purpose remains 114,685 bytes across 106
+assessments. Classification, 6,446 unknown bytes, 973 resolved/32 unresolved
+native field records, unresolved identities and 48 generic-label signals are
+unchanged.

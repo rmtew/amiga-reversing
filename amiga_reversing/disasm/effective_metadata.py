@@ -60,6 +60,7 @@ from amiga_reversing.disasm.target_metadata import (
     load_target_metadata,
     target_metadata_json_payload,
     validate_base_displacement_owner,
+    validate_base_displacement_range,
     validate_base_displacement_reference,
 )
 
@@ -1674,17 +1675,22 @@ def _data_block_element_interpreted_data_reference(
     ref: Mapping[str, object],
     custom_structs: Mapping[str, CustomStructMetadata],
 ) -> ManualDataReferenceMetadata | None:
-    if not isinstance(ref, dict) or ref.get("reference_kind") != "base_displacement":
+    if not isinstance(ref, dict) or ref.get("reference_kind") not in {"base_displacement", "base_displacement_range"}:
         return None
-    validate_base_displacement_reference(ref, source_hunk=layout.hunk)
+    is_range = ref.get("reference_kind") == "base_displacement_range"
+    if is_range:
+        validate_base_displacement_range(ref, source_hunk=layout.hunk)
+    else:
+        validate_base_displacement_reference(ref, source_hunk=layout.hunk)
+    width = cast(int, ref["width"]) if is_range else 2
     offset = _manual_seed_int(ref, "offset")
     if offset is None:
         raise ValueError("base_displacement requires source offset")
-    addr, end = layout.source_start + offset, layout.source_start + offset + 2
+    addr, end = layout.source_start + offset, layout.source_start + offset + width
     if addr < layout.source_start or end > layout.source_end:
         raise ValueError("base_displacement must occupy one word within its layout")
     owners = [element for element in layout.elements
-              if element.offset <= offset and offset + 2 <= element.offset + element.width]
+              if element.offset <= offset and offset + width <= element.offset + element.width]
     if len(owners) != 1:
         raise ValueError("base_displacement requires one unambiguous data-block owner")
     owner = owners[0]
@@ -1697,10 +1703,11 @@ def _data_block_element_interpreted_data_reference(
         # generation. This includes seeded types and current field edits and
         # rejects invalid/overlapping declarations and invalid array strides.
         leaves = _data_block_bound_struct_entities(layout, owner, custom_structs)
-        matches = [leaf for leaf in leaves if leaf.addr == addr and leaf.end == end
+        matches = [leaf for leaf in leaves if addr <= leaf.addr and leaf.end is not None and leaf.end <= end
+                   and leaf.end - leaf.addr == 2 and (leaf.addr - addr) % 2 == 0
                    and leaf.unit == "word" and (leaf.field_type or "").upper() in {"WORD", "UWORD"}
                    and leaf.value_kind == "scalar" and leaf.field_name]
-        if len(matches) != 1:
+        if len(matches) != width // 2 or len({leaf.addr for leaf in matches}) != width // 2:
             raise ValueError("base_displacement requires an exact declared WORD leaf in its struct owner")
     elif owner.kind in {DataBlockElementKind.STRUCT, DataBlockElementKind.PLATFORM_STRUCT} or (
         isinstance(owner.type_binding, dict)
@@ -1709,8 +1716,9 @@ def _data_block_element_interpreted_data_reference(
         raise ValueError("base_displacement struct owner requires a resolved type declaration")
     base = cast(dict[str, int], ref["base_locator"])
     return ManualDataReferenceMetadata(
-        addr=addr, hunk=layout.hunk, size=2,
-        source_value=cast(int, ref["source_value"]), reference_kind="base_displacement", signed=True,
+        addr=addr, hunk=layout.hunk, size=width,
+        source_value=cast(int, ref["source_value"]), reference_kind=str(ref["reference_kind"]),
+        signed=cast(bool, ref["signed"]), scale=cast(int, ref.get("scale", 1)),
         base_hunk=base["hunk"], base_offset=base["offset"],
         target_hunk=cast(int, ref["target_hunk"]), target_offset=cast(int, ref["target_offset"]),
         owner_kind="data_block_interpreted_ref", owner_id=cast(str, _manual_data_block_reference_id(ref)),
@@ -2491,7 +2499,7 @@ def _apply_manual_seed_projection(
                 entity = _data_block_element_entity(effective_layout, element)
                 if entity is not None:
                     seeded_entities.append(entity)
-            if isinstance(element.reference_interpretation, dict) and element.reference_interpretation.get("reference_kind") == "base_displacement":
+            if isinstance(element.reference_interpretation, dict) and element.reference_interpretation.get("reference_kind") in {"base_displacement", "base_displacement_range"}:
                 continue
             interpreted_ref_equate = (
                 _data_block_interpreted_ref_equate(element.reference_interpretation)

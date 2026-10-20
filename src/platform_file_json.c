@@ -5043,10 +5043,11 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
       if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL) {
         if (json_builder_appendf(&builder,
-            ",\"reference_kind\":\"base_displacement\",\"source_value\":%u,\"width\":%u,\"signed\":%s,"
+            ",\"reference_kind\":\"%s\",\"source_value\":%u,\"width\":%u,\"signed\":%s,\"scale\":%u,"
             "\"base_section_index\":%u,\"base_offset\":%u,\"owner_element_offset\":%u,\"owner_kind\":",
+            ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE ? "base_displacement_range" : "base_displacement",
             (unsigned)ref->raw_value, (unsigned)ref->raw_value_width, ref->raw_value_signed ? "true" : "false",
-            (unsigned)ref->base_section_index, (unsigned)ref->base_offset, (unsigned)ref->owner_element_offset) != 0 ||
+            (unsigned)(ref->value_scale ? ref->value_scale : 1U), (unsigned)ref->base_section_index, (unsigned)ref->base_offset, (unsigned)ref->owner_element_offset) != 0 ||
             json_builder_append_nullable_string(&builder, ref->owner_kind) != 0 ||
             json_builder_append(&builder, ",\"owner_id\":") != 0 ||
             json_builder_append_nullable_string(&builder, ref->owner_id) != 0 ||

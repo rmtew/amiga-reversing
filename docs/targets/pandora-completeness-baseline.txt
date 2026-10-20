@@ -10,7 +10,7 @@ Purpose: partially_assessed; confidence comes only from explicit assessments; no
 Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
 Hardware/external: 27 observed union bytes; denominator unknown.
-Structure: {'resolved_native_access_records': 973, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 723}.
+Structure: {'resolved_native_access_records': 973, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 6225}.
 Unresolved native operand forms: {'field_gap': 5, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
 Presentation: 48 generic label review signals.
 Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.

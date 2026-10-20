@@ -1,0 +1,195 @@
+{
+  "starting_commit": "313d7ee6a6e4dfc5b6c5593f322a931d353c72c5",
+  "question": "How do the stored terrain WORDs encode tile-record indices and atlas byte offsets?",
+  "inspected_revision": "ea87aafa8a303b1a501cc5731047c73db53c1f87b1a2e31cac4a9dabf757edf8",
+  "source_evidence_refs": [
+    "s0:0000A1A2:instruction",
+    "s0:0000A1A6:instruction",
+    "s0:0000A1AA:instruction",
+    "s0:0000A1B4:instruction",
+    "s0:0000A1B6:instruction",
+    "s0:0000A1B8:instruction",
+    "s0:0000A1BA:instruction",
+    "s0:0000A1BE:instruction",
+    "s0:0000A1C4:instruction",
+    "s0:0000A21C:instruction",
+    "s0:0000A222:instruction",
+    "s0:0000A22C:instruction",
+    "s0:0000A234:instruction"
+  ],
+  "inventory": {
+    "binary_size": 376832,
+    "binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_bytes": 11004,
+    "relations": 5502,
+    "families": [
+      {
+        "name": "macro_record_indices",
+        "source_start": 13570,
+        "source_end": 16150,
+        "bytes": 2580,
+        "entries": 1290,
+        "signed": false,
+        "scale": 18,
+        "base_section_index": 0,
+        "base_offset": 16150,
+        "minimum": 0,
+        "maximum": 467,
+        "unique_values": 453,
+        "raw_sha256": "dcfc2d63bd1007e5bb8db0e3293b2e2640bb2e0820b72f3fc55ae7ab73edca8d"
+      },
+      {
+        "name": "pixel_byte_offsets",
+        "source_start": 16150,
+        "source_end": 24574,
+        "bytes": 8424,
+        "entries": 4212,
+        "signed": false,
+        "scale": 1,
+        "base_section_index": 0,
+        "base_offset": 53416,
+        "minimum": 0,
+        "maximum": 64896,
+        "unique_values": 476,
+        "raw_sha256": "117d0883c17dd0c793d29d2a2467f97673cb89e04d76beb97e62c1234a254e80"
+      }
+    ],
+    "records": 468,
+    "words_per_record": 9,
+    "atlas_cells": 508,
+    "atlas_cells_referenced_by_all_records": 476,
+    "atlas_cells_referenced_by_original_macro_map": 475,
+    "records_not_selected_by_original_macro_map": [
+      39,
+      60,
+      134,
+      138,
+      341,
+      361,
+      406,
+      428,
+      432,
+      434,
+      441,
+      443,
+      445,
+      447,
+      465
+    ],
+    "cells_only_in_unselected_records": [
+      499
+    ],
+    "ordered_relations_sha256": "c7fa448f911d29b7f83d004ef90c0ce9e3709e85e6414b94cd7d14361f085a6b"
+  },
+  "pixel_offsets_with_bit15_set": 1074,
+  "native_parity": {
+    "native_relations": 5502,
+    "all_raw_values_and_coordinates_match_original": true,
+    "ordered_relations_sha256": "c7fa448f911d29b7f83d004ef90c0ce9e3709e85e6414b94cd7d14361f085a6b"
+  },
+  "source_quality": {
+    "changed_pixel_offset_words": 4212,
+    "all_other_source_lines_unchanged": true,
+    "compact_macro_index_source_preserved": true,
+    "hardware_symbols_preserved": true,
+    "first_changed_line": 7634,
+    "last_changed_line": 11845
+  },
+  "actions": [
+    "manual-3bebd5590e5a46a4aadbdc9bce02cdd7",
+    "manual-49ca95a6d36b459080b1f97f9e23f90d"
+  ],
+  "policy_declarations_before": 398,
+  "policy_declarations_after": 400,
+  "policy_declaration_capacity": 512,
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "89bce423b714742ae0f888f3436aad84e608eb33f16216c2368680dbc3223db7",
+    "revision": "ffc182cd9e51e5ebaf604e92285bcf72270c82ebc37a9524e40190c19524e39f",
+    "source_package_sha256": "e5d397d325b34bf9a27ae67a7cad041d45525f1b56d66d1b7573e1b669227d0c",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/e5d397d325b34bf9a27ae67a7cad041d45525f1b56d66d1b7573e1b669227d0c/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "9e75210f3257eb02bfde7d8240203e09275e4c03643fb205c3644d54ec15c594",
+    "status": "exact",
+    "subject_revision": "7c9c218302c99096efb8b4b38aa27e134711ab74b544a92ee833404955ffefa2",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "review": {
+    "decisions": [
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3bebd5590e5a46a4aadbdc9bce02cdd7",
+        "decision_id": "restoration-252ddd82233d4eb59f4546a5fe645edb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-49ca95a6d36b459080b1f97f9e23f90d",
+        "decision_id": "restoration-5bfeb2e0e513409c842b9d2d2bf17308"
+      }
+    ],
+    "probe": null,
+    "revision": "ff088a46f11d0582fd34c1c5de2303a34d7b7915964ac4545bec984ebcd2e27f",
+    "subject_revision": "7c9c218302c99096efb8b4b38aa27e134711ab74b544a92ee833404955ffefa2",
+    "verification": {
+      "exact": true,
+      "kind": "verification",
+      "receipt_id": "89bce423b714742ae0f888f3436aad84e608eb33f16216c2368680dbc3223db7",
+      "subject_revision": "7c9c218302c99096efb8b4b38aa27e134711ab74b544a92ee833404955ffefa2"
+    }
+  },
+  "preservation": {
+    "owners": 557,
+    "effective_entities": 18304,
+    "types": 73,
+    "assets": 126,
+    "sdk_includes": 16,
+    "prior_scalar_relations": 398,
+    "history_prefixes": true,
+    "all_other_source_lines": true,
+    "physical_groupings": true
+  },
+  "checks": {
+    "reference_family_pytest": 146,
+    "range_cases_in_family": 24,
+    "compact_pointer_package_pytest": 135,
+    "native_cases": 821,
+    "original_cpu_builder_cases": 1,
+    "ruff": "passed",
+    "diff_check": "passed"
+  },
+  "accounting": {
+    "accepted_native_reference_targets_before": 723,
+    "accepted_native_reference_targets_after": 6225,
+    "supported_purpose_bytes": 114685,
+    "purpose_assessments": 106,
+    "unknown_payload_bytes": 6446,
+    "resolved_native_field_records": 973,
+    "unresolved_native_field_records": 32,
+    "generic_label_signals": 48,
+    "classification_unchanged": true,
+    "unresolved_identity_set_unchanged": true
+  },
+  "limits": [
+    "The relations describe original stored values; arbitrary future indices and malformed selectors are not proven safe.",
+    "Original macro IDs are unsigned 0..467; their products fit signed WORD indexing. Wider synthetic IDs can wrap/sign-extend.",
+    "The original map selects 453 of 468 records and 475 atlas cells. All records reference 476 cells; cell 499 is only in an unselected record.",
+    "No new allocation, lifetime, reachability, activation or actual DMA/pixel-output proof is claimed.",
+    "Existing resource groupings and planar layout contracts remain intact; no new image or font grouping is introduced.",
+    "Same-owner map indices retain numeric source; their scale and precise target coordinates live in native facts."
+  ]
+}

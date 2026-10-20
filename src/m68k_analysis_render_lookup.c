@@ -15516,37 +15516,46 @@ static int append_manual_data_references_for_section(const M68kRenderLookup *loo
     const M68kAnalysisManualDataReference *manual = &lookup->policy->manual_data_references[index];
     M68kDataReferenceIR ref;
     const M68kDecodeSectionIR *source;
+    uint32_t cursor;
+    uint32_t scale = manual->is_range ? manual->value_scale : 1U;
+    uint8_t is_signed = manual->is_range ? manual->raw_value_signed : 1U;
     if (manual->section_index != section->section_index) continue;
     if (manual->section_index >= decode->section_count) return -1;
     source = &decode->sections[manual->section_index];
-    if (source->data == NULL || manual->size != 2U || manual->offset > source->size ||
-        2U > source->size - manual->offset || m68k_read_u16be(source->data + manual->offset) != manual->raw_value ||
-        manual->base_section_index != manual->target_section_index ||
+    if (source->data == NULL || manual->size < 2U || (manual->size & 1U) || manual->offset > source->size ||
+        manual->size > source->size - manual->offset ||
+        m68k_read_u16be(source->data + manual->offset) != manual->raw_value ||
         manual->base_section_index != manual->section_index ||
-        manual->base_section_index >= decode->section_count ||
-        manual->base_offset >= decode->sections[manual->base_section_index].size ||
-        manual->target_offset >= decode->sections[manual->target_section_index].size ||
-        (int64_t)manual->base_offset + (int16_t)manual->raw_value != (int64_t)manual->target_offset) return -1;
-    memset(&ref, 0, sizeof(ref));
-    ref.source_kind = M68K_DATA_REFERENCE_SOURCE_MANUAL;
-    ref.source_offset = manual->offset;
-    ref.reference_kind = M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT;
-    ref.raw_value = manual->raw_value;
-    ref.raw_value_width = 2U;
-    ref.raw_value_signed = 1U;
-    ref.has_base = 1U;
-    ref.base_section_index = manual->base_section_index;
-    ref.base_offset = manual->base_offset;
-    ref.target_section_index = manual->target_section_index;
-    ref.target_offset = manual->target_offset;
-    ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
-    ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
-    ref.owner_kind = (char *)manual->owner_kind;
-    ref.owner_id = (char *)manual->owner_id;
-    ref.owner_layout_id = (char *)manual->owner_layout_id;
-    ref.owner_element_offset = manual->owner_element_offset;
-    ref.xref_generation_mode = (char *)manual->xref_generation_mode;
-    if (m68k_ir_section_analysis_append_data_reference(section, &ref) != 0) return -1;
+        manual->target_section_index != manual->section_index ||
+        manual->base_offset >= source->size) return -1;
+    for (cursor = 0U; cursor < manual->size; cursor += 2U) {
+      uint32_t raw = m68k_read_u16be(source->data + manual->offset + cursor);
+      int64_t target = (int64_t)manual->base_offset +
+        (is_signed ? (int16_t)raw : (int64_t)raw) * scale;
+      if (target < 0 || target >= source->size) return -1;
+      memset(&ref, 0, sizeof(ref));
+      ref.source_kind = M68K_DATA_REFERENCE_SOURCE_MANUAL;
+      ref.source_offset = manual->offset + cursor;
+      ref.reference_kind = manual->is_range ? M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE :
+        M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT;
+      ref.raw_value = raw;
+      ref.value_scale = scale;
+      ref.raw_value_width = 2U;
+      ref.raw_value_signed = is_signed;
+      ref.has_base = 1U;
+      ref.base_section_index = manual->base_section_index;
+      ref.base_offset = manual->base_offset;
+      ref.target_section_index = manual->target_section_index;
+      ref.target_offset = (uint32_t)target;
+      ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+      ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
+      ref.owner_kind = (char *)manual->owner_kind;
+      ref.owner_id = (char *)manual->owner_id;
+      ref.owner_layout_id = (char *)manual->owner_layout_id;
+      ref.owner_element_offset = manual->owner_element_offset + cursor;
+      ref.xref_generation_mode = (char *)manual->xref_generation_mode;
+      if (m68k_ir_section_analysis_append_data_reference(section, &ref) != 0) return -1;
+    }
   }
   return 0;
 }

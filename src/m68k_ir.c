@@ -2644,20 +2644,28 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
       (!ref->owner_kind || !ref->owner_id || !ref->owner_layout_id || !ref->xref_generation_mode ||
        !ref->owner_id[0] || !ref->owner_kind[0] || !ref->owner_layout_id[0] ||
        (strcmp(ref->xref_generation_mode, "bidirectional") && strcmp(ref->xref_generation_mode, "source_only") &&
-        strcmp(ref->xref_generation_mode, "none")) || ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT ||
-       !ref->has_base || ref->raw_value_width != 2U || !ref->raw_value_signed || ref->raw_value > UINT16_MAX ||
+        strcmp(ref->xref_generation_mode, "none")) || (ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT &&
+        ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE) ||
+       (ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT &&
+        (!ref->raw_value_signed || ref->value_scale > 1U)) ||
+       (ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE && !ref->value_scale) ||
+       !ref->has_base || ref->raw_value_width != 2U || ref->raw_value > UINT16_MAX ||
        ref->source_offset > UINT32_MAX - 2U ||
        ref->base_section_index != ref->target_section_index ||
        ref->base_section_index != section_analysis->section_index ||
-       (int64_t)ref->base_offset + (int16_t)ref->raw_value != (int64_t)ref->target_offset)) return -1;
+       (int64_t)ref->base_offset + (ref->raw_value_signed ? (int16_t)ref->raw_value : (int64_t)ref->raw_value) *
+         (ref->value_scale ? ref->value_scale : 1U) != (int64_t)ref->target_offset)) return -1;
   for (index = 0U; index < section_analysis->data_reference_count; ++index) {
     M68kDataReferenceIR *existing = &section_analysis->data_references[index];
     if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
         existing->source_kind == ref->source_kind && existing->owner_id != NULL && ref->owner_id != NULL &&
-        strcmp(existing->owner_id, ref->owner_id) == 0) {
+        strcmp(existing->owner_id, ref->owner_id) == 0 &&
+        (ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE ||
+         existing->source_offset == ref->source_offset)) {
       if (existing->source_offset != ref->source_offset || existing->reference_kind != ref->reference_kind ||
           existing->raw_value != ref->raw_value || existing->raw_value_width != ref->raw_value_width ||
-          existing->raw_value_signed != ref->raw_value_signed || existing->has_base != ref->has_base ||
+          existing->raw_value_signed != ref->raw_value_signed || existing->value_scale != ref->value_scale ||
+          existing->has_base != ref->has_base ||
           existing->base_section_index != ref->base_section_index || existing->base_offset != ref->base_offset ||
           existing->target_section_index != ref->target_section_index || existing->target_offset != ref->target_offset ||
           existing->owner_element_offset != ref->owner_element_offset ||

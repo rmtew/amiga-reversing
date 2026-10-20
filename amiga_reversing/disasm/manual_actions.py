@@ -24,6 +24,7 @@ from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemKind,
     TargetMetadata,
     validate_base_displacement_owner,
+    validate_base_displacement_range,
     validate_base_displacement_reference,
 )
 
@@ -1423,7 +1424,7 @@ def _validated_data_block_interpreted_ref(
     if element is None:
         raise ValueError(f"data_block_interpreted_ref references unknown element: {element_key[0]}:{element_key[1]}")
     _data_block_interpreted_ref_key(ref)
-    if width not in {1, 2, 4}:
+    if width not in {1, 2, 4} and ref.get("reference_kind") != "base_displacement_range":
         raise ValueError("data_block_interpreted_ref supports only byte, word, and long widths")
     element_width = _manual_seed_int(element, "width")
     element_offset = _manual_seed_int(element, "offset")
@@ -1437,7 +1438,7 @@ def _validated_data_block_interpreted_ref(
     ):
         raise ValueError("data_block_interpreted_ref must fit within owning element")
     reference_kind = ref.get("reference_kind")
-    if reference_kind not in {"absolute", "base_displacement"}:
+    if reference_kind not in {"absolute", "base_displacement", "base_displacement_range"}:
         raise ValueError("data_block_interpreted_ref supports only absolute and base_displacement references")
     target_hunk = _manual_seed_int(ref, "target_hunk")
     target_offset = _manual_seed_int(ref, "target_offset")
@@ -1455,14 +1456,17 @@ def _validated_data_block_interpreted_ref(
     source_value = _manual_seed_int(ref, "source_value")
     if source_value is None or source_value < 0:
         raise ValueError("data_block_interpreted_ref requires non-negative source_value")
-    if width > 4 or source_value >= (1 << (width * 8)):
+    if (width > 4 and reference_kind != "base_displacement_range") or source_value >= (1 << (16 if reference_kind == "base_displacement_range" else width * 8)):
         raise ValueError("data_block_interpreted_ref source_value does not fit width")
-    if reference_kind == "base_displacement":
+    if reference_kind in {"base_displacement", "base_displacement_range"}:
         validate_base_displacement_owner(ref, element, defer_struct_leaf=True)
         layout = (layouts or {}).get(element_key[0], {})
         source_start = _manual_seed_int(layout, "source_start")
         source_addr = None if source_start is None else source_start + element_key[1]
-        validate_base_displacement_reference(ref, source_hunk=_manual_seed_int(layout, "hunk"), source_addr=source_addr)
+        if reference_kind == "base_displacement_range":
+            validate_base_displacement_range(ref, source_hunk=_manual_seed_int(layout, "hunk"))
+        else:
+            validate_base_displacement_reference(ref, source_hunk=_manual_seed_int(layout, "hunk"), source_addr=source_addr)
         return dict(ref)
     runtime_address = _manual_seed_int(ref, "runtime_address")
     if runtime_address is not None and runtime_address != source_value:
@@ -2209,9 +2213,9 @@ def _project_actions(
             source_start = cast(int, _manual_seed_int(layout, "source_start")) + cast(int, _manual_seed_int(ref, "offset"))
             source_end = source_start + cast(int, _manual_seed_int(ref, "width"))
             for existing_id, existing_ref in data_block_interpreted_refs.items():
-                if existing_id == ref_id or "base_displacement" not in {
+                if existing_id == ref_id or not {"base_displacement", "base_displacement_range"}.intersection({
                     ref.get("reference_kind"), existing_ref.get("reference_kind"),
-                }:
+                }):
                     continue
                 existing_layout = data_block_layouts[_data_block_element_key(existing_ref)[0]]
                 existing_start = cast(int, _manual_seed_int(existing_layout, "source_start")) + cast(int, _manual_seed_int(existing_ref, "offset"))

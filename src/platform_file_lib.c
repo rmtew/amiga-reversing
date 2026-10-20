@@ -8132,7 +8132,7 @@ static int append_metadata_manual_data_reference_local(const char *start, const 
   REQUIRED_UINT("target_offset", target_offset);
   REQUIRED_UINT("owner_element_offset", owner_element_offset);
 #undef REQUIRED_UINT
-  if (!json_bool_field_local(start, end, "signed", &is_signed, &present) || !present || !is_signed ||
+  if (!json_bool_field_local(start, end, "signed", &is_signed, &present) || !present ||
       !json_number_field_local(start, end, "scale", &scale, &present) ||
       !json_optional_string_field_local(start, end, "reference_kind", kind, sizeof(kind)) ||
       !json_optional_string_field_local(start, end, "owner_kind", ref.owner_kind, sizeof(ref.owner_kind)) ||
@@ -8140,19 +8140,24 @@ static int append_metadata_manual_data_reference_local(const char *start, const 
       !json_optional_string_field_local(start, end, "owner_layout_id", ref.owner_layout_id, sizeof(ref.owner_layout_id)) ||
       !json_optional_string_field_local(start, end, "xref_generation_mode", ref.xref_generation_mode,
         sizeof(ref.xref_generation_mode))) return 0;
-  if (strcmp(kind, "base_displacement") || ref.size != 2U || ref.raw_value > UINT16_MAX ||
-      ref.offset > UINT32_MAX - 2U ||
-      (present && scale != 1U) || ref.base_section_index != ref.target_section_index ||
+  ref.is_range = !strcmp(kind, "base_displacement_range");
+  ref.raw_value_signed = is_signed;
+  ref.value_scale = scale;
+  if ((!ref.is_range && (strcmp(kind, "base_displacement") || !is_signed || scale != 1U || ref.size != 2U)) ||
+      (ref.is_range && (!present || ref.size < 2U || ref.size > 131070U || (ref.size & 1U) || scale == 0U)) ||
+      ref.raw_value > UINT16_MAX || ref.offset > UINT32_MAX - ref.size ||
+      ref.base_section_index != ref.target_section_index ||
       ref.base_section_index != ref.section_index ||
       ref.owner_kind[0] == '\0' || ref.owner_id[0] == '\0' || ref.owner_layout_id[0] == '\0' ||
       (strcmp(ref.xref_generation_mode, "bidirectional") && strcmp(ref.xref_generation_mode, "source_only") &&
        strcmp(ref.xref_generation_mode, "none")) ||
-      (int64_t)ref.base_offset + (int16_t)ref.raw_value != (int64_t)ref.target_offset) return 0;
+      (int64_t)ref.base_offset + (is_signed ? (int16_t)ref.raw_value : (int64_t)ref.raw_value) * scale !=
+        (int64_t)ref.target_offset) return 0;
   for (index = 0U; index < policy->manual_data_reference_count; ++index) {
     const M68kAnalysisManualDataReference *existing = &policy->manual_data_references[index];
     if (!strcmp(existing->owner_id, ref.owner_id)) return memcmp(existing, &ref, sizeof(ref)) == 0;
-    if (existing->section_index == ref.section_index && existing->offset < ref.offset + 2U &&
-        ref.offset < existing->offset + 2U) return 0;
+    if (existing->section_index == ref.section_index && existing->offset < ref.offset + ref.size &&
+        ref.offset < existing->offset + existing->size) return 0;
   }
   if (policy->manual_data_reference_count >= M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) {
     policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES;
@@ -9617,10 +9622,22 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
           "manual data reference target is out of range")) return 0;
     if (object->sections[ref->section_index].data == NULL ||
         ref->offset > object->sections[ref->section_index].data_size ||
-        2U > object->sections[ref->section_index].data_size - ref->offset ||
+        ref->size > object->sections[ref->section_index].data_size - ref->offset ||
         m68k_read_u16be(object->sections[ref->section_index].data + ref->offset) != ref->raw_value) {
       platform_file_add_error(diagnostics, "manual data reference encoding does not match source bytes");
       return 0;
+    }
+    {
+      uint32_t cursor;
+      for (cursor = 0U; cursor < ref->size; cursor += 2U) {
+        uint32_t raw = m68k_read_u16be(object->sections[ref->section_index].data + ref->offset + cursor);
+        int64_t target = (int64_t)ref->base_offset +
+          (ref->raw_value_signed ? (int16_t)raw : (int64_t)raw) * ref->value_scale;
+        if (target < 0 || target >= object->sections[ref->section_index].size) {
+          platform_file_add_error(diagnostics, "manual data reference range target is out of range");
+          return 0;
+        }
+      }
     }
   }
   for (index = 0U; index < policy->manual_runtime_address_ref_count &&
@@ -14255,10 +14272,12 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
             STR("symbol", target_symbol); STR("owner_kind", r->owner_kind); STR("owner_id", r->owner_id);
             STR("owner_layout_id", r->owner_layout_id); STR("xref_generation_mode", r->xref_generation_mode);
             Q(json_builder_appendf(&b,
-              ",\"kind\":\"data_reference\",\"reference_kind\":\"base_displacement\",\"reference_role\":\"%s\","
-              "\"source_value\":%u,\"width\":%u,\"signed\":true,\"base_section_index\":%u,\"base_offset\":%u,"
+              ",\"kind\":\"data_reference\",\"reference_kind\":\"%s\",\"reference_role\":\"%s\","
+              "\"source_value\":%u,\"width\":%u,\"signed\":%s,\"scale\":%u,\"base_section_index\":%u,\"base_offset\":%u,"
               "\"owner_element_offset\":%u,\"provenance\":\"native_data_reference\"}",
+              r->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE ? "base_displacement_range" : "base_displacement",
               role ? "base" : "target", (unsigned)r->raw_value, (unsigned)r->raw_value_width,
+              r->raw_value_signed ? "true" : "false", (unsigned)(r->value_scale ? r->value_scale : 1U),
               (unsigned)r->base_section_index, (unsigned)r->base_offset, (unsigned)r->owner_element_offset));
           }
           continue;

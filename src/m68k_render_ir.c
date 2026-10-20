@@ -3700,6 +3700,7 @@ static uint8_t resolve_rendered_relative_lookup_expression(const M68kRenderLooku
 }
 
 static uint8_t resolve_rendered_manual_base_displacement(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start,
     const M68kDecodeSectionIR *section, const M68kDataReferenceIR *ref,
     M68kRenderPlannedExpression *expression) {
   memset(expression, 0, sizeof(*expression));
@@ -3708,6 +3709,72 @@ static uint8_t resolve_rendered_manual_base_displacement(const M68kRenderLookup 
   expression->operand_index = UINT32_MAX;
   expression->kind = M68K_RENDER_PLANNED_EXPRESSION_RELATIVE;
   expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
+  if (ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE) {
+    M68kRenderPlannedExpression base, target;
+    uint32_t base_logical = 0U, target_logical = 0U;
+    char numerator[M68K_RENDER_PLANNED_EXPRESSION_TEXT_CAPACITY];
+    int64_t delta = (ref->raw_value_signed ? (int16_t)ref->raw_value : (int64_t)ref->raw_value) * ref->value_scale;
+    int length;
+    memset(&base, 0, sizeof(base));
+    memset(&target, 0, sizeof(target));
+    if (!ref->has_base || ref->raw_value_width != 2U || ref->raw_value > UINT16_MAX || !ref->value_scale ||
+        ref->base_section_index != ref->target_section_index ||
+        ref->base_section_index != section->section_index || ref->source_offset > section->size ||
+        2U > section->size - ref->source_offset ||
+        m68k_read_u16be(section->data + ref->source_offset) != ref->raw_value ||
+        (int64_t)ref->base_offset + delta != ref->target_offset ||
+        !lookup_source_logical_address(lookup, ref->base_section_index, ref->base_offset, &base_logical) ||
+        !lookup_source_logical_address(lookup, ref->target_section_index, ref->target_offset, &target_logical) ||
+        (int64_t)target_logical - base_logical != delta ||
+        resolve_owned_source_pointer_expression(lookup, decode, accepted_start, base_logical,
+          ref->base_section_index, ref->base_offset, 1, &base) != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ||
+        resolve_owned_source_pointer_expression(lookup, decode, accepted_start, target_logical,
+          ref->target_section_index, ref->target_offset, 1, &target) != M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC) {
+      snprintf(expression->reason, sizeof(expression->reason), "range relation lacks compatible bounded source owners");
+      return expression->outcome;
+    }
+    /* A record index within one owner would spell owner-owner+offset/stride.
+     * Keep that packed index readable as its original WORD. The canonical
+     * relation and both precise coordinates remain available in native facts.
+     * An independently named record or a different owner can render normally. */
+    if (ref->value_scale > 1U && !strcmp(target.target_symbol, base.target_symbol)) {
+      snprintf(expression->reason, sizeof(expression->reason), "same-owner record index retains encoded WORD");
+      return expression->outcome;
+    }
+    if (delta < INT32_MIN || delta > INT32_MAX) {
+      snprintf(expression->reason, sizeof(expression->reason), "range difference exceeds expression arithmetic");
+      return expression->outcome;
+    }
+    length = snprintf(numerator, sizeof(numerator), "%s-%s", target.target_symbol, base.target_symbol);
+    if (length > 0 && (size_t)length < sizeof(numerator) && target.addend != 0)
+      length += snprintf(numerator + length, sizeof(numerator) - (size_t)length, "+$%X", (unsigned)target.addend);
+    if (length > 0 && (size_t)length < sizeof(numerator) && base.addend != 0)
+      length += snprintf(numerator + length, sizeof(numerator) - (size_t)length, "-$%X", (unsigned)base.addend);
+    if (length < 0 || (size_t)length >= sizeof(numerator)) {
+      snprintf(expression->reason, sizeof(expression->reason), "range expression exceeds render capacity");
+      return expression->outcome;
+    }
+    if (ref->value_scale == 1U)
+      length = snprintf(expression->expression, sizeof(expression->expression), "%s", numerator);
+    else
+      length = snprintf(expression->expression, sizeof(expression->expression), "(%s)/%u", numerator, (unsigned)ref->value_scale);
+    if (length < 0 || (size_t)length >= sizeof(expression->expression)) {
+      expression->expression[0] = '\0';
+      snprintf(expression->reason, sizeof(expression->reason), "range expression exceeds render capacity");
+      return expression->outcome;
+    }
+    expression->target_section_index = ref->target_section_index;
+    expression->target_offset = ref->target_offset;
+    expression->base_section_index = ref->base_section_index;
+    expression->base_offset = ref->base_offset;
+    snprintf(expression->target_symbol, sizeof(expression->target_symbol), "%s", target.target_symbol);
+    snprintf(expression->base_symbol, sizeof(expression->base_symbol), "%s", base.target_symbol);
+    expression->has_target = expression->has_base_target = 1U;
+    expression->requires_declaration = 0U;
+    expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC;
+    snprintf(expression->reason, sizeof(expression->reason), "exact packed source-coordinate relation");
+    return expression->outcome;
+  }
   if (ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT || !ref->has_base ||
       ref->raw_value_width != 2U || !ref->raw_value_signed || ref->raw_value > UINT16_MAX ||
       ref->base_section_index != ref->target_section_index || ref->base_section_index >= lookup->section_count ||
@@ -5311,7 +5378,7 @@ static int plan_rendered_structured_pointer_expressions(M68kRenderLookup *lookup
                 accepted_byte_at(section, accepted_bytes[section_index], ref->source_offset + 1U) ||
                 lookup_has_renderable_label(lookup, section->section_index, ref->source_offset + 1U) ||
                 structured_data_item_symbolic_operand_expr(section, item, operand_expr, sizeof(operand_expr))) continue;
-            if (resolve_rendered_manual_base_displacement(lookup, section, ref, &expression) ==
+            if (resolve_rendered_manual_base_displacement(lookup, decode, accepted_start, section, ref, &expression) ==
                 M68K_RENDER_PLANNED_EXPRESSION_INVALID) return -1;
             if (m68k_render_plan_append_expression(plan, &expression) != 0) return -1;
           }

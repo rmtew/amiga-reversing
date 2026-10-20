@@ -770,6 +770,9 @@ typedef struct M68kAnalysisManualDataReference {
   uint32_t offset;
   uint32_t size;
   uint32_t raw_value;
+  uint32_t value_scale;
+  uint8_t is_range;
+  uint8_t raw_value_signed;
   uint32_t base_section_index;
   uint32_t base_offset;
   uint32_t target_section_index;
@@ -2366,7 +2369,8 @@ typedef enum M68kDataReferenceEvidenceFlag {
 
 typedef enum M68kDataReferenceKind {
   M68K_DATA_REFERENCE_KIND_UNKNOWN = 0,
-  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT = 1
+  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT = 1,
+  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE = 2
 } M68kDataReferenceKind;
 
 typedef struct M68kDataReferenceIR {
@@ -2392,6 +2396,7 @@ typedef struct M68kDataReferenceIR {
   uint8_t raw_value_width;
   uint8_t raw_value_signed;
   uint8_t has_base;
+  uint32_t value_scale;
   uint32_t base_section_index;
   uint32_t base_offset;
   uint32_t owner_element_offset;

@@ -228,6 +228,36 @@ static int test_source_linear_expr_accepts_constant_or(void) {
   return 0;
 }
 
+static M68kSourceLookupResult test_source_record_lookup(const char *name, void *user_data) {
+  M68kSourceLookupResult result = {0};
+  (void)user_data;
+  if (!strcmp(name, "records") || !strcmp(name, "last") || !strcmp(name, "other")) {
+    result.ok = result.defined = 1U;
+    result.value = !strcmp(name, "records") ? 100U : 136U;
+    result.section_index = !strcmp(name, "other") ? 1U : 0U;
+    result.symbol_id = !strcmp(name, "records") ? 1U : 2U;
+  }
+  return result;
+}
+
+static int test_source_linear_expr_exact_record_indices(void) {
+  static const char *invalid[] = {"(last-records)/0", "(last-records)/17", "(last)/18",
+    "(other-records)/18", "(missing-records)/18", "(last-records)/18junk"};
+  size_t index;
+  M68kSourceLinearExprParseResult parsed = m68k_source_parse_linear_expression(
+    "(last-records+$12-$0)/18", 0, test_source_record_lookup, NULL);
+  M68kSourceLinearExprEvalResult evaluated = m68k_source_evaluate_linear_expression(parsed.expr);
+  M68K_C_ASSERT(parsed.ok && evaluated.ok && !evaluated.reloc.ok);
+  M68K_C_ASSERT_U32(3U, evaluated.value);
+  parsed = m68k_source_parse_linear_expression("(records-last)/18", 0, test_source_record_lookup, NULL);
+  evaluated = m68k_source_evaluate_linear_expression(parsed.expr);
+  M68K_C_ASSERT(parsed.ok && evaluated.ok && !evaluated.reloc.ok);
+  M68K_C_ASSERT_U32((uint32_t)-2, evaluated.value);
+  for (index = 0U; index < sizeof(invalid) / sizeof(invalid[0]); ++index)
+    M68K_C_ASSERT(!m68k_source_parse_linear_expression(invalid[index], 0, test_source_record_lookup, NULL).ok);
+  return 0;
+}
+
 static M68kSourceConstantResult test_constant_expr_lookup(const char *name, void *user_data) {
   M68kSourceConstantResult result = {0};
   (void)user_data;
@@ -381,6 +411,7 @@ int m68k_c_parse_util_tests(void) {
     {"parse_offset_directive_token", test_parse_offset_directive_token},
     {"normalize_pc_current_expr", test_normalize_pc_current_expr},
     {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
+    {"source_linear_expr_exact_record_indices", test_source_linear_expr_exact_record_indices},
     {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
     {"source_constant_expr_bitwise_precedence_and_width", test_source_constant_expr_bitwise_precedence_and_width},
     {"source_constant_expr_rejects_incomplete_bitwise_forms", test_source_constant_expr_rejects_incomplete_bitwise_forms},

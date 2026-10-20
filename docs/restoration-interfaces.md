@@ -154,6 +154,34 @@ preserving their widths, types, binding IDs, binding provenance and reference
 owners. Duplicate identities, unknown elements and non-name edits refuse the
 whole append. Normal undo/redo applies to the single bulk action. This is useful
 for propagating a reviewed owner identity without recreating every typed element.
+
+`target.data_block.element.interpret_ref` accepts `base_displacement_range` for
+a packed range of 1..65535 WORDs within one existing element. Here `width` is
+the entire byte span; explicit `signed`, positive uint32 `scale`, and
+`base_locator` define `target = base + decoded_word * scale` in the same source
+section. `source_value` and `target_offset` pin the first WORD and its target.
+The native reader decodes every remaining WORD from the identity-bound binary,
+checks every target before admission, and publishes each raw value, signedness,
+scale, source position and precise base/target coordinates. A declaration uses
+one policy slot; it does not expand the scalar-reference policy capacity.
+
+Ranges require aligned WORD-array storage or complete declared scalar WORD
+leaves of a resolved type; padding, mixed-width fields and overlapping reference
+owners refuse admission. Existing fields, type bindings and resource owners
+remain intact. Native queries expose both expression roles and honor the usual
+xref mode. Symbolic rendering uses bounded source owners with explicit addends,
+so interior references do not manufacture resource boundaries. A scaled form
+uses an exact same-section label difference divided by a literal stride; the
+native assembler rejects relocatable, cross-section and inexact label divisions.
+When base and target share one owner without an independently named record, an
+index retains its original numeric WORD instead of emitting a cancelling
+`owner-owner` expression; both coordinates and the scale remain available in
+native references.
+Missing compatible owners, address mappings or arithmetic capacity retain numeric
+output. This is a source-encoding contract, not a pointer lifetime, allocation,
+DMA extent or runtime reachability claim. The existing `base_displacement`
+scalar form remains restricted to a signed, unscaled WORD.
+
 RSSET aggregate extents support 1..32767 bytes through the catalog, metadata
 projection and native policy; absolute-storage slots retain their separate limit.
 The file is an object of operation parameters, without `operation`. For example:

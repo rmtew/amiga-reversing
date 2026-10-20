@@ -18,6 +18,7 @@ from amiga_reversing.disasm.target_metadata import (
     FunctionSummaryMetadata,
     SourceOutputPolicyMetadata,
     validate_base_displacement_owner,
+    validate_base_displacement_range,
     validate_base_displacement_reference,
 )
 
@@ -1465,7 +1466,7 @@ def _data_block_element_ref_parameter_schema(defaults: Mapping[str, object] | No
                 "layout_id": {"type": "string"},
                 "offset": {"type": "integer", "minimum": 0},
                 "width": {"type": "integer", "minimum": 1},
-                "reference_kind": {"type": "string", "enum": ["absolute", "base_displacement"]},
+                "reference_kind": {"type": "string", "enum": ["absolute", "base_displacement", "base_displacement_range"]},
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
                 "source_value": {"type": "integer", "minimum": 0},
@@ -1555,7 +1556,7 @@ def _data_block_element_ref_remove_parameter_schema(defaults: Mapping[str, objec
                 "offset": {"type": "integer", "minimum": 0},
                 "data_block_ref_id": {"type": "string"},
                 "width": {"type": "integer", "minimum": 1},
-                "reference_kind": {"type": "string", "enum": ["absolute", "base_displacement"]},
+                "reference_kind": {"type": "string", "enum": ["absolute", "base_displacement", "base_displacement_range"]},
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
                 "target_locator": {"type": "object"},
@@ -4594,16 +4595,16 @@ def _data_block_element_ref_payload(
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative offset")
     if width is None or width <= 0:
         raise ValueError("interpret_manual_data_block_element_ref requires positive width")
-    if width not in {1, 2, 4}:
+    if width not in {1, 2, 4} and reference_kind != "base_displacement_range":
         raise ValueError("interpret_manual_data_block_element_ref supports only byte, word, and long widths")
-    if reference_kind not in {"absolute", "base_displacement"}:
+    if reference_kind not in {"absolute", "base_displacement", "base_displacement_range"}:
         raise ValueError("interpret_manual_data_block_element_ref supports only absolute and base_displacement references")
     if target_hunk is None or target_hunk < 0:
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_hunk")
     if target_offset is None or target_offset < 0:
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_offset")
     if rows:
-        source_value = _data_block_ref_source_value(rows, width)
+        source_value = _data_block_ref_source_value(rows, 2 if reference_kind == "base_displacement_range" else width)
     else:
         source_value = _optional_int(params.get("source_value"))
         if source_value is None or source_value < 0:
@@ -4645,7 +4646,7 @@ def _data_block_element_ref_payload(
         if scale <= 0:
             raise ValueError("interpret_manual_data_block_element_ref scale must be positive")
         ref["scale"] = scale
-    if reference_kind == "base_displacement":
+    if reference_kind in {"base_displacement", "base_displacement_range"}:
         if "runtime_address" in params:
             raise ValueError("base_displacement does not accept runtime_address")
         ref["base_locator"] = params.get("base_locator")
@@ -4653,7 +4654,10 @@ def _data_block_element_ref_payload(
             ref["scale"] = params["scale"]
         source_hunk = _int_field(rows[0], "section_index", default=0) if rows else None
         source_addr = _int_field(rows[0], "start_offset", fallback="addr") if rows else None
-        validate_base_displacement_reference(ref, source_hunk=source_hunk, source_addr=source_addr)
+        if reference_kind == "base_displacement_range":
+            validate_base_displacement_range(ref, source_hunk=source_hunk)
+        else:
+            validate_base_displacement_reference(ref, source_hunk=source_hunk, source_addr=source_addr)
         owner = _active_data_block_element(rows[0], context) if rows else None
         if owner is not None:
             validate_base_displacement_owner(ref, owner, defer_struct_leaf=True)
@@ -4986,7 +4990,9 @@ def _data_block_element_ref_remove_payload(
         raise ValueError(
             "remove_manual_data_block_element_ref requires selected reference identity: " + ", ".join(missing)
         )
-    if ref.get("reference_kind") == "base_displacement":
+    if ref.get("reference_kind") == "base_displacement_range":
+        validate_base_displacement_range(ref)
+    elif ref.get("reference_kind") == "base_displacement":
         validate_base_displacement_reference(ref)
     return ref
 
