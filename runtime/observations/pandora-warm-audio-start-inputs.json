@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "kind": "captured-state-fixture-manifest",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "purpose": "Private warm audio-start CPU input fixture; no guest payload or state bytes published.",
+  "capture_file": ".runtime-state/pandora-behaviour/warm-audio-start-inputs/capture.json",
+  "capture_sha256": "480bdbf74959b322cd001a4613e69f7da4c1cf0b71d9e610258605e25a22144a",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "canonical_anchor": "s0:000005CA:instruction",
+  "runtime_base": 65536,
+  "requested_scenario_sha256": "8354ea0bd4b05a3989c21a9c4285179b4455e773e79546995d652debf9264104",
+  "control_source_ranges": [
+    [
+      348926,
+      349040
+    ],
+    [
+      317406,
+      317682
+    ],
+    [
+      320376,
+      320384
+    ],
+    [
+      320490,
+      320492
+    ]
+  ],
+  "read_ranges": [
+    {
+      "address": 414462,
+      "size": 64,
+      "sha256": "0c560c86b8e856a65cd581c14c1e0a54a465eb8be8e8f0667766d17ddd75363a"
+    },
+    {
+      "address": 414526,
+      "size": 50,
+      "sha256": "7631dc9fada2587ff102bd1964406d25a58041013d01dbd48653b2a7b16043ce"
+    },
+    {
+      "address": 382942,
+      "size": 64,
+      "sha256": "fb0deef95352082ca53738eb8c78def9af8cad1c8653a7c8265abf28a7826ae9"
+    },
+    {
+      "address": 383006,
+      "size": 64,
+      "sha256": "0926550e5d8ecbd5c7297d1a391a3ac2f1957c5dc15eebcf68bfc6be65b1ef0f"
+    },
+    {
+      "address": 383070,
+      "size": 64,
+      "sha256": "0fe165734f8175e53cad688cac03bb79678df1dbe699fa5c5c22d5403f4b3aff"
+    },
+    {
+      "address": 383134,
+      "size": 64,
+      "sha256": "56e72766dca594cbb84767eaa248bbc3287746ad3f897b80aa5e8a40b7120ade"
+    },
+    {
+      "address": 383198,
+      "size": 20,
+      "sha256": "06497fc8a213e24a9599d27322b0386e7543345943793a6da0d093abeccc1197"
+    },
+    {
+      "address": 385912,
+      "size": 64,
+      "sha256": "37ff803327402f6f01e1fe9fa0809c0a8135562ec4030c8a14dce9b3ac4a354d"
+    },
+    {
+      "address": 385976,
+      "size": 52,
+      "sha256": "dbe1bf56d8646c36d23cc36d6daf1aebb9b6a3dc3a822da6b51db544e54894dd"
+    },
+    {
+      "address": 384820,
+      "size": 30,
+      "sha256": "aa35ebac1fc6e3af53d19cc25a0ec8da2cd9ca69de5f0019e12055e132dbd282"
+    },
+    {
+      "address": 385624,
+      "size": 24,
+      "sha256": "174d28976609af7f38e0cbb14037601f1fcd1450a8c4b89a8e4043fb00002db4"
+    },
+    {
+      "address": 384254,
+      "size": 18,
+      "sha256": "e78298e129277c79fd3b1062fd542578662c23c454ac04aa18b128f528d70f09"
+    },
+    {
+      "address": 377370,
+      "size": 1,
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+    },
+    {
+      "address": 377682,
+      "size": 4,
+      "sha256": "e5b37d2e63fb5d02266ec2dcb8d830f6dd168b897ba089c0577e853624a8e4b5"
+    },
+    {
+      "address": 12574721,
+      "size": 1,
+      "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89"
+    },
+    {
+      "address": 15673,
+      "size": 1,
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+    }
+  ],
+  "input_partition": {
+    "captured": "17 CPU registers; explicit code, warm guard, globals, preset/config tables, actor/shared flags and XY; CIAA debug snapshot.",
+    "modeled": "Local call frame; alive/unarmed guard bits; XY and volume test values; ordinary CPU control registers zero/unused.",
+    "unknown": "All other backing image/zero-shadow memory unless established by a write. No cold sample data or pointed-to programs are admitted."
+  },
+  "device_limit": "Snapshot bytes are modeled CPU read inputs; no captured CPU access or live CIA/LED/Paula/DMA equivalence.",
+  "checkpoint": {
+    "status": "restored",
+    "receipt_sha256": "8941e233f4b0bf793008266773d732e043e7f1d120c9f3baeef90bb1cc590c70",
+    "snapshot_sha256": "04bfd740a4ddbd47594e09faaf70fee7c71314d9cb7e634395a75d176656f59d"
+  }
+}

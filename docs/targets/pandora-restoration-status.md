@@ -1,11 +1,11 @@
 # Pandora restoration inventory and status
 
 > Current behavioural validation: [B01–B10 roadmap](../proposals/045-behavioural-validation.md),
-> [first-batch evidence](../validation/pandora-behavioural-validation-first-slice.json).
-> Two bounded contracts accepted: 19 CPU cases plus 65,536 BYTE inputs; one
-> original-only DMA fixture/replay of 384 transfers. Tests: 180 Python passed,
-> 30 native passed; optional live MCP SDK transport skipped. Assembly unchanged
-> and C/vasm exact. Every B commitment remains partial/open.
+> [warm-start evidence](../validation/pandora-behavioural-validation-warm-start.json).
+> Three bounded predicates in two summaries: 25 CPU cases plus 65,536 BYTE inputs;
+> one original-only DMA fixture/replay of 384 transfers. Tests: 223 Python passed,
+> optional live MCP SDK transport skipped. Assembly unchanged and C/vasm exact;
+> the prior 30 native tests are historical, not rerun. Every B ID remains partial/open.
 
 The [comparison identity correction](../validation/pandora-behavioural-validation-identities.json)
 records reproduced false passes and fail-closed regressions. Candidate helper
@@ -15,6 +15,13 @@ tests with one optional MCP SDK transport skip. This hardening adds no contracts
 CPU paths or DMA fixtures; prior receipt profiles are historical, not reusable
 under the changed checker profile. The source and its exact-byte accounting are
 unchanged.
+
+The warm-start predicate admits six modeled alive-near/unarmed calls using a
+private captured donor and a 256-instruction limit. It checks four channel
+records' ordered initialization writes. The legacy predicate retains its
+128-instruction limit and exclusions. Neither the captured CIAA debug snapshot
+nor local CPU calls establish device behaviour or normal-gameplay reachability;
+cold sample setup and later channel/program consumers remain excluded.
 
 Baseline snapshot: 2026-10-12, merged source `22e55bb5`, restoration revision
 `2f142cd09c5eae6d1edd001af3acfb2909098713d6a8f513eadda5c7279ba42e`.

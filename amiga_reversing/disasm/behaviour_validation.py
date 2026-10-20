@@ -49,10 +49,16 @@ def canonical_contract(target_id, contract_id):
                 raise BehaviourError('unsupported', 'Malformed canonical behaviour contract') from exc
             if not isinstance(contract,dict):
                 raise BehaviourError('unsupported', 'Canonical behaviour contract must be an object')
-            if contract.get('contract_id') == contract_id:
-                if summary.get('callable_kind') != 'direct' or contract.get('entry_source') != summary.get('entry_offset'):
-                    raise BehaviourError('unsupported', 'Contract entry differs from canonical summary')
-                matches.append((summary,contract))
+            contracts=contract.get('contracts',[contract])
+            if (not isinstance(contracts,list) or not 1<=len(contracts)<=8
+                    or any(not isinstance(c,dict) for c in contracts)
+                    or ('contracts' in contract and set(contract)!={'contracts'})):
+                raise BehaviourError('unsupported','Canonical contract set must contain 1..8 named predicates')
+            for predicate in contracts:
+                if predicate.get('contract_id') == contract_id:
+                    if summary.get('callable_kind') != 'direct' or predicate.get('entry_source') != summary.get('entry_offset'):
+                        raise BehaviourError('unsupported', 'Contract entry differs from canonical summary')
+                    matches.append((summary,predicate))
     if len(matches) != 1:
         raise BehaviourError('missing_prerequisite', 'One active canonical function-summary contract is required', contract_id=contract_id)
     summary, contract = matches[0]
@@ -61,15 +67,18 @@ def canonical_contract(target_id, contract_id):
     records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
     actions = [r for r in records if r.get('action_id') in projection.active_action_ids
                and r.get('function_summary',{}).get('function_summary_id') == summary['function_summary_id']]
-    if len(actions) != 1:
-        raise BehaviourError('missing_prerequisite', 'Contract requires one active Manual Action identity')
-    action_id = actions[0]['action_id'];journal=read_decision_journal(paths.target_dir)
+    # Manual projection upserts summaries by stable ID in log order. Bind the
+    # effective definition to its latest active producer; an older accepted
+    # action cannot lend its review to a replacement predicate.
+    if not actions or actions[-1]['function_summary']!=summary:
+        raise BehaviourError('missing_prerequisite', 'Contract requires the active effective Manual Action definition')
+    action_id = actions[-1]['action_id'];journal=read_decision_journal(paths.target_dir)
     if not journal['valid']:
         raise BehaviourError('incomplete_truncated', 'Decision Journal is invalid')
     projected = project_decision_journal(journal['records'])
     accepted = [r for r in projected['accepted_facts'] if r.get('fact_type') == 'restoration_interpretation'
                 and r.get('selected_identity',{}).get('subject_id') == action_id]
-    return dict(contract=contract, contract_sha256=digest(summary), function_summary_id=summary['function_summary_id'],
+    return dict(contract=contract, contract_sha256=digest(dict(summary=summary,selected_predicate=contract)), function_summary_id=summary['function_summary_id'],
                 action_id=action_id, review_status='accepted' if len(accepted)==1 else 'unassessed',
                 decision_id=accepted[0].get('decision_id') if len(accepted)==1 else None)
 

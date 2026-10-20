@@ -114,6 +114,18 @@ required after disk edits. See the
 for reproductions, affected historical receipt profiles and fresh revalidation.
 This adds no new canonical contracts, gameplay paths or DMA candidate coverage.
 
+The [warm audio-start batch](../validation/pandora-behavioural-validation-warm-start.json)
+then adds a separately reviewed CPU predicate for the previously excluded
+alive-near/unarmed composition: six modeled calls, 141–143 instructions each,
+with four channel records and 40 ordered initialization field writes. It uses a
+private identity-bound capture and a 256-instruction limit; legacy v1 retains
+128. Three predicates now share two canonical function summaries, with distinct
+selected-predicate identities and review bound to each summary's latest active
+producer. Coverage is 25 CPU cases plus the unchanged 65,536 BYTE inputs and one
+original DMA fixture. The focused suite passes 223 tests with one optional live
+MCP SDK skip. No normal-gameplay, cold sample, live CIA/Paula/DMA or later audio
+consumer proof follows from the new CPU calls.
+
 Every row is **partial/open**, including rows with an implemented first seam.
 No commitment is complete on documentation or one successful fixture. Evidence
 for these rows is the batch receipt summary above and its linked
@@ -121,17 +133,20 @@ for these rows is the batch receipt summary above and its linked
 
 | ID | Capability implementation | Current target behaviour coverage | Next action |
 | --- | --- | --- | --- |
-| B01 | Partial: opt-in ordered ordinary-68000 observer; existing Copperline capture retained. | 19 bounded modeled calls per ASM layout; one original DMA fixture/replay. | Admit another connected path only after its dependencies are captured. |
-| B02 | Partial: explicit known/modeled/unknown memory manifests, unknown-read refusal and existing identity-bound checkpoints. | Existing volume donor; private original scratch checkpoint. No uncaptured original-image bytes are admitted by this CPU slice. | Capture inputs for the excluded audio-start path; keep raw guest data local. |
-| B03 | Partial: bounded JSON predicates use existing canonical function-summary notes, MAL actions and DJ acceptance; receipts require review. | `pandora.volume.local.v1` and `pandora.scratch.second-word.v1` accepted within their exclusions. | Review a new contract through the same command/history path; do not edit a fixture to redefine one. |
-| B04 | Partial: ordered architectural events, semantic bus comparison and first differing event; transient/duplicate writes retained. | 19 CPU comparisons, 384-transfer original self-replay and deliberate order failures. | Extend diagnostics/normalization only when another reviewed candidate requires them. |
+| B01 | Partial: opt-in ordered ordinary-68000 observer; existing Copperline capture retained. | 25 bounded modeled calls per ASM layout; one original DMA fixture/replay. | Extend the DMA consumer observation before claiming wider behaviour. |
+| B02 | Partial: explicit known/modeled/unknown memory manifests, unknown-read refusal and existing identity-bound checkpoints. | Legacy and private warm-start donors; private original scratch checkpoint. CIAA snapshot delivery is explicitly a CPU input model. | Admit a second renderer fixture from its owned full sidecars; keep raw guest data local. |
+| B03 | Partial: named predicates use canonical summary notes, MAL and DJ; latest effective producer and selected predicate are bound separately. | Legacy volume, warm-start volume and scratch predicates accepted within their exclusions. | Review the next DMA predicate through the same histories; no older action's inherited acceptance. |
+| B04 | Partial: ordered architectural events, semantic bus comparison and first differing event; transient/duplicate writes retained. | 25 CPU comparisons, including 40 ordered channel writes per warm case; 384-transfer original self-replay and deliberate order failures. | Follow the scratch reads into destination writes, respecting prefetched FIFO order. |
 | B05 | Partial: exact scratch address/channel order and write-before-read value checks. | One 32-row, shift-4 second-word renderer fixture. Pixel/mask bounds, destination bitmap and other callers are outside coverage. | Add a second boundary fixture and destination/source observations before broader alias/lifetime claims. |
-| B06 | Partial: explicit wrapped WORD arithmetic and BYTE-lane semantics checked against generated execution. | Signed extrema, sum wrapping, distance255/256 and all 65,536 WORD inputs to one BYTE store. Routine coverage remains finite. | Carry explicit arithmetic into the next connected routine; fix KB/generation upstream if it fails. |
-| B07 | Partial: deterministic cases, small preserved negative streams and failure recipes. | Reordered/equal-final streams, missing knownness, bounded timeout and unsupported initialization. No broad fuzzer or automatic minimizer. | Preserve the next real failure and minimize only within its valid preconditions. |
-| B08 | Partial: separate behaviour coverage in existing verification receipts and this batch report. | Contract/case/engine/window counts; no new byte or purpose credit. | Populate the same coverage fields in each subsequent batch. |
-| B09 | Partial: strict outcomes, six identity bindings, stale manifest refusal and canonical review/deviation gates. | Positive and deliberately non-pass tests, two real pre-review non-pass receipts and fresh post-review receipts. | Extend unsupported/partial evidence admission tests as new case shapes arise. |
-| B10 | Partial: per-batch checklist integrated into the existing reversing loop. | First CPU and DMA adoption batch; shared HTTP evaluator, thin CLI/MCP adapters. No dedicated UI results panel. | Apply the checklist to the next connected subsystem; keep later work queued here. |
+| B06 | Partial: explicit wrapped WORD, BYTE-lane and signed relative-address arithmetic checked against generated execution. | Signed extrema, sum wrapping, distance255/256 and all 65,536 WORD inputs to one BYTE store; fixed captured warm tables have nonnegative offsets. | Do not infer coverage of negative table values or cold sample arithmetic. |
+| B07 | Partial: deterministic cases, small preserved negative streams and failure recipes. | Reordered/equal-final streams; missing device/table inputs; cold guard/far inputs; old-budget timeout; predicate-set and review-provenance negatives. No broad fuzzer or automatic minimizer. | Preserve the next real failure and minimize only within its valid preconditions. |
+| B08 | Partial: separate behaviour coverage in existing verification receipts and batch reports. | Three predicates, 25 CPU cases, 65,536 BYTE inputs and one adopted DMA fixture. No new byte or purpose credit. | Keep unqualified probes separate from adopted contract coverage. |
+| B09 | Partial: strict outcomes, identity bindings, native-proof and loaded-code guards, private fixture hashes, selected predicates and review/deviation gates. | Positive/negative tests and fresh pre-review non-pass/post-review receipts. | Admit full-sidecar partitions without silently accepting a truncated report. |
+| B10 | Partial: per-batch checklist integrated into the existing reversing loop. | Initial CPU/DMA, identity correction and warm composition batches; shared HTTP evaluator, thin CLI/MCP adapters. No dedicated UI results panel. | Apply the checklist to the next DMA consumer fixture; keep later work queued here. |
 
-Next evidence question: which additional captured inputs are required to admit
-the alive-near/unarmed audio-start path without reading unknown memory? Bank 30,
-fonts, bank-45 layout and EQU/RS policy remain outside this batch.
+Next evidence question: can the scratch consumer be followed into the alternate
+destination buffer without misattributing later blits in the same window? The
+second natural entry has the same H32/shift4 geometry, so it adds no height/shift
+boundary coverage yet. Its retained full sidecars permit bounded partitioned
+analysis beyond the truncated report. Bank 30, fonts, bank-45 layout and EQU/RS
+policy remain outside this batch.

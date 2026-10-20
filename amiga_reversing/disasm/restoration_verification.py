@@ -192,15 +192,21 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artif
         if execution == 'pandora_volume_cpu':
             from amiga_reversing.tools import pandora_volume_local_compare as runner
             runner.LOADED_SOURCE.require_current()
-            runner.admit_contract(contract['contract'])
+            warm=runner.admit_contract(contract['contract'])
             context = PROJECT_ROOT/'runtime/observations/pandora-volume-local-context.json'
+            if warm:
+                context=(root/contract['contract']['fixture_capture']).resolve()
+                if not context.is_relative_to(evidence_root):
+                    raise BehaviourError('unsupported','Warm fixture must stay in owned local evidence')
+                if _hash(context.read_bytes())!=contract['contract']['fixture_capture_sha256']:
+                    raise BehaviourError('stale','Reviewed warm fixture changed')
             library = PROJECT_ROOT/'src/build/libamiga_backend.so'
             manifest_path=local_path('manifest',manifest=True)
             if manifest_path.stat().st_size>1_000_000:
                 raise BehaviourError('incomplete_truncated','Manifest exceeds bounded evidence size')
             if json.loads(manifest_path.read_text()).get('analysis_subject_revision')!=subject_revision:
                 raise BehaviourError('stale','Derived manifest belongs to another analysis subject')
-            result = runner.compare(target_id,context,manifest_path,library,artifact=artifact)
+            result = runner.compare(target_id,context,manifest_path,library,artifact=artifact,warm_start=warm)
             if _hash(library.read_bytes())!=result['backend_sha256']:
                 raise BehaviourError('stale','Executed backend differs from the current backend; restart required')
             if result['implementation_sha256']!=runner.LOADED_SOURCE.require_current():
@@ -214,6 +220,8 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artif
                               fixture=fixture,contract=contract['contract_sha256'],
                               backend=result['backend_sha256'],profile=digest(dict(
                                   subject_revision=subject_revision,execution_kind=execution,
+                                  cpu_profile='warm_start_v1' if warm else 'volume_v1',
+                                  device_inputs='captured debug snapshot supplied as flat CPU memory' if warm else 'no device reads',
                                   runner_sha256=result['implementation_sha256'],
                                   manifest_sha256=result['manifest_sha256'],native_plan_sha256=result['native_plan_sha256'],
                                   binding_checker_sha256=result['binding_checker_sha256'],

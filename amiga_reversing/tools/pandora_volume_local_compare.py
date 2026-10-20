@@ -28,6 +28,8 @@ MEMORY_SIZE=0x1000000
 _ENGINE_IDENTITIES = {}
 LOADED_SOURCE=LoadedSource(__file__)
 CODE_RANGES=((0x552de,0x55370),(0x4d872,0x4d8f2))
+WARM_CODE_RANGES=((0x552fe,0x55370),(0x4d7de,0x4d8f2),
+                  (0x4e378,0x4e380),(0x4e3ea,0x4e3ec))
 
 class Diag(C.Structure):
     _fields_=[('severity',C.c_uint32),('code',C.c_uint32),('message',C.c_char*512)]
@@ -51,11 +53,14 @@ class Observer(C.Structure):
 def sha(data):return hashlib.sha256(data).hexdigest()
 
 
-def load_context(path, original):
-    donor=json.loads(path.read_text());o=donor.get('observation',{})
+def load_context(path, original, *, warm_start=False):
+    donor=json.loads(path.read_text());donor=donor.get('runner',donor)
+    o=donor.get('observation',{})
     phases=o.get('scenario',{}).get('phases',[])
-    if len(phases)!=1:raise BehaviourError('incomplete_truncated','One canonical routine-context capture required')
-    p=phases[0];identity=p.get('payload',{})
+    if len(phases)!=(2 if warm_start else 1):raise BehaviourError('incomplete_truncated','Expected canonical routine-context capture phases')
+    if warm_start and (phases[0].get('status')!='hit' or phases[0].get('stable_key')!='s0:000005D6:instruction'):
+        raise BehaviourError('stale','Warm donor requires the restored gameplay anchor')
+    p=phases[-1];identity=p.get('payload',{})
     if (donor.get('status')!='ok' or p.get('status')!='hit'
             or identity.get('status')!='pc_matched' or identity.get('payload_offset')!='0x5ca'
             or int(identity.get('runtime_base','0'),0)!=BASE
@@ -79,12 +84,17 @@ def load_context(path, original):
     def read(address,size):
         try:return bytes(memory[address+i] for i in range(size))
         except KeyError as e:raise BehaviourError('missing_prerequisite','Donor is missing required routine input',address=e.args[0]) from e
-    for start,end in CODE_RANGES:
+    for start,end in WARM_CODE_RANGES if warm_start else CODE_RANGES:
         size=end-start
         if read(BASE+start,size)!=original[start:start+size]:raise BehaviourError('stale','Live routine code differs from original')
     regs=capture['registers'];a6=int(regs['a6'],0)
     for address,size in ((a6+0x33d,1),(0x5c21a,1),(0x5c352,4),(OLD,8)):
         read(address,size)
+    if warm_start:
+        for address,size in ((0x5dcfe,18),(0x5df34,30),(0x5e258,24),(0xbfe001,1)):
+            read(address,size)
+        if memory[0x5dd06]==0:
+            raise BehaviourError('missing_prerequisite','Warm contract requires captured initialized-sample guard; cold initialization is excluded')
     return donor,memory,regs
 
 
@@ -118,9 +128,17 @@ def load_engine(path):
 
 
 def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, xy=None,
-            instruction_budget=128):
-    if type(instruction_budget) is not int or not 1 <= instruction_budget <= 128:
-        raise BehaviourError('unsupported', 'Instruction budget must be 1..128')
+            instruction_budget=128, warm_start=False):
+    if type(warm_start) is not bool:
+        raise BehaviourError('unsupported','Unknown CPU profile')
+    code_ranges=WARM_CODE_RANGES if warm_start else CODE_RANGES
+    maximum=256 if warm_start else 128
+    if type(instruction_budget) is not int or not 1 <= instruction_budget <= maximum:
+        raise BehaviourError('unsupported', f'Instruction budget must be 1..{maximum}')
+    if warm_start and (dead or armed):
+        raise BehaviourError('unsupported','Warm-start profile admits only alive/unarmed inputs')
+    if warm_start and donor_memory.get(0x5dd06,0)==0:
+        raise BehaviourError('missing_prerequisite','Captured initialized-sample guard required')
     if type(dead) is not bool or type(armed) is not bool:
         raise BehaviourError('unsupported', 'Modeled guards must be boolean')
     if getattr(run, 'observed', None) is None:
@@ -128,16 +146,20 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
     if type(volume) is not int or not 0 <= volume <= 65535 or (xy is not None and
             (len(xy) != 2 or any(type(v) is not int or not 0 <= v <= 65535 for v in xy))):
         raise BehaviourError('unsupported', 'Modeled inputs must be WORD bit patterns')
+    if warm_start and (xy is None or proximity_distance(*xy)>=256):
+        raise BehaviourError('unsupported','Warm profile requires explicit near WORD coordinates')
     memory=bytearray(MEMORY_SIZE);memory[BASE:BASE+349040]=image[:349040]
     for address,value in donor_memory.items():
-        if not any(BASE+a<=address<BASE+b for a,b in CODE_RANGES):
+        if not any(BASE+a<=address<BASE+b for a,b in code_ranges):
             memory[address]=value
     known = {address: 'captured' for address in donor_memory}
+    if warm_start and 0xbfe001 in known:
+        known[0xbfe001]='captured_device_snapshot_as_CPU_input'
     # Captured bytes establish input knownness, but ALL admitted executable
     # ranges come from the selected image, including called helpers.
     if relocated:
         for address in known:
-            if any(BASE+a<=address<BASE+b for a,b in CODE_RANGES):known[address]='manifest_code'
+            if any(BASE+a<=address<BASE+b for a,b in code_ranges):known[address]='manifest_code'
     a6=int(regs['a6'],0);actual_flags=memory[0x5c21a];actual_shared=memory[a6+0x33d]
     memory[0x5c21a]=(actual_flags&~2)|(2 if dead else 0)
     memory[a6+0x33d]=(actual_shared&~1)|(1 if armed else 0)
@@ -153,6 +175,7 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
         dict(memory=sorted(donor_memory.items()), registers=regs)), registers=regs,
         modeled_inputs=dict(relocated=relocated,dead=dead,armed=armed,volume=volume,xy=xy,
                             local_return=RETURN,local_sp=s.a[7],instruction_budget=instruction_budget,
+                            **(dict(profile='warm_start_v1',device_read_model='captured CIAA debug snapshot supplied as flat CPU memory; no live device semantics') if warm_start else {}),
                             control_registers='zero local model; unused by the admitted routine'))
     logical_address = NEW if relocated else OLD
     writable = [(s.a[7]-64,s.a[7]), (a6+0x33d,a6+0x33e), (logical_address,logical_address+2),
@@ -162,6 +185,13 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
     writable += [(a,a+1) for a in (0x5e60e,0x5e634,0x5e65a,0x5e680)]
     writable += [(a,a+2) for a in (0x5e69a,0x5e6a6,0x5e6b2,0x5e6be,
                                   0xdff096,0xdff09e,0xdff0a8,0xdff0b8,0xdff0c8,0xdff0d8)]
+    if warm_start:
+        # Existing canonical 48-byte primary-channel type: only fields written
+        # by this initializer, not a claim about every field or later consumers.
+        writable += [(0x5dcfe,0x5dd00),(0x5dd02,0x5dd04),(0x5dd05,0x5dd06),
+                     (0x5dd07,0x5dd09),(0xbfe001,0xbfe002)]
+        writable += [(0x5dd14+48*c+a,0x5dd14+48*c+b)
+                     for c in range(4) for a,b in ((0,2),(3,20),(22,23),(30,32))]
     evidence = MemoryEvidence(memory,known,writable)
     failure = []
     def access(_user, kind, address, width, value):
@@ -181,7 +211,7 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
     start=bytes(memory);buffer=(C.c_uint8*len(memory)).from_buffer(memory);pcs=[];writes=[]
     for _ in range(instruction_budget):
         if s.pc==RETURN:break
-        if not any(BASE+a<=s.pc<BASE+b for a,b in CODE_RANGES):
+        if not any(BASE+a<=s.pc<BASE+b for a,b in code_ranges):
             raise BehaviourError('unsupported','Unadmitted local control flow',pc=s.pc)
         pcs.append(s.pc);trace=Trace()
         evidence.pc = s.pc
@@ -265,14 +295,59 @@ def proximity_distance(x, y):
 
 
 def admit_contract(contract):
+    warm=contract.get('contract_id')=='pandora.volume.warm-start.v1'
     supported=dict(contract_id='pandora.volume.local.v1',entry_source=ENTRY-BASE,
                    return_pc=RETURN,instruction_budget=128,original_volume=OLD,derived_volume=NEW,
                    control_source_ranges=[[0x552de,0x55370],[0x4d872,0x4d8f2]])
+    if warm:
+        supported.update(contract_id='pandora.volume.warm-start.v1',instruction_budget=256,
+                         control_source_ranges=[list(r) for r in WARM_CODE_RANGES],
+                         sample_initialization='captured_nonzero_guard',device_inputs='captured_CIAA_port_snapshot_CPU_model')
     if any(contract.get(k)!=v for k,v in supported.items()):
         raise BehaviourError('unsupported','Canonical CPU contract exceeds this bounded runner version')
+    return warm
 
 
-def compare(target, context, manifest_path, library, *, artifact=None):
+def warm_effect_contract(result, projection):
+    """Independent initialized-field contract from the canonical channel type.
+
+    WORD-relative configuration/program offsets are signed; stored fields retain
+    WORD bits. No pointed-to programs or later audio consumers execute here.
+    """
+    def word(a):return (projection[a]<<8)|projection[a+1]
+    def signed(v):return v-65536 if v&32768 else v
+    expected=[]
+    for channel in range(4):
+        base=0x5dd14+48*channel;configuration=word(0x5df48+2+2*channel)
+        pointer=(0x5d7de+signed(word(0x5d7de+signed(configuration))))&0xffffffff
+        for offset,width,value in ((30,2,1),(0,1,0),(1,1,0),(3,1,0),(22,1,255),
+                                   (12,4,0x5de7e),(16,4,0x5de7e),(8,2,configuration),
+                                   (10,2,2),(4,4,pointer)):
+            expected.append(dict(address=base+offset,width=width,value=value))
+    writes=[{k:e[k] for k in ('address','width','value')} for e in result['events']
+            if e['kind']=='write' and 0x5dd14<=e['address']<0x5ddd4]
+    comparison=compare_ordered(expected,writes)
+    if comparison['status']!='pass':return comparison
+    # Known debug-port snapshot is a CPU read input model, not a captured CPU
+    # access event and not evidence about live CIA/LED or Paula behaviour.
+    port=[{k:e[k] for k in ('address','width','value')} for e in result['events']
+          if e['kind']=='write' and e['address']==0xbfe001]
+    comparison=compare_ordered([dict(address=0xbfe001,width=1,value=projection[0xbfe001]|2)],port)
+    if comparison['status']!='pass':return comparison
+    preset_duration=projection[0x5df48];duration=preset_duration if preset_duration<128 else preset_duration+0xff00
+    global_expected=[dict(address=a,width=w,value=v) for a,w,v in (
+        (0x5dd07,1,0),(0x5dd08,1,0),(0x5dcfe,2,duration),
+        (0x5dd02,1,projection[0x5df49]),(0x5dd03,1,projection[0x5df49]),
+        (0x5dd07,1,255),(0x5dd05,1,255))]
+    globals_observed=[{k:e[k] for k in ('address','width','value')} for e in result['events']
+                      if e['kind']=='write' and e['address'] in {e['address'] for e in global_expected}]
+    comparison=compare_ordered(global_expected,globals_observed)
+    if comparison['status']!='pass':return comparison
+    return dict(status='pass',initialized_channels=4,ordered_channel_field_writes=40,
+                sample_payload_initialization=False,device_equivalence=False)
+
+
+def compare(target, context, manifest_path, library, *, artifact=None, warm_start=False):
     from amiga_reversing.disasm import derived_artifact as binding
     LOADED_SOURCE.require_current()
     binding.LOADED_SOURCE.require_current()
@@ -280,7 +355,7 @@ def compare(target, context, manifest_path, library, *, artifact=None):
         from .runtime_analysis import analysis_scope,build_project_listing_artifact_profile
         with analysis_scope():
             _,_,native=build_project_listing_artifact_profile(target)
-            return compare(target,context,manifest_path,library,artifact=native)
+            return compare(target,context,manifest_path,library,artifact=native,warm_start=warm_start)
     original=resolve_project_paths(target).binary_source.path.read_bytes()
     contract=load_contract('pandora')
     if target!=contract.target_id or sha(original)!=contract.payload_sha256:
@@ -298,7 +373,7 @@ def compare(target, context, manifest_path, library, *, artifact=None):
         changed.update(range(off,off+len(before)))
     if len(original)!=len(derived) or any(a!=b and i not in changed for i,(a,b) in enumerate(zip(original,derived))):raise ValueError('unlisted image changes')
     context_identity=sha(context.read_bytes())
-    donor,projection,regs=load_context(context,original);run=load_engine(library);cases=[]
+    donor,projection,regs=load_context(context,original,warm_start=warm_start);run=load_engine(library);cases=[]
     actual_dead=bool(projection[0x5c21a]&2);actual_armed=bool(projection[int(regs['a6'],0)+0x33d]&1)
     specs=[('captured_guard',actual_dead,actual_armed,0x40,None),('dead_unarmed',True,False,0x40,None),
            ('alive_far_armed',False,True,0x1234,None),('alive_near_armed',False,True,0x40,(808,154))]
@@ -308,11 +383,16 @@ def compare(target, context, manifest_path, library, *, artifact=None):
         ('negative_one',(839,168)),('signed_max',(33607,168)),
         ('signed_min',(33608,168)),('sum_wrap',(33608,32936)))]
     specs += [('dead_armed_byte_'+hex(v),True,True,v,None) for v in (0,255,256)]
+    if warm_start:
+        specs=[('warm_'+name+'_'+hex(v),False,False,v,xy)
+               for name,xy in (('distance0',(840,168)),('distance255',(1095,168)),
+                               ('wrapped_sum0',(33608,32936))) for v in (0,65535)]
+    budget=256 if warm_start else 128
     refusals=[]
     for name,dead,armed,volume,xy in specs:
         try:
-            a=execute(run,original,projection,regs,relocated=False,dead=dead,armed=armed,volume=volume,xy=xy)
-            b=execute(run,derived,projection,regs,relocated=True,dead=dead,armed=armed,volume=volume,xy=xy)
+            a=execute(run,original,projection,regs,relocated=False,dead=dead,armed=armed,volume=volume,xy=xy,instruction_budget=budget,warm_start=warm_start)
+            b=execute(run,derived,projection,regs,relocated=True,dead=dead,armed=armed,volume=volume,xy=xy,instruction_budget=budget,warm_start=warm_start)
         except BehaviourError as exc:
             refusals.append(dict(status='refused_'+exc.result['status'],case=name,outcome=exc.result))
             continue
@@ -346,14 +426,19 @@ def compare(target, context, manifest_path, library, *, artifact=None):
                                  outcome=ordered if ordered['status']!='pass' else dict(status='mismatch',reason='Final CPU state/control flow differs'),
                                  modeled_inputs=dict(dead=dead,armed=armed,volume=volume,xy=xy)))
             continue
+        warm_contract=warm_effect_contract(a,projection) if warm_start else None
+        if warm_contract is not None and warm_contract['status']!='pass':
+            refusals.append(dict(status='refused_warm_field_contract',case=name,outcome=warm_contract))
+            continue
         cases.append({'name':name,'modeled_inputs':{'Feed_defeated':dead,'shared_armed':armed,'initial_volume':volume,'player_xy_override':xy},
                       'steps_per_layout':a['steps'],'BYTE_writer_executed_locally':a['BYTE_writer_executed'],
                       'logical_output':f'{a["logical_word"]:04x}','normalized_write_effects':a['effects'],
                       'normalized_effect_sha256':sha(json.dumps(a['effects']).encode()),'CPU_state_equal':True,
                       'ordered_comparison':ordered,'fixture_ids':[a['fixture_id'],b['fixture_id']],
+                      **(dict(warm_field_contract=warm_contract) if warm_start else {}),
                       'arithmetic':dict(wrapped_WORD_distance=distance,comparison='unsigned distance < 256'),
                       'fixture_manifests':[a['fixture'],b['fixture']]})
-    byte_comparison=compare_store(run,original,derived,regs)
+    byte_comparison=None if warm_start else compare_store(run,original,derived,regs)
     if sha(library.read_bytes())!=run.backend_sha256:
         raise BehaviourError('stale','Native backend changed during comparison')
     if sha(manifest_path.read_bytes())!=manifest_identity:
@@ -362,7 +447,7 @@ def compare(target, context, manifest_path, library, *, artifact=None):
         raise BehaviourError('stale','Captured context changed during comparison')
     LOADED_SOURCE.require_current()
     binding.LOADED_SOURCE.require_current()
-    return {'schema_version':3,'target_id':target,'status':'local_BYTE_equivalence_routine_comparison_partial' if refusals else 'bounded_local_routine_and_BYTE_equivalence','original_sha256':sha(original),'derived_sha256':sha(derived),
+    return {'schema_version':3,'target_id':target,'status':('bounded_warm_start_comparison_partial' if refusals else 'bounded_warm_start_equivalence') if warm_start else ('local_BYTE_equivalence_routine_comparison_partial' if refusals else 'bounded_local_routine_and_BYTE_equivalence'),'original_sha256':sha(original),'derived_sha256':sha(derived),
             'manifest_sha256':manifest_identity,'native_plan_sha256':manifest['native_plan_sha256'],
             'native_binding_verified':True,'implementation_sha256':LOADED_SOURCE.sha256,
             'binding_checker_sha256':binding.LOADED_SOURCE.sha256,
@@ -370,8 +455,8 @@ def compare(target, context, manifest_path, library, *, artifact=None):
             'checkpoint_provenance':donor['observation']['checkpoint'],'accepted_cases':cases,
             'routine_comparison':{'status':refusals[0]['status'] if refusals else 'bounded_CPU_only_routine_equivalence',
                                   'accepted_cases':len(cases),'refused_cases':refusals},
-            'BYTE_instruction_comparison':byte_comparison,
-            'local_call_context':{'entry_source_offset':'0x552fe','donor_source_offset':'0x5ca','return_pc':RETURN,'SP_adjustment':-4,'instruction_budget':128},
+            **(dict(BYTE_instruction_comparison=byte_comparison) if not warm_start else {}),
+            'local_call_context':{'entry_source_offset':'0x552fe','donor_source_offset':'0x5ca','return_pc':RETURN,'SP_adjustment':-4,'instruction_budget':budget},
             'behaviour_coverage':{'B_ids':['B01','B02','B04','B06','B07','B08','B09'],
                                   'scope':'bounded modeled CPU calls, original versus manifest-derived assembly',
                                   'cases_attempted':len(specs),'cases_passed':len(cases),'cases_nonpass':len(refusals),
@@ -380,7 +465,8 @@ def compare(target, context, manifest_path, library, *, artifact=None):
                                   'normalization':'only logical volume addresses NEW..NEW+2 map to OLD..OLD+2',
                                   'gameplay_IRQ_Paula_DMA_equivalence':False},
             'limits':['CPU-only projection, with explicit modeled call/guard/data inputs; no game snapshot or gameplay predicate was edited.',
-                      'Backing original image/zero bytes remain unknown unless captured or explicitly modeled; required unknown accesses refuse. Cases avoid audio initialization; custom-register writes are CPU intents only.',
+                      'Backing original image/zero bytes remain unknown unless captured or explicitly modeled; required unknown accesses refuse. Custom-register writes are CPU intents only.',
+                      'Warm profile requires a captured nonzero sample guard and models the captured CIAA-port snapshot as a CPU input; cold sample initialization and later channel/program consumers are excluded.' if warm_start else 'Cases avoid audio initialization.',
                       'No interrupts, Amiga set/clear register semantics, Paula/DMA timing, allocation or normal gameplay reachability proof.',
                       'Generated spec-driven CPU backend used; no independent CPU semantic oracle was used in this slice.',
                       'Local BYTE execution is separate from the still-unobserved normal-gameplay BYTE path and original/relocated game comparison.']}
