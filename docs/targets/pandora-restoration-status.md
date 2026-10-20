@@ -6136,3 +6136,45 @@ field records, unresolved identities and 48 generic-label signals are
 unchanged. Stored source views do not establish ordinary activation, shifted
 DMA-read extents, actual pixels, exclusive allocation/lifetime, all later
 writers or alternate-layout safety.
+
+## Remaining scene frames and mask producer groups
+
+Fourteen existing scene pixel banks now retain their supported frame or producer
+group boundaries across 22,416 bytes and 11,208 plane WORDs. Nine banks contain
+39 complete frame spans (8,592 bytes); five others contain 30 producer-defined
+groups of 32 or 64 four-plane cells (13,824 bytes). All 68 stored headers agree
+with their original source pointers and geometry words. The producer-group
+headers start at group boundaries and their live spans fit within their groups.
+
+Ten shared narrow-frame formats, two mixed frame collections and two linear
+producer-group formats reuse the existing four-plane cell. Existing 16x16 cells
+and wider frame formats are reused. These are embedded source layouts, not new
+physical resources. Every effective scalar leaf retains its original offset
+and plane order. Only the 14 declarations and 14 selected ARRAY annotations
+change source text; SDK register expressions and field comments are preserved.
+
+Producer groups do not imply complete images. Bank05 group2 has no stored
+header and retains only its 64-cell input role. Trailing cells in shorter
+header views are not called padding or unused pixels. Bank51 retains its
+previously established stored-mask alias (`$55C90 -> source $45C90`) rather
+than being forced onto a generated-mask destination. Existing font types,
+owners and glyph groupings remain unchanged. Bank45's 1,136 bytes remain
+unmodified because stride1 conflicts with nominal width32 and source pitches;
+no alternate geometry is assumed.
+
+All 42 facts have accepted review against receipt `f1f36e5b32da7d56958d6b6e0e899eaea6cce0ca83e0a033bd90cdb80029b568`. C and
+independent vasm reproduce all 376,832 original bytes. All 557 owners, 133 prior
+types, 18,304 entities, 126 assets, 16 SDK includes, earlier references and
+history prefixes are preserved. No framework change was needed: the unchanged
+138 renderer/package cases and 821 native cases from `1abc1671`, and 60
+original mask CPU cases from `8f1d1c74`, are reused. Per-bank geometry, producer
+packets, effective-layout and source-diff evidence are in
+[the validation record](../validation/pandora-remaining-scene-layouts.json).
+
+Fourteen bounded graphics assessments raise supported source purpose from
+256,093 to 278,509 bytes across 161 assessments. Classification, 6,446 unknown
+bytes, 6,225 accepted native reference targets, 973 resolved/32 unresolved
+field records, unresolved identities and 48 generic-label signals are
+unchanged. Original stored source roles do not establish ordinary activation,
+actual output, shifted DMA bounds, exclusive allocation/lifetime, all later
+writers or alternate-layout safety.
