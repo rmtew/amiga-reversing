@@ -22,7 +22,7 @@ MEMORY_ACCESS_ENGINES = frozenset(
 
 
 def validate_memory_access_watch(watch):
-    """One address/event observation, independent of marker values or snapshots."""
+    """One address/event or bounded CPU range, independent of snapshot reads."""
     address = watch.get("address") if isinstance(watch, dict) else None
     absolute = type(address) is int and 0 <= address <= 0xFFFFFF
     relative = (
@@ -35,18 +35,26 @@ def validate_memory_access_watch(watch):
     )
     if (
         not isinstance(watch, dict)
-        or set(watch) != {"address", "access", "engine", "wait_seconds"}
+        or set(watch) not in (
+            {"address", "access", "engine", "wait_seconds"},
+            {"address", "access", "engine", "wait_seconds", "length"},
+        )
         or not (absolute or relative)
         or watch.get("access") not in ("read", "write", "access")
         or not isinstance(watch.get("engine"), str)
         or watch["engine"] not in MEMORY_ACCESS_ENGINES
         or type(watch.get("wait_seconds")) is not int
         or not 1 <= watch["wait_seconds"] <= 120
+        or ("length" in watch and (
+            watch["engine"] != "cpu" or type(watch["length"]) is not int
+            or not 1 <= watch["length"] <= 4096
+            or (absolute and address + watch["length"] > 0x1000000)
+        ))
     ):
         raise ValueError(
             "Memory access watch requires a 24-bit integer address or a0..a7/offset binding, access "
             "read/write/access, supported engine and wait_seconds (1..120); "
-            "no other fields are supported"
+            "optional CPU-only length (1..4096), with no address wrapping; no other fields"
         )
 
 
@@ -55,7 +63,8 @@ def wait_for_memory_access(client, watch):
 
     Only called after a canonical scenario anchor has passed identity checks.
     The owned session has no other armed watches during this bounded operation.
-    No address-range or access-width semantics are inferred from the stop.
+    CPU ranges use the backend's documented mmio data-access trap. No access
+    width is inferred when the backend event does not provide one.
     """
     validate_memory_access_watch(watch)
     address = watch["address"]
@@ -63,10 +72,15 @@ def wait_for_memory_access(client, watch):
         address = client.registers()[address["base_register"]] + address["offset"]
         if not 0 <= address <= 0xFFFFFF:
             raise ValueError("Resolved memory access watch address exceeds 24-bit memory")
-    armed = {
-        "kind": "watch", "addr": address,
-        "access": watch["access"], "class": watch["engine"],
-    }
+    if "length" in watch:
+        if address + watch["length"] > 0x1000000:
+            raise ValueError("Resolved memory access watch address range exceeds 24-bit memory")
+        armed = {"kind": "mmio", "addr": address,
+                 "len": watch["length"], "access": watch["access"]}
+    else:
+        armed = {"kind": "watch", "addr": address,
+                 "access": watch["access"], "class": watch["engine"]}
+    expected_reason = "mmio" if armed["kind"] == "mmio" else "watchpoint"
     registration = client.request("break.add", armed)
     ident = registration["id"]
     started = time.monotonic()
@@ -89,8 +103,8 @@ def wait_for_memory_access(client, watch):
                     {"seconds": 1_000_000_000}, timeout=watch["wait_seconds"]
                 )
                 result.update(
-                    status="hit" if stop.get("reason") == "watchpoint" else "not_hit",
-                    termination="access_observed" if stop.get("reason") == "watchpoint"
+                    status="hit" if stop.get("reason") == expected_reason else "not_hit",
+                    termination="access_observed" if stop.get("reason") == expected_reason
                     else "unexpected_stop",
                     stop_event=stop,
                 )
@@ -312,6 +326,7 @@ def wait_for_pc(client, address, seconds):
             "status": status,
             "termination": termination,
             "stop_reason": "breakpoint-hit" if status == "hit" else stop.get("reason"),
+            "stop_event": stop if status != "timeout" else None,
             "pc": f"0x{regs['pc']:08x}",
             "sp": f"0x{regs['sp']:08x}",
             "stack_return_address": None,
@@ -469,7 +484,7 @@ def prepare_materialization(client, contract, payload_path, seconds):
 
 
 def _run_scenario_phase(
-    client, phase, payload_path, symbols, function, *, depart_current=False
+    client, phase, payload_path, symbols, function, *, depart_current=False, trace_directory=None
 ):
     address, seconds = phase.get("breakpoint_address"), phase.get("wait_seconds")
     occurrences = phase.get("occurrences", 1)
@@ -478,6 +493,11 @@ def _run_scenario_phase(
         validate_memory_access_watch(phase["memory_access_watch"])
         if not isinstance(phase.get("stable_key"), str):
             raise ValueError("Memory access watch requires a canonical source-row phase")
+    if "chip_bus_trace" in phase:
+        from .copperline_bus_trace import validate_bus_trace
+        validate_bus_trace(phase['chip_bus_trace'])
+        if not isinstance(phase.get('stable_key'), str) or 'memory_access_watch' in phase:
+            raise ValueError('Chip-bus trace requires its own canonical source-row phase')
     if type(occurrences) is not int or not 1 <= occurrences <= 64:
         raise ValueError("Scenario occurrences must be an integer from 1 to 64")
     if type(capture_first) is not bool:
@@ -572,6 +592,13 @@ def _run_scenario_phase(
         watch["payload_at_stop"] = payload_at_pc(
             client, payload_path, watch["registers"]["pc"],
         )
+        access = (watch.get("stop_event") or {}).get("access")
+        if (watch["status"] == "hit" and phase["memory_access_watch"]["engine"] == "cpu"
+                and isinstance(access, dict) and type(access.get("pc")) is int
+                and 0 <= access["pc"] <= 0xFFFFFF):
+            # The paused PC can follow the accessing instruction. Verify the
+            # event's instruction address independently rather than conflating them.
+            watch["payload_at_access"] = payload_at_pc(client, payload_path, access["pc"])
         watch["capture"] = capture_scenario_state(client, phase.get("capture", {}))
         if watch["status"] != "hit":
             item.update(status=watch["status"], termination=watch["termination"])
@@ -581,6 +608,19 @@ def _run_scenario_phase(
         item["stop_reason"] = (
             watch["stop_event"].get("reason") if watch["stop_event"] else watch["termination"]
         )
+    if item.get('status') == 'hit' and 'chip_bus_trace' in phase:
+        from .copperline_bus_trace import capture_bus_trace
+        trace = capture_bus_trace(client, phase['chip_bus_trace'], item.get('stop_event'), trace_directory)
+        item['chip_bus_trace'] = trace
+        trace['registers'] = client.registers()
+        trace['payload_at_stop'] = payload_at_pc(client, payload_path, trace['registers']['pc'])
+        trace['capture'] = capture_scenario_state(client, phase.get('capture', {}))
+        if trace['status'] != 'captured':
+            item.update(status='not_hit', termination='chip_bus_trace_'+trace['status'])
+        elif any(not r.get('expectation', {}).get('matched', True)
+                 for r in trace['capture']['memory_reads']):
+            item.update(status='not_hit', termination='trace_capture_expectation_mismatch')
+        item['stop_reason'] = (trace.get('stop_event') or {}).get('reason', trace['status'])
     if not counted:
         for key in (
             "occurrences_requested",
@@ -592,7 +632,7 @@ def _run_scenario_phase(
     return item
 
 
-def run_scenario(client, scenario, payload_path, release=None):
+def run_scenario(client, scenario, payload_path, release=None, *, trace_directory=None):
     phases, events = scenario.get("phases"), scenario.get("input_events", [])
     if (
         not isinstance(phases, list)
@@ -659,6 +699,7 @@ def run_scenario(client, scenario, payload_path, release=None):
                 symbols,
                 function,
                 depart_current=depart_current,
+                trace_directory=trace_directory,
             )
             result.append(item)
             if item["status"] != "hit":
@@ -978,6 +1019,7 @@ def observe(session):
                 scenario,
                 session.target_payload_path,
                 release,
+                trace_directory=getattr(session, 'state_directory', None),
             )
             reverse_boundary = scenario_result["reverse_boundary"]
             if scenario_result["phases"]:

@@ -6231,3 +6231,63 @@ from 278,509 to 282,427 bytes across 185 assessments. Classification, 6,446
 unknown bytes, 6,225 accepted native reference targets, 973 resolved/32
 unresolved field records, unresolved identities and 48 generic-label signals
 are unchanged.
+
+### Focused dominant-span runtime tracing (2026-10-20)
+
+[Published observation record](../../runtime/observations/pandora-unknown-span-tracing.json)
+separates snapshots, CPU architectural events and physical chip-bus transfers.
+The original direct payload reaches all 17 phases of the representative route:
+entry-officer card transfer, 19 down and 20 right movement commits, nearby
+interaction call/return, snapshot batches and a verified checkpoint. Original
+loader/disk parity remains outside this experiment.
+
+The restricted runtime now supports CPU ranges through the documented data-access
+trap, plus bounded full slot profiles through the existing Copperline 1.0.0
+profiler. A live positive control records 40 blitter WORD reads whose values all
+match original target pixels. This independently validates DMA read capture;
+it does not validate the previously unsuccessful single-address read watch.
+No emulator change or denied source-access retry was needed.
+
+Post-route capture records 256 blitter WORD writes and 128 reads within source
+`$B4A8..$B5A8`. All 128 reads match preceding writes in the same profile frame;
+they select the second WORD of each four-byte pair. Packets stage four planes
+at scratch `$1B3A8+4p`, width two WORDs, height 32, destination modulo 12, then
+copy 128 one-WORD rows from `$1B3AA` with source modulo 2. This agrees with the
+already documented second-word edge renderer and demonstrates actual shared
+scratch overlap. It does not explain the original seed bytes or reserve all
+3,840 bytes. The snapshot's 178 changed bytes acquire new nonzero contents;
+they were not cleared to zero. A three-second first-gameplay CPU write watch
+times out while the buffer changes; that negative CPU window is distinct from
+the later positive DMA window.
+
+The inventory-handler RTS at source `$2918` reads LONG return address `$105DA`
+from runtime `$1044E`; the accessing PC is independently byte-matched and differs
+from the paused return PC. Stack bus activity is also observed. These establish
+use of touched addresses, not a 1,028-byte stack allocation. The 1,392-byte bank-30
+suffix remains unchanged in the route snapshots, with no transfer in these
+specific startup/post-route profile windows. No defeat sequence or final-frame
+packet is covered, so this is not evidence of non-use.
+
+The four-frame aggregate retains only 4,096 of 11,991 matching transfers; all
+aggregate counts still scan every slot. Re-filtering those same local sidecars
+for the cursor gap retains all 384 relevant transfers without omission. Native
+frame labels, first-partial flags and raw sidecar hashes are preserved; guest
+states and unfiltered streams remain ignored locally. The focused suite passes
+217 tests with two optional tests skipped. Target facts, generated assembly and
+assets remain unchanged from `ac7a3801`, preserving its exact 376,832-byte receipt
+`110913bda1a6aa2b8dea23d85240f874bc426c86a7b63c7ff8bfe2d27cadef55`.
+The 6,446 unknown bytes remain explicit: runtime reuse alone does not justify a
+new interpretation of their original contents. Fonts, bank 45 and EQU/RS policy
+are unchanged.
+
+A final two-frame probe binds that DMA to canonical source `$6C60` at native
+frame 935. Entry registers give height 32, shift 4, pixel source `$50E08`, mask
+`$685FC` and destination `$72A80`. Stack `$1042E` holds return `$17090` into
+`draw_geometry_left_shifted_edge`; original BSR bytes at source `$708C` target
+`$6C60` exactly. The full scratch window records 256 WORD writes and 128 reads
+through `$1B5A8`, without omitted records; every read matches its preceding
+write. A final canonical main-loop anchor is reached. All nine runs are complete;
+the two negative CPU windows intentionally report timeout/incomplete, rather
+than being presented as successful access observations. This closes the dynamic
+producer/consumer question for the observed scratch rows without inventing an
+original layout for the remaining bytes.

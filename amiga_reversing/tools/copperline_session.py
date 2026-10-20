@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from amiga_reversing.tools.runtime_analysis import build_project_listing_artifact_profile, analysis_scope
+from amiga_reversing.tools.copperline_bus_trace import validate_bus_trace
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.copperline_runtime import (
     MAX_SCENARIO_PHASES, observe, validate_memory_expectation, validate_custom_registers,
@@ -223,6 +224,8 @@ def compile_scenario(
         if index == 0:
             if "memory_access_watch" in phase:
                 raise ValueError("Memory access watch requires a canonical source-row phase.")
+            if 'chip_bus_trace' in phase:
+                raise ValueError('Chip-bus trace requires a canonical source-row phase.')
             if "occurrences" in phase or "capture_first" in phase:
                 raise ValueError(
                     "Occurrence capture requires a canonical source-row phase."
@@ -253,6 +256,10 @@ def compile_scenario(
         validate_capture(capture)
         if "memory_access_watch" in phase:
             validate_memory_access_watch(phase["memory_access_watch"])
+        if 'chip_bus_trace' in phase:
+            validate_bus_trace(phase['chip_bus_trace'])
+            if 'memory_access_watch' in phase:
+                raise ValueError('Chip-bus trace requires its own canonical source-row phase')
         if transition not in {"continue", "enter_function"}:
             raise ValueError(
                 "Scenario phase transition must be continue or enter_function."
@@ -266,6 +273,8 @@ def compile_scenario(
                 "capture": capture,
                 **({"memory_access_watch": dict(phase["memory_access_watch"])}
                    if "memory_access_watch" in phase else {}),
+                **({'chip_bus_trace': dict(phase['chip_bus_trace'])}
+                   if 'chip_bus_trace' in phase else {}),
                 **({"occurrences": occurrences} if "occurrences" in phase else {}),
                 **(
                     {"capture_first": capture_first} if "capture_first" in phase else {}
@@ -770,7 +779,8 @@ def _main(argv: list[str] | None = None) -> int:
             "Scenario direct_payload_contract does not match selected contract."
         )
     if (args.checkpoint_save and compiled_scenario
-            and "memory_access_watch" in compiled_scenario["phases"][-1]):
+            and any(k in compiled_scenario['phases'][-1]
+                    for k in ['memory_access_watch', 'chip_bus_trace'])):
         raise ValueError(
             "Checkpoint save requires a final canonical source anchor after any access watch."
         )

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-unknown-cursor-gap-first-gameplay-write",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "first_gameplay_cursor_gap_write",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "memory_access_watch": {
+        "address": 111784,
+        "length": 3840,
+        "engine": "cpu",
+        "access": "write",
+        "wait_seconds": 3
+      },
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 111784,
+            "size": 64
+          },
+          {
+            "address": 113704,
+            "size": 64
+          },
+          {
+            "address": 115560,
+            "size": 64
+          },
+          {
+            "base_register": "a7",
+            "offset": 0,
+            "size": 32
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    }
+  ]
+}

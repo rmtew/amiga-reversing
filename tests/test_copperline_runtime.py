@@ -166,6 +166,61 @@ def test_access_watch_resolves_paused_register_binding_without_wrapping():
         assert c.calls == []
 
 
+@pytest.mark.parametrize("access", ["read", "write", "access"])
+def test_cpu_range_watch_retains_actual_access_and_exact_filter(access):
+    c = Client()
+    event = {"reason": "mmio", "pc": 0x16B12,
+             "access": {"addr": 0x10416, "size": 2, "value": 1}}
+    c.stop = event
+    watch = dict(address=0x10410, access=access, engine="cpu", wait_seconds=1, length=32)
+    result = runtime.wait_for_memory_access(c, watch)
+    assert result["status"] == "hit"
+    assert result["stop_event"] == event
+    assert result["armed_watch"] == dict(kind="mmio", addr=0x10410, len=32, access=access)
+    assert result["filter_confirmed"]
+    assert c.calls[-1] == ("remove", result["watch_id"])
+
+
+@pytest.mark.parametrize("changes", [
+    {"length": True}, {"length": 0}, {"length": 4097}, {"engine": "blitter"},
+    {"address": 0xFFFFF0}, {"length": 16, "class": "cpu"},
+])
+def test_cpu_range_watch_rejects_invalid_or_wrapping_ranges(changes):
+    c = Client()
+    watch = dict(address=0x10410, access="read", engine="cpu", wait_seconds=1, length=32)
+    watch.update(changes)
+    with pytest.raises(ValueError, match="Memory access watch requires"):
+        runtime.wait_for_memory_access(c, watch)
+    assert c.calls == []
+
+
+def test_cpu_range_relative_endpoint_is_checked_after_binding():
+    c = Client()
+    c.regs["a0"] = 0xFFFFF0
+    watch = dict(address=dict(base_register="a0", offset=0), access="read",
+                 engine="cpu", wait_seconds=1, length=32)
+    with pytest.raises(ValueError, match="address range exceeds"):
+        runtime.wait_for_memory_access(c, watch)
+    assert not any(call[0] == "break.add" for call in c.calls)
+
+
+def test_cpu_range_watch_refuses_backend_length_coercion_and_wrong_stop_kind():
+    c = Client()
+    original = c.request
+    def request(method, params=None):
+        if method == "break.list":
+            return {"breaks": [dict(c.watch, len=2)]}
+        return original(method, params)
+    c.request = request
+    watch = dict(address=0x10410, access="read", engine="cpu", wait_seconds=1, length=32)
+    result = runtime.wait_for_memory_access(c, watch)
+    assert not result["filter_confirmed"]
+    assert not any(call[0] == "run" for call in c.calls)
+    c = Client()
+    c.stop = {"reason": "watchpoint"}
+    assert runtime.wait_for_memory_access(c, watch)["status"] == "not_hit"
+
+
 @pytest.mark.parametrize("identity_ok", [False, True])
 def test_access_watch_only_arms_after_verified_canonical_anchor(tmp_path, identity_ok):
     p = payload(tmp_path)
@@ -188,6 +243,28 @@ def test_access_watch_only_arms_after_verified_canonical_anchor(tmp_path, identi
     if identity_ok:
         assert result["payload"]["status"] == "pc_matched"
         assert result["memory_access_watch"]["status"] == "hit"
+
+
+def test_cpu_access_instruction_identity_is_separate_from_paused_pc(tmp_path):
+    p = payload(tmp_path)
+    c = Client(p.read_bytes())
+    original_run = c.run_until
+    def run(params, timeout):
+        if "pc" in params:
+            return original_run(params, timeout)
+        c.regs["pc"] = 0x1204
+        return {"reason": "mmio", "access": {"pc": 0x1200, "addr": 0x10416,
+                                               "size": 2, "access": "read"}}
+    c.run_until = run
+    phase = dict(name="packet", stable_key="s0:00000200:instruction",
+                 breakpoint_address=0x1200, source_offset=0x200, wait_seconds=1,
+                 memory_access_watch=dict(address=0x10410, length=32, access="read",
+                                          engine="cpu", wait_seconds=1))
+    result = runtime._run_scenario_phase(c, phase, p, {}, None)
+    watch = result["memory_access_watch"]
+    assert watch["payload_at_access"]["payload_offset"] == "0x200"
+    assert watch["payload_at_stop"]["payload_offset"] == "0x204"
+    assert result["status"] == "hit"
 
 
 def test_dma_stop_outside_payload_retains_hit_without_claiming_source_identity(tmp_path):
@@ -267,6 +344,9 @@ def test_wait_reason_deadline_and_break_cleanup(stop, status):
     c.stop = stop
     result = runtime.wait_for_pc(c, 0x1000, 1)
     assert result["status"] == status
+    assert result["stop_event"] == (
+        None if status == "timeout" else stop or {"reason": "target"}
+    )
     assert c.calls[-1] == ("remove", 1)
 
 

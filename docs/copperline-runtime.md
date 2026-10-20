@@ -111,8 +111,9 @@ anchor. The requested binding and actual armed address are both retained;
 out-of-range sums fail without wrapping. Access is `read`, `write` or `access`;
 engine is `cpu`, `blitter`, `disk`, `copper`, `bpl1`..`bpl8`, `spr0`..`spr7`, or
 `aud0`..`aud3`. The watch budget is an integer 1..120 seconds. Unsupported fields,
-including length/range or arbitrary protocol commands, are rejected. The backend
-defines watch address granularity; this interface makes no extra claim about
+including arbitrary protocol commands, are rejected. CPU range watches have the
+explicit extension described below. For single-address watches the backend
+defines address granularity; this interface makes no extra claim about
 access width. A matching watchpoint is attributed through the armed filter in
 the isolated owned session, which has no other concurrent watches. Preserve
 the raw event rather than inventing address, width or engine fields it lacks.
@@ -167,6 +168,58 @@ tests reproduce the loss and verify preservation in either reply order.
 In this live run, both recovered replies say pause and the notification queue
 is empty, so the defect does not explain this newly missed blitter control.
 No fresh source-access attempts or bank30 classification changes were made.
+
+### CPU ranges and full chip-bus captures
+
+A CPU watch may additionally declare `"length": 1028` (1..4096 bytes).
+This uses the documented CPU `mmio` data-access trap, checks the exact
+`kind/addr/len/access` readback, and requires an `mmio` stop. Other engines
+continue to use the single-address watch interface. Addresses cannot wrap the
+24-bit space. The event's accessing instruction PC is independently matched
+against original target bytes when provided; it can differ from the paused PC.
+A CPU architectural LONG access and two physical WORD bus transfers are different
+observations and must not be counted interchangeably.
+
+A separate canonical phase may request a bounded full chip-bus profile:
+
+```json
+"chip_bus_trace": {
+  "frames": 4,
+  "wait_seconds": 5,
+  "ranges": [
+    {"name": "cursor_gap", "address": 111784, "length": 3840}
+  ]
+}
+```
+
+The interface permits 1..4 frames, 1..30 wall seconds and 1..4 uniquely named
+ranges of 1..4096 bytes; addresses support the same paused A-register binding.
+It uses Copperline 1.0.0's documented
+[full slot profiling format](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/profiling.md),
+without requesting RAM baselines or screenshots. It validates the fixed 24-byte
+little-endian record layout and complete sidecar extents, filters actual
+transfers by range overlap, and retains engine, direction, address, width, value,
+raster position and raw flags. All matching transfers are counted; only the
+first 4096 records are retained, with an explicit omission count. Owner-only,
+missing, repositioned and unsupported instantaneous-transfer records fail closed.
+The profile is stopped on every outcome; cleanup failure aborts the session.
+
+Raw slot sidecars stay in ignored owned runtime storage because they can contain
+unrelated guest/ROM bus values. Publish only filtered target observations and
+hashes. Native frame labels and the first frame's `partial` flag are preserved;
+a committed profile-frame label can differ by one from the arming stop's frame.
+Do not infer coverage before arming or join those labels without their semantics.
+Phase PC/SP, payload, capture and `stop_event` describe the canonical anchor;
+the nested hook contains the later stop and capture. Phase status/termination
+report the overall result. CPU slot records do not identify the accessing
+instruction; use a separate CPU range event for that context. A snapshot is still not a transfer event.
+
+The [unknown-span tracing record](../runtime/observations/pandora-unknown-span-tracing.json)
+contains a live B-source positive control with 40 validated blitter reads. This
+independently validates the profiler path; it does not repair or validate the
+older single-address blitter read-watch delivery. Negative captures apply only
+to their exact recorded windows. Saving a checkpoint after a bus trace requires
+a subsequent plain canonical phase, just as for an access watch.
 
 ## Preserved contracts and deliberate changes
 
