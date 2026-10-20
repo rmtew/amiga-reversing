@@ -1,11 +1,11 @@
 # Pandora restoration inventory and status
 
 > Current behavioural validation: [B01–B10 roadmap](../proposals/045-behavioural-validation.md),
-> [second-buffer evidence](../validation/pandora-behavioural-validation-second-buffer.json).
-> Four bounded predicates in two summaries: 25 CPU cases plus 65,536 BYTE inputs;
-> two original-only DMA fixtures. Tests: 249 Python passed,
-> optional live MCP SDK transport skipped. Assembly unchanged and C/vasm exact;
-> the prior 30 native tests are historical, not rerun. Every B ID remains partial/open.
+> [natural H30/S13 evidence](../validation/pandora-behavioural-validation-natural-boundary.json).
+> Five bounded predicates in three summaries: 25 CPU cases plus 65,536 BYTE inputs;
+> three original-only DMA fixtures. Tests: 269 Python passed, one optional live MCP
+> SDK transport skip. Assembly unchanged and C/vasm exact; prior 30 native tests
+> are historical, not rerun. Every B ID remains partial/open.
 
 The [comparison identity correction](../validation/pandora-behavioural-validation-identities.json)
 records reproduced false passes and fail-closed regressions. Candidate helper
@@ -37,6 +37,17 @@ binds its consumed identity to the reviewed hash; the service checks the returne
 identity too. The recorded82f1795e warm run consumed the reviewed hash, so no
 published-run substitution is evidenced. Fresh qualification uses the hardened
 profile; the older profiles remain historical.
+
+
+The natural H30/shift13 fixture reaches runtime `$16A1E` from caller return
+`$1715C`. Four configured jobs account for 960 DMA events within a 4,480-event
+ordered replay window. It checks WORD control fields `$DFCA/$D000/$0782` and
+per-channel address/width/order across a distinct height/shift setup. It does
+not independently recompute masked pixels, establish clipping from H32, or prove
+candidate equivalence, global clobbers or alias/lifetime safety. The consumed
+manifest identity guard also closes an admission/consumption race; no published
+substitution is evidenced. B07 valid-failure replay/reduction is the next
+capability batch, followed by the finite DMA value oracle and interference checks.
 
 Baseline snapshot: 2026-10-12, merged source `22e55bb5`, restoration revision
 `2f142cd09c5eae6d1edd001af3acfb2909098713d6a8f513eadda5c7279ba42e`.

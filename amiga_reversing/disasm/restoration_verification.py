@@ -206,10 +206,13 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artif
             manifest_path=local_path('manifest',manifest=True)
             if manifest_path.stat().st_size>1_000_000:
                 raise BehaviourError('incomplete_truncated','Manifest exceeds bounded evidence size')
-            if json.loads(manifest_path.read_text()).get('analysis_subject_revision')!=subject_revision:
+            manifest_bytes=manifest_path.read_bytes();expected_manifest=_hash(manifest_bytes)
+            if json.loads(manifest_bytes).get('analysis_subject_revision')!=subject_revision:
                 raise BehaviourError('stale','Derived manifest belongs to another analysis subject')
             result = runner.compare(target_id,context,manifest_path,library,artifact=artifact,warm_start=warm,
-                                    expected_context_sha256=expected_context)
+                                    expected_context_sha256=expected_context,expected_manifest_sha256=expected_manifest)
+            if result['manifest_sha256']!=expected_manifest:
+                raise BehaviourError('stale','Executed manifest identity differs from the admitted subject snapshot')
             if warm and result['context_sha256']!=expected_context:
                 raise BehaviourError('stale','Executed context identity differs from the reviewed fixture')
             if _hash(library.read_bytes())!=result['backend_sha256']:
@@ -233,7 +236,7 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artif
                                   checker_sha256=checks.LOADED_SOURCE.require_current(),
                                   receipt_service_sha256=LOADED_SOURCE.require_current(),
                                   profile='68000 ordinary CPU; no IRQ/Paula/DMA; modeled call; observer v1')))
-        elif execution == 'pandora_shared_scratch_dma':
+        elif execution in ('pandora_shared_scratch_dma','pandora_renderer_dma'):
             from amiga_reversing.tools import pandora_scratch_behaviour as runner
             result, identities = runner.evaluate(target_id,local_path('capture'),contract,subject_revision)
             identities['profile']=digest(dict(execution_profile=identities['profile'],

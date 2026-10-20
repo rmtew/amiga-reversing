@@ -14,6 +14,7 @@ from tests.test_behaviour_validation import DATA,ROOT
 from tests.test_behaviour_receipts import service
 
 TARGET='amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8'
+REAL_COMPARE=volume.compare
 
 
 def test_candidate_helper_bytes_are_executed_not_replaced_by_donor():
@@ -109,7 +110,7 @@ def test_cached_checker_changed_on_disk_requires_restart_on_second_request(servi
     assert 'restart' in result['outcome']['reason']
 
 
-def test_native_plan_and_manifest_are_part_of_receipt_profile(service):
+def test_native_plan_and_manifest_are_part_of_receipt_profile(service,tmp_path):
     _,result,request=service
     first=rv.run_behaviour('target','revision',request)
     request['previous_receipt_id']=first['receipt_id']
@@ -117,6 +118,56 @@ def test_native_plan_and_manifest_are_part_of_receipt_profile(service):
     second=rv.run_behaviour('target','revision',request)
     assert second['status']=='stale' and second['admission']['identity']=='profile'
     result['native_plan_sha256']=bv.digest('native plan')
-    result['manifest_sha256']=bv.digest('another manifest')
+    manifest=tmp_path/request['manifest']
+    manifest.write_text(json.dumps(json.loads(manifest.read_text()),indent=2))
     third=rv.run_behaviour('target','revision',request)
     assert third['status']=='stale' and third['admission']['identity']=='profile'
+
+
+def test_manifest_swap_after_subject_admission_is_refused_at_consumption(service,tmp_path,monkeypatch):
+    _,_,request=service
+    manifest,document,artifact=manifest_fixture((tmp_path/request['manifest']).parent)
+    context=tmp_path/'runtime/observations/pandora-volume-local-context.json';context.parent.mkdir(parents=True)
+    context.write_bytes((ROOT/'runtime/observations/pandora-volume-local-context.json').read_bytes())
+    (tmp_path/'src/build/libamiga_backend.so').write_bytes((ROOT/'src/build/libamiga_backend.so').read_bytes())
+    consumed=[]
+    def compare(*args,**kwargs):
+        assert json.loads(manifest.read_text())['analysis_subject_revision']=='a'*64
+        stale=dict(document,analysis_subject_revision='b'*64)
+        manifest.write_text(json.dumps(stale))
+        # Same valid payload/native plan; only the admitted subject changed.
+        validate_manifest(manifest,TARGET);verify_native_binding(stale,artifact)
+        result=REAL_COMPARE(*args,**kwargs);consumed.append(result['manifest_sha256'])
+        return result
+    monkeypatch.setattr(volume,'compare',compare)
+    result=rv.run_behaviour(TARGET,'a'*64,request,artifact=artifact)
+    assert result['status']=='stale',dict(status=result['status'],consumed=consumed)
+    assert not consumed
+
+
+def test_manifest_hash_and_validator_consume_one_byte_snapshot(tmp_path,monkeypatch):
+    path,document,artifact=manifest_fixture(tmp_path);reviewed=path.read_bytes()
+    replacement=json.dumps(dict(document,analysis_subject_revision='b'*64)).encode()
+    validate=volume.validate_manifest;subjects=[]
+    def snapshot_validator(manifest,target,*,manifest_bytes=None):
+        assert manifest_bytes==reviewed
+        path.write_bytes(replacement)
+        try:
+            result=validate(manifest,target,manifest_bytes=manifest_bytes)
+            subjects.append(result[0]['analysis_subject_revision'])
+            return result
+        finally:path.write_bytes(reviewed)
+    monkeypatch.setattr(volume,'validate_manifest',snapshot_validator)
+    result=REAL_COMPARE(TARGET,ROOT/'runtime/observations/pandora-volume-local-context.json',path,
+                        ROOT/'src/build/libamiga_backend.so',artifact=artifact,
+                        expected_manifest_sha256=volume.sha(reviewed))
+    assert subjects==['a'*64] and result['manifest_sha256']==volume.sha(reviewed)
+    assert result['routine_comparison']['accepted_cases']==19
+
+
+def test_returned_manifest_identity_cannot_substitute_another_snapshot(service,monkeypatch):
+    _,result,request=service
+    def compare(*args,**kwargs):return dict(result,manifest_sha256=bv.digest('unadmitted manifest'))
+    monkeypatch.setattr(volume,'compare',compare)
+    result=rv.run_behaviour('target','revision',request)
+    assert result['status']=='stale' and 'Executed manifest' in result['outcome']['reason']

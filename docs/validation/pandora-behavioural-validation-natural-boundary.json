@@ -1,0 +1,562 @@
+{
+  "schema_version": 1,
+  "kind": "behavioural-validation-batch-evidence",
+  "batch": "Natural H30/S13 renderer geometry and consumed manifest identity",
+  "base_commit": "b3d205659c5ef196f21e65406fb46f6bbbdf52dc",
+  "B_ids_advanced": [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B06",
+    "B08",
+    "B09",
+    "B10"
+  ],
+  "completed_B_ids": [],
+  "fixture_manifest": "runtime/observations/pandora-renderer-H30-S13.json",
+  "canonical_summary_id": "catalog-function-summary-entry-h0-00006A1E",
+  "canonical_contract_id": "pandora.renderer.H30-S13.v1",
+  "development_evaluation": {
+    "outcome": {
+      "status": "pass",
+      "configured_jobs_checked": 4,
+      "observed_job_events": 960,
+      "mask_reads": 240,
+      "pixel_reads": 240,
+      "background_reads": 240,
+      "destination_writes": 240,
+      "control_WORDs": {
+        "bltcon0": 57290,
+        "bltcon1": 53248,
+        "bltsize": 1922
+      },
+      "masked_output_recomputation": false,
+      "frame_association": {
+        "native_entry_frame": 935,
+        "profile_container_frame": 936,
+        "scope": "Declared container and within-frame raster bounds only; no global offset inferred"
+      }
+    },
+    "comparison_kind": "original_self_replay",
+    "candidate_equivalence": false,
+    "repeatability": {
+      "status": "pass",
+      "events_compared": 4480,
+      "stream_sha256": "dec8871779bea93e497094fd3ca45305d9cb6070c95e3726189acae304bcafe7"
+    },
+    "baseline_sha256": "8c1ea1e14b86d2e2e555d7268b703c0df623bec838507d4fc71fc4780c6a770f",
+    "capture_sha256": "6a1ba04f7c34446b9f4fb124c38c89a5ed5a1353d113de6a81d4ab190611d5f8",
+    "canonical_entry": {
+      "stable_key": "s0:00006A1E:instruction",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 32,
+        "matching_offsets": [
+          "0x6a1e"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x6a1e",
+        "runtime_base": "0x00010000"
+      },
+      "registers": {
+        "d0": "0x01921cda",
+        "d1": "0x03cc1cc0",
+        "d2": "0x01e000a0",
+        "d3": "0x04000380",
+        "d4": "0x00000001",
+        "d5": "0x00000010",
+        "d6": "0x0000000d",
+        "d7": "0x0000001e",
+        "a0": "0x00031528",
+        "a1": "0x0007db00",
+        "a2": "0x00071cda",
+        "a3": "0x00031528",
+        "a4": "0x0007db00",
+        "a5": "0x0001322a",
+        "a6": "0x000039fc",
+        "a7": "0x0001042e",
+        "sr": "0x00002000"
+      },
+      "caller_return": "0x0001715c"
+    },
+    "coverage": {
+      "B_ids": [
+        "B01",
+        "B02",
+        "B04",
+        "B05",
+        "B07",
+        "B08",
+        "B09"
+      ],
+      "scenario": "pandora-natural-shifted-H30-S13",
+      "entry_stop": {
+        "cck": 66464563,
+        "detail": "Breakpoint at $016A1E",
+        "frame": 935,
+        "hpos": 98,
+        "pc": 92702,
+        "reason": "breakpoint",
+        "retired_instructions": 9206,
+        "seconds": 18.7388019662268,
+        "vpos": 140
+      },
+      "frames": [
+        {
+          "frame": 936,
+          "seconds": 18.754103518711435,
+          "retired": 6409,
+          "pc": "0x00016792",
+          "traced": true,
+          "partial": true,
+          "rows": 313,
+          "line_cck": 227,
+          "cck_length": 71051,
+          "slots_sha256": "324739517531319a1a11a22015a04997c850dcf9f5f0d0572a5effc3fbcbbfa2",
+          "slots_bytes": 1705224
+        },
+        {
+          "frame": 937,
+          "seconds": 18.770390158152413,
+          "retired": 6090,
+          "pc": "0x0001853A",
+          "traced": true,
+          "partial": false,
+          "rows": 313,
+          "line_cck": 227,
+          "cck_length": 71051,
+          "slots_sha256": "ee3ad2b1feadbd595ae2c8f2a1eb1ec1160ffa6e94488db570d647a78bb9014f",
+          "slots_bytes": 1705224
+        }
+      ],
+      "requested_ranges": [
+        {
+          "name": "pixel_source",
+          "address": 202024,
+          "length": 768
+        },
+        {
+          "name": "mask_source",
+          "address": 514816,
+          "length": 192
+        },
+        {
+          "name": "world_destination",
+          "address": 466138,
+          "length": 4096
+        },
+        {
+          "name": "world_destination_tail",
+          "address": 470234,
+          "length": 1024
+        }
+      ],
+      "counts": [
+        {
+          "range": "mask_source",
+          "engine": "blitter",
+          "access": "read",
+          "transfers": 480
+        },
+        {
+          "range": "pixel_source",
+          "engine": "blitter",
+          "access": "read",
+          "transfers": 480
+        },
+        {
+          "range": "world_destination",
+          "engine": "bitplane",
+          "access": "read",
+          "transfers": 2048
+        },
+        {
+          "range": "world_destination",
+          "engine": "blitter",
+          "access": "read",
+          "transfers": 412
+        },
+        {
+          "range": "world_destination",
+          "engine": "blitter",
+          "access": "write",
+          "transfers": 412
+        },
+        {
+          "range": "world_destination_tail",
+          "engine": "bitplane",
+          "access": "read",
+          "transfers": 512
+        },
+        {
+          "range": "world_destination_tail",
+          "engine": "blitter",
+          "access": "read",
+          "transfers": 68
+        },
+        {
+          "range": "world_destination_tail",
+          "engine": "blitter",
+          "access": "write",
+          "transfers": 68
+        }
+      ],
+      "omitted_records": 0,
+      "window_events": 4480,
+      "configured_job_predicate": {
+        "status": "pass",
+        "configured_jobs_checked": 4,
+        "observed_job_events": 960,
+        "mask_reads": 240,
+        "pixel_reads": 240,
+        "background_reads": 240,
+        "destination_writes": 240,
+        "control_WORDs": {
+          "bltcon0": 57290,
+          "bltcon1": 53248,
+          "bltsize": 1922
+        },
+        "masked_output_recomputation": false,
+        "frame_association": {
+          "native_entry_frame": 935,
+          "profile_container_frame": 936,
+          "scope": "Declared container and within-frame raster bounds only; no global offset inferred"
+        }
+      },
+      "analysis_partitions": [
+        [
+          {
+            "name": "pixel_source",
+            "address": 202024,
+            "length": 768
+          },
+          {
+            "name": "mask_source",
+            "address": 514816,
+            "length": 192
+          }
+        ],
+        [
+          {
+            "name": "world_destination",
+            "address": 466138,
+            "length": 4096
+          },
+          {
+            "name": "world_destination_tail",
+            "address": 470234,
+            "length": 1024
+          }
+        ]
+      ],
+      "reported_omitted_records": 384
+    },
+    "limits": [
+      "Original replay proves repeatability and this bounded predicate, not candidate equivalence.",
+      "No original seed interpretation, unused remainder, whole-stack allocation, all-callers lifetime or relocation safety claim.",
+      "CPU architectural events and physical DMA transfers are different streams; no CPU programming PC is inferred from a bus slot.",
+      "Only four configured H30/S13 jobs and their ROI footprints are attributed; no independent masked-output value oracle or final image equivalence.",
+      "One observed H30/shift13 setup; this does not prove vertical clipping from H32 or all callers.",
+      "No bank30/defeat sequence, font, bank45 or EQU/RS policy coverage."
+    ]
+  },
+  "capability_changes": [
+    "Reuse one finite configured-job validator for H32/S4 scratch and H30/S13 direct renderer, preserving distinct frame domains.",
+    "H30/S13 WORD control fields cross bit15; fixed H32/positive-signed assumptions fail. Descriptor/address/width/order only; no independent masked-output recomputation.",
+    "CPU service admission and validation parse the same manifest byte snapshot, pass expected hash to execution, and check consumed identity before receipt qualification."
+  ],
+  "manifest_race": {
+    "before": "Reproduced false pass after valid native-bound manifest subject A replaced by B after admission.",
+    "unreviewed_consumed_manifest_sha256": "ec5188d668499a209d13bd7fac3caaf34f08d9cb2f704c0e73b9e1a1b08d1536",
+    "before_output_sha256": "28af0fb28a6fffd3aeeab6dcffa6495ffee48d54d1b4b0b0d32c73a23fd240da",
+    "after": "stale before CPU execution; single-snapshot validator and returned identity regression also pass.",
+    "impact": "No published substitution observed; older profiles remain historical and fresh qualification is required.",
+    "published_run_check": {
+      "CPU_legacy": {
+        "receipt_id": "49828fbb9e09085a217a6fc965e0407460aa302c0aa1c1f840a583b2830af4ce",
+        "consumed_manifest_sha256": "f22e82ae1fb655ca87962c24048937f6175e7a6f2722b5958e0b9b72517344ce",
+        "admitted_subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3"
+      },
+      "CPU_warm": {
+        "receipt_id": "d552ebc83fd5164252c35c2bf59360dff5925f0bbccb249d0dbe3a7043d1305b",
+        "consumed_manifest_sha256": "f22e82ae1fb655ca87962c24048937f6175e7a6f2722b5958e0b9b72517344ce",
+        "admitted_subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3"
+      }
+    }
+  },
+  "coverage": {
+    "accepted_predicates_before": 4,
+    "accepted_predicates_after": 5,
+    "programme_summaries_before": 2,
+    "programme_summaries_after": 3,
+    "CPU_cases_before": 25,
+    "CPU_cases_after": 25,
+    "BYTE_inputs_before": 65536,
+    "BYTE_inputs_after": 65536,
+    "adopted_DMA_fixtures_before": 2,
+    "adopted_DMA_fixtures_after": 3,
+    "new_window_events": 4480,
+    "new_attributed_job_events": 960,
+    "new_configured_jobs": 4,
+    "mask_reads": 240,
+    "pixel_reads": 240,
+    "background_reads": 240,
+    "destination_writes": 240,
+    "candidate_DMA_equivalence": false
+  },
+  "unsuccessful_probe": {
+    "scenario": "down18 from saved route,30second wait",
+    "outcome": "timeout_not_observed_within_bounds",
+    "visits_observed": 9,
+    "visits_requested": 18,
+    "deadline_PC": "0x16782",
+    "limit": "Last successful entry snapshot is not deadline RAM; no cause, wall or function-absence inference."
+  },
+  "accounting": {
+    "unknown_bytes_before": 6446,
+    "unknown_bytes_after": 6446,
+    "assembly_changed": false,
+    "new_purpose_or_relocation_credit": 0
+  },
+  "limits": [
+    "Original-only self-replay, no candidate equivalence; one natural H30/S13 setup does not prove clipping from H32. No all-callers lifetime, global clobber, final image, alias/interference or relocation proof; later window blits not all attributed to this call.",
+    "Native descriptor frames and profile container labels are distinct; only within-frame association is admitted.",
+    "B07 validity-preserving reduction remains unfinished; B05/B06 value oracle and alias/interference checks remain next after B07.",
+    "No bank30, fonts, bank45 layout or EQU/RS changes; private payloads, ROMs and checkpoint bytes remain local."
+  ],
+  "next_evidence_question": "Demonstrate bounded deterministic failure replay and validity-preserving reduction within an already admitted CPU contract; then independent DMA values and alias/interference checks.",
+  "canonical_action_id": "manual-f75aa9fe0c1540928dd2e439c49e6293",
+  "canonical_review": {
+    "decision": {
+      "action": "accept_fact",
+      "actor": {
+        "kind": "tool",
+        "name": "restoration"
+      },
+      "candidate_id": "restoration:manual-f75aa9fe0c1540928dd2e439c49e6293",
+      "conflicts": [],
+      "created_at": "2026-10-20T23:38:08.866149+00:00",
+      "decision_id": "restoration-6b6e1dff34b14bfbad67924a1e1d161f",
+      "evidence_refs": [
+        "s0:00006A1E:instruction",
+        "s0:0000715C:instruction",
+        "s0:000005D6:instruction"
+      ],
+      "fact_type": "restoration_interpretation",
+      "prev": "sha256:f0b4dd744108c9541833fef8cb9a04845c9cbbc97a419b29ee8b59afd29e3022",
+      "probe_id": null,
+      "reason": "Accept only the finite original H30/S13 descriptor and observed ROI footprint/order predicate at6A1E with captured return1715C. Two exact-identity runs repeat4480 ordered window events; first four jobs account for960 events. 269 focused Python tests pass, one optional MCP SDK skip. This is neither candidate equivalence nor independent masked-output recomputation, clipping causality, global clobber/all-callers lifetime or relocation proof. Generated assembly is unchanged and C/vasm full-file exact.",
+      "schema": "evidence-decision/v1",
+      "scope": {
+        "kind": "manual_action"
+      },
+      "selected_identity": {
+        "subject_id": "manual-f75aa9fe0c1540928dd2e439c49e6293",
+        "subject_kind": "action",
+        "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+      },
+      "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+      "verification_id": "7e288dedac5e186c9d39ddba4eb5933205c6f326c896d18e8403d772e03663dc"
+    },
+    "revision": "f4006a3b95ea89266e47e0664fc95bc91f2bb16ee2fa05de9181a5c167d4c89b",
+    "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7"
+  },
+  "exact_verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "receipt_id": "7e288dedac5e186c9d39ddba4eb5933205c6f326c896d18e8403d772e03663dc",
+    "revision": "ea5a889293fdc572aa339e2080dc8c747c8a7eb1c6a2bf9d6c2bffa4422fc1f6",
+    "source_package_sha256": "da7ba65480882578505bc9cbd530c30a257bfb6cf97f1d05ac8165dab5e88ae3",
+    "source_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db",
+    "status": "exact",
+    "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "qualified_receipts": {
+    "CPU_legacy": {
+      "receipt_id": "2b17ab31025736fbf3dec61de6f819837c3dbf3de01d80bdca3847ef5bca9837",
+      "status": "pass",
+      "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "f64ef6f91f0a2f6d84aa7578412e988e54ab6635a00ad7c08871d84136756d83",
+        "fixture": "8f6139d2905292f122234b6891527751a915d2489f00c0b32a3d0a84b8cea429",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "b710b60c878130a18b72298a6d8a59666933a492d31bd4fe7eb1e8e9fe54232a"
+      },
+      "evaluation_outcome": {
+        "status": "pass"
+      }
+    },
+    "CPU_warm": {
+      "receipt_id": "4bf98b4a30d22d00cb72e9c8df3e046d3a7bae4e1b0dcaa0547edaa9e60277a3",
+      "status": "pass",
+      "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "e77dde94d6f28b5ea3b38dd7d127171d1b685147d21b6fec872831b1a61ada27",
+        "fixture": "c02d334a809ae48dc6407831e295de95adca39b1db2c8f0810b2d528d05e47d4",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "5528f7211a5135c01506df8a8ee730197e3e8f13bab1647a1e03f2b2c5878a77"
+      },
+      "evaluation_outcome": {
+        "status": "pass"
+      }
+    },
+    "DMA_legacy": {
+      "receipt_id": "622520b7c96f1c57710fedb0a093926c64bc8cd95916c58edc625e8bc45343fa",
+      "status": "pass",
+      "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "f6a3374717e7c9ed2466c6c86a95d3279baf4498cabc33460971e6712dedf040",
+        "fixture": "5ad2c2a13928ba609a0840615bc0240dc854e66119b80862076317043143869f",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "1e00072e8d3d10d3bb9e27d4a92b74b2d1acf29a0bd85a4daaf96db235be7939"
+      },
+      "evaluation_outcome": {
+        "address_order_sha256": "449a54a93f3d2e7c9c625112af7cbc3b38f38fcd4594bbad705e0e9ff08ea5a1",
+        "counts": {
+          "read": 128,
+          "write": 256
+        },
+        "events_checked": 384,
+        "observed_byte_extent": [
+          111528,
+          112040
+        ],
+        "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof",
+        "status": "pass",
+        "stream_sha256": "5008b245cdb8d40cc6cafb64cfc528d2dcb09a2d4db57779baf1939869c46221"
+      }
+    },
+    "DMA_second": {
+      "receipt_id": "7abbbc30984ed7cec59f214e5ffe069646f30ae9c775a62ab7325d269129b30a",
+      "status": "pass",
+      "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "4587d7ca34a08ae86be54bb133cd5f7a6c6548550811ec4bbb05d7b52289ddc0",
+        "fixture": "3e3bf6aba838d9748b2ea285a44a1a659983ec19c021a8211cc90c91812fcd85",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "1e00072e8d3d10d3bb9e27d4a92b74b2d1acf29a0bd85a4daaf96db235be7939"
+      },
+      "evaluation_outcome": {
+        "address_order_sha256": "449a54a93f3d2e7c9c625112af7cbc3b38f38fcd4594bbad705e0e9ff08ea5a1",
+        "counts": {
+          "read": 128,
+          "write": 256
+        },
+        "events_checked": 384,
+        "observed_byte_extent": [
+          111528,
+          112040
+        ],
+        "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof",
+        "status": "pass",
+        "stream_sha256": "3363836166a57ba9413aa09a257d74b88d99da9ec1979ac6a24fb5e15c9358de"
+      }
+    },
+    "DMA_shifted": {
+      "receipt_id": "9676643b8d06d062c47c25a8f1aa035a5b234caeed428e853dc7bc4c49e14ed6",
+      "status": "pass",
+      "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "5bcd75dd18466ba609de08d032312dcaa73aa176d1384fdff7173b72b5a6dd4a",
+        "fixture": "63da43e1eea32b3e7583f96ef673efbee1ee85e101d2fc32b22f34b77a06d16b",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "1e00072e8d3d10d3bb9e27d4a92b74b2d1acf29a0bd85a4daaf96db235be7939"
+      },
+      "evaluation_outcome": {
+        "background_reads": 240,
+        "configured_jobs_checked": 4,
+        "control_WORDs": {
+          "bltcon0": 57290,
+          "bltcon1": 53248,
+          "bltsize": 1922
+        },
+        "destination_writes": 240,
+        "frame_association": {
+          "native_entry_frame": 935,
+          "profile_container_frame": 936,
+          "scope": "Declared container and within-frame raster bounds only; no global offset inferred"
+        },
+        "mask_reads": 240,
+        "masked_output_recomputation": false,
+        "observed_job_events": 960,
+        "pixel_reads": 240,
+        "status": "pass"
+      }
+    }
+  },
+  "derived_candidate": {
+    "artifact_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+    "manifest_sha256": "5df2db2f8c0ff662a7d30fce4e75c470d28052cc64464774f533309c14814b77",
+    "revision": "f4006a3b95ea89266e47e0664fc95bc91f2bb16ee2fa05de9181a5c167d4c89b",
+    "rewrite_count": 5,
+    "status": "built",
+    "subject_revision": "fc33e1eebfbf241c9f5d76387167754851659ff193fb55726cf04e8eee45a0a7"
+  },
+  "tests": {
+    "Python_passed": 269,
+    "optional_skipped": 1,
+    "optional_skip": "Live MCP SDK transport unavailable; not delivered by this skip.",
+    "native_backend": "Generated semantics unchanged; prior30 native tests historical, not rerun.",
+    "negative_cases": [
+      "H30/S13 wrong control WORD sign bit, H32 reuse, stride, width and missing read mismatch.",
+      "Cross-frame unsupported; truncated/missing jobs incomplete. Opaque container labels preserve association.",
+      "Wrong caller/stack bytes/anchor/first-entry setup refuse capture admission.",
+      "Manifest admission swap, snapshot-parser reread and returned identity regressions fail closed."
+    ]
+  },
+  "prereview": {
+    "receipt_id": "4948666cb0b6690aa7e4ecfb3e78e02de4fcbb8b8b4a3df56060f72b205b5928",
+    "status": "missing_prerequisite",
+    "evaluation_outcome": {
+      "background_reads": 240,
+      "configured_jobs_checked": 4,
+      "control_WORDs": {
+        "bltcon0": 57290,
+        "bltcon1": 53248,
+        "bltsize": 1922
+      },
+      "destination_writes": 240,
+      "frame_association": {
+        "native_entry_frame": 935,
+        "profile_container_frame": 936,
+        "scope": "Declared container and within-frame raster bounds only; no global offset inferred"
+      },
+      "mask_reads": 240,
+      "masked_output_recomputation": false,
+      "observed_job_events": 960,
+      "pixel_reads": 240,
+      "status": "pass"
+    },
+    "admission": {
+      "reason": "Canonical contract requires Decision Journal acceptance",
+      "status": "missing_prerequisite"
+    }
+  }
+}

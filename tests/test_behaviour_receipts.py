@@ -26,10 +26,14 @@ def service(tmp_path,monkeypatch):
                 binding_checker_sha256=bv.digest('native binding checker'),
                 context_sha256=bv.digest('fixture'),routine_comparison=dict(refused_cases=[]),
                 accepted_cases=[dict(fixture_ids=[bv.digest('a'),bv.digest('b')])])
-    monkeypatch.setattr(volume,'compare',lambda *args,**kwargs:result)
+    def compare(*args,**kwargs):
+        result['manifest_sha256']=rv._hash(args[2].read_bytes())
+        return result
+    monkeypatch.setattr(volume,'compare',compare)
     request=dict(contract_id='bounded-test',manifest='.runtime-state/restoration/derived/fixture/manifest.json')
     manifest=tmp_path/request['manifest'];manifest.parent.mkdir(parents=True,exist_ok=True)
     manifest.write_text(json.dumps(dict(analysis_subject_revision='revision')))
+    result['manifest_sha256']=rv._hash(manifest.read_bytes())
     return contract,result,request
 
 

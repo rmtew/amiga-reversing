@@ -23,6 +23,7 @@ from amiga_reversing.tools.copperline_control import CopperlineError
 
 LOADED_SOURCE=LoadedSource(__file__)
 SECOND_BUFFER='pandora.scratch.second-buffer.v1'
+SHIFTED_BOUNDARY='pandora.renderer.H30-S13.v1'
 
 
 def sha(path):
@@ -52,10 +53,13 @@ def read_capture(path, original, contract, receipt):
         else:
             status='incomplete_truncated'
         raise BehaviourError(status,'Canonical scenario did not complete')
-    if (len(phases)!=3 or [p.get('stable_key') for p in phases]!=
-            ['s0:000005D6:instruction','s0:00006C60:instruction','s0:000005D6:instruction']
+    shifted=contract.get('contract_id')==SHIFTED_BOUNDARY
+    anchors=['s0:000005D6:instruction','s0:00006C60:instruction']
+    if shifted:anchors.append('s0:00006A1E:instruction')
+    anchors.append('s0:000005D6:instruction')
+    if (len(phases)!=len(anchors) or [p.get('stable_key') for p in phases]!=anchors
             or any(p.get('status')!='hit' for p in phases)):
-        raise BehaviourError('incomplete_truncated','Requires all three canonical scenario anchors')
+        raise BehaviourError('incomplete_truncated','Requires all canonical scenario anchors')
     identity=hashlib.sha256(original).hexdigest()
     if (o.get('direct_payload_handoff',{}).get('status')!='verified'
             or o['direct_payload_handoff'].get('payload_sha256')!=identity
@@ -65,10 +69,10 @@ def read_capture(path, original, contract, receipt):
             or o.get('reverse_boundary',{}).get('materialization',{}).get('copied_sha256')
             !=hashlib.sha256(original[:349040]).hexdigest()):
         raise BehaviourError('stale','Capture root, checkpoint or copied payload identity differs')
-    p=phases[1];payload=p.get('payload',{});regs=p.get('capture',{}).get('registers',{})
+    p=phases[2 if shifted else 1];payload=p.get('payload',{});regs=p.get('capture',{}).get('registers',{})
     if (payload.get('status')!='pc_matched' or payload.get('payload_sha256')!=identity
-            or payload.get('payload_offset')!='0x6c60' or int(payload.get('runtime_base','0'),0)!=0x10000
-            or p.get('stack_return_address')!='0x00017090'):
+            or payload.get('payload_offset')!=('0x6a1e' if shifted else '0x6c60') or int(payload.get('runtime_base','0'),0)!=0x10000
+            or p.get('stack_return_address')!=('0x0001715c' if shifted else '0x00017090')):
         raise BehaviourError('stale','Canonical renderer/caller identity differs')
     for name,value in contract['entry_registers'].items():
         if int(regs.get(name,'-1'),0)!=value:
@@ -80,15 +84,20 @@ def read_capture(path, original, contract, receipt):
                 or int(first.get('a2','-1'),0)!=contract['first_entry_destination']
                 or any(first.get(k)!=regs.get(k) for k in ('d5','d6','d7','a0','a1','a7'))):
             raise BehaviourError('unsupported','Requires the two natural buffer entries with the same geometry')
+    if shifted:
+        first=p.get('first_capture',{}).get('registers',{})
+        if (p.get('occurrences_requested')!=2 or p.get('occurrences_observed')!=2
+                or any(int(first.get(k,'-1'),0)!=v for k,v in contract['first_entry_registers'].items())):
+            raise BehaviourError('unsupported','Requires the reviewed natural renderer entry sequence')
     sp=int(regs['a7'],0)
     stack=next((r for r in p['capture']['memory_reads'] if int(r['address'],0)==sp),None)
-    if not stack or bytes.fromhex(stack['bytes'])[:4]!=(0x17090).to_bytes(4,'big'):
+    if not stack or bytes.fromhex(stack['bytes'])[:4]!=(0x1715c if shifted else 0x17090).to_bytes(4,'big'):
         raise BehaviourError('missing_prerequisite','Captured caller return bytes are required')
     trace=p.get('chip_bus_trace',{})
     spec=trace.get('requested_trace',{})
-    expected_spec=(contract['trace_request'] if second else dict(frames=2,wait_seconds=5,
+    expected_spec=(contract['trace_request'] if second or shifted else dict(frames=2,wait_seconds=5,
             ranges=[dict(name='shared_scratch',address=0x1b3a8,length=768)]))
-    resolved=contract['resolved_ranges'] if second else expected_spec['ranges']
+    resolved=contract['resolved_ranges'] if second or shifted else expected_spec['ranges']
     if (trace.get('status')!='captured' or spec!=expected_spec or trace.get('ranges')!=resolved):
         raise BehaviourError('incomplete_truncated','Requires the complete bounded shared-scratch profile')
     try:
@@ -99,7 +108,7 @@ def read_capture(path, original, contract, receipt):
         raise BehaviourError('stale','Reported transfers differ from re-decoded sidecars')
     if profile['profile_summary'].get('samples_dropped')!=0:
         raise BehaviourError('incomplete_truncated','Dropped or omitted trace records')
-    if second:
+    if second or shifted:
         # The original four-range report is explicitly truncated. Normative
         # evidence is the complete re-decode of declared bounded partitions.
         reported=profile
@@ -146,26 +155,38 @@ def validate_renderer_stream(events):
 
 
 def validate_second_buffer_window(profile, entry):
-    """Five finite area-blit jobs, observed channel footprints and FIFO copy.
+    return validate_configured_window(profile,entry,profile_kind='second_buffer')
+
+
+def validate_shifted_boundary(profile, entry):
+    return validate_configured_window(profile,entry,profile_kind='shifted_H30_S13')
+
+
+def validate_configured_window(profile, entry, *, profile_kind):
+    """Finite configured area jobs and observed per-channel footprints.
 
     Descriptor native frames and profile-container labels are distinct domains.
     Admit only jobs completed in the entry's native frame and declared first
     container; raster coordinates are associated within that container, without
     inferring a global frame offset or a CPU programming PC.
     """
+    if profile_kind not in ('second_buffer','shifted_H30_S13'):
+        return dict(status='unsupported',reason='Unknown finite renderer profile')
+    direct=profile_kind=='shifted_H30_S13';job_count=4 if direct else 5
     def number(v):
         if type(v) is int:return v
         if isinstance(v,str):return int(v,0)
         raise ValueError('Expected integer or hexadecimal field')
     try:
         regs={k:number(entry['capture']['registers'][k]) for k in ('a0','a1','a2','d5','d6','d7')}
-        frame=profile['frames'][0];jobs=frame['blits'][:5];native=entry['stop_event']['frame']
+        frame=profile['frames'][0];jobs=frame['blits'][:job_count];native=entry['stop_event']['frame']
         previous=(entry['stop_event']['vpos'],entry['stop_event']['hpos'])
     except (KeyError,ValueError,TypeError,IndexError):
         return dict(status='incomplete_truncated',reason='Missing bounded blit descriptors or entry')
-    if (regs['d5'],regs['d6'],regs['d7'])!=(16,4,32):
-        return dict(status='unsupported',reason='Only H32, shift4 and16-byte source rows are admitted')
-    if len(jobs)!=5:return dict(status='incomplete_truncated',reason='Five completed job descriptors required')
+    geometry=(16,13,30) if direct else (16,4,32)
+    if (regs['d5'],regs['d6'],regs['d7'])!=geometry:
+        return dict(status='unsupported',reason='Setup is outside the finite renderer profile',expected_geometry=geometry)
+    if len(jobs)!=job_count:return dict(status='incomplete_truncated',reason='Complete configured job prefix required',required=job_count)
     prefix_events=0;copy_events=[]
     for index,job in enumerate(jobs):
         if job.get('render_truncated') is not False:
@@ -192,6 +213,14 @@ def validate_second_buffer_window(profile, entry):
             bltcon0=0x4fca,bltcon1=0x4000,masks=[65535,0]) if index<4 else dict(
             width_words=1,height=128,channels=[True,False,False,True],captured_words=[128,0,0,128],
             modulos=[2,12,156,38],apt=0x1b3aa,dpt=regs['a2'],bltcon0=0x09f0,bltcon1=0x4000,masks=[65535]*2)
+        if direct:
+            # The original SWAP/CLR/ROR/ADDI.W sequence exposes the low shift
+            # nibble in WORD control fields. H30/S13 crosses the control WORD's
+            # sign bit; no H32 or positive-signed-control assumption is reused.
+            shift_word=((regs['d6']&15)<<12)&65535
+            expected.update(height=30,captured_words=[60]*4,modulos=[0,12,156,156],
+                            cpt=regs['a2']+40*index,dpt=regs['a2']+40*index,
+                            bltcon0=(shift_word+0xfca)&65535,bltcon1=shift_word)
         if actual!=expected:
             return dict(status='mismatch',comparison_stream='blit_descriptor',first_divergence=index,
                         reason='Configured job differs from the bounded contract',expected=expected,actual=actual)
@@ -199,10 +228,12 @@ def validate_second_buffer_window(profile, entry):
                 and start<=(e['row'],e['hpos'])<=end]
         channels=range(4) if index<4 else (0,3)
         layouts=((regs['a1'],4),(regs['a0']+2*index,16),(regs['a2']-2+40*index,160),(0x1b3a8+4*index,16)) if index<4 else ((0x1b3aa,4),(0,0),(0,0),(regs['a2'],40))
+        if direct:layouts=((regs['a1'],4),(regs['a0']+2*index,16),(regs['a2']+40*index,160),(regs['a2']+40*index,160))
         if any(e['subtype'] not in channels for e in events):
             return dict(status='mismatch',reason='Unexpected observed channel in job',descriptor_index=index)
         for channel in channels:
             base,stride=layouts[channel];width=2 if index<4 else 1;height=32 if index<4 else 128
+            if direct:height=30
             expected_events=[dict(address=base+stride*r+2*w,size=2,reg=(0x50,0x4c,0x48,0x54)[channel],
                                   access='write' if channel==3 else 'read') for r in range(height) for w in range(width)]
             observed=[{k:e[k] for k in ('address','size','reg','access')} for e in events if e['subtype']==channel]
@@ -210,6 +241,13 @@ def validate_second_buffer_window(profile, entry):
             if comparison['status']!='pass':return dict(comparison,reason='Observed channel footprint/order differs',descriptor_index=index,channel=channel)
         prefix_events+=len(events);previous=end
         if index==4:copy_events=events
+    association=dict(native_entry_frame=native,profile_container_frame=frame['frame'],
+                     scope='Declared container and within-frame raster bounds only; no global offset inferred')
+    if direct:
+        return dict(status='pass',configured_jobs_checked=4,observed_job_events=prefix_events,
+                    mask_reads=240,pixel_reads=240,background_reads=240,destination_writes=240,
+                    control_WORDs=dict(bltcon0=0xdfca,bltcon1=0xd000,bltsize=0x0782),
+                    masked_output_recomputation=False,frame_association=association)
     pending=deque();reads=writes=maximum=0
     for i,e in enumerate(copy_events):
         if e['subtype']==0:
@@ -225,8 +263,7 @@ def validate_second_buffer_window(profile, entry):
     return dict(status='pass',configured_jobs_checked=5,observed_job_events=prefix_events,
                 mask_reads=256,pixel_reads=256,background_reads=256,destination_FIFO_pairs=128,
                 observed_maximum_pending_reads=maximum,
-                frame_association=dict(native_entry_frame=native,profile_container_frame=frame['frame'],
-                                       scope='Declared container and within-frame raster bounds only; no global offset inferred'))
+                frame_association=association)
 
 
 def evaluate(target_id,capture,canonical,subject_revision):
@@ -235,7 +272,9 @@ def evaluate(target_id,capture,canonical,subject_revision):
     copperline_bus_trace.LOADED_SOURCE.require_current()
     contract=canonical['contract']
     second=contract.get('contract_id')==SECOND_BUFFER
-    if contract.get('contract_id') not in ('pandora.scratch.second-word.v1',SECOND_BUFFER) or contract.get('entry_source')!=0x6c60:
+    shifted=contract.get('contract_id')==SHIFTED_BOUNDARY
+    if (contract.get('contract_id') not in ('pandora.scratch.second-word.v1',SECOND_BUFFER,SHIFTED_BOUNDARY)
+            or contract.get('entry_source')!=(0x6a1e if shifted else 0x6c60)):
         raise BehaviourError('unsupported','Unsupported scratch contract version/entry')
     scenario=(PROJECT_ROOT/contract.get('scenario_file','runtime/scenarios/pandora-shared-scratch-producer-consumer.json')).resolve()
     if not scenario.is_relative_to((PROJECT_ROOT/'runtime/scenarios').resolve()):
@@ -266,9 +305,9 @@ def evaluate(target_id,capture,canonical,subject_revision):
     current,profile,current_sha=read_capture(capture,original,contract,receipt)
     def scratch(profile):
         return [r for r in profile['records'] if 'shared_scratch' in r['ranges']]
-    old_contract=validate_renderer_stream(scratch(old_profile))
-    outcome=validate_renderer_stream(scratch(profile))
-    destination=None
+    old_contract=validate_shifted_boundary(old_profile,old) if shifted else validate_renderer_stream(scratch(old_profile))
+    outcome=validate_shifted_boundary(profile,current) if shifted else validate_renderer_stream(scratch(profile))
+    destination=outcome if shifted else None
     if second:
         old_destination=validate_second_buffer_window(old_profile,old)
         destination=validate_second_buffer_window(profile,current)
@@ -285,19 +324,20 @@ def evaluate(target_id,capture,canonical,subject_revision):
         repeatability=repeatability,baseline_sha256=old_sha,capture_sha256=current_sha,
         canonical_entry=dict(stable_key=current['stable_key'],payload=current['payload'],
                              registers=current['capture']['registers'],caller_return=current['stack_return_address']),
-        coverage=dict(B_ids=['B01','B02','B04','B05','B07','B08','B09'],
+        coverage=dict(B_ids=['B01','B02','B04','B05','B07','B08','B09']+(['B06'] if shifted else []),
                       scenario=scenario.stem,
                       entry_stop=current['stop_event'],frames=frames(profile),
-                      requested_range=[0x1b3a8,0x1b6a8],observed_scratch_range=[0x1b3a8,0x1b5a8],
+                      **(dict(requested_ranges=contract['resolved_ranges']) if shifted else
+                         dict(requested_range=[0x1b3a8,0x1b6a8],observed_scratch_range=[0x1b3a8,0x1b5a8])),
                       counts=profile['counts'],omitted_records=0,
                       **(dict(window_events=len(profile['records']),configured_job_predicate=destination,
                               analysis_partitions=contract['analysis_partitions'],
-                              reported_omitted_records=profile['reported_omitted_records']) if second else {})),
+                              reported_omitted_records=profile['reported_omitted_records']) if second or shifted else {})),
         limits=['Original replay proves repeatability and this bounded predicate, not candidate equivalence.',
                 'No original seed interpretation, unused remainder, whole-stack allocation, all-callers lifetime or relocation safety claim.',
                 'CPU architectural events and physical DMA transfers are different streams; no CPU programming PC is inferred from a bus slot.',
-                'Only five configured jobs and their observed ROI channel streams/FIFO copy are attributed; later window blits are not all attributed to this call. No final pixel or global outside-ROI bounds proof.' if second else 'Destination bitmap writes and final image equivalence are outside this scratch-only predicate.',
-                'Second natural buffer entry retains H32/shift4; no new height/shift boundary coverage.' if second else 'One fixed H32/shift4 fixture.',
+                'Only four configured H30/S13 jobs and their ROI footprints are attributed; no independent masked-output value oracle or final image equivalence.' if shifted else 'Only five configured jobs and their observed ROI channel streams/FIFO copy are attributed; later window blits are not all attributed to this call. No final pixel or global outside-ROI bounds proof.' if second else 'Destination bitmap writes and final image equivalence are outside this scratch-only predicate.',
+                'One observed H30/shift13 setup; this does not prove vertical clipping from H32 or all callers.' if shifted else 'Second natural buffer entry retains H32/shift4; no new height/shift boundary coverage.' if second else 'One fixed H32/shift4 fixture.',
                 'No bank30/defeat sequence, font, bank45 or EQU/RS policy coverage.'])
     identities=dict(original=binding['payload_sha256'],candidate=binding['payload_sha256'],
         fixture=digest(dict(checkpoint_sha256=contract['checkpoint_receipt_sha256'],

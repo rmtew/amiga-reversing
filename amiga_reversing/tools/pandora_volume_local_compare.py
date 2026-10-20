@@ -353,7 +353,7 @@ def warm_effect_contract(result, projection):
 
 
 def compare(target, context, manifest_path, library, *, artifact=None, warm_start=False,
-            expected_context_sha256=None):
+            expected_context_sha256=None, expected_manifest_sha256=None):
     from amiga_reversing.disasm import derived_artifact as binding
     LOADED_SOURCE.require_current()
     binding.LOADED_SOURCE.require_current()
@@ -362,13 +362,16 @@ def compare(target, context, manifest_path, library, *, artifact=None, warm_star
         with analysis_scope():
             _,_,native=build_project_listing_artifact_profile(target)
             return compare(target,context,manifest_path,library,artifact=native,warm_start=warm_start,
-                           expected_context_sha256=expected_context_sha256)
+                           expected_context_sha256=expected_context_sha256,
+                           expected_manifest_sha256=expected_manifest_sha256)
     original=resolve_project_paths(target).binary_source.path.read_bytes()
     contract=load_contract('pandora')
     if target!=contract.target_id or sha(original)!=contract.payload_sha256:
         raise ValueError('local comparison supports the identified Pandora original only')
-    manifest_identity=sha(manifest_path.read_bytes())
-    manifest,derived_path=validate_manifest(manifest_path,target)
+    manifest_bytes=manifest_path.read_bytes();manifest_identity=sha(manifest_bytes)
+    if expected_manifest_sha256 is not None and manifest_identity!=expected_manifest_sha256:
+        raise BehaviourError('stale','Consumed manifest differs from the admitted subject snapshot')
+    manifest,derived_path=validate_manifest(manifest_path,target,manifest_bytes=manifest_bytes)
     verify_native_binding(manifest,artifact)
     derived=derived_path.read_bytes()
     if manifest['original_sha256']!=sha(original) or manifest['region']['runtime_address']!=OLD or manifest['placement']['runtime_address']!=NEW or manifest['region']['size']!=2:

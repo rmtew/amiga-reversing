@@ -22,9 +22,9 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
+def validate_manifest(manifest_path: Path, target_id: str, *, manifest_bytes: bytes | None = None) -> tuple[dict, Path]:
     LOADED_SOURCE.require_current()
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_bytes() if manifest_bytes is None else manifest_bytes)
     if isinstance(manifest, dict) and manifest.get('kind') == 'fixed_size_optional_patch':
         from .optional_artifact import validate
         return validate(manifest, manifest_path.parent, target_id)
