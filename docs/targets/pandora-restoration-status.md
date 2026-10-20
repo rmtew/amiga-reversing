@@ -6178,3 +6178,56 @@ field records, unresolved identities and 48 generic-label signals are
 unchanged. Original stored source roles do not establish ordinary activation,
 actual output, shifted DMA bounds, exclusive allocation/lifetime, all later
 writers or alternate-layout safety.
+
+## Behavior operand types propagated from their handlers
+
+The original dispatch table selects the established X/Y-add and delay handlers
+for opcodes 0, 1 and 5. Their four-byte command formats now propagate to every
+original occurrence across 24 behavior scripts: 64 X deltas, 65 Y deltas and
+191 countdown values. The existing `cmd_axis_delta` and `cmd_delay` schemas
+replace the generic word-operand binding on 320 commands (1,280 bytes). No new
+schema is needed. A generated-label suffix matcher bug was fixed after source
+review caught twelve unintended labels.
+
+The handlers read the WORD at +2, update the selected coordinate or script
+countdown WORD, and advance the command cursor by four bytes. Original dispatch
+pointers, opcode/operand bytes, sizes and these accesses agree. WORD wrap is
+preserved. Delay values need not be positive or nonzero, and their ticks do
+not imply a fixed wall-clock duration. The original stored script graph is
+distinct from ordinary activation, arbitrary later writes or a closed callback
+target set. The previous original-script audit remains applicable because its
+binary, dispatch and handler instructions are unchanged.
+
+Source review proves exactly 320 operand comments change from `operand_word`
+to `delta` or `ticks`. The matcher fix also suppresses 51 older unreferenced
+generated field-label statements affected by the same earlier-name match.
+Each has one original assembler occurrence and retains its exact metadata
+identity; none is an explicit source anchor. Every other source character is
+identical to `4096586c`, including all EQU/RS declarations, remaining symbols,
+opcode expressions, instruction comments and SDK register expressions. The
+former 320 derived operand aliases were not emitted. All 129
+relative-copy commands and their authored offset aliases remain unchanged, as
+do bank45 and all font owners/types/groupings. All 147 prior schemas, 557 owner
+identities/extents, 18,304 entities, prior references and representations, 126
+assets, 16 SDK files and both history prefixes are preserved. The only layout
+metadata changes are the intended 320 bindings and 640 derived command fields.
+
+No new EQU/RS definitions or symbolic operand expressions are added; the
+reported gain is semantic field comments and handler-matching type bindings.
+
+All 344 facts (320 bindings and 24 bounded script purposes) have accepted
+review against receipt
+`110913bda1a6aa2b8dea23d85240f874bc426c86a7b63c7ff8bfe2d27cadef55`.
+C and independent vasm reproduce all 376,832 original bytes. The six focused
+regression cases cover repeated names, singleton/repeated records and explicit
+source anchors; five failed before the matcher fix.
+All 61 affected renderer/struct/pointer cases and 821 native cases now pass.
+EQU and RS declaration policy is unchanged. Per-script
+occurrences, original operand words, handler contracts and preservation
+evidence are in [the validation record](../validation/pandora-behavior-operand-types.json).
+
+The 24 script scopes cover 3,918 bytes and increase supported source purpose
+from 278,509 to 282,427 bytes across 185 assessments. Classification, 6,446
+unknown bytes, 6,225 accepted native reference targets, 973 resolved/32
+unresolved field records, unresolved identities and 48 generic-label signals
+are unchanged.

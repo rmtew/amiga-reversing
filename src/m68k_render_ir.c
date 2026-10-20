@@ -1142,21 +1142,24 @@ static int policy_has_custom_struct_named(const M68kAnalysisPolicy *policy, cons
  * table/instance label plus its RS layout is sufficient. */
 static int structured_item_has_generated_custom_field_label(const M68kAnalysisStructuredDataItem *item) {
   const char *suffix;
+  const char *search;
   const char *digits;
-  size_t label_len;
-  size_t suffix_len;
   if (item == NULL || item->label[0] == '\0' || item->field_name[0] == '\0') return 0;
-  suffix = strstr(item->label, item->field_name);
-  if (suffix == NULL || suffix == item->label || suffix[-1] != '_') return 0;
-  suffix += strlen(item->field_name);
-  if (*suffix == '\0') return 1;
-  if (*suffix != '_') return 0;
-  digits = suffix + 1;
-  if (*digits == '\0') return 0;
-  while (*digits >= '0' && *digits <= '9') ++digits;
-  label_len = strlen(item->label);
-  suffix_len = (size_t)(digits - item->label);
-  return *digits == '\0' && suffix_len == label_len;
+  search = item->label;
+  /* The owner may contain the field name too. Only a complete trailing field
+   * suffix (optionally followed by an array index) identifies this alias. */
+  while ((suffix = strstr(search, item->field_name)) != NULL) {
+    search = suffix + 1;
+    if (suffix == item->label || suffix[-1] != '_') continue;
+    suffix += strlen(item->field_name);
+    if (*suffix == '\0') return 1;
+    if (*suffix != '_') continue;
+    digits = suffix + 1;
+    if (*digits == '\0') continue;
+    while (*digits >= '0' && *digits <= '9') ++digits;
+    if (*digits == '\0') return 1;
+  }
+  return 0;
 }
 
 static const M68kAnalysisStructuredDataItem *lookup_generated_custom_field_item_at(

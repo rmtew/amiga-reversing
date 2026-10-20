@@ -4531,17 +4531,17 @@ thief_script_command_0006:
 	dc.l thief_nodes_4995C_6	; state_node_ptr
 thief_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 thief_script_command_0010_operand_word:
 	dc.w thief_script_command_001C_reload_count-thief_script_command_0010_operand_word	; operand_word
 thief_script_command_0014:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 thief_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 thief_script_command_001C_reload_count:
@@ -4554,10 +4554,10 @@ thief_script_command_0024_operand_word:
 	dc.w thief_script_command_0030_reload_count-thief_script_command_0024_operand_word	; operand_word
 thief_script_command_0028:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFA	; operand_word
+	dc.w $FFFA	; delta
 thief_script_command_002C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_0030:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 thief_script_command_0030_reload_count:
@@ -4570,10 +4570,10 @@ thief_script_command_0038_operand_word:
 	dc.w thief_script_command_0044_reload_count-thief_script_command_0038_operand_word	; operand_word
 thief_script_command_003C:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 thief_script_command_0040:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_0044:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 thief_script_command_0044_reload_count:
@@ -4584,7 +4584,7 @@ thief_script_command_004C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 thief_script_command_004E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000A	; operand_word
+	dc.w $000A	; ticks
 thief_script_command_0052:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l thief_nodes_4995C_4	; state_node_ptr
@@ -4592,7 +4592,7 @@ thief_script_command_0058:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 thief_script_command_005A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 thief_script_command_005E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l thief_nodes_4995C_4	; state_node_ptr
@@ -4602,10 +4602,10 @@ thief_script_command_0064_operand_word:
 	dc.w thief_script_command_0070_reload_count-thief_script_command_0064_operand_word	; operand_word
 thief_script_command_0068:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 thief_script_command_006C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_0070:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 thief_script_command_0070_reload_count:
@@ -4618,10 +4618,10 @@ thief_script_command_0078_operand_word:
 	dc.w thief_script_command_0084_reload_count-thief_script_command_0078_operand_word	; operand_word
 thief_script_command_007C:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0006	; operand_word
+	dc.w $0006	; delta
 thief_script_command_0080:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_0084:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 thief_script_command_0084_reload_count:
@@ -4634,10 +4634,10 @@ thief_script_command_008C_operand_word:
 	dc.w thief_script_command_0098_reload_count-thief_script_command_008C_operand_word	; operand_word
 thief_script_command_0090:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 thief_script_command_0094:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 thief_script_command_0098:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 thief_script_command_0098_reload_count:
@@ -4653,17 +4653,17 @@ world_object_menial_droid_behavior_script:
 	dc.w $01A8	; world_y
 menial_droid_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 menial_droid_script_command_000A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 menial_droid_script_command_000A_operand_word:
 	dc.w menial_droid_script_command_0016_reload_count-menial_droid_script_command_000A_operand_word	; operand_word
 menial_droid_script_command_000E:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 menial_droid_script_command_0012:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_0016:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_0016_reload_count:
@@ -4676,10 +4676,10 @@ menial_droid_script_command_001E_operand_word:
 	dc.w menial_droid_script_command_002A_reload_count-menial_droid_script_command_001E_operand_word	; operand_word
 menial_droid_script_command_0022:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 menial_droid_script_command_0026:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_002A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_002A_reload_count:
@@ -4692,10 +4692,10 @@ menial_droid_script_command_0032_operand_word:
 	dc.w menial_droid_script_command_003E_reload_count-menial_droid_script_command_0032_operand_word	; operand_word
 menial_droid_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 menial_droid_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_003E_reload_count:
@@ -4708,10 +4708,10 @@ menial_droid_script_command_0046_operand_word:
 	dc.w menial_droid_script_command_0052_reload_count-menial_droid_script_command_0046_operand_word	; operand_word
 menial_droid_script_command_004A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 menial_droid_script_command_004E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_0052:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_0052_reload_count:
@@ -4720,17 +4720,17 @@ menial_droid_script_command_0052_reload_count:
 	dc.w menial_droid_script_command_004A-menial_droid_script_command_0052	; branch_displacement
 menial_droid_script_command_005A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 menial_droid_script_command_005E:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 menial_droid_script_command_005E_operand_word:
 	dc.w menial_droid_script_command_006A_reload_count-menial_droid_script_command_005E_operand_word	; operand_word
 menial_droid_script_command_0062:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 menial_droid_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_006A_reload_count:
@@ -4743,10 +4743,10 @@ menial_droid_script_command_0072_operand_word:
 	dc.w menial_droid_script_command_007E_reload_count-menial_droid_script_command_0072_operand_word	; operand_word
 menial_droid_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 menial_droid_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_007E_reload_count:
@@ -4759,10 +4759,10 @@ menial_droid_script_command_0086_operand_word:
 	dc.w menial_droid_script_command_0092_reload_count-menial_droid_script_command_0086_operand_word	; operand_word
 menial_droid_script_command_008A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 menial_droid_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_0092_reload_count:
@@ -4775,10 +4775,10 @@ menial_droid_script_command_009A_operand_word:
 	dc.w menial_droid_script_command_00A6_reload_count-menial_droid_script_command_009A_operand_word	; operand_word
 menial_droid_script_command_009E:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 menial_droid_script_command_00A2:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 menial_droid_script_command_00A6:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 menial_droid_script_command_00A6_reload_count:
@@ -4797,12 +4797,12 @@ squash_player_script_command_0006:
 	dc.l squash_player_nodes_49268_7	; state_node_ptr
 squash_player_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 squash_player_script_command_0010:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 squash_player_script_command_0012:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0078	; operand_word
+	dc.w $0078	; ticks
 squash_player_script_command_0016:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 squash_player_script_command_0018:
@@ -4811,10 +4811,10 @@ squash_player_script_command_0018_operand_word:
 	dc.w squash_player_script_command_0024_reload_count-squash_player_script_command_0018_operand_word	; operand_word
 squash_player_script_command_001C:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 squash_player_script_command_0020:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 squash_player_script_command_0024:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 squash_player_script_command_0024_reload_count:
@@ -4830,10 +4830,10 @@ squash_player_script_command_0032_operand_word:
 	dc.w squash_player_script_command_003E_reload_count-squash_player_script_command_0032_operand_word	; operand_word
 squash_player_script_command_0036:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0007	; operand_word
+	dc.w $0007	; delta
 squash_player_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 squash_player_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 squash_player_script_command_003E_reload_count:
@@ -4849,10 +4849,10 @@ squash_player_script_command_004C_operand_word:
 	dc.w squash_player_script_command_0058_reload_count-squash_player_script_command_004C_operand_word	; operand_word
 squash_player_script_command_0050:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 squash_player_script_command_0054:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 squash_player_script_command_0058:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 squash_player_script_command_0058_reload_count:
@@ -4868,10 +4868,10 @@ squash_player_script_command_0066_operand_word:
 	dc.w squash_player_script_command_0072_reload_count-squash_player_script_command_0066_operand_word	; operand_word
 squash_player_script_command_006A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0007	; operand_word
+	dc.w $0007	; delta
 squash_player_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 squash_player_script_command_0072:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 squash_player_script_command_0072_reload_count:
@@ -4887,10 +4887,10 @@ squash_player_script_command_0080_operand_word:
 	dc.w squash_player_script_command_008C_reload_count-squash_player_script_command_0080_operand_word	; operand_word
 squash_player_script_command_0084:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 squash_player_script_command_0088:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 squash_player_script_command_008C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 squash_player_script_command_008C_reload_count:
@@ -4906,10 +4906,10 @@ squash_player_script_command_009A_operand_word:
 	dc.w squash_player_script_command_00A6_reload_count-squash_player_script_command_009A_operand_word	; operand_word
 squash_player_script_command_009E:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0007	; operand_word
+	dc.w $0007	; delta
 squash_player_script_command_00A2:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 squash_player_script_command_00A6:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 squash_player_script_command_00A6_reload_count:
@@ -4928,17 +4928,17 @@ wackobrain_actor_script_command_0006:
 	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
 wackobrain_actor_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 wackobrain_actor_script_command_0010_operand_word:
 	dc.w wackobrain_actor_script_command_001C_reload_count-wackobrain_actor_script_command_0010_operand_word	; operand_word
 wackobrain_actor_script_command_0014:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 wackobrain_actor_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_001C_reload_count:
@@ -4950,7 +4950,7 @@ wackobrain_actor_script_command_0024:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_002A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 wackobrain_actor_script_command_002E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
@@ -4960,10 +4960,10 @@ wackobrain_actor_script_command_0034_operand_word:
 	dc.w wackobrain_actor_script_command_0040_reload_count-wackobrain_actor_script_command_0034_operand_word	; operand_word
 wackobrain_actor_script_command_0038:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_003C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 wackobrain_actor_script_command_0040:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0040_reload_count:
@@ -4979,10 +4979,10 @@ wackobrain_actor_script_command_004E_operand_word:
 	dc.w wackobrain_actor_script_command_005A_reload_count-wackobrain_actor_script_command_004E_operand_word	; operand_word
 wackobrain_actor_script_command_0052:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_0056:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 wackobrain_actor_script_command_005A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_005A_reload_count:
@@ -4994,7 +4994,7 @@ wackobrain_actor_script_command_0062:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_0068:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 wackobrain_actor_script_command_006C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_4	; state_node_ptr
@@ -5004,10 +5004,10 @@ wackobrain_actor_script_command_0072_operand_word:
 	dc.w wackobrain_actor_script_command_007E_reload_count-wackobrain_actor_script_command_0072_operand_word	; operand_word
 wackobrain_actor_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 wackobrain_actor_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_007E_reload_count:
@@ -5023,10 +5023,10 @@ wackobrain_actor_script_command_008C_operand_word:
 	dc.w wackobrain_actor_script_command_0098_reload_count-wackobrain_actor_script_command_008C_operand_word	; operand_word
 wackobrain_actor_script_command_0090:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_0094:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_0098:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0098_reload_count:
@@ -5042,10 +5042,10 @@ wackobrain_actor_script_command_00A6_operand_word:
 	dc.w wackobrain_actor_script_command_00B2_reload_count-wackobrain_actor_script_command_00A6_operand_word	; operand_word
 wackobrain_actor_script_command_00AA:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_00AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_00B2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_00B2_reload_count:
@@ -5061,10 +5061,10 @@ wackobrain_actor_script_command_00C0_operand_word:
 	dc.w wackobrain_actor_script_command_00CC_reload_count-wackobrain_actor_script_command_00C0_operand_word	; operand_word
 wackobrain_actor_script_command_00C4:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_00C8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_00CC:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_00CC_reload_count:
@@ -5076,7 +5076,7 @@ wackobrain_actor_script_command_00D4:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_00DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 wackobrain_actor_script_command_00DE:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
@@ -5086,10 +5086,10 @@ wackobrain_actor_script_command_00E4_operand_word:
 	dc.w wackobrain_actor_script_command_00F0_reload_count-wackobrain_actor_script_command_00E4_operand_word	; operand_word
 wackobrain_actor_script_command_00E8:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_00EC:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_00F0:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_00F0_reload_count:
@@ -5105,10 +5105,10 @@ wackobrain_actor_script_command_00FE_operand_word:
 	dc.w wackobrain_actor_script_command_010A_reload_count-wackobrain_actor_script_command_00FE_operand_word	; operand_word
 wackobrain_actor_script_command_0102:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 wackobrain_actor_script_command_0106:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_010A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_010A_reload_count:
@@ -5120,7 +5120,7 @@ wackobrain_actor_script_command_0112:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_0118:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 wackobrain_actor_script_command_011C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_12	; state_node_ptr
@@ -5130,10 +5130,10 @@ wackobrain_actor_script_command_0122_operand_word:
 	dc.w wackobrain_actor_script_command_012E_reload_count-wackobrain_actor_script_command_0122_operand_word	; operand_word
 wackobrain_actor_script_command_0126:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0003	; operand_word
+	dc.w $0003	; delta
 wackobrain_actor_script_command_012A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_012E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_012E_reload_count:
@@ -5149,10 +5149,10 @@ wackobrain_actor_script_command_013C_operand_word:
 	dc.w wackobrain_actor_script_command_0148_reload_count-wackobrain_actor_script_command_013C_operand_word	; operand_word
 wackobrain_actor_script_command_0140:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_0144:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 wackobrain_actor_script_command_0148:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0148_reload_count:
@@ -5168,10 +5168,10 @@ wackobrain_actor_script_command_0156_operand_word:
 	dc.w wackobrain_actor_script_command_0162_reload_count-wackobrain_actor_script_command_0156_operand_word	; operand_word
 wackobrain_actor_script_command_015A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 wackobrain_actor_script_command_015E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_0162:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0162_reload_count:
@@ -5187,10 +5187,10 @@ wackobrain_actor_script_command_0170_operand_word:
 	dc.w wackobrain_actor_script_command_017C_reload_count-wackobrain_actor_script_command_0170_operand_word	; operand_word
 wackobrain_actor_script_command_0174:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_0178:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_017C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_017C_reload_count:
@@ -5202,7 +5202,7 @@ wackobrain_actor_script_command_0184:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_018A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 wackobrain_actor_script_command_018E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
@@ -5212,10 +5212,10 @@ wackobrain_actor_script_command_0194_operand_word:
 	dc.w wackobrain_actor_script_command_01A0_reload_count-wackobrain_actor_script_command_0194_operand_word	; operand_word
 wackobrain_actor_script_command_0198:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_019C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_01A0:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_01A0_reload_count:
@@ -5227,7 +5227,7 @@ wackobrain_actor_script_command_01A8:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_01AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 wackobrain_actor_script_command_01B2:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_10	; state_node_ptr
@@ -5237,10 +5237,10 @@ wackobrain_actor_script_command_01B8_operand_word:
 	dc.w wackobrain_actor_script_command_01C4_reload_count-wackobrain_actor_script_command_01B8_operand_word	; operand_word
 wackobrain_actor_script_command_01BC:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_01C0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_01C4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_01C4_reload_count:
@@ -5256,10 +5256,10 @@ wackobrain_actor_script_command_01D2_operand_word:
 	dc.w wackobrain_actor_script_command_01DE_reload_count-wackobrain_actor_script_command_01D2_operand_word	; operand_word
 wackobrain_actor_script_command_01D6:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_01DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_01DE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_01DE_reload_count:
@@ -5275,10 +5275,10 @@ wackobrain_actor_script_command_01EC_operand_word:
 	dc.w wackobrain_actor_script_command_01F8_reload_count-wackobrain_actor_script_command_01EC_operand_word	; operand_word
 wackobrain_actor_script_command_01F0:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_01F4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_01F8:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_01F8_reload_count:
@@ -5294,10 +5294,10 @@ wackobrain_actor_script_command_0206_operand_word:
 	dc.w wackobrain_actor_script_command_0212_reload_count-wackobrain_actor_script_command_0206_operand_word	; operand_word
 wackobrain_actor_script_command_020A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_020E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_0212:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0212_reload_count:
@@ -5313,10 +5313,10 @@ wackobrain_actor_script_command_0220_operand_word:
 	dc.w wackobrain_actor_script_command_022C_reload_count-wackobrain_actor_script_command_0220_operand_word	; operand_word
 wackobrain_actor_script_command_0224:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_0228:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 wackobrain_actor_script_command_022C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_022C_reload_count:
@@ -5328,7 +5328,7 @@ wackobrain_actor_script_command_0234:
 	dc.l wackobrain_actor_nodes_49492_6	; state_node_ptr
 wackobrain_actor_script_command_023A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 wackobrain_actor_script_command_023E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l wackobrain_actor_nodes_49492_8	; state_node_ptr
@@ -5338,10 +5338,10 @@ wackobrain_actor_script_command_0244_operand_word:
 	dc.w wackobrain_actor_script_command_0250_reload_count-wackobrain_actor_script_command_0244_operand_word	; operand_word
 wackobrain_actor_script_command_0248:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 wackobrain_actor_script_command_024C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_0250:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0250_reload_count:
@@ -5357,10 +5357,10 @@ wackobrain_actor_script_command_025E_operand_word:
 	dc.w wackobrain_actor_script_command_026A_reload_count-wackobrain_actor_script_command_025E_operand_word	; operand_word
 wackobrain_actor_script_command_0262:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_0266:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_026A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_026A_reload_count:
@@ -5376,10 +5376,10 @@ wackobrain_actor_script_command_0278_operand_word:
 	dc.w wackobrain_actor_script_command_0284_reload_count-wackobrain_actor_script_command_0278_operand_word	; operand_word
 wackobrain_actor_script_command_027C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_0280:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_0284:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_0284_reload_count:
@@ -5395,10 +5395,10 @@ wackobrain_actor_script_command_0292_operand_word:
 	dc.w wackobrain_actor_script_command_029E_reload_count-wackobrain_actor_script_command_0292_operand_word	; operand_word
 wackobrain_actor_script_command_0296:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 wackobrain_actor_script_command_029A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 wackobrain_actor_script_command_029E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 wackobrain_actor_script_command_029E_reload_count:
@@ -5418,17 +5418,17 @@ secdroid_pi_script_command_0006:
 	dc.l fixed_npc_frame_sequences_late_5_held	; frame_sequence_ptr
 secdroid_pi_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_pi_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_pi_script_command_0014_operand_word:
 	dc.w secdroid_pi_script_command_0020_reload_count-secdroid_pi_script_command_0014_operand_word	; operand_word
 secdroid_pi_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_pi_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_pi_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_0020_reload_count:
@@ -5441,17 +5441,17 @@ secdroid_pi_script_command_0028:
 	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
 secdroid_pi_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 secdroid_pi_script_command_0036:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_pi_script_command_0036_operand_word:
 	dc.w secdroid_pi_script_command_0042_reload_count-secdroid_pi_script_command_0036_operand_word	; operand_word
 secdroid_pi_script_command_003A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_pi_script_command_003E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_pi_script_command_0042:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_0042_reload_count:
@@ -5464,10 +5464,10 @@ secdroid_pi_script_command_004A_operand_word:
 	dc.w secdroid_pi_script_command_0056_reload_count-secdroid_pi_script_command_004A_operand_word	; operand_word
 secdroid_pi_script_command_004E:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_pi_script_command_0052:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_pi_script_command_0056:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_0056_reload_count:
@@ -5480,10 +5480,10 @@ secdroid_pi_script_command_005E_operand_word:
 	dc.w secdroid_pi_script_command_006A_reload_count-secdroid_pi_script_command_005E_operand_word	; operand_word
 secdroid_pi_script_command_0062:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_pi_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_pi_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_006A_reload_count:
@@ -5492,14 +5492,14 @@ secdroid_pi_script_command_006A_reload_count:
 	dc.w secdroid_pi_script_command_0062-secdroid_pi_script_command_006A	; branch_displacement
 secdroid_pi_script_command_0072:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 secdroid_pi_script_command_0076:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
 	dc.l fixed_npc_frame_sequences_late_8_held	; frame_sequence_ptr
 secdroid_pi_script_command_0080:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 secdroid_pi_script_command_0084:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$6C	; state_node_ptr
@@ -5510,10 +5510,10 @@ secdroid_pi_script_command_008E_operand_word:
 	dc.w secdroid_pi_script_command_009A_reload_count-secdroid_pi_script_command_008E_operand_word	; operand_word
 secdroid_pi_script_command_0092:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_pi_script_command_0096:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_pi_script_command_009A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_009A_reload_count:
@@ -5526,10 +5526,10 @@ secdroid_pi_script_command_00A2_operand_word:
 	dc.w secdroid_pi_script_command_00AE_reload_count-secdroid_pi_script_command_00A2_operand_word	; operand_word
 secdroid_pi_script_command_00A6:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_pi_script_command_00AA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_pi_script_command_00AE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_00AE_reload_count:
@@ -5542,10 +5542,10 @@ secdroid_pi_script_command_00B6_operand_word:
 	dc.w secdroid_pi_script_command_00C2_reload_count-secdroid_pi_script_command_00B6_operand_word	; operand_word
 secdroid_pi_script_command_00BA:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_pi_script_command_00BE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_pi_script_command_00C2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_00C2_reload_count:
@@ -5558,17 +5558,17 @@ secdroid_pi_script_command_00CA:
 	dc.l fixed_npc_frame_sequences_late_6_held	; frame_sequence_ptr
 secdroid_pi_script_command_00D4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 secdroid_pi_script_command_00D8:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_pi_script_command_00D8_operand_word:
 	dc.w secdroid_pi_script_command_00E4_reload_count-secdroid_pi_script_command_00D8_operand_word	; operand_word
 secdroid_pi_script_command_00DC:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_pi_script_command_00E0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_pi_script_command_00E4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_pi_script_command_00E4_reload_count:
@@ -5581,7 +5581,7 @@ secdroid_pi_script_command_00EC:
 	dc.l fixed_npc_frame_sequences_late_3_held	; frame_sequence_ptr
 secdroid_pi_script_command_00F6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 secdroid_pi_script_command_00FA:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l world_object_secdroid_pi_behavior_script	; target_pointer
@@ -5595,17 +5595,17 @@ secdroid_omega_script_command_0006:
 	dc.l fixed_npc_frame_sequences_late_2_held	; frame_sequence_ptr
 secdroid_omega_script_command_0010:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_omega_script_command_0014:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_omega_script_command_0014_operand_word:
 	dc.w secdroid_omega_script_command_0020_reload_count-secdroid_omega_script_command_0014_operand_word	; operand_word
 secdroid_omega_script_command_0018:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0008	; operand_word
+	dc.w $0008	; delta
 secdroid_omega_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_omega_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_omega_script_command_0020_reload_count:
@@ -5622,10 +5622,10 @@ secdroid_omega_script_command_0032_operand_word:
 	dc.w secdroid_omega_script_command_003E_reload_count-secdroid_omega_script_command_0032_operand_word	; operand_word
 secdroid_omega_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0008	; operand_word
+	dc.w $0008	; delta
 secdroid_omega_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_omega_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_omega_script_command_003E_reload_count:
@@ -5642,10 +5642,10 @@ secdroid_omega_script_command_0050_operand_word:
 	dc.w secdroid_omega_script_command_005C_reload_count-secdroid_omega_script_command_0050_operand_word	; operand_word
 secdroid_omega_script_command_0054:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF8	; operand_word
+	dc.w $FFF8	; delta
 secdroid_omega_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_omega_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_omega_script_command_005C_reload_count:
@@ -5662,10 +5662,10 @@ secdroid_omega_script_command_006E_operand_word:
 	dc.w secdroid_omega_script_command_007A_reload_count-secdroid_omega_script_command_006E_operand_word	; operand_word
 secdroid_omega_script_command_0072:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFF8	; operand_word
+	dc.w $FFF8	; delta
 secdroid_omega_script_command_0076:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_omega_script_command_007A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_omega_script_command_007A_reload_count:
@@ -5686,7 +5686,7 @@ technician_script_command_000C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 technician_script_command_000E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 technician_script_command_0012:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 technician_script_command_0014:
@@ -5694,10 +5694,10 @@ technician_script_command_0014:
 	dc.w $000C	; operand_word
 technician_script_command_0018:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 technician_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 technician_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $000F	; reload_count
@@ -5710,7 +5710,7 @@ technician_script_command_002E:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 technician_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 technician_script_command_0034:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 technician_script_command_0036:
@@ -5718,10 +5718,10 @@ technician_script_command_0036:
 	dc.w $000C	; operand_word
 technician_script_command_003A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0007	; operand_word
+	dc.w $0007	; delta
 technician_script_command_003E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 technician_script_command_0042:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $000F	; reload_count
@@ -5740,10 +5740,10 @@ gardener_script_command_0006_operand_word:
 	dc.w gardener_script_command_0012_reload_count-gardener_script_command_0006_operand_word	; operand_word
 gardener_script_command_000A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 gardener_script_command_000E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_0012:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_0012_reload_count:
@@ -5756,10 +5756,10 @@ gardener_script_command_001A_operand_word:
 	dc.w gardener_script_command_0026_reload_count-gardener_script_command_001A_operand_word	; operand_word
 gardener_script_command_001E:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 gardener_script_command_0022:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_0026:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_0026_reload_count:
@@ -5772,10 +5772,10 @@ gardener_script_command_002E_operand_word:
 	dc.w gardener_script_command_003A_reload_count-gardener_script_command_002E_operand_word	; operand_word
 gardener_script_command_0032:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 gardener_script_command_0036:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_003A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_003A_reload_count:
@@ -5788,10 +5788,10 @@ gardener_script_command_0042_operand_word:
 	dc.w gardener_script_command_004E_reload_count-gardener_script_command_0042_operand_word	; operand_word
 gardener_script_command_0046:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 gardener_script_command_004A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_004E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_004E_reload_count:
@@ -5804,10 +5804,10 @@ gardener_script_command_0056_operand_word:
 	dc.w gardener_script_command_0062_reload_count-gardener_script_command_0056_operand_word	; operand_word
 gardener_script_command_005A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; delta
 gardener_script_command_005E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_0062:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_0062_reload_count:
@@ -5820,10 +5820,10 @@ gardener_script_command_006A_operand_word:
 	dc.w gardener_script_command_0076_reload_count-gardener_script_command_006A_operand_word	; operand_word
 gardener_script_command_006E:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; delta
 gardener_script_command_0072:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_0076:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_0076_reload_count:
@@ -5836,10 +5836,10 @@ gardener_script_command_007E_operand_word:
 	dc.w gardener_script_command_008A_reload_count-gardener_script_command_007E_operand_word	; operand_word
 gardener_script_command_0082:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 gardener_script_command_0086:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 gardener_script_command_008A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_008A_reload_count:
@@ -5852,10 +5852,10 @@ gardener_script_command_0092_operand_word:
 	dc.w gardener_script_command_009E_reload_count-gardener_script_command_0092_operand_word	; operand_word
 gardener_script_command_0096:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 gardener_script_command_009A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 gardener_script_command_009E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_009E_reload_count:
@@ -5868,10 +5868,10 @@ gardener_script_command_00A6_operand_word:
 	dc.w gardener_script_command_00B2_reload_count-gardener_script_command_00A6_operand_word	; operand_word
 gardener_script_command_00AA:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFF	; operand_word
+	dc.w $FFFF	; delta
 gardener_script_command_00AE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_00B2:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_00B2_reload_count:
@@ -5884,10 +5884,10 @@ gardener_script_command_00BA_operand_word:
 	dc.w gardener_script_command_00C6_reload_count-gardener_script_command_00BA_operand_word	; operand_word
 gardener_script_command_00BE:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFF	; operand_word
+	dc.w $FFFF	; delta
 gardener_script_command_00C2:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 gardener_script_command_00C6:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 gardener_script_command_00C6_reload_count:
@@ -5906,17 +5906,17 @@ hooligan_script_command_0006:
 	dc.l hooligan_nodes_4A07C_4	; state_node_ptr
 hooligan_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 hooligan_script_command_0010_operand_word:
 	dc.w hooligan_script_command_001C_reload_count-hooligan_script_command_0010_operand_word	; operand_word
 hooligan_script_command_0014:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 hooligan_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_001C_reload_count:
@@ -5932,10 +5932,10 @@ hooligan_script_command_002A_operand_word:
 	dc.w hooligan_script_command_0036_reload_count-hooligan_script_command_002A_operand_word	; operand_word
 hooligan_script_command_002E:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0007	; operand_word
+	dc.w $0007	; delta
 hooligan_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_0036:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0036_reload_count:
@@ -5951,10 +5951,10 @@ hooligan_script_command_0044_operand_word:
 	dc.w hooligan_script_command_0050_reload_count-hooligan_script_command_0044_operand_word	; operand_word
 hooligan_script_command_0048:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFC	; operand_word
+	dc.w $FFFC	; delta
 hooligan_script_command_004C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0050:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0050_reload_count:
@@ -5968,7 +5968,7 @@ hooligan_script_command_005E:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_0060:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 hooligan_script_command_0064:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_0066:
@@ -5980,10 +5980,10 @@ hooligan_script_command_006C_operand_word:
 	dc.w hooligan_script_command_0078_reload_count-hooligan_script_command_006C_operand_word	; operand_word
 hooligan_script_command_0070:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFC	; operand_word
+	dc.w $FFFC	; delta
 hooligan_script_command_0074:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0078:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0078_reload_count:
@@ -5999,10 +5999,10 @@ hooligan_script_command_0086_operand_word:
 	dc.w hooligan_script_command_0092_reload_count-hooligan_script_command_0086_operand_word	; operand_word
 hooligan_script_command_008A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 hooligan_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0092_reload_count:
@@ -6018,10 +6018,10 @@ hooligan_script_command_00A0_operand_word:
 	dc.w hooligan_script_command_00AC_reload_count-hooligan_script_command_00A0_operand_word	; operand_word
 hooligan_script_command_00A4:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFC	; operand_word
+	dc.w $FFFC	; delta
 hooligan_script_command_00A8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_00AC:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_00AC_reload_count:
@@ -6032,7 +6032,7 @@ hooligan_script_command_00B4:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 hooligan_script_command_00BA:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_00BC:
@@ -6044,10 +6044,10 @@ hooligan_script_command_00C2_operand_word:
 	dc.w hooligan_script_command_00CE_reload_count-hooligan_script_command_00C2_operand_word	; operand_word
 hooligan_script_command_00C6:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFF	; operand_word
+	dc.w $FFFF	; delta
 hooligan_script_command_00CA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_00CE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_00CE_reload_count:
@@ -6062,10 +6062,10 @@ hooligan_script_command_00D8_operand_word:
 	dc.w hooligan_script_command_00E4_reload_count-hooligan_script_command_00D8_operand_word	; operand_word
 hooligan_script_command_00DC:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFF	; operand_word
+	dc.w $FFFF	; delta
 hooligan_script_command_00E0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_00E4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_00E4_reload_count:
@@ -6074,7 +6074,7 @@ hooligan_script_command_00E4_reload_count:
 	dc.w hooligan_script_command_00DC-hooligan_script_command_00E4	; branch_displacement
 hooligan_script_command_00EC:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000A	; operand_word
+	dc.w $000A	; ticks
 hooligan_script_command_00F0:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_00F2:
@@ -6082,7 +6082,7 @@ hooligan_script_command_00F2:
 	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_00F8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0014	; operand_word
+	dc.w $0014	; ticks
 hooligan_script_command_00FC:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
@@ -6092,10 +6092,10 @@ hooligan_script_command_0102_operand_word:
 	dc.w hooligan_script_command_010E_reload_count-hooligan_script_command_0102_operand_word	; operand_word
 hooligan_script_command_0106:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0005	; operand_word
+	dc.w $0005	; delta
 hooligan_script_command_010A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_010E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_010E_reload_count:
@@ -6111,10 +6111,10 @@ hooligan_script_command_011C_operand_word:
 	dc.w hooligan_script_command_0128_reload_count-hooligan_script_command_011C_operand_word	; operand_word
 hooligan_script_command_0120:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 hooligan_script_command_0124:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0128:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0128_reload_count:
@@ -6130,10 +6130,10 @@ hooligan_script_command_0136_operand_word:
 	dc.w hooligan_script_command_0142_reload_count-hooligan_script_command_0136_operand_word	; operand_word
 hooligan_script_command_013A:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 hooligan_script_command_013E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_0142:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0142_reload_count:
@@ -6149,10 +6149,10 @@ hooligan_script_command_0150_operand_word:
 	dc.w hooligan_script_command_015C_reload_count-hooligan_script_command_0150_operand_word	; operand_word
 hooligan_script_command_0154:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 hooligan_script_command_0158:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_015C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_015C_reload_count:
@@ -6168,10 +6168,10 @@ hooligan_script_command_016A_operand_word:
 	dc.w hooligan_script_command_0176_reload_count-hooligan_script_command_016A_operand_word	; operand_word
 hooligan_script_command_016E:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0007	; operand_word
+	dc.w $0007	; delta
 hooligan_script_command_0172:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_0176:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0176_reload_count:
@@ -6187,10 +6187,10 @@ hooligan_script_command_0184_operand_word:
 	dc.w hooligan_script_command_0190_reload_count-hooligan_script_command_0184_operand_word	; operand_word
 hooligan_script_command_0188:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 hooligan_script_command_018C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0190:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0190_reload_count:
@@ -6206,10 +6206,10 @@ hooligan_script_command_019E_operand_word:
 	dc.w hooligan_script_command_01AA_reload_count-hooligan_script_command_019E_operand_word	; operand_word
 hooligan_script_command_01A2:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 hooligan_script_command_01A6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_01AA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_01AA_reload_count:
@@ -6225,10 +6225,10 @@ hooligan_script_command_01B8_operand_word:
 	dc.w hooligan_script_command_01C4_reload_count-hooligan_script_command_01B8_operand_word	; operand_word
 hooligan_script_command_01BC:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 hooligan_script_command_01C0:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_01C4:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_01C4_reload_count:
@@ -6244,10 +6244,10 @@ hooligan_script_command_01D2_operand_word:
 	dc.w hooligan_script_command_01DE_reload_count-hooligan_script_command_01D2_operand_word	; operand_word
 hooligan_script_command_01D6:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 hooligan_script_command_01DA:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_01DE:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_01DE_reload_count:
@@ -6258,7 +6258,7 @@ hooligan_script_command_01E6:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_01E8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000F	; operand_word
+	dc.w $000F	; ticks
 hooligan_script_command_01EC:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 hooligan_script_command_01EE:
@@ -6266,19 +6266,19 @@ hooligan_script_command_01EE:
 	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_01F4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000F	; operand_word
+	dc.w $000F	; ticks
 hooligan_script_command_01F8:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_01FE:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000A	; operand_word
+	dc.w $000A	; ticks
 hooligan_script_command_0202:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_12	; state_node_ptr
 hooligan_script_command_0208:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000A	; operand_word
+	dc.w $000A	; ticks
 hooligan_script_command_020C:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_10	; state_node_ptr
@@ -6290,10 +6290,10 @@ hooligan_script_command_0214_operand_word:
 	dc.w hooligan_script_command_0220_reload_count-hooligan_script_command_0214_operand_word	; operand_word
 hooligan_script_command_0218:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 hooligan_script_command_021C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0220:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0220_reload_count:
@@ -6307,19 +6307,19 @@ hooligan_script_command_022A:
 	dc.l hooligan_nodes_4A07C_14	; state_node_ptr
 hooligan_script_command_0230:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $000A	; operand_word
+	dc.w $000A	; ticks
 hooligan_script_command_0234:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_14	; state_node_ptr
 hooligan_script_command_023A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0014	; operand_word
+	dc.w $0014	; ticks
 hooligan_script_command_023E:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_14	; state_node_ptr
 hooligan_script_command_0244:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0014	; operand_word
+	dc.w $0014	; ticks
 hooligan_script_command_0248:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
 	dc.l hooligan_nodes_4A07C_8	; state_node_ptr
@@ -6329,10 +6329,10 @@ hooligan_script_command_024E_operand_word:
 	dc.w hooligan_script_command_025A_reload_count-hooligan_script_command_024E_operand_word	; operand_word
 hooligan_script_command_0252:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0005	; operand_word
+	dc.w $0005	; delta
 hooligan_script_command_0256:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_025A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_025A_reload_count:
@@ -6348,10 +6348,10 @@ hooligan_script_command_0268_operand_word:
 	dc.w hooligan_script_command_0274_reload_count-hooligan_script_command_0268_operand_word	; operand_word
 hooligan_script_command_026C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 hooligan_script_command_0270:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 hooligan_script_command_0274:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_0274_reload_count:
@@ -6367,10 +6367,10 @@ hooligan_script_command_0282_operand_word:
 	dc.w hooligan_script_command_028E_reload_count-hooligan_script_command_0282_operand_word	; operand_word
 hooligan_script_command_0286:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFF9	; operand_word
+	dc.w $FFF9	; delta
 hooligan_script_command_028A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 hooligan_script_command_028E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 hooligan_script_command_028E_reload_count:
@@ -6386,7 +6386,7 @@ world_object_secdroid_alpha_1_behavior_script:
 	dc.w $02D8	; world_y
 secdroid_alpha_1_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_alpha_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$12	; state_node_ptr
@@ -6397,10 +6397,10 @@ secdroid_alpha_1_script_command_0014_operand_word:
 	dc.w secdroid_alpha_1_script_command_0020_reload_count-secdroid_alpha_1_script_command_0014_operand_word	; operand_word
 secdroid_alpha_1_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_alpha_1_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_1_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_1_script_command_0020_reload_count:
@@ -6417,10 +6417,10 @@ secdroid_alpha_1_script_command_0032_operand_word:
 	dc.w secdroid_alpha_1_script_command_003E_reload_count-secdroid_alpha_1_script_command_0032_operand_word	; operand_word
 secdroid_alpha_1_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_alpha_1_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_alpha_1_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_1_script_command_003E_reload_count:
@@ -6437,10 +6437,10 @@ secdroid_alpha_1_script_command_0050_operand_word:
 	dc.w secdroid_alpha_1_script_command_005C_reload_count-secdroid_alpha_1_script_command_0050_operand_word	; operand_word
 secdroid_alpha_1_script_command_0054:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_alpha_1_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_1_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_1_script_command_005C_reload_count:
@@ -6453,17 +6453,17 @@ secdroid_alpha_1_script_command_0064:
 	dc.l fixed_npc_frame_sequences_early_3_held	; frame_sequence_ptr
 secdroid_alpha_1_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 secdroid_alpha_1_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_1_script_command_0072_operand_word:
 	dc.w secdroid_alpha_1_script_command_007E_reload_count-secdroid_alpha_1_script_command_0072_operand_word	; operand_word
 secdroid_alpha_1_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_alpha_1_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_1_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_1_script_command_007E_reload_count:
@@ -6480,10 +6480,10 @@ secdroid_alpha_1_script_command_0090_operand_word:
 	dc.w secdroid_alpha_1_script_command_009C_reload_count-secdroid_alpha_1_script_command_0090_operand_word	; operand_word
 secdroid_alpha_1_script_command_0094:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_alpha_1_script_command_0098:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_alpha_1_script_command_009C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_1_script_command_009C_reload_count:
@@ -6500,10 +6500,10 @@ secdroid_alpha_1_script_command_00AE_operand_word:
 	dc.w secdroid_alpha_1_script_command_00BA_reload_count-secdroid_alpha_1_script_command_00AE_operand_word	; operand_word
 secdroid_alpha_1_script_command_00B2:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_alpha_1_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_1_script_command_00BA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_1_script_command_00BA_reload_count:
@@ -6519,7 +6519,7 @@ world_object_secdroid_alpha_2_behavior_script:
 	dc.w $03C8	; world_y
 secdroid_alpha_2_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_alpha_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$C6	; state_node_ptr
@@ -6530,10 +6530,10 @@ secdroid_alpha_2_script_command_0014_operand_word:
 	dc.w secdroid_alpha_2_script_command_0020_reload_count-secdroid_alpha_2_script_command_0014_operand_word	; operand_word
 secdroid_alpha_2_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_alpha_2_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_2_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_2_script_command_0020_reload_count:
@@ -6550,10 +6550,10 @@ secdroid_alpha_2_script_command_0032_operand_word:
 	dc.w secdroid_alpha_2_script_command_003E_reload_count-secdroid_alpha_2_script_command_0032_operand_word	; operand_word
 secdroid_alpha_2_script_command_0036:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_alpha_2_script_command_003A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_alpha_2_script_command_003E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_2_script_command_003E_reload_count:
@@ -6570,10 +6570,10 @@ secdroid_alpha_2_script_command_0050_operand_word:
 	dc.w secdroid_alpha_2_script_command_005C_reload_count-secdroid_alpha_2_script_command_0050_operand_word	; operand_word
 secdroid_alpha_2_script_command_0054:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_alpha_2_script_command_0058:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_2_script_command_005C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_2_script_command_005C_reload_count:
@@ -6586,17 +6586,17 @@ secdroid_alpha_2_script_command_0064:
 	dc.l fixed_npc_frame_sequences_early	; frame_sequence_ptr
 secdroid_alpha_2_script_command_006E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $001E	; operand_word
+	dc.w $001E	; ticks
 secdroid_alpha_2_script_command_0072:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 secdroid_alpha_2_script_command_0072_operand_word:
 	dc.w secdroid_alpha_2_script_command_007E_reload_count-secdroid_alpha_2_script_command_0072_operand_word	; operand_word
 secdroid_alpha_2_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_alpha_2_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_2_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_2_script_command_007E_reload_count:
@@ -6613,10 +6613,10 @@ secdroid_alpha_2_script_command_0090_operand_word:
 	dc.w secdroid_alpha_2_script_command_009C_reload_count-secdroid_alpha_2_script_command_0090_operand_word	; operand_word
 secdroid_alpha_2_script_command_0094:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_alpha_2_script_command_0098:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_alpha_2_script_command_009C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_2_script_command_009C_reload_count:
@@ -6633,10 +6633,10 @@ secdroid_alpha_2_script_command_00AE_operand_word:
 	dc.w secdroid_alpha_2_script_command_00BA_reload_count-secdroid_alpha_2_script_command_00AE_operand_word	; operand_word
 secdroid_alpha_2_script_command_00B2:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_alpha_2_script_command_00B6:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_alpha_2_script_command_00BA:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_alpha_2_script_command_00BA_reload_count:
@@ -6652,7 +6652,7 @@ world_object_secdroid_delta_2_behavior_script:
 	dc.w $05A8	; world_y
 secdroid_delta_2_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_delta_2_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
@@ -6663,10 +6663,10 @@ secdroid_delta_2_script_command_0014_operand_word:
 	dc.w secdroid_delta_2_script_command_0020_reload_count-secdroid_delta_2_script_command_0014_operand_word	; operand_word
 secdroid_delta_2_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_delta_2_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_2_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_2_script_command_0020_reload_count:
@@ -6679,10 +6679,10 @@ secdroid_delta_2_script_command_0028_operand_word:
 	dc.w secdroid_delta_2_script_command_0034_reload_count-secdroid_delta_2_script_command_0028_operand_word	; operand_word
 secdroid_delta_2_script_command_002C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFC	; operand_word
+	dc.w $FFFC	; delta
 secdroid_delta_2_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_delta_2_script_command_0034:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_2_script_command_0034_reload_count:
@@ -6695,10 +6695,10 @@ secdroid_delta_2_script_command_003C_operand_word:
 	dc.w secdroid_delta_2_script_command_0048_reload_count-secdroid_delta_2_script_command_003C_operand_word	; operand_word
 secdroid_delta_2_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_delta_2_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_2_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_2_script_command_0048_reload_count:
@@ -6707,7 +6707,7 @@ secdroid_delta_2_script_command_0048_reload_count:
 	dc.w secdroid_delta_2_script_command_0040-secdroid_delta_2_script_command_0048	; branch_displacement
 secdroid_delta_2_script_command_0050:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 secdroid_delta_2_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$5A	; state_node_ptr
@@ -6718,10 +6718,10 @@ secdroid_delta_2_script_command_005E_operand_word:
 	dc.w secdroid_delta_2_script_command_006A_reload_count-secdroid_delta_2_script_command_005E_operand_word	; operand_word
 secdroid_delta_2_script_command_0062:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_delta_2_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_2_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_2_script_command_006A_reload_count:
@@ -6734,10 +6734,10 @@ secdroid_delta_2_script_command_0072_operand_word:
 	dc.w secdroid_delta_2_script_command_007E_reload_count-secdroid_delta_2_script_command_0072_operand_word	; operand_word
 secdroid_delta_2_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 secdroid_delta_2_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_delta_2_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_2_script_command_007E_reload_count:
@@ -6750,10 +6750,10 @@ secdroid_delta_2_script_command_0086_operand_word:
 	dc.w secdroid_delta_2_script_command_0092_reload_count-secdroid_delta_2_script_command_0086_operand_word	; operand_word
 secdroid_delta_2_script_command_008A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_delta_2_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_2_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_2_script_command_0092_reload_count:
@@ -6769,7 +6769,7 @@ world_object_secdroid_delta_1_behavior_script:
 	dc.w $04B8	; world_y
 secdroid_delta_1_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_delta_1_script_command_000A:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
@@ -6780,10 +6780,10 @@ secdroid_delta_1_script_command_0014_operand_word:
 	dc.w secdroid_delta_1_script_command_0020_reload_count-secdroid_delta_1_script_command_0014_operand_word	; operand_word
 secdroid_delta_1_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_delta_1_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_1_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_1_script_command_0020_reload_count:
@@ -6796,10 +6796,10 @@ secdroid_delta_1_script_command_0028_operand_word:
 	dc.w secdroid_delta_1_script_command_0034_reload_count-secdroid_delta_1_script_command_0028_operand_word	; operand_word
 secdroid_delta_1_script_command_002C:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 secdroid_delta_1_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_delta_1_script_command_0034:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_1_script_command_0034_reload_count:
@@ -6812,10 +6812,10 @@ secdroid_delta_1_script_command_003C_operand_word:
 	dc.w secdroid_delta_1_script_command_0048_reload_count-secdroid_delta_1_script_command_003C_operand_word	; operand_word
 secdroid_delta_1_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 secdroid_delta_1_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_1_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_1_script_command_0048_reload_count:
@@ -6824,7 +6824,7 @@ secdroid_delta_1_script_command_0048_reload_count:
 	dc.w secdroid_delta_1_script_command_0040-secdroid_delta_1_script_command_0048	; branch_displacement
 secdroid_delta_1_script_command_0050:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 secdroid_delta_1_script_command_0054:
 	dc.w WORLD_CMD_SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR	; opcode
 	dc.l fixed_npc_script_animation_nodes+$36	; state_node_ptr
@@ -6835,10 +6835,10 @@ secdroid_delta_1_script_command_005E_operand_word:
 	dc.w secdroid_delta_1_script_command_006A_reload_count-secdroid_delta_1_script_command_005E_operand_word	; operand_word
 secdroid_delta_1_script_command_0062:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_delta_1_script_command_0066:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_1_script_command_006A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_1_script_command_006A_reload_count:
@@ -6851,10 +6851,10 @@ secdroid_delta_1_script_command_0072_operand_word:
 	dc.w secdroid_delta_1_script_command_007E_reload_count-secdroid_delta_1_script_command_0072_operand_word	; operand_word
 secdroid_delta_1_script_command_0076:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFC	; operand_word
+	dc.w $FFFC	; delta
 secdroid_delta_1_script_command_007A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 secdroid_delta_1_script_command_007E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_1_script_command_007E_reload_count:
@@ -6867,10 +6867,10 @@ secdroid_delta_1_script_command_0086_operand_word:
 	dc.w secdroid_delta_1_script_command_0092_reload_count-secdroid_delta_1_script_command_0086_operand_word	; operand_word
 secdroid_delta_1_script_command_008A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 secdroid_delta_1_script_command_008E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 secdroid_delta_1_script_command_0092:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 secdroid_delta_1_script_command_0092_reload_count:
@@ -6889,7 +6889,7 @@ pianist_actor_script_command_0006:
 	dc.l pianist_actor_nodes_4C226_4	; state_node_ptr
 pianist_actor_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 pianist_actor_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l pianist_actor_script_command_000C	; target_pointer
@@ -6902,7 +6902,7 @@ musician_script_command_0006:
 	dc.l musician_nodes_4870E_4	; state_node_ptr
 musician_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 musician_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l musician_script_command_000C	; target_pointer
@@ -6915,7 +6915,7 @@ icelord_script_command_0006:
 	dc.l icelord_nodes_49DCE_5	; state_node_ptr
 icelord_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 icelord_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l icelord_script_command_000C	; target_pointer
@@ -6951,12 +6951,12 @@ security_officer_script_command_0006:
 	dc.l security_officer_nodes_4B882_4	; state_node_ptr
 security_officer_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 security_officer_script_command_0010:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 security_officer_script_command_0012:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0005	; operand_word
+	dc.w $0005	; ticks
 security_officer_script_command_0016:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 security_officer_script_command_0018:
@@ -6973,7 +6973,7 @@ chemist_script_command_000C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 chemist_script_command_000E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $00FA	; operand_word
+	dc.w $00FA	; ticks
 chemist_script_command_0012:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 chemist_script_command_0014:
@@ -6981,10 +6981,10 @@ chemist_script_command_0014:
 	dc.w $000C	; operand_word
 chemist_script_command_0018:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0004	; operand_word
+	dc.w $0004	; delta
 chemist_script_command_001C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 chemist_script_command_0020:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0004	; reload_count
@@ -6992,16 +6992,16 @@ chemist_script_command_0020:
 	dc.w $FFF8	; branch_displacement
 chemist_script_command_0028:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 chemist_script_command_002C:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
 chemist_script_command_0030:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFC	; operand_word
+	dc.w $FFFC	; delta
 chemist_script_command_0034:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 chemist_script_command_0038:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0004	; reload_count
@@ -7021,7 +7021,7 @@ doctor_script_command_000C:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_000E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $012C	; operand_word
+	dc.w $012C	; ticks
 doctor_script_command_0012:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_0014:
@@ -7032,10 +7032,10 @@ doctor_script_command_001A:
 	dc.w $000C	; operand_word
 doctor_script_command_001E:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; delta
 doctor_script_command_0022:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 doctor_script_command_0026:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0028	; reload_count
@@ -7045,7 +7045,7 @@ doctor_script_command_002E:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_0030:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $00C8	; operand_word
+	dc.w $00C8	; ticks
 doctor_script_command_0034:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 doctor_script_command_0036:
@@ -7056,10 +7056,10 @@ doctor_script_command_003C:
 	dc.w $000C	; operand_word
 doctor_script_command_0040:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFF	; operand_word
+	dc.w $FFFF	; delta
 doctor_script_command_0044:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 doctor_script_command_0048:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0028	; reload_count
@@ -7077,17 +7077,17 @@ death_fly_script_command_0006:
 	dc.l death_fly_nodes_4A600_3	; state_node_ptr
 death_fly_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_0010:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 death_fly_script_command_0010_operand_word:
 	dc.w death_fly_script_command_001C_reload_count-death_fly_script_command_0010_operand_word	; operand_word
 death_fly_script_command_0014:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0006	; operand_word
+	dc.w $0006	; delta
 death_fly_script_command_0018:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_001C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_001C_reload_count:
@@ -7100,10 +7100,10 @@ death_fly_script_command_0024_operand_word:
 	dc.w death_fly_script_command_0030_reload_count-death_fly_script_command_0024_operand_word	; operand_word
 death_fly_script_command_0028:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 death_fly_script_command_002C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_0030:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_0030_reload_count:
@@ -7116,10 +7116,10 @@ death_fly_script_command_0038_operand_word:
 	dc.w death_fly_script_command_0044_reload_count-death_fly_script_command_0038_operand_word	; operand_word
 death_fly_script_command_003C:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 death_fly_script_command_0040:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_0044:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_0044_reload_count:
@@ -7132,10 +7132,10 @@ death_fly_script_command_004C_operand_word:
 	dc.w death_fly_script_command_0058_reload_count-death_fly_script_command_004C_operand_word	; operand_word
 death_fly_script_command_0050:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 death_fly_script_command_0054:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_0058:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_0058_reload_count:
@@ -7148,10 +7148,10 @@ death_fly_script_command_0060_operand_word:
 	dc.w death_fly_script_command_006C_reload_count-death_fly_script_command_0060_operand_word	; operand_word
 death_fly_script_command_0064:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 death_fly_script_command_0068:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_006C:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_006C_reload_count:
@@ -7164,10 +7164,10 @@ death_fly_script_command_0074_operand_word:
 	dc.w death_fly_script_command_0080_reload_count-death_fly_script_command_0074_operand_word	; operand_word
 death_fly_script_command_0078:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 death_fly_script_command_007C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_0080:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_0080_reload_count:
@@ -7180,10 +7180,10 @@ death_fly_script_command_0088_operand_word:
 	dc.w death_fly_script_command_0094_reload_count-death_fly_script_command_0088_operand_word	; operand_word
 death_fly_script_command_008C:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0003	; operand_word
+	dc.w $0003	; delta
 death_fly_script_command_0090:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_0094:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_0094_reload_count:
@@ -7196,10 +7196,10 @@ death_fly_script_command_009C_operand_word:
 	dc.w death_fly_script_command_00A8_reload_count-death_fly_script_command_009C_operand_word	; operand_word
 death_fly_script_command_00A0:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 death_fly_script_command_00A4:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_00A8:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_00A8_reload_count:
@@ -7212,10 +7212,10 @@ death_fly_script_command_00B0_operand_word:
 	dc.w death_fly_script_command_00BC_reload_count-death_fly_script_command_00B0_operand_word	; operand_word
 death_fly_script_command_00B4:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFD	; operand_word
+	dc.w $FFFD	; delta
 death_fly_script_command_00B8:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 death_fly_script_command_00BC:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 death_fly_script_command_00BC_reload_count:
@@ -7234,7 +7234,7 @@ priest_script_command_0006:
 	dc.l priest_nodes_49B98_5	; state_node_ptr
 priest_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 priest_script_command_0010:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l priest_script_command_000C	; target_pointer
@@ -7244,7 +7244,7 @@ world_object_bank_manager_behavior_script:
 	dc.w $01A1	; world_y
 bank_manager_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $2710	; operand_word
+	dc.w $2710	; ticks
 bank_manager_script_command_000A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l bank_manager_script_command_0006	; target_pointer
@@ -7252,7 +7252,6 @@ bank_manager_script_command_000A:
 world_object_entry_officer_behavior_script:
 	dc.w WORLD_CMD_SET_POSITION	; opcode
 	dc.w $0197	; x
-world_object_entry_officer_behavior_script_y:
 	dc.w $0362	; y
 entry_officer_script_command_0006:
 	dc.w WORLD_CMD_SET_NODE_FOR_FLAG3_CLEAR	; opcode
@@ -7297,12 +7296,12 @@ driffid_script_command_0006:
 	dc.l driffid_nodes_4A6E8_4	; state_node_ptr
 driffid_script_command_000C:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 driffid_script_command_0010:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 driffid_script_command_0012:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $00C8	; operand_word
+	dc.w $00C8	; ticks
 driffid_script_command_0016:
 	dc.w WORLD_CMD_TOGGLE_NODE_FOR_FLAG3_CLEAR	; opcode
 driffid_script_command_0018:
@@ -7313,10 +7312,10 @@ driffid_script_command_001E:
 	dc.w $000C	; operand_word
 driffid_script_command_0022:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 driffid_script_command_0026:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 driffid_script_command_002A:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0018	; reload_count
@@ -7324,16 +7323,16 @@ driffid_script_command_002A:
 	dc.w $FFF8	; branch_displacement
 driffid_script_command_0032:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0064	; operand_word
+	dc.w $0064	; ticks
 driffid_script_command_0036:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
 driffid_script_command_003A:
 	dc.w WORLD_CMD_ADD_Y	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 driffid_script_command_003E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 driffid_script_command_0042:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $0018	; reload_count
@@ -7348,16 +7347,16 @@ world_object_robomechanic_behavior_script:
 	dc.w $0638	; world_y
 robomechanic_script_command_0006:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0001	; operand_word
+	dc.w $0001	; ticks
 robomechanic_script_command_000A:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
 robomechanic_script_command_000E:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; delta
 robomechanic_script_command_0012:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 robomechanic_script_command_0016:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $00A8	; reload_count
@@ -7365,16 +7364,16 @@ robomechanic_script_command_0016:
 	dc.w $FFF8	; branch_displacement
 robomechanic_script_command_001E:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0032	; operand_word
+	dc.w $0032	; ticks
 robomechanic_script_command_0022:
 	dc.w WORLD_CMD_COPY_RELATIVE_WORD	; opcode
 	dc.w $000C	; operand_word
 robomechanic_script_command_0026:
 	dc.w WORLD_CMD_ADD_X	; opcode
-	dc.w $FFFE	; operand_word
+	dc.w $FFFE	; delta
 robomechanic_script_command_002A:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $0002	; operand_word
+	dc.w $0002	; ticks
 robomechanic_script_command_002E:
 	dc.w WORLD_CMD_REPEAT_BRANCH_OR_RELOAD	; opcode
 	dc.w $00A8	; reload_count
@@ -7382,7 +7381,7 @@ robomechanic_script_command_002E:
 	dc.w $FFF8	; branch_displacement
 robomechanic_script_command_0036:
 	dc.w WORLD_CMD_SET_DELAY	; opcode
-	dc.w $004B	; operand_word
+	dc.w $004B	; ticks
 robomechanic_script_command_003A:
 	dc.w WORLD_CMD_JUMP_ABSOLUTE	; opcode
 	dc.l world_object_robomechanic_behavior_script	; target_pointer
@@ -8422,73 +8421,39 @@ world_object_ptr_table:
 	dc.l player_world_object	; object_ptr
 world_object_ptr_table_object_ptr_1:
 	dc.l world_object_secdroid_alpha_1	; object_ptr
-world_object_ptr_table_object_ptr_2:
 	dc.l world_object_pianist_actor	; object_ptr
-world_object_ptr_table_object_ptr_3:
 	dc.l world_object_secdroid_delta_1	; object_ptr
-world_object_ptr_table_object_ptr_4:
 	dc.l world_object_secdroid_delta_2	; object_ptr
-world_object_ptr_table_object_ptr_5:
 	dc.l world_object_squash_player	; object_ptr
-world_object_ptr_table_object_ptr_6:
 	dc.l world_object_wackobrain_actor	; object_ptr
-world_object_ptr_table_object_ptr_7:
 	dc.l world_object_secdroid_pi	; object_ptr
-world_object_ptr_table_object_ptr_8:
 	dc.l world_object_secdroid_omega	; object_ptr
-world_object_ptr_table_object_ptr_9:
 	dc.l world_object_secdroid_alpha_2	; object_ptr
-world_object_ptr_table_object_ptr_10:
 	dc.l world_object_thief	; object_ptr
-world_object_ptr_table_object_ptr_11:
 	dc.l world_object_priest	; object_ptr
-world_object_ptr_table_object_ptr_12:
 	dc.l world_object_hooligan	; object_ptr
-world_object_ptr_table_object_ptr_13:
 	dc.l world_object_captain	; object_ptr
-world_object_ptr_table_object_ptr_14:
 	dc.l world_object_resource_officer	; object_ptr
-world_object_ptr_table_object_ptr_15:
 	dc.l world_object_engineer	; object_ptr
-world_object_ptr_table_object_ptr_16:
 	dc.l world_object_science_officer	; object_ptr
-world_object_ptr_table_object_ptr_17:
 	dc.l world_object_medic	; object_ptr
-world_object_ptr_table_object_ptr_18:
 	dc.l world_object_awol_officer	; object_ptr
-world_object_ptr_table_object_ptr_19:
 	dc.l world_object_entry_officer	; object_ptr
-world_object_ptr_table_object_ptr_20:
 	dc.l world_object_icelord	; object_ptr
-world_object_ptr_table_object_ptr_21:
 	dc.l world_object_death_fly	; object_ptr
-world_object_ptr_table_object_ptr_22:
 	dc.l world_object_lieutenant_commander	; object_ptr
-world_object_ptr_table_object_ptr_23:
 	dc.l world_object_commander	; object_ptr
-world_object_ptr_table_object_ptr_24:
 	dc.l world_object_driffid	; object_ptr
-world_object_ptr_table_object_ptr_25:
 	dc.l world_object_musician	; object_ptr
-world_object_ptr_table_object_ptr_26:
 	dc.l world_object_menial_droid	; object_ptr
-world_object_ptr_table_object_ptr_27:
 	dc.l world_object_gardener	; object_ptr
-world_object_ptr_table_object_ptr_28:
 	dc.l world_object_robomechanic	; object_ptr
-world_object_ptr_table_object_ptr_29:
 	dc.l world_object_doctor	; object_ptr
-world_object_ptr_table_object_ptr_30:
 	dc.l world_object_diabetic	; object_ptr
-world_object_ptr_table_object_ptr_31:
 	dc.l world_object_chemist	; object_ptr
-world_object_ptr_table_object_ptr_32:
 	dc.l world_object_technician	; object_ptr
-world_object_ptr_table_object_ptr_33:
 	dc.l world_object_bank_manager	; object_ptr
-world_object_ptr_table_object_ptr_34:
 	dc.l world_object_security_officer	; object_ptr
-world_object_ptr_table_object_ptr_35:
 	dc.l $00000000	; object_ptr
 active_world_object_ptr_table:
 	dc.l world_position_descriptors+$18	; descriptor_ptr
@@ -8629,7 +8594,6 @@ world_depth_sort_deferred_scratch:
 	dc.l $00000000
 player_holding_overlay:
 	dc.b $02	; x
-player_holding_overlay_y:
 	dc.b $12	; y
 	dc.b $13	; width
 	dc.b $03	; height
@@ -8649,7 +8613,6 @@ player_holding_overlay_line_0_ptr:
 	dc.l $00000000	; update_callback
 player_health_overlay:
 	dc.b $22	; x
-player_health_overlay_y:
 	dc.b $11	; y
 	dc.b $06	; width
 	dc.b $03	; height
@@ -8668,7 +8631,6 @@ player_health_overlay_y:
 	dc.l $00000000	; update_callback
 opponent_health_overlay:
 	dc.b $22	; x
-opponent_health_overlay_y:
 	dc.b $14	; y
 	dc.b $06	; width
 	dc.b $03	; height
@@ -8687,7 +8649,6 @@ opponent_health_overlay_y:
 	dc.l $00000000	; update_callback
 nearby_distance_overlay:
 	dc.b $22	; x
-nearby_distance_overlay_y:
 	dc.b $14	; y
 	dc.b $06	; width
 	dc.b $03	; height
@@ -8706,7 +8667,6 @@ nearby_distance_overlay_y:
 	dc.l $00000000	; update_callback
 hit_feedback_overlay:
 	dc.b $04	; x
-hit_feedback_overlay_y:
 	dc.b $13	; y
 	dc.b $07	; width
 	dc.b $03	; height
@@ -8725,7 +8685,6 @@ hit_feedback_overlay_y:
 	dc.l $00000000	; update_callback
 nearby_character_overlay:
 	dc.b $16	; x
-nearby_character_overlay_y:
 	dc.b $11	; y
 	dc.b $0C	; width
 	dc.b $03	; height
@@ -8744,7 +8703,6 @@ nearby_character_overlay_y:
 	dc.l $00000000	; update_callback
 nearby_carrying_overlay:
 	dc.b $16	; x
-nearby_carrying_overlay_y:
 	dc.b $14	; y
 	dc.b $0C	; width
 	dc.b $03	; height
@@ -8764,7 +8722,6 @@ nearby_carrying_overlay_line_0_ptr:
 	dc.l $00000000	; update_callback
 body_inventory_overlay:
 	dc.b $18	; x
-body_inventory_overlay_y:
 	dc.b $11	; y
 	dc.b $0C	; width
 	dc.b $06	; height
@@ -8784,7 +8741,6 @@ body_inventory_overlay_line_0_ptr:
 	dc.l $00000000	; update_callback
 backpack_inventory_overlay:
 	dc.b $00	; x
-backpack_inventory_overlay_y:
 	dc.b $11	; y
 	dc.b $0C	; width
 	dc.b $06	; height
@@ -8804,7 +8760,6 @@ backpack_inventory_overlay_line_0_ptr:
 	dc.l $00000000	; update_callback
 pocket_inventory_overlay:
 	dc.b $0C	; x
-pocket_inventory_overlay_y:
 	dc.b $11	; y
 	dc.b $0C	; width
 	dc.b $06	; height
@@ -22170,17 +22125,11 @@ ranged_hit_visual_frame_ptrs:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 ranged_hit_visual_frame_ptrs_active:
 	dc.l ranged_hit_visual_geometry_frames	; frame_ptr
-ranged_hit_visual_frame_ptrs_active_frame_ptr_1:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_1	; frame_ptr
-ranged_hit_visual_frame_ptrs_active_frame_ptr_2:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_2	; frame_ptr
-ranged_hit_visual_frame_ptrs_active_frame_ptr_3:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_3	; frame_ptr
-ranged_hit_visual_frame_ptrs_active_frame_ptr_4:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_4	; frame_ptr
-ranged_hit_visual_frame_ptrs_active_frame_ptr_5:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_5	; frame_ptr
-ranged_hit_visual_frame_ptrs_active_frame_ptr_6:
 	dc.l ranged_hit_visual_geometry_frames_bitplane_data_ptr_6	; frame_ptr
 world_object_musician:
 	dc.l $00000000	; item_name_ptr
