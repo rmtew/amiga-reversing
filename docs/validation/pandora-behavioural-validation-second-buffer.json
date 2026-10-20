@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "kind": "behavioural-validation-batch-evidence",
+  "batch": "Pandora second-buffer DMA observation and fixture consumption identity",
+  "base_commit": "82f1795ec8b649ac73e823a9e751f0d648b45206",
+  "B_ids_advanced": [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B07",
+    "B08",
+    "B09",
+    "B10"
+  ],
+  "completed_B_ids": [],
+  "fixture_manifest": "runtime/observations/pandora-scratch-second-buffer.json",
+  "canonical_summary_id": "catalog-function-summary-entry-h0-00006C60",
+  "canonical_action_id": "manual-c3cc1ae1ba6844aea0a297f4bd6270cf",
+  "canonical_contract_ids": [
+    "pandora.scratch.second-word.v1",
+    "pandora.scratch.second-buffer.v1"
+  ],
+  "capability_changes": [
+    "Join at most4 bounded full-slot projections into at most8192 unique physical slots, retaining real repeated accesses. Per-query4096 cap remains; omitted/dropped records and changed sidecars refuse.",
+    "Configured first-five area-blit descriptors and per-channel observed address/width/order checked against finite H32/shift4 setup. Native/profile frame domains stay separate.",
+    "Independent128-pair scratch-read/destination-write FIFO permits observed prefetching and rejects equal-final-buffer ordering/transient-value failures.",
+    "Reviewed CPU fixture identity checked at consumption; context hash and parser share one byte snapshot. Executor-returned identity is checked by the receipt service. Consumed DMA baseline hash is checked against its reviewed reference."
+  ],
+  "capture_race": {
+    "before": "Reproduced false pass on structurally valid swapped capture after service admission.",
+    "reviewed_capture_sha256": "480bdbf74959b322cd001a4613e69f7da4c1cf0b71d9e610258605e25a22144a",
+    "unreviewed_consumed_sha256": "dc7a2451940e8f207836de9066316ec2f31159beee731ef3c9c64e9ec15ddef5",
+    "before_output_sha256": "441af140cd11194bf54cab659242e502dc6a456058dabd056ea41c2b12371135",
+    "after": "Refused stale before CPU execution. Single-snapshot parsing and returned-identity guard also tested.",
+    "impact": "No evidence82f1795e published runs were affected: its recorded warm context hash equals the reviewed fixture. Earlier profiles remain historical; fresh qualification uses the hardened implementation.",
+    "published_run_check": {
+      "receipt_id": "86ab430fbea8a11f5ae042b64598a9e734e86743ad39dc0cf9df6bce78ce1896",
+      "consumed_context_sha256": "480bdbf74959b322cd001a4613e69f7da4c1cf0b71d9e610258605e25a22144a",
+      "reviewed_fixture_sha256": "480bdbf74959b322cd001a4613e69f7da4c1cf0b71d9e610258605e25a22144a"
+    }
+  },
+  "coverage": {
+    "accepted_predicates_before": 3,
+    "accepted_predicates_after": 4,
+    "cpu_cases_before": 25,
+    "cpu_cases_after": 25,
+    "byte_inputs_before": 65536,
+    "byte_inputs_after": 65536,
+    "adopted_DMA_fixtures_before": 1,
+    "adopted_DMA_fixtures_after": 2,
+    "legacy_scratch_events": 384,
+    "second_window_events": 5120,
+    "configured_job_prefix_events": 1280,
+    "configured_jobs": 5,
+    "destination_FIFO_pairs": 128,
+    "mask_reads": 256,
+    "pixel_reads": 256,
+    "background_reads": 256,
+    "note": "Counts overlap: the scratch384 transfers are contained in the configured1280-event prefix. Whole-window5120 includes later blits and2560 display reads. No new height/shift or candidate DMA coverage.",
+    "candidate_DMA_equivalence": false
+  },
+  "development_evaluation": {
+    "original_repeatability": {
+      "status": "pass",
+      "events_compared": 5120,
+      "stream_sha256": "9b7188792df14117b568007865301cd1e1eec9584c5158d8fbbc681865e044bb"
+    },
+    "configured_job_predicate": {
+      "status": "pass",
+      "configured_jobs_checked": 5,
+      "observed_job_events": 1280,
+      "mask_reads": 256,
+      "pixel_reads": 256,
+      "background_reads": 256,
+      "destination_FIFO_pairs": 128,
+      "observed_maximum_pending_reads": 2,
+      "frame_association": {
+        "native_entry_frame": 937,
+        "profile_container_frame": 938,
+        "scope": "Declared container and within-frame raster bounds only; no global offset inferred"
+      }
+    }
+  },
+  "tests": {
+    "python_passed": 249,
+    "optional_skipped": 1,
+    "optional_skip": "Live MCP SDK transport unavailable; SDK absent. Real HTTP and thin adapter forwarding tested.",
+    "output_sha256": "87682cc53bf16766ba2cbbbe1c327504e29780eb92f5e520f06bb77904738875",
+    "negative_cases": [
+      "Per-partition truncation, combined cap, changed sidecars and ambiguous frame labels refuse.",
+      "Physical-slot projection overlaps join without deduplicating real repeated accesses.",
+      "Wrong job modulo/source width or missing source access mismatch; descending/cross-frame unsupported; missing/truncated descriptor incomplete.",
+      "Write-before-read FIFO mismatch preserves per-channel order and equal final buffer; transient bad copied data fails even when later writes repair it.",
+      "Reviewed capture swap, parser reread race and consumed baseline mismatch refuse or preserve the admitted byte snapshot."
+    ],
+    "native_backend": "Generated C semantics unchanged; prior30 native simulator tests are historical, not rerun."
+  },
+  "accounting": {
+    "unknown_bytes_before": 6446,
+    "unknown_bytes_after": 6446,
+    "assembly_changed": false,
+    "new_purpose_or_relocation_credit": 0
+  },
+  "limits": [
+    "Same H32/shift4 geometry: second-buffer boundary, not new height/shift coverage.",
+    "Later blits and display reads remain in the5120-event window; not every event is attributed to the renderer call.",
+    "Observed ROI footprints and scratch-to-destination copy only; no final pixel, global outside-ROI bounds, all-callers lifetime, allocation or relocation safety proof.",
+    "No original scratch seed or unobserved-remainder interpretation. No proprietary payload/state/ROM bytes published.",
+    "Original self-replay is not candidate DMA equivalence. CPU access events, entry snapshots and physical bus transfers remain distinct.",
+    "Bank30 unresolved; fonts, bank45 layout and EQU/RS policy untouched. B01\u2013B10 remain partial/open."
+  ],
+  "next_evidence_question": "Which natural height/shift clipping boundary should extend the finite renderer contract before considering other callers or a changed candidate?",
+  "exact_verification": {
+    "receipt_id": "926dc0e375fa29dbe6d9966be974a6861b70d48a255a4a83e5336b26d134b49f",
+    "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3",
+    "exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db",
+    "source_package_sha256": "bade0451e80ae98dc6a4f8c1afa7737e492a2ec457938f31d693ee489f0af52d",
+    "framework_exact": true,
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "canonical_review": {
+    "decision_id": "restoration-ad689d1a094e4b7aab28f06bde1b782f",
+    "action_id": "manual-c3cc1ae1ba6844aea0a297f4bd6270cf",
+    "action": "accept_fact",
+    "revision": "574ba26b03e148d3b46686266c173c8fabf26853212492a12afe6ba704ab97c7",
+    "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3",
+    "verification_id": "926dc0e375fa29dbe6d9966be974a6861b70d48a255a4a83e5336b26d134b49f"
+  },
+  "prereview": {
+    "legacy": {
+      "receipt_id": "8e66f213a7ed0a7eeee9f76a71ec0e82a676ce4a3c6babc9f5a7e813e8cddfb2",
+      "status": "missing_prerequisite",
+      "evaluation_outcome": {
+        "address_order_sha256": "449a54a93f3d2e7c9c625112af7cbc3b38f38fcd4594bbad705e0e9ff08ea5a1",
+        "counts": {
+          "read": 128,
+          "write": 256
+        },
+        "events_checked": 384,
+        "observed_byte_extent": [
+          111528,
+          112040
+        ],
+        "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof",
+        "status": "pass",
+        "stream_sha256": "5008b245cdb8d40cc6cafb64cfc528d2dcb09a2d4db57779baf1939869c46221"
+      },
+      "admission": {
+        "reason": "Canonical contract requires Decision Journal acceptance",
+        "status": "missing_prerequisite"
+      }
+    },
+    "second": {
+      "receipt_id": "2be3c133df17fe5a0871d49c94a1b4e25355aac7b90f819acbe6e89c57ac8700",
+      "status": "missing_prerequisite",
+      "evaluation_outcome": {
+        "address_order_sha256": "449a54a93f3d2e7c9c625112af7cbc3b38f38fcd4594bbad705e0e9ff08ea5a1",
+        "counts": {
+          "read": 128,
+          "write": 256
+        },
+        "events_checked": 384,
+        "observed_byte_extent": [
+          111528,
+          112040
+        ],
+        "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof",
+        "status": "pass",
+        "stream_sha256": "3363836166a57ba9413aa09a257d74b88d99da9ec1979ac6a24fb5e15c9358de"
+      },
+      "admission": {
+        "reason": "Canonical contract requires Decision Journal acceptance",
+        "status": "missing_prerequisite"
+      }
+    }
+  },
+  "qualified_receipts": {
+    "CPU_legacy": {
+      "receipt_id": "49828fbb9e09085a217a6fc965e0407460aa302c0aa1c1f840a583b2830af4ce",
+      "status": "pass",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "f64ef6f91f0a2f6d84aa7578412e988e54ab6635a00ad7c08871d84136756d83",
+        "fixture": "8f6139d2905292f122234b6891527751a915d2489f00c0b32a3d0a84b8cea429",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "aa2225e88acbf211faeedb120df9996e4b80108fe1660dc52d28e36c60d2c3b6"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3",
+      "cases_passed": 19,
+      "consumed_context_sha256": "ed8c258a4dca5c8474e009cd4c81d69fbc4aed9417a0104ad52540004aabfd89"
+    },
+    "CPU_warm": {
+      "receipt_id": "d552ebc83fd5164252c35c2bf59360dff5925f0bbccb249d0dbe3a7043d1305b",
+      "status": "pass",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "e77dde94d6f28b5ea3b38dd7d127171d1b685147d21b6fec872831b1a61ada27",
+        "fixture": "c02d334a809ae48dc6407831e295de95adca39b1db2c8f0810b2d528d05e47d4",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "9ca79a470aa90fa0befce745dc87a6afa738028184b3e1266ba77e597ffc1e64"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3",
+      "cases_passed": 6,
+      "consumed_context_sha256": "480bdbf74959b322cd001a4613e69f7da4c1cf0b71d9e610258605e25a22144a"
+    },
+    "DMA_legacy": {
+      "receipt_id": "bf1904694948a3e1efc9b48aafd0172b55fd88697110f22344ab3f750420e092",
+      "status": "pass",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "f6a3374717e7c9ed2466c6c86a95d3279baf4498cabc33460971e6712dedf040",
+        "fixture": "5ad2c2a13928ba609a0840615bc0240dc854e66119b80862076317043143869f",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "4a1ce04ff9ed2f885c9ae3fc4a165134a81b19dc3b29bdce15eddedc8e832042"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3",
+      "repeatability": {
+        "events_compared": 384,
+        "status": "pass",
+        "stream_sha256": "70cc306ef51a998f09d393f5ffd72e9a00b79691e52c988ceb64112275e60ff5"
+      },
+      "counts": [
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 128
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 256
+        }
+      ]
+    },
+    "DMA_second": {
+      "receipt_id": "595eb9bd632adb99bdc850d88018d3e0e09106db45a6bbe1f9eefeeea8620337",
+      "status": "pass",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "4587d7ca34a08ae86be54bb133cd5f7a6c6548550811ec4bbb05d7b52289ddc0",
+        "fixture": "3e3bf6aba838d9748b2ea285a44a1a659983ec19c021a8211cc90c91812fcd85",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "4a1ce04ff9ed2f885c9ae3fc4a165134a81b19dc3b29bdce15eddedc8e832042"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3",
+      "repeatability": {
+        "events_compared": 5120,
+        "status": "pass",
+        "stream_sha256": "9b7188792df14117b568007865301cd1e1eec9584c5158d8fbbc681865e044bb"
+      },
+      "counts": [
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "mask_source",
+          "transfers": 512
+        },
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "pixel_source",
+          "transfers": 512
+        },
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 128
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 256
+        },
+        {
+          "access": "read",
+          "engine": "bitplane",
+          "range": "world_destination",
+          "transfers": 2048
+        },
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "world_destination",
+          "transfers": 540
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "world_destination",
+          "transfers": 437
+        },
+        {
+          "access": "read",
+          "engine": "bitplane",
+          "range": "world_destination_tail",
+          "transfers": 512
+        },
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "world_destination_tail",
+          "transfers": 100
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "world_destination_tail",
+          "transfers": 75
+        }
+      ],
+      "configured_job_predicate": {
+        "background_reads": 256,
+        "configured_jobs_checked": 5,
+        "destination_FIFO_pairs": 128,
+        "frame_association": {
+          "native_entry_frame": 937,
+          "profile_container_frame": 938,
+          "scope": "Declared container and within-frame raster bounds only; no global offset inferred"
+        },
+        "mask_reads": 256,
+        "observed_job_events": 1280,
+        "observed_maximum_pending_reads": 2,
+        "pixel_reads": 256,
+        "status": "pass"
+      }
+    }
+  },
+  "native_manifest": {
+    "manifest_sha256": "f22e82ae1fb655ca87962c24048937f6175e7a6f2722b5958e0b9b72517344ce",
+    "artifact_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+    "rewrite_count": 5,
+    "subject_revision": "8da7c130703a109adef6bd72e0a2936c67b99368d2e91ef21b8b64f047e8e5a3"
+  }
+}

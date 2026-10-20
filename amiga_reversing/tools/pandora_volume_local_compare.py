@@ -54,7 +54,12 @@ def sha(data):return hashlib.sha256(data).hexdigest()
 
 
 def load_context(path, original, *, warm_start=False):
-    donor=json.loads(path.read_text());donor=donor.get('runner',donor)
+    return context_from_bytes(path.read_bytes(),original,warm_start=warm_start)
+
+
+def context_from_bytes(encoded, original, *, warm_start=False):
+    """Parse exactly the bytes whose identity the caller admitted."""
+    donor=json.loads(encoded);donor=donor.get('runner',donor)
     o=donor.get('observation',{})
     phases=o.get('scenario',{}).get('phases',[])
     if len(phases)!=(2 if warm_start else 1):raise BehaviourError('incomplete_truncated','Expected canonical routine-context capture phases')
@@ -347,7 +352,8 @@ def warm_effect_contract(result, projection):
                 sample_payload_initialization=False,device_equivalence=False)
 
 
-def compare(target, context, manifest_path, library, *, artifact=None, warm_start=False):
+def compare(target, context, manifest_path, library, *, artifact=None, warm_start=False,
+            expected_context_sha256=None):
     from amiga_reversing.disasm import derived_artifact as binding
     LOADED_SOURCE.require_current()
     binding.LOADED_SOURCE.require_current()
@@ -355,7 +361,8 @@ def compare(target, context, manifest_path, library, *, artifact=None, warm_star
         from .runtime_analysis import analysis_scope,build_project_listing_artifact_profile
         with analysis_scope():
             _,_,native=build_project_listing_artifact_profile(target)
-            return compare(target,context,manifest_path,library,artifact=native,warm_start=warm_start)
+            return compare(target,context,manifest_path,library,artifact=native,warm_start=warm_start,
+                           expected_context_sha256=expected_context_sha256)
     original=resolve_project_paths(target).binary_source.path.read_bytes()
     contract=load_contract('pandora')
     if target!=contract.target_id or sha(original)!=contract.payload_sha256:
@@ -372,8 +379,10 @@ def compare(target, context, manifest_path, library, *, artifact=None, warm_star
         if original[off:off+len(before)]!=before or derived[off:off+len(after)]!=after:raise ValueError('rewrite ledger mismatch')
         changed.update(range(off,off+len(before)))
     if len(original)!=len(derived) or any(a!=b and i not in changed for i,(a,b) in enumerate(zip(original,derived))):raise ValueError('unlisted image changes')
-    context_identity=sha(context.read_bytes())
-    donor,projection,regs=load_context(context,original,warm_start=warm_start);run=load_engine(library);cases=[]
+    context_bytes=context.read_bytes();context_identity=sha(context_bytes)
+    if expected_context_sha256 is not None and context_identity!=expected_context_sha256:
+        raise BehaviourError('stale','Consumed context differs from the reviewed fixture')
+    donor,projection,regs=context_from_bytes(context_bytes,original,warm_start=warm_start);run=load_engine(library);cases=[]
     actual_dead=bool(projection[0x5c21a]&2);actual_armed=bool(projection[int(regs['a6'],0)+0x33d]&1)
     specs=[('captured_guard',actual_dead,actual_armed,0x40,None),('dead_unarmed',True,False,0x40,None),
            ('alive_far_armed',False,True,0x1234,None),('alive_near_armed',False,True,0x40,(808,154))]

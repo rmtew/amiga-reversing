@@ -146,3 +146,70 @@ def test_trace_requires_the_original_canonical_anchor_before_start(tmp_path, mon
     result = runtime._run_scenario_phase(c, phase, p, {}, None, trace_directory=tmp_path)
     assert bool(calls) == identity_ok
     assert result['status'] == ('hit' if identity_ok else 'not_hit')
+
+
+def complete_profile(path):
+    profile(path)
+    p=path/'profile.json';summary=json.loads(p.read_text());summary['samples_dropped']=0
+    p.write_text(json.dumps(summary))
+
+
+def test_partitions_keep_order_and_real_repeated_addresses(tmp_path):
+    complete_profile(tmp_path)
+    result=bus.read_bus_partitions(tmp_path,[[dict(name='source',address=0x1000,length=4)],
+                                           [dict(name='destination',address=0x2000,length=2)]],2)
+    assert result['matching_transfers']==6 and result['omitted_matching_records']==0
+    assert [r['address'] for r in result['records']]==[0x1000,0x1002,0x2000]*2
+    assert result['partition_matching_transfers']==[4,2]
+
+
+def test_crossing_access_in_two_projections_is_one_physical_event(tmp_path):
+    complete_profile(tmp_path)
+    result=bus.read_bus_partitions(tmp_path,[[dict(name='head',address=0x1000,length=2)],
+                                           [dict(name='tail',address=0x1001,length=2)]],2)
+    assert result['matching_transfers']==4 and result['projection_memberships']==6
+    assert result['records'][0]['ranges']==['head','tail']
+    assert result['records'][2]['address']==result['records'][0]['address']
+    assert result['records'][2]['frame']!=result['records'][0]['frame']
+
+
+def test_partition_join_keeps_container_order_and_refuses_ambiguous_labels(tmp_path):
+    complete_profile(tmp_path)
+    path=tmp_path/'profile.jsonl';frames=[json.loads(x) for x in path.read_text().splitlines()]
+    frames[0]['frame']=11;frames[1]['frame']=10
+    path.write_text(''.join(json.dumps(f)+'\n' for f in frames))
+    result=bus.read_bus_partitions(tmp_path,[[dict(name='source',address=0x1000,length=4)]],2)
+    assert [r['frame'] for r in result['records']]==[11,11,10,10]
+    frames[1]['frame']=11;path.write_text(''.join(json.dumps(f)+'\n' for f in frames))
+    with pytest.raises(CopperlineError,match='not unique'):
+        bus.read_bus_partitions(tmp_path,[[dict(name='source',address=0x1000,length=4)]],2)
+
+
+@pytest.mark.parametrize('failure',['truncated','combined_limit','changed_sidecar'])
+def test_partition_join_refuses_incomplete_or_changed_evidence(tmp_path,monkeypatch,failure):
+    complete_profile(tmp_path)
+    if failure=='truncated':monkeypatch.setattr(bus,'MAX_MATCHES',1)
+    if failure=='changed_sidecar':
+        read=bus.read_bus_profile;calls=[]
+        def changing(*args):
+            if calls:
+                path=tmp_path/'slots-000000-frame-000010.bin'
+                slots=list(bus.SLOT.iter_unpack(path.read_bytes()));r=list(slots[2]);r[7]+=1;slots[2]=r
+                path.write_bytes(b''.join(bus.SLOT.pack(*r) for r in slots))
+            calls.append(True);return read(*args)
+        monkeypatch.setattr(bus,'read_bus_profile',changing)
+    with pytest.raises(CopperlineError):
+        bus.read_bus_partitions(tmp_path,[[dict(name='source',address=0x1000,length=4)],
+                                         [dict(name='destination',address=0x2000,length=2)]],2,
+                                max_total=5 if failure=='combined_limit' else 8192)
+
+
+@pytest.mark.parametrize('partitions,limit',[
+    ([],8192),([[dict(name='r',address=0,length=1)]]*5,8192),
+    ([[dict(name='r',address=0,length=4097)]],8192),
+    ([[dict(name='r',address=dict(base_register='a0',offset=0),length=1)]],8192),
+    ([[dict(name='r',address=0,length=1)],[dict(name='r',address=2,length=1)]],8192),
+    ([[dict(name='r',address=0,length=1)]],8193),
+])
+def test_partition_schema_stays_bounded(tmp_path,partitions,limit):
+    with pytest.raises(CopperlineError):bus.read_bus_partitions(tmp_path,partitions,2,max_total=limit)

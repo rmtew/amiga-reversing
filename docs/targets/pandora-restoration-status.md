@@ -1,9 +1,9 @@
 # Pandora restoration inventory and status
 
 > Current behavioural validation: [B01–B10 roadmap](../proposals/045-behavioural-validation.md),
-> [warm-start evidence](../validation/pandora-behavioural-validation-warm-start.json).
-> Three bounded predicates in two summaries: 25 CPU cases plus 65,536 BYTE inputs;
-> one original-only DMA fixture/replay of 384 transfers. Tests: 223 Python passed,
+> [second-buffer evidence](../validation/pandora-behavioural-validation-second-buffer.json).
+> Four bounded predicates in two summaries: 25 CPU cases plus 65,536 BYTE inputs;
+> two original-only DMA fixtures. Tests: 249 Python passed,
 > optional live MCP SDK transport skipped. Assembly unchanged and C/vasm exact;
 > the prior 30 native tests are historical, not rerun. Every B ID remains partial/open.
 
@@ -22,6 +22,21 @@ records' ordered initialization writes. The legacy predicate retains its
 128-instruction limit and exclusions. Neither the captured CIAA debug snapshot
 nor local CPU calls establish device behaviour or normal-gameplay reachability;
 cold sample setup and later channel/program consumers remain excluded.
+
+The second buffer fixture checks five configured blit jobs/1,280 observed events,
+including256 mask, pixel and background reads each and128 FIFO scratch-to-bitmap
+pairs. Its full5,120-event window also includes later blits and display reads;
+not every event is attributed to the renderer. Bounded full-sidecar projections
+recover evidence beyond the original report's337 omitted matches. Native and
+profile-container frame labels remain separate. H32/shift4 is unchanged; final
+pixels, global outside-ROI bounds, other callers and candidate DMA remain unproved.
+
+The fixture-race regression reproduces a false pass after a reviewed capture was
+swapped before consumption. The runner now hashes/parses one byte snapshot and
+binds its consumed identity to the reviewed hash; the service checks the returned
+identity too. The recorded82f1795e warm run consumed the reviewed hash, so no
+published-run substitution is evidenced. Fresh qualification uses the hardened
+profile; the older profiles remain historical.
 
 Baseline snapshot: 2026-10-12, merged source `22e55bb5`, restoration revision
 `2f142cd09c5eae6d1edd001af3acfb2909098713d6a8f513eadda5c7279ba42e`.

@@ -15,6 +15,9 @@ from amiga_reversing.tools import pandora_volume_local_compare as volume
 from tests.test_behaviour_validation import DATA,ROOT
 from tests.test_behaviour_receipts import service
 from amiga_reversing.disasm import restoration_verification as rv
+from tests.test_behaviour_identity_regressions import manifest_fixture,TARGET
+
+REAL_COMPARE=volume.compare
 
 CAPTURE=ROOT/'.runtime-state/pandora-behaviour/warm-audio-start-inputs/capture.json'
 
@@ -139,6 +142,7 @@ def test_warm_service_binds_reviewed_private_capture_and_refuses_changes(service
         control_source_ranges=[list(r) for r in volume.WARM_CODE_RANGES],
         sample_initialization='captured_nonzero_guard',device_inputs='captured_CIAA_port_snapshot_CPU_model',
         fixture_capture=str(capture.relative_to(tmp_path)),fixture_capture_sha256=rv._hash(capture.read_bytes()))
+    result['context_sha256']=rv._hash(capture.read_bytes())
     invoked=[]
     def compare(*args,**kwargs):
         invoked.append((args[1],kwargs['warm_start']))
@@ -153,3 +157,63 @@ def test_warm_service_binds_reviewed_private_capture_and_refuses_changes(service
     canonical['contract']['fixture_capture']='outside.json'
     assert rv.run_behaviour('target','revision',request)['status']=='unsupported'
     assert len(invoked)==1
+    canonical['contract']['fixture_capture']=str(capture.relative_to(tmp_path));capture.write_text('{}')
+    result['context_sha256']=bv.digest('unreviewed consumed fixture')
+    assert rv.run_behaviour('target','revision',request)['status']=='stale'
+    assert len(invoked)==2
+
+
+def test_capture_swap_between_service_admission_and_consumption_is_stale(service,tmp_path,monkeypatch):
+    if not CAPTURE.exists():
+        pytest.skip('Private identity-bound warm fixture absent; no capture race evaluated')
+    canonical,_,request=service
+    capture=tmp_path/'.runtime-state/warm/capture.json';capture.parent.mkdir(parents=True)
+    reviewed=CAPTURE.read_bytes();capture.write_bytes(reviewed)
+    changed=json.loads(reviewed)
+    xy=next(r for r in changed['runner']['observation']['scenario']['phases'][-1]['capture']['memory_reads']
+            if int(r['address'],0)==0x5c352)
+    data=bytearray.fromhex(xy['bytes']);data[1]^=1;xy['bytes']=data.hex()
+    replacement=json.dumps(changed).encode()
+    canonical['contract'].update(contract_id='pandora.volume.warm-start.v1',instruction_budget=256,
+        control_source_ranges=[list(r) for r in volume.WARM_CODE_RANGES],
+        sample_initialization='captured_nonzero_guard',device_inputs='captured_CIAA_port_snapshot_CPU_model',
+        fixture_capture=str(capture.relative_to(tmp_path)),fixture_capture_sha256=rv._hash(reviewed))
+    manifest,_,artifact=manifest_fixture((tmp_path/request['manifest']).parent)
+    (tmp_path/'src/build/libamiga_backend.so').write_bytes((ROOT/'src/build/libamiga_backend.so').read_bytes())
+    consumed=[]
+    def compare(*args,**kwargs):
+        assert capture.read_bytes()==reviewed
+        capture.write_bytes(replacement)
+        # The changed capture still passes real structural/code admission.
+        volume.load_context(capture,DATA,warm_start=True)
+        result=REAL_COMPARE(*args,**kwargs)
+        consumed.append(result['context_sha256'])
+        return result
+    monkeypatch.setattr(volume,'compare',compare)
+    result=rv.run_behaviour(TARGET,'a'*64,request,artifact=artifact)
+    assert result['status']=='stale',dict(status=result['status'],consumed=consumed,reviewed=rv._hash(reviewed))
+    assert not consumed  # Refused before executing the unreviewed CPU fixture.
+
+
+def test_context_hash_and_parser_use_one_immutable_byte_snapshot(tmp_path,monkeypatch):
+    if not CAPTURE.exists():
+        pytest.skip('Private identity-bound warm fixture absent; no snapshot race evaluated')
+    reviewed=CAPTURE.read_bytes();context=tmp_path/'context.json';context.write_bytes(reviewed)
+    replacement=json.loads(reviewed)
+    port=next(r for r in replacement['runner']['observation']['scenario']['phases'][-1]['capture']['memory_reads']
+              if int(r['address'],0)==0xbfe001)
+    original_port=int(port['bytes'],16);port['bytes']=bytes([original_port^2]).hex()
+    changed=json.dumps(replacement).encode();parser=volume.context_from_bytes;consumed=[]
+    def parse(snapshot,*args,**kwargs):
+        context.write_bytes(changed)
+        try:
+            result=parser(snapshot,*args,**kwargs)
+            consumed.append(result[1][0xbfe001])
+            return result
+        finally:context.write_bytes(reviewed)
+    monkeypatch.setattr(volume,'context_from_bytes',parse)
+    manifest,_,artifact=manifest_fixture(tmp_path)
+    result=REAL_COMPARE(TARGET,context,manifest,ROOT/'src/build/libamiga_backend.so',
+                        artifact=artifact,warm_start=True,expected_context_sha256=rv._hash(reviewed))
+    assert consumed==[original_port] and result['context_sha256']==rv._hash(reviewed)
+    assert result['routine_comparison']['accepted_cases']==6

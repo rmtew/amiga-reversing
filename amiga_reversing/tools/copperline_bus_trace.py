@@ -106,6 +106,56 @@ def read_bus_profile(directory, ranges, max_frames):
                         for (r, e, a), n in sorted(counts.items())])
 
 
+def read_bus_partitions(directory, partitions, max_frames, *, max_total=8192):
+    """Join bounded projections of the same complete full-slot sidecars.
+
+    Each query retains the existing 4096-record cap. A shared physical slot in
+    overlapping projections is one event with several range memberships; actual
+    repeated accesses at different slots remain distinct and ordered.
+    """
+    LOADED_SOURCE.require_current()
+    if (not isinstance(partitions,list) or not 1<=len(partitions)<=4
+            or type(max_total) is not int or not 1<=max_total<=8192):
+        raise CopperlineError('Analysis requires1..4 bounded partitions and at most8192 records')
+    names=set()
+    for ranges in partitions:
+        try:validate_bus_trace(dict(frames=max_frames,wait_seconds=1,ranges=ranges))
+        except ValueError as exc:raise CopperlineError(str(exc)) from exc
+        for r in ranges:
+            if type(r['address']) is not int or r['name'] in names:
+                raise CopperlineError('Analysis ranges require resolved addresses and unique names')
+            names.add(r['name'])
+    reference=None;slots={};sizes=[]
+    for ranges in partitions:
+        part=read_bus_profile(directory,ranges,max_frames)
+        if part['omitted_matching_records'] or part['profile_summary'].get('samples_dropped')!=0:
+            raise CopperlineError('Omitted or dropped records in an analysis partition')
+        signature={k:part[k] for k in ('frames','profile_summary','scanned_slots')}
+        if reference is not None and signature!=reference:
+            raise CopperlineError('Full sidecars changed between analysis partitions')
+        reference=signature;sizes.append(part['matching_transfers'])
+        labels=[frame.get('frame') for frame in part['frames']]
+        if any(type(label) is not int for label in labels) or len(set(labels))!=len(labels):
+            raise CopperlineError('Profile container frame labels are not unique integers')
+        frame_order={label:i for i,label in enumerate(labels)}
+        for r in part['records']:
+            key=(frame_order[r['frame']],r['row'],r['hpos']);previous=slots.get(key)
+            if previous is not None:
+                if {k:v for k,v in previous.items() if k!='ranges'}!={k:v for k,v in r.items() if k!='ranges'}:
+                    raise CopperlineError('Conflicting physical slot in analysis projections')
+                previous['ranges']=sorted(set(previous['ranges'])|set(r['ranges']))
+            else:slots[key]=dict(r,ranges=list(r['ranges']))
+            if len(slots)>max_total:
+                raise CopperlineError('Combined analysis record limit exceeded')
+    records=[slots[k] for k in sorted(slots)]
+    counts=Counter((name,r['engine'],r['access']) for r in records for name in r['ranges'])
+    LOADED_SOURCE.require_current()
+    return dict(reference,records=records,matching_transfers=len(records),omitted_matching_records=0,
+                partition_matching_transfers=sizes,projection_memberships=sum(sizes),
+                counts=[dict(range=n,engine=e,access=a,transfers=c)
+                        for (n,e,a),c in sorted(counts.items())])
+
+
 def capture_bus_trace(client, spec, start_event, directory):
     validate_bus_trace(spec)
     if not isinstance(start_event, dict) or type(start_event.get('frame')) is not int:

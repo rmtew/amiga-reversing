@@ -126,6 +126,18 @@ original DMA fixture. The focused suite passes 223 tests with one optional live
 MCP SDK skip. No normal-gameplay, cold sample, live CIA/Paula/DMA or later audio
 consumer proof follows from the new CPU calls.
 
+The [second-buffer DMA batch](../validation/pandora-behavioural-validation-second-buffer.json)
+adds an original-only buffer-boundary fixture: 5,120 ordered window events,
+five configured jobs/1,280 observed job events, and 128 FIFO scratch-to-bitmap
+pairs. The native descriptor and profile-container frame domains remain separate.
+Bounded projections recover complete evidence from retained sidecars; the original
+4,096-record report omitted 337 matches and is never treated as complete. The
+batch also closes the reviewed-fixture admission/consumption race with one parsed
+byte snapshot and consumed-identity checks. Four predicates now cover 25 CPU
+cases, the unchanged BYTE domain and two adopted original DMA fixtures. Tests:
+249 passed, one optional live MCP SDK skip. This adds no candidate DMA or new
+height/shift coverage and no byte/purpose/relocation credit.
+
 Every row is **partial/open**, including rows with an implemented first seam.
 No commitment is complete on documentation or one successful fixture. Evidence
 for these rows is the batch receipt summary above and its linked
@@ -137,16 +149,14 @@ for these rows is the batch receipt summary above and its linked
 | B02 | Partial: explicit known/modeled/unknown memory manifests, unknown-read refusal and existing identity-bound checkpoints. | Legacy and private warm-start donors; private original scratch checkpoint. CIAA snapshot delivery is explicitly a CPU input model. | Admit a second renderer fixture from its owned full sidecars; keep raw guest data local. |
 | B03 | Partial: named predicates use canonical summary notes, MAL and DJ; latest effective producer and selected predicate are bound separately. | Legacy volume, warm-start volume and scratch predicates accepted within their exclusions. | Review the next DMA predicate through the same histories; no older action's inherited acceptance. |
 | B04 | Partial: ordered architectural events, semantic bus comparison and first differing event; transient/duplicate writes retained. | 25 CPU comparisons, including 40 ordered channel writes per warm case; 384-transfer original self-replay and deliberate order failures. | Follow the scratch reads into destination writes, respecting prefetched FIFO order. |
-| B05 | Partial: exact scratch address/channel order and write-before-read value checks. | One 32-row, shift-4 second-word renderer fixture. Pixel/mask bounds, destination bitmap and other callers are outside coverage. | Add a second boundary fixture and destination/source observations before broader alias/lifetime claims. |
+| B05 | Partial: ordered scratch producer/consumer checks, configured job/channel footprints and FIFO destination-copy checks. | Two natural buffer entries at H32/shift4; second checks256 mask/pixel/background reads each and128 FIFO destination writes within five jobs. Global outside-ROI bounds, final pixels and other callers remain unproved. | Capture a natural height/shift clipping boundary before broader geometry or alias/lifetime claims. |
 | B06 | Partial: explicit wrapped WORD, BYTE-lane and signed relative-address arithmetic checked against generated execution. | Signed extrema, sum wrapping, distance255/256 and all 65,536 WORD inputs to one BYTE store; fixed captured warm tables have nonnegative offsets. | Do not infer coverage of negative table values or cold sample arithmetic. |
 | B07 | Partial: deterministic cases, small preserved negative streams and failure recipes. | Reordered/equal-final streams; missing device/table inputs; cold guard/far inputs; old-budget timeout; predicate-set and review-provenance negatives. No broad fuzzer or automatic minimizer. | Preserve the next real failure and minimize only within its valid preconditions. |
-| B08 | Partial: separate behaviour coverage in existing verification receipts and batch reports. | Three predicates, 25 CPU cases, 65,536 BYTE inputs and one adopted DMA fixture. No new byte or purpose credit. | Keep unqualified probes separate from adopted contract coverage. |
-| B09 | Partial: strict outcomes, identity bindings, native-proof and loaded-code guards, private fixture hashes, selected predicates and review/deviation gates. | Positive/negative tests and fresh pre-review non-pass/post-review receipts. | Admit full-sidecar partitions without silently accepting a truncated report. |
+| B08 | Partial: separate behaviour coverage in existing verification receipts and batch reports. | Four predicates, 25 CPU cases, 65,536 BYTE inputs and two adopted DMA fixtures. Prefix1,280 events overlap the scratch384; window5,120 also includes later blits/display reads. No byte or purpose credit. | Keep window, attributed-job and case counts separate. |
+| B09 | Partial: strict outcomes, native proof, loaded code, selected predicates, latest review, and consumed fixture/reference identities. | Capture swap reproducer refuses stale; partition caps/sidecar changes/ambiguous labels refuse. Fresh pre-review non-pass and qualified pass receipts retained. | Extend staleness/unsupported evidence guards only with the next demonstrated case. |
 | B10 | Partial: per-batch checklist integrated into the existing reversing loop. | Initial CPU/DMA, identity correction and warm composition batches; shared HTTP evaluator, thin CLI/MCP adapters. No dedicated UI results panel. | Apply the checklist to the next DMA consumer fixture; keep later work queued here. |
 
-Next evidence question: can the scratch consumer be followed into the alternate
-destination buffer without misattributing later blits in the same window? The
-second natural entry has the same H32/shift4 geometry, so it adds no height/shift
-boundary coverage yet. Its retained full sidecars permit bounded partitioned
-analysis beyond the truncated report. Bank 30, fonts, bank-45 layout and EQU/RS
-policy remain outside this batch.
+Next evidence question: which natural height/shift clipping boundary should
+extend the finite renderer contract? The second buffer entry retains H32/shift4;
+later blits in its window are not all attributed to this function. Bank 30,
+fonts, bank-45 layout and EQU/RS policy remain outside this batch.

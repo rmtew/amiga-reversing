@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "kind": "captured-state-fixture-manifest",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "canonical_contract_id": "pandora.scratch.second-buffer.v1",
+  "canonical_function_summary_id": "catalog-function-summary-entry-h0-00006C60",
+  "canonical_action_id": "manual-c3cc1ae1ba6844aea0a297f4bd6270cf",
+  "baseline_capture": ".runtime-state/pandora-behaviour/scratch-second-entry-boundary/capture.json",
+  "baseline_capture_sha256": "cb7fe16e214a1f01b036e6bc81109c2215c52a66c06e15be4fd5ced9f2146411",
+  "replay_capture": ".runtime-state/pandora-behaviour/scratch-second-buffer-replay/capture.json",
+  "replay_capture_sha256": "654acd359367cf3c47ef33015e3cafc48674b0824ae12f28382881f4d2f88468",
+  "checkpoint_receipt_sha256": "863523ba02357829a5d57639d2f57f39b969b48c2213a6a7e4e7aa4cacc57cdd",
+  "checkpoint_snapshot_sha256": "448b5ff5c83c0f123025054e27eb245514d095e9d6b30a05bd8c1c5d76d39ba4",
+  "scenario_file": "runtime/scenarios/pandora-shared-scratch-second-buffer.json",
+  "scenario_sha256": "a1f2af352ca544cfbd7292213b9a970f5c6b3dba2bae76c969f1ea0d380d6027",
+  "input_events": [],
+  "input_origin": "Identity-bound saved route checkpoint; no new joystick input in this window.",
+  "observed_setup": {
+    "entry_runtime": 93280,
+    "caller_return": 94352,
+    "first_destination": 469632,
+    "second_destination": 502400,
+    "height": 32,
+    "shift": 4,
+    "source_row_bytes": 16
+  },
+  "evidence_kinds": {
+    "snapshots": "Two entry register/stack snapshots; these are not CPU access events.",
+    "cpu_access_events": "No architectural CPU-access trace is claimed in this fixture.",
+    "DMA": "Retained full chip-bus slots and native blit descriptors; ordered ROI transfers and five completed jobs checked."
+  },
+  "requested_trace": {
+    "frames": 2,
+    "wait_seconds": 5,
+    "ranges": [
+      {
+        "name": "shared_scratch",
+        "address": 111528,
+        "length": 768
+      },
+      {
+        "name": "pixel_source",
+        "address": {
+          "base_register": "a0",
+          "offset": 0
+        },
+        "length": 768
+      },
+      {
+        "name": "mask_source",
+        "address": {
+          "base_register": "a1",
+          "offset": 0
+        },
+        "length": 192
+      },
+      {
+        "name": "world_destination",
+        "address": {
+          "base_register": "a2",
+          "offset": -2
+        },
+        "length": 4096
+      }
+    ]
+  },
+  "resolved_ranges": [
+    {
+      "name": "shared_scratch",
+      "address": 111528,
+      "length": 768
+    },
+    {
+      "name": "pixel_source",
+      "address": 331272,
+      "length": 768
+    },
+    {
+      "name": "mask_source",
+      "address": 427516,
+      "length": 192
+    },
+    {
+      "name": "world_destination",
+      "address": 502398,
+      "length": 4096
+    }
+  ],
+  "analysis_partitions": [
+    [
+      {
+        "name": "shared_scratch",
+        "address": 111528,
+        "length": 768
+      },
+      {
+        "name": "pixel_source",
+        "address": 331272,
+        "length": 768
+      },
+      {
+        "name": "mask_source",
+        "address": 427516,
+        "length": 192
+      }
+    ],
+    [
+      {
+        "name": "world_destination",
+        "address": 502398,
+        "length": 4096
+      }
+    ],
+    [
+      {
+        "name": "world_destination_tail",
+        "address": 506494,
+        "length": 1024
+      }
+    ]
+  ],
+  "original_report": {
+    "matching_transfers": 4433,
+    "retained_records": 4096,
+    "omitted_matching_records": 337
+  },
+  "normative_analysis": {
+    "records": 5120,
+    "omitted_records": 0,
+    "maximum_records": 8192,
+    "partition_matching_transfers": [
+      1408,
+      3025,
+      687
+    ],
+    "source": "Re-decode full owned sidecars. The1024-byte destination tail is an offline analysis range, not an extra runtime capture."
+  },
+  "sidecars": [
+    {
+      "frame": 938,
+      "partial": true,
+      "rows": 313,
+      "line_cck": 227,
+      "slots_sha256": "12c71e6196abef8e6b8ce0029afbfeede5c77ee3f2f0f1a0d535b533e201e056",
+      "slots_bytes": 1705224
+    },
+    {
+      "frame": 939,
+      "partial": false,
+      "rows": 313,
+      "line_cck": 227,
+      "slots_sha256": "5a0989bf50a3aabc0f6bf233fafb5d8373ae75a4e784fbc7e38a75152986ed62",
+      "slots_bytes": 1705224
+    }
+  ],
+  "frame_domains": {
+    "native_entry_frame": 937,
+    "first_profile_container_frame": 938,
+    "association": "First five descriptors finish in the native entry frame; raster positions associate within their declared profile container. No global frame-number offset or CPU programming PC inferred."
+  },
+  "limits": [
+    "Same H32/shift4 geometry: second-buffer boundary, not new height/shift coverage.",
+    "Later blits and display reads remain in the5120-event window; not every event is attributed to the renderer call.",
+    "Observed ROI footprints and scratch-to-destination copy only; no final pixel, global outside-ROI bounds, all-callers lifetime, allocation or relocation safety proof.",
+    "No original scratch seed or unobserved-remainder interpretation. No proprietary payload/state/ROM bytes published."
+  ]
+}

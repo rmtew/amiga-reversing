@@ -194,19 +194,24 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artif
             runner.LOADED_SOURCE.require_current()
             warm=runner.admit_contract(contract['contract'])
             context = PROJECT_ROOT/'runtime/observations/pandora-volume-local-context.json'
+            expected_context=None
             if warm:
                 context=(root/contract['contract']['fixture_capture']).resolve()
                 if not context.is_relative_to(evidence_root):
                     raise BehaviourError('unsupported','Warm fixture must stay in owned local evidence')
                 if _hash(context.read_bytes())!=contract['contract']['fixture_capture_sha256']:
                     raise BehaviourError('stale','Reviewed warm fixture changed')
+                expected_context=contract['contract']['fixture_capture_sha256']
             library = PROJECT_ROOT/'src/build/libamiga_backend.so'
             manifest_path=local_path('manifest',manifest=True)
             if manifest_path.stat().st_size>1_000_000:
                 raise BehaviourError('incomplete_truncated','Manifest exceeds bounded evidence size')
             if json.loads(manifest_path.read_text()).get('analysis_subject_revision')!=subject_revision:
                 raise BehaviourError('stale','Derived manifest belongs to another analysis subject')
-            result = runner.compare(target_id,context,manifest_path,library,artifact=artifact,warm_start=warm)
+            result = runner.compare(target_id,context,manifest_path,library,artifact=artifact,warm_start=warm,
+                                    expected_context_sha256=expected_context)
+            if warm and result['context_sha256']!=expected_context:
+                raise BehaviourError('stale','Executed context identity differs from the reviewed fixture')
             if _hash(library.read_bytes())!=result['backend_sha256']:
                 raise BehaviourError('stale','Executed backend differs from the current backend; restart required')
             if result['implementation_sha256']!=runner.LOADED_SOURCE.require_current():
