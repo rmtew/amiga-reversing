@@ -7,6 +7,19 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Scoped by the opt-in synchronous wrapper; separate host threads never share
+ * an observer. Saving/restoring also permits nested observed executions. */
+#if defined(_MSC_VER)
+static __declspec(thread) const M68kSimConcreteObserver *sim_observer;
+#else
+static _Thread_local const M68kSimConcreteObserver *sim_observer;
+#endif
+
+static int sim_observe(uint8_t kind, uint32_t address, uint8_t width, uint32_t value) {
+  return sim_observer == NULL || sim_observer->access == NULL ||
+    sim_observer->access(sim_observer->user, kind, address, width, value) != 0;
+}
+
 static const M68kSimValue g_m68k_sim_unknown_value = {
   M68K_SIM_VALUE_UNKNOWN, 0U, M68K_SIM_PROV_NONE, 0U, 0U, 0U, 0U, 0U, {0U, {0U}}
 };
@@ -2408,6 +2421,7 @@ static int sim_concrete_write_memory_sized(uint8_t *memory, size_t memory_size, 
     return memory_policy != NULL && memory_policy->external_write_allowed != NULL &&
       memory_policy->external_write_allowed(memory_policy->user, address, width) != 0;
   }
+  if (!sim_observe(1U, address, width, value & sim_mask_for_width(width))) return 0;
   sim_concrete_record_memory_write(trace, address, width);
   if (width == 1U) {
     memory[address] = (uint8_t)(value & 0xFFU);
@@ -2578,19 +2592,19 @@ static int sim_concrete_read_memory_sized(const uint8_t *memory, size_t memory_s
       return 0;
     }
     *out_value = external_value & sim_mask_for_width(width);
-    return 1;
+    return sim_observe(0U, address, width, *out_value);
   }
   if (width == 1U) {
     *out_value = memory[address];
-    return 1;
+    return sim_observe(0U, address, width, *out_value);
   }
   if (width == 2U) {
     *out_value = m68k_read_u16be(memory + address);
-    return 1;
+    return sim_observe(0U, address, width, *out_value);
   }
   if (width == 4U) {
     *out_value = m68k_read_u32be(memory + address);
-    return 1;
+    return sim_observe(0U, address, width, *out_value);
   }
   return 0;
 }
@@ -2790,6 +2804,10 @@ static int sim_concrete_return_from_metadata(const M68kInstructionIR *instructio
       return -1;
     }
     restored_pc = m68k_read_u32be(memory + stack_pointer);
+    if (!sim_observe(0U, stack_pointer, 4U, restored_pc)) {
+      sim_diag_error(diagnostics, "observed return read refused");
+      return -1;
+    }
     next_sp = stack_pointer + 4U;
     if (metadata->return_stack_adjust_operand_index < instruction->operand_count) {
       uint32_t raw_adjust;
@@ -2871,6 +2889,10 @@ static int sim_concrete_enter_exception(const M68kInstructionIR *instruction, co
   uint32_t current_pc, saved_pc, vector_base = 0U, vector_address, handler_pc, stack_pointer;
   uint16_t saved_sr, next_sr;
   int user_mode;
+  if (sim_observer != NULL) {
+    sim_diag_error(diagnostics, "exception entry is unsupported in observed execution");
+    return 0;
+  }
   if (metadata == NULL || memory == NULL || io_state == NULL) {
     sim_diag_error(diagnostics, "bad arguments");
     return 0;
@@ -4715,6 +4737,10 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           sim_diag_error(diagnostics, "movep read out of range");
           return -1;
         }
+        if (!sim_observe(0U, byte_address, 1U, memory[byte_address])) {
+          sim_diag_error(diagnostics, "observed movep read refused");
+          return -1;
+        }
         combined = (combined << 8) | memory[byte_address];
       }
       if (!sim_concrete_write_operand_by_metadata(instruction, metadata, reg_index, reg_operand,
@@ -4861,6 +4887,10 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             return -1;
           }
           word_value = m68k_read_u16be(memory + cursor);
+          if (!sim_observe(0U, cursor, 2U, word_value)) {
+            sim_diag_error(diagnostics, "observed movem read refused");
+            return -1;
+          }
           reg_value = (uint32_t)(int32_t)(int16_t)word_value;
         } else {
           if (!sim_concrete_read_memory_sized(memory, memory_size, cursor, 4U, &reg_value, memory_policy)) {
@@ -4919,6 +4949,10 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       return -1;
     }
     io_state->a[lhs_reg] = m68k_read_u32be(memory + io_state->a[7]);
+    if (!sim_observe(0U, io_state->a[7], 4U, io_state->a[lhs_reg])) {
+      sim_diag_error(diagnostics, "observed unlk read refused");
+      return -1;
+    }
     io_state->a[7] += 4U;
   } else if (metadata->operation_type == M68K_SIM_OP_MOVE && source != NULL && dest != NULL) {
     if (!sim_concrete_prepare_predecrement_access(instruction, metadata, metadata->source_operand_index, source,
@@ -5082,10 +5116,11 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           sim_diag_error(diagnostics, "stack out of range");
           return -1;
         }
-        memory[io_state->a[7]] = (uint8_t)(((io_state->pc + (uint32_t)instruction->byte_count) >> 24) & 0xFFU);
-        memory[io_state->a[7] + 1U] = (uint8_t)(((io_state->pc + (uint32_t)instruction->byte_count) >> 16) & 0xFFU);
-        memory[io_state->a[7] + 2U] = (uint8_t)(((io_state->pc + (uint32_t)instruction->byte_count) >> 8) & 0xFFU);
-        memory[io_state->a[7] + 3U] = (uint8_t)((io_state->pc + (uint32_t)instruction->byte_count) & 0xFFU);
+        if (!sim_concrete_write_memory_sized(memory, memory_size, io_state->a[7],
+              io_state->pc + (uint32_t)instruction->byte_count, 4U, write_trace, memory_policy)) {
+          sim_diag_error(diagnostics, "observed call-frame write refused");
+          return -1;
+        }
       }
       io_state->pc = resolved_address;
       return 0;
@@ -5161,6 +5196,18 @@ int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memor
       sim_concrete_run_copy_write_trace(out_result, &write_trace);
       return 0;
     }
+    if (sim_observer != NULL) {
+      const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(&instruction);
+      if (metadata == NULL || metadata->exception_trigger != M68K_SIM_EXCEPTION_TRIGGER_NONE ||
+          (metadata->flow_kind == M68K_SIM_FLOW_RETURN &&
+           metadata->return_restore_kind != M68K_SIM_RETURN_RESTORE_PC_ONLY) ||
+          !sim_observe(2U, pc, (uint8_t)instruction.byte_count, 0U)) {
+        sim_diag_error(diagnostics, "unsupported or refused observed instruction");
+        out_result->stop_reason = M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR;
+        sim_concrete_run_copy_write_trace(out_result, &write_trace);
+        return 0;
+      }
+    }
     if (m68k_simulate_step_concrete(&instruction, target_cpu, memory + pc, memory_size - (size_t)pc, memory,
           memory_size, io_state, &write_trace, memory_policy, diagnostics) != 0 ||
         m68k_diag_has_errors(&out_result->diagnostics)) {
@@ -5181,4 +5228,19 @@ int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memor
   out_result->stop_pc = io_state->pc;
   sim_concrete_run_copy_write_trace(out_result, &write_trace);
   return 0;
+}
+
+int m68k_simulate_run_concrete_observed(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
+    M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
+    const M68kSimConcreteMemoryPolicy *memory_policy, const M68kSimConcreteObserver *observer,
+    M68kSimConcreteRunTraceResult *out_result) {
+  const M68kSimConcreteObserver *previous = sim_observer;
+  int result;
+  if (target_cpu != M68K_ASM_CPU_68000 || memory_policy != NULL ||
+      observer == NULL || observer->access == NULL) return -1;
+  sim_observer = observer;
+  result = m68k_simulate_run_concrete(target_cpu, memory, memory_size, io_state, max_steps,
+    stop_pc_start, stop_pc_end, memory_policy, out_result);
+  sim_observer = previous;
+  return result;
 }

@@ -1111,3 +1111,72 @@ still entered combat before firing. Farther-west staging completed one shot from
 (1130,870), first sample (1116,884), with controller HP 55 unchanged and one round
 consumed. Their canonical captures are summarized in the same rifle receipt.
 Successful NPC targeting and the Feed/BYTE route remain unproved.
+
+## Bounded behavioural-validation programme
+
+[Proposal 045](proposals/045-behavioural-validation.md) tracks B01–B10.
+The [first batch evidence](validation/pandora-behavioural-validation-first-slice.json)
+separates capability implementation, bounded target coverage and remaining
+obligations. Contracts are versioned bounded predicates in existing canonical
+function-summary notes (`BOUNDED_BEHAVIOUR_V1`), created through the normal catalog
+and reviewed through MAL/DJ. These notes declare conditional test contracts;
+they do not manufacture a universal ABI, allocation or lifetime fact.
+
+The shared operation is `behaviour`, available through the existing restoration
+HTTP endpoint, CLI and thin `restoration_behaviour` MCP adapter. No second
+comparison engine, fact database or acceptance store is introduced. A dedicated
+UI results panel and live optional MCP SDK transport are not delivered here.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.restoration --target "$TARGET" \
+  behaviour --request /tmp/behaviour-request.json
+```
+
+For the CPU case, the request contains the revision actually inspected,
+`contract_id: "pandora.volume.local.v1"`, and the owned local `manifest` path
+returned by `memory_build`. First use normal `verify` and `memory_build` for
+`audio_master_volume`, destination `0x65400`, memory class `chip`. Do not copy an
+old analysis revision into a new manifest. The candidate is the existing five
+fixed-width ASM rewrites, not a C translation. The verified donor is
+`runtime/observations/pandora-volume-local-context.json`.
+
+The opt-in generated-backend observer records ordered architectural fetch/data
+accesses and call frames. Captured and explicitly modeled cells are known;
+unlisted image/zero-shadow cells remain unknown and required reads refuse.
+Repeated, unchanged and transient writes remain in order. Normalization covers
+only the two-byte logical volume location. Inputs include a modeled call/return
+frame and guards. Nineteen routine cases cover admitted guards and arithmetic
+boundaries; the separate single BYTE-store check exhausts all 65,536 WORD inputs
+under its fixed modeled context. This is not exhaustive routine/state coverage,
+normal gameplay reachability, CPU bus cycles, IRQ or Paula/DMA equivalence.
+
+For DMA, first use the public `copperline_session` scenario
+`pandora-shared-scratch-producer-consumer.json` and its verified original route
+checkpoint, as in the tracing instructions. Keep the captured JSON under owned
+`.runtime-state` storage. A `behaviour` request uses
+`contract_id: "pandora.scratch.second-word.v1"` and that `capture` path. The
+canonical contract pins the private checkpoint receipt, reference capture and
+scenario identity; missing private prerequisites produce a non-pass receipt.
+A new fixture binding requires normal contract review, not silent replacement
+of a hash. The evaluator uses existing checkpoint validation and re-decodes
+complete native sidecars, then checks D staging writes, A copy reads, exact
+address order and preceding-write values. The original-only replay comparison
+establishes repeatability, never candidate DMA equivalence. Source/mask bounds,
+destination bitmap, all-callers lifetime, original seed meaning, unobserved
+remainder and relocation safety remain outside this predicate.
+
+Results use `kind: "behaviour_verification"`, distinct from byte-exact receipts.
+They bind original/candidate binaries, fixture, canonical contract, backend and
+profile/checker identities. `previous_receipt_id` requests explicit admission
+against the current identities; changed assumptions return stale. Only an
+accepted canonical contract can qualify a passing evaluation. Pre-review
+predicate passes remain missing-prerequisite, and explicitly reviewed deviations
+remain a separate outcome, never equivalence. CLI exit 0 requires `status: pass`;
+other structured outcomes exit 2. Transport/domain request errors remain errors.
+
+Full receipts and fixture manifests stay in the existing ignored local evidence
+store. Public batch reports contain identities and summaries, not payloads,
+ROMs, raw checkpoints, complete captured register arrays or unfiltered bus data.
+Every connected batch records B IDs/contracts advanced, positive/boundary/failing
+cases, exact identities, remaining obligations and its next evidence question.
+Source changes still require the independent byte-exact gates.

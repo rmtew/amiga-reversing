@@ -1,5 +1,10 @@
 # Pandora full source restoration
 
+> Behavioural validation is tracked in [Proposal 045](../proposals/045-behavioural-validation.md).
+> Its B01–B10 commitments distinguish framework capability from target coverage;
+> the initial batches adapt the existing CPU volume comparison and then the
+> Copperline shared-scratch renderer. No commitment closes on documentation alone.
+
 Status: inventory and plan reviewed; startup, world-command, runtime initialization,
 input, selected world tiles, scene mask banks, selected title records and audio
 input records reviewed. The full restoration and

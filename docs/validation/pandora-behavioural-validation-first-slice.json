@@ -1,0 +1,1030 @@
+{
+  "schema_version": 1,
+  "kind": "behavioural-validation-batch-evidence",
+  "batch": "Pandora initial CPU and shared-scratch slices",
+  "base_commit": "1ed6643022fb906cacc5abc56e6836fa8b51299e",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "B_ids_advanced": [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06",
+    "B07",
+    "B08",
+    "B09",
+    "B10"
+  ],
+  "completed_B_ids": [],
+  "evidence_role": "Summaries of content-addressed evidence; canonical summaries/MAL/DJ remain authoritative. Full receipts and proprietary fixture data stay in ignored local storage.",
+  "contracts_and_histories": {
+    "actions": [
+      {
+        "action_id": "manual-faef35956fc64d938d61f1bd37ad12a5",
+        "function_summary_id": "catalog-function-summary-entry-h0-000552FE"
+      },
+      {
+        "action_id": "manual-0944c9253cd04005bd853fca576947fb",
+        "function_summary_id": "catalog-function-summary-entry-h0-00006C60"
+      }
+    ],
+    "decisions": [
+      {
+        "decision_id": "restoration-3ecf754846e541d08aedb796953e813a",
+        "action": "accept_fact",
+        "subject_id": "manual-faef35956fc64d938d61f1bd37ad12a5"
+      },
+      {
+        "decision_id": "restoration-480f6940c2f74acd90935e6829d0b53d",
+        "action": "accept_fact",
+        "subject_id": "manual-0944c9253cd04005bd853fca576947fb"
+      }
+    ],
+    "history_prefixes": {
+      "manual_actions.jsonl": {
+        "preserved_prefix_sha256": "61a4cfd6aa056fd3f2402326c7998548b1edef9fe5742e0f9aad8d8557f54cdb",
+        "appended_records": 2,
+        "head_sha256": "f86d65aa7e6e5ad929d6a147d38135a9aeab567d2dfdbff5f0b865b672ed922c"
+      },
+      "decision_journal.jsonl": {
+        "preserved_prefix_sha256": "5f4ba6f466457f6297ec9c131aadb7075f47e0c079c0881614af416bfb230aad",
+        "appended_records": 2,
+        "head_sha256": "d63e9c5a5b4d6a1f81ba5b129398c650e70d8e3452b1ac644348731ea2ff0db9"
+      }
+    }
+  },
+  "CPU": {
+    "receipt": {
+      "kind": "behaviour_verification",
+      "receipt_id": "45c0a0c720d059b0cf112327da8ed6c6b0917538c7b9781e788eedc1fbaaea7d",
+      "status": "pass",
+      "subject_revision": "2f51714d3a5e20850751355b995463aa3862be99c0d2e3d33cba6011ebd2c503",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "f118f972e3a10ea80fbced6eb3fc7753d9d6483d62dbde54c9e4b633548b26cc",
+        "fixture": "03a40a175a1a18210526a02571399ba2d966cda4e7aa2e0e393088a94fdbcdba",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "fbd72df6aaaed6a0f6983fef81ec1586fa400bfe3f420e29d56c4c27b22a9c7b"
+      },
+      "contract": {
+        "contract_id": "pandora.volume.local.v1",
+        "function_summary_id": "catalog-function-summary-entry-h0-000552FE",
+        "contract_sha256": "f118f972e3a10ea80fbced6eb3fc7753d9d6483d62dbde54c9e4b633548b26cc",
+        "action_id": "manual-faef35956fc64d938d61f1bd37ad12a5",
+        "decision_id": "restoration-3ecf754846e541d08aedb796953e813a",
+        "review_status": "accepted"
+      }
+    },
+    "comparison_kind": "original_vs_manifest_derived_ASM_bounded_CPU",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "candidate_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+    "manifest_sha256": "26568732c7b447c8688674e17fd188a9ffde6dc411c9de29a2ff05648e288ad5",
+    "native_plan_sha256": "64d371460dde4a203c6e60ebf607b380a67758b1e496d9ad32276b4875b9278f",
+    "donor_context_path": "runtime/observations/pandora-volume-local-context.json",
+    "donor_context_sha256": "ed8c258a4dca5c8474e009cd4c81d69fbc4aed9417a0104ad52540004aabfd89",
+    "coverage": {
+      "B_ids": [
+        "B01",
+        "B02",
+        "B04",
+        "B06",
+        "B07",
+        "B08",
+        "B09"
+      ],
+      "cases_attempted": 19,
+      "cases_nonpass": 0,
+      "cases_passed": 19,
+      "gameplay_IRQ_Paula_DMA_equivalence": false,
+      "instruction_engine": "generated Motorola-derived backend with opt-in ordered observer",
+      "normalization": "only logical volume addresses NEW..NEW+2 map to OLD..OLD+2",
+      "scope": "bounded modeled CPU calls, original versus manifest-derived assembly",
+      "unknown_memory": "required unknown reads refuse; initial stack remains unknown until written"
+    },
+    "call_context": {
+      "SP_adjustment": -4,
+      "donor_source_offset": "0x5ca",
+      "entry_source_offset": "0x552fe",
+      "instruction_budget": 128,
+      "return_pc": 2048
+    },
+    "cases": [
+      {
+        "name": "captured_guard",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": false,
+          "initial_WORD": 64,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 15,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 21,
+          "status": "pass",
+          "stream_sha256": "0c0b51c598df1aa9bfd084b3bf6d64249bbeba5968a0cd7f6e8928ee22c472f4"
+        },
+        "fixture_ids": [
+          "4788db9099dfe3f4812798b217ef2cb4c28b42bc940e4af2371d2c2130223184",
+          "c820f7e006d1cd8ff17f1131dc25f9afe05289b752cde7a4e5fad7858d12169d"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 1094
+        }
+      },
+      {
+        "name": "dead_unarmed",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": false,
+          "initial_WORD": 64,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 5,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 9,
+          "status": "pass",
+          "stream_sha256": "c794239a9607a3c50e9ac5fc22812f60b75ba566b4eac4f2b19cd44425d7f8b5"
+        },
+        "fixture_ids": [
+          "e290a579fe102fe6a4d1f9de678fc41577763435686152eb6dbdd0fb9ddb939f",
+          "086d5e5fa29144c9c1c6384d67c1f5614f680ffe7b38ff7435afce866940df5b"
+        ]
+      },
+      {
+        "name": "alive_far_armed",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 37,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 89,
+          "status": "pass",
+          "stream_sha256": "26f3b345fe7138e0a75a5a3d1e9b57d960b8d2a7bff2c7ecb730b9bb4145556b"
+        },
+        "fixture_ids": [
+          "d16e012bdc2aa4abc5c1d9ac606a75033ee0a2c796d918d0f874e0905484ae91",
+          "aa9a8bbcdc1a201b1515e7a4fdda00360d830298512a89d51eb56c892f8991d4"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 1094
+        }
+      },
+      {
+        "name": "alive_near_armed",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 64,
+          "XY_WORD_override": [
+            808,
+            154
+          ]
+        },
+        "steps_per_layout": 21,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0035",
+        "ordered_comparison": {
+          "events_compared": 28,
+          "status": "pass",
+          "stream_sha256": "990711ce3e8242b99c733a46d6a9cb02a794b0d76c0a725e9280317c0498e463"
+        },
+        "fixture_ids": [
+          "cc042c5fdb25a57911b2943362a318c445154d399cead6605f5a1313ca4980b6",
+          "fc3dcd39615d7da1103547eec84956f27b412db7ea46c5594586a9407c762ebe"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 46
+        }
+      },
+      {
+        "name": "dead_armed_0x40",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 64,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "4040",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "e1fa9c88a87d340af99896a6de7995b47f3b40f25749856ae1a0817378696a2b"
+        },
+        "fixture_ids": [
+          "e1d8224136af7e12681f083200ff4d9277b2fbd880d1327f0c28ab180b5529f6",
+          "4a8ca734241d1c84b61b2d5fa041226a034398591540b1f7b0413d81bbbb2724"
+        ]
+      },
+      {
+        "name": "dead_armed_0x6",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 6,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "4006",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "e1fa9c88a87d340af99896a6de7995b47f3b40f25749856ae1a0817378696a2b"
+        },
+        "fixture_ids": [
+          "ef5e85509e3895edd99b75f2a02e22a8a8526904db1633193e5b051f96ac1973",
+          "c488021e3fcefc7f68e58e61c6446c00ad75b55473733fc0c1b40e3b169b02cc"
+        ]
+      },
+      {
+        "name": "dead_armed_0x1ff",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 511,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "40ff",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "5d816853b883aaf27f6af607912383bdb8d8e348fd9b23d7d96ac3fafcc9c7b2"
+        },
+        "fixture_ids": [
+          "65214ef1c71f2ca49ffdb9890aa8a24ef16e89cef7dd81bfec62ea54be0c2357",
+          "57dbc11a5ef3c74486517969c2ebed6b763d99f3ed245d283077e0cd06a78421"
+        ]
+      },
+      {
+        "name": "dead_armed_0xaa55",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 43605,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "4055",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "0e566b0503afa121851867b029ceca5e372a326eafbb3f1ce03bea7310cd2ca1"
+        },
+        "fixture_ids": [
+          "4288381db9c6d9563515fee9f2c764f4265dc38462c635818c658549acc80034",
+          "b2e850d31e96362ea60b0df9185f45baedf932ae3189c44a58723af78e45b303"
+        ]
+      },
+      {
+        "name": "dead_armed_0xffff",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 65535,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "40ff",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "5c620719082b9142a32cbf85e55a1f67c21b21abbec94333d6660389a0fcecc4"
+        },
+        "fixture_ids": [
+          "23c1810b29447c4d05a2bb7532bc046a3ce1fc696bd7c16be3e9399fcf60fb93",
+          "0959006a91d4e3b0eeb2cbbf4c7671613f73a715c0fd2d989b7a26524322c1aa"
+        ]
+      },
+      {
+        "name": "distance_zero",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            840,
+            168
+          ]
+        },
+        "steps_per_layout": 19,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 26,
+          "status": "pass",
+          "stream_sha256": "756f502a057ab22fd26abdef4dfe1ac0b72d436cd6e56578b46d882be9575311"
+        },
+        "fixture_ids": [
+          "5751779f970aa15d1c1339eca16c9828e866e4cf6b2b7dcc9e631fc737de5ae7",
+          "582bc143211db510d5d3a53cf63d2dea8d20b0d864949f2048b9a09b02e5df33"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 0
+        }
+      },
+      {
+        "name": "distance_255",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            1095,
+            168
+          ]
+        },
+        "steps_per_layout": 19,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0001",
+        "ordered_comparison": {
+          "events_compared": 26,
+          "status": "pass",
+          "stream_sha256": "0d2537d3b6c3e6ebf6abbe8a35c12d4131b7aa9669a1e924894400022770ee31"
+        },
+        "fixture_ids": [
+          "8cfb7a87a12518f9f15bcf48c998ab776b91bda9c8ecf46a86a9003ff9fb9170",
+          "506f4b3682ca8361b8725c92b8f4af062a4d1468e167dda9780b03275dc4b5f2"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 255
+        }
+      },
+      {
+        "name": "distance_256",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            1096,
+            168
+          ]
+        },
+        "steps_per_layout": 37,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 89,
+          "status": "pass",
+          "stream_sha256": "127916c09325ec1034fd93ae5568ae686cf7eb1da6549e04ac6c7ae0cdbb6d39"
+        },
+        "fixture_ids": [
+          "2e5360b00c2ac48d2004de56a773608d524089d81e1d0ad0f763c80d730c69a9",
+          "4aa52fbe8f0e1de7bc32bdf2e0a6c107aaccbcbe49a8f959c9b1593b9ac6392a"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 256
+        }
+      },
+      {
+        "name": "distance_negative_one",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            839,
+            168
+          ]
+        },
+        "steps_per_layout": 20,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 27,
+          "status": "pass",
+          "stream_sha256": "42c928e9175672ae227631fa06b12e214f6dd526f43b66f90aa1fe7a5b5489db"
+        },
+        "fixture_ids": [
+          "36d6ac1a962ef1ff1f2c37633d7c75a12e6e2802a168e007e2e5140980f5938d",
+          "bed16d25887ced1e0389f7bc65762cdfc2bfb6fa360299bf2cd239263df36b00"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 1
+        }
+      },
+      {
+        "name": "distance_signed_max",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            33607,
+            168
+          ]
+        },
+        "steps_per_layout": 37,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 89,
+          "status": "pass",
+          "stream_sha256": "c1864d4a02b4bd32849bfa2c2bae1daf8d921e768f7b05e0c524b3a410c5bef4"
+        },
+        "fixture_ids": [
+          "4b32a2eec7af1583b8fe800b106810ed3ae24de2f2f5558ace07ce26f920ed59",
+          "ce931ad92a62dcdd82848d0a7ae4054028229a7519c8200faa28c5311078fcd5"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 32767
+        }
+      },
+      {
+        "name": "distance_signed_min",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            33608,
+            168
+          ]
+        },
+        "steps_per_layout": 38,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 90,
+          "status": "pass",
+          "stream_sha256": "a68fbe3163b96da8ca003a8b73147675806ea01ee07675815d9264957da0aa47"
+        },
+        "fixture_ids": [
+          "2b3b3187a6a23f9bc9560fae1e54379ef2a536c301febec67d9e0381be3cf7da",
+          "f36f70df5b05f009ff5577d9673119e02ba32c80f3b04e0f89c72b087faed56a"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 32768
+        }
+      },
+      {
+        "name": "distance_sum_wrap",
+        "inputs": {
+          "inhibit_flag": false,
+          "shared_armed": true,
+          "initial_WORD": 4660,
+          "XY_WORD_override": [
+            33608,
+            32936
+          ]
+        },
+        "steps_per_layout": 21,
+        "BYTE_writer_executed_locally": false,
+        "logical_output": "0040",
+        "ordered_comparison": {
+          "events_compared": 28,
+          "status": "pass",
+          "stream_sha256": "30d1dbec032d6738b40892ee8454b31debe29e832e81cd63e38fd8086930bb22"
+        },
+        "fixture_ids": [
+          "71bfa186533731be3a645d41c712658be6fe03e3fd53ea06cb3923335eea0ed9",
+          "c6e86a08e4b1611822d0c7a8138c7fdc4c37301d8c27295de05c3c59505763f1"
+        ],
+        "arithmetic": {
+          "comparison": "unsigned distance < 256",
+          "wrapped_WORD_distance": 0
+        }
+      },
+      {
+        "name": "dead_armed_byte_0x0",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 0,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "4000",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "e1fa9c88a87d340af99896a6de7995b47f3b40f25749856ae1a0817378696a2b"
+        },
+        "fixture_ids": [
+          "fc5a3955ced27fe58631091dd2b8e4e70a690568392b4b3dfe90f8e1837b62ad",
+          "f9aabb4df1ef033be86bccbf00676aaa2df1cb90540cb235c83f12607b604165"
+        ]
+      },
+      {
+        "name": "dead_armed_byte_0xff",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 255,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "40ff",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "e1fa9c88a87d340af99896a6de7995b47f3b40f25749856ae1a0817378696a2b"
+        },
+        "fixture_ids": [
+          "d0a0659225890f7db79920e80ec5cb9a50a3aa2e5343ae571a6c83134b099458",
+          "fe958287d2a2c6aefd7e98af566d2a37efe2a6236e4e538878ec37ceeb924263"
+        ]
+      },
+      {
+        "name": "dead_armed_byte_0x100",
+        "inputs": {
+          "inhibit_flag": true,
+          "shared_armed": true,
+          "initial_WORD": 256,
+          "XY_WORD_override": null
+        },
+        "steps_per_layout": 26,
+        "BYTE_writer_executed_locally": true,
+        "logical_output": "4000",
+        "ordered_comparison": {
+          "events_compared": 76,
+          "status": "pass",
+          "stream_sha256": "5d816853b883aaf27f6af607912383bdb8d8e348fd9b23d7d96ac3fafcc9c7b2"
+        },
+        "fixture_ids": [
+          "6657fbfdc9f669a9135caba1978c153941ab1840ed5f5cffcb7de741162d08ef",
+          "97a8415d93d6d6b3296cfdfae088c333d14b593418041ed59108340fe74d9d1c"
+        ]
+      }
+    ],
+    "BYTE_instruction": {
+      "status": "exhaustive_local_BYTE_instruction_equivalence",
+      "initial_words_tested": 65536,
+      "outputs_sha256": "205b3d5cd35217d0fabefd77ada8b1d0d4b5c61a64bef76c629ca8cd83489784",
+      "write_width": 1,
+      "guards_unchanged": true,
+      "output_rule": "0x4000 | (input & 0xff)",
+      "scope": "Modeled entry directly at the writer. Guard reachability, reset helper, Paula and game execution are excluded."
+    },
+    "fixture_manifest_examples": [
+      {
+        "fixture_id": "4788db9099dfe3f4812798b217ef2cb4c28b42bc940e4af2371d2c2130223184",
+        "donor_sha256": "1c4bd62d695c4def068bc9ce90f146c8b89e53356ef97051fff232c56d178827",
+        "registers_sha256": "320586436fe815f9cc25e8d1a40a1147c940c13758ffecb070aac84f71451828",
+        "known_ranges": [
+          {
+            "end": 15286,
+            "origin": "captured",
+            "sha256": "38c7f0c41ff5b1aaef192acfca5e5dc6708460c954abf70a4c7434a3f708c2f2",
+            "start": 15282
+          },
+          {
+            "end": 15559,
+            "origin": "captured",
+            "sha256": "d8dd8b4890067af56cee3fb6c0530a342df76c1c0be15115404e4641d8b2ec85",
+            "start": 15479
+          },
+          {
+            "end": 15674,
+            "origin": "modeled",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+            "start": 15673
+          },
+          {
+            "end": 66642,
+            "origin": "modeled",
+            "sha256": "c9c7e8c63836a93f6d8c04598b6503d2863a2df7b86366157178234175704dcc",
+            "start": 66638
+          },
+          {
+            "end": 377371,
+            "origin": "modeled",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+            "start": 377370
+          },
+          {
+            "end": 377634,
+            "origin": "captured",
+            "sha256": "1481c99ecb0b3112b046ea2e0e479325d3acca33836bf03204c03ea72a69c10a",
+            "start": 377618
+          },
+          {
+            "end": 377686,
+            "origin": "captured",
+            "sha256": "e8283d85e1a16580b51cbc0d225017d8401c59f77778ad52bd51697e8143aade",
+            "start": 377682
+          },
+          {
+            "end": 377704,
+            "origin": "captured",
+            "sha256": "b413f47d13ee2fe6c845b2ee141af81de858df4ec549a58b7970bb96645bc8d2",
+            "start": 377702
+          },
+          {
+            "end": 383218,
+            "origin": "captured",
+            "sha256": "8bd5f27dd5f4e0ddf23ace8f958df225a7c764cd063b127ca5c09d6730928617",
+            "start": 383090
+          },
+          {
+            "end": 384258,
+            "origin": "modeled",
+            "sha256": "b8811852747cfa3620c3dd2af5d59498c240f208e689b4052bac934c29faf094",
+            "start": 384256
+          },
+          {
+            "end": 384264,
+            "origin": "captured",
+            "sha256": "90064d07d83dd90fdab4f3eb826f05eae7cb380d19e78839ee0109984495a5d4",
+            "start": 384258
+          },
+          {
+            "end": 386702,
+            "origin": "captured",
+            "sha256": "b5310cf5a8b86dd30f31308e285efcd4f9d7955b0f16c432a98cecfea154b129",
+            "start": 386574
+          },
+          {
+            "end": 414576,
+            "origin": "captured",
+            "sha256": "91dd26d209e1484511d080accd5bf9f8fbb72cc8b625cf9320f07f80a7ed2a25",
+            "start": 414430
+          },
+          {
+            "end": 414728,
+            "origin": "modeled",
+            "sha256": "ea80abf784f241c074bacb22e5d9533955f138c6b3ea6c92ac9f28162cec6414",
+            "start": 414720
+          }
+        ],
+        "modeled_inputs": {
+          "armed": false,
+          "control_registers": "zero local model; unused by the admitted routine",
+          "dead": false,
+          "instruction_budget": 128,
+          "local_return": 2048,
+          "local_sp": 66638,
+          "relocated": false,
+          "volume": 64,
+          "xy": null
+        },
+        "otherwise": "unknown; backing image/zero values are not evidence",
+        "note": "Public summary of a private fixture manifest; captured register values remain in existing local evidence."
+      },
+      {
+        "fixture_id": "c820f7e006d1cd8ff17f1131dc25f9afe05289b752cde7a4e5fad7858d12169d",
+        "donor_sha256": "1c4bd62d695c4def068bc9ce90f146c8b89e53356ef97051fff232c56d178827",
+        "registers_sha256": "320586436fe815f9cc25e8d1a40a1147c940c13758ffecb070aac84f71451828",
+        "known_ranges": [
+          {
+            "end": 15286,
+            "origin": "captured",
+            "sha256": "38c7f0c41ff5b1aaef192acfca5e5dc6708460c954abf70a4c7434a3f708c2f2",
+            "start": 15282
+          },
+          {
+            "end": 15559,
+            "origin": "captured",
+            "sha256": "d8dd8b4890067af56cee3fb6c0530a342df76c1c0be15115404e4641d8b2ec85",
+            "start": 15479
+          },
+          {
+            "end": 15674,
+            "origin": "modeled",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+            "start": 15673
+          },
+          {
+            "end": 66642,
+            "origin": "modeled",
+            "sha256": "c9c7e8c63836a93f6d8c04598b6503d2863a2df7b86366157178234175704dcc",
+            "start": 66638
+          },
+          {
+            "end": 377371,
+            "origin": "modeled",
+            "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+            "start": 377370
+          },
+          {
+            "end": 377634,
+            "origin": "captured",
+            "sha256": "1481c99ecb0b3112b046ea2e0e479325d3acca33836bf03204c03ea72a69c10a",
+            "start": 377618
+          },
+          {
+            "end": 377686,
+            "origin": "captured",
+            "sha256": "e8283d85e1a16580b51cbc0d225017d8401c59f77778ad52bd51697e8143aade",
+            "start": 377682
+          },
+          {
+            "end": 377704,
+            "origin": "captured",
+            "sha256": "b413f47d13ee2fe6c845b2ee141af81de858df4ec549a58b7970bb96645bc8d2",
+            "start": 377702
+          },
+          {
+            "end": 383218,
+            "origin": "captured",
+            "sha256": "8bd5f27dd5f4e0ddf23ace8f958df225a7c764cd063b127ca5c09d6730928617",
+            "start": 383090
+          },
+          {
+            "end": 384258,
+            "origin": "modeled",
+            "sha256": "b8811852747cfa3620c3dd2af5d59498c240f208e689b4052bac934c29faf094",
+            "start": 384256
+          },
+          {
+            "end": 384264,
+            "origin": "captured",
+            "sha256": "90064d07d83dd90fdab4f3eb826f05eae7cb380d19e78839ee0109984495a5d4",
+            "start": 384258
+          },
+          {
+            "end": 386702,
+            "origin": "captured",
+            "sha256": "b5310cf5a8b86dd30f31308e285efcd4f9d7955b0f16c432a98cecfea154b129",
+            "start": 386574
+          },
+          {
+            "end": 414576,
+            "origin": "manifest_code",
+            "sha256": "c37d97d6c6702be9c098b70b5fd71c5eae44d36299d6fc5d58da672b546559c3",
+            "start": 414430
+          },
+          {
+            "end": 414728,
+            "origin": "modeled",
+            "sha256": "9b9fdd1a651d9186b3f5d80ee38565b287b85b234b434a6a1e233cfd11de5ea5",
+            "start": 414720
+          }
+        ],
+        "modeled_inputs": {
+          "armed": false,
+          "control_registers": "zero local model; unused by the admitted routine",
+          "dead": false,
+          "instruction_budget": 128,
+          "local_return": 2048,
+          "local_sp": 66638,
+          "relocated": true,
+          "volume": 64,
+          "xy": null
+        },
+        "otherwise": "unknown; backing image/zero values are not evidence",
+        "note": "Public summary of a private fixture manifest; captured register values remain in existing local evidence."
+      }
+    ],
+    "limits": [
+      "CPU-only projection, with explicit modeled call/guard/data inputs; no game snapshot or gameplay predicate was edited.",
+      "Backing original image/zero bytes remain unknown unless captured or explicitly modeled; required unknown accesses refuse. Cases avoid audio initialization; custom-register writes are CPU intents only.",
+      "No interrupts, Amiga set/clear register semantics, Paula/DMA timing, allocation or normal gameplay reachability proof.",
+      "Generated spec-driven CPU backend used; no independent CPU semantic oracle was used in this slice.",
+      "Local BYTE execution is separate from the still-unobserved normal-gameplay BYTE path and original/relocated game comparison."
+    ]
+  },
+  "DMA": {
+    "receipt": {
+      "kind": "behaviour_verification",
+      "receipt_id": "1194ac8fe944667bd49ca76ea10a70c1f011430054b5950a688f080aaa36f737",
+      "status": "pass",
+      "subject_revision": "2f51714d3a5e20850751355b995463aa3862be99c0d2e3d33cba6011ebd2c503",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "a784797432153b94c7f4cec0b6761a18e7253f9a0337adf5db5634c3b66ad466",
+        "fixture": "5ad2c2a13928ba609a0840615bc0240dc854e66119b80862076317043143869f",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "c3205bb72ebcb32bfc3373b9f945535a00fe3b072001f7a77abeda53d7608b61"
+      },
+      "contract": {
+        "contract_id": "pandora.scratch.second-word.v1",
+        "function_summary_id": "catalog-function-summary-entry-h0-00006C60",
+        "contract_sha256": "a784797432153b94c7f4cec0b6761a18e7253f9a0337adf5db5634c3b66ad466",
+        "action_id": "manual-0944c9253cd04005bd853fca576947fb",
+        "decision_id": "restoration-480f6940c2f74acd90935e6829d0b53d",
+        "review_status": "accepted"
+      }
+    },
+    "comparison_kind": "original_self_replay",
+    "candidate_supplied": false,
+    "candidate_equivalence": false,
+    "candidate_identity_role": "Same original binary for repeatability, not a distinct candidate",
+    "outcome": {
+      "address_order_sha256": "449a54a93f3d2e7c9c625112af7cbc3b38f38fcd4594bbad705e0e9ff08ea5a1",
+      "counts": {
+        "read": 128,
+        "write": 256
+      },
+      "events_checked": 384,
+      "observed_byte_extent": [
+        111528,
+        112040
+      ],
+      "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof",
+      "status": "pass",
+      "stream_sha256": "5008b245cdb8d40cc6cafb64cfc528d2dcb09a2d4db57779baf1939869c46221"
+    },
+    "repeatability": {
+      "events_compared": 384,
+      "status": "pass",
+      "stream_sha256": "70cc306ef51a998f09d393f5ffd72e9a00b79691e52c988ceb64112275e60ff5"
+    },
+    "baseline_capture_sha256": "181abc6aa32f116cf54afe402517132f83393c5f6fd31d4021a7d8cda6fdedd9",
+    "fresh_capture_sha256": "0b28d9c6541319f0d72360f6c185c68e40f7336cd93fa619293c70bb16cd6e7b",
+    "canonical_entry": {
+      "source_offset": "0x6c60",
+      "runtime_address": "0x16c60",
+      "caller_return": "0x17090",
+      "parameters": {
+        "height": 32,
+        "shift": 4,
+        "source_stride": 16,
+        "pixels": "0x50e08",
+        "mask": "0x685fc",
+        "destination": "0x72a80"
+      }
+    },
+    "coverage": {
+      "B_ids": [
+        "B01",
+        "B02",
+        "B04",
+        "B05",
+        "B07",
+        "B08",
+        "B09"
+      ],
+      "counts": [
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 128
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 256
+        }
+      ],
+      "entry_stop": {
+        "cck": 66450794,
+        "detail": "Breakpoint at $016C60",
+        "frame": 935,
+        "hpos": 176,
+        "pc": 93280,
+        "reason": "breakpoint",
+        "retired_instructions": 7620,
+        "seconds": 18.734919979305843,
+        "vpos": 79
+      },
+      "frames": [
+        {
+          "cck_length": 71051,
+          "frame": 936,
+          "line_cck": 227,
+          "partial": true,
+          "pc": "0x00016792",
+          "retired": 7995,
+          "rows": 313,
+          "seconds": 18.754103518711435,
+          "slots_bytes": 1705224,
+          "slots_sha256": "a3ef9dfc61fef7e265e1418b8dc0eb9d6caf9ebb002989983757e493da060c84",
+          "traced": true
+        },
+        {
+          "cck_length": 71051,
+          "frame": 937,
+          "line_cck": 227,
+          "partial": false,
+          "pc": "0x0001853A",
+          "retired": 6090,
+          "rows": 313,
+          "seconds": 18.770390158152413,
+          "slots_bytes": 1705224,
+          "slots_sha256": "ee3ad2b1feadbd595ae2c8f2a1eb1ec1160ffa6e94488db570d647a78bb9014f",
+          "traced": true
+        }
+      ],
+      "observed_scratch_range": [
+        111528,
+        112040
+      ],
+      "omitted_records": 0,
+      "requested_range": [
+        111528,
+        112296
+      ],
+      "scenario": "pandora-shared-scratch-producer-consumer"
+    },
+    "checkpoint_sha256": "448b5ff5c83c0f123025054e27eb245514d095e9d6b30a05bd8c1c5d76d39ba4",
+    "input_sequence": "Original verified route checkpoint: title fire/release, officer card transfer,19 down and20 right committed movements, nearby interaction; replay itself supplies no input.",
+    "limits": [
+      "Original replay proves repeatability and this bounded predicate, not candidate equivalence.",
+      "No original seed interpretation, unused remainder, whole-stack allocation, all-callers lifetime or relocation safety claim.",
+      "CPU architectural events and physical DMA transfers are different streams; no CPU programming PC is inferred from a bus slot.",
+      "Destination bitmap writes and final image equivalence are outside this scratch-only predicate.",
+      "No bank30/defeat sequence, font, bank45 or EQU/RS policy coverage.",
+      "Pixel/mask source bounds are not validated by this scratch-only predicate."
+    ]
+  },
+  "fail_closed_evidence": {
+    "hypothesis_evaluations": [
+      {
+        "receipt_id": "a7b96ba8c53162ff97d54827d1a7c9568da91eee2eb9e207e8a451244cc406be",
+        "evaluation_outcome": "pass",
+        "qualification_status": "missing_prerequisite"
+      },
+      {
+        "receipt_id": "dc537756499bd8fe004c59dfd5979c4d19174528a31d020934f626bd94d27e6f",
+        "evaluation_outcome": "pass",
+        "qualification_status": "missing_prerequisite"
+      }
+    ],
+    "interpretation": "These immutable non-pass receipts were not promoted in place; new evaluations followed canonical review.",
+    "deterministic_reproducers": {
+      "path": "runtime/observations/pandora-behaviour-negative-reproducers.json",
+      "sha256": "c4d1178d4e004637aa052117849bc1fb40ca2caca28e2c13a2d5c6dd3b893329"
+    },
+    "statuses_tested": [
+      "pass",
+      "mismatch",
+      "missing_prerequisite",
+      "timeout_not_observed_within_bounds",
+      "unsupported",
+      "incomplete_truncated",
+      "stale",
+      "accepted_deviation"
+    ],
+    "accepted_target_deviations": 0
+  },
+  "byte_and_purpose_accounting": {
+    "exact_receipt": {
+      "receipt_id": "3006167ec76ea06a645800f8ebeb3047bcc55e3ed317cb1b21a921e19b0e3f5f",
+      "status": "exact",
+      "exact": true,
+      "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "original_size": 376832,
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "source_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db",
+      "source_package_sha256": "4eb04afb62048d78cecd3ce680f966917cff334f41e355d65b442b4a6563b9e8",
+      "oracle": {
+        "assembler_status": "accepted",
+        "comparison_level": "oracle.full_file_match",
+        "message": "oracle output matched original bytes",
+        "oracle_id": "vasm",
+        "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+      }
+    },
+    "assembly_changed": false,
+    "asset_and_SDK_file_identities_changed": false,
+    "package_changes": [
+      "manifest.metadata_hash",
+      "sha256"
+    ],
+    "new_payload_classification_bytes": 0,
+    "reference_unknown_payload_bytes": 6446,
+    "purpose_assessments_added": 0,
+    "note": "Behaviour coverage is not byte/purpose/relocation credit. Original source remains byte-for-byte unchanged; package provenance incorporates the two canonical contract summaries."
+  },
+  "validation": {
+    "python_tests_passed": 180,
+    "optional_tests_skipped": 1,
+    "optional_skip": "MCP SDK is absent: live stdio transport is unvalidated. Shared adapter registration/forwarding and HTTP CLI/service paths are tested.",
+    "native_simulator_tests_passed": 30,
+    "test_output_sha256": "66b8e50f1ec3feebd2e4a2688cd4e1048c9e9455b5b6c9859bc4a87f43cf5733",
+    "native_test_output_sha256": "8ea3cfe66724cdb1f164d9e3ec2df66f5c7dfb439b2962afcb01463c39c49b42"
+  },
+  "remaining_obligations": [
+    "No B ID is complete; these are the first two bounded adoption slices.",
+    "CPU routine coverage is19 modeled inputs, not all word/register/state combinations. Only the single BYTE store has exhaustive WORD-input coverage.",
+    "Normal gameplay BYTE reachability, IRQ and Paula/DMA equivalence for the relocated volume candidate remain unproved.",
+    "DMA coverage is one original fixture and replay; no genuine renderer candidate was compared. Add a second boundary fixture and source/destination observations before broader claims.",
+    "Scratch seed meaning, unobserved remainder, whole-stack allocation, broader alias/all-callers lifetime and relocation safety remain open.",
+    "Automated failing-case minimisation and broad fuzzing are not implemented; deterministic negative recipes are preserved.",
+    "No dedicated UI behaviour-results panel or live optional MCP SDK transport validation is delivered; the single shared HTTP service is the evaluator.",
+    "Bank30 remains unresolved; fonts, bank45 layout and EQU/RS policy are unchanged."
+  ],
+  "next_evidence_question": "Which additional captured inputs are needed to admit the currently excluded alive-near/unarmed audio-start path without reading unknown memory?"
+}

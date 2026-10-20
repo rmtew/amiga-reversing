@@ -152,6 +152,34 @@ artifact is process-local.
 8. Stop if listing readiness, candidate evidence, command availability, or
    action-specific verification fails.
 
+## Behavioural-validation batch checklist
+
+Use [Proposal 045](../proposals/045-behavioural-validation.md), B01–B10, within
+the existing connected subsystem batch. Do not create another fact database or
+tracker. Record the following alongside the existing batch/verification report:
+
+- B IDs advanced, with capability implementation separate from target behaviour
+  coverage; name canonical contract identities/revisions and MAL/DJ decisions.
+- Preconditions, captured-known/immutable-known/modeled/unknown inputs, explicit
+  arithmetic, control-flow/return budgets, engines and observed windows.
+- Original/candidate, fixture, reviewed contract, backend and machine-profile
+  identities bound into the verification receipt; changed assumptions make prior
+  results stale. Keep payloads, ROMs and raw guest states local.
+- Positive, boundary and deliberately failing cases, preserved failing seeds
+  and small reproducers. Compare ordered semantic effects and report the first
+  divergence; equal final buffers do not excuse invalid producer/consumer order.
+- An explicit outcome: pass, mismatch, missing prerequisite, timeout/not observed
+  within bounds, unsupported, incomplete/truncated, stale, or explicitly accepted
+  deviation. Skips never imply equivalence; accepted deviations need DJ authority.
+- Contract/case/path/engine coverage and exclusions separate from byte, purpose
+  and relocation accounting. Self-replay establishes repeatability only.
+- Remaining obligations and next evidence question. No B ID completes on docs
+  alone; source changes still require exact reconstruction independently.
+
+Reuse the shared capture, checkpoint, bus-trace and restoration-verification
+services for CLI/MCP/UI. Contracts and acceptance stay in canonical summaries,
+facts and existing histories; fixtures/results are evidence artifacts.
+
 ## Verification
 
 - Comment or naming action: reload semantic state and verify projected metadata

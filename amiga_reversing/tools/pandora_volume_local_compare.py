@@ -14,6 +14,9 @@ from pathlib import Path
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.disasm.derived_artifact import validate_manifest
 from amiga_reversing.tools.direct_payload_adapter import load_contract
+from amiga_reversing.disasm.behaviour_validation import (
+    BehaviourError, MemoryEvidence, compare_ordered, digest, fixture_manifest,
+)
 
 ROOT=Path(__file__).resolve().parents[2]
 BASE=0x10000
@@ -22,6 +25,7 @@ OLD=0x5dd00
 NEW=0x65400
 RETURN=0x800
 MEMORY_SIZE=0x1000000
+_ENGINE_IDENTITIES = {}
 
 class Diag(C.Structure):
     _fields_=[('severity',C.c_uint32),('code',C.c_uint32),('message',C.c_char*512)]
@@ -37,6 +41,10 @@ class Trace(C.Structure):
               ('range_count',C.c_size_t),('overflow',C.c_uint8),('reserved',C.c_uint8*7),
               ('ranges',Range*32),('stop_reason',C.c_int),('diagnostics',Diagnostics)]
 
+Observe = C.CFUNCTYPE(C.c_int, C.c_void_p, C.c_uint8, C.c_uint32, C.c_uint8, C.c_uint32)
+class Observer(C.Structure):
+    _fields_ = [('access', Observe), ('user', C.c_void_p)]
+
 
 def sha(data):return hashlib.sha256(data).hexdigest()
 
@@ -44,7 +52,7 @@ def sha(data):return hashlib.sha256(data).hexdigest()
 def load_context(path, original):
     donor=json.loads(path.read_text());o=donor.get('observation',{})
     phases=o.get('scenario',{}).get('phases',[])
-    if len(phases)!=1:raise ValueError('one canonical routine-context capture required')
+    if len(phases)!=1:raise BehaviourError('incomplete_truncated','One canonical routine-context capture required')
     p=phases[0];identity=p.get('payload',{})
     if (donor.get('status')!='ok' or p.get('status')!='hit'
             or identity.get('status')!='pc_matched' or identity.get('payload_offset')!='0x5ca'
@@ -55,18 +63,22 @@ def load_context(path, original):
             or o.get('direct_payload_handoff',{}).get('payload_sha256')!=sha(original)
             or o.get('reverse_boundary',{}).get('materialization',{}).get('status')!='verified'
             or o.get('reverse_boundary',{}).get('materialization',{}).get('copied_sha256')!=sha(original[:349040])):
-        raise ValueError('requires verified original-checkpoint donor and canonical5CA identity')
+        raise BehaviourError('stale','Requires verified original-checkpoint donor and canonical5CA identity')
     capture=p['capture'];memory={}
     for read in capture['memory_reads']:
         address=int(read['address'],0)
-        for i,value in enumerate(bytes.fromhex(read['bytes'])):
-            if address+i in memory and memory[address+i]!=value:raise ValueError('conflicting donor reads')
+        raw = bytes.fromhex(read['bytes'])
+        if not raw or not 0 <= address <= MEMORY_SIZE-len(raw):
+            raise ValueError('donor read is outside the local address space')
+        for i,value in enumerate(raw):
+            if address+i in memory and memory[address+i]!=value:
+                raise BehaviourError('incomplete_truncated','Conflicting donor reads',address=address+i)
             memory[address+i]=value
     def read(address,size):
         try:return bytes(memory[address+i] for i in range(size))
-        except KeyError as e:raise ValueError('donor is missing required routine input') from e
+        except KeyError as e:raise BehaviourError('missing_prerequisite','Donor is missing required routine input',address=e.args[0]) from e
     for start,size in ((0x552de,146),(0x4d872,128)):
-        if read(BASE+start,size)!=original[start:start+size]:raise ValueError('live routine code differs from original')
+        if read(BASE+start,size)!=original[start:start+size]:raise BehaviourError('stale','Live routine code differs from original')
     regs=capture['registers'];a6=int(regs['a6'],0)
     for address,size in ((a6+0x33d,1),(0x5c21a,1),(0x5c352,4),(OLD,8)):
         read(address,size)
@@ -83,20 +95,44 @@ def cpu(regs):
 
 
 def load_engine(path):
+    identity=sha(path.read_bytes());key=str(path.resolve())
+    if key in _ENGINE_IDENTITIES and _ENGINE_IDENTITIES[key]!=identity:
+        raise BehaviourError('stale','Native backend changed; restart the owning process')
     lib=C.CDLL(str(path.resolve()));run=lib.m68k_simulate_run_concrete
+    if sha(path.read_bytes())!=identity:
+        raise BehaviourError('stale','Native backend changed while loading')
+    _ENGINE_IDENTITIES[key]=identity
+    run.backend_sha256=identity
     run.argtypes=[C.c_uint8,C.POINTER(C.c_uint8),C.c_size_t,C.POINTER(State),C.c_size_t,
                   C.c_uint32,C.c_uint32,C.c_void_p,C.POINTER(Trace)]
     run.restype=C.c_int
+    observed = getattr(lib, 'm68k_simulate_run_concrete_observed', None)
+    if observed is not None:
+        observed.argtypes = run.argtypes[:-1] + [C.POINTER(Observer), C.POINTER(Trace)]
+        observed.restype = C.c_int
+    run.observed = observed
     return run
 
 
-def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, xy=None):
+def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, xy=None,
+            instruction_budget=128):
+    if type(instruction_budget) is not int or not 1 <= instruction_budget <= 128:
+        raise BehaviourError('unsupported', 'Instruction budget must be 1..128')
+    if type(dead) is not bool or type(armed) is not bool:
+        raise BehaviourError('unsupported', 'Modeled guards must be boolean')
+    if getattr(run, 'observed', None) is None:
+        raise BehaviourError('missing_prerequisite', 'Generated backend lacks the ordered memory observer')
+    if type(volume) is not int or not 0 <= volume <= 65535 or (xy is not None and
+            (len(xy) != 2 or any(type(v) is not int or not 0 <= v <= 65535 for v in xy))):
+        raise BehaviourError('unsupported', 'Modeled inputs must be WORD bit patterns')
     memory=bytearray(MEMORY_SIZE);memory[BASE:BASE+349040]=image[:349040]
     for address,value in donor_memory.items():memory[address]=value
+    known = {address: 'captured' for address in donor_memory}
     # The derived image changes only manifest bytes; never inherit original live
     # code over the derived code. Captured data cells stay identical otherwise.
     if relocated:
         memory[BASE+0x552de:BASE+0x55370]=image[0x552de:0x55370]
+        known.update((address, 'manifest_code') for address in range(BASE+0x552de,BASE+0x55370))
     a6=int(regs['a6'],0);actual_flags=memory[0x5c21a];actual_shared=memory[a6+0x33d]
     memory[0x5c21a]=(actual_flags&~2)|(2 if dead else 0)
     memory[a6+0x33d]=(actual_shared&~1)|(1 if armed else 0)
@@ -104,29 +140,74 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
     memory[OLD:OLD+2]=b'\x00\x40' if relocated else volume.to_bytes(2,'big')
     memory[NEW:NEW+8]=(volume.to_bytes(2,'big') if relocated else b'\xa5\x5a')+b'\xc3'*6
     s=cpu(regs);memory[s.a[7]:s.a[7]+4]=RETURN.to_bytes(4,'big')
+    modeled = [(0x5c21a,1),(a6+0x33d,1),(OLD,2),(NEW,8),(s.a[7],4)]
+    if xy is not None: modeled.append((0x5c352,4))
+    for address, size in modeled:
+        known.update((a,'modeled') for a in range(address,address+size))
+    initial_fixture = fixture_manifest(memory, known, donor_sha256=digest(
+        dict(memory=sorted(donor_memory.items()), registers=regs)), registers=regs,
+        modeled_inputs=dict(relocated=relocated,dead=dead,armed=armed,volume=volume,xy=xy,
+                            local_return=RETURN,local_sp=s.a[7],instruction_budget=instruction_budget,
+                            control_registers='zero local model; unused by the admitted routine'))
+    logical_address = NEW if relocated else OLD
+    writable = [(s.a[7]-64,s.a[7]), (a6+0x33d,a6+0x33e), (logical_address,logical_address+2),
+                (OLD+7,OLD+8)]
+    # Existing reset helper's bounded ordinary RAM outputs and custom-register
+    # write intents. This models no Amiga set/clear semantics or Paula effects.
+    writable += [(a,a+1) for a in (0x5e60e,0x5e634,0x5e65a,0x5e680)]
+    writable += [(a,a+2) for a in (0x5e69a,0x5e6a6,0x5e6b2,0x5e6be,
+                                  0xdff096,0xdff09e,0xdff0a8,0xdff0b8,0xdff0c8,0xdff0d8)]
+    evidence = MemoryEvidence(memory,known,writable)
+    failure = []
+    def access(_user, kind, address, width, value):
+        try:
+            evidence.access(kind,address,width,value)
+            return 1
+        except BehaviourError as exc:
+            failure.append(exc)
+            return 0
+        except Exception as exc:
+            failure.append(BehaviourError('unsupported','Ordered observer failed',error_type=type(exc).__name__))
+            return 0
+        except BaseException as exc:
+            failure.append(exc)
+            return 0
+    callback = Observe(access);observer = Observer(callback,None)
     start=bytes(memory);buffer=(C.c_uint8*len(memory)).from_buffer(memory);pcs=[];writes=[]
-    for _ in range(128):
+    for _ in range(instruction_budget):
         if s.pc==RETURN:break
-        if not (0x652de<=s.pc<0x65370 or 0x5d872<=s.pc<0x5d8f2):raise ValueError(f'unadmitted local control flow {s.pc:#x}')
+        if not (0x652de<=s.pc<0x65370 or 0x5d872<=s.pc<0x5d8f2):
+            raise BehaviourError('unsupported','Unadmitted local control flow',pc=s.pc)
         pcs.append(s.pc);trace=Trace()
-        rc=run(0,buffer,len(memory),C.byref(s),1,RETURN,RETURN+2,None,C.byref(trace))
+        evidence.pc = s.pc
+        rc=run.observed(0,buffer,len(memory),C.byref(s),1,RETURN,RETURN+2,None,C.byref(observer),C.byref(trace))
+        if failure: raise failure[0]
         if rc or trace.steps!=1 or trace.overflow or any(d.severity>=3 for d in trace.diagnostics.items[:trace.diagnostics.count]):
             messages=[bytes(d.message).split(b'\0')[0].decode() for d in trace.diagnostics.items[:trace.diagnostics.count]]
-            raise ValueError(f'generated CPU simulation refused: {messages}')
+            raise BehaviourError('unsupported','Generated CPU simulation refused',diagnostics=messages,pc=pcs[-1])
         for span in trace.ranges[:trace.range_count]:writes.append([span.start,span.end])
-    else:raise ValueError('local instruction budget exhausted')
+    else:
+        if s.pc != RETURN:
+            raise BehaviourError('timeout_not_observed_within_bounds','Local instruction budget exhausted',pc=s.pc,steps=len(pcs))
     if s.pc!=RETURN:raise ValueError('local routine did not return')
     changes=[[i,start[i],v] for a,b in sorted(set(map(tuple,writes))) for i,v in enumerate(memory[a:b],a) if start[i]!=v]
     address=NEW if relocated else OLD
     logical=int.from_bytes(memory[address:address+2],'big')
     if memory[NEW+2:NEW+8]!=b'\xc3'*6:raise ValueError('relocation lease guard changed')
     if relocated and memory[OLD:OLD+2]!=b'\x00\x40':raise ValueError('old-address guard changed')
-    # Compare actual write ranges/values, including unchanged writes and stack,
-    # with exactly the logical volume address normalized.
+    # Legacy final footprint is diagnostic only. Equivalence uses the ordered
+    # observer stream, including transient/unchanged writes and call frames.
     effects=sorted(set((OLD+(i-NEW) if relocated and NEW<=i<NEW+2 else i,memory[i])
                        for a,b in writes for i in range(a,b)))
+    events=[]
+    for event in evidence.events:
+        event=dict(event)
+        if relocated and NEW <= event['address'] and event['address']+event['width'] <= NEW+2:
+            event['address'] += OLD-NEW
+        events.append(event)
     return {'state':{'d':list(s.d),'a':list(s.a),'c':list(s.c),'pc':s.pc,'sr':s.sr},
             'logical_word':logical,'effects':effects,'pcs':pcs,'steps':len(pcs),
+            'events':events,'fixture':initial_fixture,'fixture_id':digest(initial_fixture),
             'changes':changes,'BYTE_writer_executed':0x652f0 in pcs}
 
 
@@ -166,6 +247,26 @@ def compare_store(run, original, derived, regs, *, values=None):
             'scope':'Modeled entry directly at the writer. Guard reachability, reset helper, Paula and game execution are excluded.'}
 
 
+def proximity_distance(x, y):
+    """SUB.W/conditional NEG.W/ADD.W, followed by unsigned CMP.W.
+
+    This is an explicit game contract, not a replacement CPU implementation.
+    The generated Motorola-derived executor independently exercises the rule.
+    """
+    def magnitude(v):
+        v &= 65535
+        return (-v)&65535 if v&32768 else v
+    return (magnitude(x-840)+magnitude(y-168))&65535
+
+
+def admit_contract(contract):
+    supported=dict(contract_id='pandora.volume.local.v1',entry_source=ENTRY-BASE,
+                   return_pc=RETURN,instruction_budget=128,original_volume=OLD,derived_volume=NEW,
+                   control_source_ranges=[[0x552de,0x55370],[0x4d872,0x4d8f2]])
+    if any(contract.get(k)!=v for k,v in supported.items()):
+        raise BehaviourError('unsupported','Canonical CPU contract exceeds this bounded runner version')
+
+
 def compare(target, context, manifest_path, library):
     original=resolve_project_paths(target).binary_source.path.read_bytes()
     contract=load_contract('pandora')
@@ -185,15 +286,25 @@ def compare(target, context, manifest_path, library):
     specs=[('captured_guard',actual_dead,actual_armed,0x40,None),('dead_unarmed',True,False,0x40,None),
            ('alive_far_armed',False,True,0x1234,None),('alive_near_armed',False,True,0x40,(808,154))]
     specs += [('dead_armed_'+hex(v),True,True,v,None) for v in (0x40,0x6,0x1ff,0xaa55,0xffff)]
+    specs += [('distance_'+name,False,True,0x1234,xy) for name,xy in (
+        ('zero',(840,168)),('255',(1095,168)),('256',(1096,168)),
+        ('negative_one',(839,168)),('signed_max',(33607,168)),
+        ('signed_min',(33608,168)),('sum_wrap',(33608,32936)))]
+    specs += [('dead_armed_byte_'+hex(v),True,True,v,None) for v in (0,255,256)]
     refusals=[]
     for name,dead,armed,volume,xy in specs:
-        a=execute(run,original,projection,regs,relocated=False,dead=dead,armed=armed,volume=volume,xy=xy)
-        b=execute(run,derived,projection,regs,relocated=True,dead=dead,armed=armed,volume=volume,xy=xy)
+        try:
+            a=execute(run,original,projection,regs,relocated=False,dead=dead,armed=armed,volume=volume,xy=xy)
+            b=execute(run,derived,projection,regs,relocated=True,dead=dead,armed=armed,volume=volume,xy=xy)
+        except BehaviourError as exc:
+            refusals.append(dict(status='refused_'+exc.result['status'],case=name,outcome=exc.result))
+            continue
         shared_effects=[e for e in a['effects'] if int(regs['a6'],0)+0x33d<=e[0]<int(regs['a6'],0)+0x33d+4]
         player=xy or (int.from_bytes(bytes(projection[0x5c352+i] for i in range(2)),'big'),
                       int.from_bytes(bytes(projection[0x5c354+i] for i in range(2)),'big'))
-        distance=abs(player[0]-840)+abs(player[1]-168)
-        layouts_equal=(a['state'],a['logical_word'],a['effects'],a['pcs'])==(b['state'],b['logical_word'],b['effects'],b['pcs'])
+        distance=proximity_distance(*player)
+        ordered = compare_ordered(a['events'],b['events'])
+        layouts_equal=(a['state'],a['logical_word'],a['pcs'])==(b['state'],b['logical_word'],b['pcs']) and ordered['status']=='pass'
         expected_word=(0x4000|(volume&255)) if dead and armed else volume
         if not dead:expected_word=64-(distance>>2) if distance<256 else (64 if armed else volume)
         if len(shared_effects)!=1:
@@ -213,22 +324,39 @@ def compare(target, context, manifest_path, library):
                              'original_steps':a['steps'],'original_pcs':a['pcs'],
                              'scope':'A matching original/derived result cannot override the independent routine contract.'})
             continue
-        if not layouts_equal:raise ValueError(f'local equivalence failed: {name}')
+        if not layouts_equal:
+            refusals.append(dict(status='refused_ordered_mismatch',case=name,
+                                 outcome=ordered if ordered['status']!='pass' else dict(status='mismatch',reason='Final CPU state/control flow differs'),
+                                 modeled_inputs=dict(dead=dead,armed=armed,volume=volume,xy=xy)))
+            continue
         cases.append({'name':name,'modeled_inputs':{'Feed_defeated':dead,'shared_armed':armed,'initial_volume':volume,'player_xy_override':xy},
                       'steps_per_layout':a['steps'],'BYTE_writer_executed_locally':a['BYTE_writer_executed'],
                       'logical_output':f'{a["logical_word"]:04x}','normalized_write_effects':a['effects'],
-                      'normalized_effect_sha256':sha(json.dumps(a['effects']).encode()),'CPU_state_equal':True})
-    return {'schema_version':2,'target_id':target,'status':'local_BYTE_equivalence_routine_comparison_partial' if refusals else 'bounded_local_routine_and_BYTE_equivalence','original_sha256':sha(original),'derived_sha256':sha(derived),
+                      'normalized_effect_sha256':sha(json.dumps(a['effects']).encode()),'CPU_state_equal':True,
+                      'ordered_comparison':ordered,'fixture_ids':[a['fixture_id'],b['fixture_id']],
+                      'arithmetic':dict(wrapped_WORD_distance=distance,comparison='unsigned distance < 256'),
+                      'fixture_manifests':[a['fixture'],b['fixture']]})
+    byte_comparison=compare_store(run,original,derived,regs)
+    if sha(library.read_bytes())!=run.backend_sha256:
+        raise BehaviourError('stale','Native backend changed during comparison')
+    return {'schema_version':3,'target_id':target,'status':'local_BYTE_equivalence_routine_comparison_partial' if refusals else 'bounded_local_routine_and_BYTE_equivalence','original_sha256':sha(original),'derived_sha256':sha(derived),
             'manifest_sha256':sha(manifest_path.read_bytes()),'context_sha256':sha(context.read_bytes()),'backend_sha256':sha(library.read_bytes()),
             'checkpoint_provenance':donor['observation']['checkpoint'],'accepted_cases':cases,
             'routine_comparison':{'status':refusals[0]['status'] if refusals else 'bounded_CPU_only_routine_equivalence',
                                   'accepted_cases':len(cases),'refused_cases':refusals},
-            'BYTE_instruction_comparison':compare_store(run,original,derived,regs),
+            'BYTE_instruction_comparison':byte_comparison,
             'local_call_context':{'entry_source_offset':'0x552fe','donor_source_offset':'0x5ca','return_pc':RETURN,'SP_adjustment':-4,'instruction_budget':128},
+            'behaviour_coverage':{'B_ids':['B01','B02','B04','B06','B07','B08','B09'],
+                                  'scope':'bounded modeled CPU calls, original versus manifest-derived assembly',
+                                  'cases_attempted':len(specs),'cases_passed':len(cases),'cases_nonpass':len(refusals),
+                                  'instruction_engine':'generated Motorola-derived backend with opt-in ordered observer',
+                                  'unknown_memory':'required unknown reads refuse; initial stack remains unknown until written',
+                                  'normalization':'only logical volume addresses NEW..NEW+2 map to OLD..OLD+2',
+                                  'gameplay_IRQ_Paula_DMA_equivalence':False},
             'limits':['CPU-only projection, with explicit modeled call/guard/data inputs; no game snapshot or gameplay predicate was edited.',
-                      'Uncaptured cells use original image or zero shadow. Modeled cases avoid audio initialization; reset helper writes are compared, including custom-register write intents.',
+                      'Backing original image/zero bytes remain unknown unless captured or explicitly modeled; required unknown accesses refuse. Cases avoid audio initialization; custom-register writes are CPU intents only.',
                       'No interrupts, Amiga set/clear register semantics, Paula/DMA timing, allocation or normal gameplay reachability proof.',
-                      'Generated spec-driven CPU backend used; an independent machine68k oracle is unavailable in this environment.',
+                      'Generated spec-driven CPU backend used; no independent CPU semantic oracle was used in this slice.',
                       'Local BYTE execution is separate from the still-unobserved normal-gameplay BYTE path and original/relocated game comparison.']}
 
 

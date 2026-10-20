@@ -152,7 +152,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             initialized = await session.initialize()
             assert initialized.server_info.name == "Amiga source restoration"
             tools = (await session.list_tools()).tools
-            assert len(tools) == 14
+            assert len(tools) == 15
             by_name = {tool.name: tool for tool in tools}
             assert by_name["restoration_query"].annotations.read_only_hint
             assert not by_name["restoration_interpret"].annotations.read_only_hint
@@ -212,6 +212,13 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             assert requests[-1]["operation"] == "review_batch"
             assert requests[-1]["action_ids"] == ["action-1", "action-2"]
             assert not by_name["restoration_review_batch"].annotations.read_only_hint
+            behaviour = await session.call_tool('restoration_behaviour',dict(
+                project='demo',expected_revision='current',contract_id='bounded',
+                capture='.runtime-state/capture.json'))
+            assert not behaviour.is_error
+            assert requests[-1]['operation']=='behaviour'
+            assert requests[-1]['contract_id']=='bounded'
+            assert not by_name['restoration_behaviour'].annotations.read_only_hint
             rejected = await session.call_tool(
                 "restoration_verify", {"project": "demo", "expected_revision": "old"}
             )

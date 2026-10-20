@@ -1,5 +1,12 @@
 # Pandora restoration inventory and status
 
+> Current behavioural validation: [B01–B10 roadmap](../proposals/045-behavioural-validation.md),
+> [first-batch evidence](../validation/pandora-behavioural-validation-first-slice.json).
+> Two bounded contracts accepted: 19 CPU cases plus 65,536 BYTE inputs; one
+> original-only DMA fixture/replay of 384 transfers. Tests: 180 Python passed,
+> 30 native passed; optional live MCP SDK transport skipped. Assembly unchanged
+> and C/vasm exact. Every B commitment remains partial/open.
+
 Baseline snapshot: 2026-10-12, merged source `22e55bb5`, restoration revision
 `2f142cd09c5eae6d1edd001af3acfb2909098713d6a8f513eadda5c7279ba42e`.
 All offsets here are section 0 source offsets, with exclusive range ends, unless
@@ -6291,3 +6298,51 @@ the two negative CPU windows intentionally report timeout/incomplete, rather
 than being presented as successful access observations. This closes the dynamic
 producer/consumer question for the observed scratch rows without inventing an
 original layout for the remaining bytes.
+
+
+### Behavioural-validation programme: first bounded batch (2026-10-20)
+
+[Proposal 045](../proposals/045-behavioural-validation.md) tracks B01–B10 with
+separate capability and target-coverage status. The reversing-loop checklist now
+requires contract/evidence identities, explicit outcomes, remaining obligations
+and the next evidence question in each connected batch. No competing fact store
+or tracker was added.
+
+The existing volume comparator now uses an opt-in observer in the generated
+Motorola-derived backend. It admits captured/modelled cells explicitly, refuses
+required unknown reads and forbidden writes, and retains ordered accesses rather
+than inferring equivalence from sorted/deduplicated final effects. CPU-only
+predicates pass for all 19 admitted routine cases, including WORD-wrap boundaries,
+and all 65,536 WORD inputs to the original/derived BYTE instruction. Receipt:
+`45c0a0c720d059b0cf112327da8ed6c6b0917538c7b9781e788eedc1fbaaea7d`.
+Modeled call frames, guard inputs and normalization of only the two-byte logical
+volume location establish neither normal gameplay nor IRQ/Paula/DMA equivalence.
+
+The genuinely different renderer case reuses Copperline, checkpoint binding and
+full bus sidecars. Fresh original replay matches all 384 ordered transfers:
+256 D writes and 128 A reads; every read follows and matches its producer. Exact
+address order is checked, and an equal-final-buffer read-before-write mutant
+fails. Receipt:
+`1194ac8fe944667bd49ca76ea10a70c1f011430054b5950a688f080aaa36f737`.
+This validates one bounded scratch predicate and repeatability, not a renderer
+candidate, source/mask bounds, final bitmap, all-callers lifetime or relocation.
+
+Both contracts are canonical function-summary notes created through the existing
+command catalog and accepted through MAL/DJ review. Real pre-review evaluations
+correctly returned missing-prerequisite despite passing predicates; fresh
+content-addressed receipts qualify only after review. CLI/MCP/HTTP share one
+restoration evaluator. Tests cover all outcome categories and stale identity
+admission. The optional MCP SDK is absent, so live stdio transport is not claimed;
+adapter forwarding and HTTP operations are tested.
+
+[Public evidence](../validation/pandora-behavioural-validation-first-slice.json)
+contains identities and summaries; captured register arrays, payloads, ROMs,
+checkpoints and unfiltered streams remain local. C/vasm receipt
+`3006167ec76ea06a645800f8ebeb3047bcc55e3ed317cb1b21a921e19b0e3f5f`
+reproduces all 376,832 bytes. Assembly SHA remains
+`85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db`;
+only package provenance changes for the two summary facts. No payload bytes are
+newly classified; 6,446 remain unknown. Histories append two actions and two
+decisions, preserving both prefixes. Fonts, bank 45, bank 30 and EQU/RS policy
+are unchanged. All B IDs remain partial. The next question is admission of the
+currently excluded audio-start path using captured inputs instead of shadow data.

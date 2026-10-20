@@ -479,7 +479,7 @@ def execute(target_id: str, body: dict) -> dict:
     snapshot = getattr(_server(), "_listing_read_snapshot", nullcontext)
     with target_lock(directory), snapshot():
         current = revisions(target_id)
-        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "review", "review_batch", "rollback", "memory_plan", "memory_build"}:
+        if operation in {"interpret", "interpret_batch", "command", "verify", "probe", "behaviour", "review", "review_batch", "rollback", "memory_plan", "memory_build"}:
             current = require_revision(target_id, body.get("expected_revision"), current=current)
         elif body.get("expected_revision") is not None:
             current = require_revision(target_id, body["expected_revision"], current=current)
@@ -505,10 +505,12 @@ def execute(target_id: str, body: dict) -> dict:
             result = _interpret_batch(target_id, body, current)
         elif operation == "command":
             result = _server()._execute_command_unchecked(target_id, body)
-        elif operation in {"verify", "probe"}:
+        elif operation in {"verify", "probe", "behaviour"}:
             from amiga_reversing.disasm import restoration_verification as verification
             if operation == "verify":
                 result = verification.verify(target_id, current["subject_revision"], artifact=_artifact(target_id))
+            elif operation == 'behaviour':
+                result = verification.run_behaviour(target_id,current['subject_revision'],body)
             else:
                 receipt = verification.load_receipt(target_id, body.get("verification_id"))
                 result = verification.run_probe(target_id, current["subject_revision"], body.get("question"),
