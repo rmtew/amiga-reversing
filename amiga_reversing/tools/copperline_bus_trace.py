@@ -14,6 +14,9 @@ import struct
 import tempfile
 
 from .copperline_control import CopperlineError, CopperlineTimeout
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 SLOT = struct.Struct('<HBBBBHIQI')
 KINDS = {0: 'idle', 1: 'refresh', 2: 'cpu', 3: 'copper', 4: 'audio',
@@ -49,6 +52,7 @@ def validate_bus_trace(spec):
 
 def read_bus_profile(directory, ranges, max_frames):
     """Decode the fixed protocol format, preserving raw type/flags and limits."""
+    LOADED_SOURCE.require_current()
     directory = Path(directory)
     if ((directory/'profile.json').stat().st_size > 2_000_000
             or (directory/'profile.jsonl').stat().st_size > 8_000_000):

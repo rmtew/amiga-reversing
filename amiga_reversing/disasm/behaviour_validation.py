@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from itertools import zip_longest
+from pathlib import Path
 
 OUTCOMES = frozenset({
     'pass', 'mismatch', 'missing_prerequisite', 'timeout_not_observed_within_bounds',
@@ -29,6 +30,7 @@ def canonical_contract(target_id, contract_id):
     The existing note field carries the explicit bounded predicate without
     inventing a universal ABI or a second target metadata schema.
     """
+    LOADED_SOURCE.require_current()
     from .effective_metadata import effective_target_metadata
     from .project_paths import resolve_project_paths
     from .target_metadata import target_metadata_json_payload
@@ -78,6 +80,25 @@ class BehaviourError(ValueError):
             raise ValueError('Invalid behavioural failure outcome')
         self.result = dict(status=status, reason=reason, **context)
         super().__init__(reason)
+
+
+class LoadedSource:
+    """Pin source at module import; edits require a fresh owning process.
+
+    Profiles name this immutable identity, never a later disk version of cached
+    Python implementations. Checks before/after evaluation fail closed on edits.
+    """
+    def __init__(self,path):
+        self.path=Path(path)
+        self.sha256=hashlib.sha256(self.path.read_bytes()).hexdigest()
+
+    def require_current(self):
+        if hashlib.sha256(self.path.read_bytes()).hexdigest()!=self.sha256:
+            raise BehaviourError('stale','Loaded Python implementation changed; restart required',module=self.path.name)
+        return self.sha256
+
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 
 def admit_identities(expected, current):

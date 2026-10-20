@@ -164,7 +164,11 @@ tracker. Record the following alongside the existing batch/verification report:
   arithmetic, control-flow/return budgets, engines and observed windows.
 - Original/candidate, fixture, reviewed contract, backend and machine-profile
   identities bound into the verification receipt; changed assumptions make prior
-  results stale. Keep payloads, ROMs and raw guest states local.
+  results stale. Bind the actual executed backend and loaded checker identities;
+  require restart after implementation edits. Derived CPU comparisons must verify
+  the native plan and bind the manifest/plan, and must execute candidate bytes
+  throughout every admitted helper range. Keep payloads, ROMs and raw guest
+  states local.
 - Positive, boundary and deliberately failing cases, preserved failing seeds
   and small reproducers. Compare ordered semantic effects and report the first
   divergence; equal final buffers do not excuse invalid producer/consumer order.

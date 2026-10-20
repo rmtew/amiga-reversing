@@ -104,6 +104,16 @@ bytes; generated assembly is unchanged. Unknown payload bytes remain 6,446.
 
 ## Current status by commitment
 
+The follow-up correctness batch hardens B01/B02/B04/B07/B09 rather than
+expanding target coverage: all admitted CPU helper bytes now come from the
+selected image, the current native relocation proof is checked before execution,
+and manifest/plan identities enter the receipt profile. Executed backend identity
+is retained, and cached Python checker code is pinned at import with restart
+required after disk edits. See the
+[identity regression evidence](../validation/pandora-behavioural-validation-identities.json)
+for reproductions, affected historical receipt profiles and fresh revalidation.
+This adds no new canonical contracts, gameplay paths or DMA candidate coverage.
+
 Every row is **partial/open**, including rows with an implemented first seam.
 No commitment is complete on documentation or one successful fixture. Evidence
 for these rows is the batch receipt summary above and its linked

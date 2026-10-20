@@ -12,10 +12,10 @@ import json
 from pathlib import Path
 
 from amiga_reversing.disasm.project_paths import resolve_project_paths
-from amiga_reversing.disasm.derived_artifact import validate_manifest
+from amiga_reversing.disasm.derived_artifact import validate_manifest, verify_native_binding
 from amiga_reversing.tools.direct_payload_adapter import load_contract
 from amiga_reversing.disasm.behaviour_validation import (
-    BehaviourError, MemoryEvidence, compare_ordered, digest, fixture_manifest,
+    BehaviourError, MemoryEvidence, LoadedSource, compare_ordered, digest, fixture_manifest,
 )
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -26,6 +26,8 @@ NEW=0x65400
 RETURN=0x800
 MEMORY_SIZE=0x1000000
 _ENGINE_IDENTITIES = {}
+LOADED_SOURCE=LoadedSource(__file__)
+CODE_RANGES=((0x552de,0x55370),(0x4d872,0x4d8f2))
 
 class Diag(C.Structure):
     _fields_=[('severity',C.c_uint32),('code',C.c_uint32),('message',C.c_char*512)]
@@ -77,7 +79,8 @@ def load_context(path, original):
     def read(address,size):
         try:return bytes(memory[address+i] for i in range(size))
         except KeyError as e:raise BehaviourError('missing_prerequisite','Donor is missing required routine input',address=e.args[0]) from e
-    for start,size in ((0x552de,146),(0x4d872,128)):
+    for start,end in CODE_RANGES:
+        size=end-start
         if read(BASE+start,size)!=original[start:start+size]:raise BehaviourError('stale','Live routine code differs from original')
     regs=capture['registers'];a6=int(regs['a6'],0)
     for address,size in ((a6+0x33d,1),(0x5c21a,1),(0x5c352,4),(OLD,8)):
@@ -126,13 +129,15 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
             (len(xy) != 2 or any(type(v) is not int or not 0 <= v <= 65535 for v in xy))):
         raise BehaviourError('unsupported', 'Modeled inputs must be WORD bit patterns')
     memory=bytearray(MEMORY_SIZE);memory[BASE:BASE+349040]=image[:349040]
-    for address,value in donor_memory.items():memory[address]=value
+    for address,value in donor_memory.items():
+        if not any(BASE+a<=address<BASE+b for a,b in CODE_RANGES):
+            memory[address]=value
     known = {address: 'captured' for address in donor_memory}
-    # The derived image changes only manifest bytes; never inherit original live
-    # code over the derived code. Captured data cells stay identical otherwise.
+    # Captured bytes establish input knownness, but ALL admitted executable
+    # ranges come from the selected image, including called helpers.
     if relocated:
-        memory[BASE+0x552de:BASE+0x55370]=image[0x552de:0x55370]
-        known.update((address, 'manifest_code') for address in range(BASE+0x552de,BASE+0x55370))
+        for address in known:
+            if any(BASE+a<=address<BASE+b for a,b in CODE_RANGES):known[address]='manifest_code'
     a6=int(regs['a6'],0);actual_flags=memory[0x5c21a];actual_shared=memory[a6+0x33d]
     memory[0x5c21a]=(actual_flags&~2)|(2 if dead else 0)
     memory[a6+0x33d]=(actual_shared&~1)|(1 if armed else 0)
@@ -176,7 +181,7 @@ def execute(run, image, donor_memory, regs, *, relocated, dead, armed, volume, x
     start=bytes(memory);buffer=(C.c_uint8*len(memory)).from_buffer(memory);pcs=[];writes=[]
     for _ in range(instruction_budget):
         if s.pc==RETURN:break
-        if not (0x652de<=s.pc<0x65370 or 0x5d872<=s.pc<0x5d8f2):
+        if not any(BASE+a<=s.pc<BASE+b for a,b in CODE_RANGES):
             raise BehaviourError('unsupported','Unadmitted local control flow',pc=s.pc)
         pcs.append(s.pc);trace=Trace()
         evidence.pc = s.pc
@@ -267,12 +272,23 @@ def admit_contract(contract):
         raise BehaviourError('unsupported','Canonical CPU contract exceeds this bounded runner version')
 
 
-def compare(target, context, manifest_path, library):
+def compare(target, context, manifest_path, library, *, artifact=None):
+    from amiga_reversing.disasm import derived_artifact as binding
+    LOADED_SOURCE.require_current()
+    binding.LOADED_SOURCE.require_current()
+    if artifact is None:
+        from .runtime_analysis import analysis_scope,build_project_listing_artifact_profile
+        with analysis_scope():
+            _,_,native=build_project_listing_artifact_profile(target)
+            return compare(target,context,manifest_path,library,artifact=native)
     original=resolve_project_paths(target).binary_source.path.read_bytes()
     contract=load_contract('pandora')
     if target!=contract.target_id or sha(original)!=contract.payload_sha256:
         raise ValueError('local comparison supports the identified Pandora original only')
-    manifest,derived_path=validate_manifest(manifest_path,target);derived=derived_path.read_bytes()
+    manifest_identity=sha(manifest_path.read_bytes())
+    manifest,derived_path=validate_manifest(manifest_path,target)
+    verify_native_binding(manifest,artifact)
+    derived=derived_path.read_bytes()
     if manifest['original_sha256']!=sha(original) or manifest['region']['runtime_address']!=OLD or manifest['placement']['runtime_address']!=NEW or manifest['region']['size']!=2:
         raise ValueError('requires the closed two-byte Pandora volume plan')
     ledger=manifest['rewrite_ledger'];changed=set()
@@ -281,6 +297,7 @@ def compare(target, context, manifest_path, library):
         if original[off:off+len(before)]!=before or derived[off:off+len(after)]!=after:raise ValueError('rewrite ledger mismatch')
         changed.update(range(off,off+len(before)))
     if len(original)!=len(derived) or any(a!=b and i not in changed for i,(a,b) in enumerate(zip(original,derived))):raise ValueError('unlisted image changes')
+    context_identity=sha(context.read_bytes())
     donor,projection,regs=load_context(context,original);run=load_engine(library);cases=[]
     actual_dead=bool(projection[0x5c21a]&2);actual_armed=bool(projection[int(regs['a6'],0)+0x33d]&1)
     specs=[('captured_guard',actual_dead,actual_armed,0x40,None),('dead_unarmed',True,False,0x40,None),
@@ -339,8 +356,17 @@ def compare(target, context, manifest_path, library):
     byte_comparison=compare_store(run,original,derived,regs)
     if sha(library.read_bytes())!=run.backend_sha256:
         raise BehaviourError('stale','Native backend changed during comparison')
+    if sha(manifest_path.read_bytes())!=manifest_identity:
+        raise BehaviourError('stale','Manifest changed during comparison')
+    if sha(context.read_bytes())!=context_identity:
+        raise BehaviourError('stale','Captured context changed during comparison')
+    LOADED_SOURCE.require_current()
+    binding.LOADED_SOURCE.require_current()
     return {'schema_version':3,'target_id':target,'status':'local_BYTE_equivalence_routine_comparison_partial' if refusals else 'bounded_local_routine_and_BYTE_equivalence','original_sha256':sha(original),'derived_sha256':sha(derived),
-            'manifest_sha256':sha(manifest_path.read_bytes()),'context_sha256':sha(context.read_bytes()),'backend_sha256':sha(library.read_bytes()),
+            'manifest_sha256':manifest_identity,'native_plan_sha256':manifest['native_plan_sha256'],
+            'native_binding_verified':True,'implementation_sha256':LOADED_SOURCE.sha256,
+            'binding_checker_sha256':binding.LOADED_SOURCE.sha256,
+            'context_sha256':context_identity,'backend_sha256':run.backend_sha256,
             'checkpoint_provenance':donor['observation']['checkpoint'],'accepted_cases':cases,
             'routine_comparison':{'status':refusals[0]['status'] if refusals else 'bounded_CPU_only_routine_equivalence',
                                   'accepted_cases':len(cases),'refused_cases':refusals},

@@ -510,7 +510,7 @@ def execute(target_id: str, body: dict) -> dict:
             if operation == "verify":
                 result = verification.verify(target_id, current["subject_revision"], artifact=_artifact(target_id))
             elif operation == 'behaviour':
-                result = verification.run_behaviour(target_id,current['subject_revision'],body)
+                result = verification.run_behaviour(target_id,current['subject_revision'],body,artifact=_artifact(target_id))
             else:
                 receipt = verification.load_receipt(target_id, body.get("verification_id"))
                 result = verification.run_probe(target_id, current["subject_revision"], body.get("question"),

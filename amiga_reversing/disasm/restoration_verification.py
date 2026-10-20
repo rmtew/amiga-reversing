@@ -28,6 +28,9 @@ from amiga_reversing.tools.copperline_session import (
     run_session,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_boot_adf, load_contract
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 
 def _hash(data: bytes) -> str:
@@ -155,7 +158,7 @@ def load_receipt(target_id: str, receipt_id: str) -> dict:
     return {**saved, "receipt_id": receipt_id}
 
 
-def run_behaviour(target_id: str, subject_revision: str, request: dict) -> dict:
+def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artifact=None) -> dict:
     """Evaluate a bounded case and persist evidence, never facts or acceptance.
 
     Shared by the normal restoration operation and its CLI/MCP/UI clients. A
@@ -165,7 +168,10 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict) -> dict:
     from .behaviour_validation import (
         BehaviourError, OUTCOMES, admit_identities, canonical_contract, digest,
     )
+    from . import behaviour_validation as checks
     try:
+        LOADED_SOURCE.require_current()
+        checks.LOADED_SOURCE.require_current()
         contract = canonical_contract(target_id, request.get('contract_id'))
     except BehaviourError as exc:
         return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
@@ -185,6 +191,7 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict) -> dict:
     try:
         if execution == 'pandora_volume_cpu':
             from amiga_reversing.tools import pandora_volume_local_compare as runner
+            runner.LOADED_SOURCE.require_current()
             runner.admit_contract(contract['contract'])
             context = PROJECT_ROOT/'runtime/observations/pandora-volume-local-context.json'
             library = PROJECT_ROOT/'src/build/libamiga_backend.so'
@@ -193,7 +200,11 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict) -> dict:
                 raise BehaviourError('incomplete_truncated','Manifest exceeds bounded evidence size')
             if json.loads(manifest_path.read_text()).get('analysis_subject_revision')!=subject_revision:
                 raise BehaviourError('stale','Derived manifest belongs to another analysis subject')
-            result = runner.compare(target_id,context,manifest_path,library)
+            result = runner.compare(target_id,context,manifest_path,library,artifact=artifact)
+            if _hash(library.read_bytes())!=result['backend_sha256']:
+                raise BehaviourError('stale','Executed backend differs from the current backend; restart required')
+            if result['implementation_sha256']!=runner.LOADED_SOURCE.require_current():
+                raise BehaviourError('stale','Comparison implementation identity differs')
             refusals = result['routine_comparison']['refused_cases']
             outcome = (refusals[0].get('outcome',dict(status='mismatch',reason=refusals[0]['status']))
                        if refusals else dict(status='pass'))
@@ -201,20 +212,25 @@ def run_behaviour(target_id: str, subject_revision: str, request: dict) -> dict:
                                   cases=[c['fixture_ids'] for c in result['accepted_cases']]))
             identities = dict(original=result['original_sha256'],candidate=result['derived_sha256'],
                               fixture=fixture,contract=contract['contract_sha256'],
-                              backend=_hash(library.read_bytes()),profile=digest(dict(
+                              backend=result['backend_sha256'],profile=digest(dict(
                                   subject_revision=subject_revision,execution_kind=execution,
-                                  runner_sha256=_hash(Path(runner.__file__).read_bytes()),
-                                  checker_sha256=_hash((PROJECT_ROOT/'amiga_reversing/disasm/behaviour_validation.py').read_bytes()),
-                                  receipt_service_sha256=_hash(Path(__file__).read_bytes()),
+                                  runner_sha256=result['implementation_sha256'],
+                                  manifest_sha256=result['manifest_sha256'],native_plan_sha256=result['native_plan_sha256'],
+                                  binding_checker_sha256=result['binding_checker_sha256'],
+                                  checker_sha256=checks.LOADED_SOURCE.require_current(),
+                                  receipt_service_sha256=LOADED_SOURCE.require_current(),
                                   profile='68000 ordinary CPU; no IRQ/Paula/DMA; modeled call; observer v1')))
         elif execution == 'pandora_shared_scratch_dma':
             from amiga_reversing.tools import pandora_scratch_behaviour as runner
             result, identities = runner.evaluate(target_id,local_path('capture'),contract,subject_revision)
             identities['profile']=digest(dict(execution_profile=identities['profile'],
-                                               receipt_service_sha256=_hash(Path(__file__).read_bytes())))
+                                               receipt_service_sha256=LOADED_SOURCE.require_current()))
             outcome = result['outcome']
         else:
             raise BehaviourError('unsupported','No admitted runner for canonical contract',execution_kind=execution)
+        LOADED_SOURCE.require_current()
+        checks.LOADED_SOURCE.require_current()
+        runner.LOADED_SOURCE.require_current()
     except BehaviourError as exc:
         return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
             subject_revision=subject_revision,status=exc.result['status'],outcome=exc.result,contract=contract))

@@ -20,9 +20,13 @@ def service(tmp_path,monkeypatch):
                   function_summary_id='canonical-summary',action_id='canonical-action',review_status='accepted')
     monkeypatch.setattr(bv,'canonical_contract',lambda *args:dict(contract))
     result=dict(original_sha256=bv.digest('original'),derived_sha256=bv.digest('derived'),
+                backend_sha256=rv._hash((tmp_path/'src/build/libamiga_backend.so').read_bytes()),
+                implementation_sha256=volume.LOADED_SOURCE.sha256,
+                manifest_sha256=bv.digest('manifest'),native_plan_sha256=bv.digest('native plan'),
+                binding_checker_sha256=bv.digest('native binding checker'),
                 context_sha256=bv.digest('fixture'),routine_comparison=dict(refused_cases=[]),
                 accepted_cases=[dict(fixture_ids=[bv.digest('a'),bv.digest('b')])])
-    monkeypatch.setattr(volume,'compare',lambda *args:result)
+    monkeypatch.setattr(volume,'compare',lambda *args,**kwargs:result)
     request=dict(contract_id='bounded-test',manifest='.runtime-state/restoration/derived/fixture/manifest.json')
     manifest=tmp_path/request['manifest'];manifest.parent.mkdir(parents=True,exist_ok=True)
     manifest.write_text(json.dumps(dict(analysis_subject_revision='revision')))

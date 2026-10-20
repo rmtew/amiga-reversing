@@ -7,6 +7,15 @@
 > 30 native passed; optional live MCP SDK transport skipped. Assembly unchanged
 > and C/vasm exact. Every B commitment remains partial/open.
 
+The [comparison identity correction](../validation/pandora-behavioural-validation-identities.json)
+records reproduced false passes and fail-closed regressions. Candidate helper
+bytes, current native proof, manifest/plan profile identity, executed backend and
+loaded Python implementations are now checked. The focused suite passes 208
+tests with one optional MCP SDK transport skip. This hardening adds no contracts,
+CPU paths or DMA fixtures; prior receipt profiles are historical, not reusable
+under the changed checker profile. The source and its exact-byte accounting are
+unchanged.
+
 Baseline snapshot: 2026-10-12, merged source `22e55bb5`, restoration revision
 `2f142cd09c5eae6d1edd001af3acfb2909098713d6a8f513eadda5c7279ba42e`.
 All offsets here are section 0 source offsets, with exclusive range ends, unless

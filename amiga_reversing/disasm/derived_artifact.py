@@ -13,6 +13,9 @@ from pathlib import Path
 
 from amiga_reversing.disasm.binary_source import read_binary_source_bytes
 from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE = LoadedSource(__file__)
 
 
 def sha256(data: bytes) -> str:
@@ -20,6 +23,7 @@ def sha256(data: bytes) -> str:
 
 
 def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
+    LOADED_SOURCE.require_current()
     manifest = json.loads(manifest_path.read_text())
     if isinstance(manifest, dict) and manifest.get('kind') == 'fixed_size_optional_patch':
         from .optional_artifact import validate
@@ -143,6 +147,7 @@ def validate_manifest(manifest_path: Path, target_id: str) -> tuple[dict, Path]:
 
 def verify_native_binding(manifest: dict, artifact) -> None:
     """Re-run the proof against current native facts; manifest claims are not proof."""
+    LOADED_SOURCE.require_current()
     if manifest.get('kind') == 'fixed_size_optional_patch':
         from .optional_artifact import verify_binding
         verify_binding(manifest, artifact)

@@ -11,12 +11,16 @@ import json
 from pathlib import Path
 
 from amiga_reversing.disasm.behaviour_validation import (
-    BehaviourError, check_producer_consumer, compare_ordered, digest,
+    BehaviourError, LoadedSource, check_producer_consumer, compare_ordered, digest,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm import behaviour_validation as checks
 from amiga_reversing.tools import copperline_checkpoint as checkpoint
 from amiga_reversing.tools.copperline_bus_trace import read_bus_profile
+from amiga_reversing.tools import copperline_bus_trace
 from amiga_reversing.tools.copperline_control import CopperlineError
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 
 def sha(path):
@@ -116,6 +120,9 @@ def validate_renderer_stream(events):
 
 
 def evaluate(target_id,capture,canonical,subject_revision):
+    LOADED_SOURCE.require_current()
+    checkpoint.LOADED_SOURCE.require_current()
+    copperline_bus_trace.LOADED_SOURCE.require_current()
     contract=canonical['contract']
     if contract.get('contract_id')!='pandora.scratch.second-word.v1' or contract.get('entry_source')!=0x6c60:
         raise BehaviourError('unsupported','Unsupported scratch contract version/entry')
@@ -166,8 +173,8 @@ def evaluate(target_id,capture,canonical,subject_revision):
                             entry_registers=current['capture']['registers'])),
         contract=canonical['contract_sha256'],backend=binding['emulator_sha256'],
         profile=digest(dict(binding=binding,subject_revision=subject_revision,
-                            checker_sha256=sha(Path(__file__)),
-                            shared_sha256=sha(PROJECT_ROOT/'amiga_reversing/disasm/behaviour_validation.py'),
-                            bus_decoder_sha256=sha(PROJECT_ROOT/'amiga_reversing/tools/copperline_bus_trace.py'),
-                            checkpoint_service_sha256=sha(PROJECT_ROOT/'amiga_reversing/tools/copperline_checkpoint.py'))))
+                            checker_sha256=LOADED_SOURCE.require_current(),
+                            shared_sha256=checks.LOADED_SOURCE.require_current(),
+                            bus_decoder_sha256=copperline_bus_trace.LOADED_SOURCE.require_current(),
+                            checkpoint_service_sha256=checkpoint.LOADED_SOURCE.require_current())))
     return result,identities
