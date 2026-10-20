@@ -6093,3 +6093,46 @@ this proof. Supported source purpose remains 114,685 bytes across 106
 assessments. Classification, 6,446 unknown bytes, 973 resolved/32 unresolved
 native field records, unresolved identities and 48 generic-label signals are
 unchanged.
+
+## Scene frame layouts across the existing pixel banks
+
+Original stored geometry and mask initializer footprints now establish 274
+distinct frame spans across 41 existing scene pixel banks, covering 141,408
+bytes and 70,704 plane WORDs. All 275 stored header occurrences agree, including
+the two views of one shared frame. Their source footprints concatenate without
+gaps, overlap or overrun, and every mask pointer matches the initializer's
+runtime destination plus one quarter of its pixel offset.
+
+The banks retain their physical owners and asset boundaries. Forty-seven new
+frame formats and one shared 64-pixel storage row extend the established
+eight-byte four-plane word-column. Twelve collection layouts describe variable
+frame sequences, including one inline prefix for the 43-frame bank. Frames
+taller than 32 rows and the large sequence use embedded prefixes to retain the existing 32-field
+limit. The effective layouts reproduce the original row/column/plane ordering
+of every WORD. Row capacity remains distinct from nominal display/collision
+width; unused pixels are not inferred. Narrow, non-covering and conflicting
+views remain unchanged, as do existing fonts and their groupings.
+
+A renderer gap would have removed the declared type from 29 singleton bank
+labels. Compact one-record arrays now retain `ARRAY Type[1]`; three older
+compact single-cell labels gain the same missing annotation. Expanded records
+retain their existing field comments. The two positive regression cases fail
+before the fix; all 138 affected renderer/package tests and 821 native cases
+pass afterward. The 60 original mask CPU cases from `8f1d1c74` are reused:
+their binary inputs and reader/initializer instructions have not changed.
+
+All 142 facts have accepted review against final receipt
+`d4ed0bfe1ba727333ccc9265395c28ba172e760268ce3781fdbda8ade1c938b5`.
+C and independent vasm reproduce all 376,832 original bytes. Apart from the 60 type declarations, 41 selected bank annotations and
+three restored singleton annotations, source text is identical to `7833cd16`.
+All 557 owners, 73 prior types, 18,304 effective entities, 126 assets, 16 SDK
+includes, earlier references and history prefixes are preserved. Details and
+per-bank footprints are in [the validation record](../validation/pandora-scene-frame-formats.json).
+
+The 41 bounded graphics assessments increase supported source purpose from
+114,685 to 256,093 bytes across 147 assessments. Classification, 6,446 unknown
+bytes, 6,225 accepted native reference targets, 973 resolved/32 unresolved
+field records, unresolved identities and 48 generic-label signals are
+unchanged. Stored source views do not establish ordinary activation, shifted
+DMA-read extents, actual pixels, exclusive allocation/lifetime, all later
+writers or alternate-layout safety.

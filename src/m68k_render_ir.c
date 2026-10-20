@@ -1393,6 +1393,12 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
       item->size > range_struct->size && item->size % range_struct->size == 0U) {
     snprintf(line, sizeof(line), "%s:\t; ARRAY %s[%u]\n", name, item->struct_name,
       (unsigned)(item->size / range_struct->size));
+  } else if (range_struct != NULL && range_struct->size != 0U && item->size == range_struct->size &&
+      item->field_name[0] == '\0' && item->has_source_owner_span &&
+      item->source_owner_start == item->offset && item->source_owner_size == item->size) {
+    /* A compact one-record array has no expanded field comments. Retain its
+     * declared format at the public label, just as for a repeated array. */
+    snprintf(line, sizeof(line), "%s:\t; ARRAY %s[1]\n", name, item->struct_name);
   } else if (item != NULL && item->struct_name[0] != '\0' &&
       !policy_has_custom_struct_named(preview != NULL ? preview->analysis_policy : NULL, item->struct_name)) {
     snprintf(line, sizeof(line), "%s:\t; STRUCT %s\n", name, item->struct_name);

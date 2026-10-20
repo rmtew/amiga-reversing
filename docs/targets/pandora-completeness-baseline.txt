@@ -5,7 +5,7 @@ Payload classification (disjoint bytes per source section):
 
 Units: 273 function candidates; 557 declared data owners; 126 asset emission chunks.
 Complete function/object/resource denominators: unknown.
-Supported payload purpose bytes by section: {'0': 114685}.
+Supported payload purpose bytes by section: {'0': 256093}.
 Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
 Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
   [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
@@ -45,37 +45,37 @@ Explicit purpose scopes (not complete semantic reconstruction):
   purpose-06547df5fac345e2a75c76405e36bd2d: app [0x1e0,0x1e4) graphics/high, accepted, whole_scope.
     Four-byte pointer slot assigned framebuffer bank0 by three inventory redraw paths and the world/tile initializer.
     Limits: The four original writes and exact slot bounds are established. No read consumer, active rendering role, liveness or exclusive lifetime is established.
+  purpose-078d1c3436184bfa8d0f6980316c6bc4: s0 [0x33878,0x33c78) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 1 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
   purpose-0da3149da0bb4bb8b6991f8d571a6204: app [0x1ba,0x1c6) graphics/high, accepted, whole_scope.
     Tile viewport column/row, tile-grid base pointer and width/height metadata used by original grid construction, viewport reads and modal exchange.
     Limits: Current metadata and original WORD arithmetic only. Modal exchange changes the base independently of derived size/stride state; no general bounds, exclusive lifetime or DMA completion claim.
+  purpose-17ba3c249b934aa291ef215253cb9330: s0 [0x38938,0x39dc8) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 13 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
+  purpose-1898d6a99904457e8351e6d1421bcc5f: s0 [0x34c78,0x36838) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 9 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
   purpose-1a9485c60c094d8186be90e28cb373ed: s0 [0xed28,0xeda8) graphics/high, accepted, whole_scope.
     1 packed 128-byte tile cells: sixteen four-plane WORD rows per cell, selected by the original macro-map expansion.
     Limits: Stored format and supplied original-reader contexts only. Initial map selection and modal stored targets do not prove every later writer/consumer, ordinary gameplay activation, actual displayed pixels/DMA completion, exclusive allocation/lifetime or alternate-layout safety.
   purpose-1c723b7fac874a6084897c5163f28279: s0 [0x4afb6,0x4affa) graphics/medium, accepted, whole_scope.
     Retained gardener26-byte render-state prefix followed by18-byte looping node and held-plus-five-active frame pointers. Prefix contains NULL geometry/node values, X=-21,Y=8 and the existing descriptor pointer; no actual installation is inferred.
     Limits: Stored layout and explicit original-reader preconditions only. Some variants have no established incoming reference; role as an additional animation variant is inferred from the internal graph and neighboring canonical records. No ordinary activation, all-consumer, DMA, complete allocation, exclusive ownership or lifetime closure claim. Nominal bank prefixes do not prove all DMA reads. The unbound15-pointer run has no asserted held/active grouping.
+  purpose-1fdd7d7a69024a6797b7c17f822e3061: s0 [0x34478,0x34878) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 1 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
+  purpose-20d1384c702f43949d764eb4f7dec79c: s0 [0x3efa8,0x3f7a8) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 4 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
   purpose-21dd47ab344a42b3b57dfa084665a1ce: s0 [0xf7a8,0xfda8) graphics/high, accepted, whole_scope.
     12 packed 128-byte tile cells: sixteen four-plane WORD rows per cell, selected by the original macro-map expansion.
     Limits: Stored format and supplied original-reader contexts only. Initial map selection and modal stored targets do not prove every later writer/consumer, ordinary gameplay activation, actual displayed pixels/DMA completion, exclusive allocation/lifetime or alternate-layout safety.
   purpose-21e882fe4454491097a62d1c61c4655b: s0 [0x123a8,0x12428) graphics/high, accepted, whole_scope.
     1 packed 128-byte tile cells: sixteen four-plane WORD rows per cell, selected by the original macro-map expansion.
     Limits: Stored format and supplied original-reader contexts only. Initial map selection and modal stored targets do not prove every later writer/consumer, ordinary gameplay activation, actual displayed pixels/DMA completion, exclusive allocation/lifetime or alternate-layout safety.
-  purpose-24f5bd60843c4545831c99cb38d677b6: s0 [0xb040,0xb0e0) graphics/high, accepted, whole_scope.
-    Remaining five 32-byte overlay border cells, consumed as eight rows of four packed planar bytes per cell by the original border copier.
-    Limits: CPU copy/packing purpose only. Palette meaning, DMA timing, actual display pixels and exclusive lifetime remain unassessed. The already assessed first cell is excluded.
-  purpose-2719fa19232341db8519dcfbb2737e74: s0 [0x1c628,0x1ca28) graphics/high, accepted, whole_scope.
-    8 packed 128-byte tile cells: sixteen four-plane WORD rows per cell, selected by the original macro-map expansion.
-    Limits: Stored format and supplied original-reader contexts only. Initial map selection and modal stored targets do not prove every later writer/consumer, ordinary gameplay activation, actual displayed pixels/DMA completion, exclusive allocation/lifetime or alternate-layout safety.
-  purpose-27eb2d2861484fbeb85472daba6c0ef3: s0 [0x4c5a4,0x4c5b6) graphics/high, accepted, whole_scope.
-    Second final-pose frame: shared zero pixels/mask, two WORDs per row, 32 rows and nominal32-pixel width; establishes the full512-byte pixel prefix.
-    Limits: Original stored data and inspected CPU pointer/register contracts. No actual DMA output, exclusive allocation, all-consumer, lifetime, immutability or ordinary gameplay reachability claim. Runtime mask alias covers only the maximum128-byte nominal mask prefix; frame pointer domains stay unchanged.
-  purpose-2894c8098eaf4b669ad38edde3a388eb: s0 [0xb130,0xb250) game_data/high, accepted, whole_scope.
-    36 existing four-record inventory/reset-template prefixes; each eight-byte owner contains four two-byte item-ID/trade-value entries linked from original world objects.
-    Limits: Declared eight-byte prefixes and original reset/panel/exchange contracts only. Mutation can reach+8 after a failed search; complete storage extents, every consumer, exclusive lifetime and gameplay reachability remain unassessed.
-  purpose-29b942f31db04545be85c0616f700dc4: s0 [0x4cb22,0x4cb92) text/high, accepted, whole_scope.
-    Two complete ending messages selected by the original outcome producers; preserve the embedded0x22 punctuation byte in EARTH-S text instead of splitting their storage spans.
-    Limits: Initial stored bytes, static pointer associations and supplied original-reader contexts. Ordinary gameplay activation, all callers/writers, exclusive lifetime, complete allocation and emitted display pixels are not established. Quote bytes remain0x22; CR bytes remain0x0D; no punctuation or control normalization.
-  purpose-2bd9456dacae4b88b6caf3afe680ea7b: s0 [0x2a48,0x2a7c) code/high, accepted, whole_scope.
-    Cursor-derived inventory index and body-column item-ID exchange prefix; other columns branch to their own handlers.
-    Limits: WORD index high-byte bits survive the BYTE mask; alignment is established, bounds are not. The separate packed display-ID update and later UI/audio paths are outside this scope.
-  94 additional bounded assessments are retained in the JSON report.
+  purpose-23299c8bf6e2406eb47dc0c8348cd59c: s0 [0x46118,0x47cf8) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 15 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
+  135 additional bounded assessments are retained in the JSON report.

@@ -399,6 +399,10 @@ not allocated memory, pointee types, DMA safety, lifetime, or phase exclusivity.
 Schema edits propagate through all bound instances; evidence remains required.
 
 Optional structure macros are an export view of the same canonical schemas.
+Compact scalar arrays retain `ARRAY Type[count]` at their public source label,
+including `count=1`. A singleton has no expanded field comments, so the label
+annotation preserves its declared layout. Expanded structures keep their
+individual field annotations.
 Choose **vasm + structure macros** in Export Source, or use:
 
 ```sh
