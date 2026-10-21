@@ -1,6 +1,12 @@
 # Pandora restoration inventory and status
 
-> Latest static restoration: [player held-frame header](../validation/pandora-player-held-frame.json).
+> Latest static restoration: [primary audio control symbols](../validation/pandora-audio-control-symbols.json).
+> Four control constants now name all opcode fields in 33 existing typed commands
+> (41 BYTE fields across 22 programs).
+> The original 29-program / 907-byte corpus and all 55 original list entries are
+> audited; C/vasm exact. No new tests, captures or behavioural capability claim.
+
+> Previous static restoration: [player held-frame header](../validation/pandora-player-held-frame.json).
 > Corrected the player source-owner endpoint and exposed an 18-byte frame as two
 > symbolic pointers and five geometry WORDs. C/vasm exact; 168 focused tests pass.
 > B07 remains paused. The previous unknown-byte total has not been recomputed here.
@@ -6473,3 +6479,48 @@ No new original-CPU test or runtime capture was needed. This is an 18-byte sourc
 restoration and its bounded prerequisite, not a behavioural-programme milestone.
 [Evidence and limits](../validation/pandora-player-held-frame.json) record the
 proof, exact identities, invariant checks and measured generation costs.
+
+
+## Primary audio control symbols (2026-10-21)
+
+All 33 existing typed command records (90 bytes) now have symbolic opcode fields.
+Four constants expose the original program-advance, global-note-offset,
+pitch-modulation setup and channel-note-offset controls at 41 native BYTE rows
+across 22 program records. Their meanings come from the original relative-WORD
+dispatch table at `$4DCE8`, based on `$4D7DE`, and the named handlers; the
+existing command schemas supply the matching operand widths. All note, selector,
+duration and operand bytes remain unchanged, including signed note offsets and
+modulation parameters. No new schema, field, owner or register seed is added.
+
+The complete stored-format audit covers 29 program records (907 bytes), 88
+controls and 12 original program lists. All 55 nonzero list entries select one
+of 32 decoded token boundaries, including shared tails. Twenty-nine bounded audio
+purpose facts increase supported source purpose from 282,473 to 283,380 bytes.
+This establishes stored grammar and original list references, not dynamic
+selector safety, later writes, gameplay activation, IRQ/DMA timing or sound.
+
+Forty-two controls remain grouped with neighbouring bytes. Five additional
+BYTE rows are shadowed by their containing array hex setting; their symbol
+actions were undone without changing that policy. All 47 remain numeric.
+The existing symbol command selects whole native data rows, so this batch deliberately leaves those
+positions numeric rather than inventing partial selectors or splitting layouts.
+The remaining source obligations are individual byte selection in grouped rows
+and the interaction between explicit symbols and existing array formatting.
+Neither is changed in this batch.
+
+An isolated C/vasm preflight accepts all 41 selected expressions. The final
+whole-target gate reproduces all 376,832 original bytes, receipt `0ef7834c3803e431a095cc7a822548605e9fa6be366de1c0a484050778c6e54a`.
+Source review proves that only the 41 selected literal expressions and four new
+constant definitions change. Every old label, EQU/RS definition and other source
+character is preserved, along with all prior metadata, assets and SDK files.
+The 79 initial actions, five corrective undos and 74 accepted decisions preserve
+both history prefixes. Only the 74 final facts are accepted.
+No framework change, new test or runtime capture was required. Whole-target
+unknown-byte accounting was not recomputed; no classification reduction or
+behavioural-programme milestone is claimed.
+
+The independent resize review found no blocking invariant issue. Its limited
+legacy numeric-string compatibility gap is recorded in the existing interface
+documentation; no resize code or additional resize adoption is included here.
+[Evidence and limits](../validation/pandora-audio-control-symbols.json) retain
+the selected positions, dispatch proof, original corpus identities and receipt.

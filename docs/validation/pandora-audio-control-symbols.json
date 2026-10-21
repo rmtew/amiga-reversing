@@ -1,0 +1,1305 @@
+{
+  "schema_version": 1,
+  "kind": "static-source-restoration-batch",
+  "batch": "Primary audio stored control-opcode symbols",
+  "base_commit": "baba5d9045eb62ec51fbb3eaf61a23a2b4f2480c",
+  "corpus": {
+    "programs": 29,
+    "stored_bytes": 907,
+    "decoded_control_positions": 88,
+    "original_program_lists": 12,
+    "original_nonzero_list_entries": 55,
+    "distinct_list_targets": 32,
+    "all_list_targets_are_token_boundaries": true,
+    "original_programs": [
+      {
+        "name": "audio_mode_0_program_00",
+        "layout_id": "catalog-06a3db9c52c0481d962228e99dabbf7e",
+        "start": 319366,
+        "end": 319437,
+        "sha256": "e52953649ff9771a1891d956704689680d1bb5775b142ec86d6910ffa84c77e8",
+        "token_counts": {
+          "volume_selector": 1,
+          "sample_selector": 1,
+          "control": 2,
+          "duration": 1,
+          "note": 64
+        }
+      },
+      {
+        "name": "audio_mode_0_program_01",
+        "layout_id": "catalog-3db544db4a1d445ab239e70e61b0b1fc",
+        "start": 319437,
+        "end": 319476,
+        "sha256": "55a6bb189f77f0e5d2ef5fcaa7e892d48fb30e371f264c28f1bc2b73fddc9ad0",
+        "token_counts": {
+          "volume_selector": 1,
+          "sample_selector": 1,
+          "control": 2,
+          "duration": 1,
+          "note": 32
+        }
+      },
+      {
+        "name": "audio_mode_0_program_02",
+        "layout_id": "catalog-75083ccf4aae4404bde2b03a0fb72e69",
+        "start": 319476,
+        "end": 319519,
+        "sha256": "377819ff7855865b0b48858111241e449beead1477cbdac652117d7f680959ea",
+        "token_counts": {
+          "control": 4,
+          "volume_selector": 1,
+          "sample_selector": 1,
+          "duration": 1,
+          "note": 32
+        }
+      },
+      {
+        "name": "audio_mode_0_program_03",
+        "layout_id": "catalog-63ef3f8c5634408ba7f6ea4be7ad238f",
+        "start": 319519,
+        "end": 319534,
+        "sha256": "a00d8ad1973b5eab0d254d1712a679f807de61984a03c439530b4009dabca586",
+        "token_counts": {
+          "sample_selector": 1,
+          "volume_selector": 1,
+          "control": 2,
+          "duration": 1,
+          "note": 8
+        }
+      },
+      {
+        "name": "audio_mode_0_program_04",
+        "layout_id": "catalog-e777e2935c384584a99f756d980259a0",
+        "start": 319534,
+        "end": 319549,
+        "sha256": "4acf6f65a284aee946fdf635fba70ae636d45ad84674e89c6e40ccb4e0394612",
+        "token_counts": {
+          "sample_selector": 1,
+          "volume_selector": 1,
+          "control": 2,
+          "duration": 1,
+          "note": 8
+        }
+      },
+      {
+        "name": "audio_mode_0_program_05",
+        "layout_id": "catalog-a8e507a5e128424cae1a88f8d6fbbacb",
+        "start": 319549,
+        "end": 319577,
+        "sha256": "1dd3872f3fa64efaf50fa5f6ed748a249e96243ad194b000b6335cbd1ac39318",
+        "token_counts": {
+          "control": 4,
+          "sample_selector": 1,
+          "duration": 1,
+          "volume_selector": 2,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_0_program_06",
+        "layout_id": "catalog-4e2075e7eb2a4b63add8e3c9ea8828da",
+        "start": 319577,
+        "end": 319639,
+        "sha256": "ad529e9cef920860dca492d600ae9252e1b3f19f490d44ccea1b5f2df7843bae",
+        "token_counts": {
+          "sample_selector": 4,
+          "volume_selector": 1,
+          "control": 15,
+          "duration": 16,
+          "note": 18
+        }
+      },
+      {
+        "name": "audio_mode_0_program_07",
+        "layout_id": "catalog-ebbc4965688a4e9bba96f3c19fe28bcc",
+        "start": 319639,
+        "end": 319672,
+        "sha256": "145bc88de493e2ecb963536e2b35281ad6ea271d75f27d13141effd78d2d16af",
+        "token_counts": {
+          "sample_selector": 1,
+          "volume_selector": 1,
+          "control": 3,
+          "duration": 12,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_0_program_08",
+        "layout_id": "catalog-bbbf1e2e3036430c9449b856e281c9a1",
+        "start": 319672,
+        "end": 319751,
+        "sha256": "3d93fcfc7f2408325e1099eee4eaab49063b336fd0bffe9d07e8ce6507e86e7f",
+        "token_counts": {
+          "control": 14,
+          "duration": 18,
+          "sample_selector": 2,
+          "volume_selector": 3,
+          "note": 40
+        }
+      },
+      {
+        "name": "audio_mode_0_program_09",
+        "layout_id": "catalog-84a6bac19e6c46daa49941ef9cbe6168",
+        "start": 319751,
+        "end": 319783,
+        "sha256": "456e933271446539dbad87cd2e49331ba175b040e69396efb376fa9c029ca373",
+        "token_counts": {
+          "control": 2,
+          "duration": 3,
+          "volume_selector": 9,
+          "sample_selector": 9,
+          "note": 9
+        }
+      },
+      {
+        "name": "audio_mode_1_program_00",
+        "layout_id": "catalog-de65dfa3d0154daea78a0db58f8855e1",
+        "start": 319844,
+        "end": 319867,
+        "sha256": "b3d729924b2c6ca0e0ebcb0e19b1e32bc4d6cc9846f293f8d16d87312f384e24",
+        "token_counts": {
+          "sample_selector": 1,
+          "volume_selector": 1,
+          "control": 2,
+          "duration": 1,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_1_program_01",
+        "layout_id": "catalog-87a1556fafd5497ba4c2d16d6991d643",
+        "start": 319867,
+        "end": 319884,
+        "sha256": "865fca080e0b37b6de095b1bf823ca5bd8a1d3a6c4cb8cf593bb2a8168d9e34a",
+        "token_counts": {
+          "note": 16,
+          "control": 1
+        }
+      },
+      {
+        "name": "audio_mode_1_program_02",
+        "layout_id": "catalog-d0a3f5915e794cc29695ddfc7510d8ac",
+        "start": 319884,
+        "end": 319920,
+        "sha256": "85425baba920ac315316e548f13e0c922ed6dfbae0a12583525fc4fb4a105a63",
+        "token_counts": {
+          "volume_selector": 1,
+          "control": 2,
+          "sample_selector": 1,
+          "duration": 16,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_1_program_03",
+        "layout_id": "catalog-4cb615f654e947deb1bc0803f942fcf4",
+        "start": 319920,
+        "end": 319961,
+        "sha256": "1d31dd86506d2fb5d463fff89713bdba5af9a4a21f2d2ac7c80895983622f7dc",
+        "token_counts": {
+          "volume_selector": 1,
+          "control": 2,
+          "sample_selector": 4,
+          "duration": 16,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_1_program_04",
+        "layout_id": "catalog-79eb04bf712945dd871e22cc750fc427",
+        "start": 319961,
+        "end": 320000,
+        "sha256": "4df32b5b658e98bb3ec26f773385772277c9dbd8163c869a9807a16e7113f0ac",
+        "token_counts": {
+          "volume_selector": 1,
+          "control": 2,
+          "sample_selector": 4,
+          "duration": 16,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_1_program_05",
+        "layout_id": "catalog-38643704a6ea4a86b63ba162dd840693",
+        "start": 320000,
+        "end": 320041,
+        "sha256": "d5fc494b28b5f3dd2bb4e8455eab68466d27dc85c685aa1a79e2fdd02c5964fc",
+        "token_counts": {
+          "volume_selector": 1,
+          "control": 2,
+          "sample_selector": 4,
+          "duration": 16,
+          "note": 16
+        }
+      },
+      {
+        "name": "audio_mode_1_program_06",
+        "layout_id": "catalog-6d4db4b897a44b85a22af3064374f273",
+        "start": 320041,
+        "end": 320088,
+        "sha256": "fea355e86109294429c274f27774855578aa762842753650166a8f567191778c",
+        "token_counts": {
+          "duration": 1,
+          "volume_selector": 14,
+          "sample_selector": 15,
+          "note": 16,
+          "control": 1
+        }
+      },
+      {
+        "name": "audio_mode_2_program_00",
+        "layout_id": "catalog-7b697121d6d14fb3ac33265c83c3f5d1",
+        "start": 320110,
+        "end": 320160,
+        "sha256": "55aad30691410e78897605d35b5165f738db116c4ba8b93450995b67a550a9aa",
+        "token_counts": {
+          "sample_selector": 1,
+          "volume_selector": 1,
+          "control": 3,
+          "duration": 4,
+          "note": 38
+        }
+      },
+      {
+        "name": "audio_mode_2_program_01",
+        "layout_id": "catalog-97f5dd973c0c430daa50bb526b91a83d",
+        "start": 320160,
+        "end": 320237,
+        "sha256": "a6df58f6c2953b5803e69bcc74b2b79f37c31e83bb9cf302ea57094c766751d9",
+        "token_counts": {
+          "sample_selector": 2,
+          "control": 3,
+          "volume_selector": 1,
+          "duration": 24,
+          "note": 44
+        }
+      },
+      {
+        "name": "audio_mode_2_program_02",
+        "layout_id": "catalog-27a9ec50861c4b66ae6a4d7d5b3e1268",
+        "start": 320237,
+        "end": 320314,
+        "sha256": "206e0b1fc60a22cc8e52677bf42483b420062dfcdc2afc250c6b79fd5eda31e9",
+        "token_counts": {
+          "sample_selector": 2,
+          "control": 3,
+          "volume_selector": 1,
+          "duration": 24,
+          "note": 44
+        }
+      },
+      {
+        "name": "audio_mode_2_program_03",
+        "layout_id": "catalog-3e459c2dcb784207aee7d77f14f77b22",
+        "start": 320314,
+        "end": 320332,
+        "sha256": "48d9f823e875d9c20a18a076bbfa90d34ead89332c53ee89f412e8d16353855b",
+        "token_counts": {
+          "duration": 1,
+          "volume_selector": 4,
+          "sample_selector": 4,
+          "note": 4,
+          "pitch_selector": 4,
+          "control": 1
+        }
+      },
+      {
+        "name": "audio_mode_2_program_04",
+        "layout_id": "catalog-3b7cdeeb8d8e4438b9ea550fbcee660d",
+        "start": 320332,
+        "end": 320335,
+        "sha256": "0b362a2a38eddb4d0b90aec8fecbe44f8795f939722a43784e7cd71afeb1e7ab",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_05",
+        "layout_id": "catalog-1ceffaf7ec974e4294f35e89bb068eeb",
+        "start": 320335,
+        "end": 320338,
+        "sha256": "7c914abb0c3433fd3d553859dae81342adb2c8e938838962185e2d49f8c82966",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_06",
+        "layout_id": "catalog-2d7c30709a8e444baa35477d9d7f2481",
+        "start": 320338,
+        "end": 320341,
+        "sha256": "9baa0cf5a162c4806972c941603326a8ab4bfd47bbf0bebe5c53d6f0548f6186",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_07",
+        "layout_id": "catalog-25d6283ec0e04c229345617358f85022",
+        "start": 320341,
+        "end": 320344,
+        "sha256": "a6190901f1cd1fe3b4b500107bffa46838d2351bc41574f7563cac9e5012f7a0",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_08",
+        "layout_id": "catalog-e73735ad3a9b428f96612903208b3086",
+        "start": 320344,
+        "end": 320347,
+        "sha256": "1f2cdee23799dd12188b62848918a9a10f9361761aedd7c672dd2daeb3f1293d",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_09",
+        "layout_id": "catalog-0fde0ca09b604e71b33d5202cc2cb261",
+        "start": 320347,
+        "end": 320350,
+        "sha256": "3e0a6e80029ea67718cb6c2de651f1588c0f77f3cab1e116bba50cd04571c2cd",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_10",
+        "layout_id": "catalog-8c296f13a85b4411930828e26359a34c",
+        "start": 320350,
+        "end": 320353,
+        "sha256": "f356532645061b204dc39ed362592126994f81989fd603739b4e36bf941f9626",
+        "token_counts": {
+          "control": 2
+        }
+      },
+      {
+        "name": "audio_mode_2_program_11",
+        "layout_id": "catalog-ddc320e14e9f43989ba7b5255dab5017",
+        "start": 320353,
+        "end": 320356,
+        "sha256": "1b005db00a52665e3511dfc471f8b14309bc998c7b40d03f5ce468992610da83",
+        "token_counts": {
+          "control": 2
+        }
+      }
+    ]
+  },
+  "dispatch": [
+    {
+      "opcode": 128,
+      "handler": "advance_audio_sequence_program",
+      "handler_source": 318510
+    },
+    {
+      "opcode": 133,
+      "handler": "set_audio_global_note_offset",
+      "handler_source": 318622
+    },
+    {
+      "opcode": 134,
+      "handler": "enable_audio_pitch_modulation",
+      "handler_source": 318630
+    },
+    {
+      "opcode": 136,
+      "handler": "set_audio_channel_note_offset",
+      "handler_source": 318658
+    }
+  ],
+  "source_restoration": {
+    "symbolic_BYTE_positions": 41,
+    "affected_programs": 22,
+    "typed_command_records": 33,
+    "typed_command_record_bytes": 90,
+    "constants": {
+      "128": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+      "133": "AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE",
+      "134": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+      "136": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE"
+    },
+    "positions": [
+      {
+        "source": 319368,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_00"
+      },
+      {
+        "source": 319439,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_01"
+      },
+      {
+        "source": 319476,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_0_program_02"
+      },
+      {
+        "source": 319480,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_02"
+      },
+      {
+        "source": 319516,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_0_program_02"
+      },
+      {
+        "source": 319521,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_03"
+      },
+      {
+        "source": 319536,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_04"
+      },
+      {
+        "source": 319549,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_0_program_05"
+      },
+      {
+        "source": 319553,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_05"
+      },
+      {
+        "source": 319574,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_0_program_05"
+      },
+      {
+        "source": 319579,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_06"
+      },
+      {
+        "source": 319594,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_06"
+      },
+      {
+        "source": 319609,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_06"
+      },
+      {
+        "source": 319624,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_0_program_06"
+      },
+      {
+        "source": 319672,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_0_program_08"
+      },
+      {
+        "source": 319748,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_0_program_08"
+      },
+      {
+        "source": 319846,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_1_program_00"
+      },
+      {
+        "source": 319921,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_1_program_03"
+      },
+      {
+        "source": 320001,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_1_program_05"
+      },
+      {
+        "source": 320112,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_2_program_00"
+      },
+      {
+        "source": 320115,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_00"
+      },
+      {
+        "source": 320161,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_01"
+      },
+      {
+        "source": 320164,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_2_program_01"
+      },
+      {
+        "source": 320238,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_02"
+      },
+      {
+        "source": 320241,
+        "opcode": 134,
+        "symbol": "AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE",
+        "program": "audio_mode_2_program_02"
+      },
+      {
+        "source": 320332,
+        "opcode": 133,
+        "symbol": "AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_04"
+      },
+      {
+        "source": 320334,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_04"
+      },
+      {
+        "source": 320335,
+        "opcode": 133,
+        "symbol": "AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_05"
+      },
+      {
+        "source": 320337,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_05"
+      },
+      {
+        "source": 320338,
+        "opcode": 133,
+        "symbol": "AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_06"
+      },
+      {
+        "source": 320340,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_06"
+      },
+      {
+        "source": 320341,
+        "opcode": 133,
+        "symbol": "AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_07"
+      },
+      {
+        "source": 320343,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_07"
+      },
+      {
+        "source": 320344,
+        "opcode": 133,
+        "symbol": "AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_08"
+      },
+      {
+        "source": 320346,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_08"
+      },
+      {
+        "source": 320347,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_09"
+      },
+      {
+        "source": 320349,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_09"
+      },
+      {
+        "source": 320350,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_10"
+      },
+      {
+        "source": 320352,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_10"
+      },
+      {
+        "source": 320353,
+        "opcode": 136,
+        "symbol": "AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE",
+        "program": "audio_mode_2_program_11"
+      },
+      {
+        "source": 320355,
+        "opcode": 128,
+        "symbol": "AUDIO_PROGRAM_ADVANCE_OPCODE",
+        "program": "audio_mode_2_program_11"
+      }
+    ],
+    "grouped_control_positions_unchanged": 42,
+    "array_shadowed_controls_unchanged": 5,
+    "numeric_control_positions_remaining": 47,
+    "grouped_control_limit": "The native command selects whole data rows (42 controls grouped). Five additional BYTE rows are shadowed by existing array hex policy; their actions were undone. No byte-selector or precedence change added."
+  },
+  "static_evidence": {
+    "program_bytes_and_existing_operand_types_checked": true,
+    "dispatch_relative_WORDs_checked": true,
+    "all_programs_end_with_original_advance_token": true,
+    "scope": "Original stored token/operand format and original list entries only; not dynamic selector safety, later writers, gameplay activation, DMA or audible behaviour."
+  },
+  "canonical": {
+    "action_ids": [
+      "manual-16e90e09028c40848d00906cb593bce4",
+      "manual-0be58ac4ad68472d9fa0ce01608b99df",
+      "manual-88878abb71304ced940a3123794c3839",
+      "manual-77a294599b9842a9aa147389a620e182",
+      "manual-8fbb3533762c4ff3836a842134a251cf",
+      "manual-b8c440f2d4ed4d23bb3893ddbfab8f25",
+      "manual-27fd6fa32c0f4608854b36a62c775f17",
+      "manual-48ea6bfd93104b8086107809b7dee613",
+      "manual-7baa40a0b9d04961b7586b2417e19a2d",
+      "manual-478f21d709c949288af4690fb8bdbe95",
+      "manual-cb86e96cf38f4e25ac3440f841a3874f",
+      "manual-9dbf9562cb714131b5ccdfd90f204312",
+      "manual-7c8479a23c7f4ddc9522e764ae93d029",
+      "manual-4c3acff27b744d178b0767d352bd1a83",
+      "manual-f1d76a7838ff4699a9cf433889607c21",
+      "manual-5214fd3616fb4c09985e0cecd9efca95",
+      "manual-a412812a78604c5985e2e54d0ad24a39",
+      "manual-0cc03d0c7e334e7ab5fa0821b02ece4f",
+      "manual-195fd0f04b8b425ca467a4444ee12ccf",
+      "manual-f364d008016b48be8af18546afe1a361",
+      "manual-fb62139c4b454583bbd435cb0f0d05b0",
+      "manual-fc8fd45144ef467aa637ffbe8a54dc9d",
+      "manual-dbe8489eecdb437599939d0c90d5bb83",
+      "manual-54e67871028b46de81a8238ea1203b9c",
+      "manual-faef0053353a4e648cead74e2303e3b4",
+      "manual-6c8413d4f1d14cf080d39176d2290c2f",
+      "manual-271a178ca47b4b60a8eb4f440d4c1790",
+      "manual-6ff9f280b8b043c7803f7842baee70ab",
+      "manual-43d6bbdba9e44dd1ab51395bcc0d1dc0",
+      "manual-d509a3eb334c4ebdb61a97a16c40399f",
+      "manual-9f8286422a314a3d91731a3cfbe37255",
+      "manual-bc2fd5df329a4353a0a7b4995cb58656",
+      "manual-3c5b7631981f4a82978937ebef5b01c1",
+      "manual-418d3f852c784ff2be7bc10b9ca6fa39",
+      "manual-a257a31e91614dab91dfcc56ceee2b36",
+      "manual-931acb5a192140749d8c16f359acbbb1",
+      "manual-8f95ec6ba0c9497f8835d2839cb37f5e",
+      "manual-fa6f552f6d774f258de8f43fb8f23859",
+      "manual-aaed5bc9384b4f2d9def6c5472a6f816",
+      "manual-d063ffef574b43abb477f8016fca96f8",
+      "manual-c4f78b799b274afeac9b275ea6a3da62",
+      "manual-d8fd05d2edcf4eb392b86709d3483f33",
+      "manual-8809b75b160b4df28dc5f08ae188e627",
+      "manual-ebeb0a03ae9742e38b8a0894a9aa4d1e",
+      "manual-d38a3cb78f7d4a939b443aba42317ae8",
+      "manual-57ba7973a0544672aac1877b7e095289",
+      "manual-cd65760816404fd9aa3c4431bca73b38",
+      "manual-4e058b55f5204209b168f784f59ec56b",
+      "manual-cacbfe9b3ca1453387bc5e5148716347",
+      "manual-6d7afaa0b0d94e18aa8f60dcd5fde046",
+      "manual-cfe059729cc24e7cae3b7a5ce38af9fb",
+      "manual-95cbc46474474ffa9ac383f9f4b5c095",
+      "manual-29a9420eb4ac48cfa92cd9b3dc1f243f",
+      "manual-860ee86388b94f2e9aadbe5791653c2e",
+      "manual-8de824feb0ab4fe2885b4465c208f795",
+      "manual-63654c76791d456a97cdc88dfa895e2c",
+      "manual-3df7b22d9fb049d2b9937c2026f28964",
+      "manual-4a5082567283486ebb42488ba7693982",
+      "manual-977205fdcd024e5682dadc177f679966",
+      "manual-d2f25073aa0e44089a0938aa1d3b4b5c",
+      "manual-04601ba63f23499794a65c957c6f0e63",
+      "manual-748db7a565d84a8cb2448912d6d81065",
+      "manual-860f52c7e0af4b02b843c32638aeecc8",
+      "manual-c30fc49bdc05402a8fd3af636d2c2a88",
+      "manual-be0965ac74bf44318bca062618f7f799",
+      "manual-53b8b57cddc34ebe8b9e9c53c6e5f127",
+      "manual-781ddb1368324458889f184a7a99d1b0",
+      "manual-cf90daaffa344aad85d4ac413d162315",
+      "manual-927921ea79ea4bdaa895c06fb33f41af",
+      "manual-ad7baba2621e41f89c2b9ec764e139cf",
+      "manual-c1a057768efc4bc39f30f58495a858ff",
+      "manual-7905ec23de43421d8ebc663449417a1e",
+      "manual-711e678351d242ad9d52913d3ee886aa",
+      "manual-459c7744d1d14634a8cbc47e51104408"
+    ],
+    "decisions": [
+      {
+        "action": "accept_fact",
+        "action_id": "manual-16e90e09028c40848d00906cb593bce4",
+        "decision_id": "restoration-aab5856bbbf34c538f099ac0b80592ca"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0be58ac4ad68472d9fa0ce01608b99df",
+        "decision_id": "restoration-93fa5dad9f7f4a398547b3758d2c1218"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-88878abb71304ced940a3123794c3839",
+        "decision_id": "restoration-a0e1277dca3b4352973c81d0381313b4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-77a294599b9842a9aa147389a620e182",
+        "decision_id": "restoration-973291b17d5d4c00bca6cea9c97d3f99"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8fbb3533762c4ff3836a842134a251cf",
+        "decision_id": "restoration-cee4fd73d51d458ca295e6ff4810f69b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b8c440f2d4ed4d23bb3893ddbfab8f25",
+        "decision_id": "restoration-f26904870f044ef5985cebaeb9bc8575"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-27fd6fa32c0f4608854b36a62c775f17",
+        "decision_id": "restoration-219f5c84bce54678a8202d9620e1b59f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-48ea6bfd93104b8086107809b7dee613",
+        "decision_id": "restoration-8df7d9657f694ca3a19b47de272bd8b5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7baa40a0b9d04961b7586b2417e19a2d",
+        "decision_id": "restoration-77f63b3712484e92aa7b4a2e679ee2c1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-478f21d709c949288af4690fb8bdbe95",
+        "decision_id": "restoration-3d045b8fbb264fc48e467542afaecf21"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cb86e96cf38f4e25ac3440f841a3874f",
+        "decision_id": "restoration-eea74ff786934b4780290b3f38ddad9b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9dbf9562cb714131b5ccdfd90f204312",
+        "decision_id": "restoration-102c614c5ea241a69d620a7ad8bea6d1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7c8479a23c7f4ddc9522e764ae93d029",
+        "decision_id": "restoration-075bd9bcb7784d6188239c80b8a89332"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4c3acff27b744d178b0767d352bd1a83",
+        "decision_id": "restoration-a09191f73a584f6e9aea1e21e37fc2a7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f1d76a7838ff4699a9cf433889607c21",
+        "decision_id": "restoration-9e2360b9d04a453989891ec3b1334ba6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5214fd3616fb4c09985e0cecd9efca95",
+        "decision_id": "restoration-196da44ccea64f8787ec37d129885b80"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a412812a78604c5985e2e54d0ad24a39",
+        "decision_id": "restoration-57d94bad2108488daea4c444139c4560"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0cc03d0c7e334e7ab5fa0821b02ece4f",
+        "decision_id": "restoration-ca40dff849bd40ab83b2283c7784abbe"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-195fd0f04b8b425ca467a4444ee12ccf",
+        "decision_id": "restoration-40d28d1fd10c4578950b23e7d6c2530d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f364d008016b48be8af18546afe1a361",
+        "decision_id": "restoration-f480ae07260d4c00bdd7b4840629f448"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fb62139c4b454583bbd435cb0f0d05b0",
+        "decision_id": "restoration-6d0e6630323d48ebab1da7375475e64b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fc8fd45144ef467aa637ffbe8a54dc9d",
+        "decision_id": "restoration-f3e326e0f8044717b091bcbdbb927d64"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-dbe8489eecdb437599939d0c90d5bb83",
+        "decision_id": "restoration-a0c34105415e4e43a12fe68a94e36847"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-54e67871028b46de81a8238ea1203b9c",
+        "decision_id": "restoration-67527a6cdb8945b5aab8e83b86f5d82c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-faef0053353a4e648cead74e2303e3b4",
+        "decision_id": "restoration-49097283668b4d1db9b303b00b4bfdf8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6c8413d4f1d14cf080d39176d2290c2f",
+        "decision_id": "restoration-e76f671b96a648be82f8a0012c18c6d5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-271a178ca47b4b60a8eb4f440d4c1790",
+        "decision_id": "restoration-b41cc63b4ced4258b9195cb9161ae1c2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6ff9f280b8b043c7803f7842baee70ab",
+        "decision_id": "restoration-f51f5b60fa704de8a33896a7a4bfe1cb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-43d6bbdba9e44dd1ab51395bcc0d1dc0",
+        "decision_id": "restoration-2d84ee0af43c403b9e7341e7026d5b07"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d509a3eb334c4ebdb61a97a16c40399f",
+        "decision_id": "restoration-48a0cc0aeae24f4d913b05a2c9f69a0e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9f8286422a314a3d91731a3cfbe37255",
+        "decision_id": "restoration-ecd528332c9949a1854fd7d69ac524fa"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-bc2fd5df329a4353a0a7b4995cb58656",
+        "decision_id": "restoration-79628d7b42d845648bf737c17e8a2ddd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3c5b7631981f4a82978937ebef5b01c1",
+        "decision_id": "restoration-04b755c38c05435588bb1daf016461e5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-418d3f852c784ff2be7bc10b9ca6fa39",
+        "decision_id": "restoration-b0c7e43b35314e90998447a5e725a1bf"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a257a31e91614dab91dfcc56ceee2b36",
+        "decision_id": "restoration-c6ee3042c1674eaab4e1959fbcde45ef"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-931acb5a192140749d8c16f359acbbb1",
+        "decision_id": "restoration-05a6a168956646b19b30bbfe719f1aff"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8f95ec6ba0c9497f8835d2839cb37f5e",
+        "decision_id": "restoration-c2bae194858348cb8eb5d2ed228bd441"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fa6f552f6d774f258de8f43fb8f23859",
+        "decision_id": "restoration-786c999f85cd4ef99c214c1001eb1b85"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-aaed5bc9384b4f2d9def6c5472a6f816",
+        "decision_id": "restoration-1c0796ce3e8a4b67b73b4598b343708b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d063ffef574b43abb477f8016fca96f8",
+        "decision_id": "restoration-8e7f8bf1015f4314860e164787dab94a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c4f78b799b274afeac9b275ea6a3da62",
+        "decision_id": "restoration-10d0e381ff9f48fdacf8a9b99bd10c56"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d8fd05d2edcf4eb392b86709d3483f33",
+        "decision_id": "restoration-6f0300474e364fbea4a2ddc6829318c0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8809b75b160b4df28dc5f08ae188e627",
+        "decision_id": "restoration-3b64748ee74b4d899077fc144cdd94ad"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ebeb0a03ae9742e38b8a0894a9aa4d1e",
+        "decision_id": "restoration-9b017d9920dc4ef3a49efbefcf77cfb4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d38a3cb78f7d4a939b443aba42317ae8",
+        "decision_id": "restoration-a040bcf23d89491e94188977a52157cf"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-57ba7973a0544672aac1877b7e095289",
+        "decision_id": "restoration-49c282a68bb94b8dba0c62e477479961"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cd65760816404fd9aa3c4431bca73b38",
+        "decision_id": "restoration-2a8533378a79450fa00206efd5b24f1d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4e058b55f5204209b168f784f59ec56b",
+        "decision_id": "restoration-514f4843e66c4eec93d5b422e0cb6c7e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cacbfe9b3ca1453387bc5e5148716347",
+        "decision_id": "restoration-e53c512cd4234d5dabe916e7d5f7f76c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6d7afaa0b0d94e18aa8f60dcd5fde046",
+        "decision_id": "restoration-f01ebe8c18634af0b14fb35f8f655358"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cfe059729cc24e7cae3b7a5ce38af9fb",
+        "decision_id": "restoration-2c0e107473214128bc61b94d053de8b1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-95cbc46474474ffa9ac383f9f4b5c095",
+        "decision_id": "restoration-419d65462e294732a61e3ec4316febff"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-29a9420eb4ac48cfa92cd9b3dc1f243f",
+        "decision_id": "restoration-64f01d7376704b5a9118f40c40e02ca8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-860ee86388b94f2e9aadbe5791653c2e",
+        "decision_id": "restoration-0ab7f5ec20c9415d83da1df4822a5ad5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8de824feb0ab4fe2885b4465c208f795",
+        "decision_id": "restoration-4590eae2f9404bc1b71874d818fa55b5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-63654c76791d456a97cdc88dfa895e2c",
+        "decision_id": "restoration-f6b88e96862749d79439e7898bb2f439"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3df7b22d9fb049d2b9937c2026f28964",
+        "decision_id": "restoration-c4a137ce97b0482bb43299256fd7d429"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4a5082567283486ebb42488ba7693982",
+        "decision_id": "restoration-a217a7b9403a4b3e9b4add59882e20c5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-977205fdcd024e5682dadc177f679966",
+        "decision_id": "restoration-8b09c964d56640e385e5447dd224a44b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d2f25073aa0e44089a0938aa1d3b4b5c",
+        "decision_id": "restoration-dfd743f36867434fbbbad60082e45dd5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-04601ba63f23499794a65c957c6f0e63",
+        "decision_id": "restoration-22db9ac0396b491bb39f5306f7d53e39"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-748db7a565d84a8cb2448912d6d81065",
+        "decision_id": "restoration-13eee9dfead440049a815690256ddc2f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-860f52c7e0af4b02b843c32638aeecc8",
+        "decision_id": "restoration-231cfd8e42e540149df8442f5a16ca8c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c30fc49bdc05402a8fd3af636d2c2a88",
+        "decision_id": "restoration-983e4376c1b74e20a77e0bc2ed360a01"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-be0965ac74bf44318bca062618f7f799",
+        "decision_id": "restoration-91f00180da674f91926fc1872f1f09ce"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-53b8b57cddc34ebe8b9e9c53c6e5f127",
+        "decision_id": "restoration-4c2b0ce611874b9ebdc43dd69c6d8cef"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-781ddb1368324458889f184a7a99d1b0",
+        "decision_id": "restoration-cba1df3754f34dd9bd1ff30a27a571b1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cf90daaffa344aad85d4ac413d162315",
+        "decision_id": "restoration-8eb5a95f5a8f43c4bc0b67e53d302637"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-927921ea79ea4bdaa895c06fb33f41af",
+        "decision_id": "restoration-7dd001b3525a4c4fbb107bfddc679af1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ad7baba2621e41f89c2b9ec764e139cf",
+        "decision_id": "restoration-84e36a45ceb24610be6974fdfd1eddbc"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c1a057768efc4bc39f30f58495a858ff",
+        "decision_id": "restoration-d2f7f0a530c249e4a27304c5948a165c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7905ec23de43421d8ebc663449417a1e",
+        "decision_id": "restoration-6d96b798a8194ec2bae54d6879eb71f6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-711e678351d242ad9d52913d3ee886aa",
+        "decision_id": "restoration-929a0561f0e5451381cb2242b11c6271"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-459c7744d1d14634a8cbc47e51104408",
+        "decision_id": "restoration-24b09810bd7648229cd0b8dec7b34111"
+      }
+    ],
+    "review_revision": "0db089c7fbc4435de2ed38db838e55d8550fc1e32868f4f3fd627cab5b230774",
+    "active_action_count": 74,
+    "initial_action_count": 79,
+    "undo_actions": 5,
+    "undo_records": [
+      {
+        "action_id": "manual-cdb1088c575c4359abc0979074f6a79e",
+        "undoes_action_id": "manual-8b182368f13341feb3a8dea39da8433a"
+      },
+      {
+        "action_id": "manual-e671747c648c4a69b520009e0a50eb51",
+        "undoes_action_id": "manual-c00a56c801754033a09e0ad5d57e3f6c"
+      },
+      {
+        "action_id": "manual-4a8e79ee77654caaabfb4850920ff85e",
+        "undoes_action_id": "manual-587a4a92ba594db59c4dd95f9755ed7e"
+      },
+      {
+        "action_id": "manual-9c6dd6e87258438ba186b1cd2e0ea548",
+        "undoes_action_id": "manual-d547ecaff9de43ed9d19a280454ae764"
+      },
+      {
+        "action_id": "manual-f532298acd384d539709410dc782c416",
+        "undoes_action_id": "manual-d0a8c515a67941dda7de416fc9662559"
+      }
+    ],
+    "suppressed_representation_sources": [
+      319518,
+      319576,
+      319671,
+      319750,
+      319883
+    ]
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "receipt_id": "0ef7834c3803e431a095cc7a822548605e9fa6be366de1c0a484050778c6e54a",
+    "revision": "5613051375c7e7bdda5bed3fc1830934364fcb3f7cd2280c53c9c1d2ee17e400",
+    "source_package_sha256": "847fabfd7adc4d6cda46fff37cd0417f8cbaa3718725be31a7b555d044ccc4f3",
+    "source_sha256": "381919e82a4b6a544b75a1a1e0282f4f6ae097e09eb8338f12c04f9585209913",
+    "status": "exact",
+    "subject_revision": "8d1bddd73df0414c87b4379eaf522f14b938fa5458256da3fedc08eeb6ca325c",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "quality": {
+    "source_sha256": "381919e82a4b6a544b75a1a1e0282f4f6ae097e09eb8338f12c04f9585209913",
+    "selected_BYTE_expressions": 41,
+    "new_target_constants": 4,
+    "all_other_source_characters_unchanged": true,
+    "all_labels_preserved": true,
+    "existing_EQU_RS_unchanged": true,
+    "notes_selectors_duration_and_operand_bytes_unmodified": true,
+    "grouped_controls_left_numeric": 42,
+    "array_hex_shadowed_controls_left_numeric": 5,
+    "numeric_controls_remaining": 47,
+    "paused_B07_preserved": true
+  },
+  "preservation": {
+    "unchanged_metadata_collections": [
+      "target_type",
+      "entry_register_seeds",
+      "function_summaries",
+      "abstract_regions",
+      "bootblock",
+      "resident",
+      "library",
+      "custom_structs",
+      "rsset_layout_regions",
+      "absolute_storage_slots",
+      "rsset_use_site_bindings",
+      "seeded_entities",
+      "seeded_code_labels",
+      "seeded_code_entrypoints",
+      "absolute_code_labels",
+      "entry_comments",
+      "manual_runtime_address_refs",
+      "manual_data_references",
+      "data_block_layouts",
+      "execution_views",
+      "suppressed_seeded_items",
+      "source_output_policy"
+    ],
+    "old_equates_preserved": true,
+    "prior_representations_preserved": true,
+    "selected_representations_before": 2715,
+    "selected_representations_after": 2756,
+    "new_representation_widths": 1,
+    "all_program_bytes_unchanged": true,
+    "schemas": 147,
+    "owners": 558,
+    "effective_entities": 18330,
+    "external_assets_SDK_unchanged": true,
+    "history": {
+      "manual_actions.jsonl": {
+        "prefix_preserved": true,
+        "prefix_bytes": 16445093,
+        "prefix_sha256": "2ec3c18d722ef789d4250476c8337c3cecc45254c1a225de9e05911ea509616d",
+        "appended_records": 84
+      },
+      "decision_journal.jsonl": {
+        "prefix_preserved": true,
+        "prefix_bytes": 17937679,
+        "prefix_sha256": "81e75748beaba78499d40cfffcbac0cda7bdb9306c1b785c57c56b11f177c7fe",
+        "appended_records": 74
+      }
+    },
+    "project_timestamp_only_reverted": true
+  },
+  "preflight": {
+    "exact_C": true,
+    "exact_vasm": true,
+    "bytes": 41,
+    "sha256": "21f876e3aa7435522513e00d952c539537e8852340a0f0c4f01d2e0e48eaa29a",
+    "scope": "Final selected literal expressions only; full-target verification remains required."
+  },
+  "accounting": {
+    "source_purpose_union_before": 282473,
+    "source_purpose_union_after": 283380,
+    "new_audio_purpose_bytes": 907,
+    "new_purpose_scopes": 29,
+    "active_purpose_scopes": 216,
+    "new_byte_classification_claim": 0,
+    "global_unknown_total": "Not recomputed; no updated global classification total claimed.",
+    "behaviour_contracts_added": 0,
+    "behaviour_fixtures_added": 0,
+    "B_capability_milestones_claimed": 0
+  },
+  "validation": {
+    "new_tests_run": 0,
+    "new_runtime_captures": 0,
+    "reason": "Existing catalogue representation and target-equate paths only; original-byte grammar audit, isolated C/vasm expression preflight and one final full-file reconstruction check.",
+    "historical_primary_audio_tests_rerun": false
+  },
+  "workflow": {
+    "generation_job": "de790038-fd1a-4cf7-b91b-5d378f1dc4bf",
+    "start_UTC": "2026-10-21T02:20:54.690000",
+    "finish_UTC": "2026-10-21T02:25:32.456000",
+    "seconds": 277.766,
+    "final_output_generations": 1,
+    "framework_restart": false,
+    "catalogue_request_seconds": 130.768,
+    "catalogue_append_seconds": 38.046659,
+    "first_locator_resolution_seconds": 16.534792,
+    "corrective_undo_request_seconds": [
+      21.149,
+      22.423,
+      21.428,
+      21.175,
+      220.364
+    ]
+  },
+  "compatibility_note": {
+    "owner_resize_numeric_strings": "Recorded the independent review finding in docs/restoration-interfaces.md. No guard/code change in this batch; canonical Pandora integer entries unaffected."
+  },
+  "limits": [
+    "Original stored grammar and original configuration-list references only.",
+    "No dynamic selector bounds, later cursor/state writes, all-callers closure, gameplay activation, IRQ/DMA timing, audible result or relocation proof.",
+    "Forty-seven controls remain numeric (42 grouped plus5 array-shadowed); only41 selected typed BYTE fields are symbolized.",
+    "No framework or behavioural capability expansion; B07 remains paused. Fonts,bank45,existing EQU/RS definitions and rendering policy unchanged."
+  ]
+}

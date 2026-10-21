@@ -2435,7 +2435,11 @@ AUDIO_PRIMARY_PITCH_SCALE_SHIFT	EQU	10
 AUDIO_PRIMARY_SILENCE_LENGTH_WORDS	EQU	32
 AUDIO_PRIMARY_STATE_BYTES	EQU	audio_channel_runtime_state_SIZEOF
 AUDIO_PRIMARY_VOLUME_SCALE_SHIFT	EQU	6
+AUDIO_PROGRAM_ADVANCE_OPCODE	EQU	$80
 AUDIO_PROGRAM_DMA_RELOAD_OPCODE	EQU	$83
+AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	EQU	$86
+AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	EQU	$88
+AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE	EQU	$85
 AUDIO_SAMPLE_LAST_INDEX	EQU	$A
 AUDIO_SAMPLE_METADATA_BYTES	EQU	audio_sample_metadata_SIZEOF
 AUDIO_SECONDARY_CONFIGURATION_BYTES	EQU	audio_sequence_channel_configuration_SIZEOF
@@ -30694,7 +30698,7 @@ program_offsets_with_wrap_zero_4:
 tokens_and_operands_with_advance_token:
 	dc.b $B2,$C7
 audio_mode_0_program_00_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_00_tokens_0005:
@@ -30713,7 +30717,7 @@ audio_mode_0_program_00_tokens_0005:
 tokens_and_operands_with_advance_token_2:
 	dc.b $B2,$C7
 audio_mode_0_program_01_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_01_tokens_0005:
@@ -30723,12 +30727,12 @@ audio_mode_0_program_01_tokens_0005:
 	dcb.b $F,$1D
 	dc.b $1D,$80
 audio_mode_0_program_02:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token:
 	dc.b $B2,$C7
 audio_mode_0_program_02_command_0004:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_02_tokens_0007:
@@ -30738,14 +30742,14 @@ audio_mode_0_program_02_tokens_0007:
 	dcb.b $F,$18
 	dc.b $18
 audio_mode_0_program_02_command_0028:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $00	; note_offset_byte
 audio_mode_0_program_02_tokens_002A:
 	dc.b $80
 tokens_and_operands_with_advance_token_3:
 	dc.b $C7,$B7
 audio_mode_0_program_03_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $06	; step
 	dc.b $06	; limit
 audio_mode_0_program_03_tokens_0005:
@@ -30753,50 +30757,50 @@ audio_mode_0_program_03_tokens_0005:
 tokens_and_operands_with_advance_token_4:
 	dc.b $C7,$B7
 audio_mode_0_program_04_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $06	; step
 	dc.b $06	; limit
 audio_mode_0_program_04_tokens_0005:
 	dc.b $FF,$24,$24,$29,$29,$24,$24,$29,$1D,$80
 audio_mode_0_program_05:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_2:
 	dc.b $C0,$FF
 audio_mode_0_program_05_command_0004:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $01	; step
 	dc.b $02	; limit
 audio_mode_0_program_05_tokens_0007:
 	dc.b $BB,$32,$32,$30,$30,$32,$32,$30,$30,$B5,$26,$26,$24,$24,$32,$32
 	dc.b $30,$30
 audio_mode_0_program_05_command_0019:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $00	; note_offset_byte
 audio_mode_0_program_05_tokens_001B:
 	dc.b $80
 tokens_and_operands_with_advance_token_5:
 	dc.b $C7,$B7
 audio_mode_0_program_06_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_0_program_06_tokens_0005:
 	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6
 audio_mode_0_program_06_command_0011:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_0_program_06_tokens_0014:
 	dc.b $F3,$27,$E3,$22,$27,$F1,$2E,$83,$FF,$83,$2D,$C7
 audio_mode_0_program_06_command_0020:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_0_program_06_tokens_0023:
 	dc.b $F3,$30,$E3,$2B,$30,$F1,$33,$83,$FF,$83,$83,$C6
 audio_mode_0_program_06_command_002F:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_0_program_06_tokens_0032:
@@ -30806,7 +30810,7 @@ tokens_and_operands_with_advance_token_6:
 	dc.b $2B,$FF,$2D,$F3,$24,$E3,$1F,$24,$29,$FB,$28,$E3,$2B,$FF,$2D,$83
 	dc.b $80
 audio_mode_0_program_08:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $01	; note_offset_byte
 shared_tail_entry_with_advance_token_3:
 	dc.b $E3,$83,$C0,$B5,$87,$E5,$2D,$34,$32,$2B,$E7,$2D,$E5,$2D,$34,$32
@@ -30816,7 +30820,7 @@ shared_tail_entry_with_advance_token_3:
 	dc.b $BF,$FF
 	dcb.b $8,$82
 audio_mode_0_program_08_command_004C:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $00	; note_offset_byte
 audio_mode_0_program_08_tokens_004E:
 	dc.b $80
@@ -30837,7 +30841,7 @@ program_offsets_with_wrap_zero_8:
 tokens_and_operands_with_advance_token_8:
 	dc.b $C7,$B3
 audio_mode_1_program_00_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_1_program_00_tokens_0005:
@@ -30854,7 +30858,7 @@ tokens_and_operands_with_advance_token_10:
 tokens_and_operands_with_advance_token_11:
 	dc.b $B5
 audio_mode_1_program_03_command_0001:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_1_program_03_tokens_0004:
@@ -30868,7 +30872,7 @@ tokens_and_operands_with_advance_token_12:
 tokens_and_operands_with_advance_token_13:
 	dc.b $B5
 audio_mode_1_program_05_command_0001:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $02	; step
 	dc.b $02	; limit
 audio_mode_1_program_05_tokens_0004:
@@ -30890,11 +30894,11 @@ program_offsets_with_wrap_zero_12:
 tokens_and_operands_with_advance_token_15:
 	dc.b $C7,$B3
 audio_mode_2_program_00_command_0002:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $04	; step
 	dc.b $04	; limit
 audio_mode_2_program_00_command_0005:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $03	; note_offset_byte
 audio_mode_2_program_00_tokens_0007:
 	dc.b $E1,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$24,$18,$E0,$18
@@ -30903,12 +30907,12 @@ audio_mode_2_program_00_tokens_0007:
 tokens_and_operands_with_advance_token_16:
 	dc.b $C7
 audio_mode_2_program_01_command_0001:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $03	; note_offset_byte
 audio_mode_2_program_01_tokens_0003:
 	dc.b $B5
 audio_mode_2_program_01_command_0004:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_2_program_01_tokens_0007:
@@ -30920,12 +30924,12 @@ audio_mode_2_program_01_tokens_0007:
 tokens_and_operands_with_advance_token_17:
 	dc.b $C7
 audio_mode_2_program_02_command_0001:
-	dc.b $88	; opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; opcode
 	dc.b $03	; note_offset_byte
 audio_mode_2_program_02_tokens_0003:
 	dc.b $B5
 audio_mode_2_program_02_command_0004:
-	dc.b $86	; opcode
+	dc.b AUDIO_PROGRAM_ENABLE_PITCH_MODULATION_OPCODE	; opcode
 	dc.b $03	; step
 	dc.b $03	; limit
 audio_mode_2_program_02_tokens_0007:
@@ -30938,37 +30942,37 @@ tokens_and_operands_with_advance_token_18:
 	dc.b $E1,$BE,$C3,$24,$BB,$C4,$A5,$18,$A0,$BD,$C5,$24,$BB,$C4,$A5,$18
 	dc.b $A0,$80
 audio_global_transpose_minus1:
-	dc.b $85	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $FF	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_global_transpose_zero:
-	dc.b $85	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $00	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_global_transpose_plus1:
-	dc.b $85	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $01	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_global_transpose_plus2:
-	dc.b $85	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $02	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_global_transpose_plus3:
-	dc.b $85	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_GLOBAL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $03	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_channel_transpose_minus1:
-	dc.b $88	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $FF	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_channel_transpose_minus2:
-	dc.b $88	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $FE	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 audio_channel_transpose_minus3:
-	dc.b $88	; command_opcode
+	dc.b AUDIO_PROGRAM_SET_CHANNEL_NOTE_OFFSET_OPCODE	; command_opcode
 	dc.b $FD	; note_offset_byte
-	dc.b $80	; advance_opcode
+	dc.b AUDIO_PROGRAM_ADVANCE_OPCODE	; advance_opcode
 	dc.b $BF,$C0,$FF
 	dcb.b $10,$82
 	dc.b $80

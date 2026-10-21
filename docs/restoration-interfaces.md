@@ -137,6 +137,11 @@ Other source formats are explicitly unsupported; no section bounds are inferred.
 Undo/redo and review use the normal append-only histories. This operation corrects
 a proved source ownership boundary; it does not establish allocation or lifetime.
 
+Known compatibility limit: legacy MAL source-style numeric strings are not fully
+normalized by resize and can be refused (or raise `TypeError` for a string start).
+Canonical integer entries, including Pandora, are unaffected. Numeric-string
+normalization remains a bounded follow-up; other edit guards are unchanged.
+
 `target.data_block.layout.describe` takes an active manual `layout_id` and a
 nonempty `role`. It uses the same sparse edit/history path as layout rename,
 preserving name, extent, unit, elements, type bindings and reference identities.
