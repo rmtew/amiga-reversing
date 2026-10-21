@@ -1,5 +1,33 @@
 # Pandora restoration inventory and status
 
+## Current closeout position (2026-10-21)
+
+The [prioritized original-layout closeout list](pandora-restoration-plan.md#current-closeout-scope-2026-10-21-after-e19817e4)
+now separates five required review obligations from optional source polish,
+alternate-layout execution and a native C game port. Each obligation gives its
+evidence, acceptance condition and next bounded action. Canonical facts and
+histories remain authoritative; this is a derived index, not a new tracker.
+
+| Measure | Verified position and limit |
+| --- | --- |
+| Original-layout reconstruction | Done: all 376,832 bytes C/vasm exact in the latest [receipt](../validation/pandora-audio-control-symbols.json). Disk/loader parity is outside this scope. |
+| Code/data classification | Last full baseline: 24,308 code + 339,648 structured data + 1,690 table + 4,740 text + 6,446 unknown = 376,832. This partition is stale after the held-frame restoration; no fresh global unknown count is claimed. |
+| Supported purpose | Latest union 283,380 / 376,832 bytes (75.2%), across 216 active assessments. This is bounded purpose accounting, not semantic completion; large graphics assets dominate the byte weight. The remaining 93,452 bytes lack purpose credit, which does not establish that they are all ununderstood. |
+| Function/field understanding | Old snapshot: 273 function candidates, 973 resolved and 32 unresolved field-access records; candidates and access records are not complete function/field denominators. Current catalogue has 558 owners and 147 custom schemas; neither measures semantic completeness. |
+| Readable source | Numerous connected subsystems and layouts restored, with source-diff audits. No complete reviewed-function/resource denominator or final subsystem acceptance exists yet. See the closeout list rather than a percentage estimate. |
+| Alternate layout / native C | Separate, unfinished deliverables. Original self-relocation, modeled calls and original-only DMA replay do not prove alternate-layout safety or a native C game port. No credible port percentage or overall ETA is available. |
+
+The immediate priority is reconciliation of existing unknown intervals and
+control/field ambiguities, followed by a finite subsystem acceptance review.
+The three large spans account for 6,260 bytes of the old unknown total; their
+original stack/seed/suffix meanings remain bounded questions, not a reason to
+repeat exhausted probes. B07 and generic capability work remain paused.
+Historical behavioural recommendations below and in Proposal 045 do not set
+the current work queue. No new generation or runtime capture was needed for
+this inventory; current-source classification will be refreshed with a necessary
+source build. The closeout questions are finite; discovery effort is not yet
+bounded well enough for an ETA.
+
 > Latest static restoration: [primary audio control symbols](../validation/pandora-audio-control-symbols.json).
 > Four control constants now name all opcode fields in 33 existing typed commands
 > (41 BYTE fields across 22 programs).
@@ -62,8 +90,9 @@ per-channel address/width/order across a distinct height/shift setup. It does
 not independently recompute masked pixels, establish clipping from H32, or prove
 candidate equivalence, global clobbers or alias/lifetime safety. The consumed
 manifest identity guard also closes an admission/consumption race; no published
-substitution is evidenced. B07 valid-failure replay/reduction is the next
-capability batch, followed by the finite DMA value oracle and interference checks.
+substitution is evidenced. The then-proposed B07 replay/reduction, DMA value
+oracle and interference sequence is now paused; the current closeout list above
+supersedes that historical next-step recommendation.
 
 Baseline snapshot: 2026-10-12, merged source `22e55bb5`, restoration revision
 `2f142cd09c5eae6d1edd001af3acfb2909098713d6a8f513eadda5c7279ba42e`.
