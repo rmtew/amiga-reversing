@@ -175,6 +175,7 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_RSSET_USE_SITE_BINDING = "remove_manual_rsset_use_site_binding"
     CREATE_MANUAL_DATA_BLOCK_LAYOUT = "create_manual_data_block_layout"
     EDIT_MANUAL_DATA_BLOCK_LAYOUT = "edit_manual_data_block_layout"
+    RESIZE_MANUAL_DATA_BLOCK_LAYOUT = "resize_manual_data_block_layout"
     REMOVE_MANUAL_DATA_BLOCK_LAYOUT = "remove_manual_data_block_layout"
     SET_MANUAL_DATA_BLOCK_ELEMENT = "set_manual_data_block_element"
     RENAME_MANUAL_DATA_BLOCK_ELEMENTS = "rename_manual_data_block_elements"
@@ -2122,6 +2123,43 @@ def _project_actions(
                 )
             removed_data_block_layouts.pop(layout_id, None)
             data_block_layouts[layout_id] = layout
+        elif action.kind is ManualActionKind.RESIZE_MANUAL_DATA_BLOCK_LAYOUT:
+            change = _action_object(action, "data_block_layout")
+            if set(change) != {"layout_id", "source_end"}:
+                raise ValueError("layout resize changes only source_end")
+            layout_id = _data_block_layout_key({"layout_id": change.get("layout_id")}, require_range=False)
+            existing = data_block_layouts.get(layout_id)
+            if existing is None:
+                raise ValueError("layout resize requires an active owner")
+            expected = action.payload.get("expected_source_end")
+            end = change.get("source_end")
+            if type(expected) is not int or expected != existing.get("source_end"):
+                raise ValueError("layout resize expected_source_end is stale")
+            if type(end) is not int or end == expected:
+                raise ValueError("layout resize requires a changed integer endpoint")
+            # End-only, raw section-0 operation: no field rebasing or inferred
+            # runtime-view resizing. The pinned identity also supports offline
+            # replay; append checks it against the actual source before writing.
+            size = pinned_target_identity.get("original_size")
+            if (pinned_target_identity.get("source_kind") != "raw_binary"
+                    or existing.get("hunk") != 0
+                    or any(existing.get(key) is not None for key in
+                           ("runtime_start", "runtime_end", "runtime_execution_view_id"))):
+                raise ValueError("layout resize supports raw source section 0 without a runtime view only")
+            if type(size) is not int or not existing["source_start"] < end <= size:
+                raise ValueError("layout resize has invalid source bounds")
+            resized = {**existing, "source_end": end}
+            for other_id, other in data_block_layouts.items():
+                if other_id != layout_id and _data_block_layout_overlaps(resized, other):
+                    raise ValueError("layout resize overlaps another active owner")
+            extent = end - existing["source_start"]
+            for (owner, offset), element in data_block_elements.items():
+                if owner == layout_id and offset + int(element["width"]) > extent:
+                    raise ValueError("layout resize would truncate an owned field or binding")
+            for ref in data_block_interpreted_refs.values():
+                if ref.get("layout_id") == layout_id and int(ref["offset"]) + int(ref["width"]) > extent:
+                    raise ValueError("layout resize would truncate an owned reference")
+            data_block_layouts[layout_id] = resized
         elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT:
             layout = dict(_action_object(action, "data_block_layout"))
             layout_id = _data_block_layout_key(layout, require_range=False)
@@ -2503,6 +2541,7 @@ _POLICY_STORAGE_ACTION_KINDS = frozenset({
     ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT, ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT_FIELD,
     ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT_FIELD, ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD,
     ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
+    ManualActionKind.RESIZE_MANUAL_DATA_BLOCK_LAYOUT,
     ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT, ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT,
     ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT, ManualActionKind.REPRESENT_MANUAL_DATA_BLOCK_ELEMENT,
     ManualActionKind.RENAME_MANUAL_DATA_BLOCK_ELEMENTS,

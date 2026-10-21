@@ -3321,7 +3321,7 @@ def _manual_action_application_payload(
         binding = action_payload.get("rsset_use_site_binding")
         if isinstance(binding, Mapping):
             local_effects.append({"kind": "rsset_use_site_binding_remove", "rsset_use_site_binding": dict(binding)})
-    elif kind in {"create_manual_data_block_layout", "edit_manual_data_block_layout"}:
+    elif kind in {"create_manual_data_block_layout", "edit_manual_data_block_layout", "resize_manual_data_block_layout"}:
         layout = action_payload.get("data_block_layout")
         if isinstance(layout, Mapping):
             local_effects.append({"kind": "data_block_layout", "data_block_layout": dict(layout)})

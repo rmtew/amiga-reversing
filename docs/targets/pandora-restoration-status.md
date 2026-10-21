@@ -1,15 +1,20 @@
 # Pandora restoration inventory and status
 
-> Latest static restoration: [combat-charge plane-byte layout](../validation/pandora-combat-charge-plane-layout.json)
+> Latest static restoration: [player held-frame header](../validation/pandora-player-held-frame.json).
+> Corrected the player source-owner endpoint and exposed an 18-byte frame as two
+> symbolic pointers and five geometry WORDs. C/vasm exact; 168 focused tests pass.
+> B07 remains paused. The previous unknown-byte total has not been recomputed here.
+
+> Previous static restoration: [combat-charge plane-byte layout](../validation/pandora-combat-charge-plane-layout.json)
 > makes the 20 stored plane bytes and eight partial-cell masks explicit. C/vasm
-> reproduces all 376,832 original bytes; 6,446 unknown bytes remain. B07 and generic
+> reproduced all 376,832 original bytes; its unknown count was 6,446. B07 and generic
 > capability work are paused; the behavioural figures below are the earlier milestone.
 
 > Current behavioural validation: [B01–B10 roadmap](../proposals/045-behavioural-validation.md),
 > [natural H30/S13 evidence](../validation/pandora-behavioural-validation-natural-boundary.json).
 > Five bounded predicates in three summaries: 25 CPU cases plus 65,536 BYTE inputs;
 > three original-only DMA fixtures. Tests: 269 Python passed, one optional live MCP
-> SDK transport skip. Assembly unchanged and C/vasm exact; prior 30 native tests
+> SDK transport skip. That batch left assembly unchanged and C/vasm exact; prior 30 native tests
 > are historical, not rerun. Every B ID remains partial/open.
 
 The [comparison identity correction](../validation/pandora-behavioural-validation-identities.json)
@@ -6426,3 +6431,45 @@ and 241 seconds (17.2 minutes total), including two source-review corrections.
 That is measured workflow overhead, not additional restoration coverage.
 [Public evidence](../validation/pandora-combat-charge-plane-layout.json) records
 the exact identities, canonical actions, scope checks and limits.
+
+
+## Player held-frame header and owner boundary (2026-10-21)
+
+The player owner now ends at `$4C376`, matching its existing 84-byte schema and
+all bound fields, instead of including the first byte of the held-frame header.
+The original owner action selected listing rows and recorded no field or
+ownership meaning for that extra byte. The original node at `$4C744` selects
+the sequence at `$4C756`, whose held entry points at the complete 18-byte header;
+the shared reader at `$6F6E` consumes its two pointers and five geometry WORDs.
+The reviewed 26 native player-root references, all-byte-alignment literal-pointer
+audit and field/reset consumers support this explicit source boundary. They do
+not prove runtime allocation, exclusive lifetime or absence of arbitrary aliases.
+
+The header at `$4C376..$4C388` now reuses `WorldPositionAnimationFrame`, replacing
+18 raw bytes with pixel/mask symbols and stride, height, width and XY fields.
+It selects pixel bank 05+$400 and mask bank 05+$100, whereas the adjacent
+cycling-frame group starts in bank 04. Original pointer values and nominal bank
+bounds agree; this establishes storage selection, not a visual orientation.
+Its existing `abs_0_0005C376` label and frame-sequence reference are preserved.
+The player owner retains its ID, start, role, fields, bindings and references.
+There are still 147 schemas; owners increase from 557 to 558 and effective
+entities from 18,323 to 18,330. Supported source purpose increases by 18 already
+bounded header bytes, from 282,455 to 282,473. Whole-target unknown-byte
+accounting was not regenerated, so no updated global total is claimed.
+
+The necessary framework addition is an end-only raw-section-0 owner resize
+command. It refuses stale revisions/endpoints, out-of-file or empty ranges,
+field/reference truncation, overlaps, runtime views and unsupported formats.
+It uses the existing catalogue and atomic, append-only MAL/DJ paths, with
+ordinary undo/redo. The changed mechanism and adjacent catalogue/history/service
+checks pass all 168 tests, including deliberately invalid and stale cases.
+Four target actions and four accepted decisions preserve both history prefixes.
+
+One final generation after the reviewed metadata edits reproduces all 376,832
+original bytes with C and independent vasm: receipt `641e2adf40c2d9471b4726b9d1855402fee625da8d14e6f111908fdaf756e667`.
+Source review confines the diff to the header block and retains all prior labels,
+EQU/RS declarations, other owners, schemas, references, assets and SDK files.
+No new original-CPU test or runtime capture was needed. This is an 18-byte source
+restoration and its bounded prerequisite, not a behavioural-programme milestone.
+[Evidence and limits](../validation/pandora-player-held-frame.json) record the
+proof, exact identities, invariant checks and measured generation costs.

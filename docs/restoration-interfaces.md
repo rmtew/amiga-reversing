@@ -128,6 +128,15 @@ use inspected `label.rename` actions for those identities as a separate part
 of the same swath. Seeded-only layouts must first have a supported manual
 layout identity rather than relying on implicit range/default reconstruction.
 
+`target.data_block.layout.resize` changes only an active raw section-0 owner's
+exclusive `source_end`. Supply `layout_id`, inspected `expected_source_end` and
+new `source_end`, as well as the service revision. Start, identity, role, fields,
+bindings and interpreted references remain unchanged. It refuses empty/out-of-file
+ranges, stale endpoints, excluded fields/references, overlaps and runtime views.
+Other source formats are explicitly unsupported; no section bounds are inferred.
+Undo/redo and review use the normal append-only histories. This operation corrects
+a proved source ownership boundary; it does not establish allocation or lifetime.
+
 `target.data_block.layout.describe` takes an active manual `layout_id` and a
 nonempty `role`. It uses the same sparse edit/history path as layout rename,
 preserving name, extent, unit, elements, type bindings and reference identities.

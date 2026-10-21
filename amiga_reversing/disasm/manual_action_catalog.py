@@ -138,6 +138,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_data_block_layout_action(),
         _target_data_block_layout_rename_action(),
         _target_data_block_layout_describe_action(),
+        _target_data_block_layout_resize_action(),
         _target_data_block_element_renames_action(),
         _target_data_block_layout_remove_action(),
         _target_data_block_element_action(),
@@ -224,6 +225,19 @@ def target_catalog_manual_payload(
         return "remove_manual_function_summary", {"function_summary_id": str(params["function_summary_id"])}
     if action.get("action") == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _target_data_block_layout_payload(params)}
+    if action.get("action") == "resize_manual_data_block_layout":
+        if set(params) != {"layout_id", "expected_source_end", "source_end"}:
+            raise ValueError("layout resize requires exactly identity and old/new endpoints")
+        layout_id = params.get("layout_id")
+        if not isinstance(layout_id, str) or not layout_id.strip():
+            raise ValueError("layout resize requires a nonempty layout_id")
+        for key in ("expected_source_end", "source_end"):
+            if type(params.get(key)) is not int or params[key] <= 0:
+                raise ValueError(f"layout resize requires positive integer {key}")
+        return "resize_manual_data_block_layout", {
+            "data_block_layout": {"layout_id": layout_id.strip(), "source_end": params["source_end"]},
+            "expected_source_end": params["expected_source_end"],
+        }
     if action.get("action") == "edit_manual_data_block_layout":
         field = "role" if action_id == "target.data_block.layout.describe" else "name"
         layout_id, value = params.get("layout_id"), params.get(field)
@@ -5888,6 +5902,20 @@ def _target_data_block_layout_rename_action() -> dict[str, object]:
             "properties": {"layout_id": {"type": "string"}, "name": {"type": "string"}},
             "required": ["layout_id", "name"],
         },
+    )
+
+
+def _target_data_block_layout_resize_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data_block.layout.resize",
+        "Resize raw data-block owner end",
+        "resize_manual_data_block_layout",
+        {"type": "object", "properties": {
+            "layout_id": {"type": "string"},
+            "expected_source_end": {"type": "integer", "minimum": 1},
+            "source_end": {"type": "integer", "minimum": 1},
+        }, "required": ["layout_id", "expected_source_end", "source_end"],
+         "additionalProperties": False},
     )
 
 

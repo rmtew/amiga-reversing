@@ -28773,8 +28773,13 @@ player_world_object_world_object_flags:
 	dc.l $00000000	; saved_position_state_ptr
 	dc.w $0000	; context_prompt_cooldown
 abs_0_0005C376:
-	dc.b $00,$03,$15,$28,$00,$07,$DB,$00,$00,$02,$00,$1E,$00,$0E,$00,$07
-	dc.b $00,$00
+	dc.l scene_pixel_cells_for_mask_bank_05+$400	; bitplane_data_ptr
+	dc.l scene_mask_bank_05+$100	; mask_data_ptr
+	dc.w $0002	; row_stride_words
+	dc.w $001E	; frame_height
+	dc.w $000E	; frame_width
+	dc.w $0007	; x_offset
+	dc.w $0000	; y_offset
 player_move_positive_x_cycling_geometry_frames:
 	dc.l scene_pixel_cells_for_mask_bank_04	; bitplane_data_ptr
 	dc.l scene_mask_bank_04	; mask_data_ptr
