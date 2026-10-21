@@ -10,7 +10,7 @@ histories remain authoritative; this is a derived index, not a new tracker.
 
 | Measure | Verified position and limit |
 | --- | --- |
-| Original-layout reconstruction | Done: all 376,832 bytes C/vasm exact in the latest [receipt](../validation/pandora-audio-control-symbols.json). Disk/loader parity is outside this scope. |
+| Original-layout reconstruction | Done: all 376,832 bytes C/vasm exact in the latest [source-bound receipt](../validation/pandora-indirect-closeout.json). Disk/loader parity is outside this scope. |
 | Code/data classification | Last full baseline: 24,308 code + 339,648 structured data + 1,690 table + 4,740 text + 6,446 unknown = 376,832. This partition is stale after the held-frame restoration; no fresh global unknown count is claimed. |
 | Supported purpose | Latest union 283,380 / 376,832 bytes (75.2%), across 216 active assessments. This is bounded purpose accounting, not semantic completion; large graphics assets dominate the byte weight. The remaining 93,452 bytes lack purpose credit, which does not establish that they are all ununderstood. |
 | Function/field understanding | Old snapshot: 273 function candidates, 973 resolved and 32 unresolved field-access records; candidates and access records are not complete function/field denominators. Current catalogue has 558 owners and 147 custom schemas; neither measures semantic completeness. |
@@ -43,6 +43,11 @@ comparison. They do not call for invented fields or larger structures. The 27
 dynamic indexed records retain their bounded consumer/index obligations. This
 is an accounting and evidence reconciliation, with no source or history edits.
 
+> Current [subsystem source-contract review](#subsystem-source-contract-review-original-layout) consolidates the mature evidence.
+> The historical checklist is not the current work queue. Seven subsystem groups
+> have reviewed bounded contracts; remaining representation/producer/continuation
+> exceptions are listed separately. This is not full semantic-restoration acceptance.
+
 > Current indexed-consumer review: [27 records in seven groups](../validation/pandora-indexed-consumers.json).
 > Reader formulas and bounded original domains were already understood; native
 > indexed status is not 27 missing field meanings. Optional XY use still lacks
@@ -55,7 +60,7 @@ is an accounting and evidence reconciliation, with no source or history edits.
 > commands. Initial interaction/completion targets already have contracts.
 > This is original-layout reviewed closeout evidence, not full semantic restoration.
 
-> Latest static restoration: [primary audio control symbols](../validation/pandora-audio-control-symbols.json).
+> Previous typed-data restoration: [primary audio control symbols](../validation/pandora-audio-control-symbols.json).
 > Four control constants now name all opcode fields in 33 existing typed commands
 > (41 BYTE fields across 22 programs).
 > The original 29-program / 907-byte corpus and all 55 original list entries are
@@ -315,7 +320,7 @@ self-modification. Startup copying executable bytes is already established.
 
 ## Derived subsystem ledger
 
-Latest source checkpoint (2026-10-14): scratch capacity and resolved caller family.
+Historical source checkpoint (2026-10-14): scratch capacity and resolved caller family.
 Proximity rendering reaches the active descriptor/attachment loop, the geometry
 clipper, and the two edge helpers. The 318 typed original headers plus two
 producer-selected 18-byte headers give a 320-header contract: heights 7..48,
@@ -656,7 +661,8 @@ game relocation, unknown aliases, arbitrary mutations or other scenarios.
 “Unknown” below is an analysis status, not failure of exact source reproduction.
 No subsystem is declared fully restored by the inventory.
 
-Current checklist (2026-10-14): “documented” means the selected facts and
+Historical checklist (2026-10-14; superseded for current priorities by the
+subsystem review at the end of this document): “documented” means the selected facts and
 consumer contracts below are reviewed; “partial” retains a known semantic or
 lifecycle limit. “Unanalysed” identifies the next evidence dependency, rather
 than a new coverage metric. No row claims complete subsystem recovery.
@@ -6683,3 +6689,75 @@ or replacement-domain caveats remain explicit without being turned into a quota
 of mandatory hostile-input proofs. Native statuses, global classification,
 purpose credit and overall semantic completion are unchanged. No necessary
 source build arose, so global accounting was not regenerated for counters.
+
+## Subsystem source-contract review: original layout
+
+This is the current obligation-4 review, using existing canonical facts and
+accepted batch evidence. It supersedes the **next dependency** column of the
+2026-10-14 checklist, without rewriting that historical record. The unit here
+is a connected source-contract group, not every possible function, caller,
+mutation or runtime interleaving. Complete function/resource denominators remain
+unknown; seven reviewed groups do not establish a semantic completion percentage.
+
+| Subsystem and concrete source anchors | Reviewed original-layout contract and evidence | Explicit boundary; current disposition |
+| --- | --- | --- |
+| Startup, IRQ, title: `$00..$52`, entry `$46A`, IRQ `$8E4`/call `$932`, title `$F88` | Fixed overlap-safe prefix copy, supervisor/workspace/stack setup, IRQ priority/save frame, title/star producer and three continuations, reveal/audio phases, warm restart and initial gameplay consumers. [Restart evidence](../validation/pandora-restart-random.json), [indirect review](../validation/pandora-indirect-closeout.json); see the title-to-gameplay and starfield sections above. | Whole-stack allocation is not known. BLIT callback has startup zero/no known nonzero producer, and raw-request dispatch has no NULL guard. Star record byte9 remains unknown; its 1,000-byte runtime view is already represented. These are explicit limits, not a demand for arbitrary-callback safety or another star trace. |
+| World scripts, objects and animation: handlers/interpreter `$1114..$1432`, table `$1432..$14B6`, reader `$951A`, indexed reads `$95C6/$95D4/$95DA` | All 33 handler roles, 780 NPC commands plus the three-command player loop, repeat/copy/node/sequence contracts, initial interaction/completion signatures, attachment and held/active frame layouts. [Operand evidence](../validation/pandora-behavior-operand-types.json), [indexed review](../validation/pandora-indexed-consumers.json), [fixed-pose/indirect contracts](../validation/pandora-indirect-closeout.json). | Optional XY has no initialized nonzero producer in 92 declared nodes. Retained-node activation, node+11 and wider visual meanings of conservative flag names remain unproved. Mutable targets/chains and out-of-range opcode behavior are explicitly unchecked, not new mandatory hostile-input work. |
+| Input, movement and camera: movement `$95E2`, animation `$951A`, tile-cell service and two existing camera profiles | Axis-only request scaling, collision probes/commit, ID-failure continuation, idle/held modes, profile/wrap/countdown arithmetic and main/modal input/exit differences. See camera/profile, player-movement, missing-ID and title/restart sections and their linked original-code tests. | The old failed-ID continuation item is closed under its stated inputs. Unchecked profiles/coordinates and the unnamed wider meaning of status bit6 remain qualified. No full gameplay-admission proof is needed to retain the correctly described arithmetic. |
+| Graphics, tiles, geometry and shared buffers: `$6A1E/$6C60/$6F6E`, tile builder `$9EBA`, definition reads `$A1BE..$A21C`, palette/helper sites `$71E0/$71EE/$7220/$7230` | Cell/plane/frame formats, original tile indices/offsets, clip/packet/edge scratch contracts, shared hit/palette alias, reset/restart waits and bounded original DMA observations. [Terrain](../validation/pandora-terrain-reference-encodings.json), [scene groups](../validation/pandora-remaining-scene-layouts.json), [shared-tail contract](../validation/pandora-shared-tail-contract.json). | Nominal source formats are established for all bitmap chunks; that is not an all-pixels or allocation claim. Palette stack-splicing targets leave the verified copied prefix; external continuations remain unknown. Original seed/suffix/tail purposes are separate exceptions below. DMA timing, exclusive lifetimes and alternate placement are not obligations to rewrite unchanged source. |
+| Text, overlays, inventory and trade: selection `$2A32`, trade `$7BBA`, clear/queue `$6668/$6676`, indexed line `$6640`, storage `$A862..$A8E2` | Name/ID/value roles, cursor selection, offer/reset/pocket paths, six-line style dispatch, registry persistence/readiness, snapshot packets and the 64-byte registry plus 64-byte clear tail. [Indexed review](../validation/pandora-indexed-consumers.json); see inventory, shared-name and overlay-text sections. | The old 128-versus-64-byte clear discrepancy is documented, not pending structure expansion. Ten initial update callbacks are NULL; no nonzero producer is established. Fonts retain their reviewed conditional formats; arbitrary text/row/registry overflow and all aliases stay unchecked. No font or formatting work is selected. |
+| NPC, combat, mission, terminals and outcomes: callbacks `$7A00/$83FE/$93F4`, ranged service `$9250`, terminal `$8FF2` | Initial object callbacks and carry/A5 consumers, proximity/ID/receptacle/trade effects, ranged hit/defeat, terminal versus self-destruct modes, BCD deadline and exit counters, ranking and restart consumers. [Actor identities](../validation/pandora-actor-identities.json), [console](../validation/pandora-self-destruct-console.json), [outcome/ranks](../validation/pandora-outcome-ranks.json), [indirect review](../validation/pandora-indirect-closeout.json). | Valid finite object/state graphs and explicit caller contexts are contract inputs. Repeated/wrapped counters, NULLs, unchecked card/name/graph cases and caller-dependent A4 behavior are preserved. Arbitrary replacement callbacks, all possible mission routes or proof of game-design intent are not missing original source annotations. |
+| Audio and samples: initializer `$4D7DE`, dispatch `$4DC2A`, secondary start `$4E3EC`, samples from `$4EAD8` | Three presets/twelve lists, 29 programs and their parameter grammar, pitch/volume arithmetic, secondary configuration/envelopes, eleven sample extents and waveform mutation. [Audio state/programs](../validation/pandora-audio-state-and-programs.json), [control corpus](../validation/pandora-audio-control-symbols.json), [indexed review](../validation/pandora-indexed-consumers.json). | Runtime selectors are wider than stored tables. Global byte+13, the saved phase-increment copy's reader, skip-gate enabling writer and shift-state intent remain explicit unknowns. CPU packet semantics do not claim audibility, Paula timing, replacement-program safety or exclusive sample lifetimes. |
+
+### Remaining original-layout acceptance questions, in priority order
+
+1. **Reconcile and adjudicate representation exceptions (obligations 1/2).**
+   The old unknown partition still needs reconciliation with the already typed
+   weapon-table tails (`$8671..$8677`, `$8678..$867E`) and restored frame
+   (`$4C376..$4C388`). The three dominant raw spans (`$52..$456`,
+   `$B4A8..$C3A8`, `$39DC8..$3A338`) retain their specific stack/seed/suffix
+   ambiguities. The opaque uncopied asset `$55370..$5C000` is bounded and
+   preserved, but its original purpose is not thereby explained; it is not part
+   of the old 6,446-byte unknown-classification count. The ten-byte candidate
+   `$1094..$109E`, retained bytes `$6A16..$6A1E`, and residual small raw intervals
+   must not acquire code/data/padding intent from pattern alone. **Acceptance:**
+   justified interpretations or an explicit reviewed-unknown disposition for
+   every residual interval, with accurate accounting and no double credit.
+   **Next:** use the existing interval/fact reconciliation at final review; reuse
+   a necessary native build for fresh accounting. No repeat scratch/bank-30
+   probe or extra generation for counters is selected.
+2. **Retain precise producer/continuation exceptions; obtain new evidence only
+   for stronger claims.** At `$932`/`$6694`, nonzero Blitter/UI producers are
+   unestablished; at `$95D4/$95DA`, optional XY use lacks an original producer.
+   The four `$71E0/$71EE/$7220/$7230` stack-splicing calls have known local stack
+   arithmetic but unexecuted external targets. Filename/arguments do not prove
+   a loader or allocation. **Acceptance:** a concrete original writer/caller/
+   continuation supports a stronger interpretation, or the final original-layout
+   review explicitly retains these bounded unknowns. **Next:** reopen only on
+   that new positive evidence. Existing consumer contracts already state the
+   limits; no new capture, generic capability or repeated negative probe follows.
+3. **Complete the final source review and label the result accurately
+   (obligation 5).** **Acceptance:** all seven groups above have their concrete
+   evidence and residual exceptions indexed, source names/types/SDK forms and
+   canonical histories are preserved, and the original exact receipt is current.
+   An accepted exception list permits the label **original-layout reviewed
+   closeout with explicit unknowns**; it does not mean full semantic restoration,
+   alternate-layout safety or a native C port. **Next:** adjudicate the residual
+   exceptions and perform the final source-quality audit; reuse the existing
+   exact receipt if source/metadata remain unchanged. Do not turn generic labels,
+   purpose-byte gaps or arbitrary-input safety into another batch quota.
+
+Existing accepted layout/reader facts deliberately preserve the unknown star
+byte, animation flag intent/node byte and audio meanings above. Those reviews
+accept bounded representations with explicit limits, not newly recovered meanings
+or a blanket acceptance of whole-program completion. The `$36C..$604` app-relative gap and whole stack extent also remain
+unclassified storage questions, separate from payload-byte accounting. Complete
+asynchronous ownership, all possible mutations and changed-layout placement
+belong to stronger claims than this original-source review.
+
+No additional evidence-backed correction to a routine, field layout or source
+contract was identified in this consolidation. No source edit is justified by the reviewed
+evidence, so no target action, test suite, capture or generation was performed.
+Current source remains the exact source of `59e77f9c`; `ca948c92` only reconciles
+its indexed consumers. This review narrows the remaining questions rather than
+claiming another subsystem was semantically completed.
