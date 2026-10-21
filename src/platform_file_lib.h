@@ -191,6 +191,8 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_allo
     char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text);
+PLATFORM_FILE_API int platform_file_instruction_evidence_json_alloc(const unsigned char *data,
+    size_t size, uint8_t cpu, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListingArtifact *artifact,
     const char *kind, const char *query, int has_section, uint32_t section_index,
     int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,

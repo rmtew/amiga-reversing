@@ -3268,6 +3268,7 @@ setup_runtime_hardware_and_display:
 	move.w d0,intena(a5)
 	move.w d0,intreq(a5)
 	move.l a0,app_vertical_blank_callback(a6)
+    ; Startup noop pointer; text Y=25 also reads its high WORD through the row table. No independent pointer consumer established.
 	move.l a0,$0190(a6)
     ; Reset the active stack to source $452 (runtime $10452 here) after supervisor entry. The temporary TRAP0 frame is not returned through.
 	lea.l runtime_supervisor_stack_top(pc),a7
@@ -3604,7 +3605,7 @@ test_blitter_interrupt:
 	btst #INTB_BLIT,d0
 	beq.b acknowledge_other_sampled_interrupts
 	movea.l app_blitter_interrupt_callback(a6),a0
-    ; Startup clears app+$368 callback to NULL; no nonzero producer established. Setup masks BLIT, but raw-request dispatch has no NULL guard. Masking alone does not prove this branch unreachable.
+    ; NULL at startup; no valid callback installer established. Raw BLIT call has no NULL guard; preserve A5. Known masks disable BLIT, but deposit overflow or name count 15 can corrupt this slot.
 	jsr (a0)
 	move.w #INTF_BLIT,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
@@ -16335,6 +16336,7 @@ abs_0_0001833A:
 	cmpa.l app_nearest_object_ptr(a6),a5
 	beq.b next_world_object_proximity_candidate
 	move.l a5,app_nearest_object_ptr(a6)
+    ; Mirror the changed nearest-object pointer; reset at $9FB2. Unchecked row Y=362 aliases it, so absent direct readers do not prove dead storage.
 	move.l a5,app_02D4(a6)
     ; Changed candidate replaces D0 threshold with cooldown (decrement nonzero). Without a queued message later tests use this value; enqueue_status_message can overwrite it again.
 	move.w world_object_shared_prefix_context_prompt_cooldown(a5),d0
@@ -16895,7 +16897,7 @@ test_terminal_deposit_selected_item:
 	bcs.b return_from_terminal_item_deposit
 prepare_terminal_deposit_storage_scan:
 	lea.l app_terminal_deposited_item_ids(a6),a0
-    ; Find first zero BYTE with no capacity check. Explicit full-buffer states can pass the declared 64-byte prefix into modal cache and ranged-fire latch. Ordinary overflow remains unproved.
+    ; Zero-terminated scan has no 64-byte end guard. A full prefix can reach app+$368; this overflow alias is not a proven normal deposit count.
 find_first_empty_terminal_deposit_byte:
 	tst.b (a0)+
 	bne.b find_first_empty_terminal_deposit_byte

@@ -598,6 +598,8 @@ int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, siz
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction);
 /* Resolve the existing form's operand width; unknown form/operand returns zero. */
 uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8_t operand_index);
+/* Resolve dynamic EA updates using the same decoded-shape fallback as concrete simulation. */
+uint8_t m68k_sim_operand_ea_update(const M68kInstructionIR *instruction, uint8_t operand_index);
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);

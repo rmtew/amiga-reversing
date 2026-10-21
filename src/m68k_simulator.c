@@ -622,6 +622,26 @@ uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8
   return sim_effective_operand_width(instruction, metadata, operand_index);
 }
 
+uint8_t m68k_sim_operand_ea_update(const M68kInstructionIR *instruction, uint8_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  uint8_t update, shape, access;
+  if (!instruction || operand_index >= instruction->operand_count || operand_index >= 4U) return M68K_SIM_EA_UPDATE_NONE;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (!metadata) return M68K_SIM_EA_UPDATE_NONE;
+  update = metadata->operand_ea_register_updates[operand_index];
+  if (update != M68K_SIM_EA_UPDATE_NONE) return update;
+  /* Generic EA forms carry their update in the decoded shape. These are the
+   * existing sim_concrete_operand_uses_predecrement_access / postincrement
+   * fallback rules, not additional opcode or target-specific knowledge. */
+  access = metadata->operand_access_kinds[operand_index];
+  if (access != M68K_SIM_ACCESS_MEMORY_READ && access != M68K_SIM_ACCESS_MEMORY_WRITE &&
+      metadata->operation_class != M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER) return update;
+  shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[operand_index], &instruction->operands[operand_index]);
+  if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) return M68K_SIM_EA_UPDATE_POSTINCREMENT;
+  if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) return M68K_SIM_EA_UPDATE_PREDECREMENT;
+  return update;
+}
+
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta) {
   int32_t delta = 0;
   if (metadata == NULL || out_delta == NULL || !metadata->sp_effect_count ||

@@ -2,6 +2,7 @@
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"
+#include "m68k_render_lookup_internal.h"
 #include "m68k_assembler.h"
 #include "m68k_bitset.h"
 #include "m68k_render_plan.h"
@@ -7163,9 +7164,64 @@ static int append_instruction_operand_facts_json(JsonBuilder *b, const M68kInstr
       uint32_t address = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ? m68k_sign_extend32(op->value.value, 16U) : op->value.value;
       if (json_builder_appendf(b, "%u", (unsigned)address)) return -1;
     } else if (json_builder_append(b, "null")) return -1;
-    if (json_builder_append(b, "}")) return -1;
+    {
+      uint8_t is_address = 0U, reg = 0U, list_reg;
+      uint32_t immediate = 0U;
+      int list_count = 0;
+      if (json_builder_append(b, ",\"direct_register\":")) return -1;
+      if (m68k_instruction_operand_direct_register(op, &is_address, &reg)) {
+        if (json_builder_appendf(b, "\"%c%u\"", is_address ? 'A' : 'D', (unsigned)reg)) return -1;
+      } else if (json_builder_append(b, "null")) return -1;
+      if (json_builder_append(b, ",\"immediate_value\":")) return -1;
+      if (m68k_ir_operand_immediate_value(op, &immediate)) {
+        if (json_builder_appendf(b, "%u", (unsigned)(uint32_t)immediate)) return -1;
+      } else if (json_builder_append(b, "null")) return -1;
+      if (json_builder_appendf(b, ",\"ea_update\":%u,\"register_list\":[",
+          (unsigned)m68k_sim_operand_ea_update(ins, (uint8_t)i))) return -1;
+      for (list_reg = 0U; list_reg < 8U; ++list_reg) {
+        if (reglist_contains_data_register_local(op, list_reg)) {
+          if (json_builder_appendf(b, "%s\"D%u\"", list_count++ ? "," : "", (unsigned)list_reg)) return -1;
+        }
+        if (reglist_contains_address_register_local(op, list_reg)) {
+          if (json_builder_appendf(b, "%s\"A%u\"", list_count++ ? "," : "", (unsigned)list_reg)) return -1;
+        }
+      }
+      if (json_builder_append(b, "]}")) return -1;
+    }
   }
   return json_builder_append(b, "]");
+}
+
+/* Replay the same evidence serializer against an identity-checked retained
+ * instruction. This decodes one exact instruction; it does not analyze or run
+ * a target, infer register flow, or assign platform/base provenance. */
+int platform_file_instruction_evidence_json_alloc(const unsigned char *data,
+    size_t size, uint8_t cpu, char **out_text) {
+  JsonBuilder b = {0};
+  M68kDiagList diagnostics;
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *meta;
+  if (!out_text) return -1;
+  *out_text = NULL;
+  if (!data || !size) return -1;
+  memset(&diagnostics, 0, sizeof(diagnostics));
+  instruction = m68k_ir_decode_one(data, size, cpu, m68k_diag_sink(&diagnostics));
+  if (m68k_diag_has_errors(&diagnostics) || instruction.byte_count != size) return -1;
+  meta = instruction_sim_metadata(&instruction);
+  if (json_builder_create(&b) || json_builder_appendf(&b,
+      "{\"size\":%u,\"metadata_available\":%s,\"flow\":",
+      (unsigned)instruction.byte_count, meta ? "true" : "false") ||
+      json_builder_append_json_string(&b, meta ? sim_flow_kind_name(meta->flow_kind) : "unknown") ||
+      json_builder_append(&b, ",\"operation\":") ||
+      json_builder_append_json_string(&b, meta && listing_operation_type_name(meta->operation_type) ? listing_operation_type_name(meta->operation_type) : "unknown") ||
+      json_builder_append(&b, ",\"operand_facts\":") ||
+      append_instruction_operand_facts_json(&b, &instruction) || json_builder_append(&b, "}")) {
+    json_builder_destroy(&b);
+    return -1;
+  }
+  *out_text = json_builder_build(&b);
+  json_builder_destroy(&b);
+  return *out_text ? 0 : -1;
 }
 
 static int append_instruction_address_evidence_json(JsonBuilder *b, const M68kSectionAnalysisIR *sec, uint32_t offset) {

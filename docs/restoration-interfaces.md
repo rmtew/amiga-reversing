@@ -88,7 +88,11 @@ flag with no invented concrete address. MOVEM widths are per element; the
 `bulk_transfer` flag prevents treating them as a complete footprint. Form roles
 alone do not independently enumerate every read side of read-modify-write uses.
 Consumers requiring a complete inventory must refuse truncated previews and join
-only pages from one revision.
+only pages from one revision. Operand evidence also exposes native direct
+registers, expanded register lists, immediate values and normalized EA updates.
+The exact-one-instruction native evidence entry point reuses this serializer for
+retained identity-checked bytes; it supplies no platform attribution or callee,
+exception-frame, register-flow or gameplay proof by itself.
 
 `query` text is a case-sensitive literal substring of symbol names for `symbols`
 and generated instruction text for `instructions`; it does not normalize numeric

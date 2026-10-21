@@ -178,3 +178,46 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
                         'Conditional A6 joins assume A6 equals the stated app base; no register-flow proof is added.',
                         'Zero fixed-footprint sites does not mean unused; cursors, indexing and ranges may cover declarations or gaps.',
                         'App envelope overlap is physical alias evidence, not an allocation or ownership boundary.'])
+
+
+def decode_retained_instruction(data, *, project_root):
+    """Use the shared native serializer on one exact retained instruction.
+
+    This is a decoder/evidence projection, not a simulator or base-flow proof.
+    It intentionally returns no platform attribution without a target artifact.
+    """
+    import ctypes as C
+    import json
+    from amiga_reversing.disasm.c_backend import _platform_file_dll
+    dll = _platform_file_dll(project_root)
+    fn = dll.platform_file_instruction_evidence_json_alloc
+    fn.argtypes = [C.c_void_p, C.c_size_t, C.c_uint8, C.POINTER(C.c_void_p)]
+    fn.restype = C.c_int
+    output = C.c_void_p()
+    buf = C.create_string_buffer(data, len(data)) if data else None
+    try:
+        if fn(buf, len(data), 0, C.byref(output)) or not output.value:
+            raise AuditIncomplete('native decoder refused exact retained instruction')
+        return json.loads(C.string_at(output.value))
+    finally:
+        if output.value:
+            dll.platform_file_free_text(output)
+
+
+def explicit_register_writes(evidence):
+    """Project generated operand roles and native register lists/EA updates.
+
+    Callee effects, exception frames and unknown semantic forms are not inferred.
+    A CALL here describes only the instruction, not its target body.
+    """
+    if not evidence['metadata_available']:
+        raise AuditIncomplete('native generated form semantics missing')
+    writes = set()
+    for op in evidence['operand_facts']:
+        if op['direct_register'] and op['access'] in {'register_write', 'memory_write'}:
+            writes.add(op['direct_register'])
+        if op['access'] == 'register_list_write':
+            writes.update(op['register_list'])
+        if op['base_register'] and op['ea_update']:
+            writes.add(op['base_register'])
+    return sorted(writes)

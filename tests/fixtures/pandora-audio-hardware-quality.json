@@ -19,7 +19,7 @@
     {
       "source_offset": 317926,
       "baseline_symbolic": true,
-      "expected_line": "\tmove.w #$20,aud0+ac_len(a6)\t; sound sample length 64 bytes"
+      "expected_line": "\tmove.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,aud0+ac_len(a6)\t; sound sample length 64 bytes"
     },
     {
       "source_offset": 318046,
@@ -59,7 +59,8 @@
     {
       "source_offset": 318604,
       "baseline_symbolic": false,
-      "expected_line": "\tmove.w #$20,aud0+ac_len(a6)\t; sound sample length 64 bytes"
+      "expected_line": "\tmove.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,aud0+ac_len(a6)\t; sound sample length 64 bytes"
     }
-  ]
+  ],
+  "symbolic_constant_update": "Existing published source already names the unchanged32-WORD silence length AUDIO_PRIMARY_SILENCE_LENGTH_WORDS; retain hardware-symbol quality guard with that canonical spelling."
 }

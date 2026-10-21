@@ -43,6 +43,16 @@ or unrelated tennis changes are required.
 
 ## App-offset usage follow-up
 
+The [static closure](pandora-restoration-status.md#app-use-static-closure-2026-10-21)
+now accounts for174/178 prior omissions under explicit original-entry/stack
+contracts, with four precise missing-entry sites. Across all729 A6 app candidates,
+715 have original-entry links and14 occupy five retained conditional groups.
+Positive alias readers/writers prevent dead-storage claims for+$190/+$2D4/+$368;
+all24 app-address constructors are grouped into seven reviewed cursor contracts.
+The finite remaining entry/intent evidence is listed, with no speculative next
+batch selected. [Closure evidence](../validation/pandora-app-usage-closure.json)
+and four C/vasm-exact source comments record the result.
+
 The separately requested [app-offset audit](pandora-restoration-status.md#app-offset-usage-audit-2026-10-21)
 now inventories all 7,059 accepted instructions and distinguishes 551 native app
 attributions, 178 additional conditional A6 sites, 12 A6 audio-hardware writes,

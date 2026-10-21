@@ -1,8 +1,113 @@
 # Pandora restoration inventory and status
 
+## App-use static closure (2026-10-21)
+
+The requested follow-up is complete within the available original-layout static
+evidence. [Reproducible closure evidence](../validation/pandora-app-usage-closure.json)
+resolves the ordinary base convention and identifies concrete alias consumers
+and corrupting writers. It does **not** certify exhaustive runtime access,
+unconditional dead storage, or a full semantic restoration. No further speculative
+entry-path search is selected without the positive missing evidence below.
+
+| Measured scope | Before / after and meaning |
+| --- | --- |
+| Complete accepted instruction check | All 7,059 retained instructions match original bytes and decode through the native Motorola-derived backend; zero decoder failures. No assembly-text parser supplies the conclusions. |
+| A6 modifiers | Exactly 18: app bindings $48C/$8E8; hardware binding/arithmetic $4D978/$4D98E; fourteen reviewed restores. All MOVEM lists and EA updates are included. Only two accepted calls target the channel updater ($9D0/$FE2), both enclosed by matching A6 save/restore. IRQ entry resets A6 and all four exits restore the interrupted context. These are normal-return/valid-stack contracts, not hostile alias-safety proofs. |
+| Prior 178 omitted A6 sites | Native CFG entry links covered 126. Joining 40 reviewed original-data edges covers 174: 166 scalar and eight indexed sites. Four retain an explicit missing-original-entry disposition; their field/formula meanings are not unknown. This does not mutate 178 native facts into unconditional proofs. |
+| All A6 app candidates | 715 of 729 have original-entry links under the stated convention. The other 14 occupy five finite entry groups below. Twelve audio-hardware sites stay separate. Entry links are CFG possibilities, not observed gameplay. |
+| Original target joins | All 35 object interaction/completion fields, five stored absolute calls in the reviewed 783-command corpus, eleven audio dispatch entries, and two explicit Copper callback transitions. Later pointer mutation and wider unchecked dispatch remain outside these initialized/stored contracts. |
+| Cursor aliases | All 24 explicit app-address constructors are assigned to seven families. Bounds and unchecked variants are distinguished below. The 662 other register aliases are neither all app accesses nor proved non-app. |
+
+The three named slots now have finite conclusions:
+
+| Slot | Established use and aliases | Remaining semantic question |
+| --- | --- | --- |
+| `+$190` / physical $3B8C | Startup $4B6 writes one noop-function-pointer LONG. Both text-origin readers consume its high WORD for masked Y=25; the unchecked row helper consumes it for Y=200. | No independent pointer consumer/intent is established. Conditional WORD reads may be accidental overrun; they do not establish a callback role or ordinary gameplay caller. |
+| `+$2D4` / $3CD0 | $8366 mirrors the changed nearest-object pointer; $9FB2 clears it on restart. Unchecked row Y=362 reads its WORD. Carried/pocket transfer indices318/314 read and write it; displayed-ID index26 writes it. | Producer-defined shadow semantics are established. A dedicated pointer consumer and intentional retention purpose are not. It is not unconditionally write-only or dead. Keep the existing `app_02D4` symbol. |
+| `+$368` / $3D64 | Startup zeroing and the raw IRQ callback read at $92E/$932 are established. Known CPU and original Copper policy leaves BLIT disabled. Row Y=436 reads the WORD; deposit scan overflow, inventory indices and submitted-name index15 can corrupt/write the slot. | No legitimate callback installer or original activation phase is established. Corrupt-state aliases are not evidence of a gameplay callback. Masking alone is not an all-entry unreachable proof. |
+
+All 7,059 decoded absolute/immediate operands and canonical initialized pointer
+seeds were checked for the three physical slot spans: no exact constant/seeded
+pointer match. Direct A6 scalar overlaps are respectively one LONG store, two
+LONG stores, and one LONG reader. These negative results exclude neither split/
+computed addresses nor opaque/mutable data. Startup clear and the indexed/cursor
+aliases are assessed separately; a missing named reader is never a no-reader proof.
+
+| App-derived cursor family (origin count) | Consumer/range conclusion |
+| --- | --- |
+| Carried `+$196` (6), pocket `+$19A` (4) | Four-slot scans/copies are bounded. The selected transfer index is `(cursorY-139)>>3` as WORD; it has no independent four-slot test. Invalid rows2683/2651 target +$2D4; rows3867/3835 target +$368. Original four-row admission is a conditional contract. |
+| Queue head `+$232` (4), limit `+$272` (4) | Sixteen LONG pointers, initialized tail and four-byte updates. Enqueue/pop sentinel touches extend through +$276. That inline range excludes the three questioned slots under valid tail protocol. Loaded text pointers are another mutable domain, not inline workspace cursors. |
+| Displayed IDs `+$2BA` (2) | Four explicit name-list reads. The selected store shares the unchecked row-derived index: invalid rows347/1531 target +$2D4/+$368. |
+| Deposited IDs `+$2DA` (2) | Reset clears exactly64 bytes; the zero scan is unbounded. A nonzero142-byte prefix reaches +$368. A lifetime deposit-count/zero-frontier bound is missing. |
+| Submitted names `+$32C` (2) | Three declared LONGs and ordinary count progression0..3. Store count15 targets +$368; a display count of at least16 reads it. The instructions themselves do not bound corrupted counts. |
+
+These are application contracts and alias witnesses, not a new generic pointer
+analysis framework. Positive and negative original-routine tests model the stated
+incoming registers/memory. They prove those source accesses under those inputs;
+they do not promote modeled inputs into captured facts or normal gameplay.
+
+The remaining entry inventory is finite and explicitly dispositioned:
+
+| Entry question | App sites still conditional | Exact missing evidence |
+| --- | --- | --- |
+| $248A `update_active_world_object_tile_regions` | $248A/$2492, $6900/$6904/$690A, $6DBA/$6DBE/$6F22 (8) | No external accepted/native edge or reviewed original data target enters this background-restoration chain. An original computed/stack caller or retained execution entry would establish its actual caller context. |
+| $2656 atomic Copper setter | $265C (1) | Actual caller/target producer. Existing original callback stores are direct and do not establish a caller of this helper. |
+| $6DCA offset helper | $6DD6 (1) | Original caller or computed target. It has no accepted incoming call or reviewed initialized/stored target; its app input and unchecked formula remain conditional. |
+| $4D34C proximity starter | $4D34C (1) | Original external caller/target. The known volume path calls initialization directly and does not establish use of this separate wrapper. |
+| $4D4F2 sequence214 loop | $4D4F2/$4D4FA/$4D518 (3) | External entry/installed callback. Its internal back edge is not an external caller; none of the 35 original interaction fields selects it. |
+
+The original 178 omissions contribute four of these sites: the three at
+$6DBA/$6DBE/$6F22 and $6DD6. The other ten were already named native references;
+this review does not mistake names for base proof. Searches cover the complete
+accepted CFG (3,500 edges), native symbol/reference evidence, original canonical
+object fields and reviewed stored script/audio target families. They cannot
+settle unknown computed/external entries, opaque code/data, future record writes
+or all runtime cursor values. No dead-code conclusion follows from these missing
+entries, and arbitrary replacement-input safety is not an original-layout gate.
+
+Validation: **53 unique tests pass**, including native register/list/update
+positive and refusal cases, CFG edge limits, 19 original-routine alias cases
+with valid-range controls, existing access-export tests and hardware-symbol
+quality checks. No test skip is counted as a delivered result.
+
+Four qualified source comments are recorded and accepted through MAL/DJ. Source
+instructions, data, declarations, labels, SDK includes and existing symbols are
+unchanged. C and independent vasm reproduce all376,832 bytes, receipt
+`09beb8e8960b4082a3612057b9a4b6c7e3df4b4f34fbf2c190517f076adf5cbf`, source SHA
+`2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e`.
+The first verify invocation was rejected by automatic approval review as an old
+read-only-scope restriction; after checking the active changed-source annotations
+and current authorization, the single scoped retry was approved and passed.
+
+Two optional RSSET annotations encountered the existing128-region native limit.
+Both were atomically undone through guarded MAL replay; four comments remain.
+The one-at-a-time undo correctly could not repair130 to a still-invalid129;
+the existing atomic two-undo API restored128. Histories are append-only. No cap
+expansion, EQU/RS emission policy change, declaration-gap reduction or unknown-byte
+classification credit is claimed. The earlier750 gap bytes remain a declaration
+metric. The source-quality fixture's two silence-length expectations were updated
+to the already published `AUDIO_PRIMARY_SILENCE_LENGTH_WORDS` spelling from
+`a5be9edd`; the source was not changed to satisfy a stale `$20` literal expectation.
+
+Reproduce from the retained identity-bound native evidence (no recollection or
+source generation):
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_app_usage_closure --output /tmp/app-closure.json
+```
+
+The command reproduces the static-analysis portion; `source_validation` records
+the separate canonical exact receipt and accepted Decision Journal decisions.
+The input graph and canonical metadata snapshot, decoder backend and auditor are
+hash-bound in the report. New native register/EA facts use the same exporter as
+the existing instruction query. No ROM, raw checkpoint, media or original opcode
+payload is published. No new emulator capture, C port, relocation, font/bank45 or
+B07 work was undertaken; all nine paused B07 files are preserved and PR #5 remains
+unmerged.
+
 ## App-offset usage audit (2026-10-21)
 
-The [current inventory](../validation/pandora-app-access-audit.json) and
+The [baseline inventory at `61272d7a`](../validation/pandora-app-access-audit.json) and
 [per-operand evidence](../validation/pandora-app-access-audit-sites.jsonl) enumerate
 all **7,059 accepted native instructions / 3,649 explicit EA-shaped operand
 sites** in one revision. EA sites include address computations, not just memory
@@ -124,7 +229,7 @@ is review evidence, not a new tracker or a new classification authority.
 
 | Measure | Verified position and limit |
 | --- | --- |
-| Original-layout reconstruction | Done: all 376,832 bytes C/vasm exact in the latest [source-bound receipt](../validation/pandora-indirect-closeout.json). Disk/loader parity is outside this scope. |
+| Original-layout reconstruction | Done: all 376,832 bytes C/vasm exact in the latest [source-bound receipt](../validation/pandora-app-usage-closure.json). Disk/loader parity is outside this scope. |
 | Code/data classification | Last full baseline: 24,308 code + 339,648 structured data + 1,690 table + 4,740 text + 6,446 unknown = 376,832. This partition is stale after the held-frame restoration; no fresh global unknown count is claimed. |
 | Supported purpose | Latest union 283,380 / 376,832 bytes (75.2%), across 216 active assessments. This is bounded purpose accounting, not semantic completion; large graphics assets dominate the byte weight. The remaining 93,452 bytes lack purpose credit, which does not establish that they are all ununderstood. |
 | Function/field understanding | Old snapshot: 273 function candidates, 973 resolved and 32 unresolved field-access records; candidates and access records are not complete function/field denominators. Current catalogue has 558 owners and 147 custom schemas; neither measures semantic completeness. |
