@@ -3604,6 +3604,7 @@ test_blitter_interrupt:
 	btst #INTB_BLIT,d0
 	beq.b acknowledge_other_sampled_interrupts
 	movea.l app_blitter_interrupt_callback(a6),a0
+    ; Startup clears app+$368 callback to NULL; no nonzero producer established. Setup masks BLIT, but raw-request dispatch has no NULL guard. Masking alone does not prove this branch unreachable.
 	jsr (a0)
 	move.w #INTF_BLIT,intreq(a5)
 	movem.l (a7)+,d0/a0-a1/a5-a6
@@ -26761,7 +26762,7 @@ decrease_active_world_object_item_state:
 	jsr enqueue_status_message.l
 	moveq.l #-15,d0
 	jmp adjust_active_world_object_item_state.l
-    ; This initialized pose node has no chain/hold-at-end mode. The diabetic hint callback leaves it installed; other mutations can break that invariant.
+    ; This initialized pose node has no chain/hold-at-end mode. The diabetic hint callback leaves it installed; other mutations can break that invariant. A5 unused; fixed controller.
 start_diabetic_attachment_animation:
 	lea.l diabetic_states_4B7A0_1_state_node_ptr_1(pc),a0
 	lea.l diabetic_script_pose_controller(pc),a1
@@ -26769,6 +26770,7 @@ start_diabetic_attachment_animation:
 	clr.w WorldPositionStateNode_frame_index_and_phase(a1)
 	bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a1)
 	rts
+    ; Toggle only the fixed diabetic controller hold bit; caller A5 is unused. Index/phase, sequence, count and step survive.
 toggle_diabetic_attachment_hold:
 	lea.l diabetic_script_pose_controller_mode_flags(pc),a0
 	bchg.b #ANIM_MODE_HOLD_HEADER_BIT,(a0)	; operand 2: WorldPositionStateNode_mode_flags at (a0)

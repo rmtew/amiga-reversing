@@ -43,6 +43,12 @@ comparison. They do not call for invented fields or larger structures. The 27
 dynamic indexed records retain their bounded consumer/index obligations. This
 is an accounting and evidence reconciliation, with no source or history edits.
 
+> Current indirect-site review: [eight-site reconciliation](../validation/pandora-indirect-closeout.json).
+> The old eight unresolved sites have finite per-site dispositions. Five stored
+> absolute calls select four targets; no relative call occurs in the scoped 783
+> commands. Initial interaction/completion targets already have contracts.
+> This is original-layout reviewed closeout evidence, not full semantic restoration.
+
 > Latest static restoration: [primary audio control symbols](../validation/pandora-audio-control-symbols.json).
 > Four control constants now name all opcode fields in 33 existing typed commands
 > (41 BYTE fields across 22 programs).
@@ -5169,7 +5175,7 @@ output. Existing global phase/skip,guarded sample7 initialization/12-state cycle
 secondary-audio and table-prefix evidence is reused.
 
 Every selected operand and EQU passes an isolated original-instruction C/vasm
-preflight. One final full gate after annotations settle reproduces all376832 bytes
+preflight. One final full gate after annotations settle reproduces all 376,832 bytes
 with C and vasm, SHA-256
 `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`,
 receipt `4ae079c141db2ab5fe4c70e7908f9020adf5c28582f20282f18328c06d187ebc`. Whole prior source/comments/types/owners,all126 assets,
@@ -6568,3 +6574,63 @@ legacy numeric-string compatibility gap is recorded in the existing interface
 documentation; no resize code or additional resize adoption is included here.
 [Evidence and limits](../validation/pandora-audio-control-symbols.json) retain
 the selected positions, dispatch proof, original corpus identities and receipt.
+
+## Eight original indirect sites: reviewed original-layout closeout
+
+[The bounded reconciliation](../validation/pandora-indirect-closeout.json) joins
+the earlier native audit with the current canonical layouts and summaries.
+“Unresolved” native target status does not mean the instruction or its caller is
+unexplained. Conversely, known original pointers do not close future target sets.
+
+| Source site | Current evidenced result | Genuine remaining question |
+| --- | --- | --- |
+| `$932` Blitter IRQ | Startup clears `app+$368` callback to NULL inside the `$36C`-byte clear. The consumer has no NULL guard. Setup masks BLIT, but dispatch samples raw requests. | No nonzero producer is established. Masking and absent named writes do not prove this branch unreachable or unused. |
+| `$11DE` absolute script call | Five stored records select four targets: fixed diabetic start/toggle, item handoff and player movement. Wrapper saves A4/A5 and resumes at command+6. | Arbitrary cursors/replacement commands and callback memory/escape effects are not closed. Two fixed diabetic leaf contracts were missing and are restored in this batch. |
+| `$11F2` relative script call | Signed displacement is from the opcode address; wrapper saves A4/A5 and resumes at command+4. No opcode22 occurs in 780 NPC commands plus the three-command player loop. | There is no stored original callee to invent. A computed/replaced cursor could invoke the implemented opcode; require a concrete producer before reopening. |
+| `$6694` UI update call | All ten initialized descriptor callback fields are NULL. The persistent 16-slot scan visits holes, checks ready bit7 and guards a NULL callback; D7/A0 are saved. | No nonzero callback producer/target is established. Registration and readiness are not callback assignment. |
+| `$7A00` combat completion | Four initial completion targets already have summaries. Caller saves A4/A5, ignores carry and calls before exchange/inactive marking; the nonnull path first blocks the priest passage. | Later completion-pointer replacement and transitive effects remain open. |
+| `$83FE` nearby interaction | Fourteen nonnull fields select 13 initial targets among 35 objects. Existing 13 summaries preserve A5 on normal return. Carry requests the nonzero +$10 message, rather than reporting generic success. | Future callback targets and arbitrary effects remain open; bounded interaction observations do not close whole-game reachability. |
+| `$93F4` ranged completion | Same four initial completion targets; unlike combat, this caller does not save A5. Their existing normal-return A5 contracts support its later object accesses; it performs no combat passage reset. | Replacement targets must meet that caller obligation. Preservation does not establish immutability or all effects. |
+| `$4DC2A` primary audio | Eleven original signed-offset handlers and their register bases/decoder continuations are known. Runtime `$80..$9F` dispatch is wider than those 11 entries and unchecked. | `$8B..$9F`, replacement programs/selectors and a changed A3 base remain unbounded. Stored grammar is not a runtime guard. |
+
+The stored audit reads all 780 canonical records in 26 complete NPC layouts and
+the existing three-command player loop, against the original binary identity.
+It does not discover all possible script cursors. The35 initial interaction and
+completion fields and ten UI callback fields are audited separately. All 17
+initial object target summaries already preserve A5 on normal returns; these
+are retained rather than duplicated or generalized into a universal callback ABI.
+
+The connected source change adds two missing summaries at `$4B0EA`/`$4B100`:
+fixed diabetic pose installation/toggling, independent of caller A5. Both preserve
+its type-neutral value on normal return. The first clobbers A0/A1, the second A0;
+other general registers are preserved under the ordinary disjoint call-frame
+assumption. Memory/escape effects remain explicitly unknown in the summary
+schema. Source comments retain the existing controller caveat, explain fixed
+rather than caller-selected state, and expose the Blitter startup-zero/no-guard
+boundary. Existing labels, data layouts, bytes and histories are preserved.
+
+No unconditional target set, unknown-byte reduction, purpose credit, DMA result,
+relocation safety or full semantic-restoration completion is claimed. A missing
+producer stays a named evidence obligation; it is not replaced by generic tests,
+a new capture, or a fabricated callee. B07 remains paused.
+
+This batch appends five MAL actions and five accepted DJ decisions. Function
+summaries increase **93 → 95**; all previous summaries and other semantic
+collections are preserved. The existing scripted-pose test passes **1/1**, with
+no skips. One planned native generation takes **249.415 seconds**; C and vasm
+reproduce all 376,832 bytes, receipt `d4fd9cb2cc9d6c1843f8e4f93207fb5599a62a0b29f1d2ac45cb3c50bdf6c49a`.
+Source audit permits only the three semantic comment edits and preserves every
+other source character, label, EQU/RS declaration and asset identity. The first
+batch submission exceeded the existing 191-byte comment limit and appended
+nothing; shortening those comments allowed the same facts without framework
+changes. All nine paused B07 files remain unchanged. Global accounting was not
+rebuilt separately; the previous unknown count remains explicitly stale.
+
+The remaining producer questions are now finite: a nonzero Blitter callback
+writer/alias and its branch conditions; a nonzero UI update-callback producer;
+and replacement/mutable script, object and audio target domains. These are
+specific evidence obligations, not eight anonymous routines awaiting names.
+The two missing original fixed-pose contracts are filled; no other missing
+original target contract was established by this audit. Continue with unresolved
+dynamic consumer bounds only when their current evidence supports a concrete
+source interpretation.

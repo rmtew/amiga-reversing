@@ -1,0 +1,543 @@
+{
+  "schema": "pandora-indirect-closeout-v1",
+  "scope": "Original-layout reviewed closeout: eight-site reconciliation, not complete semantic restoration or whole-game target closure",
+  "base_commit": "80844f549ff8cf4abc87118d162a99cecaba1435",
+  "binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_before_sha256": "381919e82a4b6a544b75a1a1e0282f4f6ae097e09eb8338f12c04f9585209913",
+  "metadata_before_sha256": "0f42bdbe1fa03059a999f9785dbf2160e62122f6da9cbf632f9dbc0c553af225",
+  "sites": [
+    {
+      "source": 2354,
+      "role": "Blitter IRQ callback",
+      "result": "No nonzero target established",
+      "understood": "Startup clears the LONG at app+368 to zero. Level3 reads raw INTREQR, loads this slot and calls without a NULL guard; setup does not enable BLIT. Callback must retain A5 for acknowledgement.",
+      "remaining": "Identify a nonzero producer and its lifetime, or positively establish the conditions excluding this branch. No named producer and masked BLIT are not proof of unreachable/unused code.",
+      "next": "Reopen only on a concrete slot writer/alias or control-flow evidence; retain the unguarded-zero boundary now."
+    },
+    {
+      "source": 4574,
+      "role": "Absolute world-command callback",
+      "result": "Stored subset known: 5 records / 4 targets",
+      "understood": "Caller saves/restores A4/A5 and resumes at command+6. Original records select fixed diabetic start/toggle, item handoff and player movement; existing typed cmd_absolute_target wrapper summary is retained.",
+      "remaining": "Arbitrary A4 values, external cursor writes, replacement commands and transitive callback memory/escape effects are not closed.",
+      "next": "Add the two absent fixed diabetic leaf summaries, preserving type-neutral A5 identity; no unconditional target-set claim."
+    },
+    {
+      "source": 4594,
+      "role": "Relative world-command callback",
+      "result": "No opcode22 in the bounded stored corpus",
+      "understood": "Target is opcode address A4 plus signed WORD at +2. Caller saves/restores A4/A5 and resumes at command+4; cmd_relative_target summary already exists.",
+      "remaining": "No original stored call is found among 780 NPC plus3 player commands. Computed or replaced cursors could still invoke this implemented opcode.",
+      "next": "No missing original callee to manufacture. Reopen if a producer supplies a concrete relative-call command."
+    },
+    {
+      "source": 26260,
+      "role": "UI overlay update callback",
+      "result": "All 10 initialized callback fields are NULL",
+      "understood": "Persistent16-slot scan visits past holes. Ready descriptor sign is state_flags bit7; callback must be nonzero. It receives A5=descriptor; D7/A0 are saved around the call.",
+      "remaining": "A nonzero update_callback producer and its target ABI remain unknown; registration/readiness do not supply one. Full registry/descriptor mutation and aliases are not closed.",
+      "next": "Require an actual callback store/descriptor producer before inventing an update handler."
+    },
+    {
+      "source": 31232,
+      "role": "Combat completion callback",
+      "result": "Four initial targets already summarized",
+      "understood": "The35 original completion fields contain4 nonnull/31NULL values. Caller saves A4/A5, ignores callback carry, and calls before state exchange/inactive marking; nonnull path first blocks the fixed priest passage.",
+      "remaining": "Future completion-pointer replacement and transitive memory/lifetime effects remain open. Initial target summaries do not establish a universal callback ABI.",
+      "next": "Retain the existing four summaries and distinguish this saved-context caller from ranged completion."
+    },
+    {
+      "source": 33790,
+      "role": "Nearby-object interaction callback",
+      "result": "13 initial targets already summarized",
+      "understood": "35 initial fields contain14 nonnull values selecting13 targets,21NULLs. All13 known targets preserve A5 on normal return. Carry set requests a nonzero +10 message; carry clear is not proof of no effects.",
+      "remaining": "Later target mutation and unconstrained callback memory/escape effects remain open; one observed nearby interaction is not whole-game reachability.",
+      "next": "No missing original target contract found; keep the initialized subset and precise carry consumer."
+    },
+    {
+      "source": 37876,
+      "role": "Ranged completion callback",
+      "result": "Same four initial targets; caller obligation understood",
+      "understood": "Uses the same completion field as7A00 but does not save A5. Existing four target summaries preserve A5 on normal return, supporting the later state exchange/inactive marking. No combat passage reset here.",
+      "remaining": "A replacement callback must satisfy the caller obligation; preservation does not establish target immutability or transitive effects.",
+      "next": "Retain explicit A5 requirement and separate this path from the saved-context combat caller."
+    },
+    {
+      "source": 318506,
+      "role": "Primary audio control dispatch",
+      "result": "11 original handlers understood; runtime domain wider",
+      "understood": "80..9F reaches unchecked dispatch. Low-BYTE doubling indexes signed WORD offsets at4DCE8, then JMP relative to4D7DE. Eleven original entries and their typed register bases/decoder continuations are already documented.",
+      "remaining": "8B..9F has no bounded11-entry guard. Replacement programs/selectors, changed A3 and memory/timing lifetimes remain open; original stored grammar is not a runtime guard.",
+      "next": "No new original handler to invent; preserve the explicit unchecked-domain caveat and existing handler facts."
+    }
+  ],
+  "stored_script_audit": {
+    "NPC_script_layouts": 26,
+    "NPC_commands": 780,
+    "player_commands": 3,
+    "absolute_calls": [
+      {
+        "source": 8658,
+        "target_source": 307434,
+        "target_names": [
+          "initialize_position_state_link",
+          "start_diabetic_attachment_animation"
+        ],
+        "citation": "manual_action_log:catalog-a3c5cb4249724f55bcc6a1099b1bf80e:6"
+      },
+      {
+        "source": 8668,
+        "target_source": 307456,
+        "target_names": [
+          "toggle_diabetic_attachment_hold",
+          "toggle_position_state_active_flag"
+        ],
+        "citation": "manual_action_log:catalog-a3c5cb4249724f55bcc6a1099b1bf80e:10"
+      },
+      {
+        "source": 8678,
+        "target_source": 307456,
+        "target_names": [
+          "toggle_diabetic_attachment_hold",
+          "toggle_position_state_active_flag"
+        ],
+        "citation": "manual_action_log:catalog-a3c5cb4249724f55bcc6a1099b1bf80e:1A"
+      },
+      {
+        "source": 9158,
+        "target_source": 307482,
+        "target_names": [
+          "collect_world_object_item"
+        ],
+        "citation": "manual_action_log:catalog-faedc5a6ad734d4680ccd85fd591b263:2A"
+      },
+      {
+        "source": 312082,
+        "target_source": 38370,
+        "target_names": [
+          "update_player_world_movement"
+        ],
+        "citation": "player_movement_script_loop"
+      }
+    ],
+    "relative_calls_in_stored_corpus": 0
+  },
+  "initial_callback_fields": {
+    "interaction_callback": {
+      "fields": 35,
+      "null_fields": 21,
+      "targets": [
+        {
+          "source": 316286,
+          "names": [
+            "interact_with_musician"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D37E",
+          "A5_preserved": true
+        },
+        {
+          "source": 316322,
+          "names": [
+            "request_world_object_context_message"
+          ],
+          "record_count": 2,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D3A2",
+          "A5_preserved": true
+        },
+        {
+          "source": 316334,
+          "names": [
+            "interact_with_sec_officer"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D3AE",
+          "A5_preserved": true
+        },
+        {
+          "source": 316350,
+          "names": [
+            "interact_with_chemist"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D3BE",
+          "A5_preserved": true
+        },
+        {
+          "source": 316412,
+          "names": [
+            "interact_with_bank_manager"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D3FC",
+          "A5_preserved": true
+        },
+        {
+          "source": 316454,
+          "names": [
+            "interact_with_priest"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D426",
+          "A5_preserved": true
+        },
+        {
+          "source": 316466,
+          "names": [
+            "interact_with_technician"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D432",
+          "A5_preserved": true
+        },
+        {
+          "source": 316490,
+          "names": [
+            "interact_with_wackobrain"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D44A",
+          "A5_preserved": true
+        },
+        {
+          "source": 316566,
+          "names": [
+            "interact_with_menial_droid"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D496",
+          "A5_preserved": true
+        },
+        {
+          "source": 316612,
+          "names": [
+            "interact_with_gardener"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D4C4",
+          "A5_preserved": true
+        },
+        {
+          "source": 316704,
+          "names": [
+            "interact_with_squash_player"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D520",
+          "A5_preserved": true
+        },
+        {
+          "source": 316728,
+          "names": [
+            "interact_with_driffid"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D538",
+          "A5_preserved": true
+        },
+        {
+          "source": 316776,
+          "names": [
+            "interact_with_diabetic"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D568",
+          "A5_preserved": true
+        }
+      ]
+    },
+    "interaction_completion_callback": {
+      "fields": 35,
+      "null_fields": 31,
+      "targets": [
+        {
+          "source": 307406,
+          "names": [
+            "complete_priest_interaction"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004B0CE",
+          "A5_preserved": true
+        },
+        {
+          "source": 307466,
+          "names": [
+            "complete_bank_manager_interaction",
+            "increase_active_world_object_item_state"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004B10A",
+          "A5_preserved": true
+        },
+        {
+          "source": 307474,
+          "names": [
+            "complete_thief_interaction",
+            "increase_active_world_object_item_state_alt"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004B112",
+          "A5_preserved": true
+        },
+        {
+          "source": 316264,
+          "names": [
+            "clear_security_checkpoint_audio_state"
+          ],
+          "record_count": 1,
+          "function_summary_id": "catalog-function-summary-entry-h0-0004D368",
+          "A5_preserved": true
+        }
+      ]
+    },
+    "update_callback": {
+      "fields": 10,
+      "null_fields": 10,
+      "targets": []
+    }
+  },
+  "audio_handlers": [
+    {
+      "opcode": 128,
+      "source": 318510,
+      "names": [
+        "advance_audio_sequence_program"
+      ]
+    },
+    {
+      "opcode": 129,
+      "source": 318548,
+      "names": [
+        "enable_audio_pitch_delta"
+      ]
+    },
+    {
+      "opcode": 130,
+      "source": 318570,
+      "names": [
+        "start_audio_silence_sample"
+      ]
+    },
+    {
+      "opcode": 131,
+      "source": 318614,
+      "names": [
+        "continue_audio_channel_update",
+        "enable_audio_channel_dma_and_reload_duration"
+      ]
+    },
+    {
+      "opcode": 132,
+      "source": 318618,
+      "names": [
+        "reset_audio_channels_command"
+      ]
+    },
+    {
+      "opcode": 133,
+      "source": 318622,
+      "names": [
+        "set_audio_global_note_offset",
+        "set_audio_player_control_byte"
+      ]
+    },
+    {
+      "opcode": 134,
+      "source": 318630,
+      "names": [
+        "enable_audio_pitch_modulation"
+      ]
+    },
+    {
+      "opcode": 135,
+      "source": 318650,
+      "names": [
+        "disable_audio_pitch_modulation"
+      ]
+    },
+    {
+      "opcode": 136,
+      "source": 318658,
+      "names": [
+        "set_audio_channel_note_offset"
+      ]
+    },
+    {
+      "opcode": 137,
+      "source": 318666,
+      "names": [
+        "set_audio_channel_program_configuration"
+      ]
+    },
+    {
+      "opcode": 138,
+      "source": 318684,
+      "names": [
+        "set_audio_duration_multiplier_from_signed_byte",
+        "set_audio_player_base_note"
+      ]
+    }
+  ],
+  "blitter_callback": {
+    "app_offset": 872,
+    "width": 4,
+    "startup_clear_bytes": 876,
+    "startup_value": 0,
+    "guard": "none",
+    "nonzero_producer": "not established"
+  },
+  "canonical_summaries_before": 93,
+  "canonical_summaries_after": 95,
+  "new_leaf_contract_sources": [
+    307434,
+    307456
+  ],
+  "unconditional_target_sets_closed": 0,
+  "tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_pandora_scripted_pose.py",
+    "passed": 1,
+    "skipped": 0,
+    "scope": "Existing modeled original interpreter/fixed-pose behavior and A5 preservation, not new runtime capture or whole-game reachability"
+  },
+  "limits": [
+    "Stored corpus only; no closure over arbitrary script cursors, replacements, alias writes, or original gameplay scheduling.",
+    "Callback summary normal-return preservation does not prove memory effects or target immutability.",
+    "Startup zero and configured BLIT masking do not prove the raw-request IRQ branch unreachable.",
+    "Native CFG status is not recomputed or cleared by this reconciliation.",
+    "No purpose, unknown-byte, relocation, DMA or gameplay coverage increase claimed.",
+    "Global classification accounting remains the older baseline; this batch does not independently rebuild it."
+  ],
+  "admission": {
+    "initial_result": "refused: comment exceeded existing191-byte capacity; histories verified unchanged",
+    "recovery": "same evidence, bounded comments within191 bytes; no capability expansion"
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "receipt_id": "d4fd9cb2cc9d6c1843f8e4f93207fb5599a62a0b29f1d2ac45cb3c50bdf6c49a",
+    "revision": "f99720a17a1148e72c575a6180a73f04fa11aa2f83576f0efe51b7a54c091913",
+    "source_package_sha256": "866b810f29bfa7bc0d08ee37e5323f4f8f3c8a33fd9596436212972ad6ee41fc",
+    "source_sha256": "15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8",
+    "status": "exact",
+    "subject_revision": "c4ad05b15cdfd7da042f6a00d1d0555c7dd348796f292b803311b22eab523ddf",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "source_review": {
+    "source_sha256": "15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8",
+    "only_three_semantic_comments_changed": true,
+    "source_changes": [
+      {
+        "before": [],
+        "after": [
+          "    ; Startup clears app+$368 callback to NULL; no nonzero producer established. Setup masks BLIT, but raw-request dispatch has no NULL guard. Masking alone does not prove this branch unreachable."
+        ]
+      },
+      {
+        "before": [
+          "    ; This initialized pose node has no chain/hold-at-end mode. The diabetic hint callback leaves it installed; other mutations can break that invariant."
+        ],
+        "after": [
+          "    ; This initialized pose node has no chain/hold-at-end mode. The diabetic hint callback leaves it installed; other mutations can break that invariant. A5 unused; fixed controller."
+        ]
+      },
+      {
+        "before": [],
+        "after": [
+          "    ; Toggle only the fixed diabetic controller hold bit; caller A5 is unused. Index/phase, sequence, count and step survive."
+        ]
+      }
+    ],
+    "all_noncomment_source_characters_preserved": true,
+    "all_labels_in_order_preserved": true,
+    "all_EQUs_RS_definitions_instructions_data_and_assets_preserved": true,
+    "source_package_other_file_identities_preserved": true,
+    "paused_B07_preserved": true,
+    "history": {
+      "manual_actions.jsonl": {
+        "prefix_preserved": true,
+        "prefix_sha256": "b5fd5a62618e8f48a5aa08c36ba7a43a2d4283bea99a4d285c4a51ec159fe79b",
+        "prefix_bytes": 16592201,
+        "appended_records": 5
+      },
+      "decision_journal.jsonl": {
+        "prefix_preserved": true,
+        "prefix_sha256": "b305fe2adb86954a0bc6005774a82ea9fe750b9666c524f74b3c4fddaaabed32",
+        "prefix_bytes": 18063461,
+        "appended_records": 5
+      }
+    },
+    "project_timestamp_only_reverted": true
+  },
+  "metadata_audit": {
+    "prior_summaries_preserved": true,
+    "unchanged_collections": [
+      "target_type",
+      "entry_register_seeds",
+      "abstract_regions",
+      "bootblock",
+      "resident",
+      "library",
+      "custom_structs",
+      "rsset_layout_regions",
+      "absolute_storage_slots",
+      "rsset_use_site_bindings",
+      "seeded_entities",
+      "seeded_code_labels",
+      "seeded_code_entrypoints",
+      "absolute_code_labels",
+      "manual_representations",
+      "target_equates",
+      "manual_runtime_address_refs",
+      "manual_data_references",
+      "data_block_layouts",
+      "execution_views",
+      "suppressed_seeded_items",
+      "source_output_policy"
+    ],
+    "summaries_before": 93,
+    "summaries_after": 95,
+    "new_summary_ids": [
+      "catalog-function-summary-entry-h0-0004B0EA",
+      "catalog-function-summary-entry-h0-0004B100"
+    ],
+    "full_register_partitions": true,
+    "type_neutral_A5_identity": true,
+    "memory_escape_unknown": true,
+    "paused_B07_preserved": true
+  },
+  "generation": {
+    "job_id": "125964c0-5b60-4fda-8077-272b9fef2960",
+    "starts": 1,
+    "elapsed_seconds": 249.415,
+    "total_rows": 52061
+  },
+  "canonical_action_ids": [
+    "manual-1e2a8eaa04774696a728851232617f7f",
+    "manual-7034d907e7fe41ceb13ed3beba8a90ee",
+    "manual-d15c2b4917124bf197c25352f108f0ed",
+    "manual-8275e6121d2d4d0b8dd2bf4025bc8525",
+    "manual-5a12481f248c459193bf32bc4ccac39b"
+  ],
+  "decision_ids": [
+    "restoration-242f4de94c0c4d8a853035936f799bec",
+    "restoration-c2a9007f3701404f8193aacd82769235",
+    "restoration-c7d128f4b769438381c46bbddc691442",
+    "restoration-01e92240622d4d4aa0021df2ac71a059",
+    "restoration-f3c1c8171d4d4058ba8d2372e8d3c8e3"
+  ],
+  "review_revision": "96579a45d7ff01a7d3423657803d5baf00c12bd4932bd6c387e858c3d76f663a"
+}
