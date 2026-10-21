@@ -43,6 +43,12 @@ comparison. They do not call for invented fields or larger structures. The 27
 dynamic indexed records retain their bounded consumer/index obligations. This
 is an accounting and evidence reconciliation, with no source or history edits.
 
+> Current indexed-consumer review: [27 records in seven groups](../validation/pandora-indexed-consumers.json).
+> Reader formulas and bounded original domains were already understood; native
+> indexed status is not 27 missing field meanings. Optional XY use still lacks
+> an original nonzero producer. No new source contract was justified, so this
+> reconciliation adds no source edit, generation, capture or classification credit.
+
 > Current indirect-site review: [eight-site reconciliation](../validation/pandora-indirect-closeout.json).
 > The old eight unresolved sites have finite per-site dispositions. Five stored
 > absolute calls select four targets; no relative call occurs in the scoped 783
@@ -6634,3 +6640,46 @@ The two missing original fixed-pose contracts are filled; no other missing
 original target contract was established by this audit. Continue with unresolved
 dynamic consumer bounds only when their current evidence supports a concrete
 source interpretation.
+
+## Indexed consumers: finite original-layout reviewed inventory
+
+[The seven-group inventory](../validation/pandora-indexed-consumers.json) assigns
+each of the 27 baseline `indexed_dynamic` operand identities exactly once.
+The scope is a qualified original-layout source review, not a fresh native
+accounting run or complete semantic restoration. Existing reader semantics do
+not need arbitrary hostile/replacement-input safety to be accurately documented.
+
+| Consumer / source sites | Records | Existing bounded understanding | Remaining original-use question or limit |
+| --- | ---: | --- | --- |
+| Script copy `$11B2` operands 0/1 | 2 | Signed command displacement addresses a reload WORD and its adjacent remaining counter. All 130 stored copies match repeat records within their script owner. | Arbitrary cursors/relative writes remain unchecked; these addresses are not extra copy-header fields. No new missing original pair found. |
+| Inventory exchange `$2A72/$2A76` | 2 | Four valid cursor rows give ID-byte offsets 0/2/4/6 in two-byte records, preserving value bytes. Existing source retains the `ANDI.B` high-byte caveat. | Backed four-record input is conditional; even stride does not bound arbitrary cursor words or prove allocation. No new field meaning is missing. |
+| Audio `$4D804/$4D80E/$4D842/$4D850/$4E416/$4E476` | 6 | Three ten-byte presets select twelve existing program lists; channel pending is `12*channel+11`. All 29 secondary configurations select envelope indices 0..5, matching six declared offsets/targets. | Runtime preset/channel/configuration/envelope inputs are unchecked. Original stored domains and the existing conditional source contract are understood; replacements/device timing are separate. |
+| Overlay line `$6640` | 1 | Wrapped WORD index times four, interpreted signed from descriptor+12; source explicitly has no six-line guard. | Existing boundary injections establish reader arithmetic, not original out-of-prefix activation. No descriptor enlargement is justified. |
+| Deferred sort `$851A/$851E/$852C/$8530` | 4 | One-pointer-before base plus four-byte pair indices addresses the deferred array. The original 32 inputs partition into 26 deferred and six back-group records; unsigned-Y sort is documented. | Nonempty middle is an explicit precondition; empty-middle or arbitrary graph safety is not required to describe that contract. These are not four missing descriptor fields. |
+| Animation `$95C6/$95D4/$95DA` | 3 | Held prefix plus four-byte active entries; XY pairs have X/Y WORDs. All 92 currently declared node records have nominal frame-pointer extents in existing layouts. | All 92 XY pointers are NULL. The two XY reads have known semantics but no established original nonzero producer. Retain the optional contract; do not infer unused storage or repeat the exhausted tail/proximity probes. |
+| Tile expansion `$A1BE/$A1C8/$A1D4/$A1E0/$A1EC/$A1F8/$A204/$A210/$A21C` | 9 | All 1,290 map IDs fit 468 records; all 4,212 pixel offsets are aligned/bounded. Existing nine row/column roles and signed/unsigned address arithmetic are explicit. | Replacement IDs, viewport bounds, allocation and DMA remain separate. No missing original map/definition contract was found. |
+
+The old animation inventory counted 89 initialized nodes. The current declared
+record count is 92 because the retained menial chained/return nodes and gardener
+node were restored later. Their already accepted owners provide 32/32/24 bytes
+of held-plus-active pointer storage respectively. This reconciles a stale
+inventory; it does not add three newly classified records or establish their
+activation. Declared records and reachable initialized roots remain distinct.
+
+Read-only consistency checks pass for the exact 27-ID partition, 130 copy pairs,
+original sort flags at the canonical state offset +25, twelve preset/list links,
+29 configuration indices, six envelope references and 92 nominal frame-pointer
+bounds/NULL XY fields. Linked CPU/source tests are existing evidence, not rerun
+for documentation. Source SHA remains
+`15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8`;
+the source-bound C/vasm receipt from `59e77f9c` remains applicable. No target
+facts, histories, labels, fonts, bank 45, EQU/RS policy or paused B07 files change.
+
+All seven groups already have accurate reader interpretations in source and
+canonical facts. No additional substantive source contract is supported by this
+pass. The precise missing original-use evidence is an optional XY-sequence
+producer; reopen it only on a concrete nonzero write/reference. Other unchecked
+or replacement-domain caveats remain explicit without being turned into a quota
+of mandatory hostile-input proofs. Native statuses, global classification,
+purpose credit and overall semantic completion are unchanged. No necessary
+source build arose, so global accounting was not regenerated for counters.
