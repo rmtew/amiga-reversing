@@ -16250,10 +16250,47 @@ draw_combat_charge_pattern_cell:
 return_from_combat_charge_gauge:
 	rts
 combat_charge_full_cell_patterns:
-	dc.l $FE00FEFE,$FE00FEFE,$FE00FEFE,$00FEFE00	; lookup_table
-	dc.l $00FEFE00	; lookup_table
+	dc.b %11111110	; lookup_table
+combat_charge_cell_0_plane_1_pixels:
+	dc.b %00000000	; lookup_table
+combat_charge_cell_0_plane_2_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_0_plane_3_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_1_plane_0_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_1_plane_1_pixels:
+	dc.b %00000000	; lookup_table
+combat_charge_cell_1_plane_2_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_1_plane_3_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_2_plane_0_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_2_plane_1_pixels:
+	dc.b %00000000	; lookup_table
+combat_charge_cell_2_plane_2_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_2_plane_3_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_3_plane_0_pixels:
+	dc.b %00000000	; lookup_table
+combat_charge_cell_3_plane_1_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_3_plane_2_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_3_plane_3_pixels:
+	dc.b %00000000	; lookup_table
+combat_charge_cell_4_plane_0_pixels:
+	dc.b %00000000	; lookup_table
+combat_charge_cell_4_plane_1_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_4_plane_2_pixels:
+	dc.b %11111110	; lookup_table
+combat_charge_cell_4_plane_3_pixels:
+	dc.b %00000000	; lookup_table
 combat_charge_partial_cell_masks:
-	dc.b $80,$C0,$E0,$F0,$F8,$FC,$FE,$FF	; lookup_table
+	dc.b %10000000,%11000000,%11100000,%11110000,%11111000,%11111100,%11111110,%11111111	; lookup_table
     ; Scan NULL-terminated objects; sync descriptor XY, including player. WORD distance wraps. Changed candidates and queued messages overwrite D0; this is not a stable nearest-object reduction.
 update_nearby_object_detection:
 	lea.l world_object_ptr_table(pc),a1

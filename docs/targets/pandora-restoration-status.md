@@ -1,5 +1,10 @@
 # Pandora restoration inventory and status
 
+> Latest static restoration: [combat-charge plane-byte layout](../validation/pandora-combat-charge-plane-layout.json)
+> makes the 20 stored plane bytes and eight partial-cell masks explicit. C/vasm
+> reproduces all 376,832 original bytes; 6,446 unknown bytes remain. B07 and generic
+> capability work are paused; the behavioural figures below are the earlier milestone.
+
 > Current behavioural validation: [B01–B10 roadmap](../proposals/045-behavioural-validation.md),
 > [natural H30/S13 evidence](../validation/pandora-behavioural-validation-natural-boundary.json).
 > Five bounded predicates in three summaries: 25 CPU cases plus 65,536 BYTE inputs;
@@ -6388,3 +6393,36 @@ newly classified; 6,446 remain unknown. Histories append two actions and two
 decisions, preserving both prefixes. Fonts, bank 45, bank 30 and EQU/RS policy
 are unchanged. All B IDs remain partial. The next question is admission of the
 currently excluded audio-start path using captured inputs instead of shadow data.
+
+
+## Combat-charge stored plane layout (2026-10-21)
+
+Source `$82D4..$82F0` now exposes five groups of four binary plane bytes and
+eight leading-bit masks. The charge producer at `$817A`, LONG reader at `$820A`,
+partial masking at `$8216` and writer at `$823A` establish the layout: the writer
+rotates each LONG by eight bits before each BYTE store, advances 40 bytes between
+planes, and repeats over six raster rows. The established table-base symbol
+and both physical owners remain intact. At charge 40, the lookahead reads the
+mask prefix, but zero remainder suppresses partial drawing; this is not a claim
+that arbitrary charge values are safe.
+
+An aggregate-type trial produced misleading first-BYTE annotations on LONG
+reads and was undone in the canonical history. Explicit scalar fields avoid
+that inference without changing the renderer framework. Final source review
+confirms only the table block changed, with all EQU/RS declarations preserved.
+All 147 schemas, 557 owner identities/extents/roles and external assets remain
+unchanged. There are 19 additional effective scalar entities, not 19 newly
+classified bytes. The 28 already-classified bytes gain graphics purpose, moving
+the source-purpose union from 282,427 to 282,455; unknown bytes stay at 6,446.
+
+Final C/vasm full-file exact receipt: `e3dc4f9b72e38402e0750b7a14f45a546532ca9e2697df77741369dd56a16348`.
+Both history prefixes survive; 23 accepted actions describe the final layout,
+masks and purpose. No runtime capture or new test was needed, and the historical
+41-charge CPU test was consulted without rerunning it. Behavioural contracts,
+fixtures and B capability coverage are unchanged.
+
+The small edit incurred four healthy whole-target generations of 282, 251, 258
+and 241 seconds (17.2 minutes total), including two source-review corrections.
+That is measured workflow overhead, not additional restoration coverage.
+[Public evidence](../validation/pandora-combat-charge-plane-layout.json) records
+the exact identities, canonical actions, scope checks and limits.
