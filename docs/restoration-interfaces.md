@@ -78,6 +78,18 @@ conflicts and missing native results remain explicit. For a standalone summary:
 python -m amiga_reversing.tools.typed_pointer_report --target TARGET --summary
 ```
 
+Instruction query records also expose native `operand_facts` (EA shape, base,
+displacement, index, generated width and operand role), `app_slot_refs`, typed and
+unresolved typed accesses, address observations and platform address uses. These
+are structured analysis evidence, not parsed instruction text or runtime events.
+App attribution can use the analyzer's A6 fallback; it does not establish an
+all-path base value. Hardware families retain their offset set and input-contract
+flag with no invented concrete address. MOVEM widths are per element; the
+`bulk_transfer` flag prevents treating them as a complete footprint. Form roles
+alone do not independently enumerate every read side of read-modify-write uses.
+Consumers requiring a complete inventory must refuse truncated previews and join
+only pages from one revision.
+
 `query` text is a case-sensitive literal substring of symbol names for `symbols`
 and generated instruction text for `instructions`; it does not normalize numeric
 values or search instruction annotations. Function queries match names without

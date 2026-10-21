@@ -14181,7 +14181,11 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
         sec = ins->source_section_index < artifact->object.section_count ? &artifact->object.sections[ins->source_section_index] : NULL;
         if (sec && ins->source_offset <= sec->data_size && ins->instruction.byte_count <= sec->data_size - ins->source_offset)
           for (j = 0; j < ins->instruction.byte_count; ++j) Q(json_builder_appendf(&b, "%02x", sec->data[ins->source_offset+j]));
-        Q(json_builder_append(&b, "\",\"provenance\":\"accepted_instruction\"}"));
+        Q(json_builder_append(&b, "\",\"provenance\":\"accepted_instruction\""));
+        Q(source_file_instruction_evidence_append_json(&b, &ins->instruction, &ins->render_instruction,
+            ins->source_section_index < artifact->source_analysis.section_count
+              ? &artifact->source_analysis.sections[ins->source_section_index] : NULL, ins->source_offset));
+        Q(json_builder_append(&b, "}"));
       } else {
         for (j = 0; j < ins->symbol_access_count; ++j) {
           const M68kRenderPlannedSymbolAccess *a = &ins->symbol_accesses[j];

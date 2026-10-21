@@ -41,6 +41,17 @@ Original disk image and loader parity are explicitly out of scope. The existing
 packed/unpacked inputs and legal Kickstart can support analysis; no input download
 or unrelated tennis changes are required.
 
+## App-offset usage follow-up
+
+The separately requested [app-offset audit](pandora-restoration-status.md#app-offset-usage-audit-2026-10-21)
+now inventories all 7,059 accepted instructions and distinguishes 551 native app
+attributions, 178 additional conditional A6 sites, 12 A6 audio-hardware writes,
+indexed/range/cursor aliases and unresolved provenance. Its
+[machine evidence](../validation/pandora-app-access-audit.json) is a derived
+inventory, not another fact store. Enumeration does not certify exhaustive app
+usage, complete field semantics, allocation, relocation or a C port. The qualified
+closeout below and its explicit unknowns remain unchanged.
+
 ## Current closeout scope (2026-10-21, after `e19817e4`)
 
 The five review obligations below are dispositioned in the

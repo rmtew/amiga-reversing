@@ -1,5 +1,118 @@
 # Pandora restoration inventory and status
 
+## App-offset usage audit (2026-10-21)
+
+The [current inventory](../validation/pandora-app-access-audit.json) and
+[per-operand evidence](../validation/pandora-app-access-audit-sites.jsonl) enumerate
+all **7,059 accepted native instructions / 3,649 explicit EA-shaped operand
+sites** in one revision. EA sites include address computations, not just memory
+reads/writes. This is a complete inventory of that accepted population, **not
+exhaustive app usage or complete field semantics**. Opaque/unaccepted code,
+indirect ranges and base provenance remain explicit limits.
+
+| Current measure | Result and qualification |
+| --- | --- |
+| Native app attribution | 551 sites at 104 offsets: 182 read, 237 write, 118 read/write, 14 address uses. These categories are static native roles, not execution events. All 551 navigation references reconcile with the instruction inventory. |
+| Additional A6 candidates | 178 sites omitted by native app attribution: 168 scalar uses at 24 offsets, plus ten indexed row-table sites. Conditional declaration joins assume A6=$39FC; they do not add base-flow proof or mean 178 unknown field meanings. Native form roles do not independently enumerate every RMW read side. |
+| A6 audio hardware | 12 hardware-family writes, separated from app candidates. Each retains `_custom+16*channel`, channel set 0..3 and its required input contract; no concrete channel address is invented. |
+| Concrete app-envelope references | Four address-only anchors at source $46A/$48C/$8E8 (workspace) and $A19C (grid). These are not four additional memory reads/writes. |
+| Other register/record domains | 1,007 typed-record EA sites, 662 unresolved register aliases and 222 A7-based sites remain separate. A3 has 80 typed-record and 52 unresolved sites; A5 has 232 typed-record, 290 hardware and 51 unresolved sites. Register names alone do not establish ownership or disjointness. |
+| Native conflicts | Twelve address-observation conflict records are retained outside the app-attributed/A6 population; none is silently promoted to app proof. |
+| Declarations | 129 fields including six aliases; observed envelope `[0,$7F0)` = 2,032 bytes, declared union 1,282 bytes, 14 gaps / 750 bytes. This is neither allocation size nor a semantic completion percentage. |
+
+The native app resolver can fall back to A6 when no value is known, and excludes
+some hardware-register-shaped displacements. Thus both a rendered `app_*` name
+and the absence of that name are inadequate base evidence. All 178 omitted A6
+sites, formulas, widths and conditional joins are retained individually in the
+report. No generated instruction text is parsed to obtain these counts.
+
+Explicit A6 definitions at source `$48C` and IRQ `$8E8` bind `$39FC`. Audio
+`$4D978/$4D98E` instead select `_custom+16*channel`; A3 audio-state-relative
+accesses and object/UI record bases are separate domains. Push/pop pairs around
+audio show intended preservation, not an all-caller saved-slot integrity proof.
+These established context points do not propagate themselves through every call
+and alias in this audit.
+
+The ten indexed A6 sites have existing row-table contracts, not ten missing
+field names. Every read/write below is conditional on the documented app base:
+
+| Source sites | Existing index interpretation and bounds |
+| --- | --- |
+| `$9EC6` (write) | Producer emits 200 WORDs, 160*y, at offsets 0..398; range `[0,$190)`. |
+| `$6112/$6130` (reads) | Text-origin helpers use byte displacement `16*(Y&31)`. The maximum read ends at offset 498; Y=25..31 reads beyond the 400-byte table. Masking is not clipping. |
+| `$C80` (read) | Star projected Y plus 100 is doubled as WORD. The reader itself does not bound the index. |
+| `$6DBA/$6DD6` (reads) | Back-buffer address and tile-offset helpers use signed WORD(2*Y), wrapped WORD arithmetic; no local bounds check. |
+| `$7044/$7078/$70E6/$713E` (reads) | Geometry paths consume the post-clip/exchange Y through signed doubled-WORD indexing. Existing clipping/caller contracts are conditional, not a universal index/allocation proof. |
+
+See the existing [framebuffer contracts](pandora.md) and
+[indexed-consumer review](../validation/pandora-indexed-consumers.json); no new
+runtime evidence or arbitrary-input guarantee is added here.
+
+Cursor and physical aliases explain why declaration gaps or zero fixed-offset
+matches do not mean unused storage:
+
+- Startup at source `$46A` initializes A0 for the byte-clear loop over
+  app `[0,$36C)`, including lower declaration gaps. The largest gap
+  `$36C..$604` (664 bytes) is not thereby proved unused.
+- Fourteen native app address uses form message-queue head/limit, displayed-ID,
+  deposited-ID and submitted-name cursors. Another ten conditional A6 address
+  uses form carried/pocket-ID cursors. Their later indirect accesses remain
+  individually visible; the audit does not pretend each has closed provenance.
+- The existing grid producer at `$A198..$A25C` writes fixed physical
+  `$4000..$F568`, overlapping app `+$604..$7F0`. This covers the prefix and
+  pointer 122's high WORD; its low WORD/BYTE supplies the established combat
+  selector alias. It does not establish an app allocation extending to $F568.
+- Six declarations have no fixed scalar match even after conditional joins:
+  row-table prefix, queue-limit address, deposited-ID/name-pointer arrays, grid
+  prefix and pointer-122 high WORD. Indexed/range/address use explains this
+  result; zero matches is not an unused-field verdict.
+
+Specific remaining questions are bounded and unchanged by enumeration:
+
+- At source `$4B6`, startup stores a pointer at app `+$190` inside a declaration
+  gap. The local base is established by `$48C`; a subsequent consumer remains
+  unidentified. This is the only scalar candidate intersecting a declaration
+  gap in the inventory (four bytes), before adding range/index contracts.
+- `app_01AD` is a rendered byte alias inside the named frame-counter extent,
+  not a new unnamed field. Actual generic LONG `app_02D4` has two listed writes
+  (changed nearby-object pointer and initialization clear) and no listed reader;
+  indirect consumption and lifetime remain unresolved. No rename is manufactured.
+- App `+$368` has the interrupt callback reader and startup zeroing, but no
+  established nonzero producer. Existing producer/continuation exceptions remain.
+- Complete usage would require qualifying remaining base/cursor provenance and
+  original index domains, including indirect writers/consumers and opaque code.
+  The 662 unresolved aliases are not all app accesses, nor proven non-app uses.
+  Absent static references do not prove unused data.
+
+Reproduce a fresh native snapshot through the resident service, or reproject the
+saved private evidence without another expensive analysis/paging pass:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_app_access_audit --output /tmp/app-audit.json
+.venv/bin/python -m amiga_reversing.tools.pandora_app_access_audit --from-evidence --output /tmp/app-audit.json
+```
+
+Fresh pages are revision-bound and refuse previews, missing/nonadvancing pages,
+changed identities or subjects. Saved instructions/navigation are identity-checked
+under `.runtime-state/pandora-app-access-audit/`; raw instruction bytes stay there.
+Published summary/site records carry the source, binary, backend, evidence and
+auditor identities. `snapshot_only` explicitly labels reprojection of captured
+facts rather than a new current-state read. The public site file is hash-bound
+and contains no original instruction bytes or raw checkpoint/media payload.
+
+One native analysis took about 307 seconds; the shared service's repeated
+identity/history work made the full paginated collection take about 14 minutes.
+This cost is recorded, not expanded into a general performance project. No source,
+MAL or Decision Journal change was required. Source SHA remains
+`15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8`.
+The service automatically ran its on-ready reproduction check and reported exact;
+no explicit generation/export/verification or emulator capture was requested.
+Focused audit/native-query tests: 22 pass. Existing restoration operations/read
+snapshot/HTTP interface tests: 67 pass, one optional MCP SDK test skipped because
+`mcp` is not installed. Initial network-sandbox socket setup errors were resolved
+by the scoped local-HTTP test run. B07's nine files remain unchanged; PR #5 stays
+unmerged. No unknown-byte reduction, C portability or relocation credit is claimed.
+
 ## Current closeout position (2026-10-21)
 
 **Original-layout reviewed closeout with explicit unknowns** is complete.
