@@ -1224,3 +1224,43 @@ filters before claiming a reader. These watches establish no DMA coverage.
 Keep full reports, stack samples, ROMs, payloads and generated ADFs local; publish
 only filtered observations and identities. The initial run results are in
 [`pandora-app-memory-watch.json`](../runtime/observations/pandora-app-memory-watch.json).
+
+#### Earlier windows and a finite frame end
+
+Use the same composer with `--window early` to arm at source `$83AE`, before
+active-object/proximity text processing. Fire has already been released at UI
+initialization. This idle-entry route adds no movement or manual inventory input.
+The watch requests `frames: 240` and a 60-second wall safety deadline. In this
+profile its anchor is frame 463 and its target frame is 703; actual CCK/raster
+endpoints remain in the report. These are frame-label bounds, not a claim that
+the first and last frames are complete bus captures.
+
+`--window overlay` instead arms at source `$7A2`, one LEA after the existing UI
+initialization anchor, with fire already released. It covers initial overlay
+construction omitted by the proximity anchor. The first targeted overlay probe
+watches `+$190`; it does not establish pre-overlay coverage for the other gaps.
+Both modes reuse the existing original boot route and accept no guest patches.
+
+The optional `frames` field is supported only with a CPU range `length`. The
+runtime derives the target from the byte-verified canonical anchor's frame,
+checks filter readback, and uses Copperline's existing `run_until(frame)` stop.
+`frame_budget_completed_no_access` requires an exact target-frame stop. A wall
+deadline remains `timeout/deadline_interrupt`, even if recovery carries a late
+hit or target event. A completed no-access window remains a non-pass scenario
+result, separate from an access hit, unexpected stop or infrastructure timeout.
+
+[Early-window evidence](../runtime/observations/pandora-app-early-memory-watch.json)
+contains completed observations for all 14 gaps, the retained partial timeout
+and failed boot, and two matching pre-overlay reads of `+$190` at source `$6130`.
+The nearby-distance text loop computes Y=25 on its fifth geometric position,
+although its pointer cursor remains at NULL `line_1`. Cursor setup precedes the
+NULL test, so this is an observed original-UI arithmetic alias of the startup
+noop pointer's high WORD, not evidence of a callback consumer or pixel access
+using that cursor. It leaves the existing source annotations accurate.
+
+The live runs reused the prior compiled route/media, with payload/source
+identities checked and provenance recorded. The added `$7A2` anchor was checked
+against the retained native accepted instruction and original bytes using the
+cached UI runtime view; all live source PCs were independently byte-matched.
+A normal invocation of the public session CLI may freshly compile the generated
+scenario instead. Raw reports and descriptor/stack captures stay local.

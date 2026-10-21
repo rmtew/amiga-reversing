@@ -21,7 +21,7 @@ def build_scenario(gap_start: int, window: str, access: str = 'access') -> dict:
     gap = next((g for g in audit['gaps'] if g['start'] == gap_start), None)
     if gap is None:
         raise ValueError('Choose a declaration-gap start from the published app audit')
-    if window not in ('startup', 'moving') or access not in ('read', 'write', 'access'):
+    if window not in ('startup', 'overlay', 'early', 'moving') or access not in ('read', 'write', 'access'):
         raise ValueError('Unsupported watch window/access')
     scenario = copy.deepcopy(json.loads(BASE.read_text()))
     scenario['identifier'] = f'pandora-app-gap-{gap_start:03x}-{window}-{access}'
@@ -45,6 +45,18 @@ def build_scenario(gap_start: int, window: str, access: str = 'access') -> dict:
     if window == 'startup':
         scenario['phases'] = [scenario['phases'][0], phase]
         scenario['input_events'] = []
+    elif window in ('overlay', 'early'):
+        # Fire was released at UI initialization. Stop before active-object and
+        # nearby text processing; overlay starts one LEA after UI initialization.
+        # Cover the following 240 emulated frames.
+        phase['breakpoint_stable_key'] = ('s0:000007A2:instruction' if window == 'overlay'
+                                          else 's0:000083AE:instruction')
+        phase['memory_access_watch'].update(frames=240, wait_seconds=60)
+        capture['memory_reads'].append({'address': APP_BASE + 0x196, 'size': 8})
+        if window == 'overlay':
+            capture['memory_reads'].append({'address': 0x1332E, 'size': 44})
+        scenario['phases'] = scenario['phases'][:3] + [phase]
+        scenario['input_events'] = scenario['input_events'][:1]
     else:
         # Retain the existing card transfer, 19 down commits and 20 right commits.
         # Keep right held through one further commit, then watch while held.
@@ -61,7 +73,7 @@ def build_scenario(gap_start: int, window: str, access: str = 'access') -> dict:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--gap-start', type=lambda s: int(s, 0), required=True)
-    p.add_argument('--window', choices=('startup', 'moving'), required=True)
+    p.add_argument('--window', choices=('startup', 'overlay', 'early', 'moving'), required=True)
     p.add_argument('--access', choices=('read', 'write', 'access'), default='access')
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()

@@ -1012,3 +1012,66 @@ def test_checkpoint_cleanup_failure_is_not_suppressed():
         def joystick(self,**kw):raise CopperlineError('release not acknowledged')
     with pytest.raises(CopperlineError,match='not acknowledged'):
         runtime.confirm_checkpoint_input_release(BrokenCleanup(),{})
+
+
+@pytest.mark.parametrize(('stop', 'termination', 'status'), [
+    ({'reason': 'target', 'frame': 703}, 'frame_budget_completed_no_access', 'not_hit'),
+    ({'reason': 'target', 'frame': 702}, 'unexpected_stop', 'not_hit'),
+    ({'reason': 'pause', 'frame': 703}, 'unexpected_stop', 'not_hit'),
+    ({'reason': 'mmio', 'frame': 464}, 'access_observed', 'hit'),
+    ({'reason': 'mmio', 'frame': 703}, 'access_outside_frame_window', 'not_hit'),
+    ({'reason': 'mmio', 'frame': 462}, 'access_outside_frame_window', 'not_hit'),
+    # Paused state may follow the accessing instruction across a frame boundary.
+    ({'reason': 'mmio', 'frame': 703,
+      'access': {'position': {'frame': 702}}}, 'access_observed', 'hit'),
+])
+def test_cpu_frame_watch_distinguishes_completion_access_and_unexpected_stops(
+    stop, termination, status,
+):
+    c = Client(); c.stop = stop
+    watch = dict(address=0x3B8C, length=5, access='access', engine='cpu',
+                 wait_seconds=15, frames=240)
+    r = runtime.wait_for_memory_access(c, watch, start_event={'frame': 463})
+    assert r['frame_window'] == {'start_frame': 463, 'target_frame': 703}
+    assert ('run', {'frame': 703}) in c.calls
+    assert (r['status'], r['termination']) == (status, termination)
+    assert c.calls[-1] == ('remove', r['watch_id'])
+
+
+@pytest.mark.parametrize('changes', [
+    {'frames': 0}, {'frames': 601}, {'frames': True}, {'frames': '240'},
+    {'engine': 'blitter'}, {'length': None},
+])
+def test_cpu_frame_watch_refuses_invalid_bounds_before_rpc(changes):
+    c = Client()
+    watch = dict(address=0x3B8C, length=5, access='access', engine='cpu',
+                 wait_seconds=15, frames=240)
+    watch.update(changes)
+    with pytest.raises(ValueError, match='Memory access watch requires'):
+        runtime.wait_for_memory_access(c, watch, start_event={'frame': 463})
+    assert c.calls == []
+
+
+@pytest.mark.parametrize('anchor', [None, {}, {'frame': True}, {'frame': -1}])
+def test_cpu_frame_watch_requires_a_valid_anchor_before_rpc(anchor):
+    c = Client()
+    with pytest.raises(ValueError, match='canonical anchor frame'):
+        runtime.wait_for_memory_access(c, dict(address=0x3B8C, length=5,
+            access='access', engine='cpu', wait_seconds=15, frames=240), start_event=anchor)
+    assert c.calls == []
+
+
+@pytest.mark.parametrize('stop', [
+    {'reason': 'pause', 'frame': 600},
+    {'reason': 'target', 'frame': 703},
+    {'reason': 'mmio', 'frame': 700},
+])
+def test_cpu_frame_watch_deadline_is_not_completed_window_or_hit(stop):
+    c = Client()
+    c.stop = CopperlineTimeout('expired', stop_event=stop)
+    r = runtime.wait_for_memory_access(c, dict(address=0x3B8C, length=5,
+        access='access', engine='cpu', wait_seconds=15, frames=240),
+        start_event={'frame': 463})
+    assert (r['status'], r['termination']) == ('timeout', 'deadline_interrupt')
+    assert r['stop_event'] == stop
+    assert c.calls[-1] == ('remove', r['watch_id'])

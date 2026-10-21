@@ -1,5 +1,28 @@
 # Pandora restoration inventory and status
 
+## Earlier app-gap window and observed UI reader (2026-10-21)
+
+[Earlier-window evidence](../../runtime/observations/pandora-app-early-memory-watch.json)
+records completed frame-463→703 CPU data watches for all 14 gaps/750 bytes,
+with no access observed in those windows. It also retains one partial wall
+timeout (ending frame 583) and one boot-handoff failure; fresh retries completed.
+Held-item snapshots change from zero to `$36` (`ITEM_ID_ID_AMY`), corroborating
+handoff state without claiming a directly trapped handoff PC in these windows.
+
+A targeted pre-overlay watch **did** observe `+$190`: source `$6130` reads WORD
+`$0001` from physical `$3B8C` at frame 462. A second run reproduced the exact
+stop event. Captured nearby-distance descriptor `(x=34,y=20,height=3)`, D7=4,
+A4 at NULL `line_1`, and matching return frames identify the six-position text
+loop's cursor setup: `(20+4+1)<<4 = $190`. The NULL test comes later. This closes
+one original-UI reader/reachability question; it establishes neither a callback
+role nor glyph/pixel access using that computed cursor, nor the pointer's intent.
+
+The existing source comments/loop contracts remain accurate; no target source
+or classification changed. Focused runtime/session checks: 148 tests passed.
+No DMA, instruction-fetch, all-alias, manual-inventory or full-playthrough
+coverage is claimed. Only `+$190` was watched before initial overlay drawing;
+all other pre-overlay gaps and the declared-slot questions remain open.
+
 ## First app-gap memory-watch milestone (2026-10-21)
 
 [Filtered runtime evidence](../../runtime/observations/pandora-app-memory-watch.json)
@@ -39,7 +62,7 @@ The three named slots now have finite conclusions:
 
 | Slot | Established use and aliases | Remaining semantic question |
 | --- | --- | --- |
-| `+$190` / physical $3B8C | Startup $4B6 writes one noop-function-pointer LONG. Both text-origin readers consume its high WORD for masked Y=25; the unchecked row helper consumes it for Y=200. | No independent pointer consumer/intent is established. Conditional WORD reads may be accidental overrun; they do not establish a callback role or ordinary gameplay caller. |
+| `+$190` / physical $3B8C | Startup $4B6 writes one noop-function-pointer LONG. Both text-origin readers consume its high WORD for masked Y=25; the unchecked row helper consumes it for Y=200. | No independent pointer consumer/intent is established. The initial nearby-distance overlay now supplies one observed original UI caller (above). Its empty-position cursor lookup does not establish a callback role or intentional layout. |
 | `+$2D4` / $3CD0 | $8366 mirrors the changed nearest-object pointer; $9FB2 clears it on restart. Unchecked row Y=362 reads its WORD. Carried/pocket transfer indices318/314 read and write it; displayed-ID index26 writes it. | Producer-defined shadow semantics are established. A dedicated pointer consumer and intentional retention purpose are not. It is not unconditionally write-only or dead. Keep the existing `app_02D4` symbol. |
 | `+$368` / $3D64 | Startup zeroing and the raw IRQ callback read at $92E/$932 are established. Known CPU and original Copper policy leaves BLIT disabled. Row Y=436 reads the WORD; deposit scan overflow, inventory indices and submitted-name index15 can corrupt/write the slot. | No legitimate callback installer or original activation phase is established. Corrupt-state aliases are not evidence of a gameplay callback. Masking alone is not an all-entry unreachable proof. |
 

@@ -38,6 +38,7 @@ def validate_memory_access_watch(watch):
         or set(watch) not in (
             {"address", "access", "engine", "wait_seconds"},
             {"address", "access", "engine", "wait_seconds", "length"},
+            {"address", "access", "engine", "wait_seconds", "length", "frames"},
         )
         or not (absolute or relative)
         or watch.get("access") not in ("read", "write", "access")
@@ -45,6 +46,9 @@ def validate_memory_access_watch(watch):
         or watch["engine"] not in MEMORY_ACCESS_ENGINES
         or type(watch.get("wait_seconds")) is not int
         or not 1 <= watch["wait_seconds"] <= 120
+        or ("frames" in watch and (
+            type(watch["frames"]) is not int or not 1 <= watch["frames"] <= 600
+        ))
         or ("length" in watch and (
             watch["engine"] != "cpu" or type(watch["length"]) is not int
             or not 1 <= watch["length"] <= 4096
@@ -54,11 +58,11 @@ def validate_memory_access_watch(watch):
         raise ValueError(
             "Memory access watch requires a 24-bit integer address or a0..a7/offset binding, access "
             "read/write/access, supported engine and wait_seconds (1..120); "
-            "optional CPU-only length (1..4096), with no address wrapping; no other fields"
+            "optional CPU-only length (1..4096) and frames (1..600), with no address wrapping; no other fields"
         )
 
 
-def wait_for_memory_access(client, watch):
+def wait_for_memory_access(client, watch, *, start_event=None):
     """Wait for one engine-filtered access; retain backend evidence verbatim.
 
     Only called after a canonical scenario anchor has passed identity checks.
@@ -67,6 +71,12 @@ def wait_for_memory_access(client, watch):
     width is inferred when the backend event does not provide one.
     """
     validate_memory_access_watch(watch)
+    frame_window = None
+    if "frames" in watch:
+        frame = start_event.get("frame") if isinstance(start_event, dict) else None
+        if type(frame) is not int or frame < 0:
+            raise ValueError("Frame-bounded watch requires the canonical anchor frame")
+        frame_window = {"start_frame": frame, "target_frame": frame + watch["frames"]}
     address = watch["address"]
     if isinstance(address, dict):
         address = client.registers()[address["base_register"]] + address["offset"]
@@ -87,6 +97,8 @@ def wait_for_memory_access(client, watch):
     result = {"requested_watch": dict(watch), "armed_watch": dict(armed),
               "registration": registration, "watch_id": ident,
               "wait_seconds": watch["wait_seconds"], "stop_event": None}
+    if frame_window is not None:
+        result["frame_window"] = frame_window
     try:
         result["backend_watch_state"] = client.request("break.list")
         state = result["backend_watch_state"]
@@ -100,7 +112,8 @@ def wait_for_memory_access(client, watch):
         else:
             try:
                 stop = client.run_until(
-                    {"seconds": 1_000_000_000}, timeout=watch["wait_seconds"]
+                    {"frame": frame_window["target_frame"]} if frame_window is not None
+                    else {"seconds": 1_000_000_000}, timeout=watch["wait_seconds"]
                 )
                 result.update(
                     status="hit" if stop.get("reason") == expected_reason else "not_hit",
@@ -108,6 +121,18 @@ def wait_for_memory_access(client, watch):
                     else "unexpected_stop",
                     stop_event=stop,
                 )
+                if frame_window is not None:
+                    position = (stop.get("access") or {}).get("position") or {}
+                    access_frame = position.get("frame", stop.get("frame"))
+                    if result["status"] == "hit" and not (
+                        type(access_frame) is int
+                        and frame_window["start_frame"] <= access_frame < frame_window["target_frame"]
+                    ):
+                        result.update(status="not_hit", termination="access_outside_frame_window")
+                    elif (stop.get("reason") == "target"
+                          and type(stop.get("frame")) is int
+                          and stop.get("frame") == frame_window["target_frame"]):
+                        result.update(status="not_hit", termination="frame_budget_completed_no_access")
             except CopperlineTimeout as exc:
                 result.update(
                     status="timeout", termination="deadline_interrupt",
@@ -587,7 +612,9 @@ def _run_scenario_phase(
             item.update(status="timeout", termination="phase_deadline")
             break
     if item.get("status") == "hit" and "memory_access_watch" in phase:
-        watch = wait_for_memory_access(client, phase["memory_access_watch"])
+        watch = wait_for_memory_access(
+            client, phase["memory_access_watch"], start_event=item.get("stop_event")
+        )
         item["memory_access_watch"] = watch
         watch["payload_at_stop"] = payload_at_pc(
             client, payload_path, watch["registers"]["pc"],
