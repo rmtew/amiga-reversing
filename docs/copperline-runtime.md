@@ -1180,3 +1180,47 @@ ROMs, raw checkpoints, complete captured register arrays or unfiltered bus data.
 Every connected batch records B IDs/contracts advanced, positive/boundary/failing
 cases, exact identities, remaining obligations and its next evidence question.
 Source changes still require the independent byte-exact gates.
+
+### Pandora app declaration-gap watches
+
+`pandora_app_memory_watch_scenario` composes one bounded CPU range watch from
+`docs/validation/pandora-app-access-audit.json` into the existing normal input
+route. A declaration gap is not evidence of unused memory. App addresses are
+absolute workspace addresses (`$39FC + offset`), without the payload's `$10000`
+runtime-view adjustment.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_app_memory_watch_scenario \
+  --gap-start 0x190 --window moving \
+  --output .runtime-state/app-watch-moving.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora \
+  --scenario .runtime-state/app-watch-moving.json \
+  --state-directory .runtime-state/app-watch-moving-fresh \
+  --continue-seconds 30 --run > .runtime-state/app-watch-moving-report.json
+```
+
+Use `--window startup --access write` in a separate fresh run for the startup
+clear control. The moving route boots through the verified direct-payload
+handoff, presses fire at the title anchor, releases it at UI initialization,
+waits for the officer's card transfer, then counts 19 downward and 21 rightward
+movement commits. The watch starts **after** that last commit with right held;
+it does not cover earlier route accesses. Input is released on completion or
+failure. Each run watches one selected gap; it does not arm all gaps together.
+
+The prefix uses canonical instruction anchors, not host delays. The watch ends
+on the first matching access or a three-second wall deadline. Consequently a
+no-hit window has a variable emulated duration; compare the actual recorded
+frames/CCK and route captures, not an assumed fixed frame count. Timeout means
+not observed within bounds, not unused or a successful equivalence check.
+Source anchor and accessing-PC payload matches are separate from the paused PC.
+
+Range watches use Copperline's CPU-only `mmio` data-access trap; instruction
+fetch coverage is excluded. Registers are paused-state snapshots, not asserted
+pre-access registers. Startup `CLR.B (A0)+` can
+report both a read and a write: distinguish those events using separate access
+filters before claiming a reader. These watches establish no DMA coverage.
+Keep full reports, stack samples, ROMs, payloads and generated ADFs local; publish
+only filtered observations and identities. The initial run results are in
+[`pandora-app-memory-watch.json`](../runtime/observations/pandora-app-memory-watch.json).

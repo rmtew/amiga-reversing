@@ -1,5 +1,22 @@
 # Pandora restoration inventory and status
 
+## First app-gap memory-watch milestone (2026-10-21)
+
+[Filtered runtime evidence](../../runtime/observations/pandora-app-memory-watch.json)
+records 18 fresh original-payload runs: three startup controls and fifteen moving
+runs covering all fourteen declaration gaps (750 bytes, watched individually).
+The repeated boot/fire/card-transfer/19-down/21-right prefix has identical stop
+events through watch arming at frame 798, player coordinates (388, 942, 0).
+
+Startup read/write filters identify the existing `CLR.B (A0)+` at source $474,
+including its zero write. No later CPU access was observed in the separate
+three-second gap windows. These are **incomplete/timeout** observations, not
+passes, unused-memory proofs or DMA coverage. The prefix before arming was not
+watched. No semantic field claim or byte classification changes from this run.
+See [reproduction and limits](../copperline-runtime.md#pandora-app-declaration-gap-watches).
+The next evidence question is earlier proximity/text/card-transfer or inventory
+activity; this first milestone does not claim a full playthrough.
+
 ## App-use static closure (2026-10-21)
 
 The requested follow-up is complete within the available original-layout static
