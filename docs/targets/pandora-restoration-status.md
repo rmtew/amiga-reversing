@@ -2,11 +2,12 @@
 
 ## Current closeout position (2026-10-21)
 
-The [prioritized original-layout closeout list](pandora-restoration-plan.md#current-closeout-scope-2026-10-21-after-e19817e4)
-now separates five required review obligations from optional source polish,
-alternate-layout execution and a native C game port. Each obligation gives its
-evidence, acceptance condition and next bounded action. Canonical facts and
-histories remain authoritative; this is a derived index, not a new tracker.
+**Original-layout reviewed closeout with explicit unknowns** is complete.
+The [final source-bound review](../validation/pandora-original-layout-closeout.json)
+dispositions every old unknown interval and audits source/package/history
+preservation. This is not full semantic restoration, alternate-layout safety or
+a native C port. Canonical facts and histories remain authoritative; the report
+is review evidence, not a new tracker or a new classification authority.
 
 | Measure | Verified position and limit |
 | --- | --- |
@@ -14,27 +15,27 @@ histories remain authoritative; this is a derived index, not a new tracker.
 | Code/data classification | Last full baseline: 24,308 code + 339,648 structured data + 1,690 table + 4,740 text + 6,446 unknown = 376,832. This partition is stale after the held-frame restoration; no fresh global unknown count is claimed. |
 | Supported purpose | Latest union 283,380 / 376,832 bytes (75.2%), across 216 active assessments. This is bounded purpose accounting, not semantic completion; large graphics assets dominate the byte weight. The remaining 93,452 bytes lack purpose credit, which does not establish that they are all ununderstood. |
 | Function/field understanding | Old snapshot: 273 function candidates, 973 resolved and 32 unresolved field-access records; candidates and access records are not complete function/field denominators. Current catalogue has 558 owners and 147 custom schemas; neither measures semantic completeness. |
-| Readable source | Numerous connected subsystems and layouts restored, with source-diff audits. No complete reviewed-function/resource denominator or final subsystem acceptance exists yet. See the closeout list rather than a percentage estimate. |
+| Readable source | Seven connected subsystem groups reviewed with explicit exceptions; final source-quality/preservation audit passes. Complete function/resource denominators remain unknown. The accepted label is original-layout reviewed closeout with explicit unknowns, not full semantic restoration. |
 | Alternate layout / native C | Separate, unfinished deliverables. Original self-relocation, modeled calls and original-only DMA replay do not prove alternate-layout safety or a native C game port. No credible port percentage or overall ETA is available. |
 
-The immediate priority is reconciliation of existing unknown intervals and
-control/field ambiguities, followed by a finite subsystem acceptance review.
-The three large spans account for 6,260 bytes of the old unknown total; their
-original stack/seed/suffix meanings remain bounded questions, not a reason to
-repeat exhausted probes. B07 and generic capability work remain paused.
-Historical behavioural recommendations below and in Proposal 045 do not set
-the current work queue. No new generation or runtime capture was needed for
-this inventory; current-source classification will be refreshed with a necessary
-source build. The closeout questions are finite; discovery effort is not yet
-bounded well enough for an ETA.
+All 32 old unknown intervals are dispositioned below: three intervals / 30 bytes
+are already bounded by canonical table/frame facts; 29 intervals / 6,416 bytes
+are retained as explicit unknowns. These are old-cohort review totals, **not a
+fresh full-image native unknown count**. The opaque 27,792-byte uncopied tail
+is a separate bounded exception. No source correction arose, so the existing
+exact receipt is reused; no bookkeeping generation, test rerun or capture was
+performed. B07 stays paused. Historical future-step recommendations below and
+in Proposal 045 do not create a new task queue. This review stops here; only
+new positive evidence listed in the final section would justify reopening an
+exception. No overall semantic percentage or ETA is claimed.
 
 The first reconciliation pass compared all 32 old unknown intervals with the
 existing bounded data seeds. Only three intervals overlap such seeds:
 `$8671..$8677` and `$8678..$867E` lie inside the two already-rendered seven-byte
 weapon tables; `$4C376..$4C388` is the restored held-frame header. These 30 bytes
 are existing facts, not new restoration credit or a freshly computed native
-unknown total. The weapon-table native ownership discrepancy remains to be
-reconciled with the full-image accounting.
+unknown total. The weapon-table native ownership discrepancy is retained as
+a limitation of the stale full-image accounting.
 
 The five non-dynamic field-gap records are also already interpreted in the
 historical reviews below: `$1210`, `$132E`, `$1366` and `$139E` are LEA advances
@@ -6761,3 +6762,121 @@ evidence, so no target action, test suite, capture or generation was performed.
 Current source remains the exact source of `59e77f9c`; `ca948c92` only reconciles
 its indexed consumers. This review narrows the remaining questions rather than
 claiming another subsystem was semantically completed.
+
+## Final original-layout reviewed closeout with explicit unknowns
+
+[Final evidence and identities](../validation/pandora-original-layout-closeout.json)
+bind this disposition to the unchanged source of `59e77f9c`. Every range below
+is section-0 source coordinates with an exclusive end. Review disposition is
+not native classification promotion and does not invent a meaning from an
+opcode pattern, zero bytes or a negative access window.
+
+| Old unknown interval | Bytes | Final review disposition |
+| --- | ---: | --- |
+| `$52..$456` | 1,028 | Retain raw; known stack top does not establish complete extent/purpose. |
+| `$1094..$109E` | 10 | Retain unresolved terminal-decode candidate; no accepted entry. |
+| `$1113..$1114` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$14B6..$14B8` | 2 | Retain raw guarded fallback; execution semantics unproved. |
+| `$2B7D..$2B7E` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$2EE5..$2EE6` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$6A16..$6A1E` | 8 | Retain raw beside known masked-blit routine; no entry/layout inference. |
+| `$718F..$7190` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8179..$817A` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$864B..$864C` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8671..$8677` | 6 | Existing seven-byte weapon-table owner/seed; native counting remains stale. |
+| `$8678..$867E` | 6 | Existing seven-byte weapon-table owner/seed; native counting remains stale. |
+| `$8D53..$8D54` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8DA5..$8DA6` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8DDF..$8DE0` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8E7D..$8E7E` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8F0B..$8F0C` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8F25..$8F26` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$8FF1..$8FF2` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$9178..$917A` | 2 | Retain the two nonzero bytes; role unknown. |
+| `$9485..$9486` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$A25C..$A25D` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$A7D8..$A804` | 44 | Retain raw inputs; loader/record interpretation unproved. |
+| `$B120..$B130` | 16 | Retain zero tail; no allocation/padding/unused claim. |
+| `$B250..$B260` | 16 | Retain zero tail; no allocation/padding/unused claim. |
+| `$B4A8..$C3A8` | 3,840 | Retain original seed; later scratch accesses do not classify initial bytes. |
+| `$39DC8..$3A338` | 1,392 | Retain zero suffix; no reservation/padding/non-use claim. |
+| `$4C376..$4C388` | 18 | Existing 18-byte held-frame owner/type, restored after the player boundary correction. |
+| `$4E127..$4E128` | 1 | Retain single raw zero byte; no terminator/alignment/padding inference. |
+| `$4E364..$4E378` | 20 | Retain raw; no established program-entry/consumer contract. |
+| `$4EAD6..$4EAD8` | 2 | Retain raw before sample bank; role unknown. |
+| `$552CA..$552DE` | 20 | Retain raw; opcode/container resemblance is insufficient. |
+
+All 32 intervals / 6,446 old-cohort bytes are covered exactly once. Three
+intervals / 30 bytes have existing bounded facts; the remaining 29 intervals /
+6,416 bytes are retained uninterpreted. No bytes were newly classified by this
+review. In particular, subtracting these facts from an old total does not yield
+a current native classification number.
+
+The opaque asset `$55370..$5C000` separately preserves **27,792 original bytes**
+through `preserved_uncopied_payload_tail`. Its original purpose and pre-overwrite
+consumers remain unknown; byte preservation and later zeroing do not establish
+unused data. Workspace questions are separate: the named app-relative gap
+`$36C..$604` is 664 bytes, while the older **750-byte aggregate workspace-gap
+metric** includes other gaps and is not refreshed here. The supervisor stack
+top is known, but a whole allocation/all-path stack bound is not. None of these
+workspace numbers is added to payload unknowns.
+
+### Final quality and freshness audit
+
+- The unchanged source, current effective metadata and complete source package
+  match the existing C/vasm **376,832-byte full-file exact receipt**
+  `d4fd9cb2cc9d6c1843f8e4f93207fb5599a62a0b29f1d2ac45cb3c50bdf6c49a`.
+  The resident service confirms that receipt's subject is still current.
+- All **126 assets, 16 SDK includes and the source file** match their manifest
+  sizes/hashes. All noncomment source characters, **3,772 labels in order** and
+  **2,824 EQU/RS declarations** remain unchanged since reviewed `e19817e4`.
+  Twelve representative named display/audio SDK operand checks pass. The later
+  three semantic comment edits are the already reviewed `59e77f9c` changes.
+- Original bytes and target files are unchanged; both legacy history prefixes
+  remain intact, including the recorded historical sequence gap. All nine
+  paused B07 files retain their saved identities. No target fact/history write,
+  new test, capture or generation occurred in this final review.
+- **Stale:** the full native code/data/unknown partition (last unknown total
+  **6,446**), native field-resolution/candidate counts and global workspace
+  accounting. That baseline binds source
+  `85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db`,
+  preceding the held-frame correction. The current native artifact is readable,
+  but supported HTTP queries/navigation do not expose the complete ownership
+  and source-plan DTOs needed by `build_accounting`; the offline accounting
+  command constructs another whole artifact. No extra generation or new API
+  was introduced just to replace the stale metric. This is an interface/freshness
+  limitation, not a denied action or a pending build.
+- **Current without native regeneration:** the canonical purpose union remains
+  **283,380 source bytes across 216 active assessments** (all coordinate spaces
+  counted for the assessment total). This is not semantic completeness. Current
+  metadata retains **558 owners, 147 schemas and 95 function summaries**.
+
+### Questions retained, and the evidence that would reopen them
+
+1. **Original raw/opaque purposes:** a positive original producer/consumer,
+   pre-overwrite use, format boundary or allocation/reservation record is needed
+   to interpret the three dominant spans or opaque tail. Smaller intervals need
+   an executable entry/xref or a complete data-format contract. Zero bytes,
+   resemblance and absence of observed access are insufficient.
+2. **Original nonzero activation:** an identity-bound writer/reference with
+   owner/caller context is needed for Blitter/UI callbacks (`$932/$6694`) or
+   optional XY (`$95D4/$95DA`). Their known readers and NULL initial values stay
+   accurately qualified; unused/unreachable is not inferred.
+3. **External continuation:** an original loader/indirect caller or code lineage
+   beyond the four `$71E0/$71EE/$7220/$7230` stack-spliced transfers is needed to
+   explain external execution/return. Known local arithmetic is not proof of an
+   I/O loader, allocation, crash or unreachability. No repeated negative route
+   or speculative new entry is selected.
+4. **Unknown field intent:** positive original readers/writers or independent
+   format evidence would be needed for star byte9, animation node+11/physical
+   flag intent, and the audio global byte13/saved-increment reader/skip writer/
+   shift-state intent. Existing conservative representations stand.
+
+These are explicit exceptions, not newly manufactured tasks. The seven subsystem
+contracts and the eight indirect/27 indexed cohorts retain their reviewed
+conditional meanings. This closes the requested **original-layout reviewed
+closeout with explicit unknowns** and stops this pass. It does not certify full
+semantic restoration, every historical milestone/B01–B10 item, all possible
+mutations or asynchronous DMA/Paula behavior, disk/loader parity, alternate
+layout or native C portability. PR #5 remains unmerged; B07, fonts, bank45 and
+EQU/RS policy remain unchanged.
