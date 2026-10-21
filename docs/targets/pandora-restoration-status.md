@@ -28,6 +28,21 @@ this inventory; current-source classification will be refreshed with a necessary
 source build. The closeout questions are finite; discovery effort is not yet
 bounded well enough for an ETA.
 
+The first reconciliation pass compared all 32 old unknown intervals with the
+existing bounded data seeds. Only three intervals overlap such seeds:
+`$8671..$8677` and `$8678..$867E` lie inside the two already-rendered seven-byte
+weapon tables; `$4C376..$4C388` is the restored held-frame header. These 30 bytes
+are existing facts, not new restoration credit or a freshly computed native
+unknown total. The weapon-table native ownership discrepancy remains to be
+reconciled with the full-image accounting.
+
+The five non-dynamic field-gap records are also already interpreted in the
+historical reviews below: `$1210`, `$132E`, `$1366` and `$139E` are LEA advances
+by the ten-byte command extent; `$790A` is a WORD probe followed by a low-byte
+comparison. They do not call for invented fields or larger structures. The 27
+dynamic indexed records retain their bounded consumer/index obligations. This
+is an accounting and evidence reconciliation, with no source or history edits.
+
 > Latest static restoration: [primary audio control symbols](../validation/pandora-audio-control-symbols.json).
 > Four control constants now name all opcode fields in 33 existing typed commands
 > (41 BYTE fields across 22 programs).
