@@ -1,5 +1,30 @@
 # Pandora restoration inventory and status
 
+## Sonicdriver used to defeat Icelord (2026-10-22)
+
+[Progression evidence](../../runtime/observations/pandora-icelord-progression.json)
+records a complete **uninterrupted cold boot** through the prior item route,
+new northern-area approach and Icelord fight. At **frame2444**, world gameplay
+resumes at `(1298,206)`, HP70, sonicdriver `$05` held, Engineer `$32` retained in
+carried slot0. Original combat initialization identifies the Icelord and applies
+sonicdriver damage20. Five full hits and the defeated flag after normal cleanup
+prove the objective. Opponent HP's final251 is signed BYTE underflow from15−20;
+it is not mistaken for healing. Both combat-biased X coordinates are restored.
+
+The existing driver supplied navigation, cursor, goal, guard and release actions.
+19 model-suggested approach legs passed live; an observed initial-turn correction
+seeded the model. A failed charge23 attempt was diagnosed from original even
+increments and corrected to24. The full route uses64 phases/44 input events;
+only the compiler's event cap was aligned with the runner's existing64. Focused
+checks: **163 passed, no skips**. Qualification uses no checkpoint loads or
+inside-run interventions; development replays remain clearly separate.
+
+This is a genuine item-use/combat objective and new-area progression, not a
+full walkthrough. No new watch campaign, source annotations, classified bytes,
+state forcing or C/relocation work. Target source and the nine paused B07 files
+remain unchanged; PR5 stays unmerged. This batch stops at the validated defeated
+Icelord checkpoint. See [reproduction](../copperline-runtime.md#sonicdriver-defeats-icelord).
+
 ## State-aware player and new item progression (2026-10-22)
 
 [Player evaluation](../../runtime/observations/pandora-player-evaluation.json)

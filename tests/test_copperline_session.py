@@ -606,3 +606,19 @@ def test_state_goal_and_frame_budget_compile_through_shared_service(monkeypatch,
     del p['max_frames'];path.write_text(json.dumps(s))
     with pytest.raises(ValueError,match='frame and visit budgets'):
         copperline_session.compile_scenario('fixture',path,tmp_path/'rejected.json')
+
+
+def test_compiler_accepts_runner_64_input_events_and_rejects65(monkeypatch,tmp_path):
+    row={'stable_key':'s0:00000004:instruction','start_offset':4}
+    artifact=_FakeArtifact(row)
+    artifact._runtime_observation_views=({'base_addr':0x10000,'source_start':0,'source_end':16},)
+    monkeypatch.setattr(copperline_session,'build_project_listing_artifact_profile',lambda _:(0,{},artifact))
+    s={'schema_version':1,'identifier':'events','target_id':'fixture','phases':[
+       {'name':'boot','observable':'direct_payload_handoff'},
+       {'name':'start','breakpoint_stable_key':row['stable_key'],'wait_seconds':1},
+       {'name':'end','breakpoint_stable_key':row['stable_key'],'wait_seconds':1}],
+       'input_events':[{'after_phase':'start','control':'port1 fire','release_after_phase':'end'}]*64}
+    path=tmp_path/'events.json';path.write_text(json.dumps(s))
+    assert len(copperline_session.compile_scenario('fixture',path,tmp_path/'out.json')['input_events'])==64
+    s['input_events'].append(dict(s['input_events'][0]));path.write_text(json.dumps(s))
+    with pytest.raises(ValueError):copperline_session.compile_scenario('fixture',path,tmp_path/'reject.json')

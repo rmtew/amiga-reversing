@@ -210,7 +210,7 @@ def compile_scenario(
         raise ValueError(
             f"Scenario requires boot handoff plus canonical source-row phases (2..{MAX_SCENARIO_PHASES} total)."
         )
-    if not isinstance(input_events, list) or len(input_events) > 32:
+    if not isinstance(input_events, list) or len(input_events) > 64:
         raise ValueError("Scenario input_events must be a list.")
     compiled_phases: list[dict[str, object]] = []
     names: set[str] = set()

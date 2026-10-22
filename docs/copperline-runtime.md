@@ -1453,3 +1453,60 @@ other maps or arbitrary cursor states require another reviewed plan rather than
 silent continuation. Original disk/loader parity, full playthrough, DMA and
 all-alias coverage remain outside this result. ROMs, media, raw reports, full
 register/stack data and guest checkpoints stay private.
+
+#### Sonicdriver defeats Icelord
+
+[`pandora_icelord`](../amiga_reversing/tools/pandora_icelord.py) uses the existing
+player actions for a concrete next objective: reach the Icelord, use the
+sonicdriver combat override, defeat it and return alive to world gameplay.
+Generate `--stage cold-fight` and run it through the same session CLI/direct
+payload contract. No checkpoint load is used for this qualified route:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_icelord \
+  --stage cold-fight --output .runtime-state/icelord.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/icelord.json \
+  --state-directory .runtime-state/icelord-fresh \
+  --checkpoint-save .runtime-state/icelord-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/icelord-report.json
+```
+
+`--stage approach` resumes the prior provisioning checkpoint at world `$5D6`;
+`--stage fight` resumes the staged `(1305,230)` movement-commit checkpoint.
+These debugging runs remain distinct from the continuous cold-boot result in
+[filtered evidence](../runtime/observations/pandora-icelord-progression.json).
+The terrain/pose model suggested the route below the Icelord; a west-side goal
+was inside a wall, so its failed model search was not a reachability conclusion.
+A live first-step probe establishes the post-terminal geometry correction
+`(640,734)`→`(633,734)` before the route seed moves north. All19 later waypoints
+were validated live, reaching `(1305,230)` at frame2163 in checkpoint development.
+
+The sonicdriver override at original `$784E`, observed after execution at `$7854`,
+sets player damage20 for the Icelord. Captured opponent pointer `$59D7A` and item
+definition `$42` bind the encounter. Charge23 is unreachable with reload2: the
+original gauge adds2. The retained failed attempt exhausts64 visits without23.
+Waiting for the first charge24 at `$7938` leaves the required input-sampling
+window for a full20-point attack; each fire hold ends on its verified effect.
+
+The cold run finishes at **frame2444**, player `(1298,206)`, HP70, sonicdriver
+held, Engineer in carried slot0. Icelord HP follows95→75→55→35→15→251; signed
+BYTE underflow on the final hit is expected original arithmetic. Defeat is the
+actor flagbit1 after cleanup at world loop `$5D6`, with its X restored to1312,
+player X restored from the temporary10000 combat bias, and combat UI cleared.
+Zero enemy HP is not used as an invented oracle. Combat guards permit observed
+player damage while requiring active player, world map, held tool, exact opponent
+and retained Engineer card. The healthy navigation guards remain unchanged.
+
+The complete route fits the existing64-phase cap by omitting three redundant
+terminal observation/idle phases while retaining input-release hooks. Its44 input
+events require a concrete compiler fix: accept the runner's existing64-event
+bound;64/65 boundary tests accompany it. No phase-cap increase, new emulator,
+state injection, generic observer project or gap-watch campaign was needed.
+Focused runtime/session/player/Icelord checks: **163 passed, no skips**.
+Original target bytes/source and paused B07 work remain unchanged; no source
+rebuild was required. One continuous cold-boot pass proves this bounded objective,
+not full-game completion, original disk-loader parity, arbitrary combat safety,
+new byte-purpose classification or CPU/DMA memory-access coverage. Raw states,
+media, ROMs and full captures remain private.
