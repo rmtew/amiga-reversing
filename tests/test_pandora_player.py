@@ -40,3 +40,18 @@ def test_movement_guards_actual_selected_item_after_inventory_action():
     reads=p.scenario['phases'][-1]['capture']['memory_reads']
     assert {'address':player.PLAYER+22,'size':1,'expect_hex':'30'} in reads
     assert {'address':player.PLAYER+12,'size':2,'expect_hex':'0020'} in reads
+
+
+def test_failed_move_reports_stop_state_instead_of_old_successful_move():
+    old=bytearray(36);old[:4]=bytes.fromhex('042b06a2');old[12:14]=(32).to_bytes(2,'big')
+    stopped=bytearray(old);stopped[:2]=(11067).to_bytes(2,'big');stopped[12:14]=(5).to_bytes(2,'big')
+    def capture(block,ui):return {'memory_reads':[{'address':hex(player.PLAYER),'bytes':block.hex()},{'address':hex(player.UI),'bytes':bytes([ui]).hex()}]}
+    phase={'name':'move','status':'not_hit','stable_key':'s0:00009844:instruction',
+           'termination':'frame_budget_exhausted','stop_event':{'frame':10721},
+           'capture':capture(old,48),'diagnostic_capture':capture(stopped,50)}
+    result=player.summarize({'status':'incomplete','observation':{'scenario':{'phases':[phase]}}})['actions'][0]
+    assert result['state']['health']==5 and result['state']['xy']==[11067,1698]
+    assert result['reason']=='combat_blocks_movement' and result['frame']==10721
+    assert result['state_origin']=='diagnostic_stop' and result['last_canonical_state']['health']==32
+    stopped[12:14]=b'\x00\x00';stopped[24]=2;phase['diagnostic_capture']=capture(stopped,32)
+    assert player.summarize({'status':'incomplete','observation':{'scenario':{'phases':[phase]}}})['actions'][0]['reason']=='player_dead'

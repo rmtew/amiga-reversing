@@ -46,9 +46,44 @@
       "last_action": {
         "action": "aw_awol_approach_5",
         "status": "not_hit",
-        "reason": "frame_budget_exhausted",
+        "reason": "combat_blocks_movement",
         "frame": 8799,
         "state": {
+          "xy": [
+            10878,
+            1742
+          ],
+          "health": 5,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 34,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 13,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
           "xy": [
             878,
             1742
@@ -79,8 +114,7 @@
             0,
             0
           ]
-        },
-        "visits": 13
+        }
       }
     },
     {
@@ -5498,7 +5532,7 @@
   "failures_and_corrections": [
     {
       "run": "awol-debug-a",
-      "failure": "Stop8781742; next-main-loop diagnostic confirms Kwik-Kleen combat, not a wall.",
+      "failure": "Last canonical move8781742/HP32; later diagnostic stop was combat-biased10878/1742,HP5. A separate early probe identifies opponentKwik-Kleen$5BBB6 atHP32 before later damage. Both rejected branches are excluded from healthy progression.",
       "correction": "Wait safely outside patrol until the NPC is on the opposite top-right segment, then cross."
     },
     {
@@ -5524,5 +5558,13 @@
     "Debugging checkpoints are separate from the qualification; rejected combat branches do not contaminate the retained healthy root.",
     "Inventory and pointer snapshots do not prove CPU-access or DMA coverage. No repeat no-hit watches or unobserved memory-purpose claims.",
     "No injected state, artificial game calls, health reset, target source change, B07 work, C conversion, PR merge or published private media/checkpoints."
-  ]
+  ],
+  "failure_snapshot_correction": {
+    "date": "2026-10-22",
+    "decoder_sha256": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+    "runs": [
+      "awol-debug-a"
+    ],
+    "meaning": "Failed phases now report later diagnostic-stop snapshots, retaining the last canonical state separately. Original raw report hashes, executed identities and successful cold qualifications are unchanged. Old failure summaries had paired later stop frames with earlier canonical state."
+  }
 }

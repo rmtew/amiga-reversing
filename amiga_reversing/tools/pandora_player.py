@@ -207,14 +207,19 @@ def summarize(report):
     scenario=runner.get('observation',{}).get('scenario',{})
     actions=[]
     for p in scenario.get('phases',[]):
-        state=observe(p.get('capture') or p.get('diagnostic_capture'))
+        diagnostic=p.get('diagnostic_capture') if p.get('status')!='hit' else None
+        state=observe(diagnostic or p.get('capture'))
         reason=p.get('termination')
         if state.get('inactive') or state.get('health')==0:reason='player_dead'
         elif p.get('status')!='hit' and state.get('ui',0)&2 and p.get('stable_key','').startswith('s0:00009844:'):
             reason='combat_blocks_movement'
-        actions.append({'action':p['name'],'status':p['status'],'reason':reason,
+        action={'action':p['name'],'status':p['status'],'reason':reason,
             'frame':(p.get('stop_event') or {}).get('frame'),'state':state,
-            'visits':p.get('occurrences_observed')})
+            'visits':p.get('occurrences_observed')}
+        if diagnostic:
+            action.update(state_origin='diagnostic_stop',
+                last_canonical_state=observe(p.get('capture')))
+        actions.append(action)
     return {'status':runner['status'],'actions':actions,'input_trace':scenario.get('input_trace',[]),
             'limits':'Original layout snapshots; CPU navigation only. No DMA/watch inference or disk-loader parity.'}
 

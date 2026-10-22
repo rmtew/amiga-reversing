@@ -1,5 +1,20 @@
 # Pandora restoration inventory and status
 
+## Failure-snapshot reporting corrected (2026-10-22)
+
+Failed movement summaries previously preferred the last canonical hit even when
+a later diagnostic stop existed. That incorrectly paired later failure frames
+with old healthy positions/HP. The observer now prefers the diagnostic stop on
+failure and preserves the last canonical state separately;13 focused
+recipe/player checks pass, including this regression.
+
+Raw-report hash checks identify affected rejected runs in the SDI, Ochre and
+AWOL evidence, now corrected in place with explicit correction metadata. The
+first failed Ochre approach ended dead; the failed AWOL approach endedHP5.
+These were discarded branches. **Successful cold qualifications, original
+execution identities and healthy retained roots are unchanged**, including the
+qualified AWOL checkpoint atHP32. No target/source bytes or B07 files changed.
+
 ## AWOL card acquired, ending still pending (2026-10-22)
 
 [AWOL progression](../../runtime/observations/pandora-awol-progression.json)

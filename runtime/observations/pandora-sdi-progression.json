@@ -49,6 +49,40 @@
         "frame": 3192,
         "state": {
           "xy": [
+            241,
+            866
+          ],
+          "health": 95,
+          "held": 0,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 0,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 7,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
             143,
             210
           ],
@@ -78,8 +112,7 @@
             0,
             0
           ]
-        },
-        "visits": 7
+        }
       }
     },
     {
@@ -95,6 +128,40 @@
         "reason": "frame_budget_exhausted",
         "frame": 3435,
         "state": {
+          "xy": [
+            241,
+            866
+          ],
+          "health": 95,
+          "held": 0,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 0,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "display_ids": [
+            0,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 1,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
           "xy": [
             115,
             210
@@ -125,8 +192,7 @@
             0,
             0
           ]
-        },
-        "visits": 1
+        }
       }
     },
     {
@@ -186,9 +252,44 @@
       "last_action": {
         "action": "cp_waypoint_3",
         "status": "not_hit",
-        "reason": "frame_budget_exhausted",
+        "reason": "combat_blocks_movement",
         "frame": 3896,
         "state": {
+          "xy": [
+            10500,
+            658
+          ],
+          "health": 53,
+          "held": 0,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 34,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            49,
+            0
+          ],
+          "display_ids": [
+            0,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 30,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
           "xy": [
             500,
             658
@@ -219,8 +320,7 @@
             0,
             0
           ]
-        },
-        "visits": 30
+        }
       }
     },
     {
@@ -280,9 +380,44 @@
       "last_action": {
         "action": "cp_central_shaft",
         "status": "not_hit",
-        "reason": "frame_budget_exhausted",
+        "reason": "combat_blocks_movement",
         "frame": 3771,
         "state": {
+          "xy": [
+            10500,
+            606
+          ],
+          "health": 74,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 34,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            49,
+            0
+          ],
+          "display_ids": [
+            0,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 14,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
           "xy": [
             500,
             606
@@ -313,8 +448,7 @@
             0,
             0
           ]
-        },
-        "visits": 14
+        }
       }
     },
     {
@@ -12726,5 +12860,16 @@
   "planner_identities": {
     "amiga_reversing/tools/pandora_world_model.py": "1fd309779ca7e121d57befdb32f125784947bdaa1bf5f208f71785d026357a59",
     "runtime/observations/pandora-world-model.json": "09b400f334b9f905486091040787173248c6fbb9df4210710b1382c61454af6f"
+  },
+  "failure_snapshot_correction": {
+    "date": "2026-10-22",
+    "decoder_sha256": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+    "runs": [
+      "captain-a",
+      "captain-switch-a",
+      "captain-switch-c",
+      "captain-protected-a"
+    ],
+    "meaning": "Failed phases now report later diagnostic-stop snapshots, retaining the last canonical state separately. Original raw report hashes, executed identities and successful cold qualifications are unchanged. Old failure summaries had paired later stop frames with earlier canonical state."
   }
 }

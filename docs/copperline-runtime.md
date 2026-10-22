@@ -1678,3 +1678,20 @@ Next is console/departure preparation, then submissions and saved-Earth escape.
 AWOL ownership does not itself prove descriptor21 authorization. No target
 source change, new general mechanism, raw guest capture publication, new
 memory-watch coverage, health reset, B07 work or PR merge accompanies this step.
+
+
+### Failure snapshots versus the last canonical hit
+
+On a failed bounded phase, a last expected-PC capture can precede a later stop
+by hundreds of frames. The player observer must report `diagnostic_capture`
+when available, with `state_origin: diagnostic_stop`, and retain the older
+snapshot as `last_canonical_state`. The diagnostic stop is not claimed as a hit
+on the expected source row. This fixes actual rejected-route reports that hid
+combat damage/death behind the earlier healthy movement state.13 focused
+recipe/player checks pass, including both competing snapshots and death.
+
+Affected SDI/Ochre/AWOL failure summaries were re-read against their exact raw
+report hashes; their `failure_snapshot_correction` records the decoder identity
+and affected runs. Successful cold receipts and original execution identities
+remain unchanged. Rejected branches never replace the healthy checkpoint used
+for qualified progression.

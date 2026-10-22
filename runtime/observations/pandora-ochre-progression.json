@@ -45,9 +45,43 @@
       "last_action": {
         "action": "oc_engineering_8",
         "status": "not_hit",
-        "reason": "frame_budget_exhausted",
+        "reason": "player_dead",
         "frame": 6020,
         "state": {
+          "xy": [
+            320,
+            1226
+          ],
+          "health": 0,
+          "held": 50,
+          "inactive": true,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            38
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 23,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
           "xy": [
             325,
             1226
@@ -78,8 +112,7 @@
             0,
             0
           ]
-        },
-        "visits": 23
+        }
       }
     },
     {
@@ -92,9 +125,43 @@
       "last_action": {
         "action": "oc_engineering_8",
         "status": "not_hit",
-        "reason": "frame_budget_exhausted",
+        "reason": "player_dead",
         "frame": 6020,
         "state": {
+          "xy": [
+            320,
+            1226
+          ],
+          "health": 0,
+          "held": 50,
+          "inactive": true,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            38
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 23,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
           "xy": [
             325,
             1226
@@ -125,8 +192,7 @@
             0,
             0
           ]
-        },
-        "visits": 23
+        }
       }
     },
     {
@@ -6256,7 +6322,7 @@
     },
     {
       "run": "ochre-approach-a",
-      "result": "Frame bound at3251226, HP32. Next-main-loop diagnostic enters the combat X-bias domain; this is not evidence of an impassable wall.",
+      "result": "Last canonical move was3251226/HP32. The later frame6020 diagnostic stop was3201226/HP0/inactive; this rejected branch died. A separate early next-main-loop probe showed combat. Healthy Captain roots and the qualified cold route remainHP32.",
       "correction": "Time this patrol crossing from observed Y, then move north and separately time the Wackobrain crossing."
     },
     {
@@ -6283,5 +6349,14 @@
     "Safe-side predicates are sufficient in the validated deterministic prefix; no arbitrary patrol phase/navigation safety theorem is claimed.",
     "Snapshots and final trade mutations are observations, not CPU memory-access or DMA traces. No new no-hit watches, raw guest states, ROM/media or proprietary payloads published.",
     "No injected game state, forced health, artificial routine calls, new source classification, B07 work, C conversion or PR merge."
-  ]
+  ],
+  "failure_snapshot_correction": {
+    "date": "2026-10-22",
+    "decoder_sha256": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+    "runs": [
+      "ochre-approach-a",
+      "ochre-obstacle-a"
+    ],
+    "meaning": "Failed phases now report later diagnostic-stop snapshots, retaining the last canonical state separately. Original raw report hashes, executed identities and successful cold qualifications are unchanged. Old failure summaries had paired later stop frames with earlier canonical state."
+  }
 }
