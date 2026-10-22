@@ -22,7 +22,7 @@ from amiga_reversing.tools.copperline_bus_trace import validate_bus_trace
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.copperline_runtime import (
     MAX_SCENARIO_PHASES, observe, validate_memory_expectation, validate_custom_registers,
-    validate_memory_access_watch,
+    validate_memory_access_watch, validate_phase_frame_budget, validate_memory_goal,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
 from amiga_reversing.tools.runtime_symbols import generate_runtime_symbol_artifact
@@ -254,6 +254,14 @@ def compile_scenario(
                 "Source-row scenario phases require breakpoint_stable_key and wait_seconds (1..120)."
             )
         validate_capture(capture)
+        if "max_frames" in phase:
+            if index == 1:
+                raise ValueError("Phase frame budget needs a preceding source-row anchor")
+            validate_phase_frame_budget(phase["max_frames"])
+        if "until_memory" in phase:
+            validate_memory_goal(phase["until_memory"])
+            if "max_frames" not in phase or "occurrences" not in phase:
+                raise ValueError("Memory goal requires explicit frame and visit budgets")
         if "memory_access_watch" in phase:
             validate_memory_access_watch(phase["memory_access_watch"])
         if 'chip_bus_trace' in phase:
@@ -271,6 +279,8 @@ def compile_scenario(
                 "wait_seconds": wait_seconds,
                 "transition": transition,
                 "capture": capture,
+                **({"max_frames": phase["max_frames"]} if "max_frames" in phase else {}),
+                **({"until_memory": dict(phase["until_memory"])} if "until_memory" in phase else {}),
                 **({"memory_access_watch": dict(phase["memory_access_watch"])}
                    if "memory_access_watch" in phase else {}),
                 **({'chip_bus_trace': dict(phase['chip_bus_trace'])}

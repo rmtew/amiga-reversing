@@ -317,7 +317,7 @@ def capture_scenario_state(client, capture):
     return result
 
 
-def wait_for_pc(client, address, seconds):
+def wait_for_pc(client, address, seconds, *, frame_limit=None):
     if (
         type(address) is not int
         or not 0 <= address <= 0xFFFFFF
@@ -331,14 +331,22 @@ def wait_for_pc(client, address, seconds):
     ident = client.add_breakpoint(address)
     try:
         try:
-            stop = client.run_until({"pc": address}, timeout=seconds)
+            stop = client.run_until(
+                {"frame": frame_limit} if frame_limit is not None else {"pc": address},
+                timeout=seconds,
+            )
             regs = client.registers()
             hit = (
                 stop.get("reason") in ("target", "breakpoint") and regs["pc"] == address
             )
+            if frame_limit is not None and type(stop.get("frame")) is int and stop["frame"] >= frame_limit:
+                hit = False
             status, termination = (
                 ("hit", "breakpoint_hit") if hit else ("not_hit", "unexpected_stop")
             )
+            if (not hit and frame_limit is not None and stop.get("reason") == "target"
+                    and stop.get("frame") == frame_limit):
+                termination = "frame_budget_exhausted"
         except CopperlineTimeout:
             regs = client.registers()
             stop, status, termination = (
@@ -509,11 +517,17 @@ def prepare_materialization(client, contract, payload_path, seconds):
 
 
 def _run_scenario_phase(
-    client, phase, payload_path, symbols, function, *, depart_current=False, trace_directory=None
+    client, phase, payload_path, symbols, function, *, depart_current=False, trace_directory=None,
+    start_event=None,
 ):
     address, seconds = phase.get("breakpoint_address"), phase.get("wait_seconds")
     occurrences = phase.get("occurrences", 1)
     capture_first = phase.get("capture_first", False)
+    goal = phase.get("until_memory")
+    if goal is not None:
+        validate_memory_goal(goal)
+        if "max_frames" not in phase or "occurrences" not in phase:
+            raise ValueError("Memory goal requires explicit frame and visit budgets")
     if "memory_access_watch" in phase:
         validate_memory_access_watch(phase["memory_access_watch"])
         if not isinstance(phase.get("stable_key"), str):
@@ -533,6 +547,13 @@ def _run_scenario_phase(
     if type(seconds) not in (int, float) or not 0 < seconds <= 120:
         raise ValueError("Scenario phase wait must be from 0 to 120 seconds")
     deadline = time.monotonic() + seconds
+    frame_limit = None
+    if "max_frames" in phase:
+        validate_phase_frame_budget(phase["max_frames"])
+        if (not isinstance(start_event, dict) or type(start_event.get("frame")) is not int
+                or start_event["frame"] < 0):
+            raise ValueError("Phase frame budget requires a preceding stopped-frame anchor")
+        frame_limit = start_event["frame"] + phase["max_frames"]
     item = {
         "name": phase["name"],
         "stable_key": phase.get("stable_key"),
@@ -570,8 +591,13 @@ def _run_scenario_phase(
         if remaining <= 0:
             item.update(status="timeout", termination="phase_deadline")
             break
-        item.update(wait_for_pc(client, address, remaining if counted else seconds))
+        kwargs = {"frame_limit": frame_limit} if frame_limit is not None else {}
+        item.update(wait_for_pc(client, address, remaining if counted else seconds, **kwargs))
         if item["status"] != "hit":
+            if frame_limit is not None:
+                item["diagnostic_capture"] = capture_scenario_state(client, phase.get("capture", {}))
+                item["diagnostic_payload"] = payload_at_pc(client, payload_path, client.registers()["pc"])
+                item["frame_limit"] = frame_limit
             break
         detection = payload_at_pc(client, payload_path, address, runtime_view=phase.get("runtime_view"))
         item["payload"] = detection
@@ -607,6 +633,18 @@ def _run_scenario_phase(
             break
         if capture_first and item["occurrences_observed"] == 1:
             item["first_capture"] = item["capture"]
+        if counted and time.monotonic() > deadline:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+        if goal is not None:
+            goal_capture = capture_scenario_state(client, {"memory_reads": [goal]})
+            item["goal_capture"] = goal_capture
+            if time.monotonic() > deadline:
+                item.update(status="timeout", termination="phase_deadline")
+                break
+            if goal_capture["memory_reads"][0]["expectation"]["matched"]:
+                break
+            item.update(status="not_hit", termination="goal_not_reached")
         item["resolved_function"] = function
         if counted and time.monotonic() > deadline:
             item.update(status="timeout", termination="phase_deadline")
@@ -659,6 +697,29 @@ def _run_scenario_phase(
     return item
 
 
+def validate_phase_frame_budget(value):
+    if type(value) is not int or not 1 <= value <= 3600:
+        raise ValueError("Phase max_frames must be an integer from 1 to 3600")
+
+
+def validate_memory_goal(value):
+    if not isinstance(value, dict) or "expect_hex" not in value or "address" not in value:
+        raise ValueError("Memory goal requires an absolute capture read and expectation")
+    # Reuse exactly the capture read schema and expectation semantics.
+    from .copperline_session import validate_capture
+    validate_capture({"memory_reads": [value]})
+
+
+def phase_stop_event(item):
+    """Use the actual paused endpoint after an optional observer hook."""
+    if item is None:
+        return None
+    for name in ("chip_bus_trace", "memory_access_watch"):
+        if name in item:
+            return item[name].get("stop_event")
+    return item.get("stop_event")
+
+
 def run_scenario(client, scenario, payload_path, release=None, *, trace_directory=None):
     phases, events = scenario.get("phases"), scenario.get("input_events", [])
     if (
@@ -698,6 +759,16 @@ def run_scenario(client, scenario, payload_path, release=None, *, trace_director
     held, result, confirmed = {1: {}, 2: {}}, [], False
     held_keys = set()
     reverse_boundary = None
+    input_trace = []
+    input_anchor = None
+    def send_input(method, arguments, *, cleanup=False):
+        row = {"method": method, "arguments": arguments, "anchor": input_anchor,
+               "cleanup": cleanup, "outcome": "uncertain"}
+        input_trace.append(row)
+        response = (client.key(arguments["rawkey"], pressed=arguments["pressed"])
+                    if method == "key" else client.joystick(**arguments))
+        row["outcome"] = "acknowledged"
+        return response
     try:
         for index, phase in enumerate(phases):
             address, transition = (
@@ -727,8 +798,10 @@ def run_scenario(client, scenario, payload_path, release=None, *, trace_director
                 function,
                 depart_current=depart_current,
                 trace_directory=trace_directory,
+                start_event=phase_stop_event(previous),
             )
             result.append(item)
+            input_anchor = {"phase": phase["name"], "stop": phase_stop_event(item)}
             if item["status"] != "hit":
                 break
             confirmed = True
@@ -748,28 +821,29 @@ def run_scenario(client, scenario, payload_path, release=None, *, trace_director
                     next_held[port]["red" if key == "fire" else key] = True
             for port, state in next_held.items():
                 if state != held[port]:
-                    client.joystick(port=port, **state)
+                    send_input("joystick", {"port": port, **state})
             held = next_held
             for key in sorted(held_keys - next_keys):
-                client.key(key, pressed=False)
+                send_input("key", {"rawkey": key, "pressed": False})
                 held_keys.remove(key)
             for key in sorted(next_keys - held_keys):
                 # Track before sending: a lost response can still have pressed it.
                 held_keys.add(key)
-                client.key(key, pressed=True)
+                send_input("key", {"rawkey": key, "pressed": True})
         return {
             "identifier": scenario.get("identifier"),
             "symbols": symbols,
             "phases": result,
             "reverse_boundary": reverse_boundary,
+            "input_trace": input_trace,
         }
     finally:
         for key in sorted(held_keys):
             with suppress(CopperlineError):
-                client.key(key, pressed=False)
+                send_input("key", {"rawkey": key, "pressed": False}, cleanup=True)
         for port in held:
             with suppress(CopperlineError):
-                client.joystick(port=port)
+                send_input("joystick", {"port": port}, cleanup=True)
 
 
 def ndk_field_offset(ndk: dict[str, object], struct_name: str, field_name: str) -> int:

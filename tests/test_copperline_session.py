@@ -587,3 +587,22 @@ def test_capture_expectations_reject_malformed_or_size_mismatched_values(expecta
 def test_capture_expectation_preserves_register_and_region_addressing():
     for address in ({'base_register': 'a6', 'offset': 558}, {'region_id': 'test'}):
         copperline_session.validate_capture({'memory_reads': [dict(size=1, expect_hex='00', expect_mask_hex='06', **address)]})
+
+
+def test_state_goal_and_frame_budget_compile_through_shared_service(monkeypatch,tmp_path):
+    row={'stable_key':'s0:00000004:instruction','start_offset':4}
+    artifact=_FakeArtifact(row)
+    artifact._runtime_observation_views=({'base_addr':0x10000,'source_start':0,'source_end':16},)
+    monkeypatch.setattr(copperline_session,'build_project_listing_artifact_profile',lambda _:(0,{},artifact))
+    p={'name':'goal','breakpoint_stable_key':row['stable_key'],'wait_seconds':1,
+       'occurrences':8,'max_frames':12,'until_memory':{'address':0x6000,'size':1,'expect_hex':'03'}}
+    s={'schema_version':1,'identifier':'goal','target_id':'fixture','phases':[
+        {'name':'boot','observable':'direct_payload_handoff'},
+        {'name':'anchor','breakpoint_stable_key':row['stable_key'],'wait_seconds':1},p]}
+    path=tmp_path/'goal.json';path.write_text(json.dumps(s))
+    r=copperline_session.compile_scenario('fixture',path,tmp_path/'compiled.json')
+    assert r['phases'][-1]['until_memory']==p['until_memory']
+    assert r['phases'][-1]['max_frames']==12
+    del p['max_frames'];path.write_text(json.dumps(s))
+    with pytest.raises(ValueError,match='frame and visit budgets'):
+        copperline_session.compile_scenario('fixture',path,tmp_path/'rejected.json')

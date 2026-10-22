@@ -1,5 +1,34 @@
 # Pandora restoration inventory and status
 
+## State-aware player and new item progression (2026-10-22)
+
+[Player evaluation](../../runtime/observations/pandora-player-evaluation.json)
+qualifies two **continuous cold-boot** routes with identical action states and
+frame/CCK input records, with no inside-run intervention. They reach terminal
+entry, take the **Engineer `$32` card**, exercise its display update, retain it in
+carried slot0, acquire **sonicdriver `$05`**, close inventory and return to the
+world loop at **frame1226, `(640,734)`, HP95**. This is a new item checkpoint,
+not a completed game or general security authorization. `$31` is Lt Commander;
+the earlier development message misnaming `$32` is corrected before publication.
+
+The known inventory/store/retrieve/deposit route also repeats identically.
+A deliberately blocked east move ends at its30-frame budget with position
+unchanged and input released. Reusable player actions now have explicit origin,
+map, healthy-state and goal checks, finite visit/frame/wall bounds, and input
+records; snapshot observers remain separate. Concrete development failures
+exposed cursor braking, input-sampling phase and action-budget problems rather
+than allowing silent route drift. The small composition now reuses those same
+actions for card storage and tool acquisition.
+
+**Useful within this route**, so it was used for that further progression.
+It still needs reviewed waypoints/objectives and does not choose a full-game
+strategy or recover from arbitrary combat. No retrospective agent-time speedup
+is claimed; the evidence records actual runs and their wall times. Focused
+runtime/session/player validation: **160 passed, no skips**. No new watch campaign,
+source annotations or classified bytes; target bytes/source and the nine paused
+B07 files remain unchanged. PR5 remains unmerged. See
+[reproduction and limits](../copperline-runtime.md#state-aware-pandora-player).
+
 ## Watched terminal modal entry and nearby inventory (2026-10-22)
 
 [Terminal evidence](../../runtime/observations/pandora-terminal-modal-memory-watch.json)

@@ -1075,3 +1075,69 @@ def test_cpu_frame_watch_deadline_is_not_completed_window_or_hit(stop):
     assert (r['status'], r['termination']) == ('timeout', 'deadline_interrupt')
     assert r['stop_event'] == stop
     assert c.calls[-1] == ('remove', r['watch_id'])
+
+
+def test_player_goal_stops_on_state_before_visit_budget(tmp_path, monkeypatch):
+    class GoalClient(Client):
+        visits = 0
+        def request(self, method, params=None, **kwargs):
+            if method == 'step':
+                self.regs['pc'] = 0x1002
+                return {'reason': 'step'}
+            return super().request(method, params)
+        def run_until(self, params, timeout):
+            self.visits += 1
+            self.memory[0x6000] = self.visits
+            self.regs['pc'] = 0x1000
+            return {'reason': 'breakpoint', 'frame': self.visits}
+    c=GoalClient()
+    monkeypatch.setattr(runtime,'payload_at_pc',lambda *a,**kw:
+        {'status':'pc_matched','payload_offset':'0x0','runtime_base':'0x1000'})
+    p={'name':'move','stable_key':'s0:00000000:instruction','source_offset':0,
+       'breakpoint_address':0x1000,'wait_seconds':1,'occurrences':8,
+       'max_frames':10,'until_memory':{'address':0x6000,'size':1,'expect_hex':'03'}}
+    r=runtime._run_scenario_phase(c,p,payload(tmp_path),{},None,start_event={'frame':0})
+    assert r['status']=='hit' and r['occurrences_observed']==3 and c.visits==3
+    assert r['goal_capture']['memory_reads'][0]['expectation']['matched']
+
+
+def test_player_frame_exhaustion_captures_diagnostic_without_claiming_pc_hit(tmp_path):
+    c=Client()
+    c.stop={'reason':'target','frame':12}
+    # The frame run ends away from the requested canonical instruction.
+    p={'name':'blocked','stable_key':'s0:00000000:instruction',
+       'breakpoint_address':0x1004,'wait_seconds':1,'max_frames':10,
+       'capture':{'memory_reads':[{'address':0x6000,'size':1}]}}
+    r=runtime._run_scenario_phase(c,p,payload(tmp_path),{},None,start_event={'frame':2})
+    assert (r['status'],r['termination'])==('not_hit','frame_budget_exhausted')
+    assert r['diagnostic_capture']['memory_reads'][0]['bytes']=='00'
+    assert r['frame_limit']==12
+    assert ('run',{'frame':12}) in c.calls
+
+
+def test_player_failure_releases_inputs_and_records_frame_anchors(tmp_path, monkeypatch):
+    c=Client();c.key=lambda key,pressed:c.calls.append(('key',key,pressed))
+    def step(client,phase,*args,**kwargs):
+        return {'name':phase['name'],'status':'hit' if phase['name']=='start' else 'not_hit',
+                'address':'0x1000','stop_event':{'frame':8 if phase['name']=='start' else 12,'cck':123}}
+    monkeypatch.setattr(runtime,'_run_scenario_phase',step)
+    s={'phases':[{'name':n,'breakpoint_address':0x1000} for n in ['start','finish']],
+       'input_events':[{'after_phase':'start','control':'key 64','release_after_phase':'finish'}]}
+    r=runtime.run_scenario(c,s,payload(tmp_path))
+    keys=[e for e in r['input_trace'] if e['method']=='key']
+    assert [e['arguments']['pressed'] for e in keys]==[True,False]
+    assert keys[0]['anchor']['stop']['frame']==8
+    assert keys[-1]['cleanup'] and keys[-1]['anchor']['stop']['frame']==12
+    assert all(e['outcome']=='acknowledged' for e in keys)
+
+
+@pytest.mark.parametrize('value',[True,0,3601,'12'])
+def test_player_frame_budget_validation(value):
+    with pytest.raises(ValueError):runtime.validate_phase_frame_budget(value)
+
+
+def test_input_and_next_action_use_observer_endpoint_not_old_anchor():
+    p={'stop_event':{'frame':1},'memory_access_watch':{'stop_event':{'frame':121}}}
+    assert runtime.phase_stop_event(p)=={'frame':121}
+    p['memory_access_watch']['stop_event']=None
+    assert runtime.phase_stop_event(p) is None

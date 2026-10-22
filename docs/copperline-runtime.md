@@ -1381,3 +1381,75 @@ unchanged; existing compiled media/native facts were identity-checked and every
 new canonical instruction matched original bytes. Live PCs are independently
 byte-matched. No shared runtime service changed. ROM/media, raw reports,
 screenshots and checkpoint data stay local.
+
+#### State-aware Pandora player
+
+[`pandora_player`](../amiga_reversing/tools/pandora_player.py) separates reusable
+player actions from snapshot decoding and memory observers. `PlayerPlan` provides
+movement to a known position, inventory open, cursor movement, selection, close
+and terminal exit. Actions send ordinary keyboard/joystick inputs, release them
+on success/failure, and stop on explicit state goals. The plans are waypoint-led;
+they do not perform autonomous pathfinding or decide mission objectives.
+
+The shared scenario runner adds `until_memory`, an exact/masked capture-read goal,
+with mandatory `occurrences` and `max_frames` budgets. It samples only at a
+byte-verified canonical PC. Stable map, HP95 and inactive-bit guards are separate
+from completion goals. Visit or frame exhaustion, mismatching guards and wall
+timeouts fail closed. If an expected PC is not reached, a bounded frame stop
+captures registers/state for diagnostics without claiming a canonical PC hit.
+Input changes are recorded with their paused source phase/frame/CCK anchor and
+acknowledgement; final cleanup is included. After an observer hook, the actual
+observer endpoint supplies this anchor, not its earlier arming point. This is
+not a trace of every internal hardware poll.
+
+Use the public session CLI as before, with legal local ROM and explicit emulator:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_player \
+  --plan provision --output .runtime-state/player-provision.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/player-provision.json \
+  --state-directory .runtime-state/player-provision-fresh \
+  --checkpoint-save .runtime-state/player-provision-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/player-provision-report.json
+.venv/bin/python -m amiga_reversing.tools.pandora_player \
+  --report .runtime-state/player-provision-report.json \
+  --output .runtime-state/player-provision-summary.json
+```
+
+`inventory-deposit` repeats the previous cold-boot store/retrieve/deposit route,
+adding state assertions and finite bounds. `north-terminal` starts from the
+verified inventory root; `card` starts from the verified terminal-frame root.
+`walkthrough` composes cold boot, northern approach and the Engineer-card
+interaction. `provision` then stores that card and takes the sonicdriver before
+normal exit. These last two are **continuous cold-boot routes without checkpoint
+loads**. Private checkpoint replays remain useful for development, not substitutes
+for that qualification. Every resume has explicit origin/map/held-item guards.
+
+[Evaluation evidence](../runtime/observations/pandora-player-evaluation.json)
+records matching qualified cold-boot provisioning runs: frame1226, position
+`(640,734)`, HP95, sonicdriver `$05` held and Engineer `$32` in carried slot0.
+The old inventory/deposit plan also repeats with identical action states and
+frame/CCK input records. A known-wall replay stops after30 frames, captures the
+unchanged position and releases input. No memory-watch campaign was added.
+
+The first cursor action overshot: at handler entry `$28D4`, direction has already
+been sampled. Brake one service before the final step, wait for the intended
+cursor position with input released, then select. The card row requires Y147;
+braking at145 prevents another move from starting. Navigation similarly uses
+the original movement-commit anchor `$9844` so a new direction precedes the next
+sample. Both failures and the too-short180-frame east-leg bound are retained in
+the evidence rather than silently retried or counted as successful progress.
+
+This normal terminal has a held-ID redraw, **no separate submit command**.
+Engineer `$32` selects the original Alpha clearance-label entry; Lt Commander is
+`$31` (development progress initially misnamed `$32`, now corrected). The routine
+completion at `$9078` after cache32 establishes the display path, not unrestricted
+security access or mission completion. The later held sonicdriver is outside the
+card-ID domain. Source meanings/bytes are unchanged; no new exact source rebuild
+is needed. The player expects the admitted healthy route; damage, new encounters,
+other maps or arbitrary cursor states require another reviewed plan rather than
+silent continuation. Original disk/loader parity, full playthrough, DMA and
+all-alias coverage remain outside this result. ROMs, media, raw reports, full
+register/stack data and guest checkpoints stay private.
