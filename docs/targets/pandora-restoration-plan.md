@@ -199,7 +199,9 @@ work may classify asset boundaries and relocation needs, but will not implement
 a competing exporter or edit its assembler/source-packaging path. Adoption will
 follow independent review and coordinated integration.
 
-## Walkthrough completion dependencies (2026-10-22, after 12ceae72)
+## Walkthrough completion dependencies (current after saved-Earth qualification)
+
+Current result: [qualified ending receipt](../../runtime/observations/pandora-saved-earth-walkthrough.json). The complete route is authored by `pandora_finale.complete`; checkpoint-development sections below retain their historical context.
 
 The completion target is **Earth saved and player escaped**, not a kill count,
 item count, or every optional encounter. Original-layout source is authoritative
@@ -211,14 +213,14 @@ ID on departure. Treat unobserved travel/access dependencies as hypotheses.
 
 | ID | Required objective / concrete completion predicate | Evidence and current state | Next bounded action |
 | --- | --- | --- | --- |
-| G01 | Remain active and preserve enough health/time for the ending | Current completion prefix ends HP95, active, Commander48 held, Engineer50/sonicdriver5 carried, Blue33/Scarlet35 pocketed. Post-run mission probe reads nonzero Earth deadline$9732 and state0. Earlier Icelord HP70 branch remains optional. | Prefer the healthy prefix while omitting optional combat; record deadline/mission state before arming. |
-| G02 | Acquire SDI disk38 (`$26`) | Captain inventory contains it; disk is explicitly consumed by `test_self_destruct_initiation_disk`. Acquired and stored in carried3 after a cold-boot Captain route. Live Captain body `(656,1002)`. Hint route uses Lt Commander ID; exact approach/gate association remains to be validated. | Done: disk38 in carried3, Commander48 held, Lt49 retained in carried2. Next acquire Ochre. |
-| G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both were acquired from Commander and verified in pocket slots2/3 at frame2572. Local console accepts three qualifying submissions; intended route will use three distinct colours, not duplicate exploitation. | Done for Blue/Scarlet; preserve pocket slots2/3 until console submissions. |
-| G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Done: normal-input exchange qualified from cold boot at frame8095. Below-patrol staging `(556,1606)` is reachable; Engineer50 crosses engineering, then sonicdriver5 obtains Ochre36. All other required items retained. |
-| G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | All inputs owned; unarmed console entry/exit validated in checkpoint extension. Resolve the return-route prerequisite (live Icelord on wrap route, DeathFly on direct route) before arming; then verify actual counts/state and consumed IDs. |
-| G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | AWOL55 pocketed1; unarmed console/departure and camera wrap are observed. The live Icelord blocks the chosen upper return; revise the earlier prefix before claiming descriptor21 authorization/eventbit4. |
-| G07 | Escape through tile236 while authorized | Movement tests decoded tile236 and eventbit4, then sets escape event and enters the escape outcome helper. Not observed. | After G05/G06, travel to the escape tile before countdown expiry; verify the original branch, restored domain and event flags. |
-| G08 | Validate the successful ending, not merely an armed console | `enqueue_game_outcome_and_rank_messages` selects the saved-Earth message when self-destruct state is negative and Earth deadline nonzero. Require escape event as well for this walkthrough objective. | Capture outcome branch/message identity plus mission state; validate the complete ordinary-input chain from cold boot. |
+| G01 | Remain active and preserve enough health/time for the ending | Complete cold route ends HP49, active; deadline nonzero at saved-Earth selection. Health95→70(Icelord)→49(Hooligan), then unchanged. | Complete for the qualified route. |
+| G02 | Acquire SDI disk38 (`$26`) | Captain disk retained in pocket0, then consumed by original console input. | Complete. |
+| G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both retained from Commander; distinct cards consumed at the console. | Complete. |
+| G04 | Acquire Ochre36 (`$24`) | Normal sonicdriver5 trade after early Icelord defeat; Ochre retained and consumed at the console. | Complete. |
+| G05 | Arm the self-destruct console | SDI38 then Scarlet35/Ochre36/Blue33 accepted: qualifying3, submitted3, stateFF. | Complete in continuous cold qualification. |
+| G06 | Obtain escape authorization | HeldAWOL55 at descriptor21 sets eventbit4 after the wrapped return and empty-handed Thief crossing. | Complete. Engineer retained in pocket0. |
+| G07 | Escape through tile236 while authorized | Horizontal input at the escape tile enters original source$4C994; eventbit3 set. | Complete. |
+| G08 | Validate the successful ending, not merely an armed console | Original source$4C9DC selected saved-Earth pointer$5CAE5; stateFF, flags5C, nonzero deadline. Complete uninterrupted cold replay and movement inhibition observed. | Complete for the selected ending; optional encounters and title restart not required by this receipt. |
 
 Source anchors are the existing named routines and tables in the target `.s`:
 `process_self_destruct_card_input`, `validate_self_destruct_qualifying_card_count`,
@@ -227,7 +229,7 @@ Source anchors are the existing named routines and tables in the target `.s`:
 `commander_inventory_slots`, `robomechanic_inventory_slots` and
 `robomechanic_trade_offers`. No source/fact mutation is implied by this checklist.
 
-**Route correction:** Engineer50 is an evidenced exact-card engineering checkpoint
+**Historical route assessment (superseded by the qualified wrapped route):** Engineer50 is an evidenced exact-card engineering checkpoint
 and intended-route item, but not a direct ending predicate. Sonicdriver5 has a
 direct progression use as the Ochre trade. The Icelord's completion callback is
 NULL and its inventory is Ice Pendant/Thermolance; none is a direct ending input.
@@ -241,7 +243,61 @@ shown before calling it mandatory. Keep the earlier Icelord evidence as an
 optional driver exercise, and do not replay that detour in the completion prefix
 without a demonstrated dependency.
 
-### Latest required-route checkpoint
+## Saved-Earth walkthrough qualified (2026-10-22)
+
+[Ending receipt](../../runtime/observations/pandora-saved-earth-walkthrough.json)
+records one uninterrupted cold direct-payload boot: **576 canonical
+phases, 375 normal input events**, ending frame 14,332,
+HP 49. No checkpoint loads occur in that qualification. Earlier
+checkpoint branches are development evidence only. The original queue call at
+source `$4C9DC` selected saved-Earth message pointer `$5CAE5`; self-destruct state
+was `$FF`, event flags were `$5C` (authorization, escape and
+outcome latched), and Earth deadline WORD was `0x8258`.
+The next original instruction confirms movement inhibition.
+
+The revised route defeats Icelord **before** sonicdriver5 is traded for Ochre,
+retains its Thermolance11, and uses that weapon for Hooligan. Health is
+95→70→49, then remains 49 through the ending. Icelord is a tactical prerequisite
+of this chosen wrapped return, not a universal ending predicate. SDI38 and
+three distinct intended code cards (Scarlet35, Ochre36, Blue33) are consumed.
+Engineer50 crosses engineering and is pocketed through the Thief strip; held
+AWOL55 then sets authorization at descriptor21 before the horizontal escape-tile
+probe. This closes G01–G08 for **this route**, not every optional game objective.
+
+The driver was useful for this extension: it preserved the item/health budget,
+localized incorrect gate approaches and patrol crossings, and exposed the armed
+console's different horizontal exit drift. Failed branches are retained in the
+receipt with actual later diagnostic state, not recast as successful runs.
+Section composition now retains compatible entry guards and rejects conflicts;
+goal-search boundaries keep the next entry check after goal completion,
+so transient combat positions are not required to match the later world state;
+old Captain/Ochre/AWOL default authored identities are unchanged. The measured
+577 authored stages (including initial handoff) and 375 events required increasing
+the finite shared scenario limits to 768/512; per-phase bounds and release rules
+are unchanged. **184 focused tests passed, no skips.**
+
+No target source/binary was changed or regenerated: their previous byte-exact
+receipt is preserved and their hashes were rechecked by every runner invocation.
+This is original direct-payload gameplay, not original disk-loader parity or
+proof of all DMA, memory usage, relocation or native-C behaviour. The original
+successful outcome and escape transition are observed; reading every scrolling
+message and the subsequent automatic title restart are outside this receipt.
+Reproduce the declarative complete plan with
+`python -m amiga_reversing.tools.pandora_finale --output /tmp/pandora-ending.json`,
+then use the existing `copperline_session` target/ROM/direct-payload scenario
+workflow. `--stage` emits bounded checkpoint-development sections;
+`--checkpoint` makes only the complete recipe begin at the verified Commander
+checkpoint and must not be described as a cold replay. The receipt binds actual
+executed code, authored/compiled plans, reports and private checkpoint identities.
+
+Raw media/checkpoints/captures stay private. PR5 remains unmerged and all nine
+paused B07 files retain their prior hashes. **The requested successful-ending
+walkthrough objective is complete; no further mandatory route step is queued.**
+
+Earlier checkpoint and route-planning sections below are historical, including
+statements that submissions, authorization or the ending were then pending.
+
+### Historical required-route checkpoint
 
 [Qualified evidence](../../runtime/observations/pandora-required-progression.json):
 one uninterrupted cold boot, frame2572, player `(192,190)`, HP95, held Commander48,

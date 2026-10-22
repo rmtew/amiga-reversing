@@ -1,5 +1,59 @@
 # Pandora restoration inventory and status
 
+## Saved-Earth walkthrough qualified (2026-10-22)
+
+[Ending receipt](../../runtime/observations/pandora-saved-earth-walkthrough.json)
+records one uninterrupted cold direct-payload boot: **576 canonical
+phases, 375 normal input events**, ending frame 14,332,
+HP 49. No checkpoint loads occur in that qualification. Earlier
+checkpoint branches are development evidence only. The original queue call at
+source `$4C9DC` selected saved-Earth message pointer `$5CAE5`; self-destruct state
+was `$FF`, event flags were `$5C` (authorization, escape and
+outcome latched), and Earth deadline WORD was `0x8258`.
+The next original instruction confirms movement inhibition.
+
+The revised route defeats Icelord **before** sonicdriver5 is traded for Ochre,
+retains its Thermolance11, and uses that weapon for Hooligan. Health is
+95→70→49, then remains 49 through the ending. Icelord is a tactical prerequisite
+of this chosen wrapped return, not a universal ending predicate. SDI38 and
+three distinct intended code cards (Scarlet35, Ochre36, Blue33) are consumed.
+Engineer50 crosses engineering and is pocketed through the Thief strip; held
+AWOL55 then sets authorization at descriptor21 before the horizontal escape-tile
+probe. This closes G01–G08 for **this route**, not every optional game objective.
+
+The driver was useful for this extension: it preserved the item/health budget,
+localized incorrect gate approaches and patrol crossings, and exposed the armed
+console's different horizontal exit drift. Failed branches are retained in the
+receipt with actual later diagnostic state, not recast as successful runs.
+Section composition now retains compatible entry guards and rejects conflicts;
+goal-search boundaries keep the next entry check after goal completion,
+so transient combat positions are not required to match the later world state;
+old Captain/Ochre/AWOL default authored identities are unchanged. The measured
+577 authored stages (including initial handoff) and 375 events required increasing
+the finite shared scenario limits to 768/512; per-phase bounds and release rules
+are unchanged. **184 focused tests passed, no skips.**
+
+No target source/binary was changed or regenerated: their previous byte-exact
+receipt is preserved and their hashes were rechecked by every runner invocation.
+This is original direct-payload gameplay, not original disk-loader parity or
+proof of all DMA, memory usage, relocation or native-C behaviour. The original
+successful outcome and escape transition are observed; reading every scrolling
+message and the subsequent automatic title restart are outside this receipt.
+Reproduce the declarative complete plan with
+`python -m amiga_reversing.tools.pandora_finale --output /tmp/pandora-ending.json`,
+then use the existing `copperline_session` target/ROM/direct-payload scenario
+workflow. `--stage` emits bounded checkpoint-development sections;
+`--checkpoint` makes only the complete recipe begin at the verified Commander
+checkpoint and must not be described as a cold replay. The receipt binds actual
+executed code, authored/compiled plans, reports and private checkpoint identities.
+
+Raw media/checkpoints/captures stay private. PR5 remains unmerged and all nine
+paused B07 files retain their prior hashes. **The requested successful-ending
+walkthrough objective is complete; no further mandatory route step is queued.**
+
+Earlier checkpoint and route-planning sections below are historical, including
+statements that submissions, authorization or the ending were then pending.
+
 ## Return-route prerequisite identified before arming (2026-10-22)
 
 [Return preparation](../../runtime/observations/pandora-return-preparation.json)

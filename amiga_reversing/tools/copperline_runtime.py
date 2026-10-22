@@ -12,8 +12,11 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
-MAX_SCENARIO_PHASES = 512
-MAX_SCENARIO_INPUT_EVENTS = 256
+# The measured Pandora ending uses577 authored stages/375 input events. Keep a finite
+# plan budget while permitting that single continuous route. Per-phase frame,
+# visit, wait and input-release limits remain unchanged.
+MAX_SCENARIO_PHASES = 768
+MAX_SCENARIO_INPUT_EVENTS = 512
 MEMORY_ACCESS_ENGINES = frozenset(
     ["cpu", "blitter", "disk", "copper"]
     + [f"bpl{i}" for i in range(1, 9)]

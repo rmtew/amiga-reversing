@@ -32,6 +32,20 @@ def approach(*,cold=False):
                 until={'address':0x5BB40,'size':2,'expect_hex':'0500','expect_mask_hex':'ff00'},
                 visits=1024,frames=1600)
         p.move_to(f'engineering_{i}',dr,xy);p.scenario['phases'][-1]['max_frames']=600
+    complete_trade(p)
+    for q in p.scenario['phases'][1:]:q['name']='oc_'+q['name']
+    for e in p.scenario['input_events']:
+        e['after_phase']='oc_'+e['after_phase'];e['release_after_phase']='oc_'+e['release_after_phase']
+    if not cold:return p.scenario
+    s=captain(cold=True);previous=s['phases'][-1]['name'];s['phases']+=p.scenario['phases'][2:]
+    for e in p.scenario['input_events']:
+        if e['after_phase']=='oc_anchor':e['after_phase']=previous
+        s['input_events'].append(e)
+    s['identifier']='pandora-required-ochre-approach';return s
+
+
+def complete_trade(p,*,inventory_expected=bytes([48,50,49,38,0,0,33,35])):
+    if len(inventory_expected)!=8:raise ValueError('Inventory profile must contain8 IDs')
     p.action('inventory_open',0x2754,control='key 64')
     p.cursor_to([0,147],'down').select('equip_sonicdriver',5).close_inventory()
     p.action('trade_staging',0x5D6)
@@ -46,17 +60,9 @@ def approach(*,cold=False):
     p.scenario['phases'][-1]['capture']['memory_reads'] += [
         goal(0x1B230,bytes([6,10,2,20,5,40,10,100])),
         goal(0x1B370,bytes([0,40,4,60,0,0,0,0])),goal(0x5B39E+70,bytes([5])),
-        goal(0x3B92,bytes([48,50,49,38,0,0,33,35])),
+        goal(0x3B92,inventory_expected),
         goal(PLAYER+22,bytes([36]))]
-    for q in p.scenario['phases'][1:]:q['name']='oc_'+q['name']
-    for e in p.scenario['input_events']:
-        e['after_phase']='oc_'+e['after_phase'];e['release_after_phase']='oc_'+e['release_after_phase']
-    if not cold:return p.scenario
-    s=captain(cold=True);previous=s['phases'][-1]['name'];s['phases']+=p.scenario['phases'][2:]
-    for e in p.scenario['input_events']:
-        if e['after_phase']=='oc_anchor':e['after_phase']=previous
-        s['input_events'].append(e)
-    s['identifier']='pandora-required-ochre-approach';return s
+    return p
 
 
 def main():

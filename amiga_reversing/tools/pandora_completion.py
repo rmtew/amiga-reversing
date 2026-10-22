@@ -143,19 +143,25 @@ def hooligan_fight():
     return p.scenario
 
 
-def finish_captain(p):
-    p.move_to('central_shaft','down',[500,686])
+def finish_captain(p,*,skip_central_shaft=False,pocket_disk=False,inventory_expected=None):
+    if not skip_central_shaft:p.move_to('central_shaft','down',[500,686])
     for i,(dr,xy) in enumerate([('right',[542,686]),('left',[535,686]),('down',[542,842]),('down',[542,922]),('down',[542,954]),('right',[591,954]),('left',[584,954]),('down',[591,986]),('right',[647,986])]):
         p.move_to(f'waypoint_{i}',dr,xy);p.scenario['phases'][-1]['max_frames']=600
     p.action('inventory_open',0x27EA,control='key 64')
     p.cursor_to([192,147],'down').select('take_sdi_disk',38)
-    p.cursor_to([0,147],'left').cursor_to([0,163],'down').select('store_sdi_disk',0)
-    p.cursor_to([192,163],'right').cursor_to([192,147],'up').select('retrieve_commander',48)
+    if pocket_disk:
+        p.cursor_to([96,147],'left').cursor_to([96,139],'up').select('store_sdi_disk',0)
+        p.cursor_to([192,139],'right').cursor_to([192,147],'down').select('retrieve_commander',48)
+    else:
+        p.cursor_to([0,147],'left').cursor_to([0,163],'down').select('store_sdi_disk',0)
+        p.cursor_to([192,163],'right').cursor_to([192,147],'up').select('retrieve_commander',48)
     p.close_inventory().action('objective',0x5D6)
     final=p.scenario['phases'][-1]
     final['capture']['memory_reads'].append(goal(PLAYER+22,b'\x30'))
     ids=next(r for r in final['capture']['memory_reads'] if r.get('address')==0x3B92)
-    ids.update(expect_hex='3205312600002123',expect_mask_hex='ffffffffffffffff')
+    expected=inventory_expected if inventory_expected is not None else bytes.fromhex('3205312600002123')
+    if len(expected)!=8:raise ValueError('Captain inventory profile must contain8 IDs')
+    ids.update(expect_hex=expected.hex(),expect_mask_hex='ffffffffffffffff')
     return p
 
 
