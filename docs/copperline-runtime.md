@@ -1264,3 +1264,61 @@ against the retained native accepted instruction and original bytes using the
 cached UI runtime view; all live source PCs were independently byte-matched.
 A normal invocation of the public session CLI may freshly compile the generated
 scenario instead. Raw reports and descriptor/stack captures stay local.
+
+#### Inventory and salvage-deposit interaction windows
+
+`pandora_app_interaction_watch_scenario` extends the same original route using
+normal keyboard/joystick inputs. It moves down 19 times, opens the player's own
+inventory with key 64, stores the starting `$36` card in carried slot 0, closes
+and reopens the panel, retrieves the card, then moves down twice and left 13
+times. The observed deposit approach is `(150,950)`, Manhattan distance 16 from
+the marker `(148,964)`. This is the salvage receptacle, not terminal modal UI.
+
+Three ordinary main-loop visits after each close let the released inventory key
+clear its latch before the next press. The initial attempt reopened too early:
+it stored and closed successfully but retained UI `$28`; the retry and final
+fresh full-route run verify the corrected sequence. No guest registers or
+workspace bytes are forced.
+
+Generate `--stage route` for the complete cold-boot route. For inexpensive
+repeated watches, first generate `--stage inventory-root` or `--stage deposit-root`
+and run it with the existing session CLI's `--checkpoint-save` option. Then:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_app_interaction_watch_scenario \
+  --stage deposit-root --output .runtime-state/deposit-root.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/deposit-root.json \
+  --state-directory .runtime-state/deposit-root-fresh \
+  --checkpoint-save .runtime-state/deposit-root-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/deposit-root-report.json
+.venv/bin/python -m amiga_reversing.tools.pandora_app_interaction_watch_scenario \
+  --stage deposit --offset 0x368 --length 4 --resume \
+  --output .runtime-state/deposit-watch.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/deposit-watch.json \
+  --state-directory .runtime-state/deposit-watch-fresh \
+  --checkpoint-load .runtime-state/deposit-root-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/deposit-watch-report.json
+```
+
+Use the matching inventory root with `--stage inventory` for the store window.
+Each resume starts at the saved byte-verified source PC, with media/context,
+snapshot hash and exact registers verified by the existing checkpoint service.
+The watch arms at source `$28F4` for store selection or `$89D6` for the deposit
+scan, then uses a 120-frame-label window and a separate 60-second wall deadline.
+Fire stays held through the hook; the selection latch prevents another swap,
+and deposit clears the held ID before later visits. Endpoint state, not input
+injection alone, validates each interaction.
+
+[Interaction evidence](../runtime/observations/pandora-app-interaction-memory-watch.json)
+records 32 completed no-hit CPU data windows: all 14 gaps plus `+$2D4` and `+$368`
+for both store and deposit. Every endpoint confirms the intended transfer.
+The ordinary route separately verifies retrieval and the complete deposit call.
+Opening/closing/retrieval/approach are not watched in these cases. Each deposit
+resumes empty storage and writes one ID; this does not test a growing prefix or
+its 64-byte boundary. No DMA, instruction-fetch, unused-memory, all-alias,
+terminal-screen or full-playthrough claim follows. Snapshots and raw captures
+stay private; no shared runtime or general validation framework changed.

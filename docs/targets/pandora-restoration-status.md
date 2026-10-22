@@ -1,5 +1,29 @@
 # Pandora restoration inventory and status
 
+## Watched inventory and salvage deposit (2026-10-22)
+
+[Interaction evidence](../../runtime/observations/pandora-app-interaction-memory-watch.json)
+adds a validated normal-input route: own-inventory card store at frame 707,
+retrieve at 725, approach `(150,950)` at 790, deposit commit/feedback at 793,
+and return to the main loop at 795. Held/carried/deposit bytes confirm the
+transfers of the initial `$36` card. The earlier reopen timeout is retained;
+three main-loop visits after closing let the released key clear its latch.
+
+Two verified checkpoints support **32 completed 120-frame-label CPU data
+windows**: 14 gaps/750 bytes plus declared unresolved `+$2D4`/`+$368`, separately
+for store and deposit. Every endpoint confirms its transfer; no watched access
+was observed. These remain bounded non-pass observations, never unused-memory
+proofs. The ordinary fresh route also verifies retrieval, but its open/close,
+retrieve and approach work is outside the watch windows. No new source meaning
+or classification is justified; target source remains unchanged.
+
+This covers the salvage receptacle, **not terminal modal UI**. The nearest
+identified modal terminal tiles are around `(672,976)`; one bounded approach
+model returned unknown within 30,000 states, so no modal reachability conclusion
+or further runtime exploration is claimed. Other item/slot domains, growing
+deposit prefixes, DMA and full-playthrough coverage remain open. Reproduction
+uses the [existing checkpoint and session services](../copperline-runtime.md#inventory-and-salvage-deposit-interaction-windows).
+
 ## Earlier app-gap window and observed UI reader (2026-10-21)
 
 [Earlier-window evidence](../../runtime/observations/pandora-app-early-memory-watch.json)
