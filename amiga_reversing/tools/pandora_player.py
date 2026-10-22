@@ -39,7 +39,9 @@ def observe(captured):
                      inactive=bool(p[24] & 2))
     if h:
         state['map'] = [int.from_bytes(h[a:b], 'big') for a,b in ((8,12),(12,14),(14,16))]
-    if UI in memory:state['ui'] = memory[UI][0]
+    if UI in memory:
+        state['ui'] = memory[UI][0]
+        if state['ui'] & 2:state['position_domain']='combat_x_bias_10000'
     if CACHE in memory:state['cached_id'] = memory[CACHE][0]
     if CURSOR in memory:
         c=memory[CURSOR];state['cursor']=[int.from_bytes(c[i:i+2], 'big') for i in (0,2)]
@@ -52,12 +54,14 @@ def observe(captured):
 
 class PlayerPlan:
     """Compose bounded semantic actions, with independent state goals/guards."""
-    def __init__(self, anchor=0x9074, *, modal=True, xy=None, held=54):
+    def __init__(self, anchor=0x9074, *, modal=True, xy=None, held=54, expected_health=95):
         base=build_approach()
         self.scenario={k:copy.deepcopy(v) for k,v in base.items() if k not in ('phases','input_events')}
         self.scenario.update(identifier='pandora-state-aware-player',
             phases=[{'name':'checkpoint','observable':'verified_checkpoint'}, phase('anchor',anchor,1)],
             input_events=[])
+        self.expected_health=expected_health
+        self.expected_held=held
         self.modal=modal
         self._guards(self.scenario['phases'][-1])
         origin=xy if xy is not None else ([640,734] if modal else [241,942])
@@ -69,7 +73,7 @@ class PlayerPlan:
         p['capture']['memory_reads']=[r for r in p['capture']['memory_reads'] if r.get('address') not in (0x3C77,0x5C72A,0x3CD0,0x3D64)]
         reads=p['capture']['memory_reads']
         reads.append({'address':PLAYER+24,'size':1,'expect_hex':'00','expect_mask_hex':'02'})
-        reads.append(goal(PLAYER+12,(95).to_bytes(2,'big')))
+        reads.append(goal(PLAYER+12,self.expected_health.to_bytes(2,'big')))
         map_value=(0x18A20).to_bytes(4,'big')+bytes.fromhex('00140008') if self.modal else bytes.fromhex('00004000005a0081')
         reads.append(goal(HEADER+8,map_value))
 
@@ -91,7 +95,9 @@ class PlayerPlan:
 
     def move_to(self,name,direction,xy):
         value=b''.join(n.to_bytes(2,'big') for n in xy)
-        return self.action(name,0x9844,control='port1 '+direction,until=goal(PLAYER,value),visits=64)
+        self.action(name,0x9844,control='port1 '+direction,until=goal(PLAYER,value),visits=64)
+        self.scenario['phases'][-1]['capture']['memory_reads'].append(goal(PLAYER+22,bytes([self.expected_held])))
+        return self
 
     def inventory_open(self):
         return self.action('inventory_open',0x28D4,control='key 64',
@@ -111,7 +117,9 @@ class PlayerPlan:
     def select(self,name,held):
         # One released-input service after cursor completion clears the fire latch.
         self.action(name+'_ready',0x28D4,visits=2)
-        return self.action(name,0x28D4,control='port1 fire',until=goal(PLAYER+22,bytes([held])),visits=16)
+        self.action(name,0x28D4,control='port1 fire',until=goal(PLAYER+22,bytes([held])),visits=16)
+        self.expected_held=held
+        return self
 
     def close_inventory(self):
         self.action('key_release_services',0x28D4,until=goal(0x39BC,b'\x00'),visits=64,frames=180)
@@ -202,6 +210,8 @@ def summarize(report):
         state=observe(p.get('capture') or p.get('diagnostic_capture'))
         reason=p.get('termination')
         if state.get('inactive') or state.get('health')==0:reason='player_dead'
+        elif p.get('status')!='hit' and state.get('ui',0)&2 and p.get('stable_key','').startswith('s0:00009844:'):
+            reason='combat_blocks_movement'
         actions.append({'action':p['name'],'status':p['status'],'reason':reason,
             'frame':(p.get('stop_event') or {}).get('frame'),'state':state,
             'visits':p.get('occurrences_observed')})

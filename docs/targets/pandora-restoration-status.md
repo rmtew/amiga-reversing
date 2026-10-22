@@ -1,5 +1,28 @@
 # Pandora restoration inventory and status
 
+## Required SDI disk acquired (2026-10-22)
+
+[SDI progression](../../runtime/observations/pandora-sdi-progression.json): one
+**uninterrupted cold boot**,218 phases/128 input events, frame4846. Player
+`(647,986)`, HP32, Commander48 held; carried `[Engineer50,sonicdriver5,Lt49,SDI38]`;
+pockets2/3 retain Blue33/Scarlet35. No required item lost; no ending claimed.
+
+Actual route obstacles are preserved: exact-card gate/lateral-drift sequencing,
+Thief theft avoided by empty-hand crossing, and Hooligan combat identified from
+a natural entry breakpoint rather than misreported as terrain. Twelve normal
+5-point hits cleared that encountered opponent; this is not a universal ending
+prerequisite. Movement now guards held items and reports combat coordinate bias;
+post-fight HP32 is checked rather than reset. The existing bounds model admits
+the original2-byte animation-toggle command, closing the patrol bounds used in
+route diagnosis. Shared bounded capacities256/128 fit the concrete recipe.
+**186 focused tests passed**, no skips. No target source change, new classified
+bytes, repeated gap watches or B07 work. PR5 remains unmerged.
+
+**Next required item: Ochre36** through the sonicdriver trade. The revised
+below-patrol goalY1606 has a conditional route, with Engineer50 required at the
+engineering gate. AWOL authorization, console arming and saved-Earth escape are
+still pending in the [G01–G08 checklist](pandora-restoration-plan.md#walkthrough-completion-dependencies-2026-10-22-after-12ceae72).
+
 ## Required ending route corrected and advanced (2026-10-22)
 
 The [finite G01–G08 checklist](pandora-restoration-plan.md#walkthrough-completion-dependencies-2026-10-22-after-12ceae72)

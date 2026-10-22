@@ -12,8 +12,8 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
-MAX_SCENARIO_PHASES = 128
-MAX_SCENARIO_INPUT_EVENTS = 96
+MAX_SCENARIO_PHASES = 256
+MAX_SCENARIO_INPUT_EVENTS = 128
 MEMORY_ACCESS_ENGINES = frozenset(
     ["cpu", "blitter", "disk", "copper"]
     + [f"bpl{i}" for i in range(1, 9)]

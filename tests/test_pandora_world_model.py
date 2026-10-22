@@ -140,3 +140,12 @@ def test_actor_binding_uses_source_identity_across_corrected_names():
         actor_at_source([], 0x4C1D2)
     with pytest.raises(ValueError, match='missing or ambiguous'):
         actor_at_source([actor, dict(actor)], 0x4C1D2)
+
+
+def test_original_toggle_commands_do_not_hide_hooligan_or_thief_bounds():
+    m=report()
+    data=(ROOT/'targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin').read_bytes()
+    for name,xr,yr in [('world_object_hooligan',[430,684],[620,872]),('world_object_thief',[186,772],[532,532])]:
+        a=next(a for a in m['actors'] if a['name']==name)
+        e=script_envelope(data,a['initial_script'],0x10000,m['opcode_values'])
+        assert e['status']=='bounded_cycle' and e['x_range']==xr and e['y_range']==yr

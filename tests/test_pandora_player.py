@@ -32,3 +32,11 @@ def test_observer_does_not_turn_dead_snapshot_into_success():
         'diagnostic_capture':{'memory_reads':[{'address':hex(player.PLAYER),'bytes':block.hex()}]}}]}}}
     r=player.summarize(report)
     assert r['status']=='incomplete' and r['actions'][0]['reason']=='player_dead'
+
+
+def test_movement_guards_actual_selected_item_after_inventory_action():
+    p=player.PlayerPlan(modal=False,held=49,expected_health=32)
+    p.select('switch',48).move_to('walk','down',[241,946])
+    reads=p.scenario['phases'][-1]['capture']['memory_reads']
+    assert {'address':player.PLAYER+22,'size':1,'expect_hex':'30'} in reads
+    assert {'address':player.PLAYER+12,'size':2,'expect_hex':'0020'} in reads

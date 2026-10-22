@@ -82,6 +82,10 @@ def script_envelope(data, start, runtime_base, opcodes, *, max_steps=4096):
                 return complete(step+1)
         elif name == "SET_NODE_FOR_FLAG3_CLEAR":
             pc += 6
+        elif name == "TOGGLE_NODE_FOR_FLAG3_CLEAR":
+            # Original handler toggles a state-node flag and advances two bytes;
+            # it does not change object world X/Y (bounds model only).
+            pc += 2
         elif name == "SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR":
             pc += 10
         else:

@@ -1558,3 +1558,54 @@ is not proof that every approach is impossible. The full hint page fetch was
 blocked by a proxy403; indexed hints are corroboration only, with local source
 predicates explicitly separated. Original bytes/source and paused B07 files are
 unchanged. Proprietary assets, raw RAM/stack captures and checkpoints stay local.
+
+#### Captain SDI disk with protected inventory
+
+`pandora_completion --stage captain --cold` extends the required-code route to
+Captain's SDI disk. Use the existing headless session CLI without checkpoint load
+for the full qualification; a matching preceding Commander checkpoint is useful
+for development. [SDI evidence](../runtime/observations/pandora-sdi-progression.json)
+records one complete cold boot, frame4846, HP32, Commander48 held, carried
+`[50,5,49,38]`, pockets`[0,0,33,35]`. All218 phases passed, with128 input events.
+The existing run completed normally in108.5 seconds; no duplicate was launched
+while it ran. Raw reports/checkpoints remain private.
+
+Exact-card gates require sequencing, not just possessing all IDs: recover49 to
+leave the Lt Commander area, clear its contact region including the next turn's
+lateral drift, then retrieve48 outside. Stash48 before the Thief's Y532 crossing,
+walk empty-handed, and retrieve it beyond the strict interaction range. The
+Thief clears only held IDs>=2; carried items are not transferred or stolen by
+that branch. Movement goals now assert the expected held item after successful
+selection, preventing another silent loss.
+
+The next apparent wall was actually Hooligan combat. A naturally reached entry
+at`$7792` identifies opponent`$5A028`, HP60, weapon damage21/reload5. Twelve full
+5-point player attacks defeated it, leaving HP32. The subsequent original-world
+route and inventory transfers acquire SDI38 in carried3 and recover48 for exit.
+This engagement enables the chosen corridor; it is not claimed as a universal
+ending prerequisite. Original combat setup opens a shared passage tile, so
+side effects of optional fights must also be tracked, not dismissed from a NULL
+completion callback alone. Combat-biased X and actual world X are distinguished.
+
+The existing planning model lacked the original animation-toggle command. Its
+handler changes a node flag and advances2, leaving object world X/Y unchanged;
+adding that bounded case closes Hooligan X430..684/Y620..872 and Thief
+X186..772/Y532. Those are original-script conditional bounds, not a theorem
+about arbitrary pointer aliases or mutated scripts. No new timing/pathfinding
+framework or memory-watch campaign was introduced. The concrete continuous route
+fits shared bounded256-phase/128-event limits;186 focused tests pass.
+
+One diagnostic was initially rejected by automatic approval review as perceived
+state injection/artificial routine entry. Read-only inspection established that
+constructor values emit capture assertions, both phases use`continue`, and the
+saved root was naturally reached with51 recorded controller changes. One retry
+was approved and completed. No guest PC/position/health/item write, artificial
+routine call or access workaround occurred.
+
+Next is actual Ochre acquisition: the earlier staging goal above Robomechanic
+was blocked terrain, whereas Y1606 below its patrol is within the strict
+interaction range and has a model route. Engineer50 must be held through the
+engineering checkpoint, then sonicdriver5 offered near the NPC. The SDI result
+is not yet a completed game; Ochre, AWOL authorization, console and ending remain
+explicit obligations. Target source bytes, nine paused B07 files and source
+policies remain unchanged; no redundant source regeneration was needed.

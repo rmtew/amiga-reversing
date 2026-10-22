@@ -212,7 +212,7 @@ ID on departure. Treat unobserved travel/access dependencies as hypotheses.
 | ID | Required objective / concrete completion predicate | Evidence and current state | Next bounded action |
 | --- | --- | --- | --- |
 | G01 | Remain active and preserve enough health/time for the ending | Current completion prefix ends HP95, active, Commander48 held, Engineer50/sonicdriver5 carried, Blue33/Scarlet35 pocketed. Post-run mission probe reads nonzero Earth deadline$9732 and state0. Earlier Icelord HP70 branch remains optional. | Prefer the healthy prefix while omitting optional combat; record deadline/mission state before arming. |
-| G02 | Acquire SDI disk38 (`$26`) | Captain inventory contains it; disk is explicitly consumed by `test_self_destruct_initiation_disk`. Not acquired. Live Captain body `(656,1002)`. Hint route uses Lt Commander ID; exact approach/gate association remains to be validated. | Lt Commander49 acquired; Commander48 now held after guarded access. Next establish the Captain route and acquire disk38. |
+| G02 | Acquire SDI disk38 (`$26`) | Captain inventory contains it; disk is explicitly consumed by `test_self_destruct_initiation_disk`. Acquired and stored in carried3 after a cold-boot Captain route. Live Captain body `(656,1002)`. Hint route uses Lt Commander ID; exact approach/gate association remains to be validated. | Done: disk38 in carried3, Commander48 held, Lt49 retained in carried2. Next acquire Ochre. |
 | G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both were acquired from Commander and verified in pocket slots2/3 at frame2572. Local console accepts three qualifying submissions; intended route will use three distinct colours, not duplicate exploitation. | Done for Blue/Scarlet; preserve pocket slots2/3 until console submissions. |
 | G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Establish a live reachable Robomechanic approach and complete the actual exchange. Static patrol is X382..720,Y1592; current terrain model has no route to the first proposed staging region. This is an unresolved route question, not proof of unreachability. |
 | G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | Collect G02–G04 before entering the console; verify actual counts/state and consumed IDs. |
@@ -230,9 +230,11 @@ Source anchors are the existing named routines and tables in the target `.s`:
 **Route correction:** Engineer50 is an evidenced exact-card engineering checkpoint
 and intended-route item, but not a direct ending predicate. Sonicdriver5 has a
 direct progression use as the Ochre trade. The Icelord's completion callback is
-NULL and its inventory is Ice Pendant/Thermolance; none is an ending input. Its
-defeat is therefore an optional tested detour on present evidence, not certified
-golden-path progress. It consumed no tool/card and cost25HP. No mandatory item
+NULL and its inventory is Ice Pendant/Thermolance; none is a direct ending input.
+Its defeat remains an optional tested detour, not certified golden-path progress.
+Combat initialization also opens a shared passage tile, so NULL callback alone
+does not prove absence of all traversal side effects. The completion prefix
+omits Icelord and records its actual encountered Hooligan interaction instead. It consumed no tool/card and cost25HP. No mandatory item
 has been irreversibly bypassed, but G02–G08 remain unfinished. Laser-rifle pickup
 in the hints is not itself an ending predicate; any route-specific need must be
 shown before calling it mandatory. Keep the earlier Icelord evidence as an
@@ -250,3 +252,22 @@ deadline is nonzero; no ending is claimed. **Next required objective: Captain
 SDI disk38**, using the now-held Commander card. Ochre route/trade remains an
 independent unresolved dependency. Keep progressing G02–G08; this item milestone
 is not walkthrough completion.
+
+### SDI disk checkpoint
+
+[SDI evidence](../../runtime/observations/pandora-sdi-progression.json) qualifies
+one uninterrupted cold boot through218 phases/128 input events, frame4846,
+player `(647,986)`, HP32, Commander48 held, carried `[50,5,49,38]`, pockets
+`[0,0,33,35]`. No unique required item was lost. Leaving the Lt Commander gate
+requires keeping49 until lateral drift clears its contact region; the Commander
+card is protected through Thief's Y532 patrol by crossing empty-handed. The
+selected corridor encounters Hooligan; twelve normal5-point hits defeated it,
+costing63HP. This is a tactical choice on this route, not a direct ending test.
+
+**Next: G04 Ochre36.** A revised staging goal below Robomechanic atY1606 has a
+conditional model route. Carry Engineer50 through the engineering checkpoint,
+switch to sonicdriver5 near Robomechanic, and verify the actual exchange. Then
+prepare AWOL authorization and all console inputs before arming the3000-service
+self-destruct timer. Blue/Scarlet and SDI are acquired; Ochre, AWOL and the ending
+remain unfinished. Current HP32 is an observed active state and a navigation
+assertion, not a restored/forced health value.
