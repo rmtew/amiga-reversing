@@ -216,7 +216,7 @@ ID on departure. Treat unobserved travel/access dependencies as hypotheses.
 | G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both were acquired from Commander and verified in pocket slots2/3 at frame2572. Local console accepts three qualifying submissions; intended route will use three distinct colours, not duplicate exploitation. | Done for Blue/Scarlet; preserve pocket slots2/3 until console submissions. |
 | G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Done: normal-input exchange qualified from cold boot at frame8095. Below-patrol staging `(556,1606)` is reachable; Engineer50 crosses engineering, then sonicdriver5 obtains Ochre36. All other required items retained. |
 | G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | Collect G02–G04 before entering the console; verify actual counts/state and consumed IDs. |
-| G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | Establish the later acquisition/exit route; keep Engineer50 available for the engineering checkpoint20. |
+| G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | AWOL55 acquired and pocketed1; Engineer50 held for departure. Descriptor21 authorization is still unobserved. Establish the console/departure route and observe eventbit4 before claiming authorization. |
 | G07 | Escape through tile236 while authorized | Movement tests decoded tile236 and eventbit4, then sets escape event and enters the escape outcome helper. Not observed. | After G05/G06, travel to the escape tile before countdown expiry; verify the original branch, restored domain and event flags. |
 | G08 | Validate the successful ending, not merely an armed console | `enqueue_game_outcome_and_rank_messages` selects the saved-Earth message when self-destruct state is negative and Earth deadline nonzero. Require escape event as well for this walkthrough objective. | Capture outcome branch/message identity plus mission state; validate the complete ordinary-input chain from cold boot. |
 
@@ -289,3 +289,19 @@ card55. A conditional approach ends inside that rectangle near `(934,1746)`;
 validate live, pocket Ochre/AWOL and retain Engineer for departure. G05 console
 submissions and G07/G08 escape/outcome remain unfinished. Do not arm the timer
 before all items and the exit route are prepared.
+
+### AWOL acquisition checkpoint
+
+[Qualified evidence](../../runtime/observations/pandora-awol-progression.json):
+340 phases/217 input events, no checkpoint load/intervention, frame8818,
+HP32, `(934,1746)`, Engineer50 held; carried `[48,0,49,38]`, pockets
+`[36,55,33,35]`. The first-slot AWOL card was pocketed and Engineer recovered.
+Kwik-Kleen crossing uses actual observed position; correct body inventory uses
+an owner predicate immediately after the original proximity update. The
+12 focused recipe/player checks passed; no shared mechanism changed this batch.
+
+**Next required action:** establish console entry and a viable exit route before
+arming. G05 disk/code submissions are all pending; G06's AWOL acquisition is
+done but checkpoint21 authorization/eventbit4 remains unobserved. G07/G08
+Earth-saved escape are not complete. This checkpoint has every required item;
+HP32 is retained rather than forced/reset.

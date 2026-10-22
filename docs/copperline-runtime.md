@@ -1648,3 +1648,33 @@ that mistake and failed closed; a focused regression preserves the correction.
 Next is AWOL55, followed by console submissions/authorization/escape. No full
 ending, source-byte change, new emulator backend, memory-watch campaign or
 CPU/DMA access completeness follows. Raw media/checkpoints remain private.
+
+
+## AWOL acquisition and body context (2026-10-22)
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_awol \
+  --cold --output .runtime-state/player-awol.json
+```
+
+Use the existing session compiler/run with the same explicit legal ROM/emulator
+and original direct-payload profile. The [qualified evidence](../runtime/observations/pandora-awol-progression.json)
+records340 phases/217 events,177.44 seconds within `run_session`, frame8818,
+HP32, heldEngineer50, carried `[48,0,49,38]`, pockets `[36,55,33,35]`.
+No checkpoint load or inside-run intervention.12 focused recipe/player tests
+pass; runtime/session implementations are unchanged since the195-test Ochre pass.
+
+Kwik-Kleen actually entered combat in a rejected approach; pointer$5BBB6 and
+biased playerX establish the cause. Waiting safely outside its rectangle until
+the opposite patrol segment enabled passage without accepting damage. At the
+body, collision alone did not ensure inventory ownership: the original nearest
+selection can change through cooldown/message clobbers. The recipe samples
+`app_nearest_object_ptr` at source$5EA, after proximity update, and sends the
+inventory key only after it identifies AWOL$5AA7E. Body entry$27EA, held55 and
+final pocket55/held50 establish the actual normal exchange. All diagnostic
+checkpoints remain separate from cold qualification.
+
+Next is console/departure preparation, then submissions and saved-Earth escape.
+AWOL ownership does not itself prove descriptor21 authorization. No target
+source change, new general mechanism, raw guest capture publication, new
+memory-watch coverage, health reset, B07 work or PR merge accompanies this step.

@@ -1,5 +1,28 @@
 # Pandora restoration inventory and status
 
+## AWOL card acquired, ending still pending (2026-10-22)
+
+[AWOL progression](../../runtime/observations/pandora-awol-progression.json)
+qualifies one uninterrupted cold boot through340 phases/217 input events,
+frame8818, `(934,1746)`, HP32. Engineer50 is held; carried items are
+`[Commander48,empty,Lt49,SDI38]`; pockets are `[Ochre36,AWOL55,Blue33,Scarlet35]`.
+All required console inputs are retained. AWOL **acquisition** is complete;
+descriptor21 escape **authorization** has not yet been observed.
+
+A rejected attempt identified actual Kwik-Kleen combat via pointer$5BBB6;
+waiting outside its patrol enabled the crossing without damage. A second
+failure opened the wrong inventory despite correct body geometry. Source/live
+inspection identified the nearest-object context; waiting at post-proximity
+source$5EA for AWOL ownership enabled the normal keypress/body-panel exchange.
+12 focused recipe/player tests pass, no skips. Shared mechanisms are unchanged
+from the195-test Ochre qualification. No new source/fact output, classification,
+memory-watch campaign or B07 changes. PR5 remains unmerged.
+
+**Next:** establish console entry and the departure/escape route before arming,
+then submit disk38 and Scarlet35/Ochre36/Blue33, obtain AWOL authorization and
+validate Earth-saved escape. No ending or original disk-loader parity claimed.
+Earlier sections are historical.
+
 ## Required Ochre trade completed (2026-10-22)
 
 [Ochre progression](../../runtime/observations/pandora-ochre-progression.json)
