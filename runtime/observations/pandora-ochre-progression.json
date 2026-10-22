@@ -1,0 +1,6287 @@
+{
+  "schema_version": 1,
+  "base_commit": "7b99197a",
+  "profile": "Copperline1.0.0 A500OCS PAL68000 512Kchip+512Kslow original direct payload",
+  "summary": {
+    "objective": "Complete the required sonicdriver-to-Ochre trade after SDI, preserving all other required-route items.",
+    "continuous_cold_boot_passes": 1,
+    "checkpoint_loads_in_qualified_run": 0,
+    "inside_run_interventions": 0,
+    "phases": 293,
+    "input_events": 190,
+    "final_frame": 8095,
+    "xy": [
+      556,
+      1606
+    ],
+    "health": 32,
+    "held": 36,
+    "carried": [
+      48,
+      50,
+      49,
+      38
+    ],
+    "pockets": [
+      0,
+      0,
+      33,
+      35
+    ],
+    "tests": "195 passed, no skips",
+    "ending_validated": false,
+    "newly_classified_bytes": 0,
+    "new_gap_watches": 0,
+    "elapsed_run_session_seconds": 169.99
+  },
+  "runs": [
+    {
+      "name": "ochre-approach-a",
+      "qualification": "checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "ac6e681b284e69d395ca6689f13542b7a894346b73cb3363a946dd2e96900692",
+      "authored_sha256": "90d5b2971e259c335354a20d40000c2db562825f9ca06a8232214ea70928e2f3",
+      "compiled_sha256": "bbbca585c26469694cd4775f7907aaed9fd46cd293d15905ba7fb1916e731b09",
+      "last_action": {
+        "action": "oc_engineering_8",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 6020,
+        "state": {
+          "xy": [
+            325,
+            1226
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            38
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 23
+      }
+    },
+    {
+      "name": "ochre-obstacle-a",
+      "qualification": "checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "ee6815b92a57409d026444af6d546055d5fbba532b2fa8c5f8cb2a0dc7a26caa",
+      "authored_sha256": "9e560b3d489f07f315b194a580c922b6c59a74e94a73dc8db7b106d0cfd064a2",
+      "compiled_sha256": "097fa3e22f68744a576578d2336ab065935e9f285b58411503923548a8132d2c",
+      "last_action": {
+        "action": "oc_engineering_8",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 6020,
+        "state": {
+          "xy": [
+            325,
+            1226
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            38
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 23
+      }
+    },
+    {
+      "name": "ochre-obstacle-b",
+      "qualification": "checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "d2e15e9b4f7648a0bf1f5dfc0df874e7c6f5180d3c8ac5baa2d6217df21df81b",
+      "authored_sha256": "9a4a1b16868c61939b16e87282153635e2b95ac3b84da06d90c614a3f615db51",
+      "compiled_sha256": "574ce6274ad1b3148500ec0a3178656c7dbb4b4738f9b013f9fd5225bf9f2498",
+      "last_action": {
+        "action": "obstacle_state",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 5514,
+        "state": {
+          "xy": [
+            10325,
+            1226
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "ochre-patrol-stage-a",
+      "qualification": "checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "87f8c4fa2a110883a9a6e56ca3c47ed7b1441d1a33ce31157ee579c7a8aab0f4",
+      "authored_sha256": "1d8d558610dfa7ca7ca98b68c65544c36c6fc461914961256188163cda1970f5",
+      "compiled_sha256": "02db3c776048a62a95cd4fe1cc1ee1b02256e4252f94e0468c2f3a2885e1e0ae",
+      "last_action": {
+        "action": "patrol_staging",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 5422,
+        "state": {
+          "xy": [
+            164,
+            1226
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "ui": 32
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "ochre-cross-a",
+      "qualification": "checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "7ee51010c35d7334d1b27d83245869f5fea600228df1d44eadc2a341846ea871",
+      "authored_sha256": "2bb938207c5f662774c25b2b010e4ad4ce0ae10361be0acddce205118b9c647d",
+      "compiled_sha256": "1c6da5c011fbef36e1b1cdc4e7c25f6c4caac8ddc15839b79f7eb948ff2daed8",
+      "last_action": {
+        "action": "wait_defence_south",
+        "status": "not_hit",
+        "reason": "goal_not_reached",
+        "frame": 5550,
+        "state": {
+          "xy": [
+            164,
+            1226
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            38
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 64
+      }
+    },
+    {
+      "name": "ochre-cross-b",
+      "qualification": "checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "10dc6cb34b063416c1032e52a380ec947c70f0cd70a4d95caa352c8a3855329f",
+      "authored_sha256": "d269ffad120429a95396cee0d60db1f2739fde01442b4a7d22a67e065cfed1d8",
+      "compiled_sha256": "8dee96347ee77fc9769f790db1c6afc2e85791c7744564622c53e5dee7548854",
+      "last_action": {
+        "action": "patrol_state",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 5811,
+        "state": {
+          "xy": [
+            430,
+            1170
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "ui": 32
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "ochre-engineering-a",
+      "qualification": "checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "871edb6da8188576db537eef1c69856bb9fe531bace0bdc715029c3d92ae7981",
+      "authored_sha256": "5f6fcf4a8bbaf4e01ddac81f1f99e54880318826552cbcac23e9d8e78ceb2fa8",
+      "compiled_sha256": "bcbf8cdd780aa198a914c76e21578c3409ac5ecdd49df572074750c9e9a4f87a",
+      "last_action": {
+        "action": "trade_staging",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 7700,
+        "state": {
+          "xy": [
+            556,
+            1606
+          ],
+          "health": 32,
+          "held": 5,
+          "inactive": false,
+          "ui": 32,
+          "carried": [
+            48,
+            50,
+            49,
+            38
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "ochre-trade-a",
+      "qualification": "checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "fca89f26ce4c76833de121fda7966165f84e5b0b09a7ac2d822e52103db8a195",
+      "authored_sha256": "3625fc058f641e1d0f83cfbba03b6a6c10a04453592c355107ed58832418ee78",
+      "compiled_sha256": "d3247a97fcf24042ab12065093f1ef1ccc1de329d068e129e89ff87f007b8af3",
+      "last_action": {
+        "action": "trade_sonicdriver_for_ochre",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 8093,
+        "state": {
+          "xy": [
+            556,
+            1606
+          ],
+          "health": 32,
+          "held": 36,
+          "inactive": false,
+          "ui": 32,
+          "carried": [
+            48,
+            50,
+            49,
+            38
+          ]
+        },
+        "visits": 196
+      }
+    },
+    {
+      "name": "ochre-cold-a",
+      "qualification": "failed_cold_boot",
+      "status": "incomplete",
+      "raw_report_sha256": "da863c24a61bba5593e064f41559e7954a65774052180bdec46cd551b5fe8dec",
+      "authored_sha256": "ba279c6566014b3059e1c203286ee7920391c5afbb5e484d5379f33dcd909d00",
+      "compiled_sha256": "c02c37eb28dfc491b2b99662573aa013160bf549302e31436875ebab2ea037bd",
+      "last_action": {
+        "action": "oc_trade_sonicdriver_for_ochre",
+        "status": "not_hit",
+        "reason": "capture_expectation_mismatch",
+        "frame": 7702,
+        "state": {
+          "xy": [
+            556,
+            1606
+          ],
+          "health": 32,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            50,
+            49,
+            38
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "ochre-cold-b",
+      "qualification": "uninterrupted_cold_boot",
+      "status": "ok",
+      "raw_report_sha256": "5673bca395b3f1057033ece98ecc23b76917ab87484bf6f972937ac3150a1eed",
+      "authored_sha256": "707b6191907b724dc0b96a3521519787f53fe82b09719c64e00c3bc5de2e1dde",
+      "compiled_sha256": "0a895e3dbad1ae2b902772fd2e6cb79d14551eee659233edfcee8537b0e991b5",
+      "last_action": {
+        "action": "oc_ochre_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 8095,
+        "state": {
+          "xy": [
+            556,
+            1606
+          ],
+          "health": 32,
+          "held": 36,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            50,
+            49,
+            38
+          ]
+        },
+        "visits": 1
+      },
+      "execution_identities": {
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "7809db1412edf114bdb67ddd5fd16c4c92e53db80bfccbcb7703319c0c73622f",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d",
+        "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/runtime-scenario.json": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/direct-payload-pandora.adf": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+        "emulator": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "rom": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f"
+      },
+      "objective_checks": {
+        "held": 36,
+        "carried": [
+          48,
+          50,
+          49,
+          38
+        ],
+        "pockets": [
+          0,
+          0,
+          33,
+          35
+        ],
+        "npc_inventory_pairs": [
+          [
+            6,
+            10
+          ],
+          [
+            2,
+            20
+          ],
+          [
+            5,
+            40
+          ],
+          [
+            10,
+            100
+          ]
+        ],
+        "npc_offer_pairs": [
+          [
+            0,
+            40
+          ],
+          [
+            4,
+            60
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "npc_selected_item": 5
+      },
+      "actions": [
+        {
+          "action": "oc_exit_captain_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4848,
+          "state": {
+            "xy": [
+              640,
+              986
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_exit_captain_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4874,
+          "state": {
+            "xy": [
+              591,
+              986
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 7
+        },
+        {
+          "action": "oc_exit_captain_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4878,
+          "state": {
+            "xy": [
+              598,
+              986
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_exit_captain_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4882,
+          "state": {
+            "xy": [
+              591,
+              986
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_exit_captain_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4908,
+          "state": {
+            "xy": [
+              591,
+              954
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 8
+        },
+        {
+          "action": "oc_exit_captain_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4938,
+          "state": {
+            "xy": [
+              535,
+              954
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 8
+        },
+        {
+          "action": "oc_exit_captain_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4942,
+          "state": {
+            "xy": [
+              542,
+              954
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_exit_captain_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4952,
+          "state": {
+            "xy": [
+              542,
+              934
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "oc_exit_captain_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4954,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4956,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 44,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_equip_engineer_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4959,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "oc_equip_engineer",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4963,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "oc_key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4965,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_inventory_closed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4968,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 40,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_released_close_key",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4974,
+          "state": {
+            "xy": [
+              535,
+              934
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "oc_engineering_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4976,
+          "state": {
+            "xy": [
+              542,
+              934
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 4978,
+          "state": {
+            "xy": [
+              542,
+              930
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5160,
+          "state": {
+            "xy": [
+              262,
+              930
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "oc_engineering_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5224,
+          "state": {
+            "xy": [
+              164,
+              930
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 14
+        },
+        {
+          "action": "oc_engineering_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5228,
+          "state": {
+            "xy": [
+              171,
+              930
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5330,
+          "state": {
+            "xy": [
+              164,
+              1086
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "oc_engineering_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5380,
+          "state": {
+            "xy": [
+              164,
+              1166
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 20
+        },
+        {
+          "action": "oc_engineering_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5420,
+          "state": {
+            "xy": [
+              164,
+              1226
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 15
+        },
+        {
+          "action": "oc_defence_staging",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5422,
+          "state": {
+            "xy": [
+              164,
+              1226
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_wait_defence_south",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5606,
+          "state": {
+            "xy": [
+              164,
+              1226
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 92
+        },
+        {
+          "action": "oc_engineering_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5704,
+          "state": {
+            "xy": [
+              339,
+              1226
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 25
+        },
+        {
+          "action": "oc_engineering_9",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5708,
+          "state": {
+            "xy": [
+              332,
+              1226
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_10",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5746,
+          "state": {
+            "xy": [
+              332,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 14
+        },
+        {
+          "action": "oc_wackobrain_staging",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5809,
+          "state": {
+            "xy": [
+              430,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 14
+        },
+        {
+          "action": "oc_patrol_staging",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 5811,
+          "state": {
+            "xy": [
+              430,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_wait_wackobrain_south",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6033,
+          "state": {
+            "xy": [
+              430,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 111
+        },
+        {
+          "action": "oc_engineering_11",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6151,
+          "state": {
+            "xy": [
+              612,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 26
+        },
+        {
+          "action": "oc_engineering_12",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6167,
+          "state": {
+            "xy": [
+              640,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 4
+        },
+        {
+          "action": "oc_engineering_13",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6171,
+          "state": {
+            "xy": [
+              633,
+              1170
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_14",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6221,
+          "state": {
+            "xy": [
+              640,
+              1242
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 19
+        },
+        {
+          "action": "oc_engineering_15",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6263,
+          "state": {
+            "xy": [
+              703,
+              1242
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "oc_engineering_16",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6267,
+          "state": {
+            "xy": [
+              696,
+              1242
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_17",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6271,
+          "state": {
+            "xy": [
+              703,
+              1242
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_18",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6302,
+          "state": {
+            "xy": [
+              703,
+              1202
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 10
+        },
+        {
+          "action": "oc_engineering_19",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6417,
+          "state": {
+            "xy": [
+              878,
+              1202
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 25
+        },
+        {
+          "action": "oc_engineering_20",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6421,
+          "state": {
+            "xy": [
+              871,
+              1202
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_21",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6465,
+          "state": {
+            "xy": [
+              878,
+              1262
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 16
+        },
+        {
+          "action": "oc_engineering_22",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6588,
+          "state": {
+            "xy": [
+              1067,
+              1262
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 27
+        },
+        {
+          "action": "oc_engineering_23",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6600,
+          "state": {
+            "xy": [
+              1060,
+              1262
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_24",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6638,
+          "state": {
+            "xy": [
+              1067,
+              1310
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 13
+        },
+        {
+          "action": "oc_engineering_25",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6720,
+          "state": {
+            "xy": [
+              1200,
+              1310
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 19
+        },
+        {
+          "action": "oc_engineering_26",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6724,
+          "state": {
+            "xy": [
+              1193,
+              1310
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_27",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6752,
+          "state": {
+            "xy": [
+              1200,
+              1358
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 13
+        },
+        {
+          "action": "oc_engineering_28",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6814,
+          "state": {
+            "xy": [
+              1298,
+              1358
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 14
+        },
+        {
+          "action": "oc_engineering_29",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6818,
+          "state": {
+            "xy": [
+              1291,
+              1358
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_30",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6920,
+          "state": {
+            "xy": [
+              1298,
+              1514
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "oc_engineering_31",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 6970,
+          "state": {
+            "xy": [
+              1298,
+              1594
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 20
+        },
+        {
+          "action": "oc_engineering_32",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7070,
+          "state": {
+            "xy": [
+              1298,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "oc_engineering_33",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7200,
+          "state": {
+            "xy": [
+              1067,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 33
+        },
+        {
+          "action": "oc_engineering_34",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7212,
+          "state": {
+            "xy": [
+              1074,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_35",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7270,
+          "state": {
+            "xy": [
+              1074,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 24
+        },
+        {
+          "action": "oc_engineering_36",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7453,
+          "state": {
+            "xy": [
+              794,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "oc_engineering_37",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7457,
+          "state": {
+            "xy": [
+              787,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_38",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7461,
+          "state": {
+            "xy": [
+              794,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_39",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7465,
+          "state": {
+            "xy": [
+              787,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_40",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7473,
+          "state": {
+            "xy": [
+              787,
+              1642
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 4
+        },
+        {
+          "action": "oc_engineering_41",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7632,
+          "state": {
+            "xy": [
+              549,
+              1642
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 34
+        },
+        {
+          "action": "oc_engineering_42",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7636,
+          "state": {
+            "xy": [
+              556,
+              1642
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_engineering_43",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7664,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "oc_inventory_open_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7666,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 44,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_cursor_to_0_147_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7677,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              145
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 6
+        },
+        {
+          "action": "oc_cursor_to_0_147_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7679,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_equip_sonicdriver_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7683,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              48,
+              5,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "oc_equip_sonicdriver",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7687,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "oc_key_release_services_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7689,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 36,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_inventory_closed_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7692,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 40,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_released_close_key_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7698,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "oc_trade_staging",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 7700,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "oc_trade_sonicdriver_for_ochre",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8093,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 36,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ],
+            "display_ids": [
+              32,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 196
+        },
+        {
+          "action": "oc_ochre_objective",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8095,
+          "state": {
+            "xy": [
+              556,
+              1606
+            ],
+            "health": 32,
+            "held": 36,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 32,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              50,
+              49,
+              38
+            ]
+          },
+          "visits": 1
+        }
+      ],
+      "input_trace": [
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 459,
+          "cck": 32616485,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 461,
+          "cck": 32812039,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 652,
+          "cck": 46330759,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 700,
+          "cck": 49791227,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 794,
+          "cck": 56469686,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1000,
+          "cck": 71105698,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1060,
+          "cck": 75369634,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1098,
+          "cck": 78068777,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1118,
+          "cck": 79490651,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1148,
+          "cck": 81621170,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1151,
+          "cck": 81782679,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1153,
+          "cck": 81935681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1153,
+          "cck": 81935681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1158,
+          "cck": 82279174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1161,
+          "cck": 82492098,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1164,
+          "cck": 82705233,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1164,
+          "cck": 82709104,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1169,
+          "cck": 83060494,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1170,
+          "cck": 83131549,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1188,
+          "cck": 84410226,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1191,
+          "cck": 84623383,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1193,
+          "cck": 84765778,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1211,
+          "cck": 86044681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1214,
+          "cck": 86257840,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1216,
+          "cck": 86400278,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1217,
+          "cck": 86471239,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1219,
+          "cck": 86618312,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1222,
+          "cck": 86827626,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1222,
+          "cck": 86827828,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1224,
+          "cck": 87009582,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1228,
+          "cck": 87305814,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1250,
+          "cck": 88868573,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1254,
+          "cck": 89152779,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1258,
+          "cck": 89437174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1274,
+          "cck": 90574716,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1304,
+          "cck": 92705337,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1308,
+          "cck": 92989691,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1342,
+          "cck": 95405319,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1368,
+          "cck": 97252420,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1372,
+          "cck": 97536855,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1700,
+          "cck": 120841738,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1775,
+          "cck": 126171079,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1803,
+          "cck": 128160049,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1803,
+          "cck": 128160049,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1806,
+          "cck": 128383253,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1806,
+          "cck": 128383253,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1817,
+          "cck": 129141848,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1819,
+          "cck": 129283920,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1855,
+          "cck": 131841756,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1861,
+          "cck": 132268062,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1866,
+          "cck": 132623317,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1902,
+          "cck": 135181183,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1904,
+          "cck": 135323285,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1914,
+          "cck": 136033765,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1920,
+          "cck": 136460071,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1924,
+          "cck": 136744275,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1926,
+          "cck": 136886377,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1929,
+          "cck": 137110715,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1938,
+          "cck": 137739066,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1962,
+          "cck": 139457136,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2174,
+          "cck": 154519828,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2241,
+          "cck": 159280885,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2287,
+          "cck": 162548464,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 2291,
+          "cck": 162832857,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2297,
+          "cck": 163259287,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2297,
+          "cck": 163259287,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2299,
+          "cck": 163351276,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2303,
+          "cck": 163673182,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2308,
+          "cck": 164028464,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2328,
+          "cck": 165448879,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2330,
+          "cck": 165590981,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2366,
+          "cck": 168148817,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2372,
+          "cck": 168575153,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2376,
+          "cck": 168859327,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2412,
+          "cck": 171417163,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2418,
+          "cck": 171843469,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2422,
+          "cck": 172127673,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2440,
+          "cck": 173406591,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2446,
+          "cck": 173832897,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2450,
+          "cck": 174117101,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2468,
+          "cck": 175396019,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2470,
+          "cck": 175538121,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2480,
+          "cck": 176248661,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2486,
+          "cck": 176674937,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2490,
+          "cck": 176959141,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2508,
+          "cck": 178238059,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2514,
+          "cck": 178664365,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2519,
+          "cck": 179019650,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2537,
+          "cck": 180298538,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 2539,
+          "cck": 180440640,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2549,
+          "cck": 181151150,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2555,
+          "cck": 181577456,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2559,
+          "cck": 181861660,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2561,
+          "cck": 182003762,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2564,
+          "cck": 182223641,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2572,
+          "cck": 182785892,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2574,
+          "cck": 182890321,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2574,
+          "cck": 182890321,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2596,
+          "cck": 184490547,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2598,
+          "cck": 184632679,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2634,
+          "cck": 187190485,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2640,
+          "cck": 187616821,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2644,
+          "cck": 187901025,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2680,
+          "cck": 190458861,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 2682,
+          "cck": 190600963,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2702,
+          "cck": 192021983,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2708,
+          "cck": 192448273,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2712,
+          "cck": 192732477,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2714,
+          "cck": 192874601,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2717,
+          "cck": 193096623,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2723,
+          "cck": 193514563,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2743,
+          "cck": 194948112,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2789,
+          "cck": 198216140,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2947,
+          "cck": 209442574,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2947,
+          "cck": 209442574,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2949,
+          "cck": 209534174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2949,
+          "cck": 209534174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2970,
+          "cck": 211063603,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2976,
+          "cck": 211489911,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2980,
+          "cck": 211774113,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2982,
+          "cck": 211916217,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2985,
+          "cck": 212125589,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2991,
+          "cck": 212556229,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3049,
+          "cck": 216689645,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 3049,
+          "cck": 216689645,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 3051,
+          "cck": 216781657,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 3051,
+          "cck": 216781657,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3082,
+          "cck": 219021474,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3088,
+          "cck": 219447725,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3092,
+          "cck": 219731984,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 3094,
+          "cck": 219874055,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 3097,
+          "cck": 220093060,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 3103,
+          "cck": 220514137,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 3345,
+          "cck": 237720241,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 3349,
+          "cck": 238004443,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3357,
+          "cck": 238573076,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 3357,
+          "cck": 238573076,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 3359,
+          "cck": 238665084,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 3359,
+          "cck": 238665084,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3390,
+          "cck": 240905041,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3396,
+          "cck": 241331347,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3400,
+          "cck": 241615533,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 3402,
+          "cck": 241757653,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 3405,
+          "cck": 241967009,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 3411,
+          "cck": 242397657,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3452,
+          "cck": 245269698,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3524,
+          "cck": 250385181,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3528,
+          "cck": 250669695,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3596,
+          "cck": 255500857,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3601,
+          "cck": 255856467,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3669,
+          "cck": 260687591,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3673,
+          "cck": 260972096,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3741,
+          "cck": 265803293,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3745,
+          "cck": 266087756,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3813,
+          "cck": 270918925,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3817,
+          "cck": 271203440,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3885,
+          "cck": 276034611,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3889,
+          "cck": 276319096,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 3957,
+          "cck": 281150281,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 3961,
+          "cck": 281434821,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4029,
+          "cck": 286265941,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4033,
+          "cck": 286550440,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4102,
+          "cck": 291452696,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4106,
+          "cck": 291737165,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4174,
+          "cck": 296568336,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4178,
+          "cck": 296852851,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4246,
+          "cck": 301684020,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4250,
+          "cck": 301968521,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4318,
+          "cck": 306799680,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4320,
+          "cck": 306998626,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 4371,
+          "cck": 310618867,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4401,
+          "cck": 312750278,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4405,
+          "cck": 313034444,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 4573,
+          "cck": 324971203,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4607,
+          "cck": 327386766,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4611,
+          "cck": 327671000,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 4641,
+          "cck": 329802970,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4671,
+          "cck": 331934371,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 4671,
+          "cck": 331934371,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4673,
+          "cck": 332026368,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 4673,
+          "cck": 332026368,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4685,
+          "cck": 332916086,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4691,
+          "cck": 333342392,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4696,
+          "cck": 333697647,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4732,
+          "cck": 336255483,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4734,
+          "cck": 336397615,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4754,
+          "cck": 337818635,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4760,
+          "cck": 338244911,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 4765,
+          "cck": 338600166,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4801,
+          "cck": 341158032,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 4803,
+          "cck": 341300104,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4823,
+          "cck": 342721124,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4829,
+          "cck": 343147460,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4833,
+          "cck": 343431634,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 4835,
+          "cck": 343573766,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 4838,
+          "cck": 343792168,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4846,
+          "cck": 344355866,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4848,
+          "cck": 344510880,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 4874,
+          "cck": 346357644,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4878,
+          "cck": 346641870,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 4882,
+          "cck": 346926245,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4908,
+          "cck": 348773418,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4938,
+          "cck": 350904665,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 4942,
+          "cck": 351189007,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4952,
+          "cck": 351899614,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4954,
+          "cck": 352041479,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 4954,
+          "cck": 352041479,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 4956,
+          "cck": 352133531,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 4959,
+          "cck": 352384628,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 4963,
+          "cck": 352668832,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 4965,
+          "cck": 352810932,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 4968,
+          "cck": 353019003,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 4974,
+          "cck": 353450337,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 4976,
+          "cck": 353605450,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 4978,
+          "cck": 353746940,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 5224,
+          "cck": 371225221,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 5228,
+          "cck": 371509417,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 5420,
+          "cck": 385151442,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 5606,
+          "cck": 398354031,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 5704,
+          "cck": 405329578,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 5708,
+          "cck": 405613955,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 5746,
+          "cck": 408313992,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 5809,
+          "cck": 412790116,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 6033,
+          "cck": 428692890,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 6167,
+          "cck": 438226394,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 6171,
+          "cck": 438510578,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 6221,
+          "cck": 442063454,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 6263,
+          "cck": 445047168,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 6267,
+          "cck": 445331370,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 6271,
+          "cck": 445615766,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 6302,
+          "cck": 447818412,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 6417,
+          "cck": 455989106,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 6421,
+          "cck": 456273260,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 6465,
+          "cck": 459399657,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 6588,
+          "cck": 468138911,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 6600,
+          "cck": 468991439,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 6638,
+          "cck": 471692132,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 6720,
+          "cck": 477517593,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 6724,
+          "cck": 477801825,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 6752,
+          "cck": 479791478,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 6814,
+          "cck": 484196176,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 6818,
+          "cck": 484480591,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 7070,
+          "cck": 502385674,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 7200,
+          "cck": 511622242,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 7212,
+          "cck": 512475057,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 7270,
+          "cck": 516595667,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 7457,
+          "cck": 529881979,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 7461,
+          "cck": 530166185,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 7465,
+          "cck": 530450678,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 7473,
+          "cck": 531019129,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 7632,
+          "cck": 542315894,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 7636,
+          "cck": 542600291,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 7664,
+          "cck": 544590583,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 7664,
+          "cck": 544590583,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 7666,
+          "cck": 544682065,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 7666,
+          "cck": 544682065,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 7677,
+          "cck": 545501170,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 7683,
+          "cck": 545927398,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 7687,
+          "cck": 546211172,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 7689,
+          "cck": 546353290,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 7692,
+          "cck": 546561927,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 7700,
+          "cck": 547135388,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 8093,
+          "cck": 575028643,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 1
+          },
+          "frame": 8095,
+          "cck": 575200870,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 8095,
+          "cck": 575200870,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        }
+      ],
+      "checkpoint": {
+        "status": "saved",
+        "receipt_sha256": "07c19746df85e5278eeeece98532349ba5e1a379af9969a21d2a97fceb545129",
+        "snapshot_sha256": "d58933e829bc87efbc74878ab5c044354a8c564faf16cacd95aa1596a9bd9f58",
+        "stable_key": "s0:000005D6:instruction"
+      }
+    }
+  ],
+  "source_evidence": {
+    "patrols": "Retained native/script evidence: Defence Controller source$4BABA/runtime$5BABA X336,Y1208..1504; Wackobrain source$4BB0E/runtime$5BB0E X528,Y1152..1448. Observation reads their Y WORDs at$5BAEC/$5BB40.",
+    "trade": "service_nearby_trade_or_combat validates the offer at source$2F4C; exchange writes player holding at$2F76 and mutates the selected NPC inventory and offer entry. Robomechanic runtime$5B39E has inventory pointer$1B230 and offer pointer$1B370 in the original record.",
+    "threshold": "Sonicdriver5 threshold40 selects Ochre36 value30. Final NPC inventory pair is(5,40), offer first ID cleared, NPC selected5; player receives36."
+  },
+  "failure_diagnosis": [
+    {
+      "run": "ochre-cold-a",
+      "result": "Reached trade staging at frame7700, then premature post-trade assertions failed at7702 before exchange. All items and health intact.",
+      "correction": "Separate the bounded trade wait from the final mutation assertions; the regression requires postconditions only in the subsequent objective phase."
+    },
+    {
+      "run": "ochre-approach-a",
+      "result": "Frame bound at3251226, HP32. Next-main-loop diagnostic enters the combat X-bias domain; this is not evidence of an impassable wall.",
+      "correction": "Time this patrol crossing from observed Y, then move north and separately time the Wackobrain crossing."
+    },
+    {
+      "run": "ochre-obstacle-a",
+      "result": "Diagnostic erroneously requested X333 rather than325; it repeats the bounded failure and is not counted as useful new coverage.",
+      "correction": "Corrected requested goal to325 in the next diagnostic."
+    },
+    {
+      "run": "ochre-cross-a",
+      "result": "Safe-side goal not reached in64 main-loop visits/128frames; no crossing attempted.",
+      "correction": "Permit at most1024 goal visits only with explicit frame budget. Live safe-side waits then require92 and111visits; trade requires196."
+    }
+  ],
+  "implementation": {
+    "recipe": "amiga_reversing/tools/pandora_ochre.py --cold --output <scenario.json>, through existing copperline_session compilation/run. Private retained accepted-native compilation used for recorded execution, preserving byte/source/payload identities.",
+    "goal_budgets": "Shared compiler/runtime validator retains64 visits for ordinary counted phases. Memory-goal phases with explicit frame budget admit1..1024; frame limits and per-wait wall limits remain independent and fail closed. Regression exercises70 visits, invalid bounds and missing bounded goals.",
+    "capacity": "Concrete293-phase/190-event route requires bounded shared512/256 capacities. Compiler/runtime use the same constants; excess remains refused.",
+    "evaluation": "The state-aware driver localized a false terrain diagnosis, refused a too-short wait and successfully reused inventory/navigation actions plus read-only NPC predicates. No inside-run intervention in the qualified cold run; no retrospective development-time speedup is asserted.",
+    "target_source": "No target source/fact change; no redundant regeneration or exact rebuild."
+  },
+  "next_required_objective": "Acquire AWOL55 from the officer at9441776 while retaining Engineer50 for engineering departure. Prepare all items before arming the3000-service timer, then submit disk38/Scarlet35/Ochre36/Blue33, gain escape authorization and verify saved-Earth escape.",
+  "limits": [
+    "One qualified uninterrupted direct-payload cold boot, not original disk-loader parity or ending validation. Debug runs are not end-to-end progression evidence.",
+    "Safe-side predicates are sufficient in the validated deterministic prefix; no arbitrary patrol phase/navigation safety theorem is claimed.",
+    "Snapshots and final trade mutations are observations, not CPU memory-access or DMA traces. No new no-hit watches, raw guest states, ROM/media or proprietary payloads published.",
+    "No injected game state, forced health, artificial routine calls, new source classification, B07 work, C conversion or PR merge."
+  ]
+}

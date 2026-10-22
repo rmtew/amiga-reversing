@@ -1609,3 +1609,42 @@ engineering checkpoint, then sonicdriver5 offered near the NPC. The SDI result
 is not yet a completed game; Ochre, AWOL authorization, console and ending remain
 explicit obligations. Target source bytes, nine paused B07 files and source
 policies remain unchanged; no redundant source regeneration was needed.
+
+
+## Required Ochre trade and patrol waits (2026-10-22)
+
+Generate the recipe with:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_ochre \
+  --cold --output .runtime-state/player-ochre.json
+```
+
+Compile/run through the existing `copperline_session` CLI with the same target,
+legal ROM, explicit Copperline executable and original direct-payload contract.
+The [qualified receipt](../runtime/observations/pandora-ochre-progression.json)
+records one uninterrupted cold boot:293 phases/190 events,169.99 seconds inside
+`run_session`, frame8095, HP32, heldOchre36, all other required-route items safe.
+Source/nav preparation and agent time are excluded from that duration.
+
+The original Defence Controller/Wackobrain patrols require timed crossings.
+The driver observes their Y WORDs, waits for the south-side range, then follows
+the validated waypoints. The Robomechanic exchange uses ordinary fire, checking
+player holding and subsequent NPC inventory/offer mutation. A terrain-model
+candidate alone did not establish safe passage; failed attempts are retained.
+These predicates are qualified for this deterministic prefix, not every patrol
+phase or replacement state.
+
+Compiler and runner share `validate_phase_occurrences`: ordinary counted phases
+remain1..64; `until_memory` phases with mandatory explicit frame/visit budgets
+allow1..1024. Frame limits1..3600 and wall wait limits remain independent.
+The real waits took92/111 visits and exchange196. Scenario capacities512/256
+fit this concrete route; excess is refused. Capture assertions are checked on
+**every visit**: put post-action assertions in a subsequent phase, not in a goal
+wait whose early visits precede the mutation. The first cold attempt exposed
+that mistake and failed closed; a focused regression preserves the correction.
+195 focused tests passed, no skips, including a goal reached after70 visits.
+
+Next is AWOL55, followed by console submissions/authorization/escape. No full
+ending, source-byte change, new emulator backend, memory-watch campaign or
+CPU/DMA access completeness follows. Raw media/checkpoints remain private.

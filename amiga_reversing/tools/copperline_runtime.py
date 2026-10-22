@@ -12,8 +12,8 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
-MAX_SCENARIO_PHASES = 256
-MAX_SCENARIO_INPUT_EVENTS = 128
+MAX_SCENARIO_PHASES = 512
+MAX_SCENARIO_INPUT_EVENTS = 256
 MEMORY_ACCESS_ENGINES = frozenset(
     ["cpu", "blitter", "disk", "copper"]
     + [f"bpl{i}" for i in range(1, 9)]
@@ -517,6 +517,15 @@ def prepare_materialization(client, contract, payload_path, seconds):
     return boundary | {"materialization": report}
 
 
+def validate_phase_occurrences(phase):
+    """Slow semantic goals may poll longer, within an explicit frame bound."""
+    value = phase.get("occurrences", 1)
+    limit = 1024 if phase.get("until_memory") is not None and "max_frames" in phase else 64
+    if type(value) is not int or not 1 <= value <= limit:
+        raise ValueError(f"Scenario occurrences must be an integer from 1 to {limit}")
+    return value
+
+
 def _run_scenario_phase(
     client, phase, payload_path, symbols, function, *, depart_current=False, trace_directory=None,
     start_event=None,
@@ -538,8 +547,7 @@ def _run_scenario_phase(
         validate_bus_trace(phase['chip_bus_trace'])
         if not isinstance(phase.get('stable_key'), str) or 'memory_access_watch' in phase:
             raise ValueError('Chip-bus trace requires its own canonical source-row phase')
-    if type(occurrences) is not int or not 1 <= occurrences <= 64:
-        raise ValueError("Scenario occurrences must be an integer from 1 to 64")
+    validate_phase_occurrences(phase)
     if type(capture_first) is not bool:
         raise ValueError("Scenario capture_first must be boolean")
     counted = "occurrences" in phase or capture_first or depart_current

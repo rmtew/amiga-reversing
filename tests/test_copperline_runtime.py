@@ -1077,7 +1077,8 @@ def test_cpu_frame_watch_deadline_is_not_completed_window_or_hit(stop):
     assert c.calls[-1] == ('remove', r['watch_id'])
 
 
-def test_player_goal_stops_on_state_before_visit_budget(tmp_path, monkeypatch):
+@pytest.mark.parametrize('target',[3,70])
+def test_player_goal_stops_on_state_before_visit_budget(tmp_path, monkeypatch,target):
     class GoalClient(Client):
         visits = 0
         def request(self, method, params=None, **kwargs):
@@ -1094,10 +1095,10 @@ def test_player_goal_stops_on_state_before_visit_budget(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime,'payload_at_pc',lambda *a,**kw:
         {'status':'pc_matched','payload_offset':'0x0','runtime_base':'0x1000'})
     p={'name':'move','stable_key':'s0:00000000:instruction','source_offset':0,
-       'breakpoint_address':0x1000,'wait_seconds':1,'occurrences':8,
-       'max_frames':10,'until_memory':{'address':0x6000,'size':1,'expect_hex':'03'}}
+       'breakpoint_address':0x1000,'wait_seconds':1,'occurrences':1024,
+       'max_frames':100,'until_memory':{'address':0x6000,'size':1,'expect_hex':bytes([target]).hex()}}
     r=runtime._run_scenario_phase(c,p,payload(tmp_path),{},None,start_event={'frame':0})
-    assert r['status']=='hit' and r['occurrences_observed']==3 and c.visits==3
+    assert r['status']=='hit' and r['occurrences_observed']==target and c.visits==target
     assert r['goal_capture']['memory_reads'][0]['expectation']['matched']
 
 
@@ -1141,3 +1142,15 @@ def test_input_and_next_action_use_observer_endpoint_not_old_anchor():
     assert runtime.phase_stop_event(p)=={'frame':121}
     p['memory_access_watch']['stop_event']=None
     assert runtime.phase_stop_event(p) is None
+
+
+@pytest.mark.parametrize('value',[0,1025,True,'256'])
+def test_long_goal_visit_budget_rejects_invalid_counts(value):
+    with pytest.raises(ValueError,match='occurrences'):
+        runtime.validate_phase_occurrences({'occurrences':value,'max_frames':600,'until_memory':{'address':0x6000,'size':1,'expect_hex':'05'}})
+
+
+def test_long_visit_budget_requires_bounded_goal():
+    for phase in [{'occurrences':256},{'occurrences':256,'max_frames':600},{'occurrences':256,'until_memory':{'address':0x6000,'size':1,'expect_hex':'05'}}]:
+        with pytest.raises(ValueError,match='occurrences'):
+            runtime.validate_phase_occurrences(phase)

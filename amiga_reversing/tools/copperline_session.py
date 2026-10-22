@@ -21,7 +21,7 @@ from amiga_reversing.tools.runtime_analysis import build_project_listing_artifac
 from amiga_reversing.tools.copperline_bus_trace import validate_bus_trace
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.tools.copperline_runtime import (
-    MAX_SCENARIO_PHASES, MAX_SCENARIO_INPUT_EVENTS, observe, validate_memory_expectation, validate_custom_registers,
+    MAX_SCENARIO_PHASES, MAX_SCENARIO_INPUT_EVENTS, validate_phase_occurrences, observe, validate_memory_expectation, validate_custom_registers,
     validate_memory_access_watch, validate_phase_frame_budget, validate_memory_goal,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_for_target, load_contract
@@ -241,8 +241,7 @@ def compile_scenario(
         capture = phase.get("capture", {})
         occurrences = phase.get("occurrences", 1)
         capture_first = phase.get("capture_first", False)
-        if type(occurrences) is not int or not 1 <= occurrences <= 64:
-            raise ValueError("Scenario occurrences must be an integer from 1 to 64.")
+        validate_phase_occurrences(phase)
         if type(capture_first) is not bool:
             raise ValueError("Scenario capture_first must be boolean.")
         if (

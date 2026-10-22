@@ -1,5 +1,28 @@
 # Pandora restoration inventory and status
 
+## Required Ochre trade completed (2026-10-22)
+
+[Ochre progression](../../runtime/observations/pandora-ochre-progression.json)
+qualifies one **uninterrupted cold boot**, 293 phases/190 input events, ending
+frame8095 at `(556,1606)`, HP32, Ochre36 held. Carried items are
+`[Commander48,Engineer50,Lt49,SDI38]`; pockets retain Blue33/Scarlet35. The
+Robomechanic now holds sonicdriver5, its selected inventory entry is `(5,40)`
+and the sonicdriver offer is consumed. No required item lost.
+
+The route crosses engineering with Engineer50 and waits on observed patrol Y
+before crossing Defence Controller and Wackobrain. These waits needed92/111
+visits; the real trade needed196. Shared bounded memory-goal polling now admits
+up to1024 visits with explicit frame budgets; ordinary counted actions retain64.
+The concrete full route fits512 phases/256 events. **195 focused tests passed**,
+no skips. A failed first cold run exposed premature post-trade assertions;
+postconditions now run after the trade goal, with a regression guarding this.
+
+**Next: AWOL55 acquisition**, then prepare all console inputs, submit the disk
+and three code cards, obtain escape authorization and verify Earth-saved escape.
+No ending, disk-loader parity, arbitrary patrol safety, new source classification
+or CPU/DMA access coverage is claimed. Source bytes and nine paused B07 files
+remain unchanged; PR5 remains unmerged. Earlier sections are historical.
+
 ## Required SDI disk acquired (2026-10-22)
 
 [SDI progression](../../runtime/observations/pandora-sdi-progression.json): one

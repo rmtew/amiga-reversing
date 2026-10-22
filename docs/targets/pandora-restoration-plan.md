@@ -214,7 +214,7 @@ ID on departure. Treat unobserved travel/access dependencies as hypotheses.
 | G01 | Remain active and preserve enough health/time for the ending | Current completion prefix ends HP95, active, Commander48 held, Engineer50/sonicdriver5 carried, Blue33/Scarlet35 pocketed. Post-run mission probe reads nonzero Earth deadline$9732 and state0. Earlier Icelord HP70 branch remains optional. | Prefer the healthy prefix while omitting optional combat; record deadline/mission state before arming. |
 | G02 | Acquire SDI disk38 (`$26`) | Captain inventory contains it; disk is explicitly consumed by `test_self_destruct_initiation_disk`. Acquired and stored in carried3 after a cold-boot Captain route. Live Captain body `(656,1002)`. Hint route uses Lt Commander ID; exact approach/gate association remains to be validated. | Done: disk38 in carried3, Commander48 held, Lt49 retained in carried2. Next acquire Ochre. |
 | G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both were acquired from Commander and verified in pocket slots2/3 at frame2572. Local console accepts three qualifying submissions; intended route will use three distinct colours, not duplicate exploitation. | Done for Blue/Scarlet; preserve pocket slots2/3 until console submissions. |
-| G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Establish a live reachable Robomechanic approach and complete the actual exchange. Static patrol is X382..720,Y1592; current terrain model has no route to the first proposed staging region. This is an unresolved route question, not proof of unreachability. |
+| G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Done: normal-input exchange qualified from cold boot at frame8095. Below-patrol staging `(556,1606)` is reachable; Engineer50 crosses engineering, then sonicdriver5 obtains Ochre36. All other required items retained. |
 | G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | Collect G02–G04 before entering the console; verify actual counts/state and consumed IDs. |
 | G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | Establish the later acquisition/exit route; keep Engineer50 available for the engineering checkpoint20. |
 | G07 | Escape through tile236 while authorized | Movement tests decoded tile236 and eventbit4, then sets escape event and enters the escape outcome helper. Not observed. | After G05/G06, travel to the escape tile before countdown expiry; verify the original branch, restored domain and event flags. |
@@ -271,3 +271,21 @@ prepare AWOL authorization and all console inputs before arming the3000-service
 self-destruct timer. Blue/Scarlet and SDI are acquired; Ochre, AWOL and the ending
 remain unfinished. Current HP32 is an observed active state and a navigation
 assertion, not a restored/forced health value.
+
+### Ochre checkpoint
+
+[Qualified evidence](../../runtime/observations/pandora-ochre-progression.json):
+293 phases/190 events from cold boot, no checkpoint load/intervention, frame8095,
+HP32, `(556,1606)`, held Ochre36, carried `[48,50,49,38]`, pockets `[0,0,33,35]`.
+NPC inventory/offer mutations separately verify the real exchange. The two
+observed-Y patrol waits avoided another fight; this is a verified deterministic
+prefix, not arbitrary patrol-phase safety. The first cold version failed closed
+because post-trade checks ran before exchange; the corrected version checks them
+in a separate final phase. 195 focused tests passed, no skips.
+
+**Next required objective: G06 preparation, acquire AWOL55** from its officer
+body `(944,1776)`. Existing source gives a64x32 body rectangle and first-slot
+card55. A conditional approach ends inside that rectangle near `(934,1746)`;
+validate live, pocket Ochre/AWOL and retain Engineer for departure. G05 console
+submissions and G07/G08 escape/outcome remain unfinished. Do not arm the timer
+before all items and the exit route are prepared.

@@ -595,7 +595,7 @@ def test_state_goal_and_frame_budget_compile_through_shared_service(monkeypatch,
     artifact._runtime_observation_views=({'base_addr':0x10000,'source_start':0,'source_end':16},)
     monkeypatch.setattr(copperline_session,'build_project_listing_artifact_profile',lambda _:(0,{},artifact))
     p={'name':'goal','breakpoint_stable_key':row['stable_key'],'wait_seconds':1,
-       'occurrences':8,'max_frames':12,'until_memory':{'address':0x6000,'size':1,'expect_hex':'03'}}
+       'occurrences':1024,'max_frames':12,'until_memory':{'address':0x6000,'size':1,'expect_hex':'03'}}
     s={'schema_version':1,'identifier':'goal','target_id':'fixture','phases':[
         {'name':'boot','observable':'direct_payload_handoff'},
         {'name':'anchor','breakpoint_stable_key':row['stable_key'],'wait_seconds':1},p]}
@@ -603,6 +603,7 @@ def test_state_goal_and_frame_budget_compile_through_shared_service(monkeypatch,
     r=copperline_session.compile_scenario('fixture',path,tmp_path/'compiled.json')
     assert r['phases'][-1]['until_memory']==p['until_memory']
     assert r['phases'][-1]['max_frames']==12
+    p['occurrences']=8
     del p['max_frames'];path.write_text(json.dumps(s))
     with pytest.raises(ValueError,match='frame and visit budgets'):
         copperline_session.compile_scenario('fixture',path,tmp_path/'rejected.json')
