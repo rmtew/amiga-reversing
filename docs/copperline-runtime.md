@@ -1322,3 +1322,62 @@ resumes empty storage and writes one ID; this does not test a growing prefix or
 its 64-byte boundary. No DMA, instruction-fetch, unused-memory, all-alias,
 terminal-screen or full-playthrough claim follows. Snapshots and raw captures
 stay private; no shared runtime or general validation framework changed.
+
+
+#### Terminal modal entry and nearby inventory windows
+
+The [terminal composer](../amiga_reversing/tools/pandora_terminal_modal_scenario.py)
+uses the previous **inventory-root**, not the deposit root. From `(241,942)` with
+Amy held, up 37/right 44/up 24/right 8/down 9 then right enters the north terminal at
+`(640,734)`. The opening crosses Y702; the failed Y734 path hits the partition.
+The original tile `$9C` probe branches to source `$8FF2` before movement commits.
+At `$9074` the header is `$18A20`,20×8, with cached ID `$36`; a private snapshot
+thumbnail confirms the terminal text. The normal exit uses down, releases at
+`$9088`, observes world-header restoration at `$90B0`, then main `$5D6`.
+
+Generate `--stage entry-root` or `--stage approach` and resume the existing
+verified inventory-root using the public session CLI. Save separate entry and
+modal checkpoints respectively. Every checkpoint restore verifies media/context,
+snapshot hashes, exact registers and the saved canonical source PC. For example,
+after saving an entry checkpoint:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_terminal_modal_scenario \
+  --stage entry --offset 0x368 --length 4 --output .runtime-state/terminal-watch.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/terminal-watch.json \
+  --state-directory .runtime-state/terminal-watch-fresh \
+  --checkpoint-load .runtime-state/terminal-entry-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/terminal-watch-report.json
+```
+
+Use `--stage inventory-open` with the **modal** checkpoint for Space/key64 panel
+opening. `--stage lifecycle` with that same modal checkpoint verifies normal
+direction exit only. Inventory opening takes the **nearby-object** branch here,
+not the own-inventory branch: UI flags `$1C`, displayed IDs 5/50/0/0. A retained
+initial script waited for own-panel `$2754` and timed out; no terminal card
+store/retrieve or authorization is claimed. Card-name/clearance/entry headings
+alone do not establish successful submission.
+
+[Filtered evidence](../runtime/observations/pandora-terminal-modal-memory-watch.json)
+records 48 live runs, including failed routes, the HP diagnostic and **32 finite
+watch windows**. Entry/render watches arm at `$8FF2`; inventory-opening watches
+arm at `$9078`, before the next key scan. Each watches one of14 gaps/750 bytes
+or declared `+$2D4`/`+$368` for 120 frame labels, with a separate 60-second wall
+budget. All reach their exact target frame with no hit, and every endpoint
+confirms the terminal header and expected panel state. These remain non-pass
+bounded observations, never unused-memory proofs. CCK/raster positions are
+retained; frame-label endpoints may be partial raster frames. No approach,
+instruction-fetch or DMA coverage follows.
+
+The southern route failed for distinct observed reasons: solid terrain at
+`(458,950)` and an exact Commander-card contact near `(564,960)`. The diagnostic
+write watch catches source `$801A` storing HP low byte 95→85 at physical `$5C35F`,
+A1=`$58CD0` (descriptor 18), D7=3. Held Amy `$36` fails its Commander `$30` predicate;
+this is not a general terminal authorization rule. No memory/register forcing,
+new source meaning or classification follows. Original bytes/source are
+unchanged; existing compiled media/native facts were identity-checked and every
+new canonical instruction matched original bytes. Live PCs are independently
+byte-matched. No shared runtime service changed. ROM/media, raw reports,
+screenshots and checkpoint data stay local.

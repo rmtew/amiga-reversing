@@ -1,5 +1,38 @@
 # Pandora restoration inventory and status
 
+## Watched terminal modal entry and nearby inventory (2026-10-22)
+
+[Terminal evidence](../../runtime/observations/pandora-terminal-modal-memory-watch.json)
+now establishes normal-input modal entry, beyond the earlier salvage deposit.
+From the verified inventory root `(241,942)`, up 37/right 44/up 24/right 8/down 9,
+then right reaches original `$8FF2` at frame 1148, player `(640,734)`, tile `$9C`.
+The `$9074` service at 1151 and inspected private screenshot confirm the terminal
+screen. Its map header changes from `$4000`,90×129 to `$18A20`,20×8; held/cache
+ID remains `$36` Amy, HP 95. This does **not** establish card authorization.
+
+**32 completed 120-frame-label CPU data windows**, covering entry/rendering and
+nearby-inventory opening separately, watch all 14 gaps/750 bytes plus declared
+`+$2D4`/`+$368`. No watched access or wall timeout occurred. Every endpoint
+confirms the terminal header and expected UI state. Space opens nearby-object
+inventory (`UI=$1C`, displayed IDs 5/50/0/0), explaining the retained failed
+attempt that waited for the own-inventory branch. Normal direction exit reaches
+`$9088`, restores the world header at `$90B0`, then returns to `$5D6`.
+
+The failed southern route is diagnosed rather than retried: solid tile `$BA`
+blocks `(458,950)`; a later detour contacts descriptor 18 at `(564,960)`, whose
+exact-ID predicate requires Commander `$30`. A separate positive CPU watch
+catches source `$801A` writing HP 95→85, with A1=`$58CD0`, while Amy `$36` is held.
+Subsequent defeat/inhibition explains the later movement stop. This is a contact
+checkpoint, not proof that every terminal requires Commander.
+
+35 configuration variants validated; no shared-service or target source changes,
+new semantic annotations or newly classified bytes. Existing exact source receipt
+is retained without redundant regeneration. Nine paused B07 files are unchanged.
+No-hit remains a non-pass bounded observation, never unused-memory proof. Watches
+exclude approach, DMA and fetches; submission/authorization, other selections,
+all aliases and full playthrough remain unproved. See
+[reproduction and limits](../copperline-runtime.md#terminal-modal-entry-and-nearby-inventory-windows).
+
 ## Watched inventory and salvage deposit (2026-10-22)
 
 [Interaction evidence](../../runtime/observations/pandora-app-interaction-memory-watch.json)
@@ -17,10 +50,10 @@ proofs. The ordinary fresh route also verifies retrieval, but its open/close,
 retrieve and approach work is outside the watch windows. No new source meaning
 or classification is justified; target source remains unchanged.
 
-This covers the salvage receptacle, **not terminal modal UI**. The nearest
+This earlier milestone covers the salvage receptacle, **not terminal modal UI**. The nearest
 identified modal terminal tiles are around `(672,976)`; one bounded approach
-model returned unknown within 30,000 states, so no modal reachability conclusion
-or further runtime exploration is claimed. Other item/slot domains, growing
+model returned unknown within 30,000 states; the later terminal milestone above
+supersedes that approach limit with live normal-input entry. Other item/slot domains, growing
 deposit prefixes, DMA and full-playthrough coverage remain open. Reproduction
 uses the [existing checkpoint and session services](../copperline-runtime.md#inventory-and-salvage-deposit-interaction-windows).
 
