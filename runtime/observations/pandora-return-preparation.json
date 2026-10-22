@@ -1,0 +1,3348 @@
+{
+  "schema_version": 1,
+  "base_commit": "f226a6b5",
+  "profile": "Copperline1.0.0 A500OCS PAL68000 512Kchip+512Kslow original direct payload",
+  "summary": {
+    "objective": "Validate unarmed console/departure and diagnose actual return-route obligations before arming.",
+    "continuous_cold_boot_passes_added": 0,
+    "complete_checkpoint_extension_passes": 1,
+    "phases": 55,
+    "input_events": 45,
+    "elapsed_run_session_seconds": 44.56,
+    "final_frame": 11293,
+    "xy": [
+      1298,
+      144
+    ],
+    "health": 32,
+    "held": 50,
+    "carried": [
+      48,
+      0,
+      49,
+      38
+    ],
+    "pockets": [
+      36,
+      55,
+      33,
+      35
+    ],
+    "console_state": 0,
+    "ending_validated": false,
+    "escape_authorization_validated": false,
+    "tests": "15 focused player/recipe tests passed, no skips",
+    "target_source_changes": 0,
+    "new_gap_watches": 0
+  },
+  "runs": [
+    {
+      "name": "console-unarmed-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "c59d82eac2d5eebdfdfae40a2b994c9a9b17a235e4fc35faadb4e56d94925593",
+      "authored_sha256": "b387c54eeb47c127303b7e3908ddd3f6680f77f2513982eae2f79cfb543a059b",
+      "compiled_sha256": "bdd1c1bf2d93ef201c4fda92a1827d1a0c5413a2e360037d372ff994538c8ce0",
+      "last_action": {
+        "action": "cs_console_entry",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 9908,
+        "state": {
+          "xy": [
+            521,
+            1734
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 0,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {}
+      }
+    },
+    {
+      "name": "console-unarmed-b",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "98d8a5dc8505163ab791e59f04778f65eeac864ff6e6fbafa04a7b936e091993",
+      "authored_sha256": "e42c3083381b891fe2af45682f5c6af515bcfa22fb5edf4e6294c736643ca3ff",
+      "compiled_sha256": "399420276d3dc102afdee6df2be743bbae70ae5a50f922f0abc738f3f83ec7ec",
+      "last_action": {
+        "action": "cs_console_approach_15",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 9882,
+        "state": {
+          "xy": [
+            479,
+            1702
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 11,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            479,
+            1702
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "console-unarmed-c",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "7f1710e9c6154c7ffad9651fcfae17069adb9f1ae9b8d2ad52a3fdb87145896f",
+      "authored_sha256": "74eadf1a11b228bebc040dc76f99eceaaa5d7cb98181e4d1223b536d56800cf8",
+      "compiled_sha256": "6291a143f6bab4d126cf90be4832190fe792dcedeafd78b1a91b35743d6fc2f3",
+      "last_action": {
+        "action": "cs_world_main_unarmed",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 9578,
+        "state": {
+          "xy": [
+            514,
+            1706
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "engineering-departure-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "585f530f03edf6d7d2600cbaf0aff2d49b9ee309571e5d1a9d257abc4b205ad4",
+      "authored_sha256": "1d8fd92a0e8cb818af7b315ce196f33a0d9492d21594da013c59d44c433e5adb",
+      "compiled_sha256": "515464225e06e006ffef71560f7bf79ef9fb0aa00b713a8c3a8ce2b51b4dafd8",
+      "last_action": {
+        "action": "depart_engineering_12",
+        "status": "not_hit",
+        "reason": "combat_blocks_movement",
+        "frame": 10721,
+        "state": {
+          "xy": [
+            11067,
+            1698
+          ],
+          "health": 5,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 50,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 2,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            1067,
+            1698
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "engineering-finish-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "734e8bf342ad7bacd503dbc12f40c0c213ea9cf4bb1aa9e20d00b48be0bd09a3",
+      "authored_sha256": "1fa6e980dec8b6dfb2171e59b13b250a474382456482f55dee976392fab5bd01",
+      "compiled_sha256": "ee9a4c03c0f68cc9957dc4e3351f42f9c47c4821de7af0f118e8251ebef0d0ae",
+      "last_action": {
+        "action": "engineering_departure",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 10786,
+        "state": {
+          "xy": [
+            1298,
+            1322
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "preparation-debug-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "65d1fbfc74ecaebfc7f098dc131a55bea469dfaf0c3a040ce8745a1d92b6f12c",
+      "authored_sha256": "61afdeab302d9da27f52eae5d2091ade0652e8512de6cffb84dc550385405a85",
+      "compiled_sha256": "9ac20fae301337f91b749bd56a3fcc4b211129c6e253f3221f0a2238df1a532d",
+      "last_action": {
+        "action": "engineering_departure",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 10786,
+        "state": {
+          "xy": [
+            1298,
+            1322
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "upper-fly-stage-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "f8e268c3e71953864786bf88b426634425049052f40d3d2d7afb225623b42bb5",
+      "authored_sha256": "171d02474faa4646c590a0b028d331904e09055a55afe31b643d87411ee8358b",
+      "compiled_sha256": "4c6c8b2fe4b9e707039f688f4171fb46b16d1b33231e7300f097668c59fbd6b4",
+      "last_action": {
+        "action": "fly_staging",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 10965,
+        "state": {
+          "xy": [
+            1074,
+            1290
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "ui": 48
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "upper-fly-cross-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "e1297e225965e25dfd6e194f935d8d4bf31e8dec2aa686616dcb591e11c5fab4",
+      "authored_sha256": "25bb0e147b2e8ae20c7cd84ca505a7df5cbc3e147f6abef8d75c5fd4d6bfd0c6",
+      "compiled_sha256": "949b6320f4ab8f36468a4e7ab1c5da3063531df4afa7fd4a45ff998197310c5a",
+      "last_action": {
+        "action": "fly_crossing",
+        "status": "not_hit",
+        "reason": "combat_blocks_movement",
+        "frame": 11045,
+        "state": {
+          "xy": [
+            11074,
+            1266
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 50,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 6,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            1074,
+            1266
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "shaft-wrap-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "eea7832c47322d77bde9de40807c9125f035308e4b40cf3229aa6e4368058d3e",
+      "authored_sha256": "ee1880619333239ffb09ce72fab5900c6f184d4fbe7c1d5424c11718f0766e28",
+      "compiled_sha256": "74ed43bbacdd469b14fd6a92585aee2f4ed18ad08c3d6aec6b648f7c249c4590",
+      "last_action": {
+        "action": "top_world_main",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 11216,
+        "state": {
+          "xy": [
+            1298,
+            16
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "top-shaft-exit-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "incomplete",
+      "raw_report_sha256": "834ef86637efe576f049dbd227f5fec98cc05bec8f770cea4aeb026bfbd6495e",
+      "authored_sha256": "e309ee65e07de0176a2c011d6b3f6fd6e6ce869af78542ddcfd1c675ec49ac9d",
+      "compiled_sha256": "4d1a555e783ba5d51622adcaac8c7f08210f007f0d26a4a7b6d51e57a4cffa6f",
+      "last_action": {
+        "action": "top_shaft_down_1",
+        "status": "not_hit",
+        "reason": "combat_blocks_movement",
+        "frame": 11471,
+        "state": {
+          "xy": [
+            11298,
+            180
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 50,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 9,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            1298,
+            180
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "name": "icelord-return-probe-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "cb8e3d79eaa1785a22f4940c4c9cf7962272c50edc4b6a5ea075c4262fa14a74",
+      "authored_sha256": "8e674d6481c7cd2d434cd0800ee8bab10046341be62550879e421eb6af2c0591",
+      "compiled_sha256": "f3c83f3f4cf1cec52826c0e142c5f18126bc2f960db6201d3fcc89f5c6250cba",
+      "last_action": {
+        "action": "icelord_parameters",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 11321,
+        "state": {
+          "xy": [
+            11298,
+            180
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 50,
+          "position_domain": "combat_x_bias_10000",
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "observed_combat": {
+        "opponent_pointer": "0x59d7a",
+        "opponent_hp": 95,
+        "opponent_selected": 11,
+        "player_reload": 3,
+        "opponent_reload": 4,
+        "opponent_damage": 25,
+        "player_damage": 5,
+        "holding": 50,
+        "player_hp": 32,
+        "meaning": "Natural encounter and parameters observed; no late combat win claimed."
+      }
+    },
+    {
+      "name": "return-inspection-a",
+      "qualification": "verified_checkpoint_debug_only",
+      "status": "ok",
+      "raw_report_sha256": "ba26f5affb63cae97e262720747cdba4f62356e24dcc1387f5fa3822a84e7ae6",
+      "authored_sha256": "ad0efe99878ce51d937c6fef4b81ce6ab713c8cd86c444711349686de47a9ce5",
+      "compiled_sha256": "5357405138d4fbea52496e71ffd69703811056ba4d847f9a9217b87dee4beb12",
+      "last_action": {
+        "action": "return_inspection_stop",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 11293,
+        "state": {
+          "xy": [
+            1298,
+            144
+          ],
+          "health": 32,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            38
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "root_checkpoint_receipt_sha256": "38f8ed5d9408c4ddd97051e0aefc6ebab35cfbc8f76cb13175c03c58013c7bdc",
+      "root_qualification": "AWOL uninterrupted cold boot, published f083bcaf. This extension loads that checkpoint; it is NOT a new continuous cold qualification.",
+      "execution_identities": {
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d",
+        "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/runtime-scenario.json": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/direct-payload-pandora.adf": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+        "emulator": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "rom": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f"
+      },
+      "actions": [
+        {
+          "action": "cs_anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8818,
+          "state": {
+            "xy": [
+              934,
+              1746
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_wait_kwik_kleen_east",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8947,
+          "state": {
+            "xy": [
+              934,
+              1746
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 64
+        },
+        {
+          "action": "cs_console_approach_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8949,
+          "state": {
+            "xy": [
+              927,
+              1746
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_console_approach_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8961,
+          "state": {
+            "xy": [
+              927,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 6
+        },
+        {
+          "action": "cs_console_approach_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8992,
+          "state": {
+            "xy": [
+              871,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 10
+        },
+        {
+          "action": "cs_console_approach_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 8996,
+          "state": {
+            "xy": [
+              878,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_console_approach_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9062,
+          "state": {
+            "xy": [
+              878,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 28
+        },
+        {
+          "action": "cs_console_approach_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9112,
+          "state": {
+            "xy": [
+              787,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 13
+        },
+        {
+          "action": "cs_console_approach_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9116,
+          "state": {
+            "xy": [
+              794,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_console_approach_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9120,
+          "state": {
+            "xy": [
+              787,
+              1658
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_console_approach_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9124,
+          "state": {
+            "xy": [
+              787,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cs_console_approach_9",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9306,
+          "state": {
+            "xy": [
+              507,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "cs_console_approach_10",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9386,
+          "state": {
+            "xy": [
+              395,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 16
+        },
+        {
+          "action": "cs_console_approach_11",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9460,
+          "state": {
+            "xy": [
+              402,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 31
+        },
+        {
+          "action": "cs_console_approach_12",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9506,
+          "state": {
+            "xy": [
+              486,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "cs_console_approach_13",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9510,
+          "state": {
+            "xy": [
+              479,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_console_approach_14",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9522,
+          "state": {
+            "xy": [
+              479,
+              1746
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 6
+        },
+        {
+          "action": "cs_console_approach_15",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9552,
+          "state": {
+            "xy": [
+              479,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 10
+        },
+        {
+          "action": "cs_console_approach_16",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9562,
+          "state": {
+            "xy": [
+              500,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "cs_console_entry",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9574,
+          "state": {
+            "xy": [
+              514,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_console_ready_unarmed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9577,
+          "state": {
+            "xy": [
+              514,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_leave_console_unarmed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9577,
+          "state": {
+            "xy": [
+              514,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_world_context_restored",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9577,
+          "state": {
+            "xy": [
+              514,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cs_world_main_unarmed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9578,
+          "state": {
+            "xy": [
+              514,
+              1706
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9622,
+          "state": {
+            "xy": [
+              507,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 17
+        },
+        {
+          "action": "depart_engineering_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9684,
+          "state": {
+            "xy": [
+              395,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 16
+        },
+        {
+          "action": "depart_engineering_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9688,
+          "state": {
+            "xy": [
+              402,
+              1770
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9758,
+          "state": {
+            "xy": [
+              402,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 30
+        },
+        {
+          "action": "depart_engineering_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9932,
+          "state": {
+            "xy": [
+              682,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "depart_engineering_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 9996,
+          "state": {
+            "xy": [
+              780,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 14
+        },
+        {
+          "action": "depart_engineering_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10000,
+          "state": {
+            "xy": [
+              773,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10004,
+          "state": {
+            "xy": [
+              780,
+              1650
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10026,
+          "state": {
+            "xy": [
+              780,
+              1694
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 11
+        },
+        {
+          "action": "wait_kwik_kleen_start",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10120,
+          "state": {
+            "xy": [
+              780,
+              1694
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 47
+        },
+        {
+          "action": "depart_engineering_9",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10302,
+          "state": {
+            "xy": [
+              1060,
+              1694
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "depart_engineering_10",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10306,
+          "state": {
+            "xy": [
+              1067,
+              1694
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_11",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10318,
+          "state": {
+            "xy": [
+              1060,
+              1694
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_12",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10362,
+          "state": {
+            "xy": [
+              1067,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 16
+        },
+        {
+          "action": "depart_engineering_13",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10510,
+          "state": {
+            "xy": [
+              1298,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 33
+        },
+        {
+          "action": "depart_engineering_14",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10514,
+          "state": {
+            "xy": [
+              1291,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_15",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10518,
+          "state": {
+            "xy": [
+              1298,
+              1754
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "depart_engineering_16",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10618,
+          "state": {
+            "xy": [
+              1298,
+              1594
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "depart_engineering_17",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10668,
+          "state": {
+            "xy": [
+              1298,
+              1514
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 20
+        },
+        {
+          "action": "depart_engineering_18",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10768,
+          "state": {
+            "xy": [
+              1298,
+              1354
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "depart_engineering_19",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10784,
+          "state": {
+            "xy": [
+              1298,
+              1322
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 8
+        },
+        {
+          "action": "engineering_departure",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10786,
+          "state": {
+            "xy": [
+              1298,
+              1322
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "shaft_down_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10886,
+          "state": {
+            "xy": [
+              1298,
+              1482
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "shaft_down_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 10986,
+          "state": {
+            "xy": [
+              1298,
+              1642
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 42
+        },
+        {
+          "action": "shaft_down_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 11086,
+          "state": {
+            "xy": [
+              1298,
+              1802
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "shaft_down_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 11186,
+          "state": {
+            "xy": [
+              1298,
+              1962
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 41
+        },
+        {
+          "action": "bottom_camera_wrap",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 11214,
+          "state": {
+            "xy": [
+              1298,
+              16
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "top_world_main",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 11216,
+          "state": {
+            "xy": [
+              1298,
+              16
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "before_icelord",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 11291,
+          "state": {
+            "xy": [
+              1298,
+              144
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 128,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 32
+        },
+        {
+          "action": "return_inspection_stop",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 11293,
+          "state": {
+            "xy": [
+              1298,
+              144
+            ],
+            "health": 32,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              48,
+              0,
+              49,
+              38
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        }
+      ],
+      "pockets": [
+        36,
+        55,
+        33,
+        35
+      ],
+      "console_state": 0,
+      "icelord_alive_hp": 95,
+      "input_trace": [
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 8947,
+          "cck": 635735438,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 8949,
+          "cck": 635890591,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 8961,
+          "cck": 636743662,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 8992,
+          "cck": 638945465,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 8996,
+          "cck": 639229822,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 9062,
+          "cck": 643919047,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 9112,
+          "cck": 647471565,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 9116,
+          "cck": 647755793,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 9120,
+          "cck": 648040105,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 9124,
+          "cck": 648324346,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 9386,
+          "cck": 666939358,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 9460,
+          "cck": 672197460,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 9506,
+          "cck": 675466051,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 9510,
+          "cck": 675750660,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 9552,
+          "cck": 678733939,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 9574,
+          "cck": 680296745,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 9577,
+          "cck": 680458229,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 9577,
+          "cck": 680458434,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 9578,
+          "cck": 680568603,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 9622,
+          "cck": 683707685,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 9684,
+          "cck": 688113127,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 9688,
+          "cck": 688397774,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 9758,
+          "cck": 693370543,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 9996,
+          "cck": 710280458,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 10000,
+          "cck": 710564662,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 10004,
+          "cck": 710849069,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 10026,
+          "cck": 712412223,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 10120,
+          "cck": 719078243,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 10306,
+          "cck": 732306268,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 10318,
+          "cck": 733158999,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 10362,
+          "cck": 736285608,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 10510,
+          "cck": 746801036,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 10514,
+          "cck": 747085196,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 10518,
+          "cck": 747369630,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 10784,
+          "cck": 766269110,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 10786,
+          "cck": 766398209,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 11214,
+          "cck": 796820952,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 11216,
+          "cck": 796950139,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 11291,
+          "cck": 802292010,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 1
+          },
+          "frame": 11293,
+          "cck": 802421150,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 11293,
+          "cck": 802421150,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        }
+      ],
+      "saved_checkpoint": {
+        "status": "saved",
+        "receipt_sha256": "3cfca715aa892963fa8dd34e573778187a1024096f1a78d33c0cc030d824bd8d",
+        "snapshot_sha256": "20cd18d0d200fe9e2e0019fc204fbd5ea8725663f3049354b85149f515657e1b",
+        "stable_key": "s0:000005D6:instruction"
+      }
+    }
+  ],
+  "source_and_live_findings": {
+    "console": "Source$9C00 entry, modal$9C88 and normal-direction return$9C9C..9CBC observed. Side entry at Y1706 uses active tile400; tile402 below and231 above block the failed approaches. No fire input in the complete inspection, state0 checked throughout.",
+    "engineering": "Engineer50 retained through the actual checkpoint; healthy departure at12981322. Kwik-Kleen requires a different cycle predicate for the longer crossing: exact8681684, not the shorter AWOL route top-right predicate.",
+    "wrap": "Source$9950..9966 uses height129 minus3 rows: threshold2016. Ordinary down input reaches original$9960 which assigns playerY16; observed at$9966 f11214. Shaft cells are open at both ends. This is an explicit camera transition, not guest-state injection.",
+    "model_limit": "Existing Terrain/plan omits camera wrap. Its no-route result around DeathFly was incomplete, not a reachability proof. The wrap is manually encoded in this bounded recipe; no new general planner project.",
+    "obstacles": "Direct route encounters armed DeathFly at10741266. Wrapped route encounters Icelord at1298180. The latter remains aliveHP95; actual parameters are player5/reload3 versus opponent25/reload4. Rejected encounter branches do not replace the healthy root.",
+    "earlier_tactical_role": "Icelord is still not an ending predicate. It is now an observed obstacle on this chosen wrap return, so calling its earlier fight merely optional without route qualification was incomplete. Existing 12ceae72 Sonicdriver5 fight proves an earlier practical way to clear it, before that tool is consumed by the Ochre trade."
+  },
+  "next_required_action": {
+    "recommendation": "Revise the prefix to clear Icelord while holding sonicdriver5 before trading it for Ochre, then carry actual resulting health through the subsequent route. Evaluate retaining its Thermolance11 if useful; do not assume the existing95/32 health assertions remain valid. Requalify the connected prefix and return before submitting console items.",
+    "alternative": "A separately verified reachable weapon route could clear one late encounter, but none is yet established. Laser-rifle pickup18 at1244867 is known; conservative all-pose and a small-pose search from the current engineering side did not find a DeathFly-free route. These negative model results do not prove no route.",
+    "ending_obligations": "Disk38 plus distinct intended Scarlet35/Ochre36/Blue33 still unsubmitted. AWOL55 acquired, descriptor21 authorization/eventbit4 still unobserved. Earth-saved escape not validated."
+  },
+  "blocker": {
+    "action": "Continue normal-input return toward AWOL checkpoint/escape with the current post-trade equipment.",
+    "targets": [
+      "DeathFly on direct corridor",
+      "live Icelord on wrapped upper shaft"
+    ],
+    "outcome": "Executed bounded probes confirmed combat rather than successful crossings. Current prefix has no verified viable continuation through these encounters. Safe independent console/departure/wrap work is complete.",
+    "authority": "No permission denial, disconnected executor, pending tool or access workaround. This is an unresolved gameplay prerequisite, requiring prefix/resource revision before arming."
+  },
+  "reproduction": {
+    "checkpoint_recipe": "python -m amiga_reversing.tools.pandora_escape --stage inspect-return --output <scenario.json>; compile/run through existing copperline_session with the verified AWOL checkpoint, legal local ROM and explicit emulator.",
+    "cold_preparation_recipe": "--stage prepare --cold emits385 phases/256 events, within existing shared limits. This full cold preparation recipe is admission-tested, not a new live full-cold receipt.",
+    "identity": "Final complete checkpoint extension binds current consumed code, original binary/source, native facts, compiled/authored scenario, ROM/emulator/media and inherited checkpoint receipt. Raw reports and snapshots stay local."
+  },
+  "limits": [
+    "No ending, all-patrol safety, all-route impossibility, original disk-loader parity or new CPU/DMA access coverage claimed.",
+    "Failed phases use fresh diagnostic-stop state with last canonical snapshot retained separately; a discarded engineering attempt endedHP5. Successful retained extension remainsHP32.",
+    "No target source/fact output changes, redundant byte-exact rebuild, injected gameplay state, artificial routine entry, B07 expansion, font/bank45/EQU changes or PR merge."
+  ]
+}

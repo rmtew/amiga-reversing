@@ -1695,3 +1695,42 @@ report hashes; their `failure_snapshot_correction` records the decoder identity
 and affected runs. Successful cold receipts and original execution identities
 remain unchanged. Rejected branches never replace the healthy checkpoint used
 for qualified progression.
+
+
+## Unarmed return-route inspection (2026-10-22)
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_escape \
+  --stage inspect-return --output .runtime-state/return-inspection.json
+```
+
+Compile/run through the existing session CLI with the verified AWOL checkpoint,
+same original direct-payload profile and explicit legal ROM/emulator. The
+[receipt](../runtime/observations/pandora-return-preparation.json) binds that
+inherited root and the actual code/scenario/media identities. It is a55-phase/
+45-event **checkpoint extension**,44.56 seconds inside `run_session`, final
+frame11293, `(1298,144)`, HP32, all mission items retained and console0. No fire
+is authored in this inspection.15 focused player/recipe checks passed, no skips.
+
+`--stage prepare --cold` emits385 phases/256 events for console/departure only;
+that full cold composition is admission-tested, not a new live cold receipt.
+Return inspection starts from the qualified AWOL checkpoint. Normal inputs
+enter active console tile400 from its left atY1706; tile402 below and231 above
+explain the two rejected approaches. Modal entry$9C00, loop$9C88 and return
+$9C9C..9CBC are observed; `9074` is the different terminal loop and must not be
+used as a self-destruct inventory-close hook.
+
+The game camera explicitly wraps down the right shaft when Y >=(129-3)*16:
+source$9960 assigns Y16, observed at$9966 after ordinary down input. The terrain
+planner currently omits that transition; its no-route result is not a proof
+that DeathFly cannot be bypassed. The upper shaft then meets live Icelord. Both
+routes were probed with bounded normal inputs; actual Icelord parameters are
+25/reload4 against current default5/reload3 atHP32. The healthy pre-encounter
+checkpoint is retained, not a damaged rejected branch.
+
+The next completion-prefix revision should clear Icelord with the existing
+Sonicdriver special fight before the Ochre trade, then remeasure the connected
+health/return route before arming. Its lack of an ending predicate does not
+make it ignorable on this particular route. Neither late encounter was won;
+no console submissions, AWOL authorization or ending are claimed. No general
+planner rewrite, memory injection, new memory watches or target-byte edits.

@@ -1,5 +1,37 @@
 # Pandora restoration inventory and status
 
+## Return-route prerequisite identified before arming (2026-10-22)
+
+[Return preparation](../../runtime/observations/pandora-return-preparation.json)
+records a complete **checkpoint-based extension**,55 phases/45 input events,
+from the qualified AWOL cold checkpoint. It enters/leaves the console unarmed,
+clears engineering holding Engineer50, and uses the game's explicit bottom-to-top
+shaft wrap. Final frame11293: `(1298,144)`, HP32, held50; carried `[48,0,49,38]`,
+pockets `[36,55,33,35]`. Console state0.15 focused player/recipe tests passed.
+This is not an additional uninterrupted cold qualification or ending.
+
+The static planner omitted camera wrap, so its no-bypass result around DeathFly
+was incomplete. The actual source$9960 write sets Y16 after normal down input
+reaches the2016 camera threshold; source$9966 and live state verify the transition.
+No guest-state injection. The direct corridor encounters armed DeathFly; the
+wrapped upper shaft encounters live Icelord. Its measured parameters are
+25 damage/reload4 against current default5/reload3, with playerHP32 and NPC95.
+Both rejected crossing probes are distinct from the healthy retained checkpoint.
+
+**Next required prefix revision:** clear Icelord with sonicdriver5 **before**
+trading that tool for Ochre, using the previously qualified special fight; then
+remeasure health and validate the connected return. Retaining its Thermolance11
+may improve subsequent combat but is not yet a validated pickup/route change.
+Icelord is not an ending predicate; it is a demonstrated obstacle on this chosen
+return route. Do not silently promote the earlier 'optional detour' assessment
+to a guarantee that an alive Icelord can be ignored on every completion route.
+
+All disk/code submissions, AWOL checkpoint authorization and Earth-saved escape
+remain pending. The console stays unarmed while that route prerequisite is
+unresolved. No executor/access blocker, target-byte change, extra generic
+framework, memory-watch campaign, B07 work or PR merge. Earlier sections are
+historical and their successful qualifications retain their original identities.
+
 ## Failure-snapshot reporting corrected (2026-10-22)
 
 Failed movement summaries previously preferred the last canonical hit even when

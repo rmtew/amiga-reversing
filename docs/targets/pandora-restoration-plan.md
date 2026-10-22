@@ -215,8 +215,8 @@ ID on departure. Treat unobserved travel/access dependencies as hypotheses.
 | G02 | Acquire SDI disk38 (`$26`) | Captain inventory contains it; disk is explicitly consumed by `test_self_destruct_initiation_disk`. Acquired and stored in carried3 after a cold-boot Captain route. Live Captain body `(656,1002)`. Hint route uses Lt Commander ID; exact approach/gate association remains to be validated. | Done: disk38 in carried3, Commander48 held, Lt49 retained in carried2. Next acquire Ochre. |
 | G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both were acquired from Commander and verified in pocket slots2/3 at frame2572. Local console accepts three qualifying submissions; intended route will use three distinct colours, not duplicate exploitation. | Done for Blue/Scarlet; preserve pocket slots2/3 until console submissions. |
 | G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Done: normal-input exchange qualified from cold boot at frame8095. Below-patrol staging `(556,1606)` is reachable; Engineer50 crosses engineering, then sonicdriver5 obtains Ochre36. All other required items retained. |
-| G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | Collect G02–G04 before entering the console; verify actual counts/state and consumed IDs. |
-| G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | AWOL55 acquired and pocketed1; Engineer50 held for departure. Descriptor21 authorization is still unobserved. Establish the console/departure route and observe eventbit4 before claiming authorization. |
+| G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | All inputs owned; unarmed console entry/exit validated in checkpoint extension. Resolve the return-route prerequisite (live Icelord on wrap route, DeathFly on direct route) before arming; then verify actual counts/state and consumed IDs. |
+| G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | AWOL55 pocketed1; unarmed console/departure and camera wrap are observed. The live Icelord blocks the chosen upper return; revise the earlier prefix before claiming descriptor21 authorization/eventbit4. |
 | G07 | Escape through tile236 while authorized | Movement tests decoded tile236 and eventbit4, then sets escape event and enters the escape outcome helper. Not observed. | After G05/G06, travel to the escape tile before countdown expiry; verify the original branch, restored domain and event flags. |
 | G08 | Validate the successful ending, not merely an armed console | `enqueue_game_outcome_and_rank_messages` selects the saved-Earth message when self-destruct state is negative and Earth deadline nonzero. Require escape event as well for this walkthrough objective. | Capture outcome branch/message identity plus mission state; validate the complete ordinary-input chain from cold boot. |
 
@@ -305,3 +305,28 @@ arming. G05 disk/code submissions are all pending; G06's AWOL acquisition is
 done but checkpoint21 authorization/eventbit4 remains unobserved. G07/G08
 Earth-saved escape are not complete. This checkpoint has every required item;
 HP32 is retained rather than forced/reset.
+
+### Return preparation and corrected tactical dependency
+
+[Bounded return evidence](../../runtime/observations/pandora-return-preparation.json)
+proves55 phases/45 normal-input events from the AWOL checkpoint, ending
+`(1298,144)`, HP32, Engineer50 held, carried `[48,0,49,38]`, pockets
+`[36,55,33,35]`. Source$9C00/$9C88 console entry/loop and normal exit are observed;
+state0 remains checked. Engineering exit is clear. The original camera wraps at
+Y2016 toY16 via$9960; the static terrain planner omitted this genuine transition.
+
+The direct corridor triggers DeathFly combat; the wrap route triggers Icelord
+combat at1298180. Actual Icelord setup is player5/reload3, opponent25/reload4,
+HP32 versus95. An ending condition does not require an Icelord flag, but this
+selected return path cannot assume the live encounter harmless. The next
+concrete task is to clear it while sonicdriver5 is still owned, before the
+Ochre trade, then carry **measured** health through subsequent fights and replay
+the connected prefix/exit. Existing `12ceae72` fight evidence demonstrates the
+Sonicdriver override; it does not validate the new composition or any weapon
+pickup. A separately proved weapon route is an alternative, not yet available.
+
+**G05–G08 remain open:** no disk/cards submitted, no descriptor21 authorization
+observed, no Earth-saved escape. Current console is deliberately unarmed.
+The complete inspection is a checkpoint extension, not a new full cold receipt.
+15 focused player/recipe checks passed. No target output changes or redundant
+whole-source generation accompany this result.
