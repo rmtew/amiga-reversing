@@ -1510,3 +1510,51 @@ rebuild was required. One continuous cold-boot pass proves this bounded objectiv
 not full-game completion, original disk-loader parity, arbitrary combat safety,
 new byte-purpose classification or CPU/DMA memory-access coverage. Raw states,
 media, ROMs and full captures remain private.
+
+#### Required ending route: IDs, Blue and Scarlet
+
+The [completion dependency checklist](targets/pandora-restoration-plan.md#walkthrough-completion-dependencies-2026-10-22-after-12ceae72)
+now distinguishes intended-route dependencies from optional encounters. The target
+is a saved-Earth escape, not kill-ranked combat. Engineer ID is an exact checkpoint
+item; sonicdriver has a direct trade use for Ochre. The Icelord has no ending input
+or completion callback and is omitted from this completion prefix. Its earlier
+legal defeat remains optional evidence, not a certified golden-path step.
+
+[`pandora_completion`](../amiga_reversing/tools/pandora_completion.py) generates
+`--stage lieutenant --cold` or `--stage commander --cold`. Run the generated JSON
+with the established session CLI/direct-payload contract and a fresh state folder,
+**without** checkpoint load for continuous qualification. Omitting `--cold` uses
+the matching verified prior checkpoint for debugging. For example:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_completion \
+  --stage commander --cold --output .runtime-state/required-cards.json
+```
+
+[Required-route evidence](../runtime/observations/pandora-required-progression.json)
+records one uninterrupted cold boot through Lt Commander acquisition, its guarded
+Commander approach, Commander ID acquisition and Blue/Scarlet collection. At
+frame2572 the player is `(192,190)`, HP95, holding Commander48; carried slots0/1
+retain Engineer50 and sonicdriver5; pocket slots2/3 contain Blue33 and Scarlet35.
+The post-run identity-bound mission probe reads self-destruct state0, authorized
+checkpoint count1/seen bits2, and nonzero Earth deadline WORD`$9732`. Nothing is
+submitted or armed yet; escape and the successful ending remain unobserved.
+
+A concrete input failure was retained: releasing Space at the late inventory
+handler was acknowledged, but guest key byte`$39BC` stayedFF for64 subsequent
+services. The driver refused to close/continue. Releasing at original body-panel
+entry`$27EA`, before rendering, then waiting for observed guest release0 fixed the
+interaction. This is ordinary controller timing, not a guest-memory repair.
+World inventory close uses main loop`$5D6`, distinct from terminal`$9074`.
+Repeated cursor actions get unique input hooks. The actual112-phase/66-event
+continuous route requires shared bounded capacities128 phases/96 events; the
+compiler and runner agree and boundary tests cover refusal beyond those limits.
+Focused tests:165 passed, no skips. No new observer campaign or emulator was added.
+
+Next required acquisition is Captain's SDI disk, then the still-unexecuted Ochre
+trade, console arming, AWOL authorization and escape. The Robomechanic's live
+patrol Y1592 and sampled grid data are retained; a failed first staging search
+is not proof that every approach is impossible. The full hint page fetch was
+blocked by a proxy403; indexed hints are corroboration only, with local source
+predicates explicitly separated. Original bytes/source and paused B07 files are
+unchanged. Proprietary assets, raw RAM/stack captures and checkpoints stay local.

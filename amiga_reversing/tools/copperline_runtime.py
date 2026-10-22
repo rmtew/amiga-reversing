@@ -12,7 +12,8 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
-MAX_SCENARIO_PHASES = 64
+MAX_SCENARIO_PHASES = 128
+MAX_SCENARIO_INPUT_EVENTS = 96
 MEMORY_ACCESS_ENGINES = frozenset(
     ["cpu", "blitter", "disk", "copper"]
     + [f"bpl{i}" for i in range(1, 9)]
@@ -727,10 +728,10 @@ def run_scenario(client, scenario, payload_path, release=None, *, trace_director
         or not phases
         or len(phases) > MAX_SCENARIO_PHASES
         or not isinstance(events, list)
-        or len(events) > 64
+        or len(events) > MAX_SCENARIO_INPUT_EVENTS
     ):
         raise ValueError(
-            "Scenario requires 1..64 compiled phases and at most 64 input events"
+            f"Scenario requires 1..{MAX_SCENARIO_PHASES} compiled phases and at most {MAX_SCENARIO_INPUT_EVENTS} input events"
         )
     names = [p.get("name") for p in phases if isinstance(p, dict)]
     if (

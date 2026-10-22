@@ -1,5 +1,31 @@
 # Pandora restoration inventory and status
 
+## Required ending route corrected and advanced (2026-10-22)
+
+The [finite G01–G08 checklist](pandora-restoration-plan.md#walkthrough-completion-dependencies-2026-10-22-after-12ceae72)
+now targets **Earth saved and escaped**. The Icelord fight was an optional tested
+detour on current evidence, not an established golden-path prerequisite. The
+completion prefix omits it, preserves the sonicdriver for the required Ochre
+trade and keeps Engineer ID for checkpoint use.
+
+[Required-route evidence](../../runtime/observations/pandora-required-progression.json)
+proves one uninterrupted cold boot to Lt Commander ID, guarded Commander access,
+Commander ID and **Blue/Scarlet code cards**. Final frame2572: `(192,190)`, HP95,
+Commander48 held; Engineer50/sonicdriver5 in carried0/1; Blue33/Scarlet35 in
+pockets2/3. A linked post-run snapshot confirms self-destruct0, authorized count1/
+seen2 and nonzero Earth deadline$9732. No injected state or optional fight.
+
+Late Space release failure is preserved and diagnosed; an earlier original
+body-entry release plus observed guest-release predicate lets inventory close.
+The112-phase/66-event recipe uses bounded shared128/96 capacities and unique
+repeated-action hooks. **165 tests passed**, no skips. Target source and the nine
+paused B07 files remain unchanged; PR5 remains unmerged.
+
+**Next required objective: Captain's SDI disk38.** Ochre trade, console arming,
+AWOL authorization and the ending remain unfinished. A failed Robomechanic
+model approach is an unresolved route question, not an unused/unreachable claim.
+See [reproduction and limits](../copperline-runtime.md#required-ending-route-ids-blue-and-scarlet).
+
 ## Sonicdriver used to defeat Icelord (2026-10-22)
 
 [Progression evidence](../../runtime/observations/pandora-icelord-progression.json)

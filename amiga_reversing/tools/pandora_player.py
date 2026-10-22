@@ -75,6 +75,9 @@ class PlayerPlan:
 
     def action(self,name,pc,*,control=None,until=None,visits=1,frames=360,guard=True):
         previous=self.scenario['phases'][-1]['name']
+        stem=name;ordinal=2
+        while any(q.get('name')==name for q in self.scenario['phases']):
+            name=f'{stem}_{ordinal}';ordinal+=1
         p=phase(name,pc,visits);p['max_frames']=frames
         # Common capture has15 selectors. Guards use independent small reads;
         # discard unrelated status/position diagnostics to stay within16.
@@ -111,10 +114,10 @@ class PlayerPlan:
         return self.action(name,0x28D4,control='port1 fire',until=goal(PLAYER+22,bytes([held])),visits=16)
 
     def close_inventory(self):
-        self.action('key_release_services',0x28D4,visits=3)
-        self.action('inventory_closed',0x9074,control='key 64',
+        self.action('key_release_services',0x28D4,until=goal(0x39BC,b'\x00'),visits=64,frames=180)
+        self.action('inventory_closed',0x9074 if self.modal else 0x5D6,control='key 64',
             until={'address':UI,'size':1,'expect_hex':'00','expect_mask_hex':'04'},visits=16)
-        return self.action('released_close_key',0x9074,visits=3)
+        return self.action('released_close_key',0x9074 if self.modal else 0x5D6,visits=3)
 
     def exit_terminal(self):
         self.action('exit_direction',0x9088,control='port1 down')

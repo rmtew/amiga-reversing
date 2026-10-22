@@ -198,3 +198,55 @@ Opaque asset packaging/INCBIN export is owned by a separate parallel task. This
 work may classify asset boundaries and relocation needs, but will not implement
 a competing exporter or edit its assembler/source-packaging path. Adoption will
 follow independent review and coordinated integration.
+
+## Walkthrough completion dependencies (2026-10-22, after 12ceae72)
+
+The completion target is **Earth saved and player escaped**, not a kill count,
+item count, or every optional encounter. Original-layout source is authoritative
+for local predicates; the [published game hints](https://amiga.abime.net/1008)
+provide an intended route lead. The full page could not be fetched (the network
+proxy returned403); indexed hints corroborate Engineer/sonicdriver collection,
+SDI disk from Captain, sonicdriver→Ochre trade, console submissions and Engineer
+ID on departure. Treat unobserved travel/access dependencies as hypotheses.
+
+| ID | Required objective / concrete completion predicate | Evidence and current state | Next bounded action |
+| --- | --- | --- | --- |
+| G01 | Remain active and preserve enough health/time for the ending | Current completion prefix ends HP95, active, Commander48 held, Engineer50/sonicdriver5 carried, Blue33/Scarlet35 pocketed. Post-run mission probe reads nonzero Earth deadline$9732 and state0. Earlier Icelord HP70 branch remains optional. | Prefer the healthy prefix while omitting optional combat; record deadline/mission state before arming. |
+| G02 | Acquire SDI disk38 (`$26`) | Captain inventory contains it; disk is explicitly consumed by `test_self_destruct_initiation_disk`. Not acquired. Live Captain body `(656,1002)`. Hint route uses Lt Commander ID; exact approach/gate association remains to be validated. | Lt Commander49 acquired; Commander48 now held after guarded access. Next establish the Captain route and acquire disk38. |
+| G03 | Acquire Blue33/Scarlet35 and preserve them until submission | Both were acquired from Commander and verified in pocket slots2/3 at frame2572. Local console accepts three qualifying submissions; intended route will use three distinct colours, not duplicate exploitation. | Done for Blue/Scarlet; preserve pocket slots2/3 until console submissions. |
+| G04 | Acquire Ochre36 (`$24`) | Robomechanic inventory has value30 Ochre. Its offer table values sonicdriver5 at40; first smallest positive offer gap selects Ochre, then a later fire visit swaps it. Tool is retained in carried1. | Establish a live reachable Robomechanic approach and complete the actual exchange. Static patrol is X382..720,Y1592; current terrain model has no route to the first proposed staging region. This is an unresolved route question, not proof of unreachability. |
+| G05 | Arm the self-destruct console | `process_self_destruct_card_input` needs inventory closed, fire, changed held ID. Disk in state0 advances to1; three qualifying submissions give submitted_count3, qualifying_count3, stateFF. Source imposes no order/uniqueness, but follow intended Scarlet/Ochre/Blue sequence. None submitted. | Collect G02–G04 before entering the console; verify actual counts/state and consumed IDs. |
+| G06 | Obtain escape authorization | Carry AWOL55 (`$37`) into descriptor21 contact to set eventbit4; source does not infer it from visit count. AWOL body is `(944,1776)`, unlooted. | Establish the later acquisition/exit route; keep Engineer50 available for the engineering checkpoint20. |
+| G07 | Escape through tile236 while authorized | Movement tests decoded tile236 and eventbit4, then sets escape event and enters the escape outcome helper. Not observed. | After G05/G06, travel to the escape tile before countdown expiry; verify the original branch, restored domain and event flags. |
+| G08 | Validate the successful ending, not merely an armed console | `enqueue_game_outcome_and_rank_messages` selects the saved-Earth message when self-destruct state is negative and Earth deadline nonzero. Require escape event as well for this walkthrough objective. | Capture outcome branch/message identity plus mission state; validate the complete ordinary-input chain from cold boot. |
+
+Source anchors are the existing named routines and tables in the target `.s`:
+`process_self_destruct_card_input`, `validate_self_destruct_qualifying_card_count`,
+`test_escape_authorization_for_requested_tile`, `latch_authorized_checkpoint_visit`,
+`enqueue_game_outcome_and_rank_messages`, `captain_inventory_slots`,
+`commander_inventory_slots`, `robomechanic_inventory_slots` and
+`robomechanic_trade_offers`. No source/fact mutation is implied by this checklist.
+
+**Route correction:** Engineer50 is an evidenced exact-card engineering checkpoint
+and intended-route item, but not a direct ending predicate. Sonicdriver5 has a
+direct progression use as the Ochre trade. The Icelord's completion callback is
+NULL and its inventory is Ice Pendant/Thermolance; none is an ending input. Its
+defeat is therefore an optional tested detour on present evidence, not certified
+golden-path progress. It consumed no tool/card and cost25HP. No mandatory item
+has been irreversibly bypassed, but G02–G08 remain unfinished. Laser-rifle pickup
+in the hints is not itself an ending predicate; any route-specific need must be
+shown before calling it mandatory. Keep the earlier Icelord evidence as an
+optional driver exercise, and do not replay that detour in the completion prefix
+without a demonstrated dependency.
+
+### Latest required-route checkpoint
+
+[Qualified evidence](../../runtime/observations/pandora-required-progression.json):
+one uninterrupted cold boot, frame2572, player `(192,190)`, HP95, held Commander48,
+carried `[50,5,0,0]`, pockets `[0,0,33,35]`. Lt Commander49 was exchanged into the
+Commander body and remains recoverable there. Authorized-checkpoint count1/seen
+bits2 match the Lt Commander gate branch. Self-destruct remains0 and Earth
+deadline is nonzero; no ending is claimed. **Next required objective: Captain
+SDI disk38**, using the now-held Commander card. Ochre route/trade remains an
+independent unresolved dependency. Keep progressing G02–G08; this item milestone
+is not walkthrough completion.

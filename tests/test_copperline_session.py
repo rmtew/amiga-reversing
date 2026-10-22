@@ -558,7 +558,7 @@ def test_compiler_and_runner_share_bounded_phase_capacity(monkeypatch, tmp_path)
     path = tmp_path/'many-phases.json'
     phases = [{'name': 'boot', 'observable': 'direct_payload_handoff'}] + [
         {'name': f'visit_{i}', 'breakpoint_stable_key': 's0:00000004:instruction', 'wait_seconds': 1}
-        for i in range(63)]
+        for i in range(copperline_session.MAX_SCENARIO_PHASES-1)]
     scenario = {'schema_version': 1, 'identifier': 'many', 'target_id': 'fixture', 'phases': phases}
     row = {'stable_key': 's0:00000004:instruction', 'start_offset': 4}
     artifact = _FakeArtifact(row)
@@ -566,10 +566,10 @@ def test_compiler_and_runner_share_bounded_phase_capacity(monkeypatch, tmp_path)
     monkeypatch.setattr(copperline_session, 'build_project_listing_artifact_profile', lambda _: (0, {}, artifact))
     path.write_text(json.dumps(scenario))
     compiled = copperline_session.compile_scenario('fixture', path, tmp_path/'compiled.json')
-    assert len(compiled['phases']) == 63
+    assert len(compiled['phases']) == copperline_session.MAX_SCENARIO_PHASES-1
     scenario['phases'].append(dict(phases[-1], name='excess'))
     path.write_text(json.dumps(scenario))
-    with pytest.raises(ValueError, match='2..64'):
+    with pytest.raises(ValueError, match=f'2..{copperline_session.MAX_SCENARIO_PHASES}'):
         copperline_session.compile_scenario('fixture', path, tmp_path/'excess.json')
 
 
@@ -608,7 +608,7 @@ def test_state_goal_and_frame_budget_compile_through_shared_service(monkeypatch,
         copperline_session.compile_scenario('fixture',path,tmp_path/'rejected.json')
 
 
-def test_compiler_accepts_runner_64_input_events_and_rejects65(monkeypatch,tmp_path):
+def test_compiler_accepts_shared_input_limit_and_rejects_excess(monkeypatch,tmp_path):
     row={'stable_key':'s0:00000004:instruction','start_offset':4}
     artifact=_FakeArtifact(row)
     artifact._runtime_observation_views=({'base_addr':0x10000,'source_start':0,'source_end':16},)
@@ -617,8 +617,8 @@ def test_compiler_accepts_runner_64_input_events_and_rejects65(monkeypatch,tmp_p
        {'name':'boot','observable':'direct_payload_handoff'},
        {'name':'start','breakpoint_stable_key':row['stable_key'],'wait_seconds':1},
        {'name':'end','breakpoint_stable_key':row['stable_key'],'wait_seconds':1}],
-       'input_events':[{'after_phase':'start','control':'port1 fire','release_after_phase':'end'}]*64}
+       'input_events':[{'after_phase':'start','control':'port1 fire','release_after_phase':'end'}]*copperline_session.MAX_SCENARIO_INPUT_EVENTS}
     path=tmp_path/'events.json';path.write_text(json.dumps(s))
-    assert len(copperline_session.compile_scenario('fixture',path,tmp_path/'out.json')['input_events'])==64
+    assert len(copperline_session.compile_scenario('fixture',path,tmp_path/'out.json')['input_events'])==copperline_session.MAX_SCENARIO_INPUT_EVENTS
     s['input_events'].append(dict(s['input_events'][0]));path.write_text(json.dumps(s))
     with pytest.raises(ValueError):copperline_session.compile_scenario('fixture',path,tmp_path/'reject.json')
