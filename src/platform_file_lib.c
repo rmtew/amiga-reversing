@@ -1,4 +1,5 @@
 #include "m68k_source_package.h"
+#include "m68k_runtime_map.h"
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -12403,6 +12404,7 @@ struct PlatformFileListingArtifact {
   M68kAnalysisPolicy policy;
   M68kSourceAnalysisIR source_analysis;
   M68kRenderPlan source_plan;
+  M68kRuntimeMap runtime_map;
   M68kRenderEvidenceIR render_evidence;
   M68kFactsV2Profile profile;
   Arena *listing_index_arena;
@@ -12475,6 +12477,31 @@ static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *back
   return artifact;
 }
 
+static int listing_artifact_index_runtime_views(PlatformFileListingArtifact *artifact) {
+  M68kRuntimeMapSpan *spans=NULL;size_t count=0,capacity=0;
+  for(size_t si=0;si<artifact->source_analysis.section_count;si++) {
+    const M68kSectionAnalysisIR *s=&artifact->source_analysis.sections[si];
+    if(s->section_index>=artifact->object.section_count) continue;
+    uint32_t extent=artifact->object.sections[s->section_index].size;
+    for(size_t vi=0;vi<s->runtime_view_count;vi++) {
+      const M68kRuntimeViewIR *v=&s->runtime_views[vi];
+      if(!v->materialized || v->storage_offset>=extent || !v->size) continue;
+      uint32_t size=v->size;
+      if(size>extent-v->storage_offset) size=extent-v->storage_offset;
+      if(count==capacity) {
+        size_t next=capacity ? capacity*2 : 16;
+        if(next<capacity || next>SIZE_MAX/sizeof(*spans)) {free(spans);return -1;}
+        void *grown=realloc(spans,next*sizeof(*spans));
+        if(!grown) {free(spans);return -1;}
+        spans=grown;capacity=next;
+      }
+      spans[count++]=(M68kRuntimeMapSpan){v->runtime_address,size,s->section_index,v->storage_offset};
+    }
+  }
+  int result=m68k_runtime_map_build(&artifact->runtime_map,spans,count);
+  free(spans);return result;
+}
+
 static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact, M68kDiagList *diagnostics) {
   clock_t source_start;
   clock_t source_end;
@@ -12501,6 +12528,10 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
     return -1;
   }
   artifact->render_evidence_live = 1U;
+  if(listing_artifact_index_runtime_views(artifact)!=0) {
+    platform_file_add_error(diagnostics,"runtime view index build failed");
+    return -1;
+  }
   source_end = clock();
   if (source_file_listing_row_index_from_render_plan(NULL, &artifact->source_plan,
       artifact->object.platform_backend_kind, &artifact->source_analysis.policy, &artifact->source_analysis,
@@ -13628,30 +13659,7 @@ cleanup:
 /* Shared exact materialized-view lookup; -1 is ambiguity, not an unmapped byte. */
 static int platform_artifact_runtime_source_local(const PlatformFileListingArtifact *artifact,
     uint32_t address,uint32_t *out_section,uint32_t *out_offset) {
-  size_t si, vi, target_section = 0U;
-  uint32_t target_offset = 0U;
-  int found = 0, ambiguous = 0;
-  /* Reuse native materialization decisions, including suppressed loader and
-   * conflicting-copy views. Never select by view width or insertion order. */
-  for (si = 0U; si < artifact->source_analysis.section_count; ++si) {
-    const M68kSectionAnalysisIR *section = &artifact->source_analysis.sections[si];
-    for (vi = 0U; vi < section->runtime_view_count; ++vi) {
-      const M68kRuntimeViewIR *view = &section->runtime_views[vi];
-      uint32_t delta, source_offset;
-      if (!view->materialized || address < view->runtime_address) continue;
-      delta = address - view->runtime_address;
-      if (delta >= view->size || view->storage_offset > UINT32_MAX - delta) continue;
-      source_offset = view->storage_offset + delta;
-      if (section->section_index >= artifact->object.section_count ||
-          source_offset >= artifact->object.sections[section->section_index].size) continue;
-      if (found && (target_section != section->section_index || target_offset != source_offset)) ambiguous = 1;
-      target_section = section->section_index;
-      target_offset = source_offset;
-      found = 1;
-    }
-  }
-  *out_section=(uint32_t)target_section;*out_offset=target_offset;
-  return ambiguous ? -1 : found;
+  return m68k_runtime_map_resolve(&artifact->runtime_map,address,1,out_section,out_offset,NULL);
 }
 
 int platform_file_facts_v2_listing_artifact_runtime_source_json_alloc(PlatformFileListingArtifact *artifact,
@@ -14323,6 +14331,7 @@ void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact
   if (artifact == NULL) return;
   if (artifact->render_evidence_live) m68k_ir_render_evidence_destroy(&artifact->render_evidence);
   m68k_render_plan_destroy(&artifact->source_plan);
+  m68k_runtime_map_destroy(&artifact->runtime_map);
   m68k_ir_source_analysis_destroy(&artifact->source_analysis);
   m68k_object_destroy(&artifact->object);
   arena_destroy(artifact->listing_index_arena);

@@ -1,7 +1,25 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **Design proposed; no implementation in this proposal.**
+Status: **First delivery in progress: M0/M1 partial; M2–M4 not yet delivered.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
+
+## Implementation checkpoint (2026-10-23)
+
+[Baseline/index evidence](../../runtime/observations/pandora-memory-layout-baseline.json)
+records cold native artifact/package measurements and selection of the paired
+cursor-sprite workspace for bounded constraint analysis. The first M1 mechanism
+indexes existing materialized views in the native artifact; it removes the
+per-query view scan and per-byte mapped-span scan while preserving conflicting
+and valid aliases. 89 focused tests pass; the full nine-region projection and
+native source package are unchanged. Span lookup takes two operations for 16,
+349,040 and 8,388,608 bytes; 128/256/512 disjoint intervals take 8/9/10 operations.
+The two single artifact timings (202.04 s and 169.49 s) do not establish an
+attributable speedup. The region-by-instruction scan remains.
+
+This is not first-delivery closure. Cursor control initialization/DMA continuation
+and placement constraints remain under review; canonical layout selection,
+base-plus-offset export, bootstrap migration and independent movement are still
+pending. No new emulator run or source-layout transformation is in this batch.
 
 ## Decision and scope
 
@@ -312,12 +330,14 @@ Accept the interval proof only when increasing span byte length at fixed interva
 count does not increase mapping lookup count linearly. Accept reference indexing
 when scan counts no longer grow as regions times instructions. Warm edits must
 equal clean output and avoid unaffected discovery; report actual savings rather
-than a target percentage. No new performance measurements were run for this
-design-only change, and no latency claim is yet established.
+than a target percentage. The initial design-only revision ran no performance
+measurements; the implementation checkpoint above now supplies baseline and
+index operation counts. No latency acceptance claim is yet established.
 
 ## Milestones and deletion gates
 
-All milestones below are **not started** by this documentation revision. M1–M4
+The table defines acceptance, not a claim that every mechanism exists. M0 and M1
+have the partial implementation/evidence above; M2–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are distinct later decisions. Each batch
@@ -401,5 +421,5 @@ with the selected block's typed reference ledger and explicit remaining limits.
 
 The next implementation action, if authorized, is M0 followed by M1–M4 as one
 staged first delivery, reporting internal validation results without prematurely
-closing delivery. This proposal itself changes no source generation,
-canonical target facts, emulator state or existing build payload.
+closing delivery. M5–M6 remain separate decisions; implementation progress must
+not silently broaden first-delivery scope into runtime allocation or OS hosting.

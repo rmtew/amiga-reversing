@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "scope": "Proposal 046 first-delivery implementation, M0/M1 partial; no alternate layout admitted",
+  "baseline_commit": "0d62449e7ec0827363800a5ec140154983e1dd61",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "host": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+    "python": "3.14.7"
+  },
+  "method": {
+    "api": "build_project_listing_artifact_profile, then memory_regions_payload, then source_package_payload",
+    "project_root": "clean master worktree",
+    "minimum_asset_size": 256,
+    "runs_per_version": 1,
+    "whole_target_analysis_reused_between_projections": true,
+    "timing_limit": "Cold native artifacts in separate processes; filesystem/OS caches uncontrolled. Difference is not attributable speedup."
+  },
+  "before": {
+    "backend_sha256": "0720a3c47b66eee93b9f9e1f63d83a8a92419a5aab4396e558756f9fd6b649c3",
+    "artifact_seconds": 202.04032059400015,
+    "regions_seconds": 0.06096500300009211,
+    "package_seconds": 8.302158096999847,
+    "peak_rss_kib": 1006640
+  },
+  "after": {
+    "backend_sha256": "2f46b35274e7d629c0cabf0247de93e6dccc1de276153cc72663a441953ddb95",
+    "artifact_seconds": 169.4942932949998,
+    "regions_seconds": 0.05091391200039652,
+    "package_seconds": 8.204519238999637,
+    "peak_rss_kib": 1001608
+  },
+  "semantic_comparison": {
+    "all_region_payloads_equal": true,
+    "complete_native_source_package_equal": true,
+    "source_text_sha256": "7be35f54dd62cda29e540098ef720d855bff503c38d2dee6cd7764fd3178ca48",
+    "accepted_instructions": 7059,
+    "regions": 9,
+    "assets_at_selected_threshold": 86
+  },
+  "removed_paths": [
+    "platform_artifact_runtime_source_local per-query materialized-view scan",
+    "mr_mapped_span per-byte mapping scan"
+  ],
+  "retained_obligations": [
+    "Region-by-instruction reference scan remains; not replaced by this batch",
+    "Layout schema, frozen-plan placements, bootstrap variant and exporter adoption remain to implement",
+    "No image or independent-block movement qualified by this batch"
+  ],
+  "index_algorithm": "Sweep sorted events over canonical view mapping signatures; active signature tree preserves valid aliases and conflicts. Build O(N log N), storage O(N), binary-search plus segment walk queries. Native artifact owns index lifetime.",
+  "scaling": [
+    {
+      "input_intervals": 1,
+      "queried_bytes": 16,
+      "resolved_segments": 1,
+      "query_comparisons_and_visits": 2
+    },
+    {
+      "input_intervals": 1,
+      "queried_bytes": 349040,
+      "resolved_segments": 1,
+      "query_comparisons_and_visits": 2
+    },
+    {
+      "input_intervals": 1,
+      "queried_bytes": 8388608,
+      "resolved_segments": 1,
+      "query_comparisons_and_visits": 2
+    },
+    {
+      "input_intervals": 128,
+      "queried_bytes": 16,
+      "resolved_segments": 128,
+      "query_comparisons_and_visits": 8
+    },
+    {
+      "input_intervals": 256,
+      "queried_bytes": 16,
+      "resolved_segments": 256,
+      "query_comparisons_and_visits": 9
+    },
+    {
+      "input_intervals": 512,
+      "queried_bytes": 16,
+      "resolved_segments": 512,
+      "query_comparisons_and_visits": 10
+    }
+  ],
+  "tests": {
+    "command": "python -m pytest tests/test_runtime_map.py tests/test_memory_regions.py tests/test_derived_artifact.py -q",
+    "passed": 89,
+    "skipped": 0,
+    "independent_oracle": "40 deterministic shuffled/duplicated 27-view sets checked at 160 point addresses each; also span seams/conflicts/gaps, failed rebuild preservation, 32-bit edge and operation counts"
+  },
+  "candidate": {
+    "id": "paired_cursor_sprite_workspace",
+    "status": "Selected for bounded constraint analysis; not yet admitted for movement",
+    "original_start": 414576,
+    "observed_extent": 136,
+    "stride": 68,
+    "payload_bytes_per_sprite": 64,
+    "absolute_base_producer_source_offsets": [
+      2440,
+      38118,
+      40698,
+      40704
+    ],
+    "app_pointer_use_source_offsets": [
+      2484,
+      2490,
+      38096,
+      38100,
+      38124,
+      38132,
+      40886,
+      40890
+    ],
+    "evidence": "Existing native instruction export, canonical startup/VBL/bind/hide/reset consumers and qualified sampled sprite DMA bounds",
+    "next_obligations": [
+      "Establish control-word initialization and DMA termination/continuation bounds",
+      "Bind aliases and all four address producers to canonical base plus offsets",
+      "Choose explicit nonoverlapping Chip RAM placement under diagnostic profile; no free-memory inference from missing references",
+      "Model both display banks alongside workspace/image even if only workspace moves"
+    ]
+  },
+  "runtime_evidence": "No new emulator execution; previous route/output evidence unchanged",
+  "proprietary_payloads_published": false
+}

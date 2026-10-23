@@ -1,5 +1,16 @@
 # Pandora restoration inventory and status
 
+## Canonical layout implementation checkpoint (2026-10-23)
+
+[M0/M1 partial evidence](../../runtime/observations/pandora-memory-layout-baseline.json):
+89 focused tests pass; native materialization indexing replaces view scans and
+byte-by-byte span checks. The full original native source package and nine-region
+projection remain unchanged. Baseline artifact/package costs are 202.04/8.30 s;
+single before/after runs are not an overall speedup claim. The paired cursor
+workspace is selected for constraint analysis, with control/DMA bounds still
+pending. Canonical layout export and independent movement are not delivered;
+first-delivery M1–M4 acceptance remains open. No new gameplay capture in this batch.
+
 ## Canonical layout design (2026-10-23)
 
 [Proposal 046](../proposals/046-canonical-memory-layouts.md) audits the existing

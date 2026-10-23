@@ -3,13 +3,9 @@
 static int mr_mapped_span(const PlatformFileListingArtifact *a,const M68kMemoryRegionIR *r,
     uint32_t *section,uint32_t *offset) {
   if(!r->source_mapped) return 0;
-  if(platform_artifact_runtime_source_local(a,r->runtime_address,section,offset)!=1 ||
+  if(m68k_runtime_map_resolve(&a->runtime_map,r->runtime_address,r->size,section,offset,NULL)!=1 ||
       *section>=a->object.section_count || *offset>a->object.sections[*section].data_size ||
       r->size>a->object.sections[*section].data_size-*offset) return -1;
-  for(uint32_t i=1;i<r->size;i++) {
-    uint32_t si,off;
-    if(platform_artifact_runtime_source_local(a,r->runtime_address+i,&si,&off)!=1 || si!=*section || off!=*offset+i) return -1;
-  }
   return 1;
 }
 static int mr_source_address(const PlatformFileListingArtifact *a,uint32_t section,uint32_t offset,uint32_t *address) {
