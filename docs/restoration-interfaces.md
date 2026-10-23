@@ -46,8 +46,11 @@ bytes and unsupported seed phases.
 The direct loader reserves backing before disk I/O and executes the seed copy in
 the guest shim before HAND and payload entry. Handoff verification only reads it
 back; it does not inject the seed from the host. An explicitly declared comparison
-family reserves the same union of seed destinations in both runs so allocator
-changes do not silently become timing differences. Exec's eight-byte ownership
+family reserves and initializes the same union of declared seed destinations in
+both runs, including otherwise unused alternate seed backing. The selected
+layout's required copies and the common guest program are recorded separately.
+This makes the guest shim identical, not a proof that disk I/O or pre-entry
+timing is identical. Exec's eight-byte ownership
 rounding does not establish a purpose for the rounded padding. This contract does
 not replace the game's retained initializer or establish historical loader intent.
 

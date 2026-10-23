@@ -47,6 +47,16 @@ def normalize_dma_address(report,address):
     return ('fixed',address)
 
 
+def require_loader_family(a,b):
+    for field in ('loader_shared_reservations','loader_family'):
+        require(a['config'].get(field,[])==b['config'].get(field,[]), 'Different loader comparison '+field)
+    modes=[r['config'].get('loader_family_mode') for r in (a,b)]
+    if any(modes):
+        require(modes==['common_guest_seed_program']*2,'Different loader seed program modes')
+        require(a['config']['loader_seed_copies']==b['config']['loader_seed_copies'],
+                'Different guest seed programs')
+
+
 def wav_info(path):
     """Accept the emulator's PCM float WAV, including extensible float format."""
     with path.open('rb') as stream:
@@ -151,7 +161,7 @@ def asset_and_dma_checks(original, candidate, reports, target):
     devices = {3:'copper',4:'audio',5:'blitter',6:'bitplane',7:'sprite'}
     observations = []
     event_streams = []
-    for directory, report in zip((original,candidate), reports):
+    for role,(directory, report) in zip(('control','candidate'),zip((original,candidate), reports)):
         base = report['config']['assembly_base']
         streams = {}
         for capture in report['output_observations']['dma']:
@@ -187,13 +197,13 @@ def asset_and_dma_checks(original, candidate, reports, target):
                         normalized = normalize_dma_address(report,address)
                         stream.append((ordinal,i//frame['line_cck'],i%frame['line_cck'],engine,subtype,size,normalized,data))
             streams[phase] = stream
-            observations.append(dict(layout='original' if base == 0x10000 else 'relocated',phase=phase,
+            observations.append(dict(role=role,layout='original' if base == 0x10000 else 'relocated',phase=phase,
                                      frames=sorted(wanted),counts=counts,violations=violations))
         event_streams.append(streams)
     require(set(event_streams[0])==set(event_streams[1]),'DMA capture phase sets differ')
     comparisons = {name:event_streams[0][name] == event_streams[1][name] for name in event_streams[0]}
-    findings_a = [v for o in observations if o['layout']=='original' for v in o['violations']]
-    findings_b = [v for o in observations if o['layout']=='relocated' for v in o['violations']]
+    findings_a = [v for o in observations if o['role']=='control' for v in o['violations']]
+    findings_b = [v for o in observations if o['role']=='candidate' for v in o['violations']]
     # Keep these outside the certified asset bounds. The original and moved
     # streams both fetch zero POS/CTL words through NULL SPR0/1 pointers before
     # cursor installation; this is not a license to admit arbitrary bad pointers.
@@ -230,9 +240,7 @@ def compare_resource_prefix(original,candidate,target):
     for key in ('emulator_sha256','rom_sha256'):
         require(a[key]==b[key],'Different resource capture '+key)
     require(a['config']['profile']==b['config']['profile'],'Resource machine profiles differ')
-    require(a['config'].get('loader_shared_reservations',[])==b['config'].get('loader_shared_reservations',[]),
-            'Resource comparison loader ownership profiles differ')
-    require(a['config'].get('loader_family',[])==b['config'].get('loader_family',[]),'Different loader comparison families')
+    require_loader_family(a,b)
     require(a['input_scenario']['sha256']==b['input_scenario']['sha256'],'Different controller recipes')
     require(a['boot_phase_fixture']['stop']['cck']==b['boot_phase_fixture']['stop']['cck'] and
             a['boot_phase_fixture']['registers']==b['boot_phase_fixture']['registers'],'Different natural startup fixture')
@@ -282,17 +290,52 @@ def compare_resource_prefix(original,candidate,target):
                 scope='Matched bounded inventory prefix, three stopped snapshots and two complete DMA frames per layout; not full gameplay or CPU access-event coverage.')
 
 
-def compare(original, candidate, title_original, title_candidate, target):
+def admit_cursor_control(a,b):
+    """Admit only an independent cursor move at an unchanged canonical image."""
+    import copy
+    ca,cb=a['config'],b['config']
+    require(ca.get('normal_layout_export') and cb.get('normal_layout_export') and
+            not ca['original_control'] and not cb['original_control'], 'Canonical image controls required')
+    require(ca['assembly_base']==cb['assembly_base'] and ca['original_binary_sha256']==cb['original_binary_sha256'],
+            'Cursor control changed image placement or original input')
+    pa,pb=ca['layout_plan'],cb['layout_plan']
+    require(pa['bootstrap']==pb['bootstrap'] and pa['chip_bytes']==pb['chip_bytes'],'Cursor control changed bootstrap/profile')
+    ra={r['region_id']:r for r in pa['regions']};rb={r['region_id']:r for r in pb['regions']}
+    require(set(ra)==set(rb) and 'pandora_cursor_sprites' in ra,'Cursor control region inventory differs')
+    family={'pandora_cursor_sprites'}
+    for _ in ra:
+        family.update(rid for rid,r in ra.items() if r.get('parent_region_id') in family)
+    delta=rb['pandora_cursor_sprites']['runtime_address']-ra['pandora_cursor_sprites']['runtime_address']
+    require(delta!=0,'No independent cursor movement')
+    for rid in ra:
+        x,y=copy.deepcopy(ra[rid]),copy.deepcopy(rb[rid])
+        if rid in family:
+            y['runtime_address']-=delta
+            if 'loader_seed' in y:y['loader_seed']['runtime_address']-=delta
+        require(x==y,'Cursor control changed another region or contract: '+rid)
+
+
+def compare(original, candidate, title_original, title_candidate, target, *, control='original'):
     from PIL import Image  # Explicit local prerequisite; never silently skipped.
 
     paths = [original, candidate, title_original, title_candidate]
     reports = [json.loads((p/'report.json').read_text()) for p in paths]
     a, b, ta, tb = reports
-    require(a['status'] == 'saved_earth_and_escaped_original_control' and
+    require(control in ('original','canonical_image_cursor'),'Unsupported comparison control')
+    expected_a=('saved_earth_and_escaped_original_control' if control=='original' else 'saved_earth_and_escaped_relocated_cold_boot')
+    require(a['status'] == expected_a and
             b['status'] == 'saved_earth_and_escaped_relocated_cold_boot', 'Incomplete cold route')
     require(a['config']['profile'] == b['config']['profile'], 'Machine profiles differ')
-    require(a['config']['original_control'] and b['config']['matched_startup'], 'Wrong build modes')
-    require(a['payload_sha256'] == a['config']['original_binary_sha256'], 'Original was modified')
+    require_loader_family(a,b)
+    if control=='original':
+        require(a['config']['original_control'] and b['config']['matched_startup'], 'Wrong build modes')
+        require(a['payload_sha256'] == a['config']['original_binary_sha256'], 'Original was modified')
+    else:
+        admit_cursor_control(a,b)
+        require(a['native_materialization']['full_prefix_verified'],'Control moved prefix not verified')
+    for directory,report in zip((original,candidate),(a,b)):
+        require(digest(directory/'experiment.bin')==report['payload_sha256']==report['config']['payload_sha256'],
+                'Compared payload identity changed')
     require(b['native_materialization']['full_prefix_verified'], 'Moved prefix not verified')
     fixture_a, fixture_b = a['boot_phase_fixture'], b['boot_phase_fixture']
     require(fixture_a['stop']['cck'] == fixture_b['stop']['cck'] and
@@ -302,7 +345,7 @@ def compare(original, candidate, title_original, title_candidate, target):
     for x, y in zip(phases_a, phases_b):
         require(x['name'] == y['name'] and x['status'] == y['status'] == 'hit', 'Phase mismatch')
         require(x['stop_event']['cck'] == y['stop_event']['cck'], 'Phase clock mismatch: '+x['name'])
-        require(int(y['pc'], 0)-int(x['pc'], 0) == 0x70000, 'Runtime PC mapping differs')
+        require(int(y['pc'], 0)-int(x['pc'], 0) == b['config']['assembly_base']-a['config']['assembly_base'], 'Runtime PC mapping differs')
     def inputs(report):
         return [(r['method'], r['arguments'], r['cleanup'], r['outcome'],
                  r['anchor']['phase'], r['anchor']['stop']['cck']) for r in report['scenario']['input_trace']]
@@ -352,22 +395,26 @@ def compare(original, candidate, title_original, title_candidate, target):
     full_pcm['end_bound']='Entire equal-length recorded PCM to EOF; no fitted crop.'
     return dict(schema='pandora-output-comparison-v1',
                 status=('pass_with_original_bounds_findings' if integrity['original_bounds_findings'] else 'pass') if pcm['status'] == full_pcm['status'] == integrity['status'] == 'pass' and all(x['status'] == 'pass' for x in images) else 'mismatch',
-                profile=a['config']['profile'], matched_phases=576,
+                comparison_control=control,profile=a['config']['profile'], matched_phases=576,
                 matched_controller_calls=len(inputs(a)), boot_release_cck=start_cck,
                 report_sha256=[digest(p/'report.json') for p in paths],
                 images=images, PCM=pcm, PCM_to_EOF=full_pcm, asset_and_DMA_integrity=integrity,
                 limits=['Representative frames only; not every frame/optional path.',
                         'Pre-game ROM/disk audio before common handoff is excluded explicitly.',
-                        'Custom direct-payload cold boot/ECS profile, not original packed-disk/OCS parity.'])
+                        'Custom direct-payload cold boot/ECS profile, not original packed-disk/OCS parity.'] +
+                       (['Independent cursor move only; does not qualify the original-to-image transformation.']
+                        if control=='canonical_image_cursor' else []))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('original', 'candidate', 'title-original', 'title-candidate', 'target', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
+    parser.add_argument('--control',choices=('original','canonical_image_cursor'),default='original',
+        help='Original reference by default; cursor-only control requires identical canonical image/bootstrap and other regions')
     args = parser.parse_args()
     tool_sha=digest(Path(__file__))
-    result = compare(args.original, args.candidate, args.title_original, args.title_candidate, args.target)
+    result = compare(args.original, args.candidate, args.title_original, args.title_candidate, args.target,control=args.control)
     require(digest(Path(__file__))==tool_sha,'Comparison tool changed during execution')
     result['comparison_tool_sha256']=tool_sha
     args.output.write_text(json.dumps(result, indent=2)+'\n')

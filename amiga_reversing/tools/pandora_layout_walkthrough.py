@@ -69,13 +69,31 @@ def seed_copies(plan, original, assembled=None):
     return normalize_seed_copies(tuple(copies),payload_size=len(original),load_address=plan['bootstrap']['load_address'])
 
 
+def loader_family_context(payload, original, assembled, family):
+    """Use one explicit pre-entry seed program in every comparison control."""
+    from amiga_reversing.tools.direct_payload_adapter import normalize_seed_copies, seed_reservation_spans
+    plan=payload['layout_plan']
+    plans={plan['layout_id']:(payload['layout_plan_sha256'],plan)}
+    for member in family:
+        member_plan,_,_=export_context(member,original,payload['metadata_hash'])
+        existing=plans.get(member_plan['layout_id'])
+        require(existing is None or existing[0]==member['layout_plan_sha256'],'Conflicting loader-family layout identities')
+        plans[member_plan['layout_id']]=(member['layout_plan_sha256'],member_plan)
+    selected=seed_copies(plan,original,assembled)
+    program=normalize_seed_copies(tuple(copy for _,member in plans.values()
+        for copy in seed_copies(member,original,assembled)),
+        payload_size=len(original),load_address=plan['bootstrap']['load_address'])
+    reservations=tuple(sorted(set(seed_reservation_spans(program))))
+    identities=[dict(layout_id=k,layout_plan_sha256=v[0]) for k,v in sorted(plans.items())]
+    return selected,program,reservations,identities
+
+
 def build_from_export(root, out, payload, *, family=()):
     from amiga_reversing.disasm.binary_source import read_binary_source_bytes
     from amiga_reversing.disasm.c_backend import assemble_platform_source_path_with_c_backend
     from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
     from amiga_reversing.disasm.project_paths import resolve_project_paths
     from amiga_reversing.disasm.source_package import materialize_source_package
-    from amiga_reversing.tools.direct_payload_adapter import seed_reservation_spans
     paths = resolve_project_paths(TARGET, project_root=root)
     original = read_binary_source_bytes(paths.binary_source)
     plan, bootstrap, image = export_context(payload, original, effective_metadata_hash(paths.target_dir))
@@ -104,18 +122,7 @@ def build_from_export(root, out, payload, *, family=()):
         assets[item['path']] = item['sha256']
     original_control = all(r['runtime_address'] == r['original_address'] for r in plan['regions'])
     require(not original_control or data == original, 'Original layout is not byte exact')
-    own_seeds=seed_copies(plan,original,data)
-    family_plans={plan['layout_id']:(payload['layout_plan_sha256'],plan)}
-    for member in family:
-        member_plan,_,_=export_context(member,original,payload['metadata_hash'])
-        existing=family_plans.get(member_plan['layout_id'])
-        require(existing is None or existing[0]==member['layout_plan_sha256'],'Conflicting loader-family layout identities')
-        family_plans[member_plan['layout_id']]=(member['layout_plan_sha256'],member_plan)
-    # A paired comparison explicitly owns the union of seed destinations before
-    # I/O in both controls. This is loader backing, not a placement solver or
-    # a claim about purposes of the allocator's rounded padding bytes.
-    all_seeds=tuple(copy for _,member in family_plans.values() for copy in seed_copies(member,original))
-    shared_reservations=tuple(sorted(set(seed_reservation_spans(all_seeds))))
+    own_seeds,seed_program,shared_reservations,family_identities=loader_family_context(payload,original,data,family)
     config = dict(normal_layout_export=True, layout_id=plan['layout_id'], layout_plan=plan,
         layout_plan_sha256=payload['layout_plan_sha256'], source_package_sha256=payload['package']['sha256'],
         original_binary_sha256=digest(original), original_source_sha256=digest(source.read_bytes()),
@@ -127,9 +134,11 @@ def build_from_export(root, out, payload, *, family=()):
         full_image_interval=[bootstrap['load_address'], bootstrap['load_address']+bootstrap['file_size']],
         old_materialized_interval=[image['original_address'], image['original_address']+image['size']],
         copied_prefix_bytes=bootstrap['copied_source_end'], assets_sha256=assets,
-        loader_seed_copies=[dict(source_offset=s,runtime_address=a,size=n) for s,a,n in own_seeds],
+        loader_selected_seed_copies=[dict(source_offset=s,runtime_address=a,size=n) for s,a,n in own_seeds],
+        loader_seed_copies=[dict(source_offset=s,runtime_address=a,size=n) for s,a,n in seed_program],
+        loader_family_mode='common_guest_seed_program',
         loader_shared_reservations=shared_reservations,
-        loader_family=[dict(layout_id=k,layout_plan_sha256=v[0]) for k,v in sorted(family_plans.items())],
+        loader_family=family_identities,
         seed_initialization_scope='Guest boot-shim copies from original staged bytes before HAND; no host seed/gameplay-memory writes. Existing host GO marker release is retained.',
         profile=dict(model='A500', chipset='ECS', video='PAL', cpu='68000', chip='1M', slow='512K', fast='0'),
         runtime_qualified=False)

@@ -1,7 +1,7 @@
 """Exact PCM interval admission and corruption negatives; synthetic float data."""
 import struct
 import pytest
-from amiga_reversing.tools.pandora_rebase_output_compare import pcm_interval, wav_info
+from amiga_reversing.tools.pandora_rebase_output_compare import pcm_interval, wav_info, require_loader_family, admit_cursor_control
 
 
 def wav(path, values, *, channels=2, tag=3):
@@ -41,3 +41,50 @@ def test_truncation_or_missing_interval_never_passes(tmp_path):
     with pytest.raises(ValueError):pcm_interval(a,b,0,1_000_000)
     b.write_bytes(b.read_bytes()[:-4])
     with pytest.raises(ValueError):wav_info(b)
+
+
+def test_common_loader_profile_requires_same_guest_work_not_just_same_reservations():
+    import copy
+    a=dict(config=dict(loader_family_mode='common_guest_seed_program',
+        loader_seed_copies=[dict(source_offset=4,runtime_address=0xe0088,size=4)],
+        loader_family=[dict(layout_id='original',layout_plan_sha256='a'*64)],
+        loader_shared_reservations=[[0xe0088,8]]))
+    b=copy.deepcopy(a)
+    require_loader_family(a,b)
+    b['config']['loader_seed_copies'][0]['runtime_address']+=4
+    with pytest.raises(ValueError,match='Different guest seed programs'):require_loader_family(a,b)
+    b=copy.deepcopy(a);b['config'].pop('loader_family_mode')
+    with pytest.raises(ValueError,match='Different loader seed program modes'):require_loader_family(a,b)
+
+
+def cursor_controls():
+    import copy
+    a=dict(config=dict(normal_layout_export=True,original_control=False,assembly_base=0x80000,
+        original_binary_sha256='a'*64,layout_plan=dict(bootstrap={'contract_id':'retained'},chip_bytes=0x100000,
+        regions=[dict(region_id='image',runtime_address=0x80000),
+                 dict(region_id='display',runtime_address=0x70000),
+                 dict(region_id='pandora_cursor_sprites',runtime_address=0x65370,size=140),
+                 dict(region_id='seed',parent_region_id='pandora_cursor_sprites',runtime_address=0x653f8,
+                      loader_seed=dict(source_offset=0x453f8,runtime_address=0x653f8,size=4))])))
+    b=copy.deepcopy(a)
+    for region in b['config']['layout_plan']['regions'][2:]:
+        region['runtime_address']+=0xe0000-0x65370
+        if 'loader_seed' in region:region['loader_seed']['runtime_address']+=0xe0000-0x65370
+    return a,b
+
+
+def test_independent_cursor_control_is_a_distinct_bounded_contract():
+    a,b=cursor_controls()
+    admit_cursor_control(a,b)
+
+
+@pytest.mark.parametrize('mutation',['image','display','seed','unmoved','bootstrap'])
+def test_cursor_control_does_not_admit_unrelated_changes(mutation):
+    import copy
+    a,b=cursor_controls()
+    if mutation=='image':b['config']['assembly_base']=0x90000
+    elif mutation=='display':b['config']['layout_plan']['regions'][1]['runtime_address']+=8
+    elif mutation=='seed':b['config']['layout_plan']['regions'][3]['loader_seed']['source_offset']+=2
+    elif mutation=='bootstrap':b['config']['layout_plan']['bootstrap']['contract_id']='replacement'
+    else:b=copy.deepcopy(a)
+    with pytest.raises(ValueError):admit_cursor_control(a,b)

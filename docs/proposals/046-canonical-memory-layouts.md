@@ -1,68 +1,69 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **First delivery in progress: M0–M2 partial; M3 runtime checks active; M4 not delivered.**
+Status: **First delivery in progress: independent cursor cold/output evidence passed; retirement, reuse/performance and strict original HAND-cycle disposition remain open.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-23)
 
-The independent-cursor inventory probe found a concrete initialization omission:
-the sprite consumer fetched two more WORDs after the modeled 136 bytes. Across
-two complete inventory frames, original `$653F8/$653FA` supplied `$A000/$4000`,
-while moved `$E0088/$E008A` supplied zero. Three equal stopped buffer snapshots
-had not covered that consumer footprint. The retained
-[negative receipt](../../runtime/observations/pandora-cursor-inventory-boundary.json)
-records this failure. The bounded correction models a 140-byte parent and a
-separate four-byte loader-file seed from `$453F8`; guest startup copying is implemented. The corrected 28-phase pair completes
-with matching phase/controller clocks and ordered inventory DMA, but strict
-comparison refuses an eight-CCK natural HAND-boundary difference. The
-[seed receipt](../../runtime/observations/pandora-cursor-loader-seed.json) records
-298 focused passing tests and current exact verification; full runtime/output
-qualification remains open. Deliberate original reliance versus
-accidental control bytes is unknown. No surrounding data, font layout or other
-initial cursor bytes are classified by this observation.
+[Workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json)
+records normal-export saved-Earth completion with image `$80000` and an
+independently moved 140-byte cursor workspace at `$E0000`. The unheld cold run
+completes all 576 phases at HP49/frame14353, with both loss counters zero. The
+controlled original, image-only and cursor runs each complete at HP49/frame14465;
+these are fresh runs with an explicit common guest loader program, not a reuse
+of the earlier image-only frame14351 receipt.
 
+The independent cursor move is compared against the canonical image-only
+control, keeping image/bootstrap and every other region fixed. All 576 phase
+clocks, 509 controller calls, eight selected rendered frames and 24,726,568
+float samples from HAND through recording EOF match. Six core DMA frames match,
+retaining the identical eight NULL-sprite WORD reads at addresses0/2 outside
+certified asset bounds. Two separate inventory DMA frames have no bounds
+findings and identical ordered streams; three stopped 140-byte snapshots and
+typed app pointers also agree. See the
+[scoped output receipt](../../runtime/observations/pandora-canonical-cursor-output.json).
+This does not certify every frame, optional path or unobserved DMA continuation.
 
-[Real profile build evidence](../../runtime/observations/pandora-canonical-layout-builds.json)
-records five accepted API definitions and normal-export C/vasm agreement for
-`pandora_original_ecs1m`, `pandora_image_80000_ecs1m` and
-`pandora_cursor_e0000_ecs1m`. The original profile matches all 376,832 original
-bytes. The independent cursor profile changes only four evidenced address
-operands from the image-only profile. All 126 canonical asset byte intervals
-remain unchanged; the explicit 256-byte packaging threshold emits 86 files and
-retains 40 smaller intervals inline. Source-export/ bootstrap checks pass 38
-tests. Current-subject default C/vasm verification is exact, receipt
-`168dfee696e73907cbb7e1f2d37a1d433f9e0f50854f32f7d2884d4e320b38c5`.
+The original-to-image strict comparator still refuses an eight-CCK natural
+HAND-stop difference, despite identical stopped registers. Do not call that
+check passed. Independently, all 576 game phase/controller clocks and eight
+selected images match. PCM compared from each actual HAND clock through EOF is
+exact: both clocks select sample441704, so there is no fitted shift, tolerance,
+resampling or title-only crop. The pre-entry timing cause remains unresolved;
+recorded-output equality does not establish exact bootstrap-cycle identity.
 
-The normal image payload differs from the prior patched experiment at one byte:
-the existing bank-51 stored-mask pointer at source `$4C81A` now resolves from
-`$55C90` to `$C5C90`. Its existing canonical absolute-reference fact and consumer
-`$6F9A` explain this change; original activation is still conditional. Do not
-silently revert it or reuse old runtime qualification solely by payload identity.
-Fresh runtime/output checks are active, not accepted as complete. Native plan
-contents now accompany their hash through the same export service so runtime
-adapters consume canonical placements rather than reconstruct a Python model.
-Full exports took 170.15/187.84/179.23 seconds in these single observations;
-layout-only selection still rebuilds analysis. Frozen-plan reuse, runtime gates
-and legacy-patcher removal remain open obligations. Image-only success cannot
-close the independent workspace gate.
+The earlier [136-byte mismatch](../../runtime/observations/pandora-cursor-inventory-boundary.json)
+was an incomplete consumer/initialization model: inventory sprite DMA read
+`$A000/$4000` at original `$653F8/$653FA`, beyond the buffer snapshots. A distinct
+four-byte loader-file seed from `$453F8` and a 140-byte parent preserve this
+observed dependency. Guest copies run before HAND; verification reads them
+back. Comparison controls use the same explicit seed program/reservations,
+including otherwise unused alternate seed backing, and ordinary host GO release.
+There is no host seed/gameplay-memory injection or checkpoint restore. Original
+deliberate reliance versus accidental values is unknown. No surrounding source,
+font/bank45 layout, other seed or unknown-byte purpose is inferred.
 
-The normal image payload has now completed the uninterrupted cold 576-phase
-saved-Earth route at HP49/frame14351, with all 509 controller calls acknowledged,
-the full copied prefix read back at `$80000`, and both loss counters zero. Its
-normal runtime adapter consumes the native plan and guards old CPU data ranges;
-the old symbolic-patching builder is not called. 41 runner/export/ending/PCM
-tests pass. This is gameplay qualification only: new matched output comparison,
-independent cursor execution/DMA observation, legacy-builder retirement and
-frozen-plan reuse are still open. Existing original output captures may be reused
-only with their exact binary/emulator/ROM/profile/input and clock identities;
-the corrected normal image is a different executable and is tested afresh.
+All three normal profile builds still pass C/vasm agreement; original output
+matches all 376,832 bytes, and the image/cursor payload hashes remain
+`5a6f9695…` / `36c1a035…`. Current canonical exact receipt is `da3c4265…`.
+306 focused seed/layout/runtime/comparison tests pass. All 126 canonical asset
+intervals and 3,772 existing labels remain preserved; the explicit 256-byte
+package threshold emits 86 assets and keeps 40 smaller intervals inline.
+The known bank-51 pointer difference from the old patched experiment is retained
+and explained by its existing typed fact, not masked for comparison.
 
-The thin layout-selection adapters now forward the same canonical `layout_id`
-through HTTP, restoration CLI, real MCP stdio and the existing palette parameter
-editor. Unknown-layout refusals are not promoted to download/success. The isolated
-MCP SDK 2.3.0 suite passes all nine tests; the UI handler's forwarding/refusal
-paths execute under Node.js. This is service wiring, not browser E2E or runtime
-qualification, and does not discharge frozen-plan reuse or patcher retirement.
+[Service wiring](../../runtime/observations/pandora-layout-service-wiring.json)
+forwards canonical `layout_id` through HTTP, restoration CLI, real MCP stdio and
+the existing palette parameter editor. The isolated SDK 2.3.0 interface suite
+passes 48 tests plus four server-route tests; the UI handler executes in Node.js,
+not browser E2E. Refused exports do not become downloads/runtime qualification.
+
+First delivery remains open: retire the superseded source patch builder, deliver
+and measure layout-only frozen-plan reuse/invalidation, and disposition the
+strict original-to-image HAND-cycle difference honestly. Full exports still
+rebuild analysis. The latest 178–254-second observations overlap other jobs and
+are not a controlled performance comparison. Independent block evidence is now
+available; this is no longer an image-only delivery.
 
 ### Earlier mechanism batches (historical)
 
@@ -460,7 +461,8 @@ index operation counts. No latency acceptance claim is yet established.
 
 The table defines acceptance, not a claim that every mechanism exists. M0 and M1
 have the partial implementation/evidence above; M2 has target profile builds and
-M3 has begun runtime checks; M4–M6 are not started. M1–M4
+M3/M4 now have the scoped runtime/output evidence above; retirement and
+reuse/performance acceptance remain open. M5–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are distinct later decisions. Each batch

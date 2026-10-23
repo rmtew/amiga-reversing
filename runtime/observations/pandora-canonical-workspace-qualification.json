@@ -1,0 +1,337 @@
+{
+  "schema": "pandora-canonical-workspace-qualification/v1",
+  "status": "independent_cursor_qualified_original_handoff_still_refused",
+  "original_exact_receipt": "da3c4265dd77a0989465fad610be0502712ead84905cfc707b1b9188eeddb096",
+  "runtime": [
+    {
+      "name": "common-original-full",
+      "report_sha256": "9419e6e46ea02d57b63eceb8895c2a04fa5f066fe4f46f3fe7d9de55d71f1e26",
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "layout_id": "pandora_original_ecs1m",
+      "layout_plan_sha256": "89e0a1245009cc432ea39cc6a2ee5f0a8a7020afd71b878b8e33299e4080dd40",
+      "package_sha256": "63c97a84eb3eac766dd4e93d0c2c7c67f8126a92e710a078177201a67025ce8b",
+      "phases": 576,
+      "controller_calls": 509,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 379621,
+        "selection_pc": 379356,
+        "final_frame": 14465
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "phase_locked_boot": true
+    },
+    {
+      "name": "common-image-full",
+      "report_sha256": "85483d7ee56dabf815021faa221387f204fd5b103a7801509a8c9b9ac7a64bc4",
+      "payload_sha256": "5a6f969515baea1806627ddfcae75d2fd35ff002f738ddaae1c2c0b28af4bf62",
+      "layout_id": "pandora_image_80000_ecs1m",
+      "layout_plan_sha256": "cde9eb66a25d06d409791fd97f78b21f17996be8387fed2d867be2f62269ee10",
+      "package_sha256": "141140158f00f2e18a81cd5409deae8fafea961a264e6d12f72bc627d6ef44c0",
+      "phases": 576,
+      "controller_calls": 509,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14465
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "phase_locked_boot": true
+    },
+    {
+      "name": "common-cursor-full",
+      "report_sha256": "2f047575060481f92cc94ecdf3ea162fe106e4098a8cf6f4746a8c413eb5ab2b",
+      "payload_sha256": "36c1a03579fcc6a9f9f200313d488fed280e3e8848c8216d66a8ce32448488b0",
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f",
+      "package_sha256": "e474ec5dbe4291d12079db22a2bb3290ed4895a0d722ebe818855b500a2e29f4",
+      "phases": 576,
+      "controller_calls": 509,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14465
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "phase_locked_boot": true
+    },
+    {
+      "name": "cursor-unheld-cold",
+      "report_sha256": "6d56e7f0fc8a7de734971f8cea9b8c55b6d97665b50e8920d3ac044538c7bc72",
+      "payload_sha256": "36c1a03579fcc6a9f9f200313d488fed280e3e8848c8216d66a8ce32448488b0",
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f",
+      "package_sha256": "e474ec5dbe4291d12079db22a2bb3290ed4895a0d722ebe818855b500a2e29f4",
+      "phases": 576,
+      "controller_calls": 509,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14353
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "phase_locked_boot": false
+    }
+  ],
+  "independent_workspace_output": {
+    "receipt": "pandora-canonical-cursor-output.json",
+    "sha256": "84cb45b0ecf8a5451ca0f8ab09d5c599d831c60131ea51ae33b13a37673ce49a",
+    "status": "pass_with_original_bounds_findings",
+    "images": 8,
+    "PCM_float_samples_to_EOF": 24726568,
+    "DMA_frames": 6,
+    "unchanged_NULL_sprite_findings_per_control": 8,
+    "inventory_DMA": {
+      "frames_per_control": 2,
+      "status": "pass",
+      "bounds_findings": 0,
+      "ordered_streams": {
+        "inventory_open": true
+      }
+    },
+    "stopped_snapshots": [
+      {
+        "phase": "inventory_open",
+        "bytes": 140,
+        "identical": true,
+        "sha256": "11b273b879f16ed53c15f1dc01446393635cb9c79da7bbf6a4ff12809639a58e",
+        "typed_app_pointers_normalized_equal": true
+      },
+      {
+        "phase": "take_engineer_card_ready",
+        "bytes": 140,
+        "identical": true,
+        "sha256": "842cd6d4cbc92d30ac46c69bb4d9b2bade207e62b7a63ddcb3b35b10420666bf",
+        "typed_app_pointers_normalized_equal": true
+      },
+      {
+        "phase": "take_sonicdriver_ready",
+        "bytes": 140,
+        "identical": true,
+        "sha256": "790e4d3e8f63edf6cd144e5cc78880b7a1613ebdaf5d866e5cab8865005d02fe",
+        "typed_app_pointers_normalized_equal": true
+      }
+    ]
+  },
+  "original_to_image": {
+    "strict_status": "refused",
+    "reason": "Boot clock/CPU fixture differs",
+    "HAND_cck": [
+      35525509,
+      35525517
+    ],
+    "registers_equal": true,
+    "phase_and_controller_clocks_match": true,
+    "representative_images": [
+      {
+        "state": "title_menu_loop",
+        "status": "pass",
+        "sha256": [
+          "cce6a8bf538d1706620cca80f34d0f58dde72dd165278d33a9bba03407114a7f",
+          "cce6a8bf538d1706620cca80f34d0f58dde72dd165278d33a9bba03407114a7f"
+        ]
+      },
+      {
+        "state": "ui_overlay_initialization",
+        "status": "pass",
+        "sha256": [
+          "104ca69991ad9644263b4a29f20ea31d1bf8c72f3e7fa4af57b0e7953495f1ee",
+          "104ca69991ad9644263b4a29f20ea31d1bf8c72f3e7fa4af57b0e7953495f1ee"
+        ]
+      },
+      {
+        "state": "initial_proximity_context",
+        "status": "pass",
+        "sha256": [
+          "455f3a837e144db85dc7bc3fe1755d79dfc8d91ddaa26bf307a9e447de6bc68f",
+          "455f3a837e144db85dc7bc3fe1755d79dfc8d91ddaa26bf307a9e447de6bc68f"
+        ]
+      },
+      {
+        "state": "entry_officer_card_transferred",
+        "status": "pass",
+        "sha256": [
+          "cb97c4dd506c1c765a48eb30161e670f8c528baf6c1c7ac825ead32ab46438a4",
+          "cb97c4dd506c1c765a48eb30161e670f8c528baf6c1c7ac825ead32ab46438a4"
+        ]
+      },
+      {
+        "state": "ei_sonicdriver_hit_1",
+        "status": "pass",
+        "sha256": [
+          "a767500522b8c2f57c47e1210541002ce5b3d1f1955bcb4f690371b05c9a2e15",
+          "a767500522b8c2f57c47e1210541002ce5b3d1f1955bcb4f690371b05c9a2e15"
+        ]
+      },
+      {
+        "state": "ac_console_ready",
+        "status": "pass",
+        "sha256": [
+          "91c295f52df84737de15c2dee5a19606d08d9f9954e3a99024295185a80b10a1",
+          "91c295f52df84737de15c2dee5a19606d08d9f9954e3a99024295185a80b10a1"
+        ]
+      },
+      {
+        "state": "post_ending",
+        "status": "pass",
+        "sha256": [
+          "0cfb185bec7c09d961365c0b1016917be7557ba5480c919ec54d45465477344d",
+          "0cfb185bec7c09d961365c0b1016917be7557ba5480c919ec54d45465477344d"
+        ]
+      },
+      {
+        "state": "settled_title_180_frames",
+        "status": "pass"
+      }
+    ],
+    "post_HAND_PCM": [
+      {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 102439904,
+          "frames": 12804988
+        },
+        "start_cck": 35525509,
+        "end_cck": 1029885441,
+        "start_sample": 441704,
+        "end_sample": 12804988,
+        "compared_stereo_frames": 12363284,
+        "compared_float_samples": 24726568,
+        "first_different_sample": null,
+        "original_interval_sha256": "3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f",
+        "candidate_interval_sha256": "3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      },
+      {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 102439904,
+          "frames": 12804988
+        },
+        "start_cck": 35525517,
+        "end_cck": 1029885441,
+        "start_sample": 441704,
+        "end_sample": 12804988,
+        "compared_stereo_frames": 12363284,
+        "compared_float_samples": 24726568,
+        "first_different_sample": null,
+        "original_interval_sha256": "3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f",
+        "candidate_interval_sha256": "3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      }
+    ],
+    "explanation": "The unchanged strict comparator still refuses 8-CCK HAND-stop identity. Both actual clocks select sample441704; each separately compared through EOF and all samples match. No fitted delay, resampling, tolerance, title crop or strict-guard relaxation. The cause of the pre-entry difference is not established."
+  },
+  "guest_startup": {
+    "bootblock_sha256": "dea8b1bc1c2078b14c5d6b3c76230dc95f6c07e99743c459753f813d3722caad",
+    "whole_ADF_bootblock_bytes": 1024,
+    "bootblocks_equal": true,
+    "seed_program": [
+      {
+        "source_offset": 283640,
+        "runtime_address": 414712,
+        "size": 4
+      },
+      {
+        "source_offset": 283640,
+        "runtime_address": 917640,
+        "size": 4
+      }
+    ],
+    "selected_cursor_seed": [
+      {
+        "source_offset": 283640,
+        "runtime_address": 917640,
+        "size": 4
+      }
+    ],
+    "reservations": [
+      [
+        414712,
+        8
+      ],
+      [
+        917640,
+        8
+      ]
+    ],
+    "family": [
+      {
+        "layout_id": "pandora_cursor_e0000_ecs1m",
+        "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f"
+      },
+      {
+        "layout_id": "pandora_image_80000_ecs1m",
+        "layout_plan_sha256": "cde9eb66a25d06d409791fd97f78b21f17996be8387fed2d867be2f62269ee10"
+      },
+      {
+        "layout_id": "pandora_original_ecs1m",
+        "layout_plan_sha256": "89e0a1245009cc432ea39cc6a2ee5f0a8a7020afd71b878b8e33299e4080dd40"
+      }
+    ],
+    "scope": "Same explicit guest seed program and reservation union in each control, including otherwise unused alternate seed backing. Before HAND/GO only; no host seed or gameplay-memory writes, register forcing or checkpoint restore. The ordinary host GO marker release remains. Unheld cold run skips the500-frame HAND fixture."
+  },
+  "comparator_role_regression": {
+    "old_grouping": "Classified findings by image address instead of control/candidate role; with two moved images it incorrectly grouped0/16.",
+    "fixed_counts": [
+      8,
+      8
+    ],
+    "new_allowance": false
+  },
+  "focused_tests": {
+    "passed": 306,
+    "skipped": 0
+  },
+  "coverage_limits": [
+    "Diagnostic ECS/1MiB Chip profile, not original packed disk/OCS or OS-hosted qualification.",
+    "Eight selected frames, not every frame or optional path.",
+    "Core DMA: six sampled complete frames; inventory DMA: two separate complete frames per control, not whole-route DMA.",
+    "Old-address CPU data guards and two PC sentinels are not complete instruction-fetch or DMA observation.",
+    "Identical 140-byte stopped snapshots are not CPU-access events; no unobserved continuation is classified.",
+    "The eight matching NULL-sprite POS/CTL WORD fetches at addresses0/2 remain outside certified asset bounds.",
+    "Original deliberate reliance versus accidental four-byte seed contents remains unknown."
+  ],
+  "first_delivery_remaining": [
+    "Resolve or explicitly disposition original-to-image strict HAND-cycle refusal without claiming it passed.",
+    "Retire superseded experimental source builder after preserving the normal exports and evidence.",
+    "Implement/measure layout-only frozen-plan reuse and invalidation; no performance speedup is claimed."
+  ]
+}

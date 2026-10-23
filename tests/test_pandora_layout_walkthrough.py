@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from amiga_reversing.tools.pandora_layout_walkthrough import TARGET, export_context, seed_copies
+from amiga_reversing.tools.pandora_layout_walkthrough import TARGET, export_context, seed_copies, loader_family_context
 
 
 def fixture():
@@ -84,3 +84,24 @@ def test_native_seed_consumer_refuses_rewritten_or_unknown_source_bytes():
     plan['regions'][-1]['loader_seed']['source_offset']=2
     with pytest.raises(ValueError,match='outside original'):
         seed_copies(plan,original,original)
+
+
+def test_family_controls_execute_identical_guest_seed_program_not_only_reservations():
+    original,data=fixture()
+    seed=dict(source_offset=0,size=2,runtime_address=0x20000,phase='before_payload_entry')
+    original['layout_plan']['regions'].append(dict(loader_seed=seed))
+    bind(original)
+    moved=copy.deepcopy(original)
+    moved['layout_id']=moved['layout_plan']['layout_id']='moved'
+    moved['layout_plan']['regions'][-1]['loader_seed']['runtime_address']=0xe0088
+    bind(moved)
+    selected_a,program_a,reservations_a,ids_a=loader_family_context(original,data,data,[moved,original])
+    selected_b,program_b,reservations_b,ids_b=loader_family_context(moved,data,data,[original,moved])
+    assert selected_a!=selected_b
+    assert program_a==program_b==((0,0x20000,2),(0,0xe0088,2))
+    assert reservations_a==reservations_b and ids_a==ids_b
+    with pytest.raises(ValueError,match='rewritten'):
+        loader_family_context(original,data,bytes(2),[moved])
+    moved['metadata_hash']='stale'
+    with pytest.raises(ValueError,match='stale'):
+        loader_family_context(original,data,data,[moved])

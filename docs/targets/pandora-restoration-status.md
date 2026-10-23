@@ -2,39 +2,46 @@
 
 ## Canonical layout implementation checkpoint (2026-10-23)
 
-The independent cursor move exposed a four-byte loader dependency, not a proven
-original-game bug. In a matched 28-phase inventory prefix, all three 136-byte
-snapshots agreed, but two complete DMA frames fetched original `$A000/$4000`
-after that footprint where the moved buffer held zero. The
-[retained mismatch](../../runtime/observations/pandora-cursor-inventory-boundary.json)
-records the exact fetches. The correction models a 140-byte parent and a distinct
-four-byte seed copied by the guest loader before HAND. The corrected 28-phase pair has matching phase/controller clocks and inventory
-DMA streams with no sampled bounds findings. Strict comparison still refuses an
-eight-CCK natural HAND-boundary difference; full cursor/output equivalence remains
-open. The [seed receipt](../../runtime/observations/pandora-cursor-loader-seed.json)
-records 298 passing focused tests and current exact verification.
-Original intent and any unobserved continuation remain unknown.
+[Independent workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json):
+the normal image at `$80000` plus 140-byte cursor workspace at `$E0000` completes
+saved Earth and escape through 576 normal-input phases. The unheld cold run ends
+at HP49/frame14353 with both loss counters zero. Controlled original, image and
+cursor runs each end at HP49/frame14465. These fresh runs use the same explicit
+guest seed program; they are distinct from the earlier image-only frame14351 run.
 
+Against the canonical image-only control, the independent cursor move passes
+all 576 phase clocks/509 controller calls, eight exact selected frames and
+24,726,568 exact float audio samples through EOF. Six sampled core DMA frames
+match, with the same eight NULL-sprite reads at addresses0/2 explicitly outside
+asset bounds. Two additional inventory DMA frames have no bounds findings and
+identical streams; three stopped 140-byte snapshots/typed app pointers match.
+[Output receipt](../../runtime/observations/pandora-canonical-cursor-output.json).
 
-[Three real source builds](../../runtime/observations/pandora-canonical-layout-builds.json)
-now pass C/vasm agreement through normal export: original, image at `$80000`, and
-that image plus the paired cursor workspace at `$E0000`. The original is fully
-byte-exact; all 126 canonical asset intervals remain unchanged in all three.
-Five new API records are accepted as contract/configuration definitions, with
-current-subject exact receipt `168dfee6…`, not as runtime qualification.
-38 focused source-export/bootstrap tests pass. The image's single-byte difference
-from the old experiment is the already documented bank-51 stored-mask pointer,
-now moved with its image. Fresh cold/output checks are active. M0–M2 remain
-partial; M3/M4 runtime, output, independent-storage and debt-removal gates remain
-open. Layout-only selection still rebuilds full analysis; reuse/performance work
-is also unfinished. No new unknown-byte reduction is claimed.
+Original-to-image strict comparison still refuses the eight-CCK HAND-stop
+difference; its cause is unknown. Stopped registers, all later phase/controller
+clocks and eight selected images agree. Separately, PCM from each actual HAND
+clock through EOF is exact; both clocks select sample441704. No shifted window,
+tolerance, resampling or title crop was used, but this does not turn strict
+bootstrap-cycle refusal into a pass.
 
-The corrected normal image has since completed the cold route: 576 phases,
-509 acknowledged controller calls, saved Earth and escape at HP49/frame14351.
-The whole copied prefix at `$80000` is verified and both loss counters are zero.
-41 focused runner/export/ending/PCM tests pass. This does not close first delivery:
-matched graphics/PCM, independent cursor runtime/DMA, patch-builder retirement
-and frozen-plan performance/reuse remain pending.
+The [retained 136-byte mismatch](../../runtime/observations/pandora-cursor-inventory-boundary.json)
+led to the four-byte loader-file seed and 140-byte observed footprint. Guest
+initialization runs before HAND/GO, with no host seed/gameplay-memory injection.
+Original intent and any unobserved continuation remain unknown. All three normal
+profiles preserve C/vasm agreement and all original 376,832 bytes remain exact
+(receipt `da3c4265…`). 306 focused checks pass. No new unknown-byte reduction is
+claimed. The nine paused B07 files match their saved hashes and remain untouched.
+
+First delivery is still open for legacy-patcher retirement, frozen-plan
+reuse/invalidation and measured performance, and strict original HAND-cycle
+disposition. Layout selection now reaches the common exporter through HTTP,
+CLI, real MCP stdio and the palette; 48 interface tests and four server-route
+tests pass. Browser E2E has not run. Full layout export still rebuilds analysis.
+
+### Earlier mechanism batches (historical)
+
+These earlier receipts retain their original scope; pending steps are superseded
+by the checkpoint above.
 
 [Latest canonical adoption](../../runtime/observations/pandora-canonical-layout-adoption.json):
 25 accepted API facts model the copied image, paired cursor workspace, display
