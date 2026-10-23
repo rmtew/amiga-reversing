@@ -2,6 +2,26 @@
 
 ## Canonical layout implementation checkpoint (2026-10-23)
 
+[Three real source builds](../../runtime/observations/pandora-canonical-layout-builds.json)
+now pass C/vasm agreement through normal export: original, image at `$80000`, and
+that image plus the paired cursor workspace at `$E0000`. The original is fully
+byte-exact; all 126 canonical asset intervals remain unchanged in all three.
+Five new API records are accepted as contract/configuration definitions, with
+current-subject exact receipt `168dfee6…`, not as runtime qualification.
+38 focused source-export/bootstrap tests pass. The image's single-byte difference
+from the old experiment is the already documented bank-51 stored-mask pointer,
+now moved with its image. Fresh cold/output checks are active. M0–M2 remain
+partial; M3/M4 runtime, output, independent-storage and debt-removal gates remain
+open. Layout-only selection still rebuilds full analysis; reuse/performance work
+is also unfinished. No new unknown-byte reduction is claimed.
+
+The corrected normal image has since completed the cold route: 576 phases,
+509 acknowledged controller calls, saved Earth and escape at HP49/frame14351.
+The whole copied prefix at `$80000` is verified and both loss counters are zero.
+41 focused runner/export/ending/PCM tests pass. This does not close first delivery:
+matched graphics/PCM, independent cursor runtime/DMA, patch-builder retirement
+and frozen-plan performance/reuse remain pending.
+
 [Latest canonical adoption](../../runtime/observations/pandora-canonical-layout-adoption.json):
 25 accepted API facts model the copied image, paired cursor workspace, display
 roles and twelve receptacle pointers. Original C and independent vasm output

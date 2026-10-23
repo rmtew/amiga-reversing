@@ -27,6 +27,14 @@ proof of semantics, timing, runtime reachability or OS-safe lifecycle. Their ful
 contents and selected variant participate in the native layout-plan projection.
 Source previews remain runtime-unqualified until the target integration gates pass.
 
+Normal layout exports carry both `layout_plan` and `layout_plan_sha256`. The
+Pandora runtime adapter in `amiga_reversing.tools.pandora_layout_walkthrough`
+consumes these typed placements, checks original input/canonical-metadata and
+package identities, and assembles the package with C and vasm. It does not
+recompute placements or run the legacy source-patching builder. Runtime results
+remain separate from source-export/assembly status. Local raw captures, legal ROM
+and the qualified compiled controller route stay private prerequisites.
+
 The UI, CLI and MCP adapter use the same resident project server and restoration
 operations. Native facts, Manual Action Log and Decision Journal remain the
 owners of state. The adapters neither parse rendered assembly nor maintain a

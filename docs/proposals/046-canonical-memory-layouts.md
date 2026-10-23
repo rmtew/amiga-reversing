@@ -1,9 +1,44 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **First delivery in progress: M0–M2 partial; M3–M4 not yet delivered.**
+Status: **First delivery in progress: M0–M2 partial; M3 runtime checks active; M4 not delivered.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-23)
+
+[Real profile build evidence](../../runtime/observations/pandora-canonical-layout-builds.json)
+records five accepted API definitions and normal-export C/vasm agreement for
+`pandora_original_ecs1m`, `pandora_image_80000_ecs1m` and
+`pandora_cursor_e0000_ecs1m`. The original profile matches all 376,832 original
+bytes. The independent cursor profile changes only four evidenced address
+operands from the image-only profile. All 126 canonical asset byte intervals
+remain unchanged; the explicit 256-byte packaging threshold emits 86 files and
+retains 40 smaller intervals inline. Source-export/ bootstrap checks pass 38
+tests. Current-subject default C/vasm verification is exact, receipt
+`168dfee696e73907cbb7e1f2d37a1d433f9e0f50854f32f7d2884d4e320b38c5`.
+
+The normal image payload differs from the prior patched experiment at one byte:
+the existing bank-51 stored-mask pointer at source `$4C81A` now resolves from
+`$55C90` to `$C5C90`. Its existing canonical absolute-reference fact and consumer
+`$6F9A` explain this change; original activation is still conditional. Do not
+silently revert it or reuse old runtime qualification solely by payload identity.
+Fresh runtime/output checks are active, not accepted as complete. Native plan
+contents now accompany their hash through the same export service so runtime
+adapters consume canonical placements rather than reconstruct a Python model.
+Full exports took 170.15/187.84/179.23 seconds in these single observations;
+layout-only selection still rebuilds analysis. Frozen-plan reuse, runtime gates
+and legacy-patcher removal remain open obligations. Image-only success cannot
+close the independent workspace gate.
+
+The normal image payload has now completed the uninterrupted cold 576-phase
+saved-Earth route at HP49/frame14351, with all 509 controller calls acknowledged,
+the full copied prefix read back at `$80000`, and both loss counters zero. Its
+normal runtime adapter consumes the native plan and guards old CPU data ranges;
+the old symbolic-patching builder is not called. 41 runner/export/ending/PCM
+tests pass. This is gameplay qualification only: new matched output comparison,
+independent cursor execution/DMA observation, legacy-builder retirement and
+frozen-plan reuse are still open. Existing original output captures may be reused
+only with their exact binary/emulator/ROM/profile/input and clock identities;
+the corrected normal image is a different executable and is tested afresh.
 
 [Canonical adoption evidence](../../runtime/observations/pandora-canonical-layout-adoption.json)
 records 25 API-applied and reviewed facts: copied image, cursor workspace and
@@ -395,8 +430,8 @@ index operation counts. No latency acceptance claim is yet established.
 ## Milestones and deletion gates
 
 The table defines acceptance, not a claim that every mechanism exists. M0 and M1
-have the partial implementation/evidence above; M2 has begun with target reference
-adoption and exact original regeneration; M3–M6 are not started. M1–M4
+have the partial implementation/evidence above; M2 has target profile builds and
+M3 has begun runtime checks; M4–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are distinct later decisions. Each batch

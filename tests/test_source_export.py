@@ -31,6 +31,27 @@ def test_layout_selection_cli_reaches_normal_export(monkeypatch, tmp_path):
     assert calls[0][1]['layout_id'] == 'alternate'
 
 
+def test_layout_export_carries_the_consumed_native_plan(monkeypatch, tmp_path):
+    import hashlib
+    import json
+    from contextlib import nullcontext
+    plan = {'layout_id': 'fixed', 'status': 'placement_valid', 'export_ready': False,
+            'regions': [], 'bootstrap': None}
+    artifact = SimpleNamespace(close=lambda: None, memory_layouts_payload=lambda: {'items': [plan]})
+    monkeypatch.setattr(source_export, 'effective_metadata_file', lambda *a, **kw: nullcontext(None))
+    monkeypatch.setattr(source_export, 'build_listing_artifact_profile_from_binary_source', lambda *a, **kw: (0, {}, artifact))
+    monkeypatch.setattr(source_export, 'resolve_project_paths', lambda *a, **kw:
+        SimpleNamespace(target_dir=tmp_path, binary_source=SimpleNamespace(kind=BinarySourceKind.HUNK_FILE)))
+    monkeypatch.setattr(source_export, 'render_source_from_binary_source', lambda **kw:
+        SourceRenderingResult(status='ok', source_text='rts\n', listing_profile={}, workflow_profile={},
+                              metadata_hash='current', target_identity_sha256='input'))
+    payload = source_export.source_export_payload('fixture', project_root=tmp_path, layout_id='fixed')
+    assert payload['layout_plan'] == plan
+    assert payload['layout_plan_sha256'] == hashlib.sha256(json.dumps(plan,
+        sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert payload['layout_runtime_qualified'] is False
+
+
 def test_source_export_payload_includes_header_and_source(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(source_export, "build_listing_artifact_profile_from_binary_source",
         lambda *args, **kwargs: (0, {}, SimpleNamespace(close=lambda: None)))

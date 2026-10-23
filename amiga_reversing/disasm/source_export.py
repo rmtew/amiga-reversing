@@ -206,6 +206,7 @@ def _c_backend_binary_source_export(
     if layout_id is not None:
         payload["layout_id"] = layout_id
         payload["layout_plan_sha256"] = layout_plan_sha256
+        payload["layout_plan"] = selected_plan
         payload["layout_status"] = "source_only_unqualified"
         payload["layout_runtime_qualified"] = False
 

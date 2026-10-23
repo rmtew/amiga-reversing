@@ -1,0 +1,155 @@
+{
+  "schema": "pandora-canonical-layout-builds/v1",
+  "status": "source_builds_and_normal_image_cold_pass_remaining_gates_open",
+  "accepted_new_records": 5,
+  "decisions": 5,
+  "current_subject_revision": "38bf1985215cdae94630b34d4dc93c1a79699b840c771f5a241498306167c196",
+  "verification_receipt_id": "168dfee696e73907cbb7e1f2d37a1d433f9e0f50854f32f7d2884d4e320b38c5",
+  "original_default_source_sha256": "66e6add4a531f25dee3daab70c8f1bebbf685b0241ef7dddbd62f31dbad4157f",
+  "original_default_package_sha256": "70205b336c052f0a0f522f90221c8fdf1bee5330934b8d8fdc454a4313e0c07b",
+  "profiles": {
+    "pandora_original_ecs1m": {
+      "bytes": 376832,
+      "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "package_sha256": "9b1f8a4a7774e7e144d49298c2b4f333c5b0930e3551b7eae88c9bdc5a2aa316",
+      "layout_plan_sha256": "27e8eacfc395b94b5d4da0e6c26f66e963bd51f8d43f37397a0998c081769700",
+      "C_equals_vasm": true,
+      "original_exact": true,
+      "source_sha256": "30726e54c891a1c02c9984c41414fcb42015c0b41f574fa26317569d51c21c54",
+      "seconds": 170.1478437650003,
+      "package_asset_files": 86
+    },
+    "pandora_image_80000_ecs1m": {
+      "bytes": 376832,
+      "sha256": "5a6f969515baea1806627ddfcae75d2fd35ff002f738ddaae1c2c0b28af4bf62",
+      "package_sha256": "2a4361928d5706791ff253547d9c4dc19d80c8dc9a2a91860a3a649848f92067",
+      "layout_plan_sha256": "4bdaaa2361ab32ca45939f76f9d1dc0df1cf7467b8f520fd91e964cb665620d0",
+      "C_equals_vasm": true,
+      "original_exact": false,
+      "source_sha256": "1fea186ddb3dc238c833c3ce7d112ec7fd34622c5dbd7ddd6172b8d7cf08c512",
+      "seconds": 187.8444076270007,
+      "package_asset_files": 86
+    },
+    "pandora_cursor_e0000_ecs1m": {
+      "bytes": 376832,
+      "sha256": "36c1a03579fcc6a9f9f200313d488fed280e3e8848c8216d66a8ce32448488b0",
+      "package_sha256": "c2f0be6966d762a8716585af636550affb2f50c42ac1def3bc912c32302b0846",
+      "layout_plan_sha256": "cfde8ea402ec4e539c53f588b2645d9277b65187755c7a9e0108ade3a079e190",
+      "C_equals_vasm": true,
+      "original_exact": false,
+      "source_sha256": "c893b3c8ac80bcb776da6dbc69347155f7f23cb778c8688c952cb40aa60c4b30",
+      "seconds": 179.23259505200076,
+      "package_asset_files": 86
+    }
+  },
+  "unchanged_canonical_asset_intervals": 126,
+  "package_asset_note": "Normal explicit exports use minimum_asset_size 256: 86 emitted asset files, 40 smaller canonical asset intervals remain inline. All 126 canonical byte intervals are checked unchanged.",
+  "new_unknown_bytes_classified": 0,
+  "known_image_difference_from_prior_experiment": {
+    "changed_bytes": 1,
+    "source_field": "0x4C81A",
+    "old_pointer": "0x55C90",
+    "new_pointer": "0xC5C90",
+    "existing_manual_action": "manual-c7c74d3042924c3eb09cbbbe1e27abe5",
+    "consumer": "0x6F9A",
+    "reason": "Existing explicit stored-source mask reference now retains its runtime domain; old experiment left the original address.",
+    "not_claimed": "Original activation, all paths or output equivalence; do not reuse prior runtime qualification solely by identity."
+  },
+  "independent_cursor_difference": {
+    "source_instruction_offsets": [
+      "0x988",
+      "0x94E6",
+      "0x9EFA",
+      "0x9F00"
+    ],
+    "old_base": "0x65370",
+    "new_base": "0xE0000",
+    "pixel_destinations": [
+      "0xE0004",
+      "0xE0048"
+    ],
+    "changed_address_operands": 4
+  },
+  "focused_tests": {
+    "source_export_and_bootstrap": "38 passed",
+    "normal_runner_export_ending_and_PCM": "41 passed",
+    "prior_bootstrap_integration": "336 passed, 4 deselected"
+  },
+  "performance_scope": "Single full-target exports; observations are not attributable speedup claims. Layout-only export still rebuilds analysis.",
+  "remaining": [
+    "Matched output qualification for the corrected normal image; independent cursor cold completion still pending",
+    "Independent cursor CPU/snapshot/DMA observation and bounded initialization/continuation checks",
+    "Retire legacy source patcher only after normal replacement runtime gates pass",
+    "Shared frozen-plan reuse and its performance/invalidations remain open"
+  ],
+  "raw_exports_and_media": "Private local evidence only",
+  "normal_image_cold_completion": {
+    "report_sha256": "2e92a982e72f062865b22aa97bc7ef1fbe37a4eaee93861761235c62c4298010",
+    "payload_sha256": "5a6f969515baea1806627ddfcae75d2fd35ff002f738ddaae1c2c0b28af4bf62",
+    "phases": 576,
+    "normal_controller_calls": 509,
+    "ending": {
+      "saved_earth": true,
+      "escaped": true,
+      "health": 49,
+      "message_pointer": 838373,
+      "selection_pc": 838108,
+      "final_frame": 14351
+    },
+    "native_materialization": {
+      "address": 524288,
+      "size": 349040,
+      "sha256": "2da21f94034b66ff5bebc90853908386ccc412052a1de82a0122156a1049662a",
+      "full_prefix_verified": true
+    },
+    "loss_counters": {
+      "events": 262,
+      "dropped_notifications": 0,
+      "dropped_events": 0
+    },
+    "old_image_guard": {
+      "CPU_data": {
+        "kind": "mmio",
+        "addr": 65536,
+        "len": 349040,
+        "access": "access"
+      },
+      "fallback_PC_sentinels": [
+        65536,
+        66666
+      ],
+      "all_instruction_fetches_covered": false,
+      "DMA_covered": false,
+      "readback": {
+        "breaks": [
+          {
+            "addr": 65536,
+            "hits": 0,
+            "id": 6,
+            "ignore": 0,
+            "kind": "pc"
+          },
+          {
+            "addr": 66666,
+            "hits": 0,
+            "id": 7,
+            "ignore": 0,
+            "kind": "pc"
+          },
+          {
+            "access": "access",
+            "addr": 65536,
+            "id": 5,
+            "kind": "mmio",
+            "len": 349040
+          }
+        ]
+      }
+    },
+    "runtime_state_injection": false,
+    "clock_hold": false,
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "output_comparison": "not performed for this new payload yet"
+  }
+}

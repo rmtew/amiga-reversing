@@ -152,11 +152,13 @@ def summarize_dma(directory):
             'first_old_image_transfers':old,'scope':'Two sampled frames only, not whole-route DMA coverage.'}
 
 
-def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=False,stop_after=None,title_visits=0,pcm_stems=False,phase_locked_boot=False):
+def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=False,stop_after=None,title_visits=0,pcm_stems=False,phase_locked_boot=False,*,scenario_path=None):
     from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract,build_boot_adf
     from amiga_reversing.tools.copperline_control import CopperlineProcess
     from amiga_reversing.tools.copperline_runtime import wait_for_marker,verify_handoff,release_handoff,wait_for_pc,run_scenario
     runtime_base=config['assembly_base'];load_base=config['load_address']
+    old_start,old_end=config.get('old_materialized_interval',[ORIGINAL,0x65370])
+    prefix_size=config.get('copied_prefix_bytes',old_end-old_start)
     contract=DirectPayloadContract('pandora-explicit-rebase','pandora-experimental',sha(payload),load_base,config['entrypoint'],{'a1':load_base},0x7FFF8,0x48414E44)
     adf=out/'experiment.adf';write(out/'boot-build.json',build_boot_adf(contract,payload,adf))
     old_popen=subprocess.Popen
@@ -186,17 +188,31 @@ def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=
                     require(client.read_memory(address,16)==payload.read_bytes()[offset:offset+16],'Experimental PC bytes differ')
                     report['moved_pcs'].append({'source_offset':offset,'runtime_pc':client.registers()['pc'],'frame':stop['stop_event']['frame'],'stop_event':stop['stop_event']})
                     print('MOVED_PC',hex(client.registers()['pc']),flush=True)
-                    if offset==0x46A and config.get('matched_startup'):
-                        require(client.read_memory(runtime_base,0x55370)==payload.read_bytes()[:0x55370],'Native moved copy differs')
-                        report['native_materialization']={'address':runtime_base,'size':0x55370,'sha256':hashlib.sha256(payload.read_bytes()[:0x55370]).hexdigest(),'full_prefix_verified':True}
-                if runtime_base!=ORIGINAL:
-                    watch={'kind':'mmio','addr':0x10000,'len':0x55370,'access':'access'}
+                    if offset==0x46A and (config.get('matched_startup') or config.get('normal_layout_export')):
+                        require(client.read_memory(runtime_base,prefix_size)==payload.read_bytes()[:prefix_size],'Native moved copy differs')
+                        report['native_materialization']={'address':runtime_base,'size':prefix_size,'sha256':hashlib.sha256(payload.read_bytes()[:prefix_size]).hexdigest(),'full_prefix_verified':True}
+                if runtime_base!=old_start:
+                    watch={'kind':'mmio','addr':old_start,'len':prefix_size,'access':'access'}
                     ident=client.request('break.add',watch)['id']
-                    for address in [0x10000,0x1046A]:client.add_breakpoint(address)
-                    report['guards']={'CPU_data':watch,'fallback_PC_sentinels':[0x10000,0x1046A],'all_instruction_fetches_covered':False,'DMA_covered':False,'readback':client.request('break.list')}
+                    for address in [old_start,old_start+0x46A]:client.add_breakpoint(address)
+                    report['guards']={'CPU_data':watch,'fallback_PC_sentinels':[old_start,old_start+0x46A],'all_instruction_fetches_covered':False,'DMA_covered':False,'readback':client.request('break.list')}
                     require(any(r.get('id')==ident and all(r.get(k)==v for k,v in watch.items()) for r in report['guards']['readback']['breaks']),'Old data guard readback differs')
                 else:report['guards']={'original_control':True,'reason':'Original materialized range is intentionally live.'}
-                scenario=copy.deepcopy(load(root/'.runtime-state/pandora-player/finale-cold-b/compiled.json'))
+                report['resource_guards']=[]
+                for region in config.get('layout_plan',{}).get('regions',[]):
+                    if(region.get('parent_region_id') or region.get('region_kind') not in ('workspace','display') or
+                            region['runtime_address']==region['original_address']):continue
+                    watch={'kind':'mmio','addr':region['original_address'],'len':region['size'],'access':'access'}
+                    ident=client.request('break.add',watch)['id']
+                    readback=client.request('break.list')
+                    require(any(r.get('id')==ident and all(r.get(k)==v for k,v in watch.items()) for r in readback['breaks']),
+                        'Abandoned resource CPU guard readback differs')
+                    report['resource_guards'].append({'region_id':region['region_id'],'CPU_data':watch,
+                        'runtime_address':region['runtime_address'],'DMA_covered':False,'readback':readback})
+                scenario_path=(root/'.runtime-state/pandora-player/finale-cold-b/compiled.json') if scenario_path is None else scenario_path
+                scenario=copy.deepcopy(load(scenario_path))
+                report['input_scenario']={'sha256':sha(scenario_path),'phases':len(scenario['phases']),
+                    'scope':'Existing compiled normal-input route; runtime mapping is adapted below.'}
                 if stop_after is not None:
                     names=[phase['name'] for phase in scenario['phases']];require(stop_after in names,'Unknown bounded prefix end')
                     last=names.index(stop_after);scenario['phases']=scenario['phases'][:last+1]
@@ -208,8 +224,9 @@ def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=
                     scenario['input_events']=events
                 if title_visits:
                     require(stop_after=='title_menu_loop' and type(title_visits) is int and 1<=title_visits<=240,'Title-only frame bound required')
-                view={'base_addr':runtime_base,'source_start':0,'source_end':0x55370,'runtime_base':runtime_base,'execution_view_id':'explicit-experiment-not-native-proof'}
-                def moved(address):return runtime_base+address-ORIGINAL if ORIGINAL<=address<0x65370 else address
+                view={'base_addr':runtime_base,'source_start':0,'source_end':prefix_size,'runtime_base':runtime_base,
+                    'execution_view_id':('normal-layout-'+config['layout_plan_sha256'] if config.get('normal_layout_export') else 'explicit-experiment-not-native-proof')}
+                def moved(address):return runtime_base+address-old_start if old_start<=address<old_end else address
                 def update_read(read):
                     address=read.get('address')
                     if address is not None:read['address']=moved(address)
