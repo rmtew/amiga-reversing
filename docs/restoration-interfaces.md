@@ -51,11 +51,16 @@ changes do not silently become timing differences. Exec's eight-byte ownership
 rounding does not establish a purpose for the rounded padding. This contract does
 not replace the game's retained initializer or establish historical loader intent.
 
-Selected-layout export is currently exposed by the native source-export service
-and its layout CLI/runtime adapter. The general restoration HTTP/MCP/UI export
-adapters do not yet forward layout selection; shared delivery of that option is
-an open first-delivery integration obligation, not implied by the general
-restoration-operation parity below.
+Selected-layout export uses that same native service through HTTP's `layout_id`,
+`restoration export --layout-id <id>`, MCP `restoration_export(layout_id=...)`,
+and the command palette's **Export Memory Layout** action. Discover configured
+IDs through the existing `memory_layouts` query. The palette's named-layout
+export is deliberately separate from changing the canonical source view; it
+does not persist an alternate layout as the default. Refused exports remain
+refused and produce no download. Layout exports remain runtime-unqualified.
+The real MCP stdio suite passed nine tests in an isolated SDK 2.3.0 environment;
+the UI forwarding/refusal handler was executed with Node.js, not a browser E2E
+run. Layout-only export still rebuilds analysis; frozen-plan reuse is open.
 
 The UI, CLI and MCP adapter use the same resident project server and restoration
 operations. Native facts, Manual Action Log and Decision Journal remain the

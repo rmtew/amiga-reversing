@@ -41,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         "--request", type=Path, help="JSON operation parameters (use - for stdin)"
     )
     parser.add_argument("--assembler-profile", choices=("vasm", "devpac"))
+    parser.add_argument("--layout-id", help="Canonical fixed layout; export does not imply runtime qualification")
     parser.add_argument("--binary-assets", action="store_true", default=None)
     parser.add_argument("--structure-macros", action="store_true", default=None)
     parser.add_argument("--minimum-asset-size", type=int)
@@ -99,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
         for name in (
             "assembler_profile",
+            "layout_id",
             "binary_assets",
             "structure_macros",
             "minimum_asset_size",

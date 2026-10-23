@@ -2180,7 +2180,7 @@ async function executeCommandPaletteAction(action) {
   } else if (command === "open_reproduction_report") {
     await openReproPanel();
   } else if (command === "export_source") {
-    await exportSource(String(action?.parameters?.assembler_profile || "vasm"));
+    await exportSource(String(action?.parameters?.assembler_profile || "vasm"), action?.parameters?.layout_id);
   } else if (command === "history_back") {
     await navigateHistory("back");
   } else if (command === "history_forward") {
@@ -2258,7 +2258,7 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
     return;
   }
   if (command === "export_source") {
-    await exportSource(String(parameters.assembler_profile || "vasm"));
+    await exportSource(String(parameters.assembler_profile || "vasm"), parameters.layout_id);
     return;
   }
   if (action?.appends_to_manual_action_log === true) {
@@ -3039,14 +3039,15 @@ async function setReproductionProfile(profileId) {
   setAnalysisStatus("Reproduction profile saved", "ready", 2000);
 }
 
-async function exportSource(assemblerProfile) {
+async function exportSource(assemblerProfile, layoutId = null) {
   if (!state.project) {
     return;
   }
   const binaryAssets = assemblerProfile === "vasm-package" || assemblerProfile === "vasm-package-macros";
   const structureMacros = assemblerProfile === "vasm-macros" || assemblerProfile === "vasm-package-macros";
   const profile = binaryAssets || structureMacros ? "vasm" : (assemblerProfile || "vasm");
-  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}&binary_assets=${binaryAssets}&structure_macros=${structureMacros}`);
+  const layoutQuery = layoutId ? `&layout_id=${encodeURIComponent(String(layoutId))}` : "";
+  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}&binary_assets=${binaryAssets}&structure_macros=${structureMacros}${layoutQuery}`);
   if (payload.status === "refused") {
     showSourceQualityDiagnosticsOverlay(payload);
     setAnalysisStatus(`Source export refused: ${payload.message || "render failed"}`, "failed", 4000);
@@ -3069,7 +3070,7 @@ async function exportSource(assemblerProfile) {
   URL.revokeObjectURL(url);
   PreferenceSync.mergePreferences({source_export_assembler: profile});
   await saveUiPreferenceState();
-  setAnalysisStatus("Source exported", "ready", 2500);
+  setAnalysisStatus(payload.layout_id ? "Layout exported; runtime qualification is separate" : "Source exported", "ready", 2500);
 }
 
 async function loadSourceArtifact(projectId, assemblerProfile = "vasm") {

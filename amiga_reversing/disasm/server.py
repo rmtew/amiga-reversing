@@ -903,6 +903,9 @@ def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> di
                    "minimum_asset_size": int(_first_query_value(query, "minimum_asset_size") or "256")}
     if structure_macros == "true":
         options["structure_macros"] = True
+    layout_id = _first_query_value(query, "layout_id")
+    if layout_id:
+        options["layout_id"] = layout_id
     payload = source_export_payload(
         project_name, assembler_profile=assembler_profile, project_root=PROJECT_ROOT, **options,
     )

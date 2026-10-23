@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 import io
 import zipfile
+import shutil
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -59,3 +61,53 @@ def test_restoration_adapters_use_existing_source_export_operation(monkeypatch):
 def test_devpac_assets_are_explicitly_unverified():
     with pytest.raises(ValueError, match="Devpac INCBIN alignment is not verified"):
         source_export.source_export_payload("demo", assembler_profile="devpac", binary_assets=True)
+
+
+def test_server_layout_option_is_forwarded_and_refusal_is_not_promoted(monkeypatch):
+    monkeypatch.setattr(server,'get_project',lambda _:SimpleNamespace(ready=True))
+    monkeypatch.setattr(server,'_is_listing_project',lambda _:True)
+    calls=[]
+    def export(target,**options):
+        calls.append(options)
+        return dict(status='refused',reason='unknown_memory_layout',layout_id=options['layout_id'])
+    monkeypatch.setattr(server,'source_export_payload',export)
+    result=server._source_export_payload('demo',dict(layout_id=['missing'],binary_assets=['true']))
+    assert calls[0]['layout_id']=='missing'
+    assert result['status']=='refused' and 'archive_base64' not in result
+
+
+def test_layout_export_palette_action_uses_existing_non_mutating_export():
+    from amiga_reversing.disasm.manual_action_catalog import target_action_catalog
+    item=next(x for x in target_action_catalog() if x['action_id']=='target.layout_export')
+    assert item['action']=='export_source' and item['appends_to_manual_action_log'] is False
+    assert item['parameter_schema']['required']==['layout_id','assembler_profile']
+
+
+def test_ui_layout_export_forwards_selection_and_does_not_download_refusal(tmp_path):
+    node=shutil.which('node')
+    if node is None:pytest.skip('UI forwarding execution requires Node.js')
+    app=(Path(__file__).resolve().parents[1]/'amiga_reversing/web/app.js').read_text()
+    function=app[app.index('async function exportSource('):app.index('async function loadSourceArtifact(')]
+    script=tmp_path/'layout-export.js'
+    script.write_text('''
+const assert = require('node:assert/strict');
+const state = {project: 'folder/demo'};
+const calls = [], statuses = []; let refused = false, downloads = 0;
+async function fetchJson(url) { calls.push(url); return refused ? {status:'refused', message:'unknown layout'} : {status:'ok', layout_id:'placed', source_text:'rts', filename:'placed.s'}; }
+function showSourceQualityDiagnosticsOverlay() {}
+function closeSourceQualityDiagnosticsOverlay() {}
+function setAnalysisStatus(text) { statuses.push(text); }
+const document = {createElement: () => ({click: () => downloads++, remove: () => {}}), body:{appendChild: () => {}}};
+const PreferenceSync = {mergePreferences: () => {}};
+async function saveUiPreferenceState() {}
+''' + function + '''
+(async () => {
+ await exportSource('vasm-package','placed');
+ assert.match(calls[0], /folder%2Fdemo/); assert.match(calls[0], /binary_assets=true/);
+ assert.match(calls[0], /layout_id=placed/); assert.equal(downloads,1);
+ assert.match(statuses.at(-1), /qualification is separate/);
+ refused = true; await exportSource('vasm-package','missing');
+ assert.equal(downloads,1); assert.match(statuses.at(-1), /refused/);
+})().catch(error => {console.error(error);process.exitCode=1;});
+''')
+    subprocess.run([node,str(script)],check=True,capture_output=True,text=True)

@@ -1,0 +1,45 @@
+{
+  "schema": "pandora-layout-service-wiring/v1",
+  "status": "tested",
+  "canonical_service": "amiga_reversing.disasm.source_export.source_export_payload",
+  "interfaces": {
+    "HTTP": "source-export?layout_id=<canonical-id>",
+    "CLI": "restoration export --layout-id <canonical-id>",
+    "MCP": "restoration_export(layout_id=<canonical-id>)",
+    "UI": "Command palette: Export Memory Layout"
+  },
+  "tests": [
+    {
+      "files": [
+        "test_source_package_interfaces.py",
+        "test_restoration_interfaces.py",
+        "test_source_export.py",
+        "test_web_app_source.py"
+      ],
+      "passed": 48,
+      "skipped": 0,
+      "environment": "isolated local MCP SDK 2.3.0, pytest and Node.js"
+    },
+    {
+      "files": [
+        "test_disasm_server.py"
+      ],
+      "selection": "source_export; integration marker explicitly enabled",
+      "passed": 4,
+      "deselected": 190
+    }
+  ],
+  "checks": [
+    "Real MCP stdio initialize/list/call, layout forwarding and refusal, existing stale mutation refusal.",
+    "Repeated CLI/HTTP requests preserve parameters/results.",
+    "UI handler executes under Node.js: layout parameter reaches source export and refusal prevents download.",
+    "node --check passes."
+  ],
+  "runtime_qualification": false,
+  "source_changed": false,
+  "limits": [
+    "Browser E2E was not run.",
+    "No independent placement or export engine in adapters.",
+    "Full layout-only analysis rebuild and original-to-image strict startup qualification remain open."
+  ]
+}

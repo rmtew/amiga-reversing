@@ -89,7 +89,7 @@ class RestorationClient:
                 raise RestorationClientError({"error": "Invalid server contract"})
             self._contract = str(data["web_app_contract_version"])
         if operation == "export":
-            allowed = {"assembler_profile", "binary_assets", "minimum_asset_size", "structure_macros"}
+            allowed = {"assembler_profile", "binary_assets", "minimum_asset_size", "structure_macros", "layout_id"}
             if set(parameters) - allowed:
                 raise ValueError("Unsupported source export parameters")
             query = urlencode({key: str(value).lower() if isinstance(value, bool) else value

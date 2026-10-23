@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 import threading
+from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -26,7 +27,13 @@ def operation_server():
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            self.reply({"web_app_contract_version": 2})
+            if self.path == '/api/app-contract':
+                self.reply({"web_app_contract_version": 2})
+                return
+            parameters={key:values[0] for key,values in parse_qs(urlparse(self.path).query).items()}
+            requests.append(dict(operation='export',**parameters))
+            self.reply(dict(status='refused' if parameters.get('layout_id')=='missing' else 'ok',
+                            layout_status='source_only_unqualified',request=requests[-1]))
 
         def do_POST(self):
             assert self.headers["X-Amiga-Web-App-Contract"] == "2"
@@ -132,6 +139,19 @@ def test_cli_review_batch_forwards_ids_and_shared_proof(operation_server):
     assert requests[-1] == {"operation": "review_batch", **parameters}
 
 
+def test_layout_export_cli_http_repeated_and_refused(operation_server):
+    url,requests=operation_server
+    expected=RestorationClient(url).call('demo','export',layout_id='placed',binary_assets=True)
+    result=subprocess.run([sys.executable,'-m','amiga_reversing.tools.restoration','--server',url,
+        '--target','demo','export','--layout-id','placed','--binary-assets'],
+        cwd=ROOT,capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)==expected
+    assert requests[-1]==requests[-2]
+    refused=RestorationClient(url).call('demo','export',layout_id='missing')
+    assert refused['status']=='refused'
+
+
 def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
     pytest.importorskip("mcp")
     from mcp import ClientSession
@@ -154,6 +174,12 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             tools = (await session.list_tools()).tools
             assert len(tools) == 15
             by_name = {tool.name: tool for tool in tools}
+            assert 'layout_id' in by_name['restoration_export'].input_schema['properties']
+            exported=await session.call_tool('restoration_export',dict(project='demo',layout_id='placed'))
+            assert not exported.is_error and exported.structured_content['layout_status']=='source_only_unqualified'
+            assert requests[-1]['layout_id']=='placed'
+            refused=await session.call_tool('restoration_export',dict(project='demo',layout_id='missing'))
+            assert not refused.is_error and refused.structured_content['status']=='refused'
             assert by_name["restoration_query"].annotations.read_only_hint
             assert not by_name["restoration_interpret"].annotations.read_only_hint
             assert (

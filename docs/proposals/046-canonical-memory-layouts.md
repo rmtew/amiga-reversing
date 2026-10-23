@@ -57,6 +57,13 @@ frozen-plan reuse are still open. Existing original output captures may be reuse
 only with their exact binary/emulator/ROM/profile/input and clock identities;
 the corrected normal image is a different executable and is tested afresh.
 
+The thin layout-selection adapters now forward the same canonical `layout_id`
+through HTTP, restoration CLI, real MCP stdio and the existing palette parameter
+editor. Unknown-layout refusals are not promoted to download/success. The isolated
+MCP SDK 2.3.0 suite passes all nine tests; the UI handler's forwarding/refusal
+paths execute under Node.js. This is service wiring, not browser E2E or runtime
+qualification, and does not discharge frozen-plan reuse or patcher retirement.
+
 ### Earlier mechanism batches (historical)
 
 The following results retain their per-batch limits; their then-pending steps

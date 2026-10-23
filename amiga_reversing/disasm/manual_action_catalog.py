@@ -110,6 +110,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
         _target_reproduction_profile_action(),
         _target_source_export_action(),
+        _target_layout_export_action(),
         _target_source_output_action(),
         _target_equate_action(),
         _target_equate_edit_action(),
@@ -5748,6 +5749,19 @@ def _target_source_output_action() -> dict[str, object]:
             "minimum_asset_size": {"type": "integer", "minimum": 1, "maximum": 4294967295, "default": 256},
         }, "required": ["mode"]},
     )
+
+
+def _target_layout_export_action() -> dict[str, object]:
+    action = _target_transient("target.layout_export", "Export Memory Layout", "export_source", None)
+    action["category"] = "target_tooling"
+    action["parameter_schema"] = {
+        "type": "object", "properties": {
+            "layout_id": {"type": "string", "minLength": 1, "maxLength": 95,
+                          "description": "Canonical layout ID (Explore memory_layouts). Runtime qualification is separate."},
+            "assembler_profile": {"type": "string", "enum": ["vasm", "vasm-package"], "default": "vasm-package"},
+        }, "required": ["layout_id", "assembler_profile"],
+    }
+    return action
 
 
 def _target_source_export_action() -> dict[str, object]:
