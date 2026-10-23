@@ -17,6 +17,11 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
   if(mapped==1) {
     if(json_builder_appendf(b,"{\"section_index\":%u,\"source_offset\":%u}",source_section,source_offset)) return -1;
   } else if(json_builder_append(b,"null")) return -1;
+  if(r->region_kind || r->parent_region_id[0]) {
+    static const char *kinds[]={"storage","image","workspace","display"};
+    if(json_builder_append(b,",\"region_kind\":") || json_builder_append_json_string(b,kinds[r->region_kind]) ||
+        json_builder_append(b,",\"parent_region_id\":") || json_builder_append_json_string(b,r->parent_region_id)) return -1;
+  }
   if(json_builder_append(b,",\"overlapping_regions\":[")) return -1;
   size_t overlaps=0;
   for(i=0;i<a->policy.memory_region_count;i++) {
@@ -119,6 +124,40 @@ int platform_file_facts_v2_listing_artifact_memory_regions_json_alloc(
   if(json_builder_appendf(&b,"],\"total\":%u,\"scope\":\"canonical_native_memory_regions\"}",a->policy.memory_region_count)) goto fail;
   *out_text=json_builder_build(&b); json_builder_destroy(&b); return *out_text ? 0 : -1;
 fail: json_builder_destroy(&b); return -1;
+}
+
+int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
+    PlatformFileListingArtifact *a,char **out_text) {
+  JsonBuilder b={0};
+  if(!a || !out_text) return -1;
+  *out_text=NULL;
+  if(json_builder_create(&b) || json_builder_append(&b,"{\"items\":[")) goto failed;
+  for(size_t li=0;li<a->policy.memory_layout_count;li++) {
+    const M68kMemoryLayoutIR *layout=&a->policy.memory_layouts[li];M68kResolvedMemoryLayout resolved;
+    int rc=m68k_memory_layout_resolve(&a->policy,layout,&resolved);
+    if((li && json_builder_append(&b,",")) || json_builder_append(&b,"{\"layout_id\":") ||
+        json_builder_append_json_string(&b,layout->layout_id) ||
+        json_builder_appendf(&b,",\"chip_bytes\":%u,\"status\":\"%s\",\"export_ready\":false,\"reason\":",
+          layout->chip_bytes,rc ? "refused" : "placement_valid") ||
+        (resolved.reason ? json_builder_append_json_string(&b,resolved.reason) : json_builder_append(&b,"null")) ||
+        json_builder_appendf(&b,",\"failed_region_index\":%d,\"regions\":[",resolved.failed_region)) goto failed;
+    if(!rc) for(size_t i=0;i<a->policy.memory_region_count;i++) {
+      const M68kMemoryRegionIR *r=&a->policy.memory_regions[i];
+      static const char *kinds[]={"storage","image","workspace","display"};
+      if((i && json_builder_append(&b,",")) || json_builder_append(&b,"{\"region_id\":") ||
+          json_builder_append_json_string(&b,r->region_id) || json_builder_append(&b,",\"base_symbol\":") ||
+          json_builder_append_json_string(&b,r->name) || json_builder_append(&b,",\"region_kind\":") ||
+          json_builder_append_json_string(&b,r->region_kind<=3 ? kinds[r->region_kind] : "unknown") ||
+          json_builder_append(&b,",\"parent_region_id\":") || json_builder_append_json_string(&b,r->parent_region_id) ||
+          json_builder_appendf(&b,",\"original_address\":%u,\"runtime_address\":%u,\"size\":%u,\"parent_offset\":%u}",
+            r->runtime_address,resolved.addresses[i],r->size,resolved.parents[i]>=0 ?
+            r->runtime_address-a->policy.memory_regions[resolved.parents[i]].runtime_address : 0)) goto failed;
+    }
+    if(json_builder_append(&b,"]}")) goto failed;
+  }
+  if(json_builder_appendf(&b,"],\"total\":%u,\"scope\":\"canonical_fixed_layout_placement_only\"}",a->policy.memory_layout_count)) goto failed;
+  *out_text=json_builder_build(&b);json_builder_destroy(&b);return *out_text ? 0 : -1;
+failed:json_builder_destroy(&b);return -1;
 }
 
 int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(

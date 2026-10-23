@@ -21,6 +21,19 @@ and placement constraints remain under review; canonical layout selection,
 base-plus-offset export, bootstrap migration and independent movement are still
 pending. No new emulator run or source-layout transformation is in this batch.
 
+The M1 placement batch adds optional region kind/parent facts, identity-preserving MAL
+updates, versioned fixed-layout definitions and native placement resolution,
+exposed by the existing shared query service. A valid placement explicitly retains
+`export_ready: false`; no renderer/bootstrap/reference claim follows. Original
+records remain compatible. Both workspace and display participate in this model;
+there is no alternate Python placement authority. The legacy builder refuses
+extended hierarchical definitions until the normal layout export owns them.
+225 focused native/schema/history/catalog/service tests pass. With socket access,
+the existing transport suite reports seven passes and one optional-MCP-SDK skip.
+The interface tests require socket access; optional MCP SDK absence remains an
+explicit transport-validation gap, not a passing skip. Source export and M2–M4
+are still pending.
+
 ## Decision and scope
 
 Extend the existing native address-domain, runtime-view and render-plan model

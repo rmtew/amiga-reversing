@@ -267,12 +267,12 @@ def _query(target_id, body, current):
         page.pop("next_offset", None)
         page["scope"] = "canonical bound pointer fields and native render-plan outcomes"
         page["unknowns"] = page.pop("limits")
-    elif kind == "memory_regions":
+    elif kind in {"memory_regions", "memory_layouts"}:
         if set(filters) != {"kind"}:
-            raise ValueError("memory_regions currently supports only pagination")
-        native = artifact.memory_regions_payload()
+            raise ValueError(f"{kind} currently supports only pagination")
+        native = artifact.memory_regions_payload() if kind == "memory_regions" else artifact.memory_layouts_payload()
         page = _page(native["items"], offset, limit, native["scope"],
-                     ["Region definition does not establish access closure or legal placement."])
+                     ["Region/layout definition does not establish reference, initialization or execution closure."])
     elif kind == "gaps":
         items = _server()._cached_analysis_review_items(target_id, artifact)
         page = _page(items, offset, limit, "native analysis review items",

@@ -122,6 +122,17 @@ def current():
     return invoke("state")["revision"]
 
 
+def test_memory_layout_query_preserves_non_export_verdict(target, monkeypatch):
+    artifact = target.backend._LISTING_PROJECTION_SERVICE.valid_artifact()
+    item = {"layout_id": "diagnostic", "status": "placement_valid", "export_ready": False}
+    monkeypatch.setattr(artifact, "memory_layouts_payload", lambda: {
+        "items": [item], "total": 1, "scope": "canonical_fixed_layout_placement_only"}, raising=False)
+    page = invoke("query", kind="memory_layouts")
+    assert page["items"] == [item]
+    with pytest.raises(ValueError, match="only pagination"):
+        invoke("query", kind="memory_layouts", query="ignored")
+
+
 def test_typed_pointer_query_uses_revision_bound_cursor_and_rejects_ignored_filters(target, monkeypatch):
     from amiga_reversing.disasm import effective_metadata
     from amiga_reversing.disasm.target_metadata import (

@@ -486,6 +486,22 @@ address, size/alignment, CPU placement, persistent lifetime and DMA requirement
 through ordinary revision-checked interpretation/history. `query` with
 `kind: "memory_regions"` projects native instruction references and bounded
 pointer-path obligations. Definitions do not assert relocation safety.
+Region definitions now also accept optional `region_kind` (`storage`, `image`,
+`workspace`, `display`) and `parent_region_id`; old records retain their original
+meaning. `target.memory_region.update` replaces a definition under its existing
+identity through append-only history, with normal undo/review handling.
+`target.memory_layout.add` records schema version 1, `layout_id`, explicit
+`chip_bytes` (512 KiB or 1 MiB) and region placements. `query` with
+`kind: "memory_layouts"` uses the shared native placement resolver and paged
+service in CLI/MCP/UI. Child placements inherit parent translation and expose
+their original offsets; cycles, missing/out-of-range parents, unrelated overlaps,
+unsupported independent child placement and illegal destinations refuse.
+`placement_valid` is deliberately paired with **`export_ready: false`**: reference,
+bootstrap, encoding and runtime obligations are not discharged. No selected-layout
+source export is implemented by this placement batch. The legacy single-region
+artifact builder refuses hierarchical/non-storage definitions rather than
+silently losing their contracts.
+
 Distinct region identities may overlap: the native projection reports their
 exact shared interval and offsets in `overlapping_regions`, with a
 `coordinated_source_placement` obligation. A single-region plan refuses with

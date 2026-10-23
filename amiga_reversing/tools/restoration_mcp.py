@@ -66,6 +66,7 @@ def create_server(client: RestorationClient):
             "gaps",
             "typed_pointers",
             "memory_regions",
+            "memory_layouts",
         ],
         expected_revision: str,
         query: str | None = None,

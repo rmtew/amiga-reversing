@@ -805,7 +805,23 @@ typedef struct M68kMemoryRegionIR {
   uint8_t dma_access;
   uint8_t persistent;
   uint8_t source_mapped;
+  /* 0 storage (legacy), 1 image, 2 workspace, 3 display. Parentage is storage
+   * containment; it does not itself certify relocation or phase alias safety. */
+  uint8_t region_kind;
+  char parent_region_id[96];
 } M68kMemoryRegionIR;
+
+#define M68K_MEMORY_LAYOUT_LIMIT 8U
+typedef struct M68kMemoryPlacementIR {
+  char region_id[96];
+  uint32_t runtime_address;
+} M68kMemoryPlacementIR;
+typedef struct M68kMemoryLayoutIR {
+  char layout_id[96];
+  uint32_t chip_bytes;
+  uint16_t placement_count;
+  M68kMemoryPlacementIR placements[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
+} M68kMemoryLayoutIR;
 
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
@@ -867,6 +883,8 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisManualDataReference manual_data_references[M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT];
   M68kAnalysisAbstractRegion abstract_regions[M68K_ANALYSIS_ABSTRACT_REGION_LIMIT];
   M68kMemoryRegionIR memory_regions[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
+  uint16_t memory_layout_count;
+  M68kMemoryLayoutIR memory_layouts[M68K_MEMORY_LAYOUT_LIMIT];
   M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
 

@@ -58,7 +58,7 @@ async function openRestorationPanel() {
     <p>Select a gap, inspect evidence, preserve an interpretation, rebuild, then review.</p>
     <div id="restoration-status" role="status">Preparing analysis…</div>
     <nav><button type="button" id="restoration-refresh">Refresh state</button><button type="button" id="restoration-selected">Inspect selected source</button><button type="button" id="restoration-history">History</button><button type="button" id="restoration-pointer-exceptions">Pointer exceptions</button></nav>
-    <form id="restoration-search"><label>Explore <select name="kind">${["gaps", "symbols", "functions", "references", "fields", "edges", "instructions", "typed_pointers", "memory_regions"].map(x => `<option value="${x}">${x === "typed_pointers" ? "pointer exceptions" : x}</option>`).join("")}</select></label><label>Name / symbol / type <input name="query" type="search"></label><button>Search</button></form>
+    <form id="restoration-search"><label>Explore <select name="kind">${["gaps", "symbols", "functions", "references", "fields", "edges", "instructions", "typed_pointers", "memory_regions", "memory_layouts"].map(x => `<option value="${x}">${x === "typed_pointers" ? "pointer exceptions" : x}</option>`).join("")}</select></label><label>Name / symbol / type <input name="query" type="search"></label><button>Search</button></form>
     <div id="restoration-results"></div><button id="restoration-next" type="button" hidden>Next page</button>
     <section id="restoration-inspection"></section>
     <section class="restoration-validation"><h3>Verify and review</h3><button id="restoration-verify" type="button">Regenerate and verify exact bytes</button><div id="restoration-verification"></div>

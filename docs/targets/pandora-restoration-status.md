@@ -11,6 +11,13 @@ workspace is selected for constraint analysis, with control/DMA bounds still
 pending. Canonical layout export and independent movement are not delivered;
 first-delivery M1–M4 acceptance remains open. No new gameplay capture in this batch.
 
+The subsequent M1 placement batch adds canonical region kinds/parents and named
+fixed-layout definitions through the existing MAL/catalog/native query path.
+225 focused tests pass; socket-enabled interface tests report seven passes and
+one skip for the missing optional MCP SDK. Native `placement_valid` results retain
+`export_ready: false`. Normal source export, bootstrap migration, real transport
+qualification with that SDK and independent workspace movement remain open.
+
 ## Canonical layout design (2026-10-23)
 
 [Proposal 046](../proposals/046-canonical-memory-layouts.md) audits the existing

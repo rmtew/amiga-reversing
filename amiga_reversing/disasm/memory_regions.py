@@ -17,7 +17,8 @@ def validate_region(region: dict) -> dict:
         "lifetime",
         "dma_access",
     }
-    if set(region) != fields:
+    optional = {"region_kind", "parent_region_id"}
+    if not fields <= set(region) or set(region) - fields - optional:
         raise ValueError(
             "memory_region requires exactly the supported definition fields"
         )
@@ -51,7 +52,41 @@ def validate_region(region: dict) -> dict:
         or region["dma_access"] not in {"none", "chip"}
     ):
         raise ValueError("unsupported memory_region placement/lifetime contract")
+    if region.get("region_kind", "storage") not in {"storage", "image", "workspace", "display"}:
+        raise ValueError("memory_region requires a supported region_kind")
+    parent = region.get("parent_region_id", "")
+    if not isinstance(parent, str) or (parent and (
+        not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]*", parent) or len(parent) > 95
+        or parent == region["region_id"]
+    )):
+        raise ValueError("memory_region requires a distinct bounded parent identity")
     return dict(region)
+
+
+def validate_layout(layout: dict) -> dict:
+    """Validate authored configuration only; native facts own placement resolution."""
+    if (set(layout) != {"schema_version", "layout_id", "chip_bytes", "placements"}
+            or type(layout["schema_version"]) is not int or layout["schema_version"] != 1):
+        raise ValueError("memory_layout requires the supported versioned fields")
+    identity = layout["layout_id"]
+    if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,94}", identity):
+        raise ValueError("memory_layout requires a bounded stable identity")
+    if type(layout["chip_bytes"]) is not int or layout["chip_bytes"] not in {0x80000, 0x100000}:
+        raise ValueError("memory_layout requires an explicit supported Chip RAM extent")
+    placements = layout["placements"]
+    if not isinstance(placements, list) or len(placements) > 16:
+        raise ValueError("memory_layout requires at most sixteen placements")
+    seen = set()
+    for item in placements:
+        if not isinstance(item, dict) or set(item) != {"region_id", "runtime_address"}:
+            raise ValueError("memory_layout requires explicit region placements")
+        rid = item["region_id"]
+        if not isinstance(rid, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,94}", rid) or rid in seen:
+            raise ValueError("memory_layout requires unique bounded region identities")
+        if type(item["runtime_address"]) is not int or not 0 <= item["runtime_address"] < 0x1000000:
+            raise ValueError("memory_layout requires a 24-bit placement")
+        seen.add(rid)
+    return {**layout, "placements": [dict(p) for p in placements]}
 
 
 def relocation_plan(
@@ -92,6 +127,8 @@ def build_derived_artifact(
         end = offset + len(after)
     regions = artifact.memory_regions_payload()["items"]
     region = next(r for r in regions if r["region_id"] == plan["region_id"])
+    if region.get("region_kind", "storage") != "storage" or region.get("parent_region_id"):
+        raise ValueError("Legacy single-region artifacts do not admit hierarchical layout definitions")
     region = {
         k: region[k]
         for k in (

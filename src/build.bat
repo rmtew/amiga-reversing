@@ -61,6 +61,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_render_ir.c ^
     src\m68k_render_plan.c ^
     src\m68k_runtime_map.c ^
+    src\m68k_memory_layout.c ^
     src\m68k_source_package.c ^
     src\m68k_analysis_render_lookup.c ^
     src\m68k_analysis_facts_v2.c ^

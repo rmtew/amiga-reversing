@@ -194,7 +194,10 @@ class ManualActionKind(StrEnum):
     CREATE_PURPOSE_ASSESSMENT = "create_purpose_assessment"
     REMOVE_PURPOSE_ASSESSMENT = "remove_purpose_assessment"
     CREATE_MANUAL_MEMORY_REGION = "create_manual_memory_region"
+    UPDATE_MANUAL_MEMORY_REGION = "update_manual_memory_region"
     REMOVE_MANUAL_MEMORY_REGION = "remove_manual_memory_region"
+    CREATE_MANUAL_MEMORY_LAYOUT = "create_manual_memory_layout"
+    REMOVE_MANUAL_MEMORY_LAYOUT = "remove_manual_memory_layout"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -261,6 +264,7 @@ class ManualActionLogProjection:
     review_items: tuple[dict[str, object], ...]
     purpose_assessments: tuple[dict[str, object], ...] = ()
     memory_regions: tuple[dict[str, object], ...] = ()
+    memory_layouts: tuple[dict[str, object], ...] = ()
     source_output_policy: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
@@ -1899,6 +1903,7 @@ def _project_actions(
     removed_runtime_observation_views: dict[tuple[int, int, int], dict[str, object]] = {}
     purpose_assessments: dict[str, dict[str, object]] = {}
     memory_regions: dict[str, dict[str, object]] = {}
+    memory_layouts: dict[str, dict[str, object]] = {}
     runtime_data_ranges: dict[int, dict[str, object]] = {}
     removed_runtime_data_ranges: dict[int, dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -2333,14 +2338,17 @@ def _project_actions(
             if identity not in purpose_assessments:
                 raise ValueError("purpose assessment removal requires an existing identity")
             purpose_assessments.pop(identity)
-        elif action.kind is ManualActionKind.CREATE_MANUAL_MEMORY_REGION:
+        elif action.kind in {ManualActionKind.CREATE_MANUAL_MEMORY_REGION, ManualActionKind.UPDATE_MANUAL_MEMORY_REGION}:
             from amiga_reversing.disasm.memory_regions import validate_region
             region = validate_region(dict(_action_object(action, "memory_region")))
-            if region["region_id"] in memory_regions:
+            updating = action.kind is ManualActionKind.UPDATE_MANUAL_MEMORY_REGION
+            if updating and region["region_id"] not in memory_regions:
+                raise ValueError("memory_region update requires an existing identity")
+            if not updating and region["region_id"] in memory_regions:
                 raise ValueError("memory_region identity already exists; remove before replacement")
             # Shared storage identities remain distinct. Native facts expose
             # their overlap and refuse independent single-region relocation.
-            if len(memory_regions) >= 16:
+            if not updating and len(memory_regions) >= 16:
                 raise ValueError("memory_region native capacity exceeded")
             memory_regions[region["region_id"]] = region
         elif action.kind is ManualActionKind.REMOVE_MANUAL_MEMORY_REGION:
@@ -2348,6 +2356,17 @@ def _project_actions(
             if set(region) != {"region_id"} or region["region_id"] not in memory_regions:
                 raise ValueError("memory_region removal requires an existing identity")
             memory_regions.pop(region["region_id"])
+        elif action.kind is ManualActionKind.CREATE_MANUAL_MEMORY_LAYOUT:
+            from amiga_reversing.disasm.memory_regions import validate_layout
+            layout = validate_layout(dict(_action_object(action, "memory_layout")))
+            if layout["layout_id"] in memory_layouts or len(memory_layouts) >= 8:
+                raise ValueError("memory_layout identity exists or native capacity exceeded")
+            memory_layouts[layout["layout_id"]] = layout
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_MEMORY_LAYOUT:
+            layout = _action_object(action, "memory_layout")
+            if set(layout) != {"layout_id"} or layout["layout_id"] not in memory_layouts:
+                raise ValueError("memory_layout removal requires an existing identity")
+            memory_layouts.pop(layout["layout_id"])
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -2419,6 +2438,7 @@ def _project_actions(
         removed_runtime_observation_views=tuple(removed_runtime_observation_views.values()),
         purpose_assessments=tuple(purpose_assessments.values()),
         memory_regions=tuple(memory_regions.values()),
+        memory_layouts=tuple(memory_layouts.values()),
         runtime_data_ranges=tuple(runtime_data_ranges.values()),
         removed_runtime_data_ranges=tuple(removed_runtime_data_ranges.values()),
         review_notes=tuple(review_notes.values()),

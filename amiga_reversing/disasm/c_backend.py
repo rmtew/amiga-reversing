@@ -1773,6 +1773,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc.argtypes = [c_void_p, POINTER(c_void_p)]
     dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.argtypes = [c_void_p, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.argtypes = [
         c_void_p, c_uint32, POINTER(c_void_p),
     ]
@@ -2276,6 +2278,11 @@ class CListingArtifact:
     def memory_regions_payload(self) -> dict[str, object]:
         return json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_memory_regions_json_alloc,
+        ))
+
+    def memory_layouts_payload(self) -> dict[str, object]:
+        return json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc,
         ))
 
     def query_payload(

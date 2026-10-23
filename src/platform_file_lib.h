@@ -204,6 +204,8 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_region_plan
 /* Stable region definitions and reference obligations from the canonical plan. */
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_regions_json_alloc(
     PlatformFileListingArtifact *artifact, char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
+    PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void);
 PLATFORM_FILE_API void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer);

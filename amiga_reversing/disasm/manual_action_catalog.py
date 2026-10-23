@@ -122,6 +122,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_runtime_observation_view_action(),
         _target_runtime_observation_view_remove_action(),
         _target_memory_region_action(),
+        _target_memory_region_action(update=True),
+        _target_memory_layout_action(),
         _target_purpose_assessment_action(),
         _target_purpose_assessment_remove_action(),
         _target_runtime_data_range_action(),
@@ -198,9 +200,12 @@ def target_catalog_manual_payload(
         if not isinstance(identity,str) or not identity.strip():
             raise ValueError("purpose removal requires assessment_id")
         return "remove_purpose_assessment", {"assessment_id": identity}
-    if action.get("action") == "create_manual_memory_region":
+    if action.get("action") in {"create_manual_memory_region", "update_manual_memory_region"}:
         from amiga_reversing.disasm.memory_regions import validate_region
-        return "create_manual_memory_region", {"memory_region": validate_region(dict(params))}
+        return action["action"], {"memory_region": validate_region(dict(params))}
+    if action.get("action") == "create_manual_memory_layout":
+        from amiga_reversing.disasm.memory_regions import validate_layout
+        return "create_manual_memory_layout", {"memory_layout": validate_layout(dict(params))}
     if action.get("action") == "create_manual_runtime_data_range":
         return "create_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_payload(params)}
     if action.get("action") == "remove_manual_runtime_data_range":
@@ -6792,9 +6797,10 @@ def _object(value: object, description: str) -> dict[str, object]:
     return value
 
 
-def _target_memory_region_action() -> dict[str, object]:
-    return _context_log_action("target.memory_region.add", "Define memory region",
-        "create_manual_memory_region", {"kind": "target"}, {},
+def _target_memory_region_action(update: bool = False) -> dict[str, object]:
+    return _context_log_action("target.memory_region.update" if update else "target.memory_region.add",
+        "Update memory region" if update else "Define memory region",
+        "update_manual_memory_region" if update else "create_manual_memory_region", {"kind": "target"}, {},
         {"type": "object", "required": ["region_id", "name", "runtime_address", "size", "alignment",
             "source_domain", "memory_class", "lifetime", "dma_access"], "properties": {
             "region_id": {"type": "string"}, "name": {"type": "string"},
@@ -6802,7 +6808,20 @@ def _target_memory_region_action() -> dict[str, object]:
             "source_domain": {"type": "string", "enum": ["runtime_only", "mapped_source"]},
             "memory_class": {"type": "string", "enum": ["cpu_ram"]},
             "lifetime": {"type": "string", "enum": ["persistent"]},
-            "dma_access": {"type": "string", "enum": ["none", "chip"]}}})
+            "dma_access": {"type": "string", "enum": ["none", "chip"]},
+            "region_kind": {"type": "string", "enum": ["storage", "image", "workspace", "display"]},
+            "parent_region_id": {"type": "string"}}})
+
+
+def _target_memory_layout_action() -> dict[str, object]:
+    return _context_log_action("target.memory_layout.add", "Define fixed memory layout",
+        "create_manual_memory_layout", {"kind": "target"}, {},
+        {"type": "object", "required": ["schema_version", "layout_id", "chip_bytes", "placements"],
+         "properties": {"schema_version": {"type": "integer", "enum": [1]},
+            "layout_id": {"type": "string"}, "chip_bytes": {"type": "integer", "enum": [524288, 1048576]},
+            "placements": {"type": "array", "maxItems": 16, "items": {"type": "object",
+                "required": ["region_id", "runtime_address"], "properties": {
+                    "region_id": {"type": "string"}, "runtime_address": {"type": "integer"}}}}}})
 
 
 def _target_purpose_assessment_action() -> dict[str, object]:

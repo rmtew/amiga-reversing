@@ -57,6 +57,7 @@ def main(argv: list[str] | None = None) -> int:
             "gaps",
             "typed_pointers",
             "memory_regions",
+            "memory_layouts",
         ),
     )
     parser.add_argument("--query")
