@@ -112,6 +112,8 @@ typedef struct M68kRenderPlannedInstruction {
   uint8_t has_noncanonical_byte_immediate;
   uint8_t symbol_access_count;
   uint8_t reserved;
+  uint8_t has_bootstrap_variant;
+  uint8_t bootstrap_variant_bytes[2];
   M68kInstructionIR instruction;
   M68kInstructionIR render_instruction;
   char comment[640];

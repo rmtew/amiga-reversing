@@ -10949,6 +10949,28 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
             candidate->byte_count)) {
         mark_cross_org_pc_relative_displacement_exprs(lookup, section->section_index, candidate, &instruction);
         render_instruction = instruction;
+        uint8_t variant_bytes[2]={0};int has_variant=0;
+        if(preview->bootstrap_forward_disjoint && section->section_index==0 &&
+            candidate->offset==preview->bootstrap_contract->comparison_source_offset) {
+          uint8_t is_address0=0,is_address1=0,reg0=0,reg1=0;
+          if(candidate->byte_count!=2 || instruction.operand_count!=2 ||
+              !m68k_instruction_operand_direct_register(&instruction.operands[0],&is_address0,&reg0) ||
+              !m68k_instruction_operand_direct_register(&instruction.operands[1],&is_address1,&reg1) ||
+              !is_address0 || !is_address1 || reg0==reg1) {
+            preview->memory_layout.reason="bootstrap_comparison_requires_two_address_registers";return -1;
+          }
+          if(instruction.operands[0].kind==M68K_ASM_OPERAND_EA) instruction.operands[0].value.ea_reg=reg1;
+          else instruction.operands[0].value.reg=reg1;
+          if(instruction.operands[1].kind==M68K_ASM_OPERAND_EA) instruction.operands[1].value.ea_reg=reg0;
+          else instruction.operands[1].value.reg=reg0;
+          m68k_diag_list_reset(&diagnostics);
+          M68kIrEncodeResult encoded=m68k_ir_encode_one(&instruction,variant_bytes,sizeof(variant_bytes),m68k_diag_sink(&diagnostics));
+          if(m68k_diag_has_errors(&diagnostics) || encoded.byte_count!=2 ||
+              !memcmp(variant_bytes,section->data+candidate->offset,2)) {
+            preview->memory_layout.reason="bootstrap_variant_encoding_refused";return -1;
+          }
+          render_instruction=instruction;has_variant=1;
+        }
         if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
             !m68k_instruction_make_fpu_id_render_instruction(&instruction, &render_instruction)) return -1;
         m68k_render_policy_init_default(&render_policy);
@@ -10958,6 +10980,8 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
         memset(&planned_instruction, 0, sizeof(planned_instruction));
         planned_instruction.source_section_index = (uint32_t)section->section_index;
         planned_instruction.source_offset = candidate->offset;
+        planned_instruction.has_bootstrap_variant=(uint8_t)has_variant;
+        memcpy(planned_instruction.bootstrap_variant_bytes,variant_bytes,2);
         planned_instruction.rendered_operand_symbol_mask = rendered.rendered_operand_symbol_mask;
         planned_instruction.instruction = instruction;
         planned_instruction.render_instruction = render_instruction;
@@ -11092,6 +11116,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   M68kIrEncodeResult encoded;
   const M68kRenderPlannedInstruction *planned_instruction;
   uint8_t encoded_bytes[32];
+  const uint8_t *expected_bytes;
   char instruction_comment[640];
   char line[1024];
   if (preview == NULL || lookup == NULL || section == NULL || candidate == NULL) return 0;
@@ -11114,6 +11139,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
     return 0;
   }
   instruction = planned_instruction->instruction;
+  expected_bytes=planned_instruction->has_bootstrap_variant ?
+    planned_instruction->bootstrap_variant_bytes : section->data+candidate->offset;
   render_instruction = planned_instruction->render_instruction;
   snprintf(instruction_comment, sizeof(instruction_comment), "%s", planned_instruction->comment);
   if (planned_instruction->has_noncanonical_byte_immediate != 0U) {
@@ -11150,14 +11177,14 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   m68k_diag_list_reset(&encode_diagnostics);
   encoded = m68k_ir_encode_one(&instruction, encoded_bytes, sizeof(encoded_bytes), m68k_diag_sink(&encode_diagnostics));
   if (m68k_diag_has_errors(&encode_diagnostics) || encoded.byte_count != candidate->byte_count ||
-      !encoded_bytes_match_with_exact_byte_immediates(&instruction, encoded_bytes, section->data + candidate->offset,
+      !encoded_bytes_match_with_exact_byte_immediates(&instruction, encoded_bytes, expected_bytes,
         candidate->byte_count)) {
     ++preview->asm_source_instruction_byte_mismatches;
     record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_BYTE_MISMATCH, section->section_index,
       candidate->offset, 0U);
     return 0;
   }
-  if (!rendered_text_reencodes_original_bytes(rendered.text, &instruction, &render_instruction, section->data + candidate->offset,
+  if (!rendered_text_reencodes_original_bytes(rendered.text, &instruction, &render_instruction, expected_bytes,
       candidate->byte_count)) {
     ++preview->asm_source_instruction_byte_mismatches;
     record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_BYTE_MISMATCH, section->section_index,
@@ -11661,6 +11688,50 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   memset(preview, 0, sizeof(*preview));
 }
 
+static int prepare_layout_bootstrap(M68kRenderIRPreview *preview,const M68kDecodeIR *decode,
+    const M68kSourceAnalysisIR *analysis,const M68kMemoryLayoutIR *layout) {
+  if(!layout->bootstrap_contract_id[0]) return 0;
+  const M68kAnalysisPolicy *policy=preview->analysis_policy;
+  const M68kBootstrapContractIR *c=NULL;int image=-1;
+  for(size_t i=0;i<policy->bootstrap_contract_count;i++)
+    if(!strcmp(layout->bootstrap_contract_id,policy->bootstrap_contracts[i].contract_id)) c=&policy->bootstrap_contracts[i];
+#define BOOT_REFUSE(reason_text) do {preview->memory_layout.reason=reason_text;return -1;} while(0)
+  if(!c || !analysis || decode->section_count!=1 || analysis->section_count!=1)
+    BOOT_REFUSE("bootstrap_requires_one_identity_bound_raw_section");
+  const M68kDecodeSectionIR *section=&decode->sections[0];char digest[65];
+  if(section->size!=c->file_size || m68k_platform_sha256_hex(section->data,section->size,digest) || strcmp(digest,c->input_sha256))
+    BOOT_REFUSE("bootstrap_input_identity_mismatch");
+  for(size_t i=0;i<policy->memory_region_count;i++)
+    if(!strcmp(c->image_region_id,policy->memory_regions[i].region_id)) image=(int)i;
+  if(image<0 || !policy->memory_regions[image].source_mapped || policy->memory_regions[image].region_kind!=1 ||
+      policy->memory_regions[image].size!=c->copied_source_end || preview->memory_layout.parents[image]>=0)
+    BOOT_REFUSE("bootstrap_image_extent_mismatch");
+  if((uint64_t)c->load_address+c->file_size>layout->chip_bytes ||
+      (uint64_t)c->helper_runtime_address+c->helper_source_end-c->helper_source_start>c->load_address)
+    BOOT_REFUSE("bootstrap_loader_or_helper_bounds");
+  int image_view=0,helper_view=0;
+  for(size_t i=0;i<analysis->sections[0].runtime_view_count;i++) {
+    const M68kRuntimeViewIR *view=&analysis->sections[0].runtime_views[i];
+    if(view->materialized && view->storage_offset==0 && view->size==c->copied_source_end &&
+        view->runtime_address==policy->memory_regions[image].runtime_address) image_view=1;
+    /* A copied helper may be suppressed as a separate source ORG because its
+     * bytes are already rendered in the image. That is not suppression of the
+     * actual copy/execution. Bind its exact view and input identity separately. */
+    if(view->storage_offset==c->helper_source_start && view->size==c->helper_source_end-c->helper_source_start &&
+        view->runtime_address==c->helper_runtime_address) helper_view=1;
+  }
+  if(!image_view || !helper_view) BOOT_REFUSE("bootstrap_materialized_views_mismatch");
+  uint32_t placed=preview->memory_layout.addresses[image];
+  int moved=placed!=policy->memory_regions[image].runtime_address;
+  if(moved && !layout->bootstrap_forward_disjoint) BOOT_REFUSE("bootstrap_move_requires_reviewed_direction_variant");
+  if(layout->bootstrap_forward_disjoint && (!moved || placed<(uint64_t)c->load_address+c->file_size))
+    BOOT_REFUSE("bootstrap_forward_variant_requires_disjoint_high_destination");
+  preview->bootstrap_contract=c;
+  preview->bootstrap_forward_disjoint=layout->bootstrap_forward_disjoint;
+#undef BOOT_REFUSE
+  return 0;
+}
+
 int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,
     M68kRenderLookup *lookup, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     uint8_t **accepted_bytes, int render_text_preview, int render_asm_source, int collect_asm_source_text,
@@ -11682,6 +11753,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
       if(!strcmp(policy->memory_layouts[i].layout_id,policy->selected_memory_layout_id)) layout=&policy->memory_layouts[i];
     if(!layout || m68k_memory_layout_resolve(policy,layout,&out_preview->memory_layout)) return -1;
     out_preview->memory_layout_enabled=1;
+    if(prepare_layout_bootstrap(out_preview,decode,source_analysis,layout)) return -1;
     /* First delivery relocates whole materialized views, not scatter-loaded
      * pieces. Refuse a split before the row walker can mistake original
      * adjacency for contiguous placed PCs and omit a required ORG. */
@@ -11731,6 +11803,13 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     }
     if (plan_rendered_instruction_expressions(out_preview, lookup, decode, policy, accepted_start,
         accepted_bytes, source_analysis) != 0) goto cleanup;
+    if(out_preview->bootstrap_forward_disjoint) {
+      const M68kRenderPlannedInstruction *comparison=m68k_render_plan_find_instruction(
+        &out_preview->asm_source_plan,0,out_preview->bootstrap_contract->comparison_source_offset);
+      if(!comparison || !comparison->has_bootstrap_variant) {
+        out_preview->memory_layout.reason="bootstrap_comparison_not_an_admitted_instruction";goto cleanup;
+      }
+    }
     if (derive_rendered_pointer_declarations(out_preview, lookup) != 0) goto cleanup;
     if (plan_rendered_label_statements(out_preview, lookup, decode, accepted_start,
           &out_preview->asm_source_plan) != 0) goto cleanup;

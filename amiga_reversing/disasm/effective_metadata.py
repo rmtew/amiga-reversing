@@ -2766,6 +2766,8 @@ def effective_metadata_text(
         payload["memory_regions"] = [dict(region) for region in projection.memory_regions]
     if projection.memory_layouts:
         payload["memory_layouts"] = [dict(layout) for layout in projection.memory_layouts]
+    if projection.bootstrap_contracts:
+        payload["bootstrap_contracts"] = [dict(contract) for contract in projection.bootstrap_contracts]
     if projection.runtime_data_ranges:
         payload["runtime_data_ranges"] = [dict(data_range) for data_range in projection.runtime_data_ranges]
     _add_source_context(target_dir, payload)

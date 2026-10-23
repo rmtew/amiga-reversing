@@ -198,6 +198,7 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_MEMORY_REGION = "remove_manual_memory_region"
     CREATE_MANUAL_MEMORY_LAYOUT = "create_manual_memory_layout"
     REMOVE_MANUAL_MEMORY_LAYOUT = "remove_manual_memory_layout"
+    CREATE_MANUAL_BOOTSTRAP_CONTRACT = "create_manual_bootstrap_contract"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -265,6 +266,7 @@ class ManualActionLogProjection:
     purpose_assessments: tuple[dict[str, object], ...] = ()
     memory_regions: tuple[dict[str, object], ...] = ()
     memory_layouts: tuple[dict[str, object], ...] = ()
+    bootstrap_contracts: tuple[dict[str, object], ...] = ()
     source_output_policy: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
@@ -1904,6 +1906,7 @@ def _project_actions(
     purpose_assessments: dict[str, dict[str, object]] = {}
     memory_regions: dict[str, dict[str, object]] = {}
     memory_layouts: dict[str, dict[str, object]] = {}
+    bootstrap_contracts: dict[str, dict[str, object]] = {}
     runtime_data_ranges: dict[int, dict[str, object]] = {}
     removed_runtime_data_ranges: dict[int, dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -2362,6 +2365,12 @@ def _project_actions(
             if layout["layout_id"] in memory_layouts or len(memory_layouts) >= 8:
                 raise ValueError("memory_layout identity exists or native capacity exceeded")
             memory_layouts[layout["layout_id"]] = layout
+        elif action.kind is ManualActionKind.CREATE_MANUAL_BOOTSTRAP_CONTRACT:
+            from amiga_reversing.disasm.memory_regions import validate_bootstrap
+            contract = validate_bootstrap(dict(_action_object(action, "bootstrap_contract")))
+            if contract["contract_id"] in bootstrap_contracts or len(bootstrap_contracts) >= 8:
+                raise ValueError("bootstrap identity exists or native capacity exceeded")
+            bootstrap_contracts[contract["contract_id"]] = contract
         elif action.kind is ManualActionKind.REMOVE_MANUAL_MEMORY_LAYOUT:
             layout = _action_object(action, "memory_layout")
             if set(layout) != {"layout_id"} or layout["layout_id"] not in memory_layouts:
@@ -2439,6 +2448,7 @@ def _project_actions(
         purpose_assessments=tuple(purpose_assessments.values()),
         memory_regions=tuple(memory_regions.values()),
         memory_layouts=tuple(memory_layouts.values()),
+        bootstrap_contracts=tuple(bootstrap_contracts.values()),
         runtime_data_ranges=tuple(runtime_data_ranges.values()),
         removed_runtime_data_ranges=tuple(removed_runtime_data_ranges.values()),
         review_notes=tuple(review_notes.values()),

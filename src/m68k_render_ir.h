@@ -67,6 +67,8 @@ struct M68kRenderIRPreview {
   const M68kAnalysisPolicy *analysis_policy;
   uint8_t memory_layout_enabled;
   M68kResolvedMemoryLayout memory_layout;
+  const M68kBootstrapContractIR *bootstrap_contract;
+  uint8_t bootstrap_forward_disjoint;
   M68kRenderTransientRowSink transient_row_sink;
   void *transient_row_sink_user;
   M68kRenderIRPreparedSink prepared_sink;

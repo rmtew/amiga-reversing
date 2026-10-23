@@ -124,6 +124,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_memory_region_action(),
         _target_memory_region_action(update=True),
         _target_memory_layout_action(),
+        _target_bootstrap_contract_action(),
         _target_purpose_assessment_action(),
         _target_purpose_assessment_remove_action(),
         _target_runtime_data_range_action(),
@@ -206,6 +207,9 @@ def target_catalog_manual_payload(
     if action.get("action") == "create_manual_memory_layout":
         from amiga_reversing.disasm.memory_regions import validate_layout
         return "create_manual_memory_layout", {"memory_layout": validate_layout(dict(params))}
+    if action.get("action") == "create_manual_bootstrap_contract":
+        from amiga_reversing.disasm.memory_regions import validate_bootstrap
+        return "create_manual_bootstrap_contract", {"bootstrap_contract": validate_bootstrap(dict(params))}
     if action.get("action") == "create_manual_runtime_data_range":
         return "create_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_payload(params)}
     if action.get("action") == "remove_manual_runtime_data_range":
@@ -6819,9 +6823,24 @@ def _target_memory_layout_action() -> dict[str, object]:
         {"type": "object", "required": ["schema_version", "layout_id", "chip_bytes", "placements"],
          "properties": {"schema_version": {"type": "integer", "enum": [1]},
             "layout_id": {"type": "string"}, "chip_bytes": {"type": "integer", "enum": [524288, 1048576]},
+            "bootstrap_contract_id": {"type": "string"},
+            "bootstrap_variant": {"type": "string", "enum": ["native", "forward_disjoint"]},
             "placements": {"type": "array", "maxItems": 16, "items": {"type": "object",
                 "required": ["region_id", "runtime_address"], "properties": {
                     "region_id": {"type": "string"}, "runtime_address": {"type": "integer"}}}}}})
+
+
+def _target_bootstrap_contract_action() -> dict[str, object]:
+    numeric = ("load_address", "file_size", "copied_source_end", "helper_source_start",
+               "helper_source_end", "helper_runtime_address", "continuation_source_offset",
+               "comparison_source_offset")
+    properties = {k: {"type": "integer"} for k in numeric}
+    properties.update({k: {"type": "string"} for k in ("contract_id", "image_region_id", "input_sha256")})
+    properties.update(schema_version={"type": "integer", "enum": [1]},
+                      kind={"type": "string", "enum": ["retained_prefix_copy"]})
+    return _context_log_action("target.bootstrap.add", "Retain native prefix-copy initialization",
+        "create_manual_bootstrap_contract", {"kind": "target"}, {},
+        {"type": "object", "required": list(properties), "properties": properties})
 
 
 def _target_purpose_assessment_action() -> dict[str, object]:

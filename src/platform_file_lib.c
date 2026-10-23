@@ -8992,15 +8992,22 @@ static int layout_required_u32_local(const char *start,const char *end,const cha
 }
 
 static int append_metadata_memory_layout_local(const char *start,const char *end,M68kAnalysisPolicy *policy) {
-  static const char *const keys[]={"schema_version","layout_id","chip_bytes","placements"};
+  static const char *const keys[]={"schema_version","layout_id","chip_bytes","placements","bootstrap_contract_id","bootstrap_variant"};
   static const char *const placement_keys[]={"region_id","runtime_address"};
   M68kMemoryLayoutIR layout={0};uint32_t version=0;
   if(policy->memory_layout_count>=M68K_MEMORY_LAYOUT_LIMIT ||
-      !json_object_has_only_keys_local(start,end,keys,4) ||
+      !json_object_has_only_keys_local(start,end,keys,6) ||
       !layout_required_u32_local(start,end,"schema_version",&version) || version!=1 ||
       !json_optional_string_field_local(start,end,"layout_id",layout.layout_id,sizeof(layout.layout_id)) || !layout.layout_id[0] ||
       !layout_required_u32_local(start,end,"chip_bytes",&layout.chip_bytes) ||
       (layout.chip_bytes!=0x80000 && layout.chip_bytes!=0x100000)) return 0;
+  char variant[32]={0};
+  if(!json_optional_string_field_local(start,end,"bootstrap_contract_id",layout.bootstrap_contract_id,sizeof(layout.bootstrap_contract_id)) ||
+      !json_optional_string_field_local(start,end,"bootstrap_variant",variant,sizeof(variant))) return 0;
+  if(layout.bootstrap_contract_id[0] || variant[0]) {
+    if(!layout.bootstrap_contract_id[0] || (strcmp(variant,"native") && strcmp(variant,"forward_disjoint"))) return 0;
+    layout.bootstrap_forward_disjoint=!strcmp(variant,"forward_disjoint");
+  }
   for(size_t i=0;i<policy->memory_layout_count;i++) if(!strcmp(layout.layout_id,policy->memory_layouts[i].layout_id)) return 0;
   /* Bounded object text: never let a nested array search consume the next
    * layout's placements. The caller supplied an isolated JSON object span. */
@@ -9029,6 +9036,34 @@ static int append_metadata_memory_layout_local(const char *start,const char *end
     }
   }
   free(text);policy->memory_layouts[policy->memory_layout_count++]=layout;return 1;
+}
+
+static int append_metadata_bootstrap_local(const char *start,const char *end,M68kAnalysisPolicy *policy) {
+  static const char *const keys[]={"schema_version","contract_id","image_region_id","input_sha256","kind",
+    "load_address","file_size","copied_source_end","helper_source_start","helper_source_end",
+    "helper_runtime_address","continuation_source_offset","comparison_source_offset"};
+  M68kBootstrapContractIR c={0};uint32_t version=0;char kind[32]={0};
+  if(policy->bootstrap_contract_count>=M68K_MEMORY_LAYOUT_LIMIT ||
+      !json_object_has_only_keys_local(start,end,keys,13) ||
+      !layout_required_u32_local(start,end,"schema_version",&version) || version!=1 ||
+      !json_optional_string_field_local(start,end,"kind",kind,sizeof(kind)) || strcmp(kind,"retained_prefix_copy") ||
+      !json_optional_string_field_local(start,end,"contract_id",c.contract_id,sizeof(c.contract_id)) || !c.contract_id[0] ||
+      !json_optional_string_field_local(start,end,"image_region_id",c.image_region_id,sizeof(c.image_region_id)) || !c.image_region_id[0] ||
+      !json_optional_string_field_local(start,end,"input_sha256",c.input_sha256,sizeof(c.input_sha256)) || strlen(c.input_sha256)!=64) return 0;
+  for(size_t i=0;i<64;i++) if(!((c.input_sha256[i]>='0' && c.input_sha256[i]<='9') ||
+      (c.input_sha256[i]>='a' && c.input_sha256[i]<='f'))) return 0;
+  for(size_t i=0;i<policy->bootstrap_contract_count;i++)
+    if(!strcmp(c.contract_id,policy->bootstrap_contracts[i].contract_id)) return 0;
+#define BOOT_U32(key) if(!layout_required_u32_local(start,end,#key,&c.key) || c.key>=0x1000000) return 0
+  BOOT_U32(load_address);BOOT_U32(file_size);BOOT_U32(copied_source_end);
+  BOOT_U32(helper_source_start);BOOT_U32(helper_source_end);BOOT_U32(helper_runtime_address);
+  BOOT_U32(continuation_source_offset);BOOT_U32(comparison_source_offset);
+#undef BOOT_U32
+  if(!c.copied_source_end || c.copied_source_end>c.file_size ||
+      c.helper_source_start>c.comparison_source_offset ||
+      (uint64_t)c.comparison_source_offset+2>c.helper_source_end || c.helper_source_end>c.copied_source_end ||
+      c.continuation_source_offset>=c.copied_source_end) return 0;
+  policy->bootstrap_contracts[policy->bootstrap_contract_count++]=c;return 1;
 }
 
 static int append_metadata_generic_policy_text_local(const char *text, M68kAnalysisPolicy *policy,
@@ -9108,6 +9143,25 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
       if(*cursor!=',' || json_skip_ws_local(cursor+1,array_end)==array_end) {
         platform_file_add_policy_parse_error_local(policy,diagnostics.list,"invalid memory layout array separator");
         return -1;
+      }
+      cursor=json_skip_ws_local(cursor+1,array_end);
+    }
+  }
+  cursor=json_find_array_local(text,"bootstrap_contracts",&array_end);
+  if(!cursor && json_find_key_local(text,text_end,"bootstrap_contracts")) {
+    platform_file_add_policy_parse_error_local(policy,diagnostics.list,"bootstrap contracts must be an object array");
+    return -1;
+  }
+  if(cursor) cursor=json_skip_ws_local(cursor,array_end);
+  while(cursor && cursor<array_end) {
+    const char *object_end=NULL,*object_start=json_next_object_local(cursor,array_end,&object_end);
+    if(!object_start || object_start!=cursor || !append_metadata_bootstrap_local(object_start,object_end,policy)) {
+      platform_file_add_policy_parse_error_local(policy,diagnostics.list,"failed parsing bootstrap contract");return -1;
+    }
+    cursor=json_skip_ws_local(object_end,array_end);
+    if(cursor<array_end) {
+      if(*cursor!=',' || json_skip_ws_local(cursor+1,array_end)==array_end) {
+        platform_file_add_policy_parse_error_local(policy,diagnostics.list,"invalid bootstrap array separator");return -1;
       }
       cursor=json_skip_ws_local(cursor+1,array_end);
     }

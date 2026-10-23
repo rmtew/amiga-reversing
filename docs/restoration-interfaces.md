@@ -1,5 +1,32 @@
 # Restoration interfaces
 
+## Retained bootstrap layout contracts
+
+`target.bootstrap.add` appends a versioned `retained_prefix_copy` contract through
+the ordinary revision-checked catalog/MAL path. One contract owns the original
+input SHA256, image region, staging address/file size, copied prefix, low helper
+copy coordinates, continuation and comparison instruction location. Named layouts
+reference its `contract_id` with `bootstrap_contract_id` and explicitly select
+`bootstrap_variant: native` or `forward_disjoint`. Undo uses ordinary append-only
+history. There is no bootstrap-stripping or replacement operation in this slice.
+
+The native exporter checks input identity, materialized image extent, exact helper
+view and loader/Chip bounds. The helper can be suppressed as a *separate rendered
+ORG* while its copied bytes remain represented inside the image. A moved image
+requires the reviewed disjoint-high-destination variant. That variant permutes
+the two direct address-register operands of the contracted two-byte instruction
+inside the frozen plan, using the Motorola-derived encoder; it does not replace
+source strings or guess pointer constants. Changed input, wrong register shape,
+unsupported direction, missing instruction or inconsistent views refuse export.
+
+All other initializer instructions remain, including hardware quiescence, image
+and helper copying, app clearing, CPU/stack/vector setup and original timing work.
+The loader-only file suffix remains distinct from the copied prefix. Contracts
+record reviewed original behavior; passing their mechanical guards is not a
+proof of semantics, timing, runtime reachability or OS-safe lifecycle. Their full
+contents and selected variant participate in the native layout-plan projection.
+Source previews remain runtime-unqualified until the target integration gates pass.
+
 The UI, CLI and MCP adapter use the same resident project server and restoration
 operations. Native facts, Manual Action Log and Decision Journal remain the
 owners of state. The adapters neither parse rendered assembly nor maintain a

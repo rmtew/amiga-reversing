@@ -65,7 +65,8 @@ def validate_region(region: dict) -> dict:
 
 def validate_layout(layout: dict) -> dict:
     """Validate authored configuration only; native facts own placement resolution."""
-    if (set(layout) != {"schema_version", "layout_id", "chip_bytes", "placements"}
+    required = {"schema_version", "layout_id", "chip_bytes", "placements"}
+    if (not required <= set(layout) or set(layout) - required - {"bootstrap_contract_id", "bootstrap_variant"}
             or type(layout["schema_version"]) is not int or layout["schema_version"] != 1):
         raise ValueError("memory_layout requires the supported versioned fields")
     identity = layout["layout_id"]
@@ -86,7 +87,35 @@ def validate_layout(layout: dict) -> dict:
         if type(item["runtime_address"]) is not int or not 0 <= item["runtime_address"] < 0x1000000:
             raise ValueError("memory_layout requires a 24-bit placement")
         seen.add(rid)
+    if "bootstrap_contract_id" in layout or "bootstrap_variant" in layout:
+        if (not isinstance(layout.get("bootstrap_contract_id"), str)
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,94}", layout["bootstrap_contract_id"])
+                or layout.get("bootstrap_variant") not in {"native", "forward_disjoint"}):
+            raise ValueError("memory_layout requires an explicit bootstrap identity and variant")
     return {**layout, "placements": [dict(p) for p in placements]}
+
+
+def validate_bootstrap(contract: dict) -> dict:
+    numeric = {"load_address", "file_size", "copied_source_end", "helper_source_start",
+               "helper_source_end", "helper_runtime_address", "continuation_source_offset",
+               "comparison_source_offset"}
+    required = numeric | {"schema_version", "contract_id", "image_region_id", "input_sha256", "kind"}
+    if (set(contract) != required or type(contract["schema_version"]) is not int
+            or contract["schema_version"] != 1 or contract["kind"] != "retained_prefix_copy"):
+        raise ValueError("bootstrap requires the versioned retained prefix-copy contract")
+    for key in ("contract_id", "image_region_id"):
+        if not isinstance(contract[key], str) or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,94}", contract[key]):
+            raise ValueError("bootstrap requires bounded stable identities")
+    if not isinstance(contract["input_sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", contract["input_sha256"]):
+        raise ValueError("bootstrap requires an exact input SHA256")
+    if any(type(contract[k]) is not int or not 0 <= contract[k] < 0x1000000 for k in numeric):
+        raise ValueError("bootstrap requires integer source/runtime extents")
+    if not (0 < contract["copied_source_end"] <= contract["file_size"]
+            and 0 <= contract["helper_source_start"] <= contract["comparison_source_offset"]
+            and contract["comparison_source_offset"] + 2 <= contract["helper_source_end"] <= contract["copied_source_end"]
+            and contract["continuation_source_offset"] < contract["copied_source_end"]):
+        raise ValueError("bootstrap requires bounded prefix, helper and comparison extents")
+    return dict(contract)
 
 
 def relocation_plan(

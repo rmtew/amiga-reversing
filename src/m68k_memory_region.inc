@@ -153,7 +153,22 @@ int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
             r->runtime_address,resolved.addresses[i],r->size,resolved.parents[i]>=0 ?
             r->runtime_address-a->policy.memory_regions[resolved.parents[i]].runtime_address : 0)) goto failed;
     }
-    if(json_builder_append(&b,"]}")) goto failed;
+    if(json_builder_append(&b,"],\"bootstrap\":")) goto failed;
+    const M68kBootstrapContractIR *c=NULL;
+    for(size_t bi=0;bi<a->policy.bootstrap_contract_count;bi++)
+      if(!strcmp(layout->bootstrap_contract_id,a->policy.bootstrap_contracts[bi].contract_id)) c=&a->policy.bootstrap_contracts[bi];
+    if(!c) {if(json_builder_append(&b,"null")) goto failed;}
+    else if(json_builder_append(&b,"{\"contract_id\":") || json_builder_append_json_string(&b,c->contract_id) ||
+        json_builder_append(&b,",\"image_region_id\":") || json_builder_append_json_string(&b,c->image_region_id) ||
+        json_builder_append(&b,",\"input_sha256\":") || json_builder_append_json_string(&b,c->input_sha256) ||
+        json_builder_appendf(&b,",\"kind\":\"retained_prefix_copy\",\"variant\":\"%s\","
+          "\"load_address\":%u,\"file_size\":%u,\"copied_source_end\":%u,"
+          "\"helper_source_start\":%u,\"helper_source_end\":%u,\"helper_runtime_address\":%u,"
+          "\"continuation_source_offset\":%u,\"comparison_source_offset\":%u}",
+          layout->bootstrap_forward_disjoint ? "forward_disjoint" : "native",
+          c->load_address,c->file_size,c->copied_source_end,c->helper_source_start,c->helper_source_end,
+          c->helper_runtime_address,c->continuation_source_offset,c->comparison_source_offset)) goto failed;
+    if(json_builder_append(&b,"}")) goto failed;
   }
   if(json_builder_appendf(&b,"],\"total\":%u,\"scope\":\"canonical_fixed_layout_placement_only\"}",a->policy.memory_layout_count)) goto failed;
   *out_text=json_builder_build(&b);json_builder_destroy(&b);return *out_text ? 0 : -1;

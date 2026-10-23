@@ -24,6 +24,18 @@ qualification remain open. Cursor control initialization/DMA continuation and
 the existing snapshot/palette containment must be resolved for that admission.
 These facts do not classify previously unknown bytes or qualify an alternate run.
 
+The subsequent bootstrap slice adds one canonical, input-identity-bound retained
+prefix-copy contract and layout references to it through the same catalog/MAL
+path. Native and disjoint-forward variants retain the initializer; the latter
+permutates the contracted two-byte instruction's address-register operands using
+the generated encoder in the frozen plan. Input hash, copied image/helper views,
+staging bounds, register shape and instruction admission have explicit refusal
+tests. A suppressed helper source ORG is distinguished from the actual copied
+helper. Synthetic native/variant fixtures assemble independently with vasm;
+336 focused integration tests pass (four deselected). No target profile, moved
+workspace or new gameplay/output result is qualified by this mechanism batch.
+See [the interface contract](../restoration-interfaces.md#retained-bootstrap-layout-contracts).
+
 [Baseline/index evidence](../../runtime/observations/pandora-memory-layout-baseline.json)
 records cold native artifact/package measurements and selection of the paired
 cursor-sprite workspace for bounded constraint analysis. The first M1 mechanism

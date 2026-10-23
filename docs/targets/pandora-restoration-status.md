@@ -13,6 +13,12 @@ M0–M2 remain partial: bootstrap contracts, real profiles and independently mov
 block/output qualification are still pending. No new runtime result or unknown
 byte classification is claimed. The nine paused B07 files are unchanged.
 
+The next local mechanism slice supplies the retained prefix-copy contract and
+typed bootstrap variant through normal catalog/MAL/native planning. Its focused
+suite passes 336 tests (four deselected), including independently assembled
+synthetic original/variant fixtures and stale/unsupported input refusal. This
+does not yet qualify real Pandora layout profiles or independently moved storage.
+
 [M0/M1 partial evidence](../../runtime/observations/pandora-memory-layout-baseline.json):
 89 focused tests pass; native materialization indexing replaces view scans and
 byte-by-byte span checks. The full original native source package and nine-region

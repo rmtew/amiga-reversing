@@ -812,6 +812,16 @@ typedef struct M68kMemoryRegionIR {
 } M68kMemoryRegionIR;
 
 #define M68K_MEMORY_LAYOUT_LIMIT 8U
+/* Retain the native prefix-copy initializer. This is an identity-bound export
+ * contract, never authority to remove initialization or infer new pointers. */
+typedef struct M68kBootstrapContractIR {
+  char contract_id[96];
+  char image_region_id[96];
+  char input_sha256[65];
+  uint32_t load_address, file_size, copied_source_end;
+  uint32_t helper_source_start, helper_source_end, helper_runtime_address;
+  uint32_t continuation_source_offset, comparison_source_offset;
+} M68kBootstrapContractIR;
 typedef struct M68kMemoryPlacementIR {
   char region_id[96];
   uint32_t runtime_address;
@@ -821,6 +831,8 @@ typedef struct M68kMemoryLayoutIR {
   uint32_t chip_bytes;
   uint16_t placement_count;
   M68kMemoryPlacementIR placements[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
+  char bootstrap_contract_id[96];
+  uint8_t bootstrap_forward_disjoint;
 } M68kMemoryLayoutIR;
 
 typedef struct M68kAnalysisPolicy {
@@ -885,6 +897,8 @@ typedef struct M68kAnalysisPolicy {
   M68kMemoryRegionIR memory_regions[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
   uint16_t memory_layout_count;
   M68kMemoryLayoutIR memory_layouts[M68K_MEMORY_LAYOUT_LIMIT];
+  uint16_t bootstrap_contract_count;
+  M68kBootstrapContractIR bootstrap_contracts[M68K_MEMORY_LAYOUT_LIMIT];
   /* Export selection is a request, not a mutation of original facts. */
   char selected_memory_layout_id[96];
   M68kAnalysisCustomStruct *custom_structs;

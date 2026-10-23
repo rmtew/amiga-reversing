@@ -83,6 +83,12 @@ int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayou
       layout->placement_count>M68K_ANALYSIS_MEMORY_REGION_LIMIT ||
       (layout->chip_bytes!=0x80000 && layout->chip_bytes!=0x100000))
     return fail(out,-1,"unsupported_layout_profile");
+  if(layout->bootstrap_contract_id[0]) {
+    int found=0;
+    for(size_t i=0;i<p->bootstrap_contract_count;i++)
+      if(!strcmp(layout->bootstrap_contract_id,p->bootstrap_contracts[i].contract_id)) found=1;
+    if(!found) return fail(out,-1,"unknown_bootstrap_contract");
+  }
   out->region_count=p->memory_region_count;
   for(size_t i=0;i<layout->placement_count;i++) {
     if(region_index(p,layout->placements[i].region_id)<0) return fail(out,-1,"unknown_placement_region");
