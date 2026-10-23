@@ -427,3 +427,131 @@ all-optional-path certification is claimed.
 Use the existing experiment command with `--inspect-output` for private PNGs and
 three bounded DMA captures. Original source/binary and nine unfinished B07 files
 remain unchanged. No new PR is used.
+
+
+## Final scoped graphics/audio comparison (2026-10-23)
+
+**Completed**, with original NULL-sprite bounds findings retained.
+[Final receipt](../../runtime/observations/pandora-relocated-output-validation.json)
+and [offline comparator](../../amiga_reversing/tools/pandora_rebase_output_compare.py)
+separate gameplay, assets, device bounds and actual output. This supersedes the
+earlier “output comparison pending” milestone; no universal relocation or
+original packed-loader equivalence is claimed.
+
+Two fresh cold original/relocated runs on the **same A500/ECS/PAL/68000,1MiB
+Chip +512KiB slow** profile passed all576 phases and509 acknowledged controller
+calls (including releases/cleanup). The authored plan has375 input events:
+these are different denominators. Every phase's actual CCK and every controller
+call's arguments/clock matched; captured main-image PCs differ by exactly
+`$70000`. Both selected saved-Earth at frame14,464 and committed at14,465, HP49.
+A separate cold relocated run with **no clock hold** also passed all576 phases,
+ending frame14,351, HP49, with the identical final payload.
+
+All **eight RGBA captures** match without masks: initial star-helper/title
+transition, UI overlay initialization, initial proximity, Engineer card transfer,
+first sonicdriver hit, console ready, post-ending, and settled title after180
+normal no-input frames. The settled capture includes the full PANDORA logo,
+credits and starfield; the ending visibly says Earth is saved. These are eight
+selection points, not a comparison of every video frame.
+
+Mixed **44,100Hz, stereo,32-bit IEEE float PCM** is byte-identical from sample
+441,704 through12,804,988 (end exclusive): **12,363,284 stereo frames /24,726,568
+float samples**, about280.35 seconds, through the recorded post-ending EOF.
+SHA-256 of both compared intervals is
+`3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f`.
+The predeclared interval through20 post-ending frames also matches. There is
+**no fitted shift, resampling, gain adjustment, tolerance or omitted interior
+window**. Pre-game ROM/disk sound before the common handoff is explicitly outside
+the interval. The full-file pre-game difference is retained, not described as
+equal. Per-source prefix captures also showed identical Paula WAV bytes.
+
+### Startup fixture and actual relocation boundary
+
+The earlier fast copy-bypass builds changed the raster phase of initialization.
+Four stable scene pictures matched, but audio did not: per-source capture showed
+drive noise plus a real Paula difference; initial AUD1PER was1988 versus1970.
+Keeping copy duration alone did not settle that offset. Those failures remain
+recorded; they were not accepted using a correlation or an audio tolerance.
+
+The final variant keeps the original **temporary load at `$20000`** and native
+forward copy operation count. ORG changes to `$80000`; the helper's destination
+label and entry label therefore move. Its CMPA operand order is swapped to take
+the forward path for the **disjoint** source/destination intervals, rather than
+the generic backwards path for a higher destination. No calibrated delay loop
+or gameplay-state patch was added. The low helper at `$300` is intentional.
+
+For differential comparison, both guests naturally spin in the unchanged
+pre-game HAND loop until target CCK35,525,500 (frame500); both actually stop at
+35,525,509 with identical PC/registers. Frame500 is a shared settling fixture,
+not a delay fitted to the waveform. It lets ordinary OS/drive activity continue
+before the game starts. The only host memory write is the existing provisioning
+marker at `$7FFF8`: `HAND` (`$48414E44`) → `GO!!` (`$474F2121`), followed by a
+reverse-history anchor. There are **zero host register writes, checkpoint loads,
+artificial game routine calls or gameplay RAM edits**. Guest loader code supplies
+the existing A1=`$20000` entry context. Same pre-GO PC/registers are expected
+because the same loader is executing; relocated game code has not run yet. This
+does not imply all RAM/chip state was identical or that native disk boot is
+reproduced. Actual moved body entry and all576 main-image PC stops are verified.
+
+The full376,832-byte input is staged at `$20000..$7C000`; the349,040-byte prefix
+is copied and verified at `$80000..$D5370`. **All125 exported graphics/audio
+assets and all11 primary sample payloads are inside that prefix**. The opaque
+file suffix remains loader-only at `$75370..$7C000`, preserving the original
+short-copy contract; the known title clear later overwrites this backing. It is
+not claimed mapped at `$D5370`, classified unused, or used as an asset fallback.
+Old-range reads during the native loader copy are expected before the consumed
+boundary; the `$10000..$65370` CPU guard is then armed at moved source `$48C`.
+It stays active through gameplay and post-ending observation. Fixed workspaces
+remain fixed, so this is not a watch of every overlapping temporary-loader byte.
+
+### Asset and DMA checks, including the original exception
+
+126 exported files /295,492 bytes match their manifest hashes and original and
+relocated image slices. Independently parsed11 primary audio payloads (including
+small inline samples), their length/divisor headers,64-byte silence,640-byte
+secondary bank and512-byte blank sprite are unchanged. Pointer tables and
+instruction operands are excluded from raw-asset identity and listed explicitly
+in the source-edit ledger. Runtime mutation is covered by measured output, not
+by pretending seed bytes never change.
+
+Six complete DMA frames **per layout** have identical normalized audio, sprite
+and bitplane data/ordering. Audio targets fit the actual eleven sample extents,
+silence or secondary bank; Copper fetches fit the verified copied image; display
+reads fit the established fixed banks; blitter targets were checked for physical
+Chip-RAM legality, **not** every object's logical extent. Partial first frames
+are discarded explicitly. Both streaming loss counters are zero.
+
+The bounds check also preserves **eight original zero-valued SPR0/1 control
+reads at addresses0/2**, across the first two sampled gameplay frames, before
+cursor installation. They occur at the same beam positions in both layouts;
+source pointers are NULL and the control words are zero. These remain **outside
+certified sprite-asset bounds**. The report's verdict is
+`pass_with_original_bounds_findings`: exact output/stream equivalence, no new
+bounds finding, and no claim of complete original memory safety. Arbitrary
+invalid pointers are not admitted. This is not whole-route DMA coverage.
+
+### Reproduction
+
+Use the qualified local checkout/media prerequisites described above. For each
+control/candidate capture, append `--run --inspect-output --capture-pcm
+--phase-locked-boot`; use `--original-control` for the canonical original and
+`--matched-startup` for the relocated candidate. For settled-title captures add
+`--stop-after title_menu_loop --title-frames 180`. For the independent cold
+completion omit `--phase-locked-boot`. The original source/binary remain intact.
+
+Run the offline comparator with Python containing Pillow (no NumPy required):
+
+```sh
+python amiga_reversing/tools/pandora_rebase_output_compare.py \
+  --original /private/original --candidate /private/relocated \
+  --title-original /private/title-original --title-candidate /private/title-relocated \
+  --target /qualified/targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --output /private/comparison.json
+```
+
+Seventeen focused positive/refusal/corruption tests pass. Canonical C full-file
+exactness and original-ORG vasm pointer-repair exactness are retained. No new
+ROM, media, WAV, PNG, raw slot or checkpoint payload is published. The nine
+unfinished B07 files remain unchanged. Other profiles, original packed-disk
+boot, every frame/optional path and universal DMA/lifetime safety remain outside
+this completed bounded validation.

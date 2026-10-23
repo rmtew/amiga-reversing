@@ -1,6 +1,20 @@
 # Pandora restoration inventory and status
 
-## Relocated gameplay completion; output comparison pending (2026-10-23)
+## Relocated completion and scoped output comparison (2026-10-23)
+
+[Final evidence](../../runtime/observations/pandora-relocated-output-validation.json)
+records matched original/relocated cold runs on the same ECS/1MiB Chip profile:
+576 phase clocks and509 controller calls agree; eight captured frames are pixel
+identical and24,726,568 recorded post-GO float audio samples are byte-identical.
+A separate cold final-payload run without the clock hold completes at HP49.
+126 exported assets and all11 primary audio payloads are unchanged. Six sampled
+DMA frames per layout preserve eight original NULL sprite-control reads at0/2
+as an explicit bounds finding, not certified asset safety. Original byte-exact
+source is retained; this is not every-frame/optional-path, original OCS/packed
+boot or universal DMA equivalence. See the validation report for the explicit
+pre-game HAND/GO fixture and loader-only opaque tail.
+
+### Earlier gameplay-only milestone (superseded)
 
 [Two cold relocated completions](../../runtime/observations/pandora-relocated-completion.json)
 pass all576 phases at `$80000` on the separate ECS/1MiB Chip profile, HP49,
