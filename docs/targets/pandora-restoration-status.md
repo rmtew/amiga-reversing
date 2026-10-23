@@ -4,11 +4,15 @@
 
 [Proposal 046](../proposals/046-canonical-memory-layouts.md) audits the existing
 region/address-domain/export implementation and the successful relocation
-experiment. It proposes a normal-export original/`$80000` vertical slice with
-explicit bootstrap contracts, indexed resolution and deletion gates for the
-experimental source patches. No architecture implementation or new runtime
-qualification is included in this documentation milestone. Workspace/display
-movement, runtime allocation and OS-hosted lifecycle remain separate gates.
+experiment. Its first delivery includes canonical image/code, workspace and
+display base-plus-offset regions; normal-export original and known `$80000`
+layouts; and at least one independently moved workspace or display block selected
+from actual reference/alias/DMA constraints. Both region kinds are represented;
+both need not physically move. Image-only qualification cannot close delivery.
+Explicit bootstrap contracts, indexed resolution and deletion gates for the
+experimental patches remain required. Runtime allocation and OS-hosted lifecycle
+are separate later gates. This documentation revision implements no architecture
+and performs no new runtime qualification.
 
 ## Relocated completion and scoped output comparison (2026-10-23)
 

@@ -475,7 +475,9 @@ stdio lifecycle: [SDK documentation](https://py.sdk.modelcontextprotocol.io/) an
 
 [Proposal 046](proposals/046-canonical-memory-layouts.md) describes the proposed
 canonical multi-region/layout and normal-export successor, including migration
-and deletion gates. The operations below remain the implemented narrow contract;
+and deletion gates. Proposed first-delivery acceptance includes image, workspace
+and display modelling plus an independently moved workspace or display block,
+not only image rebasing. The operations below remain the implemented narrow contract;
 the separate successful Pandora source-patched experiment does not extend their
 admission capabilities.
 

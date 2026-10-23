@@ -2,9 +2,12 @@
 
 > Canonical memory-region/layout export is designed in
 > [Proposal 046](../proposals/046-canonical-memory-layouts.md).
-> It proposes replacing the successful experimental fixed-layout source patches
-> through the normal exporter before considering workspace/display moves or
-> OS-hosted output. This is a design roadmap, not implemented layout support.
+> Its first delivery includes canonical image/code, workspace and display
+> base-plus-offset modelling, normal-export original and known `$80000` layouts,
+> and at least one independently moved workspace or display block. Image-only
+> qualification is an internal step, not completed delivery. Runtime allocation
+> and OS-hosted output remain separate later gates. This is a design roadmap,
+> not implemented layout support.
 
 > Behavioural validation is tracked in [Proposal 045](../proposals/045-behavioural-validation.md).
 > Its B01–B10 commitments distinguish framework capability from target coverage;
