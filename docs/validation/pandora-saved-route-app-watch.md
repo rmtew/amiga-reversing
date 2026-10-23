@@ -380,3 +380,50 @@ it does not import held B07 changes into master or publish their files. The
 qualified runtime and private prerequisites are required, not a standalone public
 reproduction bundle. PR5 was unmerged at the experiment milestone; the later
 master consolidation is recorded in the target status.
+
+
+## Relocated saved-Earth completion (2026-10-23)
+
+The explicit `$80000` experiment now completes the existing normal-input route
+from cold boot, twice: **576 phases**, HP49, ending frame14,278. Moved PC
+`$CC9DC` selects message `$CCAE5`; state is FF and flags5C. A 30-frame
+postlude visibly displays “PANDORA IS DESTROYED. EARTH IS SAVED.” The repeat's
+phase frame/CCK positions and all509 acknowledged controller calls (including
+cleanup) match the first relocated success. The375 authored input events and
+actual controller actions match the original route; no goal assertion was relaxed.
+
+The retained failures identified three connected fixes: six receptacle restart
+pointers and six interaction-data fields; the player's absolute callback/self
+jump; eight combat geometry pointers and two related descriptors. Blank sprite/
+mask aliases also now use the existing moved data label, including Copper high/
+low words. The21 symbolic edit groups are experiment-only. They assemble to the
+**exact original full file at the original ORG** under vasm; canonical source is
+unchanged and still passes the C full-file exact check. All7,059 instruction
+extents remain unchanged. No byte-looking constants were scanned/replaced.
+
+The old-image synchronous CPU guard reported no access after repair. Both loss
+counters were zero across262 live heartbeat notifications. Separate DMA profiles
+cover six complete frames:411–412,3953–3954 and14280–14281, with no old-image
+transfer. Audio/Copper and sprite accesses include moved-image data; bitplanes
+retain fixed buffers. Partial first frames are excluded, not treated as complete.
+These are representative DMA observations, not whole-route DMA coverage. Native
+[screen captures](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/control.md#framebuffer-capture)
+were visually inspected; image files remain private.
+
+Asset comparison verifies **126 exported files /295,492 bytes**, including seven
+sound assets,118 bitmap assets and the opaque tail: each manifest hash and each
+original/relocated image slice match. Inline records, pointer tables, instruction
+operands and runtime-mutated data are outside that raw-asset check; changed
+symbolic source groups are enumerated separately in the receipt.
+
+[Completion evidence](../../runtime/observations/pandora-relocated-completion.json)
+retains failures, identities, asset extents/hashes and sampled DMA counts. The
+profile remains separate1MiB Chip/ECS. **Gameplay completion and asset integrity
+are established; matched original-versus-relocated graphics/PCM comparison is
+still required and in progress.** Screenshot coherence and sampled valid DMA
+addresses do not establish pixel or audio equivalence. No original-profile or
+all-optional-path certification is claimed.
+
+Use the existing experiment command with `--inspect-output` for private PNGs and
+three bounded DMA captures. Original source/binary and nine unfinished B07 files
+remain unchanged. No new PR is used.

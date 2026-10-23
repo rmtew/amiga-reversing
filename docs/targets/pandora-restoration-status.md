@@ -1,5 +1,15 @@
 # Pandora restoration inventory and status
 
+## Relocated gameplay completion; output comparison pending (2026-10-23)
+
+[Two cold relocated completions](../../runtime/observations/pandora-relocated-completion.json)
+pass all576 phases at `$80000` on the separate ECS/1MiB Chip profile, HP49,
+with the visible saved-Earth ending. Original byte-exact source is preserved.
+126 exported asset files are unchanged; six complete sampled DMA frames have
+no old-image transfers. Same-profile differential graphics/PCM validation is
+now part of acceptance and remains in progress; these results do not claim it.
+
+
 ## Master consolidation (2026-10-23)
 
 The user explicitly requested direct master publication and integration of PR5,
