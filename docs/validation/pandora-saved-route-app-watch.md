@@ -220,3 +220,55 @@ register-save population, profile writers and original receptacle seeds. Focused
 validation uses this real retained dataset and controlled inconsistent-input
 refusals; no target source generation, byte-exact rebuild, generic behaviour
 programme, PR5 merge or B07 work is added.
+
+## Alternate-execution experiment: feasibility halt (2026-10-23)
+
+**HALTED before artifact construction or emulator execution.** The requested
+experiment was a moved execution layout, with startup prevented from restoring
+it to`$10000`, old-address observations, and the qualified ending route. Merely
+rerunning the original layout or moving the already supported two-byte volume
+field would not answer that question.
+
+Minimal inspection established these boundaries:
+
+- The [Pandora direct contract](../../runtime/direct_payload_contracts/pandora.json)
+  loads the376,832-byte file at`$20000`, but its native bootstrap copies
+  source`0..$55370` to`$10000..$65370` and enters`$1046A`. Changing the load address
+  alone does not move gameplay execution.
+- [Derived artifact admission](../../amiga_reversing/disasm/derived_artifact.py)
+  explicitly rewrites fixed-width references **without moving code**. Its
+  mapped-region initialization must equal the original source bytes. The
+  single-region planner/build path in
+  [memory_regions.py](../../amiga_reversing/disasm/memory_regions.py) is not a
+  whole-image rebase/copy-bypass emitter. Existing volume relocation at`$65400`
+  is a data-only example; it is not an alternate code-layout result.
+- [Direct runtime binding](../../amiga_reversing/tools/direct_payload_adapter.py)
+  retains the original load/entry/materialization contract, requires a unique
+  native copied-source view, and rejects mapped-region destinations overlapping
+  the materialized game storage.
+  No inspected canonical operation emits a moved-code manifest plus its new
+  copy/entry mapping. Hand-editing ORG or suppressing these checks would not
+  supply that missing capability.
+- A legal placement cannot assume the entire image can move to slow RAM: its
+  DMA-used data and fixed chip buffers need compatible placements. The current
+  native planner also refuses overlapping semantic source identities rather
+  than implementing coordinated moves. No new candidate allocation was claimed
+  safe or attempted.
+- The completed MMIO subscription observes CPU **data** accesses, not instruction
+  fetches or DMA. It must not be advertised as a fetch trap for this experiment.
+  Fetch/data/DMA observation design is deferred until an admitted alternate
+  image exists; no unsupported watch claim is made.
+
+**Actual moved PC/data addresses: none.** No alternate configuration/patch facts,
+derived binary, allocation, reference repair, old-address watch or gameplay run
+was produced. No original-layout substitute test, broad semantic audit or new
+framework work was started. Original source/binary and all nine B07 files remain
+unchanged; PR5 is unmerged and native-C work remains paused.
+
+The precise unsupported action is constructing/admitting a rebased executable
+image for this target using existing capabilities. It was **not attempted beyond
+read-only feasibility inspection**, not denied by permissions, and has no pending
+or uncertain execution outcome. Next decision: separately authorize a bounded
+executable-rebase/copy-bypass and runtime-mapping capability, or explicitly narrow
+the experiment to an existing supported data-region relocation. Neither is
+silently substituted for the requested experiment.
