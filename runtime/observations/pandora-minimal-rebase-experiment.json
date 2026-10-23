@@ -1,0 +1,254 @@
+{
+  "schema": "pandora-explicit-rebase-experiment-v1",
+  "outcome": "moved_execution_confirmed_first_stale_pointer_stop",
+  "experimental_only": true,
+  "qualified_original_checkout_commit": "666b373ca9b612e0f4ad8eb92bd0a797d9389a89",
+  "master_parent": "61bc75f3ab419124153b1cc692061eec275eba3c",
+  "tool": "amiga_reversing/tools/pandora_minimal_rebase_experiment.py",
+  "identities": {
+    "tool_sha256": "6bc5b5de677e84e7315744fc677ee52b5c281b4727bf5a32a1078d8b5ad9f7e9",
+    "original_source_sha256": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "original_binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "7df4c4139c1ac88bc6802c882ab3f26e4979a204ab369da5fe30c3669bbc9832",
+    "payload_sha256": "eb31e7600976cd96fb4a7b80b9ce7821b899c6b7c699c427701ab94262f5f08a"
+  },
+  "private_evidence_sha256": {
+    "report.json": "0076e0fb192ef12fc3296b46878cd22c18f707edfa2a8566abea000269eb8821",
+    "experiment-config.json": "e3c90b26085848de57398ede0ff3887063dddbafa69cc339dd25a98c689d96e6",
+    "runtime-scenario.json": "ce64e3ff1d6ae958f8a7e6d9cba8139bd182586a2091ec8b3fb5d747c9e541a9",
+    "assemble.log": "58493661c3c7199276d08b5273320187e917b06af0c35087797c3e1015cf6743"
+  },
+  "environment_identities": {
+    "adf_sha256": "f41f3b4ff3cfb2832dec60bfdc0bb108a9be3e81d46f0d39beb5ac8ae7f1d048",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c"
+  },
+  "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+  "assembler_options": [
+    "-Fbin",
+    "-m68000",
+    "-no-opt"
+  ],
+  "build": {
+    "source_edits": [
+      {
+        "before": "    ORG $10000",
+        "after": "    ORG $80000"
+      },
+      {
+        "before": "\tlea.l fixed_base_image_copy_stub(pc),a0",
+        "after": "\tbra.w initialize_runtime_workspace"
+      }
+    ],
+    "payload_size": 376832,
+    "full_loaded_image_half_open": [
+      524288,
+      901120
+    ],
+    "old_materialized_image_half_open": [
+      65536,
+      414576
+    ],
+    "profile": {
+      "model": "A500",
+      "chipset": "ECS",
+      "video": "PAL",
+      "cpu": "68000",
+      "chip": "1M",
+      "slow": "512K",
+      "fast": "0"
+    },
+    "original_profile_equivalence_claimed": false,
+    "layout": "Full image remains in 1 MiB Chip RAM, above original image, fixed app/tile-grid and framebuffer workspaces; marker is below image at $7FFF8.",
+    "native_instruction_extents_checked": 7059,
+    "changed_instruction_extents": 0,
+    "general_native_plan_admission": false
+  },
+  "execution": {
+    "handoff": {
+      "payload_sha256": "eb31e7600976cd96fb4a7b80b9ce7821b899c6b7c699c427701ab94262f5f08a",
+      "size": 376832,
+      "load_address": 524288,
+      "status": "verified"
+    },
+    "moved_pcs": [
+      {
+        "source_offset": 0,
+        "runtime_pc": 524288,
+        "frame": 386
+      },
+      {
+        "source_offset": 1130,
+        "runtime_pc": 525418,
+        "frame": 386
+      },
+      {
+        "source_offset": 1164,
+        "runtime_pc": 525452,
+        "frame": 386
+      }
+    ],
+    "guards": {
+      "CPU_data": {
+        "kind": "mmio",
+        "addr": 65536,
+        "len": 349040,
+        "access": "access"
+      },
+      "fallback_PC_sentinels": [
+        65536,
+        66666
+      ],
+      "all_instruction_fetches_covered": false,
+      "DMA_covered": false,
+      "readback": {
+        "breaks": [
+          {
+            "addr": 65536,
+            "hits": 0,
+            "id": 6,
+            "ignore": 0,
+            "kind": "pc"
+          },
+          {
+            "addr": 66666,
+            "hits": 0,
+            "id": 7,
+            "ignore": 0,
+            "kind": "pc"
+          },
+          {
+            "access": "access",
+            "addr": 65536,
+            "id": 5,
+            "kind": "mmio",
+            "len": 349040
+          }
+        ]
+      }
+    },
+    "first_access": {
+      "access": "read",
+      "addr": 362716,
+      "pc": 565104,
+      "position": {
+        "cck": 28343584,
+        "frame": 398,
+        "hpos": 137,
+        "seconds": 7.991097565617251,
+        "vpos": 287
+      },
+      "size": 4,
+      "value": 0
+    },
+    "paused_pc": 565108,
+    "registers": {
+      "d0": 4294911760,
+      "d1": 1784,
+      "d2": 0,
+      "d3": 0,
+      "d4": 0,
+      "d5": 0,
+      "d6": 65535,
+      "d7": 5,
+      "a0": 821422,
+      "a1": 362690,
+      "a2": 0,
+      "a3": 62104,
+      "a4": 62824,
+      "a5": 14675968,
+      "a6": 14844,
+      "a7": 525386,
+      "pc": 565108,
+      "sr": 9984,
+      "sp": 525386
+    },
+    "call_context": {
+      "stack_pointer": 525386,
+      "saved_a5": 14675968,
+      "return_pc_at_sp_plus_4": 525532,
+      "caller_source_jsr": 1238
+    },
+    "first_phase": "title_menu_loop",
+    "phase_status": "not_hit",
+    "normal_route_inputs_emitted": 0,
+    "cleanup_releases_acknowledged": 2,
+    "ending_tested": false,
+    "ending_completed": false
+  },
+  "attribution": {
+    "access_source_offset": 40816,
+    "instruction": "movea.l world_position_state_record_interaction_data_ptr(a1),a2",
+    "instruction_bytes": "2469001a",
+    "base_register": "a1",
+    "base_value": 362690,
+    "field_offset": 26,
+    "effective_address": 362716,
+    "producer_table": "scene_restart_receptacle_state_ptrs",
+    "table_source_offset": 297130,
+    "moved_table_address": 821418,
+    "pointer_source_offset": 297130,
+    "retained_pointer": 362690,
+    "expected_moved_pointer": 821442,
+    "target_label": "item_receptacle_lifecycle_records",
+    "target_source_offset": 297154,
+    "source_representation": "First entry is a literal $000588C2; remaining five use fixed original-runtime EQU aliases.",
+    "suggested_next_repair": "Replace the evidenced table reference with its source symbol in the explicit experiment; inspect the connected six-entry table. No repair applied in this batch."
+  },
+  "validation": {
+    "cold_runs_with_same_first_failure": 2,
+    "public_script_live_runs": 1,
+    "prototype_and_public_payload_identical": true,
+    "source_and_original_binary_unchanged": true,
+    "nine_paused_B07_files_unchanged": true,
+    "pointer_table_original_and_experiment_bytes_equal": true,
+    "effective_address_matches_base_plus_offset": true
+  },
+  "limits": [
+    "Separate ECS/1 MiB Chip RAM diagnostic profile, not original-profile equivalence.",
+    "CPU data guard and two PC sentinels only; no exhaustive instruction-fetch or DMA observation.",
+    "Stops before title and ordinary route inputs; no relocated walkthrough or ending claim.",
+    "Original-layout app semantic unknown counts are unchanged.",
+    "Private media, source package, raw reports and checkpoints are not published."
+  ],
+  "relocation_scope": {
+    "image": "Entire file, code and embedded assets moved by ORG; source-label operands follow the assembler. Fixed EQU constants and raw numeric pointer words do not.",
+    "fixed_app_base": 14844,
+    "fixed_framebuffer_banks": [
+      458752,
+      491520
+    ],
+    "fixed_split_bitplanes": [
+      479232,
+      479272,
+      479312,
+      479352
+    ],
+    "gameplay_copper_list": {
+      "source_offset": 2538,
+      "original_runtime": 68074,
+      "experimental_runtime": 526826,
+      "installation": "PC-relative LEA then COP1LC; list moved, hardware destination remains fixed"
+    },
+    "blank_sprite_data": {
+      "source_offset": 316894,
+      "original_runtime": 382430,
+      "experimental_runtime": 841182,
+      "symbolic_cpu_and_blitter_operands_resolve_to": 841182,
+      "copper_sprite_high_low_words_still_resolve_to": 382430,
+      "stale_dma_reference_observed_live": false
+    },
+    "fixed_cursor_sprite_buffers": [
+      414576,
+      414644
+    ],
+    "audio": {
+      "sample_record_stream": 846552,
+      "sample_0_payload": 846558,
+      "silence_payload": 872458,
+      "pointer_derivation": "Initializer uses PC-relative stream, stores payload addresses in metadata, service writes pointers to AUDxLC.",
+      "DMA_execution_qualified": false
+    },
+    "scope_check": "Examples verified against source and assembled listing only; not an exhaustive relocation audit or DMA test."
+  }
+}

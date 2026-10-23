@@ -221,7 +221,10 @@ validation uses this real retained dataset and controlled inconsistent-input
 refusals; no target source generation, byte-exact rebuild, generic behaviour
 programme, PR5 merge or B07 work is added.
 
-## Alternate-execution experiment: feasibility halt (2026-10-23)
+## Initial alternate-execution feasibility halt (2026-10-23)
+
+Historical result at `61bc75f3`; superseded by the explicitly authorized minimal
+build experiment below. General derived-artifact admission remains unsupported.
 
 **HALTED before artifact construction or emulator execution.** The requested
 experiment was a moved execution layout, with startup prevented from restoring
@@ -272,3 +275,107 @@ or uncertain execution outcome. Next decision: separately authorize a bounded
 executable-rebase/copy-bypass and runtime-mapping capability, or explicitly narrow
 the experiment to an existing supported data-region relocation. Neither is
 silently substituted for the requested experiment.
+
+
+## Minimal alternate-execution experiment (2026-10-23)
+
+**Moved execution confirmed; stopped at the first stale original-image pointer.**
+Following explicit authorization to use a separate assembly/startup experiment,
+[the small runner](../../amiga_reversing/tools/pandora_minimal_rebase_experiment.py)
+changes only `ORG $10000` to `ORG $80000` and replaces the bootstrap's first
+copy-helper LEA with `bra.w initialize_runtime_workspace`. Hardware interrupt/DMA
+clearing and the workspace/supervisor initialization remain. The original source,
+binary, native contract and nine paused B07 files are unchanged. This is an
+explicit experimental boot contract, not general native-plan admission.
+
+The original 512 KiB Chip RAM profile cannot hold the disjoint image here. This
+experiment uses a separate A500/ECS/PAL/68000, **1 MiB Chip RAM**, 512 KiB slow RAM
+profile. The **entire 376,832-byte file** occupies `$80000..$DC000` (end exclusive),
+inside Chip RAM, above the original image, fixed low workspace/tile grid,
+framebuffers and `$7FFF8` boot marker. No original-profile equivalence is claimed.
+The original DMA-used data therefore remains Chip-addressable; that placement
+alone does not prove relocated DMA references correct.
+
+`vasm -Fbin -m68000 -no-opt` built the image; all **7,059** retained instruction
+extents keep their original size. Two cold runs (prototype and published script)
+produced the same payload and first failure. The boot handoff verified the full
+loaded payload. Actual PC stops were `$80000`, `$8046A` and `$8048C`, all at frame
+386: execution did not copy back to `$10000`.
+
+The existing saved-Earth scenario was reused with source-offset PC observations
+projected to the new base. Fixed workspace observations stay fixed. Only three
+explicit pointer-field expectations are projected; scalar bytes are not scanned
+for address-looking values. No gameplay condition/assertion is relaxed. A verified
+CPU data watch covers `$10000..$65370`; PC sentinels cover only `$10000` and
+`$1046A`, **not every instruction fetch**. DMA is not watched.
+
+At frame **398**, before the title phase or any normal route input, the guard
+stopped a LONG read:
+
+| Evidence | Observed value |
+| --- | --- |
+| Access PC / source offset | `$89F70` / `$9F70` |
+| Instruction | `movea.l world_position_state_record_interaction_data_ptr(a1),a2` |
+| A1 / displacement / effective address | `$588C2` / `$1A` / `$588DC` |
+| Read value / post-access PC | `0` / `$89F74` |
+| Pointer table source / moved address | `$488AA` / `$C88AA` |
+| Retained first pointer / required moved target | `$588C2` / `$C88C2` |
+| Caller return at SP+4 | `$804DC`, after source `$4D6` JSR |
+
+`scene_restart_receptacle_state_ptrs` moved, but its first entry is the literal
+`$000588C2`; the other five entries use fixed original-runtime EQU aliases.
+The original and experimental table bytes match. Its first target is the existing
+`item_receptacle_lifecycle_records` label at source `$488C2`. A0=`$C88AE` after
+reading that first entry and A1+`$1A` exactly matches the watched address. This is
+an evidenced missing symbolic relocation, not an inference from a crash alone.
+The next bounded repair is to symbolize the evidenced table reference and review
+its connected entries, then rerun to the next concrete failure. **No reference
+repair was applied in this batch.**
+
+### What moved, including display and DMA references
+
+This changed the **whole assembled image and execution**, not every address in
+the machine. Source labels resolve at the new ORG; fixed EQU constants and raw
+numeric pointers retain their values. Source/listing cross-checks establish:
+
+| Area | Experimental scope |
+| --- | --- |
+| App/workspaces | `APP_STATE_BASE=$39FC` and other explicit fixed workspaces stay fixed. |
+| Gameplay Copper list | Source `$9EA` now at `$809EA`; PC-relative LEA installs this moved address into COP1LC. |
+| Main bitplanes | Banks remain `$70000/$78000`. VBL reads the selected app display pointer and writes four BPL pointers at 40-byte spacing. These are intentionally fixed buffers. |
+| Copper split bitplanes | High/low words retain `$75000/$75028/$75050/$75078`, also fixed framebuffer addresses. |
+| Sprite image vs Copper words | `blank_sprite_data` moved `$5D5DE` → `$CD5DE`; symbolic CPU LEAs and `#blank_sprite_data` blitter source resolve to `$CD5DE`. Copper sprite words still use the fixed `sprite_0005D5DE` EQU, retaining `$5D5DE`: a static stale-reference lead, not yet a live DMA result. |
+| Cursor sprites | Separately initialized DMA buffers remain fixed at `$65370/$653B4`; app slots select their hardware pointers. |
+| Audio assets | Record stream is now `$CEAD8`, sample 0 `$CEADE`, silence `$D500A`. The PC-relative initializer derives payload pointers into metadata; service later writes them to AUDxLC. Actual relocated audio/DMA execution has not been qualified. |
+
+The Copper and audio examples are static assembled results. The live run stops
+before their setup completes, so they are not evidence that all DMA references
+are repaired. Hardware register addresses stay fixed throughout. There was no
+blanket replacement of address-looking words, and the stale receptacle pointer
+shows exactly why moving ORG alone is incomplete.
+
+[Sanitized evidence and artifact identities](../../runtime/observations/pandora-minimal-rebase-experiment.json)
+bind the build, two-run result and first-access attribution. Original-layout
+semantic unknown accounting is unchanged. The relocated completion route has
+**not** run: this result establishes moved execution and the first missed
+reference only. Proprietary source/assets, binaries, ADF, ROM and raw captures
+remain private.
+
+Reproduce with the retained qualified checkout at `666b373c`, including its
+identity-matched source package, instruction inventory and qualified compiled
+ending scenario. The command deliberately refuses changed source/binary identities
+and requires a fresh private output directory. `--run` requires local legal media
+and Copperline; omit it for build/extent validation only:
+
+```sh
+/path/to/qualified-checkout/.venv/bin/python \
+  amiga_reversing/tools/pandora_minimal_rebase_experiment.py \
+  --qualified-checkout /path/to/qualified-checkout \
+  --output /private/pandora-rebase-run \
+  --run --rom /private/kick13.rom --copperline /path/to/copperline
+```
+
+The script uses the explicitly qualified checkout's existing runtime by pathname;
+it does not import held B07 changes into master or publish their files. The
+qualified runtime and private prerequisites are required, not a standalone public
+reproduction bundle. PR5 remains unmerged.
