@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "starting_commit": "ae46b0c176888468d3640ee1278e66141ad75e79",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do receptacle entry latching, attachment/item transfers, one-time brain feedback and six-record restart interact?",
+  "source_spans": {
+    "counted_dispatch": [
+      32240,
+      32312
+    ],
+    "scan_epilogue": [
+      32514,
+      32520
+    ],
+    "receptacle_protocol": [
+      32892,
+      33122
+    ],
+    "brain_feedback_entry": [
+      316158,
+      316164
+    ],
+    "restart_receptacles": [
+      40806,
+      40838
+    ],
+    "restart_pointer_array": [
+      297130,
+      297154
+    ]
+  },
+  "facts": {
+    "accepted_actions": 45,
+    "labels": 8,
+    "equates": 10,
+    "operand_bindings": 15,
+    "unique_bound_instruction_rows": 14,
+    "canonical_pointer_references": 6,
+    "semantic_comments": 6,
+    "new_owners_or_types": 0
+  },
+  "labels": {
+    "32260": "visit_next_world_interaction_descriptor",
+    "32514": "advance_world_interaction_descriptor",
+    "32518": "return_from_world_interaction_service",
+    "32520": "handle_checkpoint_contact_interaction",
+    "32946": "measure_receptacle_vertical_distance",
+    "32952": "test_receptacle_wrapped_manhattan_distance",
+    "33100": "return_from_receptacle_pickup",
+    "316158": "start_brain_pickup_feedback_audio"
+  },
+  "operand_bindings": [
+    [
+      32282,
+      "WORLD_STATE_CHECKPOINT_INTERACTION_BIT",
+      4,
+      "immediate"
+    ],
+    [
+      32292,
+      "WORLD_STATE_RECEPTACLE_INTERACTION_BIT",
+      2,
+      "immediate"
+    ],
+    [
+      32302,
+      "WORLD_STATE_PROXIMITY_ANIMATION_BIT",
+      0,
+      "immediate"
+    ],
+    [
+      32892,
+      "WORLD_OBJECT_INACTIVE_BIT",
+      1,
+      "immediate"
+    ],
+    [
+      32918,
+      "RECEPTACLE_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32922,
+      "RECEPTACLE_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32934,
+      "RECEPTACLE_COORDINATE_BIAS",
+      16,
+      "immediate"
+    ],
+    [
+      32954,
+      "RECEPTACLE_EXCLUSIVE_MANHATTAN_DISTANCE",
+      28,
+      "immediate"
+    ],
+    [
+      32966,
+      "RECEPTACLE_NEARBY_ATTEMPT_LATCH_BIT",
+      0,
+      "immediate"
+    ],
+    [
+      33112,
+      "RECEPTACLE_NEARBY_ATTEMPT_LATCH_BIT",
+      0,
+      "immediate"
+    ],
+    [
+      33032,
+      "RECEPTACLE_PICKUP_HELD_ID_LIMIT",
+      2,
+      "immediate"
+    ],
+    [
+      33058,
+      "WORLD_OBJECT_SELECTED_ITEM_DISP",
+      70,
+      "displacement"
+    ],
+    [
+      33076,
+      "RECEPTACLE_BRAIN_PICKUP_HIT_POINTS",
+      95,
+      "immediate"
+    ],
+    [
+      33076,
+      "WORLD_OBJECT_HIT_POINTS_DISP",
+      60,
+      "displacement"
+    ],
+    [
+      316158,
+      "BRAIN_PICKUP_AUDIO_SEQUENCE",
+      284,
+      "immediate"
+    ]
+  ],
+  "restart_pointer_references": [
+    {
+      "source_offset": 297130,
+      "target_offset": 297154,
+      "source_value": 362690,
+      "layout_id": "catalog-caa6d18783f946d7a442533a3b45bfb8",
+      "target_name": "item_receptacle_lifecycle_records"
+    },
+    {
+      "source_offset": 297134,
+      "target_offset": 297220,
+      "source_value": 362756,
+      "layout_id": "catalog-caa6d18783f946d7a442533a3b45bfb8",
+      "target_name": "item_receptacle_1_primary_state"
+    },
+    {
+      "source_offset": 297138,
+      "target_offset": 297286,
+      "source_value": 362822,
+      "layout_id": "catalog-caa6d18783f946d7a442533a3b45bfb8",
+      "target_name": "item_receptacle_2_primary_state"
+    },
+    {
+      "source_offset": 297142,
+      "target_offset": 297352,
+      "source_value": 362888,
+      "layout_id": "catalog-caa6d18783f946d7a442533a3b45bfb8",
+      "target_name": "item_receptacle_3_primary_state"
+    },
+    {
+      "source_offset": 297146,
+      "target_offset": 297418,
+      "source_value": 362954,
+      "layout_id": "catalog-caa6d18783f946d7a442533a3b45bfb8",
+      "target_name": "item_receptacle_4_primary_state"
+    },
+    {
+      "source_offset": 297150,
+      "target_offset": 297514,
+      "source_value": 363050,
+      "layout_id": "catalog-caa6d18783f946d7a442533a3b45bfb8",
+      "target_name": "item_receptacle_5_primary_state"
+    }
+  ],
+  "semantics": {
+    "dispatch": "Counted descriptor traversal first skips NULL state and outside-view bit0 of interaction_flags. Within world_object_flags, checkpoint role bit4 wins over receptacle bit2, then proximity-animation bit0. Inactive player bit1 skips receptacle handling. Transfer success returns from the entire service; rejected/latched/far paths continue the counted scan.",
+    "distance": "Descriptor WORD XY plus state WORD offsets, then16 on each axis; player WORD XY also plus16. Subtractions, signed-negative magnitude and sum wrap modulo65536. Unsigned wrapped sum below28 enters range. Full signed-minimum magnitude stays8000. This is not unbounded Manhattan distance.",
+    "entry_latch": "Near handling sets interaction flags bit0 before phase/item checks. An already-set bit skips all following work; even a busy hand or incorrect return consumes the attempt. The first attempt clears movement_commit_inhibited. Far handling clears only bit0, retaining other flag bits; NULL interaction data is guarded only on that far path. No fire-button check.",
+    "pickup": "Historic deposit_item_in_receptacle copies state.attachment_state_ptr into data.stored_attachment_state_ptr, clears the state pointer and gives the unfiltered required ID to player.selected_item_id. Held IDs0/1 qualify, IDs2..255 skip. NULL attachment is not rejected. Selected-name refresh is called, then non-brain or already-latched brain returns from the entire service. Existing public names remain unchanged.",
+    "return": "A nonzero saved attachment chooses exact BYTE required/held comparison, including IDs0/1. Match restores the saved attachment into the state, clears the saved pointer and selected ID, then tail-returns through selected-name refresh. Mismatch attempts incorrect-item and blank scrolling messages, retaining phase/item values and continuing to a second descriptor in the complete witness.",
+    "brain": "Required item ID104 takes the existing one-time event-bit0 path. First pickup assigns the full HP WORD95 even from96,255 or65535; it does not add or clamp upward. Original health drawing and feedback sequence011C complete; A4 becomes health overlay and A5 player. With event bit0 already set, pickup still transfers item while skipping HP/display/audio effect. Native analysis has one observed direct caller of this feedback entry; indirect-caller closure is not asserted.",
+    "restart": "The original six-LONG table has a24-byte owner and no sentinel. Each of six visits clears the whole interaction flags BYTE. Nonzero saved pointer restores attachment and is cleared; NULL preserves current attachment. Shared interaction data is consumed by the first state, so later aliases preserve theirs. Required item IDs survive. All64 saved-pointer presence masks are covered on the six original records."
+  },
+  "coverage": {
+    "distinct_cpu_pytest_cases": 33,
+    "distance_axis_word_inputs": 131072,
+    "wrapped_sum_cases": 8,
+    "state_role_flag_bytes": 256,
+    "player_activity_flag_bytes": 256,
+    "attempt_latch_flag_bytes": 256,
+    "brain_event_flag_bytes": 256,
+    "required_held_id_pairs": 65536,
+    "held_eligibility_ids": 256,
+    "copied_required_ids": 256,
+    "pickup_hand_attachment_variants": 4,
+    "full_item_return": 1,
+    "wrong_return_two_descriptor_continuation": 1,
+    "reentry_case": 1,
+    "full_brain_health_values": [
+      0,
+      94,
+      95,
+      96,
+      255,
+      65535
+    ],
+    "already_latched_brain_pickup": 1,
+    "original_reset_records": 6,
+    "reset_presence_masks": 64,
+    "shared_reset_data_case": 1,
+    "test_file": "tests/test_pandora_receptacle_protocol.py",
+    "execution_notes": "Twenty-one initially passing cases were retained. The comparison fixture was corrected to supply its required A3 input. The six brain cases use a fresh independent call frame after real audio initialization. The wrong-return witness was strengthened and rerun to visit a second NULL-state descriptor. The final33 distinct cases are covered by the successful focused runs; unchanged cases were not repeated.",
+    "ui_scope": "Selected-name refresh is invoked in inventory-panel mode4 and returns immediately. Six brain witnesses execute real health drawing and original audio initialization/feedback. Flat16MB RAM supplies MMIO shadow values and valid original UI/font/audio data. Bounded write summaries may overflow; guest memory and normal return are checked."
+  },
+  "native_verification": "All8 labels and15 operand bindings checked after append. All six explicit restart references pass outgoing and incoming coordinate queries at their exact source cells and existing target owners. Existing six-byte interaction records, conditional state tails,24-byte restart array and historical helper names retain identity/bounds. Reference identity uses the existing copied-payload source view; it does not prove copy completion, pointer immutability or lifetime.",
+  "reference_presentation": "The first restart LONG remains numeric; the other five use standard encoded-value EQU spellings. All six nevertheless have explicit canonical targets and bidirectional native references. No source-owner label expression or runtime-view materialization is forced, and fully semantic pointer spellings are not claimed.",
+  "framework": {
+    "implementation_changes": false,
+    "reused_focused_framework_checks": 48,
+    "reused_native_checks": 819,
+    "preparation_benchmark_repeated": false,
+    "reason": "Only target interpretation facts, generated source, documentation and original-byte CPU tests changed; the framework and CPU implementation are unchanged from ae46b0c1."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "3e48ab64bea8ff7297b83f25f2ea6ec8785b8dd2da80cba43913a6ccb34a9db9",
+    "source_audit": "Every prior source line retained outside14 bound operand rows,8 label substitutions and the24-byte pointer-table presentation. Every old comment and hardware/SDK expression, all owner identities/extents, element kinds/counts/strides and type bindings, all86 assets, both raw gaps and both complete history prefixes pass. Only the intended canonical first-element reference annotation was added within the existing array layout. Exactly45 actions and45 acceptance decisions appended; timestamp-only project metadata restored. Manifest differences restricted to source bytes/hash, metadata hash and row identities.",
+    "known_unrelated_boundary": "Previously reproduced bootstrap-copy fixture reports full_source_policy_load_view where its assertion expects overlaid_by_runtime_copy; unchanged and not counted as passing."
+  },
+  "limits": "Focused original-code execution under the existing copied-payload view,16MB flat RAM, valid initialized data and fresh disjoint call frames. No DMA completion, arbitrary replacement-graph/attachment lifetime, complete alias/writer or indirect-caller closure, full-game reachability or alternate-layout confidence is claimed."
+}

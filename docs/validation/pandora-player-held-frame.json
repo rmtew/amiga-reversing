@@ -1,0 +1,399 @@
+{
+  "schema_version": 1,
+  "kind": "static-source-restoration-batch",
+  "batch": "Player held-frame header and proved source-owner correction",
+  "base_commit": "76a2c6e8690e307e9face650e81660117936a489",
+  "scope": {
+    "section": 0,
+    "header_start": "0x4C376",
+    "header_end_exclusive": "0x4C388",
+    "header_bytes": 18,
+    "player_owner_before": [
+      "0x4C322",
+      "0x4C377"
+    ],
+    "player_owner_after": [
+      "0x4C322",
+      "0x4C376"
+    ]
+  },
+  "boundary_evidence": {
+    "player_owner_id": "catalog-35628bee23d6453f85fad54b4cd90299",
+    "before": {
+      "start": 312098,
+      "end": 312183,
+      "bytes": 85
+    },
+    "after": {
+      "start": 312098,
+      "end": 312182,
+      "bytes": 84
+    },
+    "existing_field_extent": 84,
+    "schema_sha256": "66a05117c005f449d5cac9df349fd2290de1e9b84e2c5189ce05de73ee894f34",
+    "field_extents": [
+      {
+        "name": "item_name_ptr",
+        "offset": 0,
+        "size": 4
+      },
+      {
+        "name": "interaction_callback",
+        "offset": 4,
+        "size": 4
+      },
+      {
+        "name": "context_message_ptr",
+        "offset": 12,
+        "size": 4
+      },
+      {
+        "name": "interaction_message_ptr",
+        "offset": 16,
+        "size": 4
+      },
+      {
+        "name": "position_descriptor_ptr",
+        "offset": 44,
+        "size": 4
+      },
+      {
+        "name": "world_x",
+        "offset": 48,
+        "size": 2
+      },
+      {
+        "name": "world_y",
+        "offset": 50,
+        "size": 2
+      },
+      {
+        "name": "hit_points",
+        "offset": 60,
+        "size": 2
+      },
+      {
+        "name": "proximity_distance",
+        "offset": 66,
+        "size": 2
+      },
+      {
+        "name": "selected_item_id",
+        "offset": 70,
+        "size": 1
+      },
+      {
+        "name": "initial_selected_item_id",
+        "offset": 71,
+        "size": 1
+      },
+      {
+        "name": "world_object_flags",
+        "offset": 72,
+        "size": 1
+      },
+      {
+        "name": "initial_world_object_flags",
+        "offset": 73,
+        "size": 1
+      },
+      {
+        "name": "item_definition_id",
+        "offset": 74,
+        "size": 1
+      },
+      {
+        "name": "item_state",
+        "offset": 76,
+        "size": 1
+      },
+      {
+        "name": "initial_item_state",
+        "offset": 77,
+        "size": 1
+      },
+      {
+        "name": "context_prompt_cooldown",
+        "offset": 82,
+        "size": 2
+      },
+      {
+        "name": "inventory_slots_ptr",
+        "offset": 20,
+        "size": 4
+      },
+      {
+        "name": "trade_offer_table_ptr",
+        "offset": 24,
+        "size": 4
+      },
+      {
+        "name": "initial_inventory_slots_ptr",
+        "offset": 28,
+        "size": 4
+      },
+      {
+        "name": "initial_trade_offer_table_ptr",
+        "offset": 32,
+        "size": 4
+      },
+      {
+        "name": "initial_hit_points",
+        "offset": 62,
+        "size": 2
+      },
+      {
+        "name": "movement_direction_flags",
+        "offset": 75,
+        "size": 1
+      },
+      {
+        "name": "saved_position_state_ptr",
+        "offset": 78,
+        "size": 4
+      },
+      {
+        "name": "interaction_completion_callback",
+        "offset": 8,
+        "size": 4
+      },
+      {
+        "name": "behavior_script_ptr",
+        "offset": 36,
+        "size": 4
+      },
+      {
+        "name": "initial_behavior_script_ptr",
+        "offset": 40,
+        "size": 4
+      },
+      {
+        "name": "behavior_script_delay_ticks",
+        "offset": 68,
+        "size": 2
+      },
+      {
+        "name": "world_z",
+        "offset": 52,
+        "size": 2
+      },
+      {
+        "name": "combat_attack_check_value",
+        "offset": 65,
+        "size": 1
+      }
+    ],
+    "native_root_reference_count": 26,
+    "native_frame_reference_count": 0,
+    "native_frame_reference_limit": "The typed frame-sequence pointer renders in source but the incoming native query does not expose it; original bytes and existing local-consumer test establish this edge. No absence-of-reference proof is claimed.",
+    "raw_pointer_candidates_all_byte_alignments": 64,
+    "raw_tail_pointer_candidates": [
+      {
+        "source": 313174,
+        "value": 377718
+      }
+    ],
+    "positive_boundary_evidence": [
+      "Original node4C744+6 -> runtime5C756; sequence4C756 -> runtime5C376.",
+      "The6F6E reader consumes two LONG pointers and five WORD geometry members from the header.",
+      "All player schema fields and owned explicit elements stop at4C376. Context cooldown at+82 is the last WORD.",
+      "Restart scans a sentinel pointer list and restores named fields; it does not stride or copy85-byte objects.",
+      "The initial85-byte owner was created by a listing-row selection; no field or cited ownership meaning was recorded for byte84."
+    ],
+    "conclusion": "Correct the explicit source owner to its proved84-byte record and represent the independent complete18-byte frame. This is not proof of runtime allocation, absence of arbitrary indirect accesses, or exclusive ownership/lifetime.",
+    "existing_original_consumer_tests": [
+      "tests/test_pandora_retained_scene_geometry.py::test_original_player_positive_x_held_path_selects_original_header",
+      "tests/test_pandora_retained_scene_geometry.py::test_original_retained_scene_headers_supply_pixels_masks_and_bounds"
+    ],
+    "consumer_tests_rerun": false
+  },
+  "pointer_resolution": {
+    "pixel_bank": "scene_pixel_cells_for_mask_bank_05",
+    "pixel_offset": 1024,
+    "mask_bank": "scene_mask_bank_05",
+    "mask_offset": 256,
+    "pixel_runtime": 202024,
+    "mask_runtime": 514816,
+    "pixel_read_extent_bytes": 480,
+    "mask_read_extent_bytes": 120,
+    "nominal_existing_bank_bounds_fit": true,
+    "limit": "Stored headers and nominal original banks; no DMA/allocation/lifetime claim."
+  },
+  "framework_prerequisite": {
+    "command": "target.data_block.layout.resize",
+    "operation": "End-only raw source section0 owner resize; start/ID/role/fields/bindings/interpreted references retained.",
+    "guards": [
+      "current service revision",
+      "inspected expected_source_end",
+      "active owner identity",
+      "changed integer endpoint",
+      "nonempty interval inside pinned raw source",
+      "no runtime-view inference or unsupported source formats",
+      "no overlapping active owner",
+      "no truncation of fields/bindings",
+      "no truncation of independently retained references"
+    ],
+    "history": "Atomic append and ordinary undo/redo; existing edit/remove range guards remain unchanged.",
+    "adoption": "Reviewed resize/create/purpose batch, then dependent target catalogue binding after inspecting its newly assigned owner ID and canonical bounds. No intermediate output generation."
+  },
+  "canonical": {
+    "action_ids": [
+      "manual-7a159ea14962468ca4fb097226abd488",
+      "manual-c3cbd871b93a4776a19108b39b047981",
+      "manual-cc7e2acad5bb47868b4840cd0d98da79",
+      "manual-14ec4e7acd68409db5f86573c42fcb31"
+    ],
+    "decisions": [
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7a159ea14962468ca4fb097226abd488",
+        "decision_id": "restoration-b35988e3dec04c46b370d9c33301ed0d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c3cbd871b93a4776a19108b39b047981",
+        "decision_id": "restoration-5828367c76ae4f799309e9539e0d725e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cc7e2acad5bb47868b4840cd0d98da79",
+        "decision_id": "restoration-4f6579ff6e2142fd87494e3660d62fe7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-14ec4e7acd68409db5f86573c42fcb31",
+        "decision_id": "restoration-dc2817370732481ca3996e48caada814"
+      }
+    ],
+    "review_revision": "899d1cb738feb468dd8e8c3d02991dac1cf46d756c06a00678b2886f9bb6fb09",
+    "header_owner_id": "catalog-aae645c4515a4e74b6be25e02c0000e0"
+  },
+  "source_payoff": {
+    "before": "18 raw bytes under a generic address label.",
+    "after": "Two symbolic LONG pointers and five named WORD geometry members under the preserved original label.",
+    "label": "abs_0_0005C376",
+    "shared_schema": "WorldPositionAnimationFrame",
+    "new_register_pointee_seeds": 0
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "receipt_id": "641e2adf40c2d9471b4726b9d1855402fee625da8d14e6f111908fdaf756e667",
+    "revision": "195502f95aa1535699ed4d63622021815cde3ea2a6530955fd3844c30130c877",
+    "source_package_sha256": "44e333a528a896e6c371cf170c13f0d4d0adf4211031e60f9c58b16ab110e785",
+    "source_sha256": "b6c59269fec28d56aabbfec607d1e123c1418299b8f79f1134b024c9bd3d4a97",
+    "status": "exact",
+    "subject_revision": "9ea676a094c7c1abeff5e4534f2d027d27d4f8ddf4693cf893aaa6475f556c0f",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "quality": {
+    "source_sha256": "b6c59269fec28d56aabbfec607d1e123c1418299b8f79f1134b024c9bd3d4a97",
+    "only_18_byte_header_block_changed": true,
+    "old_labels_preserved": true,
+    "EQU_RS_unchanged": true,
+    "paused_B07_preserved": true,
+    "new_labels": []
+  },
+  "preservation": {
+    "unchanged_metadata_collections": [
+      "custom_structs",
+      "entry_register_seeds",
+      "function_summaries",
+      "rsset_layout_regions",
+      "absolute_storage_slots",
+      "rsset_use_site_bindings",
+      "entry_comments",
+      "manual_representations",
+      "target_equates",
+      "manual_runtime_address_refs",
+      "manual_data_references",
+      "execution_views",
+      "suppressed_seeded_items",
+      "source_output_policy"
+    ],
+    "schemas_before": 147,
+    "schemas_after": 147,
+    "owners_before": 557,
+    "owners_after": 558,
+    "existing_owner_preservation": "Only player exclusive end changed by-1; all identities,roles,elements/bindings and references retained.",
+    "new_owner_id": "catalog-aae645c4515a4e74b6be25e02c0000e0",
+    "entities_before": 18323,
+    "entities_after": 18330,
+    "prior_entities_preserved": true,
+    "external_assets_and_SDK_unchanged": true,
+    "history": {
+      "manual_actions.jsonl": {
+        "prefix_preserved": true,
+        "prefix_bytes": 16438258,
+        "prefix_sha256": "7b00874872a157375ac4af2041a30820a2965e2247a035d0df7174fd6b42fd82",
+        "appended_records": 4
+      },
+      "decision_journal.jsonl": {
+        "prefix_preserved": true,
+        "prefix_bytes": 17931455,
+        "prefix_sha256": "889a1bf5525c0c9e8af3aadb4516954f21c75276267ac4272660f2f5712ed0fa",
+        "appended_records": 4
+      }
+    },
+    "project_timestamp_only_reverted": true
+  },
+  "accounting": {
+    "source_purpose_union_before": 282455,
+    "source_purpose_union_after": 282473,
+    "purpose_bytes_added": 18,
+    "active_purposes": 187,
+    "raw_header_bytes_structured": 18,
+    "global_unknown_bytes": "Not recomputed in this batch; no new whole-target accounting total claimed.",
+    "behaviour_contracts_added": 0,
+    "behaviour_fixtures_added": 0,
+    "B_capability_milestones_claimed": 0
+  },
+  "tests": {
+    "passed": 168,
+    "skipped": 0,
+    "command": ".venv/bin/python -m pytest -q tests/test_layout_resize.py tests/test_layout_rename.py tests/test_manual_action_log.py tests/test_manual_action_catalog.py tests/test_restoration_batch.py",
+    "scope": "Changed catalogue/MAL mechanism and shared revision-checked service, including dependent metadata edits.",
+    "historical_original_consumer_tests_rerun": false,
+    "new_runtime_captures": 0
+  },
+  "workflow": {
+    "native_jobs": [
+      {
+        "job_id": "14255aad-4900-43c8-b467-1a2df9790a39",
+        "start_UTC": "2026-10-21T01:38:51.527000",
+        "finish_UTC": "2026-10-21T01:43:46.237000",
+        "seconds": 294.71
+      },
+      {
+        "job_id": "687d231a-f704-4473-b9bf-f33ee144b5e3",
+        "start_UTC": "2026-10-21T01:45:51.818000",
+        "finish_UTC": "2026-10-21T01:49:36.943000",
+        "seconds": 225.125
+      }
+    ],
+    "final_output_generation_count": 1,
+    "baseline_reopen_reason": "Restart required to load changed shared command implementation.",
+    "additional_accounting_generation": false
+  },
+  "limits": [
+    "The correction is to explicit source field ownership, not a proved runtime allocation boundary.",
+    "No absence-of-arbitrary-indirect-access, exclusive lifetime, normal gameplay, DMA result or relocation claim.",
+    "The native incoming query does not expose the held frame edge; original pointer bytes, existing frame-sequence/reader evidence and preserved rendered reference establish it.",
+    "Other source formats and runtime-view owner resizing remain explicitly unsupported.",
+    "B07 and generic behavioural capabilities remain paused; fonts,bank45 and EQU/RS policy unchanged."
+  ]
+}

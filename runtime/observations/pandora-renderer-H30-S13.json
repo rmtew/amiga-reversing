@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "kind": "captured-state-fixture-manifest",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "canonical_contract_id": "pandora.renderer.H30-S13.v1",
+  "canonical_function_summary_id": "catalog-function-summary-entry-h0-00006A1E",
+  "baseline_capture": ".runtime-state/pandora-behaviour/natural-shifted-H30-S13/capture.json",
+  "baseline_capture_sha256": "8c1ea1e14b86d2e2e555d7268b703c0df623bec838507d4fc71fc4780c6a770f",
+  "replay_capture": ".runtime-state/pandora-behaviour/natural-shifted-H30-S13-replay/capture.json",
+  "replay_capture_sha256": "6a1ba04f7c34446b9f4fb124c38c89a5ed5a1353d113de6a81d4ab190611d5f8",
+  "checkpoint_receipt_sha256": "863523ba02357829a5d57639d2f57f39b969b48c2213a6a7e4e7aa4cacc57cdd",
+  "scenario_file": "runtime/scenarios/pandora-natural-shifted-H30-S13.json",
+  "scenario_sha256": "ae0e7099bb4d56365b7c02770d82c4a296fc72dcedcacb7ee30e3755ec9eb2f0",
+  "input_events": [],
+  "input_origin": "Same pinned route checkpoint; no new joystick input.",
+  "observed_setup": {
+    "entry_runtime": 92702,
+    "caller_return": 94556,
+    "height": 30,
+    "shift": 13,
+    "source_row_bytes": 16,
+    "entry_registers": {
+      "a0": 202024,
+      "a1": 514816,
+      "a2": 466138,
+      "a7": 66606,
+      "d5": 16,
+      "d6": 13,
+      "d7": 30
+    },
+    "caller_source": 29016
+  },
+  "evidence_kinds": {
+    "snapshots": "Entry/first-entry register and stack snapshots; not architectural CPU accesses.",
+    "CPU_access_events": "None claimed.",
+    "DMA": "Owned full chip-bus sidecars; four native descriptors and960 observed job events in4480-event ROI window."
+  },
+  "requested_trace": {
+    "frames": 2,
+    "wait_seconds": 5,
+    "ranges": [
+      {
+        "name": "pixel_source",
+        "address": {
+          "base_register": "a0",
+          "offset": 0
+        },
+        "length": 768
+      },
+      {
+        "name": "mask_source",
+        "address": {
+          "base_register": "a1",
+          "offset": 0
+        },
+        "length": 192
+      },
+      {
+        "name": "world_destination",
+        "address": {
+          "base_register": "a2",
+          "offset": 0
+        },
+        "length": 4096
+      },
+      {
+        "name": "world_destination_tail",
+        "address": {
+          "base_register": "a2",
+          "offset": 4096
+        },
+        "length": 1024
+      }
+    ]
+  },
+  "resolved_ranges": [
+    {
+      "name": "pixel_source",
+      "address": 202024,
+      "length": 768
+    },
+    {
+      "name": "mask_source",
+      "address": 514816,
+      "length": 192
+    },
+    {
+      "name": "world_destination",
+      "address": 466138,
+      "length": 4096
+    },
+    {
+      "name": "world_destination_tail",
+      "address": 470234,
+      "length": 1024
+    }
+  ],
+  "analysis_partitions": [
+    [
+      {
+        "name": "pixel_source",
+        "address": 202024,
+        "length": 768
+      },
+      {
+        "name": "mask_source",
+        "address": 514816,
+        "length": 192
+      }
+    ],
+    [
+      {
+        "name": "world_destination",
+        "address": 466138,
+        "length": 4096
+      },
+      {
+        "name": "world_destination_tail",
+        "address": 470234,
+        "length": 1024
+      }
+    ]
+  ],
+  "predicate_limits": "Original-only self-replay, no candidate equivalence; one natural H30/S13 setup does not prove clipping from H32. No all-callers lifetime, global clobber, final image, alias/interference or relocation proof; later window blits not all attributed to this call.",
+  "checkpoint_snapshot_sha256": "448b5ff5c83c0f123025054e27eb245514d095e9d6b30a05bd8c1c5d76d39ba4",
+  "profile_binding": {
+    "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "contract_id": "pandora",
+    "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "floppy_sha256": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+    "derived_manifest_sha256": null,
+    "runtime_view": {
+      "base_addr": 65536,
+      "source_start": 0,
+      "source_end": 349040,
+      "runtime_base": 65536
+    }
+  },
+  "baseline_trace_frame_identities": [
+    {
+      "frame": 936,
+      "slots_sha256": "324739517531319a1a11a22015a04997c850dcf9f5f0d0572a5effc3fbcbbfa2",
+      "slots_bytes": 1705224
+    },
+    {
+      "frame": 937,
+      "slots_sha256": "ee3ad2b1feadbd595ae2c8f2a1eb1ec1160ffa6e94488db570d647a78bb9014f",
+      "slots_bytes": 1705224
+    }
+  ],
+  "replay_trace_frame_identities": [
+    {
+      "frame": 936,
+      "slots_sha256": "324739517531319a1a11a22015a04997c850dcf9f5f0d0572a5effc3fbcbbfa2",
+      "slots_bytes": 1705224
+    },
+    {
+      "frame": 937,
+      "slots_sha256": "ee3ad2b1feadbd595ae2c8f2a1eb1ec1160ffa6e94488db570d647a78bb9014f",
+      "slots_bytes": 1705224
+    }
+  ],
+  "reported_omitted_records": 384,
+  "normative_window_records": 4480,
+  "canonical_action_id": "manual-f75aa9fe0c1540928dd2e439c49e6293",
+  "canonical_decision_id": "restoration-6b6e1dff34b14bfbad67924a1e1d161f"
+}

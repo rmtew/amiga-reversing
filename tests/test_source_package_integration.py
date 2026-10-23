@@ -116,7 +116,7 @@ def test_native_binary_asset_export_complete_file_exact_both_assemblers(native_t
     assert all(row["source_offset"] + row["size"] <= 16896 for row in assets)
     text = exported["source_text"]
     assert "\tlea.l " in text and "\trts" in text
-    assert "data_role=palette" in text and "data_role=pointer_table" in text
+    assert "; palette" in text and "; pointer_table" in text
     assert "loc_1_00001000:" in text
     assert "lea.l loc_1_00001000.l,a0" in text
     assert "dc.l loc_1_00001000" in text
@@ -218,7 +218,7 @@ def test_persistent_policy_normal_render_regeneration_and_moved_companions(nativ
     assert packaged.source_package is not None
     assert packaged.inline_source_text == inline.source_text
     assert "loc_1_00001000:" in packaged.source_text
-    assert "data_role=pointer_table" in packaged.source_text
+    assert "; pointer_table" in packaged.source_text
     publish_rendered_source(packaged, entry, target_id="asset-fixture", project_root=PROJECT_ROOT)
     assert load_published_source_package(paths.target_dir) == packaged.source_package
     again = render()

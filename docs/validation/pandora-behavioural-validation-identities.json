@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "kind": "behavioural-validation-batch-evidence",
+  "batch": "Pandora comparison and receipt identity correction",
+  "base_commit": "a5eadb8ed89adf025ada38d53f2cb72ceeebd40e",
+  "B_ids_advanced": [
+    "B01",
+    "B02",
+    "B04",
+    "B07",
+    "B09",
+    "B10"
+  ],
+  "completed_B_ids": [],
+  "evidence_role": "Evidence summaries only; existing canonical summaries, MAL and DJ remain authoritative. Payloads and full guest fixtures remain local.",
+  "regressions": [
+    {
+      "hypothesis": "Captured original overlay hides candidate helper edits",
+      "before": "false pass",
+      "reproducer": "Ledger-listed two-byte TRAP at source 0x4d872; refreshed payload hash; all 19 old cases pass, including armed helper entries.",
+      "before_result": {
+        "status": "bounded_local_routine_and_BYTE_equivalence",
+        "accepted_cases": 19,
+        "refusals": [],
+        "trap_source": "0x4d872",
+        "candidate_sha256": "561ac2586bd259d4b89546ab229f0cb8822ad795eb00aa7455f0ee02f0f208ab"
+      },
+      "after": "refused admission by current native plan; direct helper execution reaches TRAP and returns unsupported",
+      "independent_effect_reproducer": "SF.B to ST.B at source 0x4d876 produces first differing ordered write at runtime 0x5d876, value 0 versus 255."
+    },
+    {
+      "hypothesis": "Manifest native_plan_sha256 syntax accepted without proof",
+      "before": "false admission with identical payload",
+      "after": "refused before CPU execution; manifest and native plan now enter receipt profile"
+    },
+    {
+      "hypothesis": "Backend A executes, file B is substituted before receipt creation",
+      "before": "pass attributed to unexecuted backend B",
+      "after": "stale; receipt backend is the identity returned by the executor"
+    },
+    {
+      "hypothesis": "Cached Python checker A is edited to B before a second server request",
+      "before": "disk hashing could name unexecuted code",
+      "after": "stale/restart required for shared checker, CPU runner and receipt service; no pass naming B"
+    }
+  ],
+  "tests": {
+    "command": "pytest -q: behaviour_validation, behaviour_receipts, behaviour_identity_regressions, behaviour_adapters, copperline_bus_trace, copperline_checkpoint, restoration_operations, restoration_verification, restoration_artifact_lifetime, restoration_interfaces, restoration_batch, derived_artifact",
+    "python_passed": 208,
+    "optional_skipped": 1,
+    "optional_skip": "MCP SDK absent; live stdio transport remains unvalidated. HTTP and thin adapter forwarding are tested.",
+    "focused_output_sha256": "0d44150d70f628913fd0fd2986fa1a3b8e23471078095c9fd995bfce9e143fb6",
+    "negative_baseline_output_sha256": "20dacbe7d02507a5fcd4b06a8f88671bc4044f03f5f8dca1ce6546bd2aaf2252",
+    "native_simulator": "Generated C backend unchanged; previous 30/30 simulator result remains historical, not rerun in this batch."
+  },
+  "historical_receipts": {
+    "cpu": "45c0a0c720d059b0cf112327da8ed6c6b0917538c7b9781e788eedc1fbaaea7d",
+    "dma": "1194ac8fe944667bd49ca76ea10a70c1f011430054b5950a688f080aaa36f737",
+    "impact": "Old profiles are historical and stale under the hardened profile. The admitted five-rewrite candidate has no helper changes, so the overlay does not change its actual helper bytes. Tampered plan/TRAP manifests are negative reproducers. No evidence of backend/source substitution in recorded runs; these were missing admission guarantees, not evidence that substitution occurred."
+  },
+  "coverage": {
+    "accepted_contracts_before": 2,
+    "accepted_contracts_after": 2,
+    "cpu_cases_before": 19,
+    "cpu_cases_after": 19,
+    "byte_inputs_before": 65536,
+    "byte_inputs_after": 65536,
+    "dma_fixtures_before": 1,
+    "dma_fixtures_after": 1,
+    "dma_transfers": 384,
+    "candidate_dma_equivalence": false,
+    "new_gameplay_paths": 0,
+    "new_source_facts": 0
+  },
+  "source_accounting": {
+    "source_changed": false,
+    "unknown_bytes": 6446,
+    "previous_exact_receipt": "3006167ec76ea06a645800f8ebeb3047bcc55e3ed317cb1b21a921e19b0e3f5f",
+    "assembly_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db"
+  },
+  "remaining_obligations": [
+    "Capture excluded alive-near/unarmed warm audio-start dependencies before admitting that path.",
+    "Second scratch boundary fixture with pixel/mask source and destination observations.",
+    "CPU-only modeled calls do not prove gameplay reachability, CIA/Paula/DMA or IRQ behaviour. Original DMA self-replay is not candidate equivalence.",
+    "No original scratch seed, unobserved remainder, whole stack reservation, all-callers lifetime or relocation safety claim. Bank 30 unresolved."
+  ],
+  "next_evidence_question": "Which captured inputs admit the warm audio-start path without unknown reads?",
+  "revalidation": {
+    "cpu": {
+      "receipt_id": "79ae7b5861920e8f4591263c57c3f43b16a2700353b169843dfd6b1456037862",
+      "status": "pass",
+      "subject_revision": "2f51714d3a5e20850751355b995463aa3862be99c0d2e3d33cba6011ebd2c503",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "f118f972e3a10ea80fbced6eb3fc7753d9d6483d62dbde54c9e4b633548b26cc",
+        "fixture": "8f6139d2905292f122234b6891527751a915d2489f00c0b32a3d0a84b8cea429",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "5c895b1875280b5b161735f191997a55c8e832ebee3fd185312de25eaffed84d"
+      },
+      "native_binding_verified": true,
+      "manifest_sha256": "26568732c7b447c8688674e17fd188a9ffde6dc411c9de29a2ff05648e288ad5",
+      "native_plan_sha256": "64d371460dde4a203c6e60ebf607b380a67758b1e496d9ad32276b4875b9278f",
+      "cases_passed": 19,
+      "byte_inputs_tested": 65536,
+      "old_receipt_admission": {
+        "status": "stale",
+        "reason": "Bound assumption changed",
+        "identity": "fixture",
+        "expected": "03a40a175a1a18210526a02571399ba2d966cda4e7aa2e0e393088a94fdbcdba",
+        "actual": "8f6139d2905292f122234b6891527751a915d2489f00c0b32a3d0a84b8cea429"
+      }
+    },
+    "dma": {
+      "receipt_id": "273fde8610115279c25a83e8edd02f770d90a8bf5e71dd9e7b551d647eabe415",
+      "status": "pass",
+      "subject_revision": "2f51714d3a5e20850751355b995463aa3862be99c0d2e3d33cba6011ebd2c503",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "a784797432153b94c7f4cec0b6761a18e7253f9a0337adf5db5634c3b66ad466",
+        "fixture": "5ad2c2a13928ba609a0840615bc0240dc854e66119b80862076317043143869f",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "1979a7349fa5c0b70ac919260da695b2257cb1ca214d5c4ac7a1b00742e89871"
+      },
+      "old_receipt_admission": {
+        "status": "stale",
+        "reason": "Bound assumption changed",
+        "identity": "profile",
+        "expected": "c3205bb72ebcb32bfc3373b9f945535a00fe3b072001f7a77abeda53d7608b61",
+        "actual": "1979a7349fa5c0b70ac919260da695b2257cb1ca214d5c4ac7a1b00742e89871"
+      },
+      "capture_sha256": "0b28d9c6541319f0d72360f6c185c68e40f7336cd93fa619293c70bb16cd6e7b",
+      "baseline_sha256": "181abc6aa32f116cf54afe402517132f83393c5f6fd31d4021a7d8cda6fdedd9",
+      "counts": [
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 128
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 256
+        }
+      ],
+      "outcome": {
+        "address_order_sha256": "449a54a93f3d2e7c9c625112af7cbc3b38f38fcd4594bbad705e0e9ff08ea5a1",
+        "counts": {
+          "read": 128,
+          "write": 256
+        },
+        "events_checked": 384,
+        "observed_byte_extent": [
+          111528,
+          112040
+        ],
+        "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof",
+        "status": "pass",
+        "stream_sha256": "5008b245cdb8d40cc6cafb64cfc528d2dcb09a2d4db57779baf1939869c46221"
+      },
+      "comparison_kind": "original_self_replay",
+      "candidate_equivalence": false
+    }
+  }
+}

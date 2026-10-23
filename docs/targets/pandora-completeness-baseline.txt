@@ -1,0 +1,81 @@
+Restoration accounting: amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
+
+Payload classification (disjoint bytes per source section):
+  section 0: 376832 bytes; code=24308, structured_data=339648, table=1690, text=4740, unknown=6446
+
+Units: 273 function candidates; 557 declared data owners; 126 asset emission chunks.
+Complete function/object/resource denominators: unknown.
+Supported payload purpose bytes by section: {'0': 282427}.
+Purpose: partially_assessed; confidence comes only from explicit assessments; no overall semantic completion claim.
+Workspace (coordinate views are not additive; envelope gaps do not imply allocated or unused storage):
+  [1, 'app', '__amiga_app_base__']: envelope [0,2032), 1282 declared bytes; {'field': 1282, 'unknown': 750}; supported purpose 948 bytes; full extent unknown.
+Hardware/external: 27 observed union bytes; denominator unknown.
+Structure: {'resolved_native_access_records': 973, 'unresolved_native_access_records': 32}; reference target statuses {'accepted_target': 6225}.
+Unresolved native operand forms: {'field_gap': 5, 'indexed_dynamic': 27}; these are resolution statuses, not counts of unknown behaviour.
+Presentation: 48 generic label review signals.
+Verification: exact_original_layout; final review: not assessed; relocation readiness: not assessed.
+Native asset encoding: bitmap, 118 chunks, bytes by section {'0': 241376}; game roles require separate purpose evidence.
+Native asset encoding: opaque_data, 1 chunks, bytes by section {'0': 27792}; game roles require separate purpose evidence.
+Native asset encoding: sound_sample, 7 chunks, bytes by section {'0': 26324}; game roles require separate purpose evidence.
+
+Selected unresolved identities (full list in JSON):
+  payload:s0:52:456 (unknown)
+  payload:s0:1094:109e (unknown)
+  payload:s0:1113:1114 (unknown)
+  payload:s0:14b6:14b8 (unknown)
+  payload:s0:2b7d:2b7e (unknown)
+  payload:s0:2ee5:2ee6 (unknown)
+  payload:s0:6a16:6a1e (unknown)
+  payload:s0:718f:7190 (unknown)
+  payload:s0:8179:817a (unknown)
+  payload:s0:864b:864c (unknown)
+  payload:s0:8671:8677 (unknown)
+  payload:s0:8678:867e (unknown)
+
+Generic label links (relative to the resident server):
+  abs_0_00010000: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=0
+  abs_0_0001001E: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=30
+  abs_0_00010046: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=70
+Workspace gap boundary links (neighbor uses do not prove gap use):
+  workspace:1d7c9f63bcf438c3e22f:36c:604: unknown intent; app_blitter_interrupt_callback: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=2350
+  workspace:1d7c9f63bcf438c3e22f:33f:356: unknown intent; app_world_interaction_audio_flags: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=316208; app_nearest_object_distance: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=33618
+  workspace:1d7c9f63bcf438c3e22f:1f8:20a: unknown intent; app_geometry_clipped_y_span: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=28730; app_inventory_cursor_sprite_flags: /amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8?section_index=0&source_offset=38060
+
+Explicit purpose scopes (not complete semantic reconstruction):
+  purpose-049710a4077b4b32bcdc74f17be8fd3d: s0 [0x21b6,0x21cc) game_data/high, accepted, whole_scope.
+    Stored world-object behavior bytecode with explicit command boundaries, symbolic opcode selection, WORD position/delay/repeat operands and typed node/branch targets. Delay and axis operands reuse their actual handler schemas. This is the original stored script graph, not gameplay reachability.
+    Limits: Original stored opcode dispatch and local WORD operand contract only. Preserve modulo16-bit arithmetic and supplied interpreter state; no positive/nonzero range, fixed wall-clock duration, ordinary activation, complete callback/writer set, allocation/lifetime or alternate-layout claim.
+  purpose-06547df5fac345e2a75c76405e36bd2d: app [0x1e0,0x1e4) graphics/high, accepted, whole_scope.
+    Four-byte pointer slot assigned framebuffer bank0 by three inventory redraw paths and the world/tile initializer.
+    Limits: The four original writes and exact slot bounds are established. No read consumer, active rendering role, liveness or exclusive lifetime is established.
+  purpose-06b3b21893e24e97b7b9804d376e964e: s0 [0x1a72,0x1afa) game_data/high, accepted, whole_scope.
+    Stored world-object behavior bytecode with explicit command boundaries, symbolic opcode selection, WORD position/delay/repeat operands and typed node/branch targets. Delay and axis operands reuse their actual handler schemas. This is the original stored script graph, not gameplay reachability.
+    Limits: Original stored opcode dispatch and local WORD operand contract only. Preserve modulo16-bit arithmetic and supplied interpreter state; no positive/nonzero range, fixed wall-clock duration, ordinary activation, complete callback/writer set, allocation/lifetime or alternate-layout claim.
+  purpose-078d1c3436184bfa8d0f6980316c6bc4: s0 [0x33878,0x33c78) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 1 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
+  purpose-0da3149da0bb4bb8b6991f8d571a6204: app [0x1ba,0x1c6) graphics/high, accepted, whole_scope.
+    Tile viewport column/row, tile-grid base pointer and width/height metadata used by original grid construction, viewport reads and modal exchange.
+    Limits: Current metadata and original WORD arithmetic only. Modal exchange changes the base independently of derived size/stride state; no general bounds, exclusive lifetime or DMA completion claim.
+  purpose-0e73965393374be09252a750c74252ca: s0 [0x155e,0x1612) game_data/high, accepted, whole_scope.
+    Stored world-object behavior bytecode with explicit command boundaries, symbolic opcode selection, WORD position/delay/repeat operands and typed node/branch targets. Delay and axis operands reuse their actual handler schemas. This is the original stored script graph, not gameplay reachability.
+    Limits: Original stored opcode dispatch and local WORD operand contract only. Preserve modulo16-bit arithmetic and supplied interpreter state; no positive/nonzero range, fixed wall-clock duration, ordinary activation, complete callback/writer set, allocation/lifetime or alternate-layout claim.
+  purpose-13abf114136346b9a5bec8ad87443ee0: s0 [0x46028,0x46118) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank: 1 complete stored frame spans. Storage capacity and nominal width are distinct; trailing cells retain their producer role.
+    Limits: Original stored source and conditional frame/mask reader only. No unused-pixel or padding assertion, ordinary activation, exclusive allocation, lifetime, shifted DMA-read bound, all-writer/consumer, alternate-layout safety or actual output proof. Existing font owners and glyph groupings are unchanged. An initializer group without a stored header is not asserted to be an image.
+  purpose-17ba3c249b934aa291ef215253cb9330: s0 [0x38938,0x39dc8) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 13 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
+  purpose-18931143865143818e81ed827540e894: s0 [0x1972,0x1a72) game_data/high, accepted, whole_scope.
+    Stored world-object behavior bytecode with explicit command boundaries, symbolic opcode selection, WORD position/delay/repeat operands and typed node/branch targets. Delay and axis operands reuse their actual handler schemas. This is the original stored script graph, not gameplay reachability.
+    Limits: Original stored opcode dispatch and local WORD operand contract only. Preserve modulo16-bit arithmetic and supplied interpreter state; no positive/nonzero range, fixed wall-clock duration, ordinary activation, complete callback/writer set, allocation/lifetime or alternate-layout claim.
+  purpose-1898d6a99904457e8351e6d1421bcc5f: s0 [0x34c78,0x36838) graphics/high, accepted, whole_scope.
+    Stored four-plane scene pixel bank with 9 distinct frame footprints. Original headers completely partition its bytes into rows of four-plane WORD columns; original mask pointers agree with initializer source/output offsets. Storage row capacity is distinct from the nominal width; unused pixels are not inferred.
+    Limits: Conditional stored pixel format and original mask/geometry reader only. Storage row capacity is distinct from nominal display/collision width; unused pixels are not inferred. No ordinary activation, exclusive allocation/lifetime, full shifted DMA-read extent, all future writers/consumers or alternate-layout safety is claimed. Existing font resources are outside this family.
+  purpose-1a9485c60c094d8186be90e28cb373ed: s0 [0xed28,0xeda8) graphics/high, accepted, whole_scope.
+    1 packed 128-byte tile cells: sixteen four-plane WORD rows per cell, selected by the original macro-map expansion.
+    Limits: Stored format and supplied original-reader contexts only. Initial map selection and modal stored targets do not prove every later writer/consumer, ordinary gameplay activation, actual displayed pixels/DMA completion, exclusive allocation/lifetime or alternate-layout safety.
+  purpose-1be2d6f5fe72476eb43c9759eab0bfde: s0 [0x1f82,0x204a) game_data/high, accepted, whole_scope.
+    Stored world-object behavior bytecode with explicit command boundaries, symbolic opcode selection, WORD position/delay/repeat operands and typed node/branch targets. Delay and axis operands reuse their actual handler schemas. This is the original stored script graph, not gameplay reachability.
+    Limits: Original stored opcode dispatch and local WORD operand contract only. Preserve modulo16-bit arithmetic and supplied interpreter state; no positive/nonzero range, fixed wall-clock duration, ordinary activation, complete callback/writer set, allocation/lifetime or alternate-layout claim.
+  173 additional bounded assessments are retained in the JSON report.

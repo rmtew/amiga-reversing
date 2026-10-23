@@ -1,0 +1,927 @@
+{
+  "baseline_commit": "ab394267e52d2445cb327c68d462ed254d73e3a6",
+  "scope": "Primary audio command dispatcher, 11 original handlers and shared note decoder. Existing channel runtime/DMA/sample schemas; no new semantic field names or arbitrary program bounds.",
+  "canonical_actions": 25,
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "4c9fbfc61b3d075199b627404ffef80d17fe859433eceb0266f98613dc7add21",
+    "revision": "78cec45fbfbe4bc9eae71433f9647a9d50c1a5747f42b39763ad850751c9b8dd",
+    "source_package_sha256": "eec05d8040f66e1f538fba4ced8a1f575e51ed58b2b42ff23b2fec9362710075",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/eec05d8040f66e1f538fba4ced8a1f575e51ed58b2b42ff23b2fec9362710075/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "ca9864bbdc7affa0ab25af82afabf52153f33e39e371b705d6faa5c109bacaf2",
+    "status": "exact",
+    "subject_revision": "a7fb44910b2fd15cb347e671902a41120ff9c0ad0839c4d224d802cd3c267c9a",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "field_counts": {
+    "audiofields": {
+      "before": 46,
+      "after": 82,
+      "resolved_before": 46,
+      "resolved_after": 82
+    },
+    "dmafields": {
+      "before": 19,
+      "after": 28,
+      "resolved_before": 18,
+      "resolved_after": 27
+    },
+    "samples": {
+      "before": 7,
+      "after": 12,
+      "resolved_before": 7,
+      "resolved_after": 12
+    }
+  },
+  "new_field_uses": {
+    "audiofields": [
+      {
+        "field_name": "current_note",
+        "field_offset": 2,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 317986
+      },
+      {
+        "field_name": "note_offset",
+        "field_offset": 3,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 317994
+      },
+      {
+        "field_name": "volume_sequence_start_ptr",
+        "field_offset": 34,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 317998
+      },
+      {
+        "field_name": "volume_sequence_cursor",
+        "field_offset": 38,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318004
+      },
+      {
+        "field_name": "volume_sequence_interval",
+        "field_offset": 42,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318008
+      },
+      {
+        "field_name": "volume_sequence_countdown",
+        "field_offset": 43,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318008
+      },
+      {
+        "field_name": "sample_start_pending",
+        "field_offset": 22,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318100
+      },
+      {
+        "field_name": "program_cursor",
+        "field_offset": 4,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 0,
+          "section_index": 0,
+          "source_offset": 0
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318104
+      },
+      {
+        "field_name": "update_reload_countdown",
+        "field_offset": 28,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 0,
+          "section_index": 0,
+          "source_offset": 0
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318108
+      },
+      {
+        "field_name": "update_countdown",
+        "field_offset": 30,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 0,
+          "section_index": 0,
+          "source_offset": 0
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318108
+      },
+      {
+        "field_name": "update_reload_countdown",
+        "field_offset": 28,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318390
+      },
+      {
+        "field_name": "sample_metadata_ptr",
+        "field_offset": 24,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318418
+      },
+      {
+        "field_name": "volume_sequence_start_ptr",
+        "field_offset": 34,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318448
+      },
+      {
+        "field_name": "volume_sequence_interval",
+        "field_offset": 42,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318452
+      },
+      {
+        "field_name": "pitch_sequence_start_ptr",
+        "field_offset": 12,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318484
+      },
+      {
+        "field_name": "pitch_sequence_cursor",
+        "field_offset": 16,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318488
+      },
+      {
+        "field_name": "channel_configuration_cursor_offset",
+        "field_offset": 10,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318510
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318510
+      },
+      {
+        "field_name": "channel_configuration_offset",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318510
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318514
+      },
+      {
+        "field_name": "channel_configuration_offset",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318510
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318528
+      },
+      {
+        "field_name": "channel_configuration_cursor_offset",
+        "field_offset": 10,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318510
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318540
+      },
+      {
+        "field_name": "pitch_delta_accumulator",
+        "field_offset": 32,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318548
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318548
+      },
+      {
+        "field_name": "pitch_delta_step",
+        "field_offset": 20,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318548
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318552
+      },
+      {
+        "field_name": "pitch_delta_countdown",
+        "field_offset": 21,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318548
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318556
+      },
+      {
+        "field_name": "channel_flags",
+        "field_offset": 0,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318548
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318560
+      },
+      {
+        "field_name": "update_reload_countdown",
+        "field_offset": 28,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318570
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318570
+      },
+      {
+        "field_name": "update_countdown",
+        "field_offset": 30,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318570
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318570
+      },
+      {
+        "field_name": "program_cursor",
+        "field_offset": 4,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318570
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318576
+      },
+      {
+        "field_name": "pitch_modulation_flags",
+        "field_offset": 1,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318630
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318630
+      },
+      {
+        "field_name": "pitch_modulation_step",
+        "field_offset": 44,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318630
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318634
+      },
+      {
+        "field_name": "pitch_modulation_limit",
+        "field_offset": 46,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318630
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318638
+      },
+      {
+        "field_name": "pitch_modulation_value",
+        "field_offset": 45,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318630
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318642
+      },
+      {
+        "field_name": "pitch_modulation_flags",
+        "field_offset": 1,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318650
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318650
+      },
+      {
+        "field_name": "note_offset",
+        "field_offset": 3,
+        "field_size": 1,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318658
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318658
+      },
+      {
+        "field_name": "channel_configuration_offset",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318666
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318666
+      },
+      {
+        "field_name": "channel_configuration_offset",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318666
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318670
+      },
+      {
+        "field_name": "channel_configuration_cursor_offset",
+        "field_offset": 10,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_runtime_state",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318666
+        },
+        "root_struct_name": "audio_channel_runtime_state",
+        "section_index": 0,
+        "source_offset": 318674
+      }
+    ],
+    "dmafields": [
+      {
+        "field_name": "sample_ptr",
+        "field_offset": 0,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318016
+      },
+      {
+        "field_name": "sample_length",
+        "field_offset": 4,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318022
+      },
+      {
+        "field_name": "sample_volume",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318036
+      },
+      {
+        "field_name": "start_pending",
+        "field_offset": 11,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318040
+      },
+      {
+        "field_name": "sample_period",
+        "field_offset": 6,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318086
+      },
+      {
+        "field_name": "start_pending",
+        "field_offset": 11,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318090
+      },
+      {
+        "field_name": "sample_ptr",
+        "field_offset": 0,
+        "field_size": 4,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318570
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318580
+      },
+      {
+        "field_name": "sample_length",
+        "field_offset": 4,
+        "field_size": 2,
+        "operand_index": 1,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318570
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318586
+      },
+      {
+        "field_name": "start_pending",
+        "field_offset": 11,
+        "field_size": 1,
+        "operand_index": 0,
+        "owner_struct_name": "audio_channel_dma_configuration",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 318570
+        },
+        "root_struct_name": "audio_channel_dma_configuration",
+        "section_index": 0,
+        "source_offset": 318592
+      }
+    ],
+    "samples": [
+      {
+        "field_name": "sample_ptr",
+        "field_offset": 0,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "audio_sample_metadata",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_sample_metadata",
+        "section_index": 0,
+        "source_offset": 318016
+      },
+      {
+        "field_name": "sample_length",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_sample_metadata",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_sample_metadata",
+        "section_index": 0,
+        "source_offset": 318022
+      },
+      {
+        "field_name": "sample_ptr",
+        "field_offset": 0,
+        "field_size": 4,
+        "operand_index": 0,
+        "owner_struct_name": "audio_sample_metadata",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_sample_metadata",
+        "section_index": 0,
+        "source_offset": 318046
+      },
+      {
+        "field_name": "sample_length",
+        "field_offset": 8,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_sample_metadata",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_sample_metadata",
+        "section_index": 0,
+        "source_offset": 318052
+      },
+      {
+        "field_name": "sample_period",
+        "field_offset": 10,
+        "field_size": 2,
+        "operand_index": 0,
+        "owner_struct_name": "audio_sample_metadata",
+        "provenance": {
+          "kind": 11,
+          "section_index": 0,
+          "source_offset": 317978
+        },
+        "root_struct_name": "audio_sample_metadata",
+        "section_index": 0,
+        "source_offset": 318070
+      }
+    ]
+  },
+  "source_instruction_changes": {
+    "removed": [
+      "move.b d0,$0002(a0)",
+      "add.b $0003(a0),d0",
+      "movea.l $0022(a0),a2",
+      "move.l a2,$0026(a0)",
+      "move.b $002A(a0),$002B(a0)",
+      "move.l $0000(a5),$0000(a4)",
+      "move.w $0008(a5),$0004(a4)",
+      "move.w d1,$0008(a4)",
+      "tst.b $000B(a4)",
+      "tst.b $000B(a4)",
+      "tst.b $000B(a4)",
+      "move.l $0000(a5),aud0+ac_ptr(a6)\t; sound_sample pointer",
+      "move.w $0008(a5),aud0+ac_len(a6)",
+      "move.w $000A(a5),d1",
+      "move.w d0,$0006(a4)",
+      "sf.b $0016(a0)",
+      "move.l a1,$0004(a0)",
+      "move.l a1,$0004(a0)",
+      "move.w $001C(a0),$001E(a0)",
+      "move.w $001C(a0),$001E(a0)",
+      "move.w d0,$001C(a0)",
+      "move.l a5,$0018(a0)",
+      "move.l a2,$0022(a0)",
+      "move.b -$0001(a2),$002A(a0)",
+      "move.l a2,$000C(a0)",
+      "move.l a2,$0010(a0)",
+      "move.w $000A(a0),d0",
+      "movea.w $0008(a0),a2",
+      "movea.w $0008(a0),a2",
+      "move.w d0,$000A(a0)",
+      "clr.w $0020(a0)",
+      "move.b (a1)+,$0014(a0)",
+      "move.b (a1)+,$0015(a0)",
+      "bset.b #1,$0000(a0)",
+      "move.l audio_silence_sample_ptr(pc),$0000(a4)",
+      "move.w #$20,$0004(a4)",
+      "st.b $0001(a0)",
+      "move.b (a1)+,$002C(a0)",
+      "move.b (a1)+,$002E(a0)",
+      "clr.b $002D(a0)",
+      "sf.b $0001(a0)",
+      "move.b (a1)+,$0003(a0)",
+      "move.b (a1)+,$0008(a0)",
+      "move.b (a1)+,$0009(a0)",
+      "move.w #$0,$000A(a0)"
+    ],
+    "added": [
+      "tst.b audio_channel_dma_configuration_start_pending(a4)",
+      "tst.b audio_channel_dma_configuration_start_pending(a4)",
+      "tst.b audio_channel_dma_configuration_start_pending(a4)",
+      "move.l audio_silence_sample_ptr(pc),audio_channel_dma_configuration_sample_ptr.w(a4)",
+      "move.w #$20,audio_channel_dma_configuration_sample_length(a4)",
+      "move.b d0,audio_channel_runtime_state_current_note(a0)",
+      "add.b audio_channel_runtime_state_note_offset(a0),d0",
+      "movea.l audio_channel_runtime_state_volume_sequence_start_ptr(a0),a2",
+      "move.l a2,audio_channel_runtime_state_volume_sequence_cursor(a0)",
+      "move.b audio_channel_runtime_state_volume_sequence_interval(a0),audio_channel_runtime_state_volume_sequence_countdown(a0)",
+      "move.l audio_sample_metadata_sample_ptr.w(a5),audio_channel_dma_configuration_sample_ptr.w(a4)",
+      "move.w audio_sample_metadata_sample_length(a5),audio_channel_dma_configuration_sample_length(a4)",
+      "move.w d1,audio_channel_dma_configuration_sample_volume(a4)",
+      "move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)\t; sound_sample pointer",
+      "move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)",
+      "move.w audio_sample_metadata_sample_period(a5),d1",
+      "move.w d0,audio_channel_dma_configuration_sample_period(a4)",
+      "sf.b audio_channel_runtime_state_sample_start_pending(a0)",
+      "move.l a1,audio_channel_runtime_state_program_cursor(a0)",
+      "move.l a1,audio_channel_runtime_state_program_cursor(a0)",
+      "move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)",
+      "move.w audio_channel_runtime_state_update_reload_countdown(a0),audio_channel_runtime_state_update_countdown(a0)",
+      "move.w d0,audio_channel_runtime_state_update_reload_countdown(a0)",
+      "move.l a5,audio_channel_runtime_state_sample_metadata_ptr(a0)",
+      "move.l a2,audio_channel_runtime_state_volume_sequence_start_ptr(a0)",
+      "move.b -$0001(a2),audio_channel_runtime_state_volume_sequence_interval(a0)",
+      "move.l a2,audio_channel_runtime_state_pitch_sequence_start_ptr(a0)",
+      "move.l a2,audio_channel_runtime_state_pitch_sequence_cursor(a0)",
+      "move.w audio_channel_runtime_state_channel_configuration_cursor_offset(a0),d0",
+      "movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2",
+      "movea.w audio_channel_runtime_state_channel_configuration_offset(a0),a2",
+      "move.w d0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)",
+      "clr.w audio_channel_runtime_state_pitch_delta_accumulator(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_pitch_delta_step(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_pitch_delta_countdown(a0)",
+      "bset.b #1,audio_channel_runtime_state_channel_flags.w(a0)",
+      "st.b audio_channel_runtime_state_pitch_modulation_flags(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_pitch_modulation_step(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_pitch_modulation_limit(a0)",
+      "clr.b audio_channel_runtime_state_pitch_modulation_value(a0)",
+      "sf.b audio_channel_runtime_state_pitch_modulation_flags(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_note_offset(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset(a0)",
+      "move.b (a1)+,audio_channel_runtime_state_channel_configuration_offset+1(a0)",
+      "move.w #$0,audio_channel_runtime_state_channel_configuration_cursor_offset(a0)"
+    ]
+  },
+  "tests": {
+    "passed": 37,
+    "new_dispatch_and_stride_cases": 15,
+    "files": [
+      "tests/test_pandora_audio_dispatch_contracts.py",
+      "tests/test_pandora_audio_command_records.py",
+      "tests/test_pandora_animation_sequences.py"
+    ]
+  },
+  "assets_unchanged": 86,
+  "data_directives_unchanged": true,
+  "source_sha256": "ca9864bbdc7affa0ab25af82afabf52153f33e39e371b705d6faa5c109bacaf2",
+  "unknowns": [
+    "Only 11 original dispatch entries are established; invalid control bytes and later replacement programs are not bounded.",
+    "Sample selection has no general allocation-bound proof.",
+    "CPU replay establishes local state and base identities, not Paula DMA timing or full gameplay scheduling.",
+    "Animation gap meanings remain unresolved; see pandora-animation-gap-pass.json."
+  ],
+  "named_field_operands_added": 50,
+  "instruction_presentations_changed": 45,
+  "unchanged_unresolved_dma_accesses": 1
+}

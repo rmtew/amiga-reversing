@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "kind": "behavioural-validation-batch-evidence",
+  "batch": "Pandora warm audio-start composition",
+  "base_commit": "4e5df6369bde9c0c537860df5a67b4a9fe8d1e18",
+  "B_ids_advanced": [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B06",
+    "B07",
+    "B08",
+    "B09",
+    "B10"
+  ],
+  "completed_B_ids": [],
+  "canonical_summary_id": "catalog-function-summary-entry-h0-000552FE",
+  "canonical_action_id": "manual-a78d5797d01b4d41ba640c0f3c8d029e",
+  "canonical_contract_ids": [
+    "pandora.volume.local.v1",
+    "pandora.volume.warm-start.v1"
+  ],
+  "fixture_manifest": "runtime/observations/pandora-warm-audio-start-inputs.json",
+  "capture_sha256": "480bdbf74959b322cd001a4613e69f7da4c1cf0b71d9e610258605e25a22144a",
+  "capability_changes": [
+    "Reuse existing ordinary-68000 observer and original/manifest-derived ASM runner; no opcode semantics changes.",
+    "A separately admitted warm profile has256 instructions; original v1 remains128 and excludes initialization.",
+    "Named bounded predicates share one canonical function summary/MAL producer/DJ review; selected predicate identities differ. Effective upserts bind the latest active producer, never an older action's acceptance.",
+    "The private fixture hash is reviewed; missing, changed or unowned evidence refuses. CIAA debug snapshot provenance explicitly distinguishes CPU input modeling from an observed CPU access.",
+    "Independent ordered contract checks40 initialization field writes across four existing48-byte channel records, globals, CIAA write intent, return/control flow and logical volume."
+  ],
+  "coverage": {
+    "accepted_contracts_before": 2,
+    "accepted_contracts_after": 3,
+    "cpu_cases_before": 19,
+    "cpu_cases_after": 25,
+    "legacy_cpu_cases": 19,
+    "new_warm_cpu_cases": 6,
+    "byte_inputs_before": 65536,
+    "byte_inputs_after": 65536,
+    "dma_fixtures_before": 1,
+    "dma_fixtures_after": 1,
+    "new_gameplay_reachability_proofs": 0,
+    "warm_cases": [
+      {
+        "distance": "0",
+        "xy": [
+          840,
+          168
+        ],
+        "initial_volumes": [
+          0,
+          65535
+        ],
+        "steps": 141,
+        "output": 64
+      },
+      {
+        "distance": "255",
+        "xy": [
+          1095,
+          168
+        ],
+        "initial_volumes": [
+          0,
+          65535
+        ],
+        "steps": 141,
+        "output": 1
+      },
+      {
+        "distance": "WORD sum wraps to0",
+        "xy": [
+          33608,
+          32936
+        ],
+        "initial_volumes": [
+          0,
+          65535
+        ],
+        "steps": 143,
+        "output": 64
+      }
+    ]
+  },
+  "tests": {
+    "python_passed": 223,
+    "optional_skipped": 1,
+    "optional_skip": "Live MCP SDK transport unavailable; SDK absent. HTTP and thin adapter forwarding tested.",
+    "output_sha256": "d6a4a44389f53e522d3dc057ff70a8049910e1e8d73bed688df6cb0a3fd39130",
+    "negatives": [
+      "Unknown CIAA snapshot, preset or configuration pointer bytes refuse.",
+      "Zero initialized-sample guard refuses; cold PCM/sample initializer is outside the contract.",
+      "128-instruction budget times out; far XY inputs refuse.",
+      "Reordered channel writes fail even with unchanged final fields/CPU state.",
+      "Changed/absent/unowned private fixture refuses at the shared service.",
+      "Duplicate, oversized, mixed or wrong-entry named-contract sets refuse.",
+      "An upsert never inherits older MAL action acceptance; stale effective definition refuses."
+    ],
+    "native_backend": "No generated CPU semantics/C source changes; prior30 native simulator tests are historical, not rerun."
+  },
+  "exact_verification": {
+    "receipt_id": "8abf480da8d0459f99df28a5e0734fc1a67ef863a09759e50acb2bb24eaf2e81",
+    "subject_revision": "e17ff5f251b2edb7a3f75a4dabea54e6af35bf253babacf15c5aee2983ba0230",
+    "exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db",
+    "source_package_sha256": "040a3ffded8f9064509dd88d18636e899176f48af4d53568ba126729fb9cbdb7",
+    "framework_exact": true,
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "accounting": {
+    "unknown_bytes_before": 6446,
+    "unknown_bytes_after": 6446,
+    "new_source_classifications": 0,
+    "assembly_changed": false,
+    "byte_purpose_relocation_credit": 0
+  },
+  "limits": [
+    "Modeled local alive-near/unarmed calls, not normal gameplay reachability.",
+    "Captured initialized-sample guard excludes cold sample/PCM setup; pointed-to programs and later channel consumers do not execute.",
+    "CIAA debug snapshot supplied as flat CPU memory is a device input model, not a captured CPU event or proof of live CIA/LED, Paula/DMA or IRQ behavior.",
+    "No allocation, all-callers lifetime or relocation-safety proof. B01\u2013B10 remain partial/open.",
+    "Bank30 unresolved; fonts, bank45 layout and EQU/RS policy untouched.",
+    "Captured preset/configuration tables are fixed. Negative relative offsets, alternate CIA port states and other player modes are not covered."
+  ],
+  "next_evidence_question": "Can a separately bounded DMA contract follow the scratch consumer into destination writes across the second natural buffer, without misattributing later blits?",
+  "canonical_review": {
+    "decision_id": "restoration-e19b99e3f8774183a70e47272009506b",
+    "action_id": "manual-a78d5797d01b4d41ba640c0f3c8d029e",
+    "action": "accept_fact",
+    "subject_revision": "e17ff5f251b2edb7a3f75a4dabea54e6af35bf253babacf15c5aee2983ba0230",
+    "revision": "f62132eb29cdf040edc9c3a7261e81a77a35d640d8cb54cab9e0e1608757aa1c",
+    "verification_id": "8abf480da8d0459f99df28a5e0734fc1a67ef863a09759e50acb2bb24eaf2e81"
+  },
+  "prereview": {
+    "warm": {
+      "receipt_id": "fa0b5c27b7e14713287d077f51c8d29ecea64630d5717e9ed3ef6e0746d465ff",
+      "status": "missing_prerequisite",
+      "evaluation_outcome": {
+        "status": "pass"
+      },
+      "admission": {
+        "reason": "Canonical contract requires Decision Journal acceptance",
+        "status": "missing_prerequisite"
+      }
+    },
+    "legacy": {
+      "receipt_id": "bff1caff95d7184d3dff3d72d746553a241f355cded003369b72375d68febbc8",
+      "status": "missing_prerequisite",
+      "evaluation_outcome": {
+        "status": "pass"
+      },
+      "admission": {
+        "reason": "Canonical contract requires Decision Journal acceptance",
+        "status": "missing_prerequisite"
+      }
+    }
+  },
+  "native_manifest": {
+    "manifest_sha256": "2d948c7e68ddf1f2e76835a57b9ecae931979ab9efcdfa4963511b546fea64f0",
+    "artifact_sha256": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+    "rewrite_count": 5,
+    "subject_revision": "e17ff5f251b2edb7a3f75a4dabea54e6af35bf253babacf15c5aee2983ba0230"
+  },
+  "unqualified_renderer_probe": {
+    "capture_sha256": "cb7fe16e214a1f01b036e6bc81109c2215c52a66c06e15be4fd5ced9f2146411",
+    "status": "captured; not yet admitted as a canonical predicate",
+    "geometry": "same H32/shift4 as initial fixture; alternate destination buffer, not new height/shift coverage",
+    "report_matches": 4433,
+    "report_omitted": 337,
+    "partitioned_full_sidecar_records": 5120,
+    "partitioned_omitted": 0,
+    "prototype_destination_FIFO_pairs": 128,
+    "limits": "Source/destination window includes later blits; full attribution and the new bounded acceptance contract remain separate work."
+  },
+  "qualified_receipts": {
+    "warm": {
+      "receipt_id": "86ab430fbea8a11f5ae042b64598a9e734e86743ad39dc0cf9df6bce78ce1896",
+      "status": "pass",
+      "subject_revision": "e17ff5f251b2edb7a3f75a4dabea54e6af35bf253babacf15c5aee2983ba0230",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "e77dde94d6f28b5ea3b38dd7d127171d1b685147d21b6fec872831b1a61ada27",
+        "fixture": "c02d334a809ae48dc6407831e295de95adca39b1db2c8f0810b2d528d05e47d4",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "2882af3c90d503b56cffb33ba91e69a380f5d9d96de4dd12dbceb17655fb0604"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "cases_passed": 6,
+      "fixture_ids": [
+        [
+          "df69f0b984d9f28ce4973eb41794a28c43c3b129909847fcd4b2dce7452d299a",
+          "9a542773dd2fb5e4cad70da302790dbd8ee81eff4b153d7e1c574a9f5ae33602"
+        ],
+        [
+          "a3e2c8e2bded14690f39465ad6311a2662d3e10e6b2aeb532ab177c5b0c682de",
+          "cc3707b00754cea33d0f87c5b250fde20a2d70fbce6992e8d6718bb74481d886"
+        ],
+        [
+          "7046f4083a5616210333269bf7d4aa09ef1da9e522fdb1e81141eccfd30d540e",
+          "7396c4bdf18bab7e48eb28b2cba36755a8d180ab5d1662aec5b7abe133865478"
+        ],
+        [
+          "f214adaae80dd0383c1de5f7a4bedf19f2709cc3bd4a29d2bfa2582a5c165367",
+          "18c351a1b6efb3ab6c07467e2714a15b793909b65cc6fbd4a47a749f6e2f257c"
+        ],
+        [
+          "af6f8423308753047ef6288ded3e71b70e6bad165b61304191c11a85ef4c9180",
+          "4c8f3a8238356064f3981efc7dd5618a3c7929063cc5af742ef9eb36c195c3bd"
+        ],
+        [
+          "e1ef6a5816a236273b57db269da0eea76ffc3f1f5652f0c06fb6587594de6336",
+          "e2d36aa664489af4ad55fe129447080f309f4d98e7452aa2ec498dbacd6bf5ca"
+        ]
+      ]
+    },
+    "legacy": {
+      "receipt_id": "3d13666aebf4d57cd8635f1630f2eba1303003b4ef7c1d110edad3b51a00d547",
+      "status": "pass",
+      "subject_revision": "e17ff5f251b2edb7a3f75a4dabea54e6af35bf253babacf15c5aee2983ba0230",
+      "identities": {
+        "backend": "2b67a2bda0af6ecef67137e4a80f7693e793803fbbcc7741fe4817cdfbce30a1",
+        "candidate": "dc173a673cd8d939267952b9c15507529dec92e3f3d5f3597d57489635f0cfd1",
+        "contract": "f64ef6f91f0a2f6d84aa7578412e988e54ab6635a00ad7c08871d84136756d83",
+        "fixture": "8f6139d2905292f122234b6891527751a915d2489f00c0b32a3d0a84b8cea429",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "a327010154d0b66aacf72f979d509a2cdc81a2940c44c9c516f0fb38fd9e3f3d"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "cases_passed": 19,
+      "fixture_ids": [
+        [
+          "4788db9099dfe3f4812798b217ef2cb4c28b42bc940e4af2371d2c2130223184",
+          "e8bd1b118b9556d656e9f217912ca4f284550c44f182d237d05864875c1705eb"
+        ],
+        [
+          "e290a579fe102fe6a4d1f9de678fc41577763435686152eb6dbdd0fb9ddb939f",
+          "5e24acf236b86dab56005b282b269656d1be6c1d8efbe58b9eb673b2e92320f2"
+        ],
+        [
+          "d16e012bdc2aa4abc5c1d9ac606a75033ee0a2c796d918d0f874e0905484ae91",
+          "dcbe7e5918a46940988f5627ec6df2ad3a4a092ffdd728fb2967852e858a861a"
+        ],
+        [
+          "cc042c5fdb25a57911b2943362a318c445154d399cead6605f5a1313ca4980b6",
+          "4d0e218859128b3a6162f94da1871a93cee3fd5bd19de14d99d5be8d2f5665db"
+        ],
+        [
+          "e1d8224136af7e12681f083200ff4d9277b2fbd880d1327f0c28ab180b5529f6",
+          "5f81e668c90d7792a27087505a0a07db8771419b97f4fdebe1eb1c1e2770c502"
+        ],
+        [
+          "ef5e85509e3895edd99b75f2a02e22a8a8526904db1633193e5b051f96ac1973",
+          "f93bfff6761b72f89e2287e9c027de43785e4b40b3f1adcca381cd0d1326aae0"
+        ],
+        [
+          "65214ef1c71f2ca49ffdb9890aa8a24ef16e89cef7dd81bfec62ea54be0c2357",
+          "278d5b793eb3c74bb1293aa0a36ce7d73507a39074b1f39efea43ff26f8a0dae"
+        ],
+        [
+          "4288381db9c6d9563515fee9f2c764f4265dc38462c635818c658549acc80034",
+          "8f21366a71944d41d921d1b7fb13dd610c6095857ce5904910bec4f2735e6f6a"
+        ],
+        [
+          "23c1810b29447c4d05a2bb7532bc046a3ce1fc696bd7c16be3e9399fcf60fb93",
+          "5f4e2ea335e6dccc95db43c96fa762480fa9c93e6a35e51084914bd8c0e6ea60"
+        ],
+        [
+          "5751779f970aa15d1c1339eca16c9828e866e4cf6b2b7dcc9e631fc737de5ae7",
+          "0eca1fb6a83a22052c64e66751f1342e8539d9928d8c7bb5b7c10162604791d4"
+        ],
+        [
+          "8cfb7a87a12518f9f15bcf48c998ab776b91bda9c8ecf46a86a9003ff9fb9170",
+          "186e78a23d5b63190d08bddf95713e778f1caa75f8ac03d120f2fb807748b366"
+        ],
+        [
+          "2e5360b00c2ac48d2004de56a773608d524089d81e1d0ad0f763c80d730c69a9",
+          "248a8feecb94a302998b22d060ba528a6bd2a6392171529d3caa4c6e144119c9"
+        ],
+        [
+          "36d6ac1a962ef1ff1f2c37633d7c75a12e6e2802a168e007e2e5140980f5938d",
+          "b9a84631fba5d84a2eaaf8da6bfed56b3391e64a89e1ec016157ab76d9514ff2"
+        ],
+        [
+          "4b32a2eec7af1583b8fe800b106810ed3ae24de2f2f5558ace07ce26f920ed59",
+          "dad429e976c5ea69a9e4d4c758139ec9568022fcc63b720c99064a5c0507a4b5"
+        ],
+        [
+          "2b3b3187a6a23f9bc9560fae1e54379ef2a536c301febec67d9e0381be3cf7da",
+          "bb4dc5cacbc3a522a34d174e9a3ffe6a448bf9dc5f8022933118f1d2ac816a9a"
+        ],
+        [
+          "71bfa186533731be3a645d41c712658be6fe03e3fd53ea06cb3923335eea0ed9",
+          "66dc3c336000956a0a7bb7088991ce71b08eac4ab23f3aef1f5287d940e4c8bf"
+        ],
+        [
+          "fc5a3955ced27fe58631091dd2b8e4e70a690568392b4b3dfe90f8e1837b62ad",
+          "d839066e16bf139308d865d2f54c65264878eae2d08e658cbefa181441320bbc"
+        ],
+        [
+          "d0a0659225890f7db79920e80ec5cb9a50a3aa2e5343ae571a6c83134b099458",
+          "44ac0b095a1ec4d3997e4593f97bf40fe4c7689851fd75dd1e6eed717ca1a7f4"
+        ],
+        [
+          "6657fbfdc9f669a9135caba1978c153941ab1840ed5f5cffcb7de741162d08ef",
+          "96f3a665f2039decde05b85e894ffc87bf9ddf11c04a36355d10e9f80420eb6f"
+        ]
+      ]
+    },
+    "dma": {
+      "receipt_id": "bcdecc50d559f0f268f9433e0cfd53c04783c8c3625b1166244f1a62bd394665",
+      "status": "pass",
+      "subject_revision": "e17ff5f251b2edb7a3f75a4dabea54e6af35bf253babacf15c5aee2983ba0230",
+      "identities": {
+        "backend": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "candidate": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "contract": "3db507af420e0602a9ae4ed5b9d030a0bca56811f27429559c4da838aa5e2a44",
+        "fixture": "5ad2c2a13928ba609a0840615bc0240dc854e66119b80862076317043143869f",
+        "original": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "profile": "e44f53d430d1cada237bf6f26ec7c86d8001a357662dc0642ce6b0ca0f48e2e7"
+      },
+      "admission": {
+        "status": "pass"
+      },
+      "counts": [
+        {
+          "access": "read",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 128
+        },
+        {
+          "access": "write",
+          "engine": "blitter",
+          "range": "shared_scratch",
+          "transfers": 256
+        }
+      ]
+    }
+  }
+}

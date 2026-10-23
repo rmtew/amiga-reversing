@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "default_verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836",
+    "revision": "9a8ee55f163658dc75db65f13716798e2a3fe8fdee6dc42ce537006a40f6e986",
+    "source_package_sha256": "4ce6967ed6002f0405fa425f38da3e79058c7e1eeec30de5a5e330c44b6d2bd8",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/4ce6967ed6002f0405fa425f38da3e79058c7e1eeec30de5a5e330c44b6d2bd8/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "61959875772af1e34d6780d5c0adf1aac35b7832f1089e623679756dcfff3c0c",
+    "status": "exact",
+    "subject_revision": "15bea842556bf11d6d9af9939431e83e7451d8be5d0bd483b8e2178256d5762c",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "default_optional_build": {
+    "schema_version": 1,
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "manifest_sha256": "d53313f1300d9b623c028263d85d3afb263217471ea16dd0ac1f8954ebdef9ac",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "size": 376832,
+    "enabled": [],
+    "default_original": true,
+    "patches": []
+  },
+  "enabled_optional_build": {
+    "schema_version": 1,
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "manifest_sha256": "d53313f1300d9b623c028263d85d3afb263217471ea16dd0ac1f8954ebdef9ac",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "ee345a4a502415dd717509f834a05db5039fbcc0acc4e28b6f3b14c813a78535",
+    "size": 376832,
+    "enabled": [
+      "guard-null-state-node"
+    ],
+    "default_original": false,
+    "patches": [
+      {
+        "id": "guard-null-state-node",
+        "start": "s0:0000867E:instruction",
+        "end": "s0:000086A6:instruction",
+        "expected_hex": "2f08206d004e2f082068000808a80000000a42680010206d002c2b680000004e215f0000205f4e75",
+        "replacement_hex": "2f08206d004e2f082f280008205f670a08a80000000a42680010206d002c2b50004e209f205f4e75",
+        "assembly": "null-node-guard.s",
+        "assembly_sha256": "7e569cd9e59f9b9e0ceb38531d5388ed5caa999929c5cc5641505e059e0d5fc1",
+        "rationale": "Exchange incoming and active states as before; skip animation-node resets when the incoming node is NULL. Original static defeat otherwise writes through NULL into low-memory vectors.",
+        "preconditions": [
+          "Original raw payload and exact instruction boundaries match.",
+          "Incoming state and object descriptor pointers are valid; only the animation-node pointer may be NULL.",
+          "At least 12 bytes below entry SP are writable and disjoint from object, descriptor, state, node, and code; the original routine required 8."
+        ],
+        "conflicts": []
+      }
+    ]
+  },
+  "changed_range": {
+    "start": 34430,
+    "end_exclusive": 34470,
+    "outside_range_identical": true,
+    "size_preserved": true
+  },
+  "tests": {
+    "distinct_focused_tests_passed": 41,
+    "combined_run": "39 passed in64.68s; two later CLI protection tests also pass within12-test admission run",
+    "ccr_followup": "Four original-versus-corrected CPU cases also rerun with initial SR=0x201F, including preserved X"
+  },
+  "limits": [
+    "Corrected gameplay not executed.",
+    "CPU fixtures explicitly initialize local state; they do not establish gameplay reachability.",
+    "Patch requires12 disjoint writable stack bytes below entry SP and valid object/state/descriptor pointers."
+  ],
+  "original_gameplay_evidence": "runtime/observations/pandora-combat-null-node.json"
+}

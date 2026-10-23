@@ -88,6 +88,26 @@ def test_timeout_pauses_same_stream_drains_both_and_can_reuse(pause_first):
     assert not errors
 
 
+@pytest.mark.parametrize("pause_first", [True, False])
+def test_timeout_retains_late_stop_without_turning_it_into_success(pause_first):
+    stop = {"reason": "watchpoint", "pc": 0x16B0E, "cck": 1234}
+    paused = {"reason": "pause", "pc": 0x16B0E}
+    def serve(stream):
+        run, pause = read(stream), read(stream)
+        for req in [pause, run] if pause_first else [run, pause]:
+            reply(stream, req, paused if req is pause else stop)
+        reply(stream, read(stream), {"paused": True})
+    client, thread, errors = fake_server(serve)
+    with pytest.raises(CopperlineTimeout) as caught:
+        client.run_until({"seconds": 1_000_000_000}, timeout=0.01)
+    assert caught.value.stop_event == stop
+    assert caught.value.pause_event == paused
+    assert client.request("status") == {"paused": True}
+    client.close()
+    thread.join(1)
+    assert not errors
+
+
 def test_pause_unresponsive_disconnects():
     release = threading.Event()
 

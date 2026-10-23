@@ -35,6 +35,7 @@
 #define M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT 2U
 
 #define M68K_FACTS_V2_TRACE_INDIRECT_STATE_VARIANT_LIMIT 8U
+#define M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT 2U
 /* Word-relative dispatches may fan out across a large routine cluster; each
    entry is still required to map to an even in-section control target. */
 #define M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT 0x2000
@@ -332,7 +333,7 @@ typedef struct M68kFactsV2TraceValue {
   uint8_t kind;
   uint8_t has_table_base_address;
   uint8_t has_origin;
-  uint8_t reserved;
+  uint8_t is_continuation;
   uint16_t origin_operand_index;
   size_t section_index;
   uint32_t value;
@@ -771,6 +772,7 @@ static int trace_value_equal(const M68kFactsV2TraceValue *lhs, const M68kFactsV2
   uint32_t index;
   if (lhs == NULL || rhs == NULL) return lhs == rhs;
   if (lhs->kind != rhs->kind ||
+      lhs->is_continuation != rhs->is_continuation ||
       lhs->has_table_base_address != rhs->has_table_base_address ||
       lhs->has_origin != rhs->has_origin ||
       lhs->origin_operand_index != rhs->origin_operand_index ||
@@ -910,6 +912,7 @@ static int trace_state_can_drive_indirect_control(const M68kFactsV2TraceState *s
   for (reg = 0U; reg < 8U; ++reg) {
     if (trace_value_can_drive_indirect_control(&state->a[reg])) return 1;
     if (trace_value_is_target_set(&state->d[reg]) ||
+        (state->d[reg].is_continuation && trace_value_can_drive_indirect_control(&state->d[reg])) ||
         state->d[reg].kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE ||
         state->d[reg].kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
         state->d[reg].kind == M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE) {
@@ -917,6 +920,43 @@ static int trace_state_can_drive_indirect_control(const M68kFactsV2TraceState *s
     }
   }
   return 0;
+}
+
+static int trace_state_has_continuation_input(const M68kFactsV2TraceState *state) {
+  uint8_t reg;
+  if (state == NULL) return 0;
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (state->a[reg].is_continuation || state->d[reg].is_continuation) return 1;
+  }
+  return 0;
+}
+
+/* LEA resume,An; BRA/JMP shared; resume: ... is an explicit inline return
+ * producer. The tag grants bounded propagation, not target-set completeness. */
+static int trace_state_mark_inline_resume(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kFactsV2TraceState *state) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint32_t resume;
+  uint8_t reg;
+  int marked = 0;
+  if (section == NULL || candidate == NULL || state == NULL ||
+      candidate->offset > UINT32_MAX - candidate->byte_count ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->flow_conditional ||
+      (metadata->flow_kind != M68K_SIM_FLOW_JUMP && metadata->flow_kind != M68K_SIM_FLOW_BRANCH)) return 0;
+  resume = candidate->offset + candidate->byte_count;
+  if (resume >= section->size) return 0;
+  for (reg = 0U; reg < 8U; ++reg) {
+    M68kFactsV2TraceValue *value = &state->a[reg];
+    if (value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET && value->section_index == section->section_index &&
+        value->value == resume && !value->is_continuation) {
+      value->is_continuation = 1U;
+      marked = 1;
+    }
+  }
+  return marked;
 }
 
 static int trace_value_can_drive_runtime_sink(uint8_t platform_kind, const M68kFactsV2TraceValue *value) {
@@ -943,6 +983,17 @@ static int trace_state_can_drive_runtime_sink(uint8_t platform_kind, const M68kF
   return 0;
 }
 
+/* Discovery's legacy runtime/data trace is not a callee preservation proof.
+ * Do not extend source/table target provenance past an opaque call merely
+ * because its return lies on a longer continuation worklist path. */
+static void trace_state_drop_call_provenance(M68kFactsV2TraceState *state) {
+  uint8_t lineage;
+  if (state == NULL) return;
+  lineage = state->established_entry_lineage;
+  trace_state_init_unknown(state);
+  state->established_entry_lineage = lineage;
+}
+
 static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, uint32_t offset,
     uint8_t confidence, uint32_t reason, size_t source_section_index, uint32_t source_offset,
     uint8_t has_runtime_address, uint32_t runtime_address, const M68kFactsV2TraceState *trace_state,
@@ -957,7 +1008,8 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
   if (queue == NULL) return -1;
   carries_indirect_control_state = trace_state_can_drive_indirect_control(trace_state);
   is_stateful = has_runtime_address != 0U || allow_trace_variant;
-  state_variant_limit = allow_trace_variant && carries_indirect_control_state
+  state_variant_limit = allow_trace_variant == M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT ||
+    (allow_trace_variant && carries_indirect_control_state)
     ? M68K_FACTS_V2_TRACE_INDIRECT_STATE_VARIANT_LIMIT
     : M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT;
   if (!is_stateful && section_index < queue->section_count && queue->queued_confidence != NULL &&
@@ -974,7 +1026,9 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
       if (!work_queue_existing_stateful_item_matches(item, section_index, offset, confidence,
           has_runtime_address, runtime_address)) continue;
       ++state_variant_count;
-      if (trace_state_matches_queued(&item->trace_state, trace_state)) return 0;
+      if (trace_state_matches_queued(&item->trace_state, trace_state) &&
+          (allow_trace_variant != M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT ||
+           item->allow_trace_variant == M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT)) return 0;
       if ((reason == M68K_FACT_CODE_START_REASON_FALLTHROUGH &&
            item->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET) ||
           (reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET &&
@@ -987,7 +1041,8 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
       }
     }
     if (state_variant_count != 0U && !saw_branch_merge_variant_anchor &&
-        !(allow_trace_variant && carries_indirect_control_state))
+        !(allow_trace_variant == M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT ||
+          (allow_trace_variant && carries_indirect_control_state)))
       return 0;
     if (state_variant_count >= state_variant_limit) return 0;
   }
@@ -5732,7 +5787,8 @@ static int enqueue_same_section_control_resolved_target_from_offset(M68kDecodeIR
     }
     return enqueue_code_start_runtime_evidence_ex(facts, queue, profile, section_index, target_offset,
       confidence, reason, resolved_evidence_kind, section_index, source_offset, target_has_runtime_address,
-      runtime_address, trace_state, 0U);
+      runtime_address, trace_state, trace_state_has_continuation_input(trace_state)
+        ? M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT : 0U);
   }
 }
 
@@ -6871,7 +6927,9 @@ static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectS
   size_t index;
   uint32_t count = 0U;
   uint32_t first_target = 0U;
+  int all_traced_producers = 0;
   if (site == NULL || section_analysis == NULL) return;
+  all_traced_producers = site->shape == M68K_RECOVERED_INDIRECT_SHAPE_IND;
   for (index = 0U; index < section_analysis->code_start_ref_count; ++index) {
     const M68kCodeStartRefIR *ref = &section_analysis->code_start_refs[index];
     if (ref->source_section_index != section_analysis->section_index ||
@@ -6880,6 +6938,8 @@ static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectS
       continue;
     }
     if (count == 0U) first_target = ref->offset;
+    if (ref->evidence_kind != M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET)
+      all_traced_producers = 0;
     if (count != UINT32_MAX) ++count;
   }
   if (count == 0U) return;
@@ -6887,9 +6947,12 @@ static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectS
   site->target = first_target;
   site->has_target_count = 1U;
   site->target_count = count;
-  site->status = count > 1U ? M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE :
+  /* A union of traced producer contexts is not itself a jump-table proof. */
+  site->status = count > 1U ? (all_traced_producers ? M68K_RECOVERED_INDIRECT_STATUS_PER_CALLER :
+    M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE) :
     M68K_RECOVERED_INDIRECT_STATUS_BACKWARD_SLICE;
-  site->detail = count > 1U ? "accepted indirect jump table targets" :
+  site->detail = count > 1U ? (all_traced_producers ? "accepted traced targets from multiple producer contexts" :
+    "accepted indirect jump table targets") :
     "accepted traced indirect control target";
 }
 
@@ -7356,7 +7419,7 @@ static int enqueue_immediate_indirect_target_set(M68kDecodeIR *decode, M68kFactI
       if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
           profile, max_cpu, section_index, next_candidate->offset, value->targets[target_index],
           M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses,
-          M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET, NULL) != 0) {
+          M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET, trace_state_has_continuation_input(trace_state) ? trace_state : NULL) != 0) {
         return -1;
       }
     }
@@ -9663,6 +9726,14 @@ static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, 
     if (candidate == NULL) return 0;
     candidate_copy = *candidate;
     candidate = &candidate_copy;
+    if (queue != NULL && trace_state_mark_inline_resume(section, candidate, &state)) {
+      uint32_t runtime = 0U;
+      uint8_t has_runtime = (uint8_t)runtime_address_space_source_to_runtime_near(runtime_addresses,
+        section_index, cursor, 0U, 0U, &runtime);
+      return enqueue_code_start_runtime_ex(facts, queue, profile, section_index, cursor,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_FALLTHROUGH,
+        section_index, offset, has_runtime, runtime, &state, M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT);
+    }
     if (trace_state_record_runtime_copy(decode, runtime_addresses, facts, profile, section_index, section, candidate,
         &state, max_cpu) != 0) {
       return -1;
@@ -9960,7 +10031,13 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     }
     candidate_copy = *candidate;
     candidate = &candidate_copy;
-    if (already_accepted) {
+    if (trace_state_mark_inline_resume(section, candidate, &item.trace_state))
+      item.allow_trace_variant = M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT;
+    /* Continuation-bearing states use the normal bounded work queue even when
+     * code is already accepted. A short linear replay loses values before a
+     * distant selector or at its intervening branches. Acceptance is separate
+     * from propagation: never count or classify these instructions twice. */
+    if (already_accepted && item.allow_trace_variant != M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT) {
       if (item.has_runtime_address || item.allow_trace_variant) {
         if (replay_runtime_sink_provenance_fallthrough(object, decode, relocation_lookup, runtime_addresses, facts,
             queue, profile, item.section_index, item.offset, &item.trace_state, accepted_start, accepted_bytes,
@@ -9974,49 +10051,51 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       }
       continue;
     }
-    phase_start = profile_phase_start_local(profile_reachable_phases);
-    validation_result = validate_reachable_candidate_for_acceptance(policy, facts, &item, section, candidate,
-      accepted_start, accepted_bytes, &accepted_count, profile);
-    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
-      phase_start);
-    if (validation_result < 0) {
-      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-        "reachable fixed point validation failed at %u:%08X", (unsigned)item.section_index,
-        (unsigned)item.offset);
-      return -1;
-    }
-    if (validation_result > 0) continue;
-    phase_start = profile_phase_start_local(profile_reachable_phases);
-    if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) {
-      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-        "reachable fixed point accepted-byte marking failed at %u:%08X", (unsigned)item.section_index,
-        (unsigned)item.offset);
-      return -1;
-    }
-    accepted_start[item.section_index][item.offset] = 1U;
-    {
-      M68kFact fact;
-      memset(&fact, 0, sizeof(fact));
-      fact.kind = M68K_FACT_CODE_ACCEPTED;
-      fact.confidence = item.confidence;
-      fact.section_index = item.section_index;
-      fact.offset = item.offset;
-      fact.reason = item.reason;
-      fact.has_runtime_address = item.has_runtime_address;
-      fact.runtime_address = item.runtime_address;
-      fact.source_section_index = item.source_section_index;
-      fact.source_offset = item.source_offset;
-      fact.size = candidate->byte_count;
-      if (m68k_fact_ir_append(facts, &fact) != 0) {
+    if (!already_accepted) {
+      phase_start = profile_phase_start_local(profile_reachable_phases);
+      validation_result = validate_reachable_candidate_for_acceptance(policy, facts, &item, section, candidate,
+        accepted_start, accepted_bytes, &accepted_count, profile);
+      profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_validate_seconds,
+        phase_start);
+      if (validation_result < 0) {
         m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-          "reachable fixed point code fact append failed at %u:%08X", (unsigned)item.section_index,
+          "reachable fixed point validation failed at %u:%08X", (unsigned)item.section_index,
           (unsigned)item.offset);
         return -1;
       }
+      if (validation_result > 0) continue;
+      phase_start = profile_phase_start_local(profile_reachable_phases);
+      if (mark_accepted_bytes(accepted_bytes[item.section_index], candidate, section->size) != 0) {
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+          "reachable fixed point accepted-byte marking failed at %u:%08X", (unsigned)item.section_index,
+          (unsigned)item.offset);
+        return -1;
+      }
+      accepted_start[item.section_index][item.offset] = 1U;
+      {
+        M68kFact fact;
+        memset(&fact, 0, sizeof(fact));
+        fact.kind = M68K_FACT_CODE_ACCEPTED;
+        fact.confidence = item.confidence;
+        fact.section_index = item.section_index;
+        fact.offset = item.offset;
+        fact.reason = item.reason;
+        fact.has_runtime_address = item.has_runtime_address;
+        fact.runtime_address = item.runtime_address;
+        fact.source_section_index = item.source_section_index;
+        fact.source_offset = item.source_offset;
+        fact.size = candidate->byte_count;
+        if (m68k_fact_ir_append(facts, &fact) != 0) {
+          m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+            "reachable fixed point code fact append failed at %u:%08X", (unsigned)item.section_index,
+            (unsigned)item.offset);
+          return -1;
+        }
+      }
+      ++accepted_count;
+      profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
+        phase_start);
     }
-    ++accepted_count;
-    profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
-      phase_start);
     if (trace_state_record_runtime_copy(decode, runtime_addresses, facts, profile, item.section_index, section,
         candidate, &item.trace_state, max_cpu) != 0)
     {
@@ -10110,20 +10189,23 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         if (m68k_decode_ir_ensure_candidate_at(decode, item.section_index, target_offset, max_cpu,
             &target_candidate, m68k_diag_sink(NULL)) != 0) return -1;
         if (target_candidate == NULL) continue;
-        if (target_prefix_uses_trace_indirect_control(decode, item.section_index, target_offset,
+        if (item.allow_trace_variant == M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT ||
+            trace_state_has_continuation_input(target_trace_state)) {
+          allow_trace_variant = M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT;
+        } else if (target_prefix_uses_trace_indirect_control(decode, item.section_index, target_offset,
             target_trace_state, max_cpu)) {
           allow_trace_variant = 1U;
         }
         if (target_prefix_uses_trace_runtime_sink(decode, relocation_lookup, runtime_addresses, facts,
             object->platform_backend_kind, accepted_start, accepted_bytes, item.section_index, target_offset,
-            target_trace_state, queue->arena, max_cpu)) {
+            target_trace_state, queue->arena, max_cpu) && allow_trace_variant == 0U) {
           allow_trace_variant = 1U;
         }
         if (target_has_runtime) {
           if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
               M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET, item.section_index, item.offset, 1U,
-              target_runtime, target_trace_state, 0U) != 0) return -1;
+              target_runtime, target_trace_state, allow_trace_variant) != 0) return -1;
         } else {
           if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
@@ -10164,14 +10246,29 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       phase_start);
     phase_start = profile_phase_start_local(profile_reachable_phases);
     if (candidate_has_normal_fallthrough(candidate)) {
+      M68kInstructionIR flow_instruction;
+      const M68kSimFormMetadata *flow_metadata = NULL;
+      if (item.allow_trace_variant == M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT &&
+          m68k_decode_candidate_to_instruction(candidate, &flow_instruction) == 0)
+        flow_metadata = m68k_sim_metadata_for_instruction(&flow_instruction);
+      if (flow_metadata != NULL && flow_metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+        trace_state_drop_call_provenance(&next_trace_state);
+        /* This recognizer supplies an explicit, independently checked result,
+         * rather than preserving incoming continuation registers. */
+        (void)trace_state_apply_platform_loadseg_helper_call(decode, object->platform_backend_kind,
+          item.section_index, section, candidate, &item.trace_state, max_cpu, &next_trace_state);
+      }
       uint32_t fallthrough = candidate->offset + candidate->byte_count;
       if (fallthrough < section->size) {
         uint32_t inline_resume = 0U;
         uint8_t fallthrough_has_runtime = 0U;
         uint32_t fallthrough_runtime = 0U;
-        uint8_t fallthrough_allow_trace_variant = item.allow_trace_variant &&
-          (trace_state_can_drive_indirect_control(&next_trace_state) ||
-           trace_state_can_drive_runtime_sink(object->platform_backend_kind, &next_trace_state));
+        uint8_t fallthrough_allow_trace_variant =
+          item.allow_trace_variant == M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT
+            ? M68K_FACTS_V2_TRACE_CONTINUATION_VARIANT
+            : (uint8_t)(item.allow_trace_variant &&
+                (trace_state_can_drive_indirect_control(&next_trace_state) ||
+                 trace_state_can_drive_runtime_sink(object->platform_backend_kind, &next_trace_state)));
         uint8_t fallthrough_confidence = candidate_has_generated_conditional_branch_flow(candidate)
           ? M68K_FACT_CONFIDENCE_TOOL_INFERRED : M68K_FACT_CONFIDENCE_SPECULATIVE;
         if (item.has_runtime_address && item.runtime_address <= UINT32_MAX - candidate->byte_count) {
@@ -10222,9 +10319,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
           continue;
         }
         if (fallthrough_has_runtime) {
-          if (enqueue_code_start_runtime(facts, queue, profile, item.section_index, fallthrough,
+          if (enqueue_code_start_runtime_ex(facts, queue, profile, item.section_index, fallthrough,
               fallthrough_confidence, M68K_FACT_CODE_START_REASON_FALLTHROUGH,
-              item.section_index, item.offset, 1U, fallthrough_runtime, &next_trace_state) != 0) return -1;
+              item.section_index, item.offset, 1U, fallthrough_runtime, &next_trace_state,
+              fallthrough_allow_trace_variant) != 0) return -1;
         } else {
           if (enqueue_code_start_runtime_ex(facts, queue, profile, item.section_index, fallthrough,
               fallthrough_confidence, M68K_FACT_CODE_START_REASON_FALLTHROUGH,

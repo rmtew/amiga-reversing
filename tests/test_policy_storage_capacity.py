@@ -25,20 +25,24 @@ from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_
 from tests.test_c_backend import _requires_c_backend_dlls
 
 pytestmark = pytest.mark.c_backend
+LIMITS = {'seeded_entities': 32768, 'seeded_code_labels': 32768}
 
 
 def _source(tmp_path):
     _requires_c_backend_dlls()
     dll = c_backend._platform_file_dll(PROJECT_ROOT)
-    for name in ('platform_file_structured_data_item_count_capacity', 'platform_file_named_label_count_capacity'):
+    for name, expected in (
+        ('platform_file_structured_data_item_count_capacity', 32768),
+        ('platform_file_named_label_count_capacity', 32768),
+    ):
         if not hasattr(dll, name):
             pytest.skip('coordinated native storage-capacity build has not run yet')
         accessor = getattr(dll, name)
         accessor.argtypes = []
         accessor.restype = ctypes.c_size_t
-        assert accessor() == 16384
+        assert accessor() == expected
     binary = tmp_path / 'boundary.bin'
-    binary.write_bytes(bytes.fromhex('4e75') + bytes(16385))
+    binary.write_bytes(bytes.fromhex('4e75') + bytes(32769))
     return RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
         address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
         code_start_offset=0, display_path=str(binary), analysis_cache_path=tmp_path / 'cache')
@@ -61,32 +65,35 @@ def _metadata(tmp_path, collection, count, duplicate=False):
     ('seeded_entities', 'structured_data_item_count', 'structured_data_items'),
     ('seeded_code_labels', 'named_label_count', 'named_labels'),
 ])
-def test_real_storage_boundary_preserves_all_16384_items(tmp_path, collection, count_field, output_field):
+def test_real_storage_boundary_preserves_every_item(tmp_path, collection, count_field, output_field):
     source = _source(tmp_path)
+    limit = LIMITS[collection]
     policy = c_backend.effective_policy_project_source_with_c_backend(
-        source, metadata_path=_metadata(tmp_path, collection, 16384))['analysis_policy']
-    assert policy[count_field] == 16384
-    assert len(policy[output_field]) == 16384
-    assert policy[output_field][-1]['offset'] == 16385
+        source, metadata_path=_metadata(tmp_path, collection, limit))['analysis_policy']
+    assert policy[count_field] == limit
+    assert len(policy[output_field]) == limit
+    assert policy[output_field][-1]['offset'] == limit + 1
 
 
 @pytest.mark.parametrize(('collection', 'message'), [
     ('seeded_entities', 'structured data item capacity exceeded'),
     ('seeded_code_labels', 'named label capacity exceeded'),
 ])
-def test_real_storage_overflow_rejects_16385_without_partial_policy(tmp_path, collection, message):
+def test_real_storage_overflow_rejects_without_partial_policy(tmp_path, collection, message):
     source = _source(tmp_path)
-    text = _metadata(tmp_path, collection, 16385).read_text()
-    with pytest.raises(ValueError, match=message + r' \(16384\)'):
+    limit = LIMITS[collection]
+    text = _metadata(tmp_path, collection, limit + 1).read_text()
+    with pytest.raises(ValueError, match=message + rf' \({limit}\)'):
         c_backend.validate_policy_storage_with_c_backend(source, metadata_text=text)
 
 
 def test_real_duplicate_label_is_accepted_at_native_capacity(tmp_path):
     source = _source(tmp_path)
+    limit = LIMITS['seeded_code_labels']
     policy = c_backend.effective_policy_project_source_with_c_backend(
-        source, metadata_path=_metadata(tmp_path, 'seeded_code_labels', 16384, duplicate=True))['analysis_policy']
-    assert policy['named_label_count'] == 16384
-    assert len(policy['named_labels']) == 16384
+        source, metadata_path=_metadata(tmp_path, 'seeded_code_labels', limit, duplicate=True))['analysis_policy']
+    assert policy['named_label_count'] == limit
+    assert len(policy['named_labels']) == limit
 
 
 def test_real_expanded_field_array_overflow_is_atomic_before_log_creation(tmp_path):
@@ -94,7 +101,7 @@ def test_real_expanded_field_array_overflow_is_atomic_before_log_creation(tmp_pa
     directory = tmp_path / 'target'
     directory.mkdir()
     write_target_metadata(directory, TargetMetadata(target_type='program', entry_register_seeds=()))
-    count = 16385
+    count = 32769
     actions = [
         (ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT, {'custom_struct': {'name': 'Cell', 'size': 1,
             'fields': [{'name': 'value', 'type': 'byte', 'offset': 0, 'size': 1}]}}),
@@ -106,7 +113,7 @@ def test_real_expanded_field_array_overflow_is_atomic_before_log_creation(tmp_pa
                 'element_width': count, 'binding_kind': 'custom_struct', 'bound_type_id': 'Cell'}}}),
     ]
     before = {p.name: p.read_bytes() for p in directory.iterdir() if p.is_file()}
-    with pytest.raises(ValueError, match=r'capacity exceeded \(16384\)'):
+    with pytest.raises(ValueError, match=r'capacity exceeded \(32768\)'):
         append_manual_actions(directory, actions=actions, binary_source=source)
     assert not manual_action_log_path(directory).exists()
     after = {p.name: p.read_bytes() for p in directory.iterdir() if p.is_file() and p.name != '.target-history.lock'}
@@ -119,6 +126,7 @@ def test_real_expanded_field_array_overflow_is_atomic_before_log_creation(tmp_pa
 ])
 def test_object_enrichment_overflow_rejects_policy_listing_and_render(tmp_path, collection, message):
     _source(tmp_path)  # Require the coordinated native capacity build.
+    limit = LIMITS[collection]
     path = tmp_path / "resident.hunk"
     assembly = (
         "    SECTION library,code\nresident:\n    dc.w $4AFC\n"
@@ -135,9 +143,9 @@ def test_object_enrichment_overflow_rejects_policy_listing_and_render(tmp_path, 
     assert discovered["structured_data_item_count"] > 0
     assert discovered["named_label_count"] > 0
     if collection == "seeded_entities":
-        items = [{"hunk": 0, "addr": 0, "end": 1, "type": "data", "subtype": "raw", "unit": "byte"}] * 16384
+        items = [{"hunk": 0, "addr": 0, "end": 1, "type": "data", "subtype": "raw", "unit": "byte"}] * limit
     else:
-        items = [{"hunk": 0, "addr": 0, "name": f"BOUND_LABEL_{index:04d}"} for index in range(16384)]
+        items = [{"hunk": 0, "addr": 0, "name": f"BOUND_LABEL_{index:04d}"} for index in range(limit)]
     metadata = tmp_path / "enrichment-metadata.json"
     metadata.write_text(json.dumps({"target_type": "program", collection: items}), encoding="utf-8")
     # Metadata alone fills the limit. Additional resident facts come from the
@@ -148,7 +156,7 @@ def test_object_enrichment_overflow_rejects_policy_listing_and_render(tmp_path, 
         c_backend.build_listing_artifact_profile_from_binary_source,
     )
     for operation in operations:
-        with pytest.raises(RuntimeError, match=message + r" \(16384\)"):
+        with pytest.raises(RuntimeError, match=message + rf" \({limit}\)"):
             operation(source, metadata_path=metadata)
 
 
@@ -225,3 +233,27 @@ def test_real_513th_manual_word_reference_rejected_atomically_and_duplicate_allo
     with pytest.raises(ValueError, match=r"manual data reference capacity exceeded \(512\)"):
         append_manual_actions(directory, actions=[_reference(512)], binary_source=source)
     assert {p.name: p.read_bytes() for p in directory.iterdir() if p.is_file()} == before
+
+
+@pytest.mark.parametrize('count', [65, 256])
+def test_register_seed_capacity_retains_entries_beyond_old_limit(tmp_path, count):
+    source = _source(tmp_path)
+    path = tmp_path / 'register-seeds.json'
+    path.write_text(json.dumps({'target_type':'raw_binary', 'entry_register_seeds':[
+        {'entry_offset':2*i, 'register':'A0', 'kind':'struct_ptr',
+         'struct_name':'ExecBase', 'note':'capacity-test', 'context_name':f'entry_{i}'}
+        for i in range(count)]}))
+    policy = c_backend.effective_policy_project_source_with_c_backend(source, metadata_path=path)['analysis_policy']
+    assert policy['register_seed_count'] == count
+    assert len(policy['register_seeds']) == count
+    assert policy['register_seeds'][-1]['entry_offset'] == 2*(count-1)
+
+
+def test_register_seed_overflow_is_refused(tmp_path):
+    source = _source(tmp_path)
+    text = json.dumps({'target_type':'raw_binary', 'entry_register_seeds':[
+        {'entry_offset':2*i, 'register':'A0', 'kind':'struct_ptr',
+         'struct_name':'ExecBase', 'note':'capacity-test', 'context_name':f'entry_{i}'}
+        for i in range(257)]})
+    with pytest.raises(RuntimeError, match='failed parsing target metadata entry register seed'):
+        c_backend.validate_policy_storage_with_c_backend(source, metadata_text=text)

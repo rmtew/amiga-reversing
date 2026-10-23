@@ -1,0 +1,66 @@
+{
+  "baseline_commit": "27bc9a02ef3be038f8a9f62bdddd59c7a7ca909b",
+  "sites": [
+    {
+      "source_offset": 317892,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.l a2,aud0+ac_ptr(a6)\t; sound_sample pointer"
+    },
+    {
+      "source_offset": 317896,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w d1,aud0+ac_len(a6)"
+    },
+    {
+      "source_offset": 317920,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)\t; sound_sample pointer"
+    },
+    {
+      "source_offset": 317926,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,aud0+ac_len(a6)\t; sound sample length 64 bytes"
+    },
+    {
+      "source_offset": 318046,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)\t; sound_sample pointer"
+    },
+    {
+      "source_offset": 318052,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)"
+    },
+    {
+      "source_offset": 318058,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w d1,aud0+ac_vol(a6)"
+    },
+    {
+      "source_offset": 318096,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w d0,aud0+ac_per(a6)\t; audio period"
+    },
+    {
+      "source_offset": 318318,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w d0,aud0+ac_per(a6)\t; audio period"
+    },
+    {
+      "source_offset": 318368,
+      "baseline_symbolic": true,
+      "expected_line": "\tmove.w d1,aud0+ac_vol(a6)"
+    },
+    {
+      "source_offset": 318598,
+      "baseline_symbolic": false,
+      "expected_line": "\tmove.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)\t; sound_sample pointer"
+    },
+    {
+      "source_offset": 318604,
+      "baseline_symbolic": false,
+      "expected_line": "\tmove.w #AUDIO_PRIMARY_SILENCE_LENGTH_WORDS,aud0+ac_len(a6)\t; sound sample length 64 bytes"
+    }
+  ],
+  "symbolic_constant_update": "Existing published source already names the unchanged32-WORD silence length AUDIO_PRIMARY_SILENCE_LENGTH_WORDS; retain hardware-symbol quality guard with that canonical spelling."
+}

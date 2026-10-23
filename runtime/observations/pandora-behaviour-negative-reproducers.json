@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "kind": "deterministic_validator_reproducers",
+  "generation": "Literal deterministic sequences; no PRNG, game execution or candidate image is implied.",
+  "cases": [
+    {
+      "case_id": "transient_write_order",
+      "expected": [
+        {
+          "address": 5,
+          "value": 1
+        },
+        {
+          "address": 5,
+          "value": 2
+        },
+        {
+          "address": 5,
+          "value": 2
+        }
+      ],
+      "actual": [
+        {
+          "address": 5,
+          "value": 2
+        },
+        {
+          "address": 5,
+          "value": 1
+        },
+        {
+          "address": 5,
+          "value": 2
+        }
+      ],
+      "same_final_value": 2,
+      "result": {
+        "status": "mismatch",
+        "first_divergence": 0,
+        "expected": {
+          "address": 5,
+          "value": 1
+        },
+        "actual": {
+          "address": 5,
+          "value": 2
+        }
+      }
+    },
+    {
+      "case_id": "scratch_read_before_write",
+      "range": [
+        4096,
+        4100
+      ],
+      "valid": [
+        {
+          "engine": "blitter",
+          "access": "write",
+          "address": 4098,
+          "size": 2,
+          "data": "0x1234",
+          "subtype": 3,
+          "reg": 84
+        },
+        {
+          "engine": "blitter",
+          "access": "read",
+          "address": 4098,
+          "size": 2,
+          "data": "0x1234",
+          "subtype": 0,
+          "reg": 80
+        },
+        {
+          "engine": "blitter",
+          "access": "write",
+          "address": 4098,
+          "size": 2,
+          "data": "0x0",
+          "subtype": 3,
+          "reg": 84
+        }
+      ],
+      "actual": [
+        {
+          "engine": "blitter",
+          "access": "read",
+          "address": 4098,
+          "size": 2,
+          "data": "0x1234",
+          "subtype": 0,
+          "reg": 80
+        },
+        {
+          "engine": "blitter",
+          "access": "write",
+          "address": 4098,
+          "size": 2,
+          "data": "0x1234",
+          "subtype": 3,
+          "reg": 84
+        },
+        {
+          "engine": "blitter",
+          "access": "write",
+          "address": 4098,
+          "size": 2,
+          "data": "0x0",
+          "subtype": 3,
+          "reg": 84
+        }
+      ],
+      "same_final_value": 0,
+      "valid_result": {
+        "status": "pass",
+        "counts": {
+          "read": 1,
+          "write": 2
+        },
+        "events_checked": 3,
+        "stream_sha256": "056dff7d75a981b988d11e54b8dfe8f0504230b6d8d44a47d5e44fcbbc830572",
+        "observed_byte_extent": [
+          4098,
+          4100
+        ],
+        "scope": "Only the supplied ordered window; no initial seed, allocation or all-callers lifetime proof"
+      },
+      "result": {
+        "status": "mismatch",
+        "first_divergence": 0,
+        "reason": "Read lacks matching preceding producer",
+        "actual": {
+          "engine": "blitter",
+          "access": "read",
+          "address": 4098,
+          "size": 2,
+          "data": "0x1234",
+          "subtype": 0,
+          "reg": 80
+        }
+      }
+    },
+    {
+      "case_id": "unknown_shadow_zero",
+      "shadow_bytes": 16,
+      "known_ranges": [],
+      "write_ranges": [
+        [
+          4,
+          8
+        ]
+      ],
+      "read": {
+        "address": 4,
+        "width": 2
+      },
+      "expected_status": "missing_prerequisite",
+      "test": "tests/test_behaviour_validation.py::test_shadow_zero_is_unknown_and_write_establishes_only_its_extent"
+    },
+    {
+      "case_id": "volume_missing_X_byte",
+      "fault": "Remove0x5C352 after donor admission; normal donor loading also refuses missing required inputs.",
+      "donor_sha256": "ed8c258a4dca5c8474e009cd4c81d69fbc4aed9417a0104ad52540004aabfd89",
+      "modeled_inputs": {
+        "inhibit_flag": false,
+        "shared_armed": true,
+        "initial_WORD": 64
+      },
+      "expected_status": "missing_prerequisite",
+      "expected_access_pc": "0x6530e",
+      "test": "tests/test_behaviour_validation.py::test_cpu_fixture_refuses_unknown_inputs_and_preserves_first_failure"
+    },
+    {
+      "case_id": "bounded_call_deadline",
+      "modeled_inputs": {
+        "inhibit_flag": true,
+        "shared_armed": true,
+        "initial_WORD": 64,
+        "instruction_budget": 1
+      },
+      "expected_status": "timeout_not_observed_within_bounds",
+      "test": "tests/test_behaviour_validation.py::test_budget_and_unadmitted_audio_initialisation_are_nonpass"
+    }
+  ]
+}

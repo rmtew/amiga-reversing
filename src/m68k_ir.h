@@ -44,10 +44,13 @@ typedef struct M68kRenderPolicy {
   M68kOsRenderPolicy os;
 } M68kRenderPolicy;
 
-#define M68K_ANALYSIS_REGISTER_SEED_LIMIT 64U
+/* Bounded entry contexts; native ingestion must refuse overflow, never truncate. */
+#define M68K_ANALYSIS_REGISTER_SEED_LIMIT 256U
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 256U
-#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 16384U
-#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 16384U
+/* Expanded field presentations count each leaf. Packed scalar arrays can use
+ * one typed range and retain their shared schema without per-leaf labels. */
+#define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 32768U
+#define M68K_ANALYSIS_NAMED_LABEL_LIMIT 32768U
 #if M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT > UINT16_MAX || M68K_ANALYSIS_NAMED_LABEL_LIMIT > UINT16_MAX
 #error Analysis policy collection limits must fit their uint16_t counters
 #endif
@@ -62,15 +65,31 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
-#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
+/* Source restoration retains annotations across many subsystems. Keep this
+ * checked policy mirror large enough for them; the exported capacity API is
+ * authoritative for clients, and overflow still refuses the entire append. */
+#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 512U
+#if M68K_ANALYSIS_ENTRY_COMMENT_LIMIT > UINT16_MAX
+#error Entry comment limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
-#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 512U
+/* Whole-game restoration accumulates named constants across subsystems.
+ * Keep the bounded policy mirror and exported client capacity coordinated. */
+#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 1024U
+#if M68K_ANALYSIS_TARGET_EQUATE_LIMIT > UINT16_MAX
+#error Target equate limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT 512U
 #if M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT > UINT16_MAX
 #error Manual data reference limit must fit its uint16_t counter
 #endif
-#define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
+/* Recovered shared types accumulate across target subsystems. Storage remains
+ * heap-backed and bounded; the old 64-type limit blocked complete targets. */
+#define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 256U
+#if M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT > UINT16_MAX
+#error Custom struct limit must fit its uint16_t counter
+#endif
 #define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
 #define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
 #define M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT 192U
@@ -92,7 +111,8 @@ typedef enum M68kAnalysisRegisterSeedKind {
   M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR = 2,
   /* Callable-only ABI identity for a pointer whose concrete pointee type is
    * not yet recovered.  It is not valid as a free register seed. */
-  M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER = 3
+  M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER = 3,
+  M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED = 4
 } M68kAnalysisRegisterSeedKind;
 
 typedef struct M68kAnalysisRegisterSeed {
@@ -108,6 +128,10 @@ typedef struct M68kAnalysisRegisterSeed {
   char name[64];
   char type_name[64];
   char context_name[64];
+  uint16_t hardware_stride;
+  uint16_t hardware_index_values[8];
+  uint8_t hardware_index_count;
+  uint8_t hardware_index_register;
 } M68kAnalysisRegisterSeed;
 
 typedef enum M68kAnalysisFunctionSummaryCallableKind {
@@ -171,7 +195,9 @@ typedef enum M68kAnalysisFunctionSummaryResultKind {
   M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 1,
   /* Generated-only. Target metadata remains restricted to identity_input;
    * generated platform contracts carry stable IDs, never copied names. */
-  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 2
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 2,
+  /* Generated-only constant hardware address, proven on every normal return. */
+  M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE = 3
 } M68kAnalysisFunctionSummaryResultKind;
 
 typedef struct M68kAnalysisFunctionSummaryResult {
@@ -180,7 +206,8 @@ typedef struct M68kAnalysisFunctionSummaryResult {
   uint8_t input_index;
   uint16_t platform_library_id;
   uint16_t platform_function_id;
-  uint16_t platform_output_id;
+  /* Result kind selects the stable ID; preserve the existing ABI slot. */
+  union { uint16_t platform_output_id; uint16_t hardware_base_id; };
 } M68kAnalysisFunctionSummaryResult;
 
 typedef enum M68kFunctionSummaryLocationEffect {
@@ -348,7 +375,8 @@ typedef enum M68kAnalysisStructuredDataRoleFlag {
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER = 1U << 11,
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE = 1U << 12,
   M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM = 1U << 13,
-  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING = 1U << 14
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING = 1U << 14,
+  M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA = 1U << 15
 } M68kAnalysisStructuredDataRoleFlag;
 
 typedef enum M68kAnalysisStructuredDataSourcePattern {
@@ -542,10 +570,11 @@ typedef struct M68kAnalysisEntryComment {
 
 typedef struct M68kAnalysisRssetLayoutRegion {
   uint32_t offset;
-  uint8_t size;
+  /* Aggregate app storage may exceed 255 bytes (for example row lookups).
+   * Keep the eight-byte prefix; signed listing extents cap size at INT16_MAX. */
+  uint16_t size;
   uint8_t flags;
   uint8_t storage_kind_id;
-  uint8_t reserved[1];
   char layout_name[32];
   char base_symbol[64];
   char sizeof_symbol[64];
@@ -646,7 +675,8 @@ typedef enum M68kAnalysisRepresentationStyle {
   M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER = 3,
   M68K_ANALYSIS_REPRESENTATION_STYLE_STRING = 4,
   M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL = 5,
-  M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL = 6
+  M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL = 6,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET = 7
 } M68kAnalysisRepresentationStyle;
 
 typedef struct M68kAnalysisManualRepresentation {
@@ -656,6 +686,13 @@ typedef struct M68kAnalysisManualRepresentation {
   uint8_t operand_index;
   uint16_t symbol_id;
   uint16_t target_equate_index;
+  uint8_t has_source_symbol;
+  uint8_t source_symbol_runtime_view;
+  /* The representation style tags these alternative identities. A hardware
+   * offset is a literal domain, never a claim about the register's value. */
+  union { uint32_t source_symbol_section; uint32_t hardware_offset_base_id; };
+  uint32_t source_symbol_offset;
+  union { uint32_t source_symbol_value; uint32_t hardware_register_offset; };
   uint32_t section_index;
   uint32_t offset;
   uint32_t size;
@@ -733,6 +770,9 @@ typedef struct M68kAnalysisManualDataReference {
   uint32_t offset;
   uint32_t size;
   uint32_t raw_value;
+  uint32_t value_scale;
+  uint8_t is_range;
+  uint8_t raw_value_signed;
   uint32_t base_section_index;
   uint32_t base_offset;
   uint32_t target_section_index;
@@ -1383,7 +1423,8 @@ typedef enum M68kFunctionSummaryResultKind {
   M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER = 1,
   M68K_FUNCTION_SUMMARY_RESULT_TYPED_REGISTER = 2,
   M68K_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT = 3,
-  M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 4
+  M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT = 4,
+  M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE = 5
 } M68kFunctionSummaryResultKind;
 
 /* Results belong to one callable summary.  The ABI output location and
@@ -1399,7 +1440,7 @@ typedef struct M68kFunctionSummaryResultIR {
   int32_t success_reg_value;
   uint16_t platform_library_id;
   uint16_t platform_function_id;
-  uint16_t platform_output_id;
+  union { uint16_t platform_output_id; uint16_t hardware_base_id; };
   union {
     M68kPlatformNamedBaseEffectPayloadIR named_base;
     M68kPlatformTypedEffectPayloadIR typed;
@@ -1983,7 +2024,8 @@ typedef enum M68kPlatformAddressUseShape {
   M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE = 3,
   M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS = 4,
   M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL = 5,
-  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS = 6
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS = 6,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY = 7
 } M68kPlatformAddressUseShape;
 
 typedef struct M68kPlatformAddressUseIR {
@@ -1998,6 +2040,13 @@ typedef struct M68kPlatformAddressUseIR {
   uint8_t use_shape;
   uint8_t confidence;
   uint8_t has_handler_target;
+  /* Only FAMILY uses carry this closed base-offset set. address/effective_address
+   * are absent for that shape, not a representative member of the set. */
+  uint16_t relative_base_id;
+  uint16_t relative_register_offset;
+  uint16_t relative_base_offsets[8];
+  uint8_t relative_base_offset_count;
+  uint8_t relative_requires_input_contract;
 } M68kPlatformAddressUseIR;
 
 typedef enum M68kPlatformSemanticUseKind {
@@ -2320,7 +2369,8 @@ typedef enum M68kDataReferenceEvidenceFlag {
 
 typedef enum M68kDataReferenceKind {
   M68K_DATA_REFERENCE_KIND_UNKNOWN = 0,
-  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT = 1
+  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT = 1,
+  M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE = 2
 } M68kDataReferenceKind;
 
 typedef struct M68kDataReferenceIR {
@@ -2346,6 +2396,7 @@ typedef struct M68kDataReferenceIR {
   uint8_t raw_value_width;
   uint8_t raw_value_signed;
   uint8_t has_base;
+  uint32_t value_scale;
   uint32_t base_section_index;
   uint32_t base_offset;
   uint32_t owner_element_offset;
@@ -2891,6 +2942,7 @@ uint32_t m68k_analysis_structured_data_range_ownership_evidence_flags(
   const M68kAnalysisStructuredDataItem *item);
 uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStructuredDataItem *item);
 int m68k_ir_operand_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
+int m68k_ir_operand_brief_index_displacement(const M68kOperandIR *operand, int32_t *out_value);
 int m68k_ir_byte_is_quoted_string_safe(uint8_t value);
 int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,

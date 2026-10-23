@@ -434,6 +434,17 @@ class M68kSimulatorOracleTests(unittest.TestCase):
                     compare_sr=case.compare_sr,
                 )
 
+    def test_move_address_sign_extension_matches_machine68k(self) -> None:
+        cases=[]
+        for suffix,width in [('w',2),('l',4)]:
+            for value in [0x7fff,0x8000,0xffff,0x80000000,0xffffffff]:
+                for form in ['d0','(a0)','(a0)+','-(a0)']:
+                    cases.append(OracleCase(f'movea-{suffix}-{value:x}-{form}','movea',f'movea.{suffix} {form},a1',
+                        d=(value,),a=(0x20+(width if form=='-(a0)' else 0),0x12345678),
+                        memory_size=64,memory_writes=((0x20,(value&((1<<(width*8))-1)).to_bytes(width,'big')),),
+                        sr=0x201f,compare_sr=True))
+        self._run_oracle_cases(cases)
+
     def test_manifest_has_cases(self) -> None:
         self.assertNotEqual(self._oracle_cases(), [])
 

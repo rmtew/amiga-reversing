@@ -1,0 +1,1360 @@
+{
+  "scope": "Original CPU mask-input format and constant-call contracts; source/runtime coordinates remain distinct.",
+  "input_cell_bytes": 8,
+  "output_mask_word_bytes": 2,
+  "banks": [
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_00",
+      "mask_name": "scene_mask_bank_00",
+      "call_offset": 29270,
+      "source_start": 239416,
+      "source_end": 250680,
+      "mask_runtime_start": 421320,
+      "mask_bytes": 2816,
+      "last_group_index": 10,
+      "cells_per_group": 128,
+      "cell_count": 1408,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007244:instruction",
+        "s0:0000724A:instruction",
+        "s0:00007250:instruction",
+        "s0:00007252:instruction",
+        "s0:00007256:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_01",
+      "mask_name": "scene_mask_bank_01",
+      "call_offset": 29290,
+      "source_start": 122152,
+      "source_end": 125224,
+      "mask_runtime_start": 433004,
+      "mask_bytes": 768,
+      "last_group_index": 5,
+      "cells_per_group": 64,
+      "cell_count": 384,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000725A:instruction",
+        "s0:00007260:instruction",
+        "s0:00007266:instruction",
+        "s0:00007268:instruction",
+        "s0:0000726A:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_02",
+      "mask_name": "scene_mask_bank_02",
+      "call_offset": 29310,
+      "source_start": 125224,
+      "source_end": 128296,
+      "mask_runtime_start": 512896,
+      "mask_bytes": 768,
+      "last_group_index": 5,
+      "cells_per_group": 64,
+      "cell_count": 384,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000726E:instruction",
+        "s0:00007274:instruction",
+        "s0:0000727A:instruction",
+        "s0:0000727C:instruction",
+        "s0:0000727E:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_03",
+      "mask_name": "scene_mask_bank_03",
+      "call_offset": 29330,
+      "source_start": 128296,
+      "source_end": 131880,
+      "mask_runtime_start": 512000,
+      "mask_bytes": 896,
+      "last_group_index": 6,
+      "cells_per_group": 64,
+      "cell_count": 448,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007282:instruction",
+        "s0:00007288:instruction",
+        "s0:0000728E:instruction",
+        "s0:00007290:instruction",
+        "s0:00007292:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_04",
+      "mask_name": "scene_mask_bank_04",
+      "call_offset": 29350,
+      "source_start": 131880,
+      "source_end": 135464,
+      "mask_runtime_start": 513664,
+      "mask_bytes": 896,
+      "last_group_index": 6,
+      "cells_per_group": 64,
+      "cell_count": 448,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007296:instruction",
+        "s0:0000729C:instruction",
+        "s0:000072A2:instruction",
+        "s0:000072A4:instruction",
+        "s0:000072A6:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_05",
+      "mask_name": "scene_mask_bank_05",
+      "call_offset": 29370,
+      "source_start": 135464,
+      "source_end": 137512,
+      "mask_runtime_start": 514560,
+      "mask_bytes": 512,
+      "last_group_index": 3,
+      "cells_per_group": 64,
+      "cell_count": 256,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000072AA:instruction",
+        "s0:000072B0:instruction",
+        "s0:000072B6:instruction",
+        "s0:000072B8:instruction",
+        "s0:000072BA:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_06",
+      "mask_name": "scene_mask_bank_06",
+      "call_offset": 29390,
+      "source_start": 137512,
+      "source_end": 140968,
+      "mask_runtime_start": 515072,
+      "mask_bytes": 864,
+      "last_group_index": 7,
+      "cells_per_group": 54,
+      "cell_count": 432,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000072BE:instruction",
+        "s0:000072C4:instruction",
+        "s0:000072CA:instruction",
+        "s0:000072CC:instruction",
+        "s0:000072CE:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_07",
+      "mask_name": "scene_mask_bank_07",
+      "call_offset": 29410,
+      "source_start": 140968,
+      "source_end": 141400,
+      "mask_runtime_start": 515936,
+      "mask_bytes": 108,
+      "last_group_index": 0,
+      "cells_per_group": 54,
+      "cell_count": 54,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000072D2:instruction",
+        "s0:000072D8:instruction",
+        "s0:000072DE:instruction",
+        "s0:000072E0:instruction",
+        "s0:000072E2:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_08",
+      "mask_name": "scene_mask_bank_08",
+      "call_offset": 29432,
+      "source_start": 206872,
+      "source_end": 207896,
+      "mask_runtime_start": 523696,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000072E6:instruction",
+        "s0:000072EC:instruction",
+        "s0:000072F2:instruction",
+        "s0:000072F4:instruction",
+        "s0:000072F8:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_09",
+      "mask_name": "scene_mask_bank_09",
+      "call_offset": 29454,
+      "source_start": 207896,
+      "source_end": 209016,
+      "mask_runtime_start": 415104,
+      "mask_bytes": 280,
+      "last_group_index": 0,
+      "cells_per_group": 140,
+      "cell_count": 140,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000072FC:instruction",
+        "s0:00007302:instruction",
+        "s0:00007308:instruction",
+        "s0:0000730A:instruction",
+        "s0:0000730E:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_10",
+      "mask_name": "scene_mask_bank_10",
+      "call_offset": 29476,
+      "source_start": 209016,
+      "source_end": 210040,
+      "mask_runtime_start": 415384,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007312:instruction",
+        "s0:00007318:instruction",
+        "s0:0000731E:instruction",
+        "s0:00007320:instruction",
+        "s0:00007324:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_11",
+      "mask_name": "scene_mask_bank_11",
+      "call_offset": 29498,
+      "source_start": 210040,
+      "source_end": 211064,
+      "mask_runtime_start": 415640,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007328:instruction",
+        "s0:0000732E:instruction",
+        "s0:00007334:instruction",
+        "s0:00007336:instruction",
+        "s0:0000733A:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_12",
+      "mask_name": "scene_mask_bank_12",
+      "call_offset": 29520,
+      "source_start": 211064,
+      "source_end": 212088,
+      "mask_runtime_start": 415896,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000733E:instruction",
+        "s0:00007344:instruction",
+        "s0:0000734A:instruction",
+        "s0:0000734C:instruction",
+        "s0:00007350:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_13",
+      "mask_name": "scene_mask_bank_13",
+      "call_offset": 29540,
+      "source_start": 141400,
+      "source_end": 143992,
+      "mask_runtime_start": 516044,
+      "mask_bytes": 648,
+      "last_group_index": 5,
+      "cells_per_group": 54,
+      "cell_count": 324,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007354:instruction",
+        "s0:0000735A:instruction",
+        "s0:00007360:instruction",
+        "s0:00007362:instruction",
+        "s0:00007364:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "world_position_frame_pixels_00_through_05",
+      "mask_name": "world_position_frame_masks_00_through_05",
+      "call_offset": 29560,
+      "source_start": 143992,
+      "source_end": 147064,
+      "mask_runtime_start": 516692,
+      "mask_bytes": 768,
+      "last_group_index": 5,
+      "cells_per_group": 64,
+      "cell_count": 384,
+      "shared_cell_type_applied": false,
+      "evidence_refs": [
+        "s0:00007368:instruction",
+        "s0:0000736E:instruction",
+        "s0:00007374:instruction",
+        "s0:00007376:instruction",
+        "s0:00007378:instruction"
+      ],
+      "shared_cell_type_requested": false
+    },
+    {
+      "source_name": "world_position_frame_pixels_06_through_11",
+      "mask_name": "world_position_frame_masks_06_through_11",
+      "call_offset": 29580,
+      "source_start": 147064,
+      "source_end": 148600,
+      "mask_runtime_start": 517460,
+      "mask_bytes": 384,
+      "last_group_index": 5,
+      "cells_per_group": 32,
+      "cell_count": 192,
+      "shared_cell_type_applied": false,
+      "evidence_refs": [
+        "s0:0000737C:instruction",
+        "s0:00007382:instruction",
+        "s0:00007388:instruction",
+        "s0:0000738A:instruction",
+        "s0:0000738C:instruction"
+      ],
+      "shared_cell_type_requested": false
+    },
+    {
+      "source_name": "world_position_frame_pixels_12_through_17",
+      "mask_name": "world_position_frame_masks_12_through_17",
+      "call_offset": 29600,
+      "source_start": 148600,
+      "source_end": 151672,
+      "mask_runtime_start": 517844,
+      "mask_bytes": 768,
+      "last_group_index": 5,
+      "cells_per_group": 64,
+      "cell_count": 384,
+      "shared_cell_type_applied": false,
+      "evidence_refs": [
+        "s0:00007390:instruction",
+        "s0:00007396:instruction",
+        "s0:0000739C:instruction",
+        "s0:0000739E:instruction",
+        "s0:000073A0:instruction"
+      ],
+      "shared_cell_type_requested": false
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_17",
+      "mask_name": "scene_mask_bank_17",
+      "call_offset": 29622,
+      "source_start": 151672,
+      "source_end": 159256,
+      "mask_runtime_start": 518612,
+      "mask_bytes": 1896,
+      "last_group_index": 0,
+      "cells_per_group": 948,
+      "cell_count": 948,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000073A4:instruction",
+        "s0:000073AA:instruction",
+        "s0:000073B0:instruction",
+        "s0:000073B2:instruction",
+        "s0:000073B6:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_18",
+      "mask_name": "scene_mask_bank_18",
+      "call_offset": 29644,
+      "source_start": 159256,
+      "source_end": 176744,
+      "mask_runtime_start": 4336,
+      "mask_bytes": 4372,
+      "last_group_index": 0,
+      "cells_per_group": 2186,
+      "cell_count": 2186,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000073BA:instruction",
+        "s0:000073C0:instruction",
+        "s0:000073C6:instruction",
+        "s0:000073C8:instruction",
+        "s0:000073CC:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_19",
+      "mask_name": "scene_mask_bank_19",
+      "call_offset": 29664,
+      "source_start": 176744,
+      "source_end": 184424,
+      "mask_runtime_start": 521776,
+      "mask_bytes": 1920,
+      "last_group_index": 15,
+      "cells_per_group": 60,
+      "cell_count": 960,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000073D0:instruction",
+        "s0:000073D6:instruction",
+        "s0:000073DC:instruction",
+        "s0:000073DE:instruction",
+        "s0:000073E0:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_20",
+      "mask_name": "scene_mask_bank_20",
+      "call_offset": 29686,
+      "source_start": 184424,
+      "source_end": 189496,
+      "mask_runtime_start": 520508,
+      "mask_bytes": 1268,
+      "last_group_index": 0,
+      "cells_per_group": 634,
+      "cell_count": 634,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000073E4:instruction",
+        "s0:000073EA:instruction",
+        "s0:000073F0:instruction",
+        "s0:000073F2:instruction",
+        "s0:000073F6:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_21",
+      "mask_name": "scene_mask_bank_21",
+      "call_offset": 29708,
+      "source_start": 189496,
+      "source_end": 206872,
+      "mask_runtime_start": 8708,
+      "mask_bytes": 4344,
+      "last_group_index": 0,
+      "cells_per_group": 2172,
+      "cell_count": 2172,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000073FA:instruction",
+        "s0:00007400:instruction",
+        "s0:00007406:instruction",
+        "s0:00007408:instruction",
+        "s0:0000740C:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_22",
+      "mask_name": "scene_mask_bank_22",
+      "call_offset": 29728,
+      "source_start": 212088,
+      "source_end": 214136,
+      "mask_runtime_start": 416408,
+      "mask_bytes": 512,
+      "last_group_index": 7,
+      "cells_per_group": 32,
+      "cell_count": 256,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007410:instruction",
+        "s0:00007416:instruction",
+        "s0:0000741C:instruction",
+        "s0:0000741E:instruction",
+        "s0:00007420:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_23",
+      "mask_name": "scene_mask_bank_23",
+      "call_offset": 29750,
+      "source_start": 214136,
+      "source_end": 215160,
+      "mask_runtime_start": 416152,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007424:instruction",
+        "s0:0000742A:instruction",
+        "s0:00007430:instruction",
+        "s0:00007432:instruction",
+        "s0:00007436:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_24",
+      "mask_name": "scene_mask_bank_24",
+      "call_offset": 29772,
+      "source_start": 215160,
+      "source_end": 216184,
+      "mask_runtime_start": 416920,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000743A:instruction",
+        "s0:00007440:instruction",
+        "s0:00007446:instruction",
+        "s0:00007448:instruction",
+        "s0:0000744C:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_25",
+      "mask_name": "scene_mask_bank_25",
+      "call_offset": 29792,
+      "source_start": 223288,
+      "source_end": 225848,
+      "mask_runtime_start": 417688,
+      "mask_bytes": 640,
+      "last_group_index": 4,
+      "cells_per_group": 64,
+      "cell_count": 320,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007450:instruction",
+        "s0:00007456:instruction",
+        "s0:0000745C:instruction",
+        "s0:0000745E:instruction",
+        "s0:00007460:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_26",
+      "mask_name": "scene_mask_bank_26",
+      "call_offset": 29814,
+      "source_start": 216184,
+      "source_end": 223288,
+      "mask_runtime_start": 418328,
+      "mask_bytes": 1776,
+      "last_group_index": 0,
+      "cells_per_group": 888,
+      "cell_count": 888,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007464:instruction",
+        "s0:0000746A:instruction",
+        "s0:00007470:instruction",
+        "s0:00007472:instruction",
+        "s0:00007476:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_27",
+      "mask_name": "scene_mask_bank_27",
+      "call_offset": 29836,
+      "source_start": 225848,
+      "source_end": 226872,
+      "mask_runtime_start": 417176,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000747A:instruction",
+        "s0:00007480:instruction",
+        "s0:00007486:instruction",
+        "s0:00007488:instruction",
+        "s0:0000748C:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_28",
+      "mask_name": "scene_mask_bank_28",
+      "call_offset": 29858,
+      "source_start": 226872,
+      "source_end": 227896,
+      "mask_runtime_start": 417432,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007490:instruction",
+        "s0:00007496:instruction",
+        "s0:0000749C:instruction",
+        "s0:0000749E:instruction",
+        "s0:000074A2:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_29",
+      "mask_name": "scene_mask_bank_29",
+      "call_offset": 29878,
+      "source_start": 227896,
+      "source_end": 231736,
+      "mask_runtime_start": 420104,
+      "mask_bytes": 960,
+      "last_group_index": 7,
+      "cells_per_group": 60,
+      "cell_count": 480,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000074A6:instruction",
+        "s0:000074AC:instruction",
+        "s0:000074B2:instruction",
+        "s0:000074B4:instruction",
+        "s0:000074B6:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_30",
+      "mask_name": "scene_mask_bank_30",
+      "call_offset": 29900,
+      "source_start": 231736,
+      "source_end": 237000,
+      "mask_runtime_start": 13052,
+      "mask_bytes": 1316,
+      "last_group_index": 0,
+      "cells_per_group": 658,
+      "cell_count": 658,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000074BA:instruction",
+        "s0:000074C0:instruction",
+        "s0:000074C6:instruction",
+        "s0:000074C8:instruction",
+        "s0:000074CC:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_31",
+      "mask_name": "scene_mask_bank_31",
+      "call_offset": 29922,
+      "source_start": 238392,
+      "source_end": 239416,
+      "mask_runtime_start": 421064,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000074D0:instruction",
+        "s0:000074D6:instruction",
+        "s0:000074DC:instruction",
+        "s0:000074DE:instruction",
+        "s0:000074E2:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_910_cell_mask_bank",
+      "mask_name": "scene_910_cell_mask_bank",
+      "call_offset": 29944,
+      "source_start": 250680,
+      "source_end": 257960,
+      "mask_runtime_start": 424136,
+      "mask_bytes": 1820,
+      "last_group_index": 0,
+      "cells_per_group": 910,
+      "cell_count": 910,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000074E6:instruction",
+        "s0:000074EC:instruction",
+        "s0:000074F2:instruction",
+        "s0:000074F4:instruction",
+        "s0:000074F8:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_32",
+      "mask_name": "scene_mask_bank_32",
+      "call_offset": 29964,
+      "source_start": 257960,
+      "source_end": 260008,
+      "mask_runtime_start": 425956,
+      "mask_bytes": 512,
+      "last_group_index": 3,
+      "cells_per_group": 64,
+      "cell_count": 256,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000074FC:instruction",
+        "s0:00007502:instruction",
+        "s0:00007508:instruction",
+        "s0:0000750A:instruction",
+        "s0:0000750C:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_33",
+      "mask_name": "scene_mask_bank_33",
+      "call_offset": 29984,
+      "source_start": 260008,
+      "source_end": 261544,
+      "mask_runtime_start": 426468,
+      "mask_bytes": 384,
+      "last_group_index": 1,
+      "cells_per_group": 96,
+      "cell_count": 192,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007510:instruction",
+        "s0:00007516:instruction",
+        "s0:0000751C:instruction",
+        "s0:0000751E:instruction",
+        "s0:00007520:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_34",
+      "mask_name": "scene_mask_bank_34",
+      "call_offset": 30004,
+      "source_start": 261544,
+      "source_end": 261816,
+      "mask_runtime_start": 426852,
+      "mask_bytes": 68,
+      "last_group_index": 0,
+      "cells_per_group": 34,
+      "cell_count": 34,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007524:instruction",
+        "s0:0000752A:instruction",
+        "s0:00007530:instruction",
+        "s0:00007532:instruction",
+        "s0:00007534:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_35",
+      "mask_name": "scene_mask_bank_35",
+      "call_offset": 30026,
+      "source_start": 261816,
+      "source_end": 262840,
+      "mask_runtime_start": 426920,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007538:instruction",
+        "s0:0000753E:instruction",
+        "s0:00007544:instruction",
+        "s0:00007546:instruction",
+        "s0:0000754A:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_36",
+      "mask_name": "scene_mask_bank_36",
+      "call_offset": 30046,
+      "source_start": 262840,
+      "source_end": 263704,
+      "mask_runtime_start": 427176,
+      "mask_bytes": 216,
+      "last_group_index": 2,
+      "cells_per_group": 36,
+      "cell_count": 108,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000754E:instruction",
+        "s0:00007554:instruction",
+        "s0:0000755A:instruction",
+        "s0:0000755C:instruction",
+        "s0:0000755E:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_37",
+      "mask_name": "scene_mask_bank_37",
+      "call_offset": 30066,
+      "source_start": 263704,
+      "source_end": 265240,
+      "mask_runtime_start": 432198,
+      "mask_bytes": 384,
+      "last_group_index": 5,
+      "cells_per_group": 32,
+      "cell_count": 192,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007562:instruction",
+        "s0:00007568:instruction",
+        "s0:0000756E:instruction",
+        "s0:00007570:instruction",
+        "s0:00007572:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_38",
+      "mask_name": "scene_mask_bank_38",
+      "call_offset": 30086,
+      "source_start": 265240,
+      "source_end": 265736,
+      "mask_runtime_start": 427392,
+      "mask_bytes": 124,
+      "last_group_index": 0,
+      "cells_per_group": 62,
+      "cell_count": 62,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007576:instruction",
+        "s0:0000757C:instruction",
+        "s0:00007582:instruction",
+        "s0:00007584:instruction",
+        "s0:00007586:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_39",
+      "mask_name": "scene_mask_bank_39",
+      "call_offset": 30106,
+      "source_start": 265736,
+      "source_end": 266248,
+      "mask_runtime_start": 427516,
+      "mask_bytes": 128,
+      "last_group_index": 0,
+      "cells_per_group": 64,
+      "cell_count": 64,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000758A:instruction",
+        "s0:00007590:instruction",
+        "s0:00007596:instruction",
+        "s0:00007598:instruction",
+        "s0:0000759A:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_40",
+      "mask_name": "scene_mask_bank_40",
+      "call_offset": 30126,
+      "source_start": 266248,
+      "source_end": 269608,
+      "mask_runtime_start": 427644,
+      "mask_bytes": 840,
+      "last_group_index": 5,
+      "cells_per_group": 70,
+      "cell_count": 420,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000759E:instruction",
+        "s0:000075A4:instruction",
+        "s0:000075AA:instruction",
+        "s0:000075AC:instruction",
+        "s0:000075AE:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_41",
+      "mask_name": "scene_mask_bank_41",
+      "call_offset": 30146,
+      "source_start": 269608,
+      "source_end": 269768,
+      "mask_runtime_start": 430350,
+      "mask_bytes": 40,
+      "last_group_index": 0,
+      "cells_per_group": 20,
+      "cell_count": 20,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000075B2:instruction",
+        "s0:000075B8:instruction",
+        "s0:000075BE:instruction",
+        "s0:000075C0:instruction",
+        "s0:000075C2:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_42",
+      "mask_name": "scene_mask_bank_42",
+      "call_offset": 30168,
+      "source_start": 269768,
+      "source_end": 272744,
+      "mask_runtime_start": 428484,
+      "mask_bytes": 744,
+      "last_group_index": 0,
+      "cells_per_group": 372,
+      "cell_count": 372,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000075C6:instruction",
+        "s0:000075CC:instruction",
+        "s0:000075D2:instruction",
+        "s0:000075D4:instruction",
+        "s0:000075D8:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_43",
+      "mask_name": "scene_mask_bank_43",
+      "call_offset": 30190,
+      "source_start": 272744,
+      "source_end": 274152,
+      "mask_runtime_start": 429228,
+      "mask_bytes": 352,
+      "last_group_index": 0,
+      "cells_per_group": 176,
+      "cell_count": 176,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000075DC:instruction",
+        "s0:000075E2:instruction",
+        "s0:000075E8:instruction",
+        "s0:000075EA:instruction",
+        "s0:000075EE:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_44",
+      "mask_name": "scene_mask_bank_44",
+      "call_offset": 30212,
+      "source_start": 274152,
+      "source_end": 275216,
+      "mask_runtime_start": 429580,
+      "mask_bytes": 266,
+      "last_group_index": 0,
+      "cells_per_group": 133,
+      "cell_count": 133,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000075F2:instruction",
+        "s0:000075F8:instruction",
+        "s0:000075FE:instruction",
+        "s0:00007600:instruction",
+        "s0:00007604:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_45",
+      "mask_name": "scene_mask_bank_45",
+      "call_offset": 30234,
+      "source_start": 275216,
+      "source_end": 276352,
+      "mask_runtime_start": 429846,
+      "mask_bytes": 284,
+      "last_group_index": 0,
+      "cells_per_group": 142,
+      "cell_count": 142,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007608:instruction",
+        "s0:0000760E:instruction",
+        "s0:00007614:instruction",
+        "s0:00007616:instruction",
+        "s0:0000761A:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_46",
+      "mask_name": "scene_mask_bank_46",
+      "call_offset": 30254,
+      "source_start": 276352,
+      "source_end": 277232,
+      "mask_runtime_start": 430130,
+      "mask_bytes": 220,
+      "last_group_index": 0,
+      "cells_per_group": 110,
+      "cell_count": 110,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000761E:instruction",
+        "s0:00007624:instruction",
+        "s0:0000762A:instruction",
+        "s0:0000762C:instruction",
+        "s0:0000762E:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_47",
+      "mask_name": "scene_mask_bank_47",
+      "call_offset": 30276,
+      "source_start": 277232,
+      "source_end": 284464,
+      "mask_runtime_start": 430390,
+      "mask_bytes": 1808,
+      "last_group_index": 0,
+      "cells_per_group": 904,
+      "cell_count": 904,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007632:instruction",
+        "s0:00007638:instruction",
+        "s0:0000763E:instruction",
+        "s0:00007640:instruction",
+        "s0:00007644:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_48",
+      "mask_name": "scene_mask_bank_48",
+      "call_offset": 30296,
+      "source_start": 284464,
+      "source_end": 284640,
+      "mask_runtime_start": 432582,
+      "mask_bytes": 44,
+      "last_group_index": 0,
+      "cells_per_group": 22,
+      "cell_count": 22,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007648:instruction",
+        "s0:0000764E:instruction",
+        "s0:00007654:instruction",
+        "s0:00007656:instruction",
+        "s0:00007658:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_49",
+      "mask_name": "scene_mask_bank_49",
+      "call_offset": 30316,
+      "source_start": 284640,
+      "source_end": 284896,
+      "mask_runtime_start": 432626,
+      "mask_bytes": 64,
+      "last_group_index": 0,
+      "cells_per_group": 32,
+      "cell_count": 32,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:0000765C:instruction",
+        "s0:00007662:instruction",
+        "s0:00007668:instruction",
+        "s0:0000766A:instruction",
+        "s0:0000766C:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_50",
+      "mask_name": "scene_mask_bank_50",
+      "call_offset": 30336,
+      "source_start": 284896,
+      "source_end": 285792,
+      "mask_runtime_start": 432690,
+      "mask_bytes": 224,
+      "last_group_index": 6,
+      "cells_per_group": 16,
+      "cell_count": 112,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007670:instruction",
+        "s0:00007676:instruction",
+        "s0:0000767C:instruction",
+        "s0:0000767E:instruction",
+        "s0:00007680:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_51",
+      "mask_name": "scene_mask_bank_51",
+      "call_offset": 30356,
+      "source_start": 285792,
+      "source_end": 286152,
+      "mask_runtime_start": 432914,
+      "mask_bytes": 90,
+      "last_group_index": 0,
+      "cells_per_group": 45,
+      "cell_count": 45,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007684:instruction",
+        "s0:0000768A:instruction",
+        "s0:00007690:instruction",
+        "s0:00007692:instruction",
+        "s0:00007694:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_52",
+      "mask_name": "scene_mask_bank_52",
+      "call_offset": 30376,
+      "source_start": 286152,
+      "source_end": 286280,
+      "mask_runtime_start": 436248,
+      "mask_bytes": 32,
+      "last_group_index": 0,
+      "cells_per_group": 16,
+      "cell_count": 16,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007698:instruction",
+        "s0:0000769E:instruction",
+        "s0:000076A4:instruction",
+        "s0:000076A6:instruction",
+        "s0:000076A8:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_53",
+      "mask_name": "scene_mask_bank_53",
+      "call_offset": 30396,
+      "source_start": 286280,
+      "source_end": 286760,
+      "mask_runtime_start": 436128,
+      "mask_bytes": 120,
+      "last_group_index": 0,
+      "cells_per_group": 60,
+      "cell_count": 60,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000076AC:instruction",
+        "s0:000076B2:instruction",
+        "s0:000076B8:instruction",
+        "s0:000076BA:instruction",
+        "s0:000076BC:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_54",
+      "mask_name": "scene_mask_bank_54",
+      "call_offset": 30416,
+      "source_start": 286760,
+      "source_end": 287000,
+      "mask_runtime_start": 436068,
+      "mask_bytes": 60,
+      "last_group_index": 0,
+      "cells_per_group": 30,
+      "cell_count": 30,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000076C0:instruction",
+        "s0:000076C6:instruction",
+        "s0:000076CC:instruction",
+        "s0:000076CE:instruction",
+        "s0:000076D0:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_55",
+      "mask_name": "scene_mask_bank_55",
+      "call_offset": 30438,
+      "source_start": 295160,
+      "source_end": 296184,
+      "mask_runtime_start": 433772,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000076D4:instruction",
+        "s0:000076DA:instruction",
+        "s0:000076E0:instruction",
+        "s0:000076E2:instruction",
+        "s0:000076E6:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_56",
+      "mask_name": "scene_mask_bank_56",
+      "call_offset": 30460,
+      "source_start": 294136,
+      "source_end": 295160,
+      "mask_runtime_start": 434028,
+      "mask_bytes": 256,
+      "last_group_index": 0,
+      "cells_per_group": 128,
+      "cell_count": 128,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:000076EA:instruction",
+        "s0:000076F0:instruction",
+        "s0:000076F6:instruction",
+        "s0:000076F8:instruction",
+        "s0:000076FC:instruction"
+      ],
+      "shared_cell_type_requested": true
+    },
+    {
+      "source_name": "scene_pixel_cells_for_mask_bank_57",
+      "mask_name": "scene_mask_bank_57",
+      "call_offset": 30482,
+      "source_start": 287000,
+      "source_end": 294136,
+      "mask_runtime_start": 434284,
+      "mask_bytes": 1784,
+      "last_group_index": 0,
+      "cells_per_group": 892,
+      "cell_count": 892,
+      "shared_cell_type_applied": true,
+      "evidence_refs": [
+        "s0:00007700:instruction",
+        "s0:00007706:instruction",
+        "s0:0000770C:instruction",
+        "s0:0000770E:instruction",
+        "s0:00007712:instruction"
+      ],
+      "shared_cell_type_requested": true
+    }
+  ],
+  "total_input_bytes": 172640,
+  "total_mask_bytes": 43160,
+  "catalog_interpretations": 58,
+  "limits": "No individual image grouping, all-writer/lifetime ownership, DMA or emitted-pixel claim. Bank51 also supplies an existing stored-mask alias; this input interpretation does not erase other consumers.",
+  "reader_shared_type": "world_tile_planar_row",
+  "validation": {
+    "original_cpu_cases_passed": 60,
+    "native_instruction_encodings_checked": 315,
+    "source_bank_bytes_unchanged": true,
+    "output_word_values_and_end_fences_checked": true,
+    "inner_cursor_and_full_saved_register_preservation_checked": true,
+    "exact_original_bytes": 376832,
+    "framework_exact": true,
+    "oracle_comparison_level": "oracle.full_file_match",
+    "verification_receipt": "151e0e02e6036c05b2b909937782f06606532a53de7438bec4f240d79312bca5",
+    "accepted_interpretations": 58,
+    "review_revision": "1d2776fddc9d6f203143934e0e8270e3cf8215e89a6d51d79ffb84c5a3c8e686",
+    "assets_preserved": 126,
+    "sdk_includes_preserved": 16,
+    "history_prefixes_preserved": true,
+    "original_cpu_evidence_commit": "8f1d1c74",
+    "previous_reader_receipt": "12fd3b4db1206de0bb1d0cebbc7ba0327f72e267a77a38bd35a517377db3ea21",
+    "typed_array_declarations": 56,
+    "repeated_owner_comments": 0,
+    "unrelated_cursor_planar_accesses": 0,
+    "listing_projection_changes": [
+      {
+        "asset": "scene_pixel_cells_for_910_cell_mask_bank",
+        "source_row_count_before": 543,
+        "source_row_count_after": 455
+      }
+    ]
+  },
+  "bulk_typing": {
+    "status": "accepted",
+    "previous_preflight_reason": "named label capacity exceeded (32768)",
+    "source_array_bindings": 56,
+    "cell_instances": 20620,
+    "logical_word_fields": 82480,
+    "typed_source_bytes": 164960,
+    "native_projection": "one packed typed range per array, with the shared schema retained",
+    "effective_entity_count_before": 18304,
+    "effective_entity_count_after": 18304,
+    "native_structured_item_limit": 32768,
+    "native_named_label_limit": 32768,
+    "existing_six_frame_groupings_preserved": 3,
+    "effective_entity_and_declared_label_identities_preserved": true
+  },
+  "runtime_cursor_seed_footprints": [
+    {
+      "name": "CURSOR_PLANE0_SEED_ROWS_ADDRESS",
+      "runtime_start": 414580,
+      "extent_bytes": 64,
+      "group": "cursor_seed_payloads",
+      "evidence_source_range": [
+        40690,
+        40728
+      ],
+      "limits": "Observed startup write footprint only; not an allocation, exclusive ownership, all-writer or later-lifetime bound."
+    },
+    {
+      "name": "CURSOR_PLANE1_SEED_ROWS_ADDRESS",
+      "runtime_start": 414648,
+      "extent_bytes": 64,
+      "group": "cursor_seed_payloads",
+      "evidence_source_range": [
+        40690,
+        40728
+      ],
+      "limits": "Observed startup write footprint only; not an allocation, exclusive ownership, all-writer or later-lifetime bound."
+    }
+  ],
+  "framework_validation": {
+    "compact_array_cases_passed": 21,
+    "related_metadata_catalog_storage_cases_passed": 219,
+    "range_domain_reference_export_cases_passed": 208,
+    "native_unit_cases_passed": 820,
+    "optin_backend_cases_passed": 11,
+    "preexisting_optin_backend_failures": [
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_data_block_custom_struct_unaligned_repeated_field_reassembles",
+        "outcome": "failed",
+        "last_line": "tests/test_c_backend.py:4524: AssertionError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_listing_artifact_address_helpers_pass_typed_integer_args",
+        "outcome": "failed",
+        "last_line": "amiga_reversing/disasm/project_paths.py:51: FileNotFoundError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_render_plan_data_classes_reach_listing_rows",
+        "outcome": "failed",
+        "last_line": "amiga_reversing/disasm/project_paths.py:51: FileNotFoundError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_real_dll_starglider_loader_file_handle_slot_stays_untyped",
+        "outcome": "failed",
+        "last_line": "amiga_reversing/disasm/project_paths.py:51: FileNotFoundError"
+      },
+      {
+        "nodeid": "tests/test_c_backend.py::test_symbolic_zero_address_displacement_preserves_instruction_width",
+        "outcome": "failed",
+        "last_line": "tests/test_c_backend.py:12283: AssertionError"
+      }
+    ],
+    "failure_comparison_baseline": {
+      "python_revision": "8f1d1c74",
+      "native_library": "pre-change library matching prior tool profile",
+      "native_size": 11385600,
+      "native_mtime_ns": 1792383592326537702
+    },
+    "cap_increase": false,
+    "native_abi_change": false
+  }
+}

@@ -378,6 +378,7 @@ typedef struct M68kSimFormMetadata {
   uint8_t operand_result_kinds[4];
   uint8_t operand_width_modes[4];
   uint8_t operand_widths[4];
+  uint8_t operand_immediate_signed_bits[4];
   uint8_t ea_register_width;
   uint8_t ea_memory_width;
   uint16_t sp_effect_start;
@@ -548,6 +549,16 @@ typedef struct M68kSimConcreteMemoryPolicy {
   void *user;
 } M68kSimConcreteMemoryPolicy;
 
+/* Ordered architectural accesses, not chipset cycles. Return zero to refuse an
+ * unknown input or forbidden effect. Kind: 0=data read, 1=write, 2=code fetch.
+ * Fetch value is zero; the caller validates the indicated instruction bytes. */
+typedef int (*M68kSimConcreteObserveFn)(void *user, uint8_t kind,
+  uint32_t address, uint8_t width, uint32_t value);
+typedef struct M68kSimConcreteObserver {
+  M68kSimConcreteObserveFn access;
+  void *user;
+} M68kSimConcreteObserver;
+
 typedef enum M68kSimConcreteRunStopReason {
   M68K_SIM_CONCRETE_RUN_STOP_NONE = 0,
   M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE = 1,
@@ -587,6 +598,8 @@ int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, siz
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction);
 /* Resolve the existing form's operand width; unknown form/operand returns zero. */
 uint8_t m68k_sim_operand_width_bytes(const M68kInstructionIR *instruction, uint8_t operand_index);
+/* Resolve dynamic EA updates using the same decoded-shape fallback as concrete simulation. */
+uint8_t m68k_sim_operand_ea_update(const M68kInstructionIR *instruction, uint8_t operand_index);
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);
@@ -602,5 +615,12 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
 int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
     M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
     const M68kSimConcreteMemoryPolicy *memory_policy, M68kSimConcreteRunTraceResult *out_result);
+/* Bounded 68000 ordinary execution; memory_policy must be NULL.
+ * Exceptions/traps and non-PC-only returns
+ * are unsupported in observed mode. Existing unobserved ABI is unchanged. */
+int m68k_simulate_run_concrete_observed(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
+    M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
+    const M68kSimConcreteMemoryPolicy *memory_policy, const M68kSimConcreteObserver *observer,
+    M68kSimConcreteRunTraceResult *out_result);
 
 #endif

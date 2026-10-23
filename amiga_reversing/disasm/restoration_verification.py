@@ -28,6 +28,9 @@ from amiga_reversing.tools.copperline_session import (
     run_session,
 )
 from amiga_reversing.tools.direct_payload_adapter import build_boot_adf, load_contract
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 
 def _hash(data: bytes) -> str:
@@ -153,6 +156,137 @@ def load_receipt(target_id: str, receipt_id: str) -> dict:
     if saved.get("target_id") != target_id:
         raise ValueError("Receipt belongs to another target.")
     return {**saved, "receipt_id": receipt_id}
+
+
+def run_behaviour(target_id: str, subject_revision: str, request: dict, *, artifact=None) -> dict:
+    """Evaluate a bounded case and persist evidence, never facts or acceptance.
+
+    Shared by the normal restoration operation and its CLI/MCP/UI clients. A
+    predicate can pass before review, but the receipt cannot qualify equivalence
+    until its canonical function-summary contract has a DJ acceptance.
+    """
+    from .behaviour_validation import (
+        BehaviourError, OUTCOMES, admit_identities, canonical_contract, digest,
+    )
+    from . import behaviour_validation as checks
+    try:
+        LOADED_SOURCE.require_current()
+        checks.LOADED_SOURCE.require_current()
+        contract = canonical_contract(target_id, request.get('contract_id'))
+    except BehaviourError as exc:
+        return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
+            subject_revision=subject_revision,status=exc.result['status'],outcome=exc.result))
+    execution = contract['contract'].get('execution_kind')
+    root = PROJECT_ROOT.resolve()
+    evidence_root = (root/'.runtime-state').resolve()
+    def local_path(name, *, manifest=False):
+        value = request.get(name)
+        if not isinstance(value,str):
+            raise BehaviourError('missing_prerequisite', 'A local evidence path is required', field=name)
+        path = (root/value).resolve()
+        allowed = (root/'.runtime-state/restoration/derived').resolve() if manifest else evidence_root
+        if not path.is_relative_to(allowed):
+            raise BehaviourError('unsupported', 'Evidence path is outside the owned local directory',field=name)
+        return path
+    try:
+        if execution == 'pandora_volume_cpu':
+            from amiga_reversing.tools import pandora_volume_local_compare as runner
+            runner.LOADED_SOURCE.require_current()
+            warm=runner.admit_contract(contract['contract'])
+            context = PROJECT_ROOT/'runtime/observations/pandora-volume-local-context.json'
+            expected_context=None
+            if warm:
+                context=(root/contract['contract']['fixture_capture']).resolve()
+                if not context.is_relative_to(evidence_root):
+                    raise BehaviourError('unsupported','Warm fixture must stay in owned local evidence')
+                if _hash(context.read_bytes())!=contract['contract']['fixture_capture_sha256']:
+                    raise BehaviourError('stale','Reviewed warm fixture changed')
+                expected_context=contract['contract']['fixture_capture_sha256']
+            library = PROJECT_ROOT/'src/build/libamiga_backend.so'
+            manifest_path=local_path('manifest',manifest=True)
+            if manifest_path.stat().st_size>1_000_000:
+                raise BehaviourError('incomplete_truncated','Manifest exceeds bounded evidence size')
+            manifest_bytes=manifest_path.read_bytes();expected_manifest=_hash(manifest_bytes)
+            if json.loads(manifest_bytes).get('analysis_subject_revision')!=subject_revision:
+                raise BehaviourError('stale','Derived manifest belongs to another analysis subject')
+            result = runner.compare(target_id,context,manifest_path,library,artifact=artifact,warm_start=warm,
+                                    expected_context_sha256=expected_context,expected_manifest_sha256=expected_manifest)
+            if result['manifest_sha256']!=expected_manifest:
+                raise BehaviourError('stale','Executed manifest identity differs from the admitted subject snapshot')
+            if warm and result['context_sha256']!=expected_context:
+                raise BehaviourError('stale','Executed context identity differs from the reviewed fixture')
+            if _hash(library.read_bytes())!=result['backend_sha256']:
+                raise BehaviourError('stale','Executed backend differs from the current backend; restart required')
+            if result['implementation_sha256']!=runner.LOADED_SOURCE.require_current():
+                raise BehaviourError('stale','Comparison implementation identity differs')
+            refusals = result['routine_comparison']['refused_cases']
+            outcome = (refusals[0].get('outcome',dict(status='mismatch',reason=refusals[0]['status']))
+                       if refusals else dict(status='pass'))
+            fixture = digest(dict(context=result['context_sha256'],
+                                  cases=[c['fixture_ids'] for c in result['accepted_cases']]))
+            identities = dict(original=result['original_sha256'],candidate=result['derived_sha256'],
+                              fixture=fixture,contract=contract['contract_sha256'],
+                              backend=result['backend_sha256'],profile=digest(dict(
+                                  subject_revision=subject_revision,execution_kind=execution,
+                                  cpu_profile='warm_start_v1' if warm else 'volume_v1',
+                                  device_inputs='captured debug snapshot supplied as flat CPU memory' if warm else 'no device reads',
+                                  runner_sha256=result['implementation_sha256'],
+                                  manifest_sha256=result['manifest_sha256'],native_plan_sha256=result['native_plan_sha256'],
+                                  binding_checker_sha256=result['binding_checker_sha256'],
+                                  checker_sha256=checks.LOADED_SOURCE.require_current(),
+                                  receipt_service_sha256=LOADED_SOURCE.require_current(),
+                                  profile='68000 ordinary CPU; no IRQ/Paula/DMA; modeled call; observer v1')))
+        elif execution in ('pandora_shared_scratch_dma','pandora_renderer_dma'):
+            from amiga_reversing.tools import pandora_scratch_behaviour as runner
+            result, identities = runner.evaluate(target_id,local_path('capture'),contract,subject_revision)
+            identities['profile']=digest(dict(execution_profile=identities['profile'],
+                                               receipt_service_sha256=LOADED_SOURCE.require_current()))
+            outcome = result['outcome']
+        else:
+            raise BehaviourError('unsupported','No admitted runner for canonical contract',execution_kind=execution)
+        LOADED_SOURCE.require_current()
+        checks.LOADED_SOURCE.require_current()
+        runner.LOADED_SOURCE.require_current()
+    except BehaviourError as exc:
+        return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
+            subject_revision=subject_revision,status=exc.result['status'],outcome=exc.result,contract=contract))
+    except FileNotFoundError as exc:
+        return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
+            subject_revision=subject_revision,status='missing_prerequisite',reason='Local evidence file is absent',
+            field=str(exc.filename),contract=contract))
+    except OSError as exc:
+        return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
+            subject_revision=subject_revision,status='missing_prerequisite',reason='Local evidence is inaccessible',
+            error_type=type(exc).__name__,contract=contract))
+    except (ValueError,KeyError,TypeError) as exc:
+        return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
+            subject_revision=subject_revision,status='stale',reason='Evidence admission failed: '+str(exc),contract=contract))
+    if outcome.get('status') not in OUTCOMES:
+        outcome=dict(status='unsupported',reason='Runner returned an unknown outcome')
+    status = outcome['status']
+    admission = admit_identities(identities,identities)
+    if admission['status'] != 'pass': status=admission['status']
+    previous = request.get('previous_receipt_id')
+    if previous:
+        old=load_receipt(target_id,previous)
+        admission=admit_identities(old.get('identities',{}),identities)
+        if admission['status']!='pass': status=admission['status']
+    if status=='pass' and contract['review_status']!='accepted':
+        status='missing_prerequisite'
+        admission=dict(status=status,reason='Canonical contract requires Decision Journal acceptance')
+    if status=='accepted_deviation':
+        deviations=contract['contract'].get('accepted_deviations',[])
+        authorised=(contract['review_status']=='accepted' and isinstance(deviations,list)
+                    and any(isinstance(d,dict) and d.get('id')==outcome.get('deviation_id')
+                            and isinstance(d.get('reason'),str) and d['reason'].strip() for d in deviations))
+        if not authorised:
+            status='missing_prerequisite'
+            admission=dict(status=status,reason='Deviation requires explicit canonical DJ-reviewed authority')
+    return _persist(target_id,dict(kind='behaviour_verification',target_id=target_id,
+        subject_revision=subject_revision,status=status,evaluation_outcome=outcome,
+        admission=admission,identities=identities,contract=contract,result=result,
+        claim='Bounded contract evaluation only; byte exactness, purpose and relocation remain separate',
+        acceptance='Existing Decision Journal; this receipt cannot accept a target fact'))
 
 
 def _verified_receipt(

@@ -1,0 +1,3647 @@
+{
+  "schema_version": 1,
+  "base_commit": "5acf773ad2327d4dbd995decda7a1f175e74ca61",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+  "emulator_version": "copperline 1.0.0",
+  "identities": {
+    "emulator": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "rom": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "amiga_reversing/tools/copperline_runtime.py": "0635fcc2c3e133855586c502d147c9fb3098185f48a69f0521d203095bd9abfa",
+    "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+    ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/pandora_3e1ee0f1_bk_00_000000e8.s": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "amiga_reversing/tools/pandora_app_memory_watch_scenario.py": "65661cad5383427f409c49b5c7d225b73071304ee81e1e5a2429544ee3d32071",
+    "docs/validation/pandora-app-access-audit.json": "3ea8921e59c3405a2cf1c87869d57e640080c75999a887297c15bbde056b567d",
+    "runtime/scenarios/pandora-nearby-interaction-callback.json": "a352fff8d11725767b4773a0453ce32ba7581d3e3b93c3e13cc52bbb92aa1dcb"
+  },
+  "app_base": 14844,
+  "gap_ranges": [
+    {
+      "app_start": 400,
+      "app_end_exclusive": 405,
+      "address": 15244,
+      "length": 5
+    },
+    {
+      "app_start": 422,
+      "app_end_exclusive": 426,
+      "address": 15266,
+      "length": 4
+    },
+    {
+      "app_start": 430,
+      "app_end_exclusive": 434,
+      "address": 15274,
+      "length": 4
+    },
+    {
+      "app_start": 436,
+      "app_end_exclusive": 438,
+      "address": 15280,
+      "length": 2
+    },
+    {
+      "app_start": 462,
+      "app_end_exclusive": 468,
+      "address": 15306,
+      "length": 6
+    },
+    {
+      "app_start": 504,
+      "app_end_exclusive": 522,
+      "address": 15348,
+      "length": 18
+    },
+    {
+      "app_start": 540,
+      "app_end_exclusive": 546,
+      "address": 15384,
+      "length": 6
+    },
+    {
+      "app_start": 547,
+      "app_end_exclusive": 548,
+      "address": 15391,
+      "length": 1
+    },
+    {
+      "app_start": 650,
+      "app_end_exclusive": 654,
+      "address": 15494,
+      "length": 4
+    },
+    {
+      "app_start": 702,
+      "app_end_exclusive": 706,
+      "address": 15546,
+      "length": 4
+    },
+    {
+      "app_start": 707,
+      "app_end_exclusive": 712,
+      "address": 15551,
+      "length": 5
+    },
+    {
+      "app_start": 831,
+      "app_end_exclusive": 854,
+      "address": 15675,
+      "length": 23
+    },
+    {
+      "app_start": 860,
+      "app_end_exclusive": 864,
+      "address": 15704,
+      "length": 4
+    },
+    {
+      "app_start": 876,
+      "app_end_exclusive": 1540,
+      "address": 15720,
+      "length": 664
+    }
+  ],
+  "runs": [
+    {
+      "name": "early-190-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-190-a-report.json",
+      "raw_report_sha256": "deb5f159a2a3c96c45e292f15de862f5edf3808905cddfd922b2350edf3c2a5a",
+      "authored_scenario_sha256": "63853b74eae0b45610e7680d9dcbaca2fd426033a45889649c9072a5a7364a50",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 15,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.709,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "479143713f07fe81d28d8ee804e5712de971481e681055f833c0e3ca8f6bbd50"
+    },
+    {
+      "name": "early-190-b",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-190-b-report.json",
+      "raw_report_sha256": "505b18aac778e0ca97be3f352e5e31b8a468a4d9d7998f89a6c48f74221128e7",
+      "authored_scenario_sha256": "63853b74eae0b45610e7680d9dcbaca2fd426033a45889649c9072a5a7364a50",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 15,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.045,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "479143713f07fe81d28d8ee804e5712de971481e681055f833c0e3ca8f6bbd50"
+    },
+    {
+      "name": "early-1a6-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-1a6-a-report.json",
+      "raw_report_sha256": "708176c103c644168f2ea3fcfefb4a6f665bdfc4f07686f4d61bc5aef4f14947",
+      "authored_scenario_sha256": "64845e70a434408dbd31cebb8863c92048cf131bd3d6002ef2e8009032a8d2ae",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15266,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 15,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15266,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15266,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 15.016,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x24d4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x24d4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 583,
+              "cck": 41467763,
+              "vpos": 198,
+              "hpos": 84,
+              "pc": 74964,
+              "retired_instructions": 6283681,
+              "seconds": 11.691285758388675
+            },
+            "player_held_item_id": 0,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 363802,
+              "d1": 2,
+              "d7": 29,
+              "a0": 78130,
+              "a4": 62824,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66638,
+              "pc": 74964,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "2d62891693a700df5b275a50f5205c9c0189a9e64bac0d85db47289bdfd63980"
+    },
+    {
+      "name": "early-1a6-b",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-1a6-b-report.json",
+      "raw_report_sha256": "e15c2ee58de91bb02853caf7cad29079e8e1e5d9fefccdb78a74dc6727b039c7",
+      "authored_scenario_sha256": "0039ad2613a835d1d1949684265866eacb7d163235fd6fb5f286144d570e8b58",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15266,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15266,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15266,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 4.932,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "a04de00b27e909e2ab7de6e2fc59788135c6ddc5394f5df9789287bf0fb7c593"
+    },
+    {
+      "name": "early-1ae-b",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-1ae-b-report.json",
+      "raw_report_sha256": "ffec149d6815a3a0c0f06a9b0097db0aee20908d2c7088ae54aad0761b6bf466",
+      "authored_scenario_sha256": "55456bb870b9e32a314c5ecf73522a56dedc94e43c9ad22febec27460e010d39",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15274,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15274,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15274,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.029,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "3ac4d02013eea56fa34773c401651696104cda26b0786bedf06d9bfc13d03068"
+    },
+    {
+      "name": "early-1b4-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-1b4-a-report.json",
+      "raw_report_sha256": "1bab1f905d7f0faf9c8e7d1066db470585756bbe24707a28812621e5fed16cde",
+      "authored_scenario_sha256": "3fa0decea0c8e6bb8fc5a8f1a1a9804f0283cb0dc65a084b9ddc2a6b2ddcf252",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15280,
+              "length": 2,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15280,
+              "len": 2,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15280,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 2
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.062,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "49b6916fe1f2b11b65217a2c3064bd8d28f4e420cc1e97bd0f9ea1c66e4ac226"
+    },
+    {
+      "name": "early-1ce-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-1ce-a-report.json",
+      "raw_report_sha256": "11eaee04393d5bd1d208642d1c2a8647659463651df6de9eb70178ae515e619d",
+      "authored_scenario_sha256": "0fde6a09c4c1bf6c8b29dfb7f175c73abce948bbc826d3ceacb6324a0e30bc57",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15306,
+              "length": 6,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15306,
+              "len": 6,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15306,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 6
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.001,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "6e381cb010c82a562e867a5ece3a24f5cf61fd48d89c10bea2ae3fbcc1eaa18e"
+    },
+    {
+      "name": "early-1f8-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-1f8-a-report.json",
+      "raw_report_sha256": "3df6446dbdbc20b7e3d3635c580aea34bfcce3262798257d8d34b6d116410528",
+      "authored_scenario_sha256": "a1ca92ec1cea2917d00521b3cc140ef5ae340c958e358cba7262bc4bdbf687a5",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15348,
+              "length": 18,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15348,
+              "len": 18,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15348,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 18
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.556,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "626ebb1733a4665d0822720009cb1396a021680f2882d62449ffb28d3d8257e9"
+    },
+    {
+      "name": "early-21c-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-21c-a-report.json",
+      "raw_report_sha256": "3a9e65db8af23179dacb2ee6738e7018d325c196d90d60219e676391aeed0dc5",
+      "authored_scenario_sha256": "86272189c44cbf987c20b563abe92e84013f8dac0c5d02e8e896189427530fd4",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15384,
+              "length": 6,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15384,
+              "len": 6,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15384,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 6
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.531,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "ee66c007b739f2a5b92cb3eb0ced71c7ac2acc4304cd9348ebea9afb2f417b67"
+    },
+    {
+      "name": "early-223-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-223-a-report.json",
+      "raw_report_sha256": "d0f0edde495d28c420e55a89aab3ee8cb6b957df770a0defd49e7ada8f44b84e",
+      "authored_scenario_sha256": "f0ad3795d1e64696c780f10dcf6deebbf36942c1787aa816c10cd457d0826b45",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15391,
+              "length": 1,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15391,
+              "len": 1,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15391,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 1
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.287,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "b389dfbb4afffa3d9f59187e5444356d671605f27f78c12f0fbb23cd0cd4b2b4"
+    },
+    {
+      "name": "early-28a-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-28a-a-report.json",
+      "raw_report_sha256": "7a43f67417c336a760256a633880c98d20167fa8dc97fd8e6b066f4f5532607e",
+      "authored_scenario_sha256": "30623a7035bf54e11181704c6b079858e57366356160ba13d1b652714fe38ede",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15494,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15494,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15494,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 4.774,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "a6e873f61197e3aa5f15b889cd2fca8ea589b6a9696cbe1a53f979a1c2e9fcc4"
+    },
+    {
+      "name": "early-2be-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-2be-a-report.json",
+      "raw_report_sha256": "44ace1ae6c0d1c78f9f358466d646dbe616848be0125a62fd0b4360831939356",
+      "authored_scenario_sha256": "ddc3209d61632157d9cd676a257427d5c612ff2ef439f4b52704e5249af901d2",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15546,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15546,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15546,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.191,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "fe2199fde29a30de1f67e72e2ab895323140991b7c1454e15e976c810e92e849"
+    },
+    {
+      "name": "early-2c3-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-2c3-a-report.json",
+      "raw_report_sha256": "e59460dee629e530fada017f6c76073afbd837a10367ffaf64bcb831761e713b",
+      "authored_scenario_sha256": "315b08c6a3566111abfa598bda434b160d5d36e8e9b375df0fd946b8a97245e2",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15551,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15551,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15551,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 4.922,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "48961bc70240098593e5398a375b3f5bb347c8abfac1ec6e8e7a208c4b768f1f"
+    },
+    {
+      "name": "early-33f-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-33f-a-report.json",
+      "raw_report_sha256": "21479be0f78283cf3963390706f93daf9484132da649e4983296c44c2f792b4e",
+      "authored_scenario_sha256": "b1f9d5065c8464337fb7aacf9cbaa1130d4d478b2611c962cfd91663f00c1224",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15675,
+              "length": 23,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15675,
+              "len": 23,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15675,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 23
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.277,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "e1fc08bc285fc25a5a35f40497fb85b15a129ee5d5df223d297c4bb9b0f3ad00"
+    },
+    {
+      "name": "early-35c-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-35c-a-report.json",
+      "raw_report_sha256": "8c83ce1fd1ea482654b5bfe15712639270bf06221cb18bc9d8647d863569ed17",
+      "authored_scenario_sha256": "8f22b7c056bbe3ea6c6866c1f317994c61c0cffa29ff50360cd3d9c190ff6cae",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15704,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15704,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15704,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.116,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "67f97f969a4070d9b9c2e33b9ccc4d98f57360a86fdc667bbf042938825ff572"
+    },
+    {
+      "name": "early-36c-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/early-36c-a-report.json",
+      "raw_report_sha256": "a1e93625615ee650e7bc80d5296d3c5c7806b0a3fe8ba480c0bc68c512087dd3",
+      "authored_scenario_sha256": "0f96faeb33d6e534bb93172c48d7df7ee8a93f0c14a412b64b4fd7b6f3b134a5",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "not_hit",
+          "termination": "frame_budget_completed_no_access",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002004"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15720,
+              "length": 664,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15720,
+              "len": 664,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15720,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 664
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "not_hit",
+            "termination": "frame_budget_completed_no_access",
+            "elapsed_seconds": 5.043,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x6ae4"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6ae4",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 463,
+              "target_frame": 703
+            },
+            "stop": {
+              "reason": "target",
+              "frame": 703,
+              "cck": 49965592,
+              "vpos": 73,
+              "hpos": 168,
+              "pc": 92900,
+              "retired_instructions": 7240277,
+              "seconds": 14.087135931568316
+            },
+            "player_held_item_id": 54,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "register_context": {
+              "d0": 20775232,
+              "d1": 58859328,
+              "d7": 2050,
+              "a0": 303956,
+              "a4": 421064,
+              "a5": 14675968,
+              "a6": 14844,
+              "a7": 66582,
+              "pc": 92900,
+              "sr": 8192
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "3a1a249391360fd78b34bfd1e43b83eccc453e07c37d9a390337e20e822c3dde"
+    },
+    {
+      "name": "overlay-190-a",
+      "private_report": ".runtime-state/pandora-app-early-watch/overlay-190-a-report.json",
+      "raw_report_sha256": "4e506bdd6ea71928b3c7f1f34d5136e927c12c1ca1caba2d1716de8b8026bb2d",
+      "authored_scenario_sha256": "3eb49f5e282ff61e8c2ac406b962bba539f8e38913c17f5d80433465cb8319c7",
+      "runner_status": "ok",
+      "observation_status": "ok",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000007A2:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7a2"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7a2",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812043,
+            "vpos": 253,
+            "hpos": 101,
+            "pc": 67490,
+            "retired_instructions": 5281766,
+            "seconds": 9.250920311991193
+          },
+          "route_registers": {
+            "a4": "0x0000f568",
+            "a6": "0x000039fc",
+            "sr": "0x00002000"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "hit",
+            "termination": "access_observed",
+            "elapsed_seconds": 0.035,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6134"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6134",
+              "runtime_base": "0x00010000"
+            },
+            "payload_at_access": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6130"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6130",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 461,
+              "target_frame": 701
+            },
+            "stop": {
+              "reason": "mmio",
+              "frame": 462,
+              "cck": 32873548,
+              "vpos": 211,
+              "hpos": 89,
+              "pc": 90420,
+              "retired_instructions": 5291926,
+              "seconds": 9.268260830952142,
+              "access": {
+                "access": "read",
+                "addr": 15244,
+                "pc": 90416,
+                "position": {
+                  "cck": 32873546,
+                  "frame": 462,
+                  "hpos": 87,
+                  "seconds": 9.26826026707867,
+                  "vpos": 211
+                },
+                "size": 2,
+                "value": 1
+              }
+            },
+            "player_held_item_id": 0,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "native_instruction": {
+              "source_offset": 24880,
+              "text": "move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1"
+            },
+            "register_context": {
+              "d0": 458786,
+              "d1": 1,
+              "d7": 4,
+              "a0": 489506,
+              "a4": 78654,
+              "a5": 78638,
+              "a6": 14844,
+              "a7": 66614,
+              "pc": 90420,
+              "sr": 8192
+            },
+            "stack_return_candidates": [
+              {
+                "stack_offset": 0,
+                "runtime_address": 91648,
+                "source_offset": 26112
+              },
+              {
+                "stack_offset": 12,
+                "runtime_address": 91854,
+                "source_offset": 26318
+              },
+              {
+                "stack_offset": 16,
+                "runtime_address": 67530,
+                "source_offset": 1994
+              },
+              {
+                "stack_offset": 20,
+                "runtime_address": 67510,
+                "source_offset": 1974
+              }
+            ],
+            "slot_long_snapshot": 67408
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "04268db5afb6eefcbf466540732497668fc15f177190cee051c84ea30f079583"
+    },
+    {
+      "name": "overlay-190-b",
+      "private_report": ".runtime-state/pandora-app-early-watch/overlay-190-b-report.json",
+      "raw_report_sha256": "cf0612f4237c78d6edaeaabad723f036e11d4a3cbc2d57bc09d77bc55a982323",
+      "authored_scenario_sha256": "386afaa6dcb8db4a3da67a65fd2be575df763573e35c68f583371252e569170c",
+      "runner_status": "ok",
+      "observation_status": "ok",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:000007A2:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7a2"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7a2",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812043,
+            "vpos": 253,
+            "hpos": 101,
+            "pc": 67490,
+            "retired_instructions": 5281766,
+            "seconds": 9.250920311991193
+          },
+          "route_registers": {
+            "a4": "0x0000f568",
+            "a6": "0x000039fc",
+            "sr": "0x00002000"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 866,
+            "z": 0
+          },
+          "player_held_item_id": 0,
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 60,
+              "frames": 240
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 6,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "hit",
+            "termination": "access_observed",
+            "elapsed_seconds": 0.024,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6134"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6134",
+              "runtime_base": "0x00010000"
+            },
+            "payload_at_access": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6130"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6130",
+              "runtime_base": "0x00010000"
+            },
+            "frame_window": {
+              "start_frame": 461,
+              "target_frame": 701
+            },
+            "stop": {
+              "reason": "mmio",
+              "frame": 462,
+              "cck": 32873548,
+              "vpos": 211,
+              "hpos": 89,
+              "pc": 90420,
+              "retired_instructions": 5291926,
+              "seconds": 9.268260830952142,
+              "access": {
+                "access": "read",
+                "addr": 15244,
+                "pc": 90416,
+                "position": {
+                  "cck": 32873546,
+                  "frame": 462,
+                  "hpos": 87,
+                  "seconds": 9.26826026707867,
+                  "vpos": 211
+                },
+                "size": 2,
+                "value": 1
+              }
+            },
+            "player_held_item_id": 0,
+            "player_coordinate_words": {
+              "x": 241,
+              "y": 866,
+              "z": 0
+            },
+            "native_instruction": {
+              "source_offset": 24880,
+              "text": "move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1"
+            },
+            "register_context": {
+              "d0": 458786,
+              "d1": 1,
+              "d7": 4,
+              "a0": 489506,
+              "a4": 78654,
+              "a5": 78638,
+              "a6": 14844,
+              "a7": 66614,
+              "pc": 90420,
+              "sr": 8192
+            },
+            "stack_return_candidates": [
+              {
+                "stack_offset": 0,
+                "runtime_address": 91648,
+                "source_offset": 26112
+              },
+              {
+                "stack_offset": 12,
+                "runtime_address": 91854,
+                "source_offset": 26318
+              },
+              {
+                "stack_offset": 16,
+                "runtime_address": 67530,
+                "source_offset": 1994
+              },
+              {
+                "stack_offset": 20,
+                "runtime_address": 67510,
+                "source_offset": 1974
+              }
+            ],
+            "slot_long_snapshot": 67408,
+            "nearby_distance_descriptor": {
+              "address": 78638,
+              "x": 34,
+              "y": 20,
+              "width": 6,
+              "height": 3,
+              "line_0_nonnull": true,
+              "line_1_ptr": 0
+            }
+          }
+        }
+      ],
+      "compiled_scenario_sha256": "80ebb1f51c3a19549f445d432b2466bb4c3c5714cabe209acc5c536d40bad03a"
+    }
+  ],
+  "limits": [
+    "Each fresh run watches one CPU data range; ranges are not simultaneous.",
+    "Early proximity windows begin at source $83AE after initial overlay setup; those initial UI accesses are excluded.",
+    "The additional overlay probe starts at source $7A2 after fire release and before overlay enqueue/drawing; it covers only app+$190..+$195.",
+    "A hit ends that run early and does not cover the rest of its intended frame window.",
+    "Only frame_budget_completed_no_access at the exact target frame establishes a completed no-hit window. Wall deadlines remain incomplete even if recovered events look successful.",
+    "CPU data watches establish neither instruction-fetch nor DMA coverage.",
+    "No-hit is bounded observation, never unused-memory proof.",
+    "Held-item endpoint changes corroborate handoff state, not a direct watch event at the handoff PC.",
+    "Original direct-payload execution, not original disk/loader parity, candidate equivalence or full playthrough.",
+    "Full register/stack/RAM captures, media and checkpoints remain private.",
+    "The fourteen declaration gaps exclude declared-but-semantically-unresolved slots such as +$2D4 and+$368; their remaining questions are unchanged."
+  ],
+  "summary": {
+    "attempted_runs": 19,
+    "watched_runs_with_reports": 18,
+    "completed_early_no_access_windows": 15,
+    "distinct_gaps_with_completed_early_windows": 14,
+    "gap_bytes_individually_watched": 750,
+    "partial_watch_timeouts": 1,
+    "boot_handoff_failures": 1,
+    "pre_overlay_positive_runs": 2,
+    "distinct_newly_observed_reader_sites": 1,
+    "new_source_annotations": 0,
+    "newly_classified_bytes": 0
+  },
+  "failed_boot_attempts": [
+    {
+      "name": "early-1ae-a",
+      "outcome": "handoff_not_observed_within_30_wall_seconds",
+      "error": "CopperlineError: Direct payload marker was not observed; refusing release",
+      "watch_armed": false,
+      "guest_payload_released": false,
+      "authored_scenario_sha256": "1f2530b746793e06722e7a759fc2b7e9a63eafe02fa697460e63f087d61ff070",
+      "private_error_log_sha256": "829e2ffbe17819fa0fbccfd176e505a664107700262d2062ffbe470bf4201ad7",
+      "recovery": "Fresh early-1ae-b completed frame463 to703 with a90-second boot allowance and60-second wall safety budget; emulated watch window unchanged.",
+      "private_error_log": ".runtime-state/pandora-app-early-watch/initial-progress.log"
+    }
+  ],
+  "cached_input_provenance": {
+    "reuse-provenance.json": {
+      "prior_published_report_sha256": "d9c377c3865d69323e258ee802f322d456f92a5a5361f94f9a0058bf58614b23",
+      "cached_compiled_route_sha256": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+      "cached_adf_sha256": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+      "target_payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "anchor_reuse": "Only copied source_offset, breakpoint_address and runtime_view from previously byte-verified canonical phases; target source/payload unchanged. New watch/capture policy validated independently."
+    },
+    "overlay-reuse-provenance.json": {
+      "prior_published_report_sha256": "d9c377c3865d69323e258ee802f322d456f92a5a5361f94f9a0058bf58614b23",
+      "cached_compiled_route_sha256": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+      "cached_adf_sha256": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+      "target_payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "anchor_reuse": "Source $7A2 is a retained native accepted instruction with original bytes checked; its runtime view is reused from cached UI $79E. Other anchors are copied from the previously byte-verified canonical phases.",
+      "added_anchor": {
+        "source_offset": 1954,
+        "native_instruction": "bsr.b enqueue_startup_overlay_descriptor",
+        "native_facts_sha256": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+        "source_bytes_verified": true
+      }
+    },
+    "overlay-repeat-reuse-provenance.json": {
+      "prior_published_report_sha256": "d9c377c3865d69323e258ee802f322d456f92a5a5361f94f9a0058bf58614b23",
+      "cached_compiled_route_sha256": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+      "cached_adf_sha256": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+      "target_payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "anchor_reuse": "Source $7A2 is a retained native accepted instruction with original bytes checked; its runtime view is reused from cached UI $79E. Other anchors are copied from the previously byte-verified canonical phases.",
+      "added_anchor": {
+        "source_offset": 1954,
+        "native_instruction": "bsr.b enqueue_startup_overlay_descriptor",
+        "native_facts_sha256": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+        "source_bytes_verified": true
+      }
+    }
+  },
+  "reader_finding": {
+    "slot_app_offset": 400,
+    "physical_address": 15244,
+    "access_source_offset": 24880,
+    "access_runtime_pc": 90416,
+    "paused_runtime_pc": 90420,
+    "access_size": 2,
+    "value": 1,
+    "frame": 462,
+    "access_cck": 32873546,
+    "reproduced_exact_stop_event": true,
+    "snapshot_slot_long": 67408,
+    "caller_contract": {
+      "descriptor": "nearby_distance_overlay",
+      "descriptor_source_offset": 13102,
+      "runtime_descriptor": 78638,
+      "captured_x": 34,
+      "captured_y": 20,
+      "captured_height": 3,
+      "captured_line_visit_d7": 4,
+      "captured_line_pointer_cursor": 78654,
+      "captured_line_1_ptr": 0,
+      "formula": "((y + visit + 1) & 0x1F) << 4 = ((20+4+1)&31)<<4 = 0x190",
+      "register_caveat": "D1=1 is the loaded result at the paused PC, not the pre-access index. Effective address minus captured A6 independently gives index0x190.",
+      "matched_call_sites": [
+        {
+          "call_source": 26108,
+          "return_source": 26112
+        },
+        {
+          "call_source": 26314,
+          "return_source": 26318
+        },
+        {
+          "call_source": 1990,
+          "return_source": 1994
+        },
+        {
+          "call_source": 1972,
+          "return_source": 1974
+        }
+      ],
+      "interpretation": "Normal initial UI cursor setup visits all six geometric line positions. A4 remains at the first NULL line_1 pointer while D7 advances to4. Cursor setup reads the row lookup before the later NULL test. This witnesses the startup pointer high-WORD alias in an original UI path; it does not establish a callback consumer or layout intent, and does not itself demonstrate a glyph/pixel access using that cursor."
+    },
+    "source_contracts_reused": [
+      "draw_ui_overlay_text_lines stable-pointer non-NULL prefix and six-position loop",
+      "set_text_cursor_in_overlay_plane masked Y and row-index arithmetic"
+    ],
+    "remaining_question": "Why a noop pointer occupies +$190 remains unresolved; this is an observed arithmetic alias, not a new semantic callback field."
+  },
+  "validation": {
+    "focused_tests": "148 passed: tests/test_copperline_runtime.py and tests/test_copperline_session.py",
+    "configuration_variants": 56,
+    "target_source_sha256_unchanged": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "exact_rebuild": "Not rerun: no target source/fact changes.",
+    "frame_completion_policy": "No-access completion is still a non-pass scenario result, explicitly distinct from wall timeout, unsupported stop or filter mismatch. Late/recovered events never become in-budget hits."
+  },
+  "next_evidence_question": "Which other declaration gaps are accessed during initial overlay construction or deliberate inventory interaction? Only +$190 was watched before initial overlay drawing in this batch; no full-playthrough or all-alias coverage is claimed."
+}

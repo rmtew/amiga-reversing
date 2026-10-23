@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "layout": "raw-single-section",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "patches": [
+    {
+      "id": "guard-null-state-node",
+      "start": "s0:0000867E:instruction",
+      "end": "s0:000086A6:instruction",
+      "expected_hex": "2f08206d004e2f082068000808a80000000a42680010206d002c2b680000004e215f0000205f4e75",
+      "replacement_hex": "2f08206d004e2f082f280008205f670a08a80000000a42680010206d002c2b50004e209f205f4e75",
+      "assembly": "null-node-guard.s",
+      "assembly_sha256": "7e569cd9e59f9b9e0ceb38531d5388ed5caa999929c5cc5641505e059e0d5fc1",
+      "rationale": "Exchange incoming and active states as before; skip animation-node resets when the incoming node is NULL. Original static defeat otherwise writes through NULL into low-memory vectors.",
+      "preconditions": [
+        "Original raw payload and exact instruction boundaries match.",
+        "Incoming state and object descriptor pointers are valid; only the animation-node pointer may be NULL.",
+        "At least 12 bytes below entry SP are writable and disjoint from object, descriptor, state, node, and code; the original routine required 8."
+      ],
+      "conflicts": []
+    }
+  ]
+}

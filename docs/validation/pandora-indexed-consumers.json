@@ -1,0 +1,383 @@
+{
+  "schema": "pandora-indexed-consumer-review-v1",
+  "scope": "Finite original-layout reviewed inventory of27 baseline native indexed_dynamic records; not new native resolution or complete semantic restoration",
+  "base_commit": "59e77f9c9e91d59b33f69901caed2682c431ff08",
+  "source_identity": "15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8",
+  "binary_identity": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "groups": [
+    {
+      "name": "Stored script relative WORD copy",
+      "count": 2,
+      "index_source": "Signed WORD operand at command+2, loaded through MOVEA.W; effective source=command+signed displacement+2, destination=source+2.",
+      "understanding": "The130 original commands all copy a repeat command reload_count to its adjacent remaining_count within the same canonical script owner. These addresses are not fields of the4-byte copy header.",
+      "original_use": "Stored producer/consumer pairs accounted for; source already explains repeat-counter reset.",
+      "limits": "Arbitrary commands/cursors or later mutation remain unchecked. No transitive alias-writer closure.",
+      "next": "Reviewed qualified original-layout contract; no new source change warranted.",
+      "evidence": [
+        "docs/targets/pandora-restoration-status.md#callback-register-and-carry-contracts",
+        "docs/validation/pandora-behavior-operand-types.json"
+      ],
+      "records": [
+        {
+          "id": "field:s0:11b2:0",
+          "source": 4530,
+          "operand": 0,
+          "root_layout": "cmd_relative_word_copy"
+        },
+        {
+          "id": "field:s0:11b2:1",
+          "source": 4530,
+          "operand": 1,
+          "root_layout": "cmd_relative_word_copy"
+        }
+      ]
+    },
+    {
+      "name": "Nearby inventory ID exchange",
+      "count": 2,
+      "index_source": "D1.w derives from unsigned cursorY-139: logical shift2 then ANDI.B #6. With valid rows139/147/155/163 and zero index high byte, offsets are0/2/4/6.",
+      "understanding": "Swap only the ID BYTE in a2-byte inventory record, preserving its value BYTE. Existing source documents that ANDI.B does not clear the high byte; four-row/backed-record input is conditional.",
+      "original_use": "Existing cursor producer, release/countdown gates, original record declarations and selected-row consumer are documented.",
+      "limits": "No unconditional bound for arbitrary cursor words, pointer allocation or all phases. Even stride alone is not an index guard.",
+      "next": "Reviewed existing source contract; do not expand the record or invent a missing member.",
+      "evidence": [
+        "docs/targets/pandora-restoration-status.md#bounded-inventory-records-resolve-members-retain-dynamic-addresses-2026-10-19",
+        "tests/test_pandora_inventory_cursor.py"
+      ],
+      "records": [
+        {
+          "id": "field:s0:2a72:0",
+          "source": 10866,
+          "operand": 0,
+          "root_layout": "inventory_item_slot"
+        },
+        {
+          "id": "field:s0:2a76:1",
+          "source": 10870,
+          "operand": 1,
+          "root_layout": "inventory_item_slot"
+        }
+      ]
+    },
+    {
+      "name": "Audio presets, configuration and envelope selection",
+      "count": 6,
+      "index_source": "Primary preset: signed low BYTE mode times10, then +2 per channel through four configuration-list WORDs. First program is another signed WORD relative to initialize_audio_player. Secondary pending:12*channel+11; envelope:2*sign-extended sequence_index.",
+      "understanding": "Three10-byte presets select12 existing program-list starts. Four12-byte DMA records have a pending BYTE at+11. All29 original secondary configurations select indices0..5, matching the six existing signed envelope-offset declarations and their targets.",
+      "original_use": "Finite stored preset/list/configuration/offset domains accounted for; existing source retains unchecked selector semantics.",
+      "limits": "Preset and packed channel/configuration selectors are not runtime guarded. Replacements, arbitrary channel/sequence values and device timing remain outside the contract.",
+      "next": "Reviewed shared existing formats/consumers; no new generic validator or target-specific opcode work.",
+      "evidence": [
+        "docs/validation/pandora-audio-state-and-programs.json",
+        "docs/validation/pandora-audio-control-symbols.json",
+        "docs/targets/pandora-restoration-status.md#primary-audio-sequencer"
+      ],
+      "records": [
+        {
+          "id": "field:s0:4d804:0",
+          "source": 317444,
+          "operand": 0,
+          "root_layout": "audio_player_initialization_preset"
+        },
+        {
+          "id": "field:s0:4d80e:0",
+          "source": 317454,
+          "operand": 0,
+          "root_layout": "audio_player_initialization_preset"
+        },
+        {
+          "id": "field:s0:4d842:0",
+          "source": 317506,
+          "operand": 0,
+          "root_layout": "audio_player_initialization_preset"
+        },
+        {
+          "id": "field:s0:4d850:0",
+          "source": 317520,
+          "operand": 0,
+          "root_layout": "audio_player_base_view"
+        },
+        {
+          "id": "field:s0:4e416:0",
+          "source": 320534,
+          "operand": 0,
+          "root_layout": "audio_channel_dma_configuration"
+        },
+        {
+          "id": "field:s0:4e476:0",
+          "source": 320630,
+          "operand": 0,
+          "root_layout": "audio_player_base_view"
+        }
+      ]
+    },
+    {
+      "name": "Overlay selected-line pointer",
+      "count": 1,
+      "index_source": "D0.w multiplied by4 with WORD wrap, used as signed WORD index from descriptor+12.",
+      "understanding": "The descriptor has six line pointers, but this helper does not enforce that count. Existing source and boundary evidence describe the exact wrapped indexing and compact/proportional cursor phases.",
+      "original_use": "Valid selected-row callers and six-line descriptor representation are already documented; controlled out-of-prefix cases are explicitly distinguished.",
+      "limits": "No six-line guard or safety guarantee for arbitrary selected indices; injected boundary cases are not original reachability evidence.",
+      "next": "Reviewed accurately qualified source; do not enlarge the descriptor to absorb unchecked accesses.",
+      "evidence": [
+        "docs/targets/pandora-restoration-status.md#overlay-text-registration-and-startup-clear-tail-2026-10-19",
+        "tests/test_pandora_overlay_text_queue.py"
+      ],
+      "records": [
+        {
+          "id": "field:s0:6640:0",
+          "source": 26176,
+          "operand": 0,
+          "root_layout": "ui_overlay_descriptor"
+        }
+      ]
+    },
+    {
+      "name": "Deferred descriptor sort",
+      "count": 4,
+      "index_source": "A0 is deliberately one pointer before the deferred range. D1/D2 are four-byte pair indices generated by the count/gap loops.",
+      "understanding": "These are the two pointer loads and two exchanges in the documented32-descriptor partition/sort, not four absent descriptor members. The original flag input has26 deferred,6 back,0 front records; the deferred range is nonempty.",
+      "original_use": "Original32-entry source, copy/deferred storage, flag interpretation and unsigned-Y ordering are already documented and tested.",
+      "limits": "Nonempty deferred range is an explicit precondition. Arbitrary graph/flag mutations, empty-middle behavior and global lifetime are not proved safe.",
+      "next": "Reviewed original-input bounds and conditional algorithm; retain the no-empty-guard caveat rather than demand hostile-input closure.",
+      "evidence": [
+        "docs/validation/pandora-descriptor-partition.json",
+        "tests/test_pandora_descriptor_partition.py"
+      ],
+      "records": [
+        {
+          "id": "field:s0:851a:0",
+          "source": 34074,
+          "operand": 0,
+          "root_layout": "world_position_descriptor_source_reference"
+        },
+        {
+          "id": "field:s0:851e:0",
+          "source": 34078,
+          "operand": 0,
+          "root_layout": "world_position_descriptor_source_reference"
+        },
+        {
+          "id": "field:s0:852c:1",
+          "source": 34092,
+          "operand": 1,
+          "root_layout": "world_position_descriptor_source_reference"
+        },
+        {
+          "id": "field:s0:8530:1",
+          "source": 34096,
+          "operand": 1,
+          "root_layout": "world_position_descriptor_source_reference"
+        }
+      ]
+    },
+    {
+      "name": "Active animation frame and optional XY pairs",
+      "count": 3,
+      "index_source": "Current BYTE frame index scaled by4. Frame and XY sequences retain a held prefix: active addresses=sequence+4+4*index; XY Y is two bytes after X.",
+      "understanding": "Frame-count/phase/hold/loop/chaining semantics already exist in source. Current canonical data has92 declared node records:89 covered by the older sequence inventory plus3 already-restored retained owners. All92 have adequate nominal held+active pointer extents.",
+      "original_use": "All92 declared node XY pointers are NULL. The two XY indexed reads have known reader semantics, but no initialized nonzero original producer; controlled XY tests do not establish an original use.",
+      "limits": "92 declared records is not a newly proved initialized/reachable-node denominator. Retained-node activation and optional XY producer remain unknown. No unused claim or repeated14-pointer-tail/proximity probe.",
+      "next": "Keep the conditional XY type/reader and explicit missing-original-producer question. Reopen only on a concrete nonzero write/reference; no supported new semantic rename or source contract found.",
+      "evidence": [
+        "docs/validation/pandora-animation-subsystem.json",
+        "docs/validation/pandora-animation-gap-pass.json",
+        "docs/targets/pandora-restoration-status.md#retained-npc-animation-records-and-compact-typed-fills-2026-10-19",
+        "tests/test_pandora_animation_sequences.py"
+      ],
+      "records": [
+        {
+          "id": "field:s0:95c6:0",
+          "source": 38342,
+          "operand": 0,
+          "root_layout": "WorldPositionDescriptorPointer"
+        },
+        {
+          "id": "field:s0:95d4:0",
+          "source": 38356,
+          "operand": 0,
+          "root_layout": "WorldPositionXYOffset"
+        },
+        {
+          "id": "field:s0:95da:0",
+          "source": 38362,
+          "operand": 0,
+          "root_layout": "WorldPositionXYOffset"
+        }
+      ]
+    },
+    {
+      "name": "Macro-tile expansion",
+      "count": 9,
+      "index_source": "Macro-map unsigned WORD ID times18 selects the definition; its nine fixed WORD offsets0..16 are zero-extended and added to the pixel atlas.",
+      "understanding": "All1290 original IDs are0..467 in468 definitions. All4212 pixel offsets are128-byte aligned, maxFD80; original products fit the signed low-WORD record lookup. Nine row/column roles and scaled/base references are already restored.",
+      "original_use": "The whole original stored map/definition domain and complete90x129 expansion are accounted for by existing evidence.",
+      "limits": "Replacement IDs, allocation/lifetime, viewport domains and actual DMA output are separate. Stored boundedness does not manufacture a runtime guard.",
+      "next": "Reviewed original-domain contract; native indexed status is not a missing table format or a reason to reformat the family again.",
+      "evidence": [
+        "docs/validation/pandora-terrain-reference-encodings.json",
+        "tests/test_pandora_tilemap_grid.py"
+      ],
+      "records": [
+        {
+          "id": "field:s0:a1be:0",
+          "source": 41406,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a1c8:0",
+          "source": 41416,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a1d4:0",
+          "source": 41428,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a1e0:0",
+          "source": 41440,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a1ec:0",
+          "source": 41452,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a1f8:0",
+          "source": 41464,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a204:0",
+          "source": 41476,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a210:0",
+          "source": 41488,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        },
+        {
+          "id": "field:s0:a21c:0",
+          "source": 41500,
+          "operand": 0,
+          "root_layout": "world_tile_definition_3x3"
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8",
+    "script_records": 780,
+    "copy_commands": 130,
+    "all_original_copies_reload_to_adjacent_remaining_counter": true,
+    "copy_coordinates_sha256": "fafb51962c96b683f53fbc8467d1cfa7820c603e03643b0a91d8dd9bce1a95b3",
+    "sort_original_flags_offset": 25,
+    "sort_original_groups": {
+      "middle": 26,
+      "back": 6
+    },
+    "secondary_configuration_records": 29,
+    "secondary_sequence_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "secondary_offset_declarations": 6,
+    "secondary_targets": [
+      321870,
+      321918,
+      321943,
+      321945,
+      321961,
+      321972
+    ],
+    "declared_original_node_records": 92,
+    "historical_initialized_node_inventory": 89,
+    "original_nonzero_XY_sequences": 0,
+    "frame_nodes_with_nominal_bounds": 92,
+    "frame_nodes_from_prior_sequence_inventory": 89,
+    "retained_node_bound_reconciliation": [
+      {
+        "node": 306714,
+        "sequence": 306736,
+        "active_count": 7,
+        "bounded_pointer_bytes": 32,
+        "owner_layout_id": "catalog-6bf5f51a2d9c4147bcb9b89704db2a8b",
+        "owner_name": "menial_droid_chained_animation"
+      },
+      {
+        "node": 306802,
+        "sequence": 306820,
+        "active_count": 7,
+        "bounded_pointer_bytes": 32,
+        "owner_layout_id": "catalog-6b417595a9594622ae06cfebe47dfa04",
+        "owner_name": "menial_droid_return_animation"
+      },
+      {
+        "node": 307152,
+        "sequence": 307170,
+        "active_count": 5,
+        "bounded_pointer_bytes": 24,
+        "owner_layout_id": "catalog-f7159c9ac6914b7b894e4d9f0dc954a4",
+        "owner_name": "gardener_retained_animation"
+      }
+    ],
+    "preset_list_sources": [
+      [
+        319340,
+        319314,
+        319352,
+        319362
+      ],
+      [
+        319794,
+        319784,
+        319800,
+        319806
+      ],
+      [
+        320092,
+        320088,
+        320096,
+        320106
+      ]
+    ]
+  },
+  "disposition": {
+    "groups": 7,
+    "records": 27,
+    "all_reader_formulas_already_understood": true,
+    "missing_original_use_evidence": "Optional XY sequence producer for95D4/95DA; no initialized nonzero pointer in92 declared records",
+    "supported_new_connected_source_contracts": 0,
+    "source_edits": 0,
+    "native_statuses_cleared": 0,
+    "new_purpose_or_classification_credit": 0
+  },
+  "validation": {
+    "static_consistency_checks": "pass",
+    "tests": "Existing evidence linked; no test suite rerun for this read-only reconciliation",
+    "exact_receipt_reused": "d4fd9cb2cc9d6c1843f8e4f93207fb5599a62a0b29f1d2ac45cb3c50bdf6c49a",
+    "receipt_scope": "Source hash unchanged; no new generation or exactness claim needed",
+    "accounting": "Global accounting not refreshed: no necessary source build in this batch"
+  },
+  "limits": [
+    "Original stored inputs and correctly qualified conditional reader contracts do not require arbitrary hostile/replacement input closure.",
+    "Current native unresolved totals are not recomputed by this review;27 is the explicitly enumerated baseline cohort.",
+    "Bounded original-layout review is separate from complete semantic restoration, runtime reachability, alias/lifetime and alternate layout."
+  ]
+}

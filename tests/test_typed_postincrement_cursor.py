@@ -1,4 +1,4 @@
-"""Typed source cursors advance by decoded width without changing source bytes."""
+"""Bounded typed memory cursors preserve EA modes and comment-only field refs."""
 
 from __future__ import annotations
 
@@ -115,3 +115,55 @@ def test_real_scalar_read_does_not_copy_root_cursor_into_output_register(tmp_pat
         fields = artifact.query_payload("fields", limit=100)["items"]
         assert [(field["source_offset"], field["field_name"], field["field_offset"])
                 for field in fields if field.get("field_name")] == [(0, "first", 0), (6, "second", 4)]
+
+
+@pytest.mark.parametrize(('suffix', 'width'), [('b', 1), ('w', 2), ('l', 4)])
+@pytest.mark.parametrize('operation', ['move', 'eor'])
+def test_real_typed_destination_updates_retain_fields_and_original_modes(tmp_path, suffix, width, operation):
+    instructions = [f'{operation}.{suffix} d0,(a0)+', f'clr.{suffix} (a0)+',
+                    f'move.{suffix} d1,-(a0)', f'move.{suffix} d2,-(a0)',
+                    f'move.{suffix} (a0),d3']
+    source, metadata_path, artifact, original = _artifact(tmp_path, instructions, width)
+    with closing(artifact):
+        fields = artifact.query_payload('fields', limit=100)['items']
+        assert [(f['source_offset'], f['field_name'], f['field_offset'])
+                for f in fields if f.get('field_name')] == [
+                    (0, 'first', 0), (2, 'second', width), (4, 'second', width),
+                    (6, 'first', 0), (8, 'first', 0)]
+        for offset, name in [(0, 'first'), (2, 'second'), (4, 'second'), (6, 'first')]:
+            instruction, = artifact.query_payload('instructions', source_offset=offset)['items']
+            assert f'Triplet_{name}' in instruction['annotation']
+            refs = artifact.query_payload('references', source_offset=offset, direction='outgoing')['items']
+            field_ref, = [r for r in refs if r.get('symbol') == f'Triplet_{name}']
+            assert field_ref['comment_only'] is True
+    rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+    rebuilt, _ = c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', rendered, project_root=PROJECT_ROOT)
+    assert rebuilt == original and _vasm(tmp_path, 'destination', rendered) == original
+
+
+@pytest.mark.parametrize('instructions', [
+    ['move.w d0,-(a0)', 'move.w (a0),d1'],
+    ['move.l a0,(a0)+', 'move.w (a0),d1'],
+    ['move.w (a0)+,(a1)+', 'move.w (a0),d1'],
+    ['adda.w #2,a0', 'cmpm.w (a0)+,(a0)+', 'move.w (a0),d1'],
+    ['movem.w d0-d1,-(a0)', 'move.w (a0),d1'],
+    ['clr.w (a7)+', 'move.w (a7),d1'],
+])
+def test_real_ambiguous_or_underflowing_destination_cursor_is_not_retained(tmp_path, instructions):
+    _, _, artifact, _ = _artifact(tmp_path, instructions, register='A7' if 'a7' in instructions[0] else 'A0')
+    with closing(artifact):
+        assert not any(f.get('field_name') for f in artifact.query_payload('fields', limit=100)['items'])
+
+
+@pytest.mark.parametrize(('suffix', 'width'), [('b', 1), ('w', 2), ('l', 4)])
+def test_real_predecrement_read_uses_bounded_previous_field(tmp_path, suffix, width):
+    instructions = [f'move.{suffix} (a0)+,d0', f'move.{suffix} (a0)+,d1',
+                    f'move.{suffix} -(a0),d2', f'move.{suffix} -(a0),d3']
+    source, metadata_path, artifact, original = _artifact(tmp_path, instructions, width)
+    with closing(artifact):
+        fields = artifact.query_payload('fields', limit=100)['items']
+        assert [(f['source_offset'], f['field_offset']) for f in fields if f.get('field_name')] == [
+            (0, 0), (2, width), (4, width), (6, 0)]
+    rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+    rebuilt, _ = c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', rendered, project_root=PROJECT_ROOT)
+    assert rebuilt == original and _vasm(tmp_path, 'predecrement', rendered) == original

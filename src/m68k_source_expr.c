@@ -43,6 +43,34 @@ M68kSourceLinearExprParseResult m68k_source_parse_linear_expression(const char *
       return result;
     }
   }
+  /* Record indices may encode an exact, same-section label difference divided
+   * by a literal stride. A relocatable address cannot be divided. Keep this
+   * narrow form separate from the existing constant-expression grammar. */
+  while (isspace((unsigned char)*cursor)) ++cursor;
+  if (*cursor == '(') {
+    const char *close = strchr(cursor + 1, ')');
+    if (close != NULL) {
+      const char *tail = close + 1;
+      char numerator[512];
+      size_t length = (size_t)(close - cursor - 1);
+      while (isspace((unsigned char)*tail)) ++tail;
+      if (*tail == '/' && length > 0U && length < sizeof(numerator)) {
+        M68kParseU32Result divisor = m68k_parse_number_u32(tail + 1);
+        M68kSourceLinearExprParseResult inner;
+        M68kSourceLinearExprEvalResult evaluated;
+        if (!divisor.ok || divisor.value == 0U) return result;
+        memcpy(numerator, cursor + 1, length);
+        numerator[length] = '\0';
+        inner = m68k_source_parse_linear_expression(numerator, constants_only, lookup, user_data);
+        evaluated = m68k_source_evaluate_linear_expression(inner.expr);
+        if (!inner.ok || !evaluated.ok || evaluated.reloc.ok ||
+            (int64_t)(int32_t)evaluated.value % divisor.value != 0) return result;
+        result.ok = 1U;
+        result.expr.constant = (int32_t)((int64_t)(int32_t)evaluated.value / divisor.value);
+        return result;
+      }
+    }
+  }
   while (1) {
     char token[128];
     size_t token_length = 0;

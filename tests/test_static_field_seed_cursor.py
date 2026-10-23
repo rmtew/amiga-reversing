@@ -136,9 +136,9 @@ def test_static_field_seed_postincrement_advances_to_next_field_cursor(tmp_path)
 
 
 @pytest.mark.parametrize("instruction_tail", [
-    "302032104e75",  # Predecrement source remains unsupported.
+    "302032104e75",  # Predecrement enters an unmodelled prefix field gap.
     "205832104e75",  # MOVEA.L (A0)+,A0 also writes the updated base.
-    "b15832104e75",  # CMPM.W (A0)+,(A0)+ has ambiguous same-base phases.
+    "b14832104e75",  # CMPM.W (A0)+,(A0)+ has ambiguous same-base phases.
     "309832104e75",  # MOVE.W (A0)+,(A0) also uses the updated base.
     "32d832104e75",  # MOVE.W (A0)+,(A1)+ has multiple EA updates.
 ])
@@ -156,13 +156,14 @@ def test_static_field_seed_unmodelled_update_cannot_resolve_or_reuse_cursor(tmp_
     assert all(field["field_offset"] is None for field in fields)
 
 
-def test_static_field_seed_postincrement_invalidates_one_past_root(tmp_path):
+def test_static_field_seed_postincrement_leaves_one_past_root_read_unresolved(tmp_path):
     fields = _fields(
         tmp_path, [_seed(end=42, field_name="last", unit="word")],
         instruction_tail="301832104e75",
         root_fields=[{"name": "last", "type": "word", "offset": 14, "size": 2}],
     )
-    assert [(field["source_offset"], field["field_offset"]) for field in fields] == [(4, 14)]
+    assert [(field["source_offset"], field["field_offset"]) for field in fields] == [(4, 14), (6, None)]
+    assert fields[1]["status"] == "unresolved" and not fields[1].get("field_name")
 
 
 def test_static_root_array_postincrement_advances_into_declared_next_element(tmp_path):
@@ -179,7 +180,7 @@ def test_static_root_array_postincrement_advances_into_declared_next_element(tmp
     ]
 
 
-def test_static_root_array_postincrement_invalidates_after_declared_final_element(tmp_path):
+def test_static_root_array_postincrement_leaves_final_endpoint_read_unresolved(tmp_path):
     fields = _fields(
         tmp_path, [_seed(addr=32, end=64, field_name="", unit="byte")], target=62,
         instruction_tail="301832104e75",
@@ -188,4 +189,5 @@ def test_static_root_array_postincrement_invalidates_after_declared_final_elemen
             {"name": "last", "type": "word", "offset": 14, "size": 2},
         ],
     )
-    assert [(field["source_offset"], field["field_offset"]) for field in fields] == [(4, 14)]
+    assert [(field["source_offset"], field["field_offset"]) for field in fields] == [(4, 14), (6, None)]
+    assert fields[1]["status"] == "unresolved" and not fields[1].get("field_name")

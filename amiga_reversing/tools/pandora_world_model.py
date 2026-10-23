@@ -82,6 +82,10 @@ def script_envelope(data, start, runtime_base, opcodes, *, max_steps=4096):
                 return complete(step+1)
         elif name == "SET_NODE_FOR_FLAG3_CLEAR":
             pc += 6
+        elif name == "TOGGLE_NODE_FOR_FLAG3_CLEAR":
+            # Original handler toggles a state-node flag and advances two bytes;
+            # it does not change object world X/Y (bounds model only).
+            pc += 2
         elif name == "SET_NODE_SEQUENCE_FOR_FLAG3_CLEAR":
             pc += 10
         else:
@@ -196,6 +200,14 @@ def _symbols(client, target, revision, **filters):
         cursor = page["next_cursor"]
 
 
+def actor_at_source(actors, source_offset):
+    """Bind a verified original object coordinate independently of its name."""
+    matches = [actor for actor in actors if actor["source_offset"] == source_offset]
+    if len(matches) != 1:
+        raise ValueError("actor source identity is missing or ambiguous")
+    return matches[0]
+
+
 def build(target, observation_path):
     report = json.loads(observation_path.read_text()); observation = report.get("runner", report)["observation"]
     phase = next((p for p in observation["scenario"]["phases"] if p["name"] == "model_observe_encounter_entry"), None)
@@ -225,7 +237,7 @@ def build(target, observation_path):
     rows = []
     for prefix in ("world_object_", "player_move_", "WORLD_CMD_", "item_receptacle_position_descriptors", "item_receptacle_5", "TILE_ID_"):
         rows += _symbols(client, target, rev, query=prefix)
-    for name in ("row_selector_ids", "world_tile_definition_offset_records", "tile_movement_block_bits", "initial_cooldown_ticks", "player_world_object"):
+    for name in ("row_selector_ids", "world_tile_definition_offset_records", "tile_movement_block_bits", "initial_ranged_weapon_ammunition", "player_world_object"):
         rows += _symbols(client, target, rev, symbol=name)
     source = {r["name"]: r["source_offset"] for r in rows if r.get("source_offset") is not None}
     values = {r["name"]: int(r["expression"]) for r in rows if r["name"].startswith("WORLD_CMD_")}
@@ -291,7 +303,7 @@ def build(target, observation_path):
     if len(player_data) <= max(direction_offset, selected_offset) or player_data[direction_offset] != 0:
         raise ValueError("baseline is not a complete initial player-direction checkpoint")
     start_state = (*start_xy, "none")
-    actor = next(a for a in actors if a["source_offset"] == actor_source)
+    actor = actor_at_source(actors, actor_source)
     record = bytes.fromhex(capture["memory_reads"][3]["bytes"]+capture["memory_reads"][4]["bytes"])
     first_read = capture["memory_reads"][3]
     second_read = capture["memory_reads"][4]
@@ -324,27 +336,30 @@ def build(target, observation_path):
     pickup_source = source["item_receptacle_5_interaction_data"]
     pickup = payload[pickup_source:pickup_source+struct_sizes["item_receptacle_interaction_data"]]
     rifle_id = field(pickup, "item_receptacle_interaction_data", "required_item_definition_id")
-    feed = next(a for a in actors if a["name"] == "world_object_megabio_feed")
-    feed_bytes = payload[feed["source_offset"]:feed["source_offset"]+struct_sizes["world_object_shared_prefix"]]
+    music_actor = actor_at_source(actors, 0x4C1D2)
+    music_actor_bytes = payload[music_actor["source_offset"]:music_actor["source_offset"]+struct_sizes["world_object_shared_prefix"]]
     prerequisites = {
         "status": "conditional_dependency_model_not_an_executed_BYTE_path",
         "rifle_pickup": {"xy": [gx, gy], "item_id": rifle_id,
                          "interaction_data_source_offset": pickup_source,
                          "initial_stored_attachment": field(pickup, "item_receptacle_interaction_data", "stored_attachment_state_ptr"),
                          "requires": ["selected item<2", "distance<28", "fresh proximity-latch entry", "inventory/combat UI clear"]},
-        "arm_audio": {"center": [840, 168], "requires": ["Feed alive", "Manhattan distance<256"],
+        "arm_audio": {"center": [840, 168], "requires": ["Pianist alive", "Manhattan distance<256"],
                       "effect": "shared audio bit0 set; WORD volume updated", "source_pc": "0x5534a"},
-        "direct_weapon_kill": {"feed_initial_hp": field(feed_bytes, "world_object_shared_prefix", "initial_hit_points"),
-                               "rifle_damage": 30, "initial_ammunition": list(payload[source["initial_cooldown_ticks"]:source["initial_cooldown_ticks"]+2]),
+        "direct_weapon_kill": {"feed_initial_hp": field(music_actor_bytes, "world_object_shared_prefix", "initial_hit_points"),
+                               "rifle_damage": 30, "initial_ammunition": list(payload[source["initial_ranged_weapon_ammunition"]:source["initial_ranged_weapon_ammunition"]+2]),
                                "requires": ["rifle selected", "ammo nonzero", "fresh fire edge", "valid accepted aim direction",
-                                            "unblocked ray hits CURRENT Feed geometry", "no earlier nearby combat transition"],
+                                            "unblocked ray hits CURRENT Pianist geometry", "no earlier nearby combat transition"],
                                "effect": "defeated bit1 set without the combat world-X bias", "source_pc": "0x93fa"},
-        "BYTE_write": {"requires": ["Feed defeated bit1", "shared audio bit0 still set"],
+        "BYTE_write": {"requires": ["Pianist defeated bit1", "shared audio bit0 still set"],
                        "source_pc": "0x552f0", "state": "not dynamically observed"},
         "order": ["acquire rifle", "arm proximity audio alive", "aim and fire without an encounter",
                   "direct kill before same-frame proximity update", "BYTE guard sees both bits"],
         "limit": "Weapon hit and inventory predicates are recovered target rules; unknown NPC timing is not assumed safe."
     }
+    # Preserve old consumer keys while exposing current actor-neutral identity.
+    prerequisites["direct_weapon_kill"]["music_actor_initial_hp"] = prerequisites["direct_weapon_kill"]["feed_initial_hp"]
+    prerequisites["music_actor"] = {"name": music_actor["name"], "source_offset": music_actor["source_offset"]}
     route = plan(terrain, start_state, lambda x, y: x < gx and abs(y-gy) < 8 and 31 <= abs(x-gx)+abs(y-gy) <= 38,
                  lambda x, y: max(0, abs(x-gx)-40)/7+max(0, abs(y-gy)-8)/4, [rectangle])
     def summarize_route(route):
@@ -389,7 +404,7 @@ def build(target, observation_path):
             "source_bindings": {k: v for k, v in source.items() if k in {
                 "row_selector_ids", "world_tile_definition_offset_records", "tile_movement_block_bits", "world_object_ptr_table",
                 "item_receptacle_position_descriptors_position_state_ptr_5", "item_receptacle_5_interaction_data",
-                "initial_cooldown_ticks", "player_world_object", "world_object_megabio_feed", actor["name"]} or k.endswith("_frames") or k.endswith("_animation_frame_count")},
+                "initial_ranged_weapon_ammunition", "player_world_object", music_actor["name"], actor["name"]} or k.endswith("_frames") or k.endswith("_animation_frame_count")},
             "opcode_values": values, "map": {"tiles": [90, 129], "tile_pixels": 16, "world_pixels": [1440, 2064],
                                                "excluded_tile_rows": excluded_rows, "legend": "# = solid or modal tile, not a complete player/event accessibility map"},
             "pose_entries": len(frames), "unique_pose_bounds": len(set(frames)), "actors": actors,
@@ -400,7 +415,10 @@ def build(target, observation_path):
             "validated_transition": transition,
             "scenario_prerequisites": prerequisites,
             "rifle_staging_route": route,
+            "blocking_actor_staging_route": staging,
             "pianist_staging_route": staging,
+            "legacy_field_aliases": {"pianist_staging_route": "blocking_actor_staging_route",
+                                     "feed_initial_hp": "music_actor_initial_hp"},
             "limits": ["Only the observed blocking actor's complete original-script envelope is enforced by this route; other actors remain explicit unknowns.",
                        "Bounds assume original script and no external coordinate writes/combat bias; delays are not a timing prediction.",
                        "The keepout assumes the captured actor flags and selected item; changed actor state requires reinspection.",
@@ -419,8 +437,8 @@ def main(argv=None):
     print(json.dumps({"encounter": result["validated_encounter"],
                       "transition": result["validated_transition"]["status"],
                       "rifle_route": result["rifle_staging_route"]["status"],
-                      "staging_goal": result["pianist_staging_route"]["goal"],
-                      "staging_moves": result["pianist_staging_route"]["accepted_moves"]}))
+                      "staging_goal": result["blocking_actor_staging_route"]["goal"],
+                      "staging_moves": result["blocking_actor_staging_route"]["accepted_moves"]}))
     return 0
 
 

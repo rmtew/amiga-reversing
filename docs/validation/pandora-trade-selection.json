@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "starting_commit": "5bd70f315f4a9b101403be406045d00486236ab7",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do nearby trade selection, counteroffers, automatic thief loss and fire-driven exchange control combat and item state?",
+  "source_spans": {
+    "nearby_service": [
+      12006,
+      12210
+    ],
+    "trade_helpers": [
+      31654,
+      32036
+    ]
+  },
+  "facts": {
+    "accepted_actions": 78,
+    "local_labels": 21,
+    "equates": 14,
+    "operand_bindings": 36,
+    "unique_bound_instruction_rows": 35,
+    "semantic_comments": 7,
+    "new_owners_or_types": 0
+  },
+  "labels": {
+    "31658": "clear_next_world_object_trade_ready_flag",
+    "31672": "return_from_trade_ready_flag_clear",
+    "31730": "select_first_npc_combat_inventory_item",
+    "31736": "scan_next_npc_combat_inventory_slot",
+    "31750": "return_trade_predicate_with_combat",
+    "31754": "return_trade_predicate_without_combat",
+    "31786": "find_player_item_in_npc_offer_table",
+    "31798": "test_matched_offer_threshold",
+    "31814": "reject_offer_and_select_npc_combat_item",
+    "31898": "test_next_counteroffer_inventory_slot",
+    "31926": "advance_counteroffer_inventory_slot",
+    "31966": "return_without_counteroffer",
+    "31998": "return_from_trade_announcement",
+    "12054": "return_from_nearby_trade_or_combat",
+    "12056": "test_thief_automatic_item_take",
+    "12100": "choose_trade_or_combat_response",
+    "12118": "exchange_ready_trade_if_fire",
+    "12140": "find_npc_selected_inventory_entry",
+    "12150": "replace_inventory_id_with_player_item",
+    "12164": "find_consumed_player_offer_entry",
+    "12174": "consume_offer_and_update_inventory_value"
+  },
+  "operand_bindings": [
+    [
+      31664,
+      "WORLD_OBJECT_TRADE_OFFER_READY_BIT",
+      3,
+      "immediate"
+    ],
+    [
+      31944,
+      "WORLD_OBJECT_TRADE_OFFER_READY_BIT",
+      3,
+      "immediate"
+    ],
+    [
+      12100,
+      "WORLD_OBJECT_TRADE_OFFER_READY_BIT",
+      3,
+      "immediate"
+    ],
+    [
+      12182,
+      "WORLD_OBJECT_TRADE_OFFER_READY_BIT",
+      3,
+      "immediate"
+    ],
+    [
+      31674,
+      "WORLD_OBJECT_TRADE_COMBAT_DISABLED_BIT",
+      4,
+      "immediate"
+    ],
+    [
+      12016,
+      "UI_FLAG_COMBAT_ACTIVE",
+      1,
+      "immediate"
+    ],
+    [
+      12006,
+      "WORLD_OBJECT_INACTIVE_BIT",
+      1,
+      "immediate"
+    ],
+    [
+      12042,
+      "TRADE_OR_COMBAT_OBJECT_SKIP_MASK",
+      18,
+      "immediate"
+    ],
+    [
+      12060,
+      "ITEM_ID_THIEF",
+      68,
+      "immediate"
+    ],
+    [
+      31714,
+      "TRADE_FIRST_NORMAL_ITEM_ID",
+      2,
+      "immediate"
+    ],
+    [
+      31724,
+      "TRADE_FIRST_NORMAL_ITEM_ID",
+      2,
+      "immediate"
+    ],
+    [
+      31780,
+      "TRADE_FIRST_NORMAL_ITEM_ID",
+      2,
+      "immediate"
+    ],
+    [
+      31900,
+      "TRADE_FIRST_NORMAL_ITEM_ID",
+      2,
+      "immediate"
+    ],
+    [
+      12070,
+      "TRADE_FIRST_NORMAL_ITEM_ID",
+      2,
+      "immediate"
+    ],
+    [
+      31972,
+      "ITEM_ID_PHOTOSABRE",
+      7,
+      "immediate"
+    ],
+    [
+      31974,
+      "TRADE_COMBAT_ITEM_RANGE_COUNT",
+      15,
+      "immediate"
+    ],
+    [
+      31734,
+      "TRADE_TABLE_LAST_ENTRY",
+      3,
+      "immediate"
+    ],
+    [
+      31774,
+      "TRADE_TABLE_LAST_ENTRY",
+      3,
+      "immediate"
+    ],
+    [
+      31896,
+      "TRADE_TABLE_LAST_ENTRY",
+      3,
+      "immediate"
+    ],
+    [
+      12138,
+      "TRADE_TABLE_LAST_ENTRY",
+      3,
+      "immediate"
+    ],
+    [
+      12162,
+      "TRADE_TABLE_LAST_ENTRY",
+      3,
+      "immediate"
+    ],
+    [
+      31744,
+      "INVENTORY_ITEM_SLOT_BYTES",
+      2,
+      "immediate"
+    ],
+    [
+      31926,
+      "INVENTORY_ITEM_SLOT_BYTES",
+      2,
+      "immediate"
+    ],
+    [
+      12144,
+      "INVENTORY_ITEM_SLOT_BYTES",
+      2,
+      "immediate"
+    ],
+    [
+      31790,
+      "NPC_TRADE_OFFER_BYTES",
+      2,
+      "immediate"
+    ],
+    [
+      12168,
+      "NPC_TRADE_OFFER_BYTES",
+      2,
+      "immediate"
+    ],
+    [
+      31988,
+      "TRADE_FEEDBACK_AUDIO_SEQUENCE",
+      274,
+      "immediate"
+    ],
+    [
+      31730,
+      "WORLD_OBJECT_INVENTORY_PTR_DISP",
+      20,
+      "displacement"
+    ],
+    [
+      31890,
+      "WORLD_OBJECT_INVENTORY_PTR_DISP",
+      20,
+      "displacement"
+    ],
+    [
+      31760,
+      "WORLD_OBJECT_SELECTED_ITEM_DISP",
+      70,
+      "displacement"
+    ],
+    [
+      31940,
+      "WORLD_OBJECT_SELECTED_ITEM_DISP",
+      70,
+      "displacement"
+    ],
+    [
+      12192,
+      "WORLD_OBJECT_SELECTED_ITEM_DISP",
+      70,
+      "displacement"
+    ],
+    [
+      12066,
+      "WORLD_OBJECT_SELECTED_ITEM_DISP",
+      70,
+      "displacement"
+    ],
+    [
+      12076,
+      "WORLD_OBJECT_SELECTED_ITEM_DISP",
+      70,
+      "displacement"
+    ],
+    [
+      31944,
+      "WORLD_OBJECT_FLAGS_DISP",
+      72,
+      "displacement"
+    ],
+    [
+      31908,
+      "INVENTORY_TRADE_VALUE_DISP",
+      1,
+      "displacement"
+    ]
+  ],
+  "semantics": {
+    "carry_contract": "Historic is_tradeable_item_id sets C for IDs7..21, subtracting7 in D0.B and retaining upper24 bits. validate_npc_item_trade returns C0 to request combat and C1 to suppress combat. Neither name nor carry is reinterpreted as generic trade success.",
+    "predicate": "Disabled bit4 suppresses combat. A selected NPC combat item permits combat; a player combat item or both IDs below2 selects the first inventory combat item without consumption. Otherwise four offer IDs are scanned for the player item; no match suppresses combat. Matched threshold strictly below unsigned item_state calls nearest counteroffer but returns C1 regardless of helper carry. Other matched thresholds queue rejection then select first inventory combat item and return C0.",
+    "nearest": "Read four two-byte inventory slots. Skip IDs0/1. Choose the first smallest unsigned positive threshold-value gap; final signed-byte check means only gaps1..127 succeed. Success copies selected ID and sets bit3 without consumption, refreshes the name and queues counteroffer. The helper returns C0 on success and C1 on failure.",
+    "nearby_service": "Player inactive, NULL nearest, NPC inactive/disabled, or failed range check returns. UI combat bit dispatches existing combat service. Thief definition ID68 clears player held IDs2..255 before readiness/fire checks, queues interaction message and requests ID recheck; no receiving inventory write. Otherwise readiness bit3 chooses the predicate or waits for fire before exchange.",
+    "exchange": "Find first selected NPC inventory ID in four pairs, or leave cursor at+8 on miss. Copy NPC selected ID to player, then write old player ID into that inventory position. Search four offer pairs for old player ID after the inventory write; clear offer ID and copy threshold to inventory trade_value, using+8/+9 on miss. Exact table aliasing observes earlier writes. Clear NPC ready, announce, copy old player ID to NPC selection, refresh names, clear all world-object readiness bits. Keep existing eight-byte owners.",
+    "ready_clear": "Traverse35 original pointers until NULL, clearing bit3 even on inactive records; no active-count bound.",
+    "announcement": "Source7D00..7D22 has34 literal bytes with no NUL. The following MOVE.L D0,D7 opcode2E00 adds one dot and terminates at7D23. Scanner sees35 printable bytes and NUL, duration60. Preserve code/data ownership."
+  },
+  "coverage": {
+    "cpu_pytest_cases": 25,
+    "item_byte_high_register_combinations": 768,
+    "threshold_state_pairs": 65536,
+    "threshold_inventory_value_pairs": 65536,
+    "first_tie_reserved_id_cases": 5,
+    "autoselect_rejection_full_paths": 6,
+    "exchange_found_or_missing_index_pairs": 25,
+    "exact_alias_case": 1,
+    "npc_flag_bytes": 256,
+    "thief_normal_ids": 254,
+    "original_ready_clear_objects": 35,
+    "full_initialized_paths": [
+      "counteroffer and real name drawing/status enqueue",
+      "accepted predicate with caller carry",
+      "six autoselect/rejection paths",
+      "exchange with real audio initialization and UI/name routines"
+    ],
+    "test_file": "tests/test_pandora_trade_selection.py"
+  },
+  "native_relationships": "Fresh revision inspection checked native call references for service_nearby_trade_or_combat, validate_npc_item_trade, select_nearest_trade_offer, is_tradeable_item_id, clear_inventory_item_selection_flags and announce_item_trade. After append, all21 labels and36 operand bindings were checked in native listing windows. Existing public helper names and all owner extents retained.",
+  "framework": {
+    "blocker": "Candidate reached526 target equates; old native bound512 refused read-only preflight before any target append.",
+    "change": "Raise coordinated C policy mirror and exported capacity to1024, guard uint16 counter, update ctypes ABI fixture. Permit absent byte width for canonical bit-number immediates while still requiring equal decoded EQU value. No instruction semantics or symbol-precedence changes.",
+    "focused_checks": 48,
+    "native_checks": 819,
+    "coverage": [
+      "526 and1024 declarations retained",
+      "last declaration resolved independently by C and vasm",
+      "duplicate update at capacity",
+      "1025 rejected without partial output",
+      "real1025th append leaves target files and history unchanged",
+      "full-capacity deep clone retains final name/value/expression",
+      "six BTST/BSET/BCLR equal-value acceptance and atomic mismatch refusal cases with both assemblers",
+      "existing pointer-EQU precedence and capacity command checks",
+      "two direct Python/C policy loading cases after the ABI fixture update"
+    ],
+    "unchanged_prior_evidence": "Reuse25 original-code CPU cases and prior symbol-precedence proof. Preparation benchmark not repeated."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "15e22bb73bcad8744a436df47acac6e98306c9e56ab1a81728be20dd718cb648",
+    "source_audit": "Every previous source line retained outside35 bound operand rows and21 label substitutions, allowing only appended semantic comments. All previous comments and SDK/hardware expressions preserved; all layouts/types/owner bounds identical; all86 assets and both raw gaps unchanged; both histories retain exact prefixes with78 actions and78 acceptance decisions appended. Timestamp-only project metadata restored.",
+    "known_unrelated_boundary": "Previously reproduced bootstrap-copy fixture reports full_source_policy_load_view where its assertion expects overlaid_by_runtime_copy; unchanged, not counted as passing."
+  },
+  "limits": "Initialized16MB flat RAM with valid original data and disjoint stack. Bounded trace summaries are not complete write logs. No DMA completion, arbitrary record lifetime, complete writer/alias closure, full-game reachability or alternate-layout claim."
+}

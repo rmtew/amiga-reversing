@@ -1,0 +1,721 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "revision": "4a2e53051fb0027d7c48f08c5e8283f5162291eac009c6840b1f894ed69ce1b1",
+  "subject_revision": "8ebb71863768a23bed5eaa23d8af5a3eab94774c07c4de353cb86b54cad23604",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "scope": "Accepted native facts and initial typed fields only; indirect/unclassified paths and later pointer mutation remain open.",
+  "hit_region": {
+    "alignment": 2,
+    "dma_access": "chip",
+    "lifetime": "persistent",
+    "memory_class": "cpu_ram",
+    "name": "ui_snapshot_hit",
+    "proof_status": "obligations_open",
+    "reference_count": 3,
+    "references": [
+      {
+        "access_kind": 3,
+        "address": 490752,
+        "encoding": "immediate",
+        "obligation": "ambiguous_scalar_or_pointer",
+        "operand_index": 0,
+        "region_offset": 0,
+        "section_index": 0,
+        "source_offset": 1996,
+        "width": 4
+      },
+      {
+        "access_kind": 5,
+        "address": 491488,
+        "encoding": "absolute_long",
+        "failure_instruction": "rts",
+        "frame_prefix": {
+          "absolute_sp": null,
+          "entry_offset": 29072,
+          "failure_offset": 0,
+          "maximum_delta": 0,
+          "minimum_delta": 0,
+          "paths": 1,
+          "reason": null,
+          "stack_delta": 0,
+          "states": 3,
+          "status": "modeled_relative_only"
+        },
+        "obligation": "derived_pointer_accesses",
+        "operand_index": 0,
+        "region_offset": 736,
+        "root_access_proof": {
+          "access_count": 0,
+          "maximum_end": 0,
+          "minimum_offset": 4294967295,
+          "reason": "unmodeled_pointer_caller_frame",
+          "source_offset": 29088,
+          "states": 2,
+          "status": "refused"
+        },
+        "section_index": 0,
+        "source_offset": 29080,
+        "width": 4
+      },
+      {
+        "access_kind": 5,
+        "address": 491486,
+        "encoding": "absolute_long",
+        "failure_instruction": "clr.w (a0)+",
+        "frame_prefix": {
+          "absolute_sp": null,
+          "entry_offset": 4294967295,
+          "failure_offset": 0,
+          "maximum_delta": 0,
+          "minimum_delta": 0,
+          "paths": 0,
+          "reason": "unknown_frame_entry",
+          "stack_delta": 0,
+          "states": 0,
+          "status": "refused"
+        },
+        "obligation": "derived_pointer_accesses",
+        "operand_index": 0,
+        "region_offset": 734,
+        "root_access_proof": {
+          "access_count": 0,
+          "maximum_end": 0,
+          "minimum_offset": 4294967295,
+          "reason": "unresolved_pointer_frame_alias",
+          "source_offset": 9796,
+          "states": 10,
+          "status": "refused"
+        },
+        "section_index": 0,
+        "source_offset": 29132,
+        "width": 4
+      }
+    ],
+    "region_id": "pandora_ui_snapshot_hit",
+    "runtime_address": 490752,
+    "size": 768,
+    "source_domain": "runtime_only",
+    "source_placement": null,
+    "unknowns": [
+      "Closure covers accepted native references and bounded pointer paths only.",
+      "Unclassified bytes, synthesized addresses and future callback changes remain outside this proof.",
+      "Absent references do not establish free memory; runtime allocation is required."
+    ],
+    "unresolved_obligations": 3
+  },
+  "typed_overlay_pointer_population": 90,
+  "initial_bitmap_fields": [
+    {
+      "end_offset": 13010,
+      "field_name": "bitmap_ptr",
+      "name": "player_holding_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13006,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13054,
+      "field_name": "bitmap_ptr",
+      "name": "player_health_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13050,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13098,
+      "field_name": "bitmap_ptr",
+      "name": "opponent_health_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13094,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13142,
+      "field_name": "bitmap_ptr",
+      "name": "nearby_distance_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13138,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13186,
+      "field_name": "bitmap_ptr",
+      "name": "hit_feedback_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 490752,
+        "outcome": "symbolic",
+        "reason": "resolved_runtime_symbol",
+        "symbol": "UI_HIT_BACKGROUND_STORAGE",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13182,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13230,
+      "field_name": "bitmap_ptr",
+      "name": "nearby_character_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13226,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13274,
+      "field_name": "bitmap_ptr",
+      "name": "nearby_carrying_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13270,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13318,
+      "field_name": "bitmap_ptr",
+      "name": "body_inventory_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 2032,
+        "outcome": "symbolic",
+        "reason": "resolved_runtime_symbol",
+        "symbol": "UI_BODY_BACKGROUND_STORAGE",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13314,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13362,
+      "field_name": "bitmap_ptr",
+      "name": "backpack_inventory_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13358,
+      "struct_name": "ui_overlay_descriptor"
+    },
+    {
+      "end_offset": 13406,
+      "field_name": "bitmap_ptr",
+      "name": "pocket_inventory_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 0,
+        "outcome": "null",
+        "reason": "null_pointer",
+        "symbol": "",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13402,
+      "struct_name": "ui_overlay_descriptor"
+    }
+  ],
+  "all_typed_pointer_population": 2690,
+  "typed_pointer_fields_in_hit_region": [
+    {
+      "end_offset": 13186,
+      "field_name": "bitmap_ptr",
+      "name": "hit_feedback_overlay_bitmap_ptr",
+      "resolution": {
+        "addend": 0,
+        "address_domain": "runtime_only",
+        "encoded_value": 490752,
+        "outcome": "symbolic",
+        "reason": "resolved_runtime_symbol",
+        "symbol": "UI_HIT_BACKGROUND_STORAGE",
+        "symbol_group": "ui_overlay_background_storage"
+      },
+      "section_index": 0,
+      "source_offset": 13182,
+      "struct_name": "ui_overlay_descriptor"
+    }
+  ],
+  "overlay_field_use_population": 72,
+  "resolved_bitmap_field_uses": [
+    {
+      "field_name": "bitmap_ptr",
+      "field_offset": 36,
+      "field_size": 4,
+      "operand_index": 0,
+      "owner_struct_name": "ui_overlay_descriptor",
+      "provenance": {
+        "kind": 11,
+        "section_index": 0,
+        "source_offset": 25394
+      },
+      "root_struct_name": "ui_overlay_descriptor",
+      "section_index": 0,
+      "source_offset": 25406
+    },
+    {
+      "field_name": "bitmap_ptr",
+      "field_offset": 36,
+      "field_size": 4,
+      "operand_index": 0,
+      "owner_struct_name": "ui_overlay_descriptor",
+      "provenance": {
+        "kind": 11,
+        "section_index": 0,
+        "source_offset": 25498
+      },
+      "root_struct_name": "ui_overlay_descriptor",
+      "section_index": 0,
+      "source_offset": 25510
+    }
+  ],
+  "unresolved_overlay_field_uses": [
+    {
+      "classification": 5,
+      "displacement": 12,
+      "field_offset": null,
+      "operand_index": 1,
+      "provenance": {
+        "kind": 12,
+        "section_index": 0,
+        "source_offset": 13290
+      },
+      "root_struct_name": "ui_overlay_descriptor",
+      "section_index": 0,
+      "source_offset": 10322,
+      "status": "unresolved"
+    }
+  ],
+  "references": {
+    "clear_rgb12_palette_components": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 3376,
+        "symbol": "clear_rgb12_palette_components",
+        "target_offset": 75328,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 3396,
+        "symbol": "clear_rgb12_palette_components",
+        "target_offset": 75328,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29146,
+        "symbol": "clear_rgb12_palette_components",
+        "target_offset": 75328,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 41012,
+        "symbol": "clear_rgb12_palette_components",
+        "target_offset": 9792,
+        "target_section_index": 0
+      }
+    ],
+    "add_rgb12_palette_components": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 3532,
+        "symbol": "add_rgb12_palette_components",
+        "target_offset": 75230,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 4204,
+        "symbol": "add_rgb12_palette_components",
+        "target_offset": 9694,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29160,
+        "symbol": "add_rgb12_palette_components",
+        "target_offset": 75230,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 32234,
+        "symbol": "add_rgb12_palette_components",
+        "target_offset": 9694,
+        "target_section_index": 0
+      }
+    ],
+    "subtract_rgb12_palette_components": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29226,
+        "symbol": "subtract_rgb12_palette_components",
+        "target_offset": 75258,
+        "target_section_index": 0
+      }
+    ],
+    "unpack_rgb12_palette_components": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29210,
+        "symbol": "unpack_rgb12_palette_components",
+        "target_offset": 75284,
+        "target_section_index": 0
+      }
+    ],
+    "prepare_work_buffer_arguments": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29144,
+        "symbol": "prepare_work_buffer_arguments",
+        "target_offset": 29072,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29158,
+        "symbol": "prepare_work_buffer_arguments",
+        "target_offset": 29072,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29206,
+        "symbol": "prepare_work_buffer_arguments",
+        "target_offset": 29072,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29222,
+        "symbol": "prepare_work_buffer_arguments",
+        "target_offset": 29072,
+        "target_section_index": 0
+      }
+    ],
+    "return_work_buffer_argument": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29152,
+        "symbol": "return_work_buffer_argument",
+        "target_offset": 29090,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29166,
+        "symbol": "return_work_buffer_argument",
+        "target_offset": 29090,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29216,
+        "symbol": "return_work_buffer_argument",
+        "target_offset": 29090,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 29232,
+        "symbol": "return_work_buffer_argument",
+        "target_offset": 29090,
+        "target_section_index": 0
+      }
+    ],
+    "render_work_buffer_overlay": [],
+    "fade_out_work_buffer_palette": [],
+    "prime_blitter_completion_request": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 1234,
+        "symbol": "prime_blitter_completion_request",
+        "target_offset": 1996,
+        "target_section_index": 0
+      }
+    ],
+    "start_seeded_zero_copy_blit": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 1350,
+        "symbol": "start_seeded_zero_copy_blit",
+        "target_offset": 26326,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 3984,
+        "symbol": "start_seeded_zero_copy_blit",
+        "target_offset": 26326,
+        "target_section_index": 0
+      }
+    ],
+    "save_ui_overlay_background": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 26302,
+        "symbol": "save_ui_overlay_background",
+        "target_offset": 25394,
+        "target_section_index": 0
+      }
+    ],
+    "restore_ui_overlay_background": [
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 1824,
+        "symbol": "restore_ui_overlay_background",
+        "target_offset": 25498,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 10176,
+        "symbol": "restore_ui_overlay_background",
+        "target_offset": 25498,
+        "target_section_index": 0
+      },
+      {
+        "comment_only": false,
+        "kind": "symbol_reference",
+        "operand_index": 0,
+        "provenance": "typed_operand",
+        "section_index": 0,
+        "source_offset": 31374,
+        "symbol": "restore_ui_overlay_background",
+        "target_offset": 25498,
+        "target_section_index": 0
+      }
+    ]
+  },
+  "bltcon1_writers": [
+    {
+      "annotation": "",
+      "bytes": "426d0042",
+      "mnemonic": "clr",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 1224,
+      "text": "clr.w bltcon1(a5)"
+    },
+    {
+      "annotation": "",
+      "bytes": "426d0042",
+      "mnemonic": "clr",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 25040,
+      "text": "clr.w bltcon1(a5)"
+    },
+    {
+      "annotation": "",
+      "bytes": "426d0042",
+      "mnemonic": "clr",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 25736,
+      "text": "clr.w bltcon1(a5)"
+    },
+    {
+      "annotation": "",
+      "bytes": "3b460042",
+      "mnemonic": "move",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 26970,
+      "text": "move.w d6,bltcon1(a5)"
+    },
+    {
+      "annotation": "",
+      "bytes": "3b460042",
+      "mnemonic": "move",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 27228,
+      "text": "move.w d6,bltcon1(a5)"
+    },
+    {
+      "annotation": "",
+      "bytes": "3b460042",
+      "mnemonic": "move",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 27488,
+      "text": "move.w d6,bltcon1(a5)"
+    },
+    {
+      "annotation": "",
+      "bytes": "3b460042",
+      "mnemonic": "move",
+      "provenance": "accepted_instruction",
+      "section_index": 0,
+      "size": 4,
+      "source_offset": 27818,
+      "text": "move.w d6,bltcon1(a5)"
+    }
+  ]
+}

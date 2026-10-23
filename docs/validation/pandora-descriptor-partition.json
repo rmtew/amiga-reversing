@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_start": "0x849A",
+  "source_end": "0x8544",
+  "name": "partition_world_object_update_ptrs",
+  "test_command": ".venv/bin/python -m pytest -q tests/test_pandora_descriptor_partition.py",
+  "result": "4 passed in 5.21s",
+  "cases": [
+    "original initialized records",
+    "mixed flags, including both bits",
+    "all deferred",
+    "one deferred"
+  ],
+  "facts": [
+    "Copy all 32 descriptor pointers at 0x310E..0x318E to scratch 0x31AA..0x322A before partition writes.",
+    "Read state pointer from descriptor+0 and flags from state+25. Bit6 takes precedence and appends at front in input order. Otherwise bit7 writes backward from 0x318E, reversing admitted order. Neither flag appends to deferred scratch at 0x322A.",
+    "Reverse-copy deferred records into the middle, then sort only that middle by unsigned WORD descriptor+6 (world Y). Tie stability is not asserted.",
+    "All four tested families conserve the 32-pointer multiset and retain the original input snapshot in copy scratch."
+  ],
+  "limits": [
+    "No-deferred input was not tested or claimed reachable; the reverse-copy body has no initial empty-count guard.",
+    "Tests do not establish every reachable mutable-state combination, rendering lifetime or IRQ safety."
+  ],
+  "test_development": "Initial test entry 0x8494 selected render_context_prompt. Original bytes established partition entry 0x849A; corrected before interpreting results.",
+  "canonical_annotations": {
+    "status": "accepted",
+    "action_count": 12,
+    "label_count": 8,
+    "register_seed_count": 3,
+    "comment_count": 1,
+    "action_ids": [
+      "manual-b688a6b04e8442c9ad836debe478cae5",
+      "manual-e992b8ef7b854dda8847d41f4e5f3ed8",
+      "manual-a303aa4c8cf347e6bf7386e9c3a60db0",
+      "manual-8d7ab429ebc345a5a6c2fc2f515264ee",
+      "manual-bebd889c044b4a448195924fde827ee6",
+      "manual-35a137bdc06d4b47b298abb7191e4629",
+      "manual-a39fadf49fd34f3ab15c043efa0e6840",
+      "manual-13f090bb153946198951c32a2c3b2bae",
+      "manual-ca1c15b64aea4749badf8f6f05c096c0",
+      "manual-9c5bfee8589a45b3a7b5c53391a742d0",
+      "manual-5b73506d1bfe46fdbf2086cda646ff41",
+      "manual-3a9464106c3140eebbfa8a9540fa0ce2"
+    ],
+    "native_field_operands": [
+      {
+        "source_offset": "0x8522",
+        "register": "A1",
+        "field": "world_position_descriptor_prefix_world_y"
+      },
+      {
+        "source_offset": "0x8526",
+        "register": "A2",
+        "field": "world_position_descriptor_prefix_world_y"
+      }
+    ],
+    "remaining_gap": "Descriptor pointer, descriptor-count and supported position-state flag operands are now bound. Unknown residual flag bits and the distinct object-record combat bit retain numeric spelling; general mutable-state lifetimes remain unproved."
+  },
+  "verification": {
+    "receipt_id": "19e81b45193f3db3cb34b0495004a0c0f4f3a6635afc709a060328e813868495",
+    "subject_revision": "86d125fb643a14b82d83f08a7ee08f9b039c6d4478eb02fef696087b64629998",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "5707d309a664e2959000d7ae08af1d21378c7d18d294aa564e7facbe3ca369e3",
+    "source_package_sha256": "1399ecdd6f32340476dbdf6eec4ca8e5b2596d2f8c93c097ed43a6a2b2e26c7e",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "recovery_validation": {
+    "published_base_commit": "e1eac3eb34d4a0fc14edc36f3899fc1a402a241d",
+    "command": ".venv/bin/python -m pytest -q tests/test_pandora_security.py tests/test_pandora_descriptor_partition.py tests/test_pandora_state_transitions.py",
+    "result": "27 passed in 59.78s",
+    "scope": "Fresh recovery run before the annotation batch. The batch changed only canonical labels/register types/comment and generated text; subsequent native inspection and exact C/vasm verification cover the annotations.",
+    "history_prefixes_preserved": true
+  },
+  "constant_bindings": {
+    "status": "accepted",
+    "equate_count": 6,
+    "operand_count": 51,
+    "instruction_offsets": [
+      "0x84A4",
+      "0x84C4",
+      "0x84D2",
+      "0x8840",
+      "0x933A"
+    ],
+    "typed_flag_initializers": {
+      "0x42": 40,
+      "0x88": 6
+    },
+    "semantics": "32 descriptors; DBF starts at count-1. BTST operands use bit indices 6/7; initializer masks shift these indices and retain unknown residual bits $02/$08.",
+    "selection": "Native instruction contexts and exact typed world_position_render_state_prefix.world_object_flags fields; no substitution from coincident numeric values.",
+    "excluded": "Distinct object-record combat bit 6 at $77C8/$7A48 and unrelated #31 operands.",
+    "framework_fixes": [
+      "Dependency-ordered final EQU emission with cycle rejection and literal-aware symbol matching.",
+      "Preserve exact scalar-field symbolic representations under typed containers; display-only, partial, padding and pointer overlaps retain existing precedence."
+    ],
+    "tests": {
+      "native": 816,
+      "native_ir": 652,
+      "focused_metadata": 62,
+      "affected_pandora_cpu": 40
+    },
+    "asset_count_unchanged": 86,
+    "history_prefixes_preserved": true,
+    "verification": {
+      "receipt_id": "d2f8b2400bf61f48319fcad9aed6963f9d3c961975e04f456363ccf6d7327392",
+      "exact": true,
+      "framework_exact": true,
+      "source_sha256": "4d199e421ef8f10e4f9570fcbec89b13483bf9ad7adf70a74a2d96632f4a05c7",
+      "source_package_sha256": "8175e5459b0ef1bf79876283017281e8467a97c664e0eff44bfdcaaeb37f07ae"
+    }
+  }
+}

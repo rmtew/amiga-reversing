@@ -1,0 +1,1051 @@
+{
+  "source_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "pool_base": 41564,
+  "pool_start": 41565,
+  "pool_end": 42716,
+  "offset_table_start": 42716,
+  "offset_table_count": 114,
+  "strings": [
+    {
+      "source_offset": 41565,
+      "source_end": 41566,
+      "terminator_offset": 41565,
+      "name": "item_name_empty",
+      "text": "",
+      "ids": [
+        0
+      ]
+    },
+    {
+      "source_offset": 41566,
+      "source_end": 41579,
+      "terminator_offset": 41578,
+      "name": "item_name_nothing",
+      "text": "     NOTHING",
+      "ids": [
+        1
+      ]
+    },
+    {
+      "source_offset": 41579,
+      "source_end": 41586,
+      "terminator_offset": 41585,
+      "name": "item_name_wrench",
+      "text": "Wrench",
+      "ids": [
+        2
+      ]
+    },
+    {
+      "source_offset": 41586,
+      "source_end": 41591,
+      "terminator_offset": 41590,
+      "name": "item_name_acid",
+      "text": "Acid",
+      "ids": [
+        3
+      ]
+    },
+    {
+      "source_offset": 41591,
+      "source_end": 41604,
+      "terminator_offset": 41603,
+      "name": "item_name_electroboost",
+      "text": "Electroboost",
+      "ids": [
+        4
+      ]
+    },
+    {
+      "source_offset": 41604,
+      "source_end": 41616,
+      "terminator_offset": 41615,
+      "name": "item_name_sonicdriver",
+      "text": "Sonicdriver",
+      "ids": [
+        5
+      ]
+    },
+    {
+      "source_offset": 41616,
+      "source_end": 41624,
+      "terminator_offset": 41623,
+      "name": "item_name_spanner",
+      "text": "Spanner",
+      "ids": [
+        6
+      ]
+    },
+    {
+      "source_offset": 41624,
+      "source_end": 41635,
+      "terminator_offset": 41634,
+      "name": "item_name_photosabre",
+      "text": "PHOTOSABRE",
+      "ids": [
+        7
+      ]
+    },
+    {
+      "source_offset": 41635,
+      "source_end": 41648,
+      "terminator_offset": 41647,
+      "name": "item_name_iridium_mace",
+      "text": "IRIDIUM MACE",
+      "ids": [
+        8
+      ]
+    },
+    {
+      "source_offset": 41648,
+      "source_end": 41661,
+      "terminator_offset": 41660,
+      "name": "item_name_electrunchon",
+      "text": "ELECTRUNCHON",
+      "ids": [
+        9
+      ]
+    },
+    {
+      "source_offset": 41661,
+      "source_end": 41671,
+      "terminator_offset": 41670,
+      "name": "item_name_shockwhip",
+      "text": "SHOCKWHIP",
+      "ids": [
+        10
+      ]
+    },
+    {
+      "source_offset": 41671,
+      "source_end": 41683,
+      "terminator_offset": 41682,
+      "name": "item_name_thermolance",
+      "text": "THERMOLANCE",
+      "ids": [
+        11
+      ]
+    },
+    {
+      "source_offset": 41683,
+      "source_end": 41694,
+      "terminator_offset": 41693,
+      "name": "item_name_deathsting",
+      "text": "DEATHSTING",
+      "ids": [
+        12
+      ]
+    },
+    {
+      "source_offset": 41694,
+      "source_end": 41708,
+      "terminator_offset": 41707,
+      "name": "item_name_knuckleduster",
+      "text": "KNUCKLEDUSTER",
+      "ids": [
+        13
+      ]
+    },
+    {
+      "source_offset": 41708,
+      "source_end": 41720,
+      "terminator_offset": 41719,
+      "name": "item_name_laser_rifle",
+      "text": "LASER RIFLE",
+      "ids": [
+        14,
+        15,
+        16,
+        17,
+        18
+      ]
+    },
+    {
+      "source_offset": 41720,
+      "source_end": 41733,
+      "terminator_offset": 41732,
+      "name": "item_name_pulse_cannon",
+      "text": "PULSE CANNON",
+      "ids": [
+        19
+      ]
+    },
+    {
+      "source_offset": 41733,
+      "source_end": 41745,
+      "terminator_offset": 41744,
+      "name": "item_name_ostronn_egg",
+      "text": "Ostronn egg",
+      "ids": [
+        20,
+        21,
+        22,
+        23
+      ]
+    },
+    {
+      "source_offset": 41745,
+      "source_end": 41758,
+      "terminator_offset": 41757,
+      "name": "item_name_vulcann_vase",
+      "text": "Vulcann vase",
+      "ids": [
+        24
+      ]
+    },
+    {
+      "source_offset": 41758,
+      "source_end": 41770,
+      "terminator_offset": 41769,
+      "name": "item_name_broken_orak",
+      "text": "Broken ORAK",
+      "ids": [
+        25
+      ]
+    },
+    {
+      "source_offset": 41770,
+      "source_end": 41783,
+      "terminator_offset": 41782,
+      "name": "item_name_instant_pggb",
+      "text": "Instant PGGB",
+      "ids": [
+        26
+      ]
+    },
+    {
+      "source_offset": 41783,
+      "source_end": 41798,
+      "terminator_offset": 41797,
+      "name": "item_name_sandworm_shell",
+      "text": "Sandworm shell",
+      "ids": [
+        27
+      ]
+    },
+    {
+      "source_offset": 41798,
+      "source_end": 41809,
+      "terminator_offset": 41808,
+      "name": "item_name_wookey_wig",
+      "text": "Wookey wig",
+      "ids": [
+        28
+      ]
+    },
+    {
+      "source_offset": 41809,
+      "source_end": 41822,
+      "terminator_offset": 41821,
+      "name": "item_name_prophylactic",
+      "text": "Prophylactic",
+      "ids": [
+        29
+      ]
+    },
+    {
+      "source_offset": 41822,
+      "source_end": 41835,
+      "terminator_offset": 41834,
+      "name": "item_name_sonicblaster",
+      "text": "Sonicblaster",
+      "ids": [
+        30
+      ]
+    },
+    {
+      "source_offset": 41835,
+      "source_end": 41847,
+      "terminator_offset": 41846,
+      "name": "item_name_cargo_chute",
+      "text": "Cargo chute",
+      "ids": [
+        31
+      ]
+    },
+    {
+      "source_offset": 41847,
+      "source_end": 41858,
+      "terminator_offset": 41857,
+      "name": "item_name_code_white",
+      "text": "Code WHITE",
+      "ids": [
+        32
+      ]
+    },
+    {
+      "source_offset": 41858,
+      "source_end": 41868,
+      "terminator_offset": 41867,
+      "name": "item_name_code_blue",
+      "text": "Code BLUE",
+      "ids": [
+        33
+      ]
+    },
+    {
+      "source_offset": 41868,
+      "source_end": 41878,
+      "terminator_offset": 41877,
+      "name": "item_name_code_grey",
+      "text": "Code GREY",
+      "ids": [
+        34
+      ]
+    },
+    {
+      "source_offset": 41878,
+      "source_end": 41891,
+      "terminator_offset": 41890,
+      "name": "item_name_code_scarlet",
+      "text": "Code SCARLET",
+      "ids": [
+        35
+      ]
+    },
+    {
+      "source_offset": 41891,
+      "source_end": 41902,
+      "terminator_offset": 41901,
+      "name": "item_name_code_ochre",
+      "text": "Code OCHRE",
+      "ids": [
+        36
+      ]
+    },
+    {
+      "source_offset": 41902,
+      "source_end": 41913,
+      "terminator_offset": 41912,
+      "name": "item_name_code_black",
+      "text": "Code BLACK",
+      "ids": [
+        37
+      ]
+    },
+    {
+      "source_offset": 41913,
+      "source_end": 41922,
+      "terminator_offset": 41921,
+      "name": "item_name_sdi_disk",
+      "text": "SDI disk",
+      "ids": [
+        38
+      ]
+    },
+    {
+      "source_offset": 41922,
+      "source_end": 41936,
+      "terminator_offset": 41935,
+      "name": "item_name_bottle_of_gin",
+      "text": "Bottle of gin",
+      "ids": [
+        39
+      ]
+    },
+    {
+      "source_offset": 41936,
+      "source_end": 41944,
+      "terminator_offset": 41943,
+      "name": "item_name_insulin",
+      "text": "Insulin",
+      "ids": [
+        40
+      ]
+    },
+    {
+      "source_offset": 41944,
+      "source_end": 41955,
+      "terminator_offset": 41954,
+      "name": "item_name_hypodermic",
+      "text": "Hypodermic",
+      "ids": [
+        41
+      ]
+    },
+    {
+      "source_offset": 41955,
+      "source_end": 41967,
+      "terminator_offset": 41966,
+      "name": "item_name_insecticide",
+      "text": "Insecticide",
+      "ids": [
+        42
+      ]
+    },
+    {
+      "source_offset": 41967,
+      "source_end": 41979,
+      "terminator_offset": 41978,
+      "name": "item_name_shakespeare",
+      "text": "Shakespeare",
+      "ids": [
+        43
+      ]
+    },
+    {
+      "source_offset": 41979,
+      "source_end": 41985,
+      "terminator_offset": 41984,
+      "name": "item_name_bible",
+      "text": "Bible",
+      "ids": [
+        44
+      ]
+    },
+    {
+      "source_offset": 41985,
+      "source_end": 41995,
+      "terminator_offset": 41994,
+      "name": "item_name_light_box",
+      "text": "Light box",
+      "ids": [
+        45
+      ]
+    },
+    {
+      "source_offset": 41995,
+      "source_end": 42001,
+      "terminator_offset": 42000,
+      "name": "item_name_globe",
+      "text": "Globe",
+      "ids": [
+        46
+      ]
+    },
+    {
+      "source_offset": 42001,
+      "source_end": 42013,
+      "terminator_offset": 42012,
+      "name": "item_name_squash_ball",
+      "text": "Squash ball",
+      "ids": [
+        47
+      ]
+    },
+    {
+      "source_offset": 42013,
+      "source_end": 42026,
+      "terminator_offset": 42025,
+      "name": "item_name_id_commander",
+      "text": "ID Commander",
+      "ids": [
+        48
+      ]
+    },
+    {
+      "source_offset": 42026,
+      "source_end": 42042,
+      "terminator_offset": 42041,
+      "name": "item_name_id_lt_commander",
+      "text": "ID Lt Commander",
+      "ids": [
+        49
+      ]
+    },
+    {
+      "source_offset": 42042,
+      "source_end": 42054,
+      "terminator_offset": 42053,
+      "name": "item_name_id_engineer",
+      "text": "ID Engineer",
+      "ids": [
+        50
+      ]
+    },
+    {
+      "source_offset": 42054,
+      "source_end": 42067,
+      "terminator_offset": 42066,
+      "name": "item_name_id_scientist",
+      "text": "ID Scientist",
+      "ids": [
+        51
+      ]
+    },
+    {
+      "source_offset": 42067,
+      "source_end": 42076,
+      "terminator_offset": 42075,
+      "name": "item_name_id_medic",
+      "text": "ID Medic",
+      "ids": [
+        52
+      ]
+    },
+    {
+      "source_offset": 42076,
+      "source_end": 42093,
+      "terminator_offset": 42092,
+      "name": "item_name_id_resource_ofcr",
+      "text": "ID Resource ofcr",
+      "ids": [
+        53
+      ]
+    },
+    {
+      "source_offset": 42093,
+      "source_end": 42100,
+      "terminator_offset": 42099,
+      "name": "item_name_id_amy",
+      "text": "ID Amy",
+      "ids": [
+        54
+      ]
+    },
+    {
+      "source_offset": 42100,
+      "source_end": 42113,
+      "terminator_offset": 42112,
+      "name": "item_name_id_awol_ofcr",
+      "text": "ID AWOL ofcr",
+      "ids": [
+        55
+      ]
+    },
+    {
+      "source_offset": 42113,
+      "source_end": 42121,
+      "terminator_offset": 42120,
+      "name": "item_name_captain",
+      "text": "Captain",
+      "ids": [
+        56
+      ]
+    },
+    {
+      "source_offset": 42121,
+      "source_end": 42131,
+      "terminator_offset": 42130,
+      "name": "item_name_commander",
+      "text": "Commander",
+      "ids": [
+        57
+      ]
+    },
+    {
+      "source_offset": 42131,
+      "source_end": 42144,
+      "terminator_offset": 42143,
+      "name": "item_name_lt_commander",
+      "text": "Lt Commander",
+      "ids": [
+        58
+      ]
+    },
+    {
+      "source_offset": 42144,
+      "source_end": 42153,
+      "terminator_offset": 42152,
+      "name": "item_name_engineer",
+      "text": "Engineer",
+      "ids": [
+        59
+      ]
+    },
+    {
+      "source_offset": 42153,
+      "source_end": 42166,
+      "terminator_offset": 42165,
+      "name": "item_name_science_ofcr",
+      "text": "Science ofcr",
+      "ids": [
+        60
+      ]
+    },
+    {
+      "source_offset": 42166,
+      "source_end": 42172,
+      "terminator_offset": 42171,
+      "name": "item_name_medic",
+      "text": "Medic",
+      "ids": [
+        61
+      ]
+    },
+    {
+      "source_offset": 42172,
+      "source_end": 42185,
+      "terminator_offset": 42184,
+      "name": "item_name_awol_officer",
+      "text": "AWOL officer",
+      "ids": [
+        62
+      ]
+    },
+    {
+      "source_offset": 42185,
+      "source_end": 42198,
+      "terminator_offset": 42197,
+      "name": "item_name_rsrc_officer",
+      "text": "Rsrc officer",
+      "ids": [
+        63
+      ]
+    },
+    {
+      "source_offset": 42198,
+      "source_end": 42207,
+      "terminator_offset": 42206,
+      "name": "item_name_musician",
+      "text": "Musician",
+      "ids": [
+        64
+      ]
+    },
+    {
+      "source_offset": 42207,
+      "source_end": 42220,
+      "terminator_offset": 42219,
+      "name": "item_name_robomechanic",
+      "text": "Robomechanic",
+      "ids": [
+        65
+      ]
+    },
+    {
+      "source_offset": 42220,
+      "source_end": 42228,
+      "terminator_offset": 42227,
+      "name": "item_name_icelord",
+      "text": "Icelord",
+      "ids": [
+        66
+      ]
+    },
+    {
+      "source_offset": 42228,
+      "source_end": 42240,
+      "terminator_offset": 42239,
+      "name": "item_name_sec_officer",
+      "text": "Sec officer",
+      "ids": [
+        67
+      ]
+    },
+    {
+      "source_offset": 42240,
+      "source_end": 42246,
+      "terminator_offset": 42245,
+      "name": "item_name_thief",
+      "text": "Thief",
+      "ids": [
+        68
+      ]
+    },
+    {
+      "source_offset": 42246,
+      "source_end": 42254,
+      "terminator_offset": 42253,
+      "name": "item_name_chemist",
+      "text": "Chemist",
+      "ids": [
+        69
+      ]
+    },
+    {
+      "source_offset": 42254,
+      "source_end": 42263,
+      "terminator_offset": 42262,
+      "name": "item_name_diabetic",
+      "text": "Diabetic",
+      "ids": [
+        70
+      ]
+    },
+    {
+      "source_offset": 42263,
+      "source_end": 42272,
+      "terminator_offset": 42271,
+      "name": "item_name_gardener",
+      "text": "Gardener",
+      "ids": [
+        71
+      ]
+    },
+    {
+      "source_offset": 42272,
+      "source_end": 42282,
+      "terminator_offset": 42281,
+      "name": "item_name_death_fly",
+      "text": "Death Fly",
+      "ids": [
+        72
+      ]
+    },
+    {
+      "source_offset": 42282,
+      "source_end": 42289,
+      "terminator_offset": 42288,
+      "name": "item_name_priest",
+      "text": "Priest",
+      "ids": [
+        73
+      ]
+    },
+    {
+      "source_offset": 42289,
+      "source_end": 42297,
+      "terminator_offset": 42296,
+      "name": "item_name_driffid",
+      "text": "Driffid",
+      "ids": [
+        74
+      ]
+    },
+    {
+      "source_offset": 42297,
+      "source_end": 42308,
+      "terminator_offset": 42307,
+      "name": "item_name_technician",
+      "text": "Technician",
+      "ids": [
+        75
+      ]
+    },
+    {
+      "source_offset": 42308,
+      "source_end": 42322,
+      "terminator_offset": 42321,
+      "name": "item_name_squash_player",
+      "text": "Squash player",
+      "ids": [
+        76
+      ]
+    },
+    {
+      "source_offset": 42322,
+      "source_end": 42329,
+      "terminator_offset": 42328,
+      "name": "item_name_doctor",
+      "text": "Doctor",
+      "ids": [
+        77
+      ]
+    },
+    {
+      "source_offset": 42329,
+      "source_end": 42338,
+      "terminator_offset": 42337,
+      "name": "item_name_hooligan",
+      "text": "Hooligan",
+      "ids": [
+        78
+      ]
+    },
+    {
+      "source_offset": 42338,
+      "source_end": 42351,
+      "terminator_offset": 42350,
+      "name": "item_name_bank_manager",
+      "text": "Bank manager",
+      "ids": [
+        79
+      ]
+    },
+    {
+      "source_offset": 42351,
+      "source_end": 42365,
+      "terminator_offset": 42364,
+      "name": "item_name_cleaner_robot",
+      "text": "Cleaner robot",
+      "ids": [
+        80
+      ]
+    },
+    {
+      "source_offset": 42365,
+      "source_end": 42378,
+      "terminator_offset": 42377,
+      "name": "item_name_menial_droid",
+      "text": "Menial droid",
+      "ids": [
+        81
+      ]
+    },
+    {
+      "source_offset": 42378,
+      "source_end": 42392,
+      "terminator_offset": 42391,
+      "name": "item_name_entry_officer",
+      "text": "Entry officer",
+      "ids": [
+        82
+      ]
+    },
+    {
+      "source_offset": 42392,
+      "source_end": 42409,
+      "terminator_offset": 42408,
+      "name": "item_name_secdroid_alpha_1",
+      "text": "Secdroid ALPHA 1",
+      "ids": [
+        83
+      ]
+    },
+    {
+      "source_offset": 42409,
+      "source_end": 42426,
+      "terminator_offset": 42425,
+      "name": "item_name_secdroid_alpha_2",
+      "text": "Secdroid ALPHA 2",
+      "ids": [
+        84
+      ]
+    },
+    {
+      "source_offset": 42426,
+      "source_end": 42443,
+      "terminator_offset": 42442,
+      "name": "item_name_secdroid_delta_1",
+      "text": "Secdroid DELTA 1",
+      "ids": [
+        85,
+        86,
+        87
+      ]
+    },
+    {
+      "source_offset": 42443,
+      "source_end": 42460,
+      "terminator_offset": 42459,
+      "name": "item_name_secdroid_delta_2",
+      "text": "Secdroid DELTA 2",
+      "ids": [
+        88
+      ]
+    },
+    {
+      "source_offset": 42460,
+      "source_end": 42472,
+      "terminator_offset": 42471,
+      "name": "item_name_secdroid_pi",
+      "text": "Secdroid PI",
+      "ids": [
+        89
+      ]
+    },
+    {
+      "source_offset": 42472,
+      "source_end": 42487,
+      "terminator_offset": 42486,
+      "name": "item_name_secdroid_omega",
+      "text": "Secdroid OMEGA",
+      "ids": [
+        90,
+        91
+      ]
+    },
+    {
+      "source_offset": 42487,
+      "source_end": 42495,
+      "terminator_offset": 42494,
+      "name": "item_name_pianist",
+      "text": "Pianist",
+      "ids": [
+        92,
+        93
+      ]
+    },
+    {
+      "source_offset": 42495,
+      "source_end": 42508,
+      "terminator_offset": 42507,
+      "name": "item_name_flight_ctrlr",
+      "text": "Flight ctrlr",
+      "ids": [
+        94
+      ]
+    },
+    {
+      "source_offset": 42508,
+      "source_end": 42513,
+      "terminator_offset": 42512,
+      "name": "item_name_cook",
+      "text": "Cook",
+      "ids": [
+        95
+      ]
+    },
+    {
+      "source_offset": 42513,
+      "source_end": 42520,
+      "terminator_offset": 42519,
+      "name": "item_name_barman",
+      "text": "Barman",
+      "ids": [
+        96
+      ]
+    },
+    {
+      "source_offset": 42520,
+      "source_end": 42534,
+      "terminator_offset": 42533,
+      "name": "item_name_defence_ctrlr",
+      "text": "Defence ctrlr",
+      "ids": [
+        97
+      ]
+    },
+    {
+      "source_offset": 42534,
+      "source_end": 42545,
+      "terminator_offset": 42544,
+      "name": "item_name_wackobrain",
+      "text": "Wackobrain",
+      "ids": [
+        98
+      ]
+    },
+    {
+      "source_offset": 42545,
+      "source_end": 42551,
+      "terminator_offset": 42550,
+      "name": "item_name_glass",
+      "text": "Glass",
+      "ids": [
+        99
+      ]
+    },
+    {
+      "source_offset": 42551,
+      "source_end": 42561,
+      "terminator_offset": 42560,
+      "name": "item_name_bent_coin",
+      "text": "Bent coin",
+      "ids": [
+        100
+      ]
+    },
+    {
+      "source_offset": 42561,
+      "source_end": 42572,
+      "terminator_offset": 42571,
+      "name": "item_name_kwik_kleen",
+      "text": "Kwik Kleen",
+      "ids": [
+        101
+      ]
+    },
+    {
+      "source_offset": 42572,
+      "source_end": 42581,
+      "terminator_offset": 42580,
+      "name": "item_name_gold_key",
+      "text": "Gold key",
+      "ids": [
+        102
+      ]
+    },
+    {
+      "source_offset": 42581,
+      "source_end": 42594,
+      "terminator_offset": 42593,
+      "name": "item_name_megabio_feed",
+      "text": "Megabio Feed",
+      "ids": [
+        103
+      ]
+    },
+    {
+      "source_offset": 42594,
+      "source_end": 42607,
+      "terminator_offset": 42606,
+      "name": "item_name_mobian_brain",
+      "text": "Mobian brain",
+      "ids": [
+        104
+      ]
+    },
+    {
+      "source_offset": 42607,
+      "source_end": 42619,
+      "terminator_offset": 42618,
+      "name": "item_name_ice_pendant",
+      "text": "Ice pendant",
+      "ids": [
+        105
+      ]
+    },
+    {
+      "source_offset": 42619,
+      "source_end": 42630,
+      "terminator_offset": 42629,
+      "name": "item_name_sugar_cube",
+      "text": "Sugar cube",
+      "ids": [
+        106
+      ]
+    },
+    {
+      "source_offset": 42630,
+      "source_end": 42640,
+      "terminator_offset": 42639,
+      "name": "item_name_alien_egg",
+      "text": "Alien egg",
+      "ids": [
+        107
+      ]
+    },
+    {
+      "source_offset": 42640,
+      "source_end": 42651,
+      "terminator_offset": 42650,
+      "name": "item_name_kriptonite",
+      "text": "Kriptonite",
+      "ids": [
+        108
+      ]
+    },
+    {
+      "source_offset": 42651,
+      "source_end": 42663,
+      "terminator_offset": 42662,
+      "name": "item_name_deltan_icon",
+      "text": "Deltan icon",
+      "ids": [
+        109
+      ]
+    },
+    {
+      "source_offset": 42663,
+      "source_end": 42675,
+      "terminator_offset": 42674,
+      "name": "item_name_pool_8_ball",
+      "text": "Pool 8 ball",
+      "ids": [
+        110
+      ]
+    },
+    {
+      "source_offset": 42675,
+      "source_end": 42688,
+      "terminator_offset": 42687,
+      "name": "item_name_araknoid_eye",
+      "text": "Araknoid eye",
+      "ids": [
+        111
+      ]
+    },
+    {
+      "source_offset": 42688,
+      "source_end": 42701,
+      "terminator_offset": 42700,
+      "name": "item_name_kzin_97_ball",
+      "text": "Kzin 97 ball",
+      "ids": [
+        112
+      ]
+    },
+    {
+      "source_offset": 42701,
+      "source_end": 42716,
+      "terminator_offset": 42716,
+      "name": "item_name_amiga_computing",
+      "text": "Amiga Computing",
+      "ids": [
+        113
+      ]
+    }
+  ]
+}

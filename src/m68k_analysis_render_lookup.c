@@ -189,6 +189,46 @@ static size_t analysis_cfg_block_index_for_offset(const M68kSectionAnalysisIR *s
   return SIZE_MAX;
 }
 
+/* Code discovery records the source instruction for each traced indirect
+ * destination. Consume those canonical source coordinates, never the address
+ * of a pointer table or a representative recovered-site target. The facts do
+ * not assert completeness across callers or mutable stores, so the caller
+ * retains the unresolved edge alongside these known destinations. */
+static int analysis_cfg_append_indirect_destinations(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, uint8_t kind) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint32_t source_offset = candidate->offset;
+  size_t operand_index;
+  size_t index;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || (metadata->flow_kind != M68K_SIM_FLOW_CALL &&
+      metadata->flow_kind != M68K_SIM_FLOW_JUMP)) return 0;
+  operand_index = metadata->target_operand_index;
+  if (operand_index >= candidate->operand_count || operand_index >= M68K_DECODE_IR_MAX_OPERANDS ||
+      candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+      (candidate->operands[operand_index].ea_mode == 7U &&
+       candidate->operands[operand_index].ea_reg <= 1U)) return 0;
+  for (index = 0U; index < section_analysis->code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &section_analysis->code_start_refs[index];
+    size_t edge_index;
+    int duplicate = 0;
+    if (ref->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET ||
+        ref->source_section_index != section->section_index || ref->source_offset != source_offset ||
+        !accepted_start_at(section, accepted_start, ref->offset)) continue;
+    for (edge_index = section_analysis->edge_count; edge_index > 0U; ) {
+      const M68kCfgEdgeIR *edge = &section_analysis->edges[--edge_index];
+      if (edge->source_offset != source_offset) break;
+      if (edge->kind == kind && edge->target_offset == ref->offset) { duplicate = 1; break; }
+    }
+    if (!duplicate && analysis_cfg_append_edge(section_analysis, section_analysis->block_count,
+        source_offset, ref->offset, kind) != 0) return -1;
+  }
+  return 0;
+}
+
 static int analysis_cfg_resolve_edge_targets(M68kSectionAnalysisIR *section_analysis) {
   size_t edge_index;
   if (section_analysis == NULL) return -1;
@@ -325,6 +365,9 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
       has_fallthrough = render_cfg_candidate_has_fallthrough(candidate);
       if (has_control_target && analysis_cfg_append_edge(section_analysis, section_analysis->block_count,
           cursor, target_offset, edge_kind) != 0) goto cleanup;
+      if (has_control_target && target_offset == UINT32_MAX &&
+          analysis_cfg_append_indirect_destinations(section_analysis, section, accepted_start,
+            candidate, edge_kind) != 0) goto cleanup;
       if (has_control_target) {
         if (has_fallthrough && next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
             analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,
@@ -2196,8 +2239,21 @@ static int lookup_policy_static_data_field_offset(const M68kAnalysisPolicy *poli
   return 1;
 }
 
+static int typed_operand_is_runtime_only(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, uint32_t operand_index) {
+  const M68kAnalysisManualRepresentation *representation =
+    lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+  if (lookup == NULL || lookup->policy == NULL || representation == NULL ||
+      representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+      representation->has_source_symbol || representation->target_equate_index == 0U ||
+      representation->target_equate_index > lookup->policy->target_equate_count) return 0;
+  /* A runtime-only workspace may numerically overlap a source image's load
+   * view. The explicit domain does not establish that image's contents/type. */
+  return lookup->policy->target_equates[representation->target_equate_index - 1U].address_domain != 0U;
+}
+
 /* A structured-data item can describe an object whose address is materialised
-   at either its start or a proven interior byte.  The cursor records that
+   at either its start or a proven interior byte. The cursor records that
    interior position relative to the root object for later field resolution. */
 static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
@@ -2345,6 +2401,14 @@ static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
     provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, section_index, offset);
     typed_state_set_reg_struct_id_array(state, seed->reg_kind, seed->reg_index, struct_id,
       seed->array_element_count, 0U, &provenance);
+    /* The seed establishes an independent typed root at this instruction.
+     * Retaining the previous value's table origin lets canonical table
+     * reconciliation discard fields supported by the seed itself. Ordinary
+     * table-derived values still require their canonical binding. */
+    if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA)
+      typed_table_origin_clear(&state->data_regs[seed->reg_index].table_origin);
+    else
+      typed_table_origin_clear(&state->addr_regs[seed->reg_index].table_origin);
   }
 }
 
@@ -2852,10 +2916,11 @@ static void typed_state_set_memory_base(M68kRenderTypedState *state, uint8_t reg
 static int typed_memory_base_apply_affine_delta(M68kRenderTypedMemoryBaseValue *value, int32_t delta) {
   uint32_t next_offset;
   int64_t next_addend;
-  if (value == NULL || !value->known || !value->affine_known ||
-      !typed_memory_base_offset_add(value->offset, delta, &next_offset)) {
-    return 0;
-  }
+  if (value == NULL) return 0;
+  /* Cursor widening can lose a concrete offset without losing the table's
+   * homogeneous pointee contract. This retains a type, never a target/bound. */
+  if (!value->known) return value->pointer_table_known != 0U;
+  if (!value->affine_known || !typed_memory_base_offset_add(value->offset, delta, &next_offset)) return 0;
   next_addend = (int64_t)value->affine_signed_addend + (int64_t)delta;
   if (next_addend < INT32_MIN || next_addend > INT32_MAX) return 0;
   value->offset = next_offset;
@@ -3041,7 +3106,7 @@ static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTy
    * entry type remains valid as the cursor advances. */
   if (value == NULL || !value->pointer_table_known || !value->known) return;
   if (value->offset < value->pointer_table_offset || value->pointer_table_size < 4U ||
-      value->offset - value->pointer_table_offset > value->pointer_table_size - 4U ||
+      value->offset - value->pointer_table_offset > value->pointer_table_size ||
       ((value->offset - value->pointer_table_offset) & 3U) != 0U) {
     value->pointer_table_known = 0U;
     value->pointer_table_struct_id = AMIGA_OS_STRUCT_ID_NONE;
@@ -4184,17 +4249,17 @@ static int instruction_stores_typed_reg_to_a6_slot(const M68kRenderTypedState *s
   return 1;
 }
 
-/* A single ordinary source read has an unambiguous pre-update cursor.
- * Other forms retain the existing invalidation boundary. The decoder and
- * generated form metadata own access kind, EA shape and transfer width. */
-static int typed_source_postincrement_cursor(const M68kRenderLookup *lookup,
+/* A single ordinary memory access has an unambiguous auto-update cursor.
+ * Require a bounded field access and exclude stack, multi-transfer and shared
+ * base/update forms. Generated metadata owns access kind and transfer width. */
+static int typed_single_auto_update_cursor(const M68kRenderLookup *lookup,
     const M68kRenderTypedState *state, const M68kInstructionIR *instruction, size_t operand_index,
     uint8_t *out_reg, uint8_t *out_width) {
   const M68kSimFormMetadata *metadata;
   const M68kOperandIR *operand;
   const M68kRenderTypedRegValue *value;
   uint16_t struct_size;
-  uint8_t width, reg;
+  uint8_t width, reg, shape;
   size_t other_index;
   if (lookup == NULL || state == NULL || instruction == NULL || operand_index >= instruction->operand_count ||
       operand_index >= 4U) return 0;
@@ -4202,16 +4267,22 @@ static int typed_source_postincrement_cursor(const M68kRenderLookup *lookup,
   operand = &instruction->operands[operand_index];
   if (metadata == NULL || metadata->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER ||
       metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE || metadata->sp_effect_count != 0U ||
-      instruction_has_call_flow_local(instruction) || metadata->source_operand_index != operand_index ||
-      metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_READ ||
+      instruction_has_call_flow_local(instruction) ||
+      !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ &&
+         metadata->source_operand_index == operand_index) ||
+        (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
+         metadata->dest_operand_index == operand_index)) ||
       (metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_FIXED &&
        metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_INSTRUCTION_SIZE) ||
       (metadata->operand_width_modes[operand_index] == M68K_SIM_WIDTH_INSTRUCTION_SIZE &&
        instruction_size_suffix_bytes_local(instruction->size_suffix) == 0U) ||
       operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 7U ||
-      m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT ||
-      (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
-       metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_POSTINCREMENT)) return 0;
+      (m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+       m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_PREDECREMENT)) return 0;
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
+      metadata->operand_ea_register_updates[operand_index] != (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT
+        ? M68K_SIM_EA_UPDATE_POSTINCREMENT : M68K_SIM_EA_UPDATE_PREDECREMENT)) return 0;
   reg = operand->value.ea_reg;
   value = &state->addr_regs[reg];
   width = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
@@ -4221,7 +4292,9 @@ static int typed_source_postincrement_cursor(const M68kRenderLookup *lookup,
   if (state->memory_base_regs[reg].pointer_table_known) return 0;
   if (!value->known || value->type_conflicted || (width != 1U && width != 2U && width != 4U) ||
       struct_size == 0U || value->byte_cursor < 0 || value->byte_cursor > struct_size ||
-      width > (uint32_t)struct_size - (uint32_t)value->byte_cursor ||
+      (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT
+        ? width > (uint32_t)struct_size - (uint32_t)value->byte_cursor
+        : width > (uint32_t)value->byte_cursor) ||
       (value->array_element_count != 0U && value->array_element_index >= value->array_element_count)) return 0;
   for (other_index = 0U; other_index < instruction->operand_count; ++other_index) {
     const M68kOperandIR *other = &instruction->operands[other_index];
@@ -4229,9 +4302,9 @@ static int typed_source_postincrement_cursor(const M68kRenderLookup *lookup,
     uint8_t shape;
     if (other_index == operand_index) continue;
     if (operand_address_register_index_local(other, &other_reg) && other_reg == reg) return 0;
-    if (other->kind != M68K_ASM_OPERAND_EA && other->kind != M68K_ASM_OPERAND_BF_EA) continue;
     shape = m68k_instruction_operand_decoded_ea_shape(other);
     if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || shape == M68K_SIM_EA_SHAPE_PREDECREMENT) return 0;
+    if (other->kind != M68K_ASM_OPERAND_EA && other->kind != M68K_ASM_OPERAND_BF_EA) continue;
     if ((shape == M68K_SIM_EA_SHAPE_INDIRECT || shape == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
          shape == M68K_SIM_EA_SHAPE_PREDECREMENT || shape == M68K_SIM_EA_SHAPE_DISPLACEMENT ||
          shape == M68K_SIM_EA_SHAPE_INDEX) && other->value.ea_reg == reg) return 0;
@@ -4254,7 +4327,7 @@ static int typed_access_has_unmodelled_base_update(const M68kRenderLookup *looku
     shape = m68k_instruction_operand_decoded_ea_shape(update);
     if (shape != M68K_SIM_EA_SHAPE_POSTINCREMENT && shape != M68K_SIM_EA_SHAPE_PREDECREMENT) continue;
     if (update_index != access_index ||
-        !typed_source_postincrement_cursor(lookup, state, instruction, update_index, NULL, io_access_size)) return 1;
+        !typed_single_auto_update_cursor(lookup, state, instruction, update_index, NULL, io_access_size)) return 1;
   }
   return 0;
 }
@@ -4326,6 +4399,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (state->addr_regs[base_reg].known) base_cursor = state->addr_regs[base_reg].byte_cursor;
     struct_size = lookup_policy_struct_size_by_id(lookup->policy, struct_id);
     access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
+    if (auto_update != M68K_SIM_EA_UPDATE_NONE)
+      access_size = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
     if (auto_update == M68K_SIM_EA_UPDATE_PREDECREMENT) displacement = -(int32_t)access_size;
     if ((base_cursor > 0 && displacement > INT32_MAX - base_cursor) ||
         (base_cursor < 0 && displacement < INT32_MIN - base_cursor)) {
@@ -4385,13 +4460,13 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     field_displacement = (int16_t)effective_displacement;
     if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].array_element_count != 0U &&
         struct_size != 0U) {
-      int32_t array_offset = (int32_t)state->addr_regs[base_reg].array_element_index * (int32_t)struct_size +
+      int64_t array_offset = (int64_t)state->addr_regs[base_reg].array_element_index * (int64_t)struct_size +
         effective_displacement;
-      if (array_offset >= 0 && (uint32_t)array_offset <
-          (uint32_t)state->addr_regs[base_reg].array_element_count * struct_size) {
-        array_element_addend = (int16_t)((int32_t)((uint32_t)array_offset / struct_size) -
+      if (array_offset >= 0 && (uint64_t)array_offset <
+          (uint64_t)state->addr_regs[base_reg].array_element_count * struct_size) {
+        array_element_addend = (int16_t)((int32_t)((uint64_t)array_offset / struct_size) -
           (int32_t)state->addr_regs[base_reg].array_element_index);
-        field_displacement = (int16_t)((uint32_t)array_offset % struct_size);
+        field_displacement = (int16_t)((uint64_t)array_offset % struct_size);
       }
     }
     if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, access_size, &field)) {
@@ -5514,6 +5589,11 @@ static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue
       break;
     }
   }
+  /* One-past is a valid cursor value, not a dereferenceable table entry. */
+  if (item != NULL && memory_base.known &&
+      (memory_base.section_index != item->section_index || memory_base.offset < item->offset ||
+       memory_base.offset - item->offset > item->size ||
+       4U > item->size - (memory_base.offset - item->offset))) return 0;
   struct_id = memory_base.pointer_table_struct_id != AMIGA_OS_STRUCT_ID_NONE ?
     memory_base.pointer_table_struct_id : (item != NULL && item->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE ?
       item->pointer_struct_id : lookup_policy_struct_id_by_name(lookup->policy, item != NULL ? item->pointer_struct : NULL));
@@ -5770,6 +5850,56 @@ static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M6
   return candidate_direct_target(candidate, out_section_index, out_target_offset);
 }
 
+/* A bounded callee proof starts with no hardware constants. These compact
+ * values are independent of caller origins and cannot manufacture inputs. */
+typedef struct M68kLocalHardwareValues {
+  uint32_t known[2];
+  uint16_t ids[2][8];
+} M68kLocalHardwareValues;
+
+static void local_hardware_unpack(M68kRenderPlatformState *state, const M68kLocalHardwareValues *values) {
+  memset(state, 0, sizeof(*state));
+  state->data_hardware_base_known = values->known[0];
+  state->address_hardware_base_known = values->known[1];
+  memcpy(state->data_hardware_base_id, values->ids[0], sizeof(values->ids[0]));
+  memcpy(state->address_hardware_base_id, values->ids[1], sizeof(values->ids[1]));
+}
+
+static void local_hardware_pack(M68kLocalHardwareValues *values, const M68kRenderPlatformState *state) {
+  values->known[0] = state->data_hardware_base_known;
+  values->known[1] = state->address_hardware_base_known;
+  memcpy(values->ids[0], state->data_hardware_base_id, sizeof(values->ids[0]));
+  memcpy(values->ids[1], state->address_hardware_base_id, sizeof(values->ids[1]));
+}
+
+static void local_hardware_apply_call(M68kLocalHardwareValues *values,
+    const M68kAnalysisFunctionSummary *summary) {
+  uint8_t kind, reg, index;
+  if (summary != NULL && summary->effects_invalid != 0U) summary = NULL;
+  for (kind = 0U; kind < 2U; ++kind) {
+    for (reg = 0U; reg < 8U; ++reg) {
+      if (function_summary_register_effect(summary,
+          kind == 0U ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
+          M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) {
+        values->known[kind] &= ~((uint32_t)1U << reg);
+        values->ids[kind][reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+      }
+    }
+  }
+  if (summary == NULL || summary->result_contract_invalid != 0U) return;
+  for (index = 0U; index < summary->result_count; ++index) {
+    const M68kAnalysisFunctionSummaryResult *result = &summary->results[index];
+    if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE ||
+        result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+        result->location.width != 4U || result->location.register_count != 1U) continue;
+    reg = result->location.registers[0].register_index;
+    kind = result->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ? 0U : 1U;
+    if (reg >= 8U) continue;
+    values->known[kind] |= (uint32_t)1U << reg;
+    values->ids[kind][reg] = result->hardware_base_id;
+  }
+}
+
 /* Direct-body identity is a pointer-sized register value, not an address-mode
  * claim. Keep the entry register class in one compact encoding so an ABI
  * pointer can enter in Dn and return through An (or vice versa). */
@@ -5814,6 +5944,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
      * value. It is otherwise unknown, so scalar Dn values never manufacture
      * pointer ABI inputs. */
     uint8_t data_origin[8];
+    M68kLocalHardwareValues hardware;
   } M68kTypedLocalCalleeState;
   M68kTypedLocalCalleeState worklist[128];
   M68kTypedLocalCalleeState visited[128];
@@ -5821,6 +5952,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   uint8_t work_count = 0U, visited_count = 0U, returned = 0U, returned_mask = 0U;
   uint16_t input_origin_mask = 0U;
   uint8_t returned_origin[8], returned_data_origin[8];
+  M68kLocalHardwareValues returned_hardware;
   M68kFunctionSummaryMemoryEffectIR static_writes[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
   uint8_t static_write_count = 0U;
@@ -5832,6 +5964,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       section_index >= decode->section_count || accepted_start[section_index] == NULL) return 0;
   section = &decode->sections[section_index];
   if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0;
+  memset(&worklist[0], 0, sizeof(worklist[0]));
+  memset(&returned_hardware, 0, sizeof(returned_hardware));
   worklist[work_count].offset = target_offset;
   worklist[work_count++].saved_mask = 0U;
   worklist[0].preserved_mask = requested_mask;
@@ -5854,7 +5988,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
             visited[index].preserved_mask == state.preserved_mask &&
             visited[index].stack_entry_stable == state.stack_entry_stable &&
             memcmp(visited[index].entry_origin, state.entry_origin, sizeof(state.entry_origin)) == 0 &&
-            memcmp(visited[index].data_origin, state.data_origin, sizeof(state.data_origin)) == 0) break;
+            memcmp(visited[index].data_origin, state.data_origin, sizeof(state.data_origin)) == 0 &&
+            memcmp(&visited[index].hardware, &state.hardware, sizeof(state.hardware)) == 0) break;
       }
       if (index != visited_count) break;
       if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) {
@@ -6167,6 +6302,13 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         state.preserved_mask &= (uint8_t)~typed_flow_instruction_written_unsaved_address_mask(&instruction,
           requested_mask, state.saved_mask);
       }
+      if (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_RETURN &&
+          metadata->flow_kind != M68K_SIM_FLOW_JUMP) {
+        M68kRenderPlatformState hardware;
+        local_hardware_unpack(&hardware, &state.hardware);
+        platform_state_update_after_instruction(&hardware, lookup, &instruction);
+        local_hardware_pack(&state.hardware, &hardware);
+      }
       if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
         size_t callee_section = 0U;
         uint32_t callee_offset = 0U;
@@ -6188,6 +6330,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           memory_effects_unknown = 1U;
           escape_effects_unknown = 1U;
         }
+        local_hardware_apply_call(&state.hardware, callee_summary);
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
           uint8_t reg;
@@ -6203,6 +6346,14 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
         if (state.saved_mask != 0U) return 0U;
+        if (returned == 0U) returned_hardware = state.hardware;
+        else for (uint8_t kind = 0U; kind < 2U; ++kind) {
+          returned_hardware.known[kind] &= state.hardware.known[kind];
+          for (uint8_t reg = 0U; reg < 8U; ++reg) {
+            if (returned_hardware.ids[kind][reg] != state.hardware.ids[kind][reg])
+              returned_hardware.known[kind] &= ~((uint32_t)1U << reg);
+          }
+        }
         if (returned == 0U) returned_mask = state.preserved_mask;
         else returned_mask &= state.preserved_mask;
         if (returned == 0U) {
@@ -6225,6 +6376,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           if (out_limit_hit != NULL) *out_limit_hit = 1U;
           return 0;
         }
+        worklist[work_count].hardware = state.hardware;
         worklist[work_count].offset = branch_target;
         worklist[work_count++].saved_mask = state.saved_mask;
         worklist[work_count - 1U].preserved_mask = state.preserved_mask;
@@ -6330,6 +6482,23 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
     out_summary->results[out_summary->result_count].location.register_count = 1U;
     out_summary->results[out_summary->result_count].location.registers[0].register_kind = M68K_ANALYSIS_REGISTER_DATA;
     out_summary->results[out_summary->result_count++].location.registers[0].register_index = reg;
+  }
+  for (uint8_t kind = 0U; kind < 2U; ++kind) {
+    for (uint8_t reg = 0U; reg < 8U; ++reg) {
+      M68kAnalysisFunctionSummaryResult *result;
+      if ((returned_hardware.known[kind] & ((uint32_t)1U << reg)) == 0U ||
+          out_summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT) continue;
+      result = &out_summary->results[out_summary->result_count++];
+      memset(result, 0, sizeof(*result));
+      result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE;
+      result->hardware_base_id = returned_hardware.ids[kind][reg];
+      result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+      result->location.width = 4U;
+      result->location.register_count = 1U;
+      result->location.registers[0].register_kind =
+        kind == 0U ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS;
+      result->location.registers[0].register_index = reg;
+    }
   }
   function_summary_set_register_partition(out_summary, 0U, returned_mask);
   if (memory_effects_unknown == 0U) {
@@ -7353,10 +7522,11 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
           }
         }
       }
-      if (candidate_loads_data_target_to_address_reg(candidate, instruction, &target_section_index, &target_offset,
+      if (!typed_operand_is_runtime_only(lookup, section_index, offset, 0U) &&
+          (candidate_loads_data_target_to_address_reg(candidate, instruction, &target_section_index, &target_offset,
             &dest_reg) ||
           candidate_loads_runtime_address_ref_target_to_address_reg(lookup, section_index, candidate, instruction,
-            &target_section_index, &target_offset, &dest_reg)) {
+            &target_section_index, &target_offset, &dest_reg))) {
         uint16_t static_array_element_count = 0U, static_array_element_index = 0U;
         uint16_t static_conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
         int32_t static_byte_cursor = 0;
@@ -7482,7 +7652,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       const M68kOperandIR *operand = &instruction->operands[operand_index];
       uint8_t ea_shape = m68k_instruction_operand_decoded_ea_shape(operand);
       /* Generic memory forms leave the update to the decoded EA shape, as
-         the simulator does. Only a proven bounded source read retains type. */
+         the simulator does. Only a proven bounded single access retains type. */
       if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U ||
           (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE &&
            !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
@@ -7494,7 +7664,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         M68kRenderTypedMemoryBaseValue memory_base = state->memory_base_regs[operand->value.ea_reg];
         M68kRenderTypedRegValue previous = state->addr_regs[operand->value.ea_reg];
         uint8_t update_width = 0U;
-        int preserve_cursor = typed_source_postincrement_cursor(lookup, state, instruction, operand_index,
+        int preserve_cursor = typed_single_auto_update_cursor(lookup, state, instruction, operand_index,
           NULL, &update_width);
         int32_t access_size = (int32_t)instruction_size_suffix_bytes_local(instruction->size_suffix);
         int32_t delta = operand->value.ea_mode == 3U ? access_size :
@@ -7502,15 +7672,18 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg);
         if (preserve_cursor) {
           uint16_t struct_size = lookup_policy_struct_size_by_id(lookup->policy, previous.struct_id);
-          int64_t next = (int64_t)previous.byte_cursor + update_width;
+          int64_t next;
           uint16_t next_index = previous.array_element_index;
-          delta = (int32_t)update_width;
+          delta = ea_shape == M68K_SIM_EA_SHAPE_PREDECREMENT ? -(int32_t)update_width : (int32_t)update_width;
+          next = (int64_t)previous.byte_cursor + delta;
           if (previous.array_element_count != 0U && next == struct_size &&
               (uint32_t)next_index + 1U < previous.array_element_count) {
             next = 0;
             ++next_index;
           }
-          if (next >= 0 && next < struct_size) {
+          /* Retain a one-past cursor for bounded predecrement back into the
+           * record. Access guards still reject a read/write at that endpoint. */
+          if (next >= 0 && next <= struct_size) {
             typed_state_set_reg_struct_id_array(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg,
               previous.struct_id, previous.array_element_count, next_index, &previous.provenance);
             state->addr_regs[operand->value.ea_reg].byte_cursor = (int32_t)next;
@@ -8148,6 +8321,189 @@ static void platform_state_merge_register_id(uint32_t *dest_known, uint8_t reg_i
   }
 }
 
+static int hardware_word_set_add(M68kHardwareWordSet *set, uint16_t value) {
+  uint8_t i, j;
+  for (i = 0U; i < set->count && set->values[i] < value; ++i) {}
+  if (i < set->count && set->values[i] == value) return 1;
+  if (set->count == M68K_HARDWARE_VALUE_LIMIT) return 0;
+  for (j = set->count; j > i; --j) set->values[j] = set->values[j - 1U];
+  set->values[i] = value;
+  ++set->count;
+  return 1;
+}
+
+static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwareWordSet *source) {
+  uint8_t i;
+  if (dest->count == 0U || source->count == 0U) goto unknown;
+  dest->requires_input_contract |= source->requires_input_contract;
+  for (i = 0U; i < source->count; ++i)
+    if (!hardware_word_set_add(dest, source->values[i])) goto unknown;
+  return;
+unknown:
+  memset(dest, 0, sizeof(*dest));
+}
+
+static M68kHardwareWordSet hardware_operand_word_values(const M68kRenderPlatformState *state,
+    const M68kOperandIR *operand) {
+  M68kHardwareWordSet result = {0};
+  uint32_t immediate;
+  uint8_t reg;
+  if (m68k_ir_operand_immediate_value(operand, &immediate)) {
+    result.count = 1U;
+    result.values[0] = (uint16_t)immediate;
+  } else if (operand_is_data_register_local(operand, &reg) && reg < 8U) result = state->word_values[reg];
+  return result;
+}
+
+static M68kHardwareRelativeBase hardware_relative_register(const M68kRenderPlatformState *state, uint8_t reg) {
+  M68kHardwareRelativeBase result = state->relative_hardware[reg];
+  if (result.offsets.count == 0U && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
+    result.base_id = state->address_hardware_base_id[reg];
+    result.offsets.count = 1U;
+    result.offsets.values[0] = 0U;
+  }
+  return result;
+}
+
+/* This domain tracks low WORDs only. It cannot manufacture full data-register
+ * addresses. Unmodelled writes, memory loads, overflow and opaque calls are top. */
+static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68kRenderPlatformState *before,
+    const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
+  uint8_t i, reg, dest;
+  M68kHardwareWordSet source;
+  if (meta == NULL) {
+    memset(state->word_values, 0, sizeof(state->word_values));
+    memset(state->relative_hardware, 0, sizeof(state->relative_hardware));
+    return;
+  }
+  if (meta->flow_kind == M68K_SIM_FLOW_CALL) {
+    memset(state->word_values, 0, sizeof(state->word_values));
+    memset(state->relative_hardware, 0, sizeof(state->relative_hardware));
+    return;
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    state->word_values[reg] = before->word_values[reg];
+    state->relative_hardware[reg] = hardware_relative_register(before, reg);
+  }
+  for (i = 0U; i < instruction->operand_count; ++i) {
+    const M68kOperandIR *operand = &instruction->operands[i];
+    if (meta->operand_access_kinds[i] == M68K_SIM_ACCESS_REGISTER_WRITE ||
+        meta->operand_access_kinds[i] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      if (operand_is_data_register_local(operand, &reg))
+        memset(&state->word_values[reg], 0, sizeof(state->word_values[reg]));
+      if (operand_address_register_index_local(operand, &reg))
+        memset(&state->relative_hardware[reg], 0, sizeof(state->relative_hardware[reg]));
+    }
+    if ((m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+         m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_PREDECREMENT) &&
+        operand->value.ea_reg < 8U)
+      memset(&state->relative_hardware[operand->value.ea_reg], 0,
+        sizeof(state->relative_hardware[operand->value.ea_reg]));
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count == 2U &&
+      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+    for (reg = 0U; reg < 8U; ++reg) {
+      if (reglist_contains_data_register_local(&instruction->operands[1], reg))
+        memset(&state->word_values[reg], 0, sizeof(state->word_values[reg]));
+      if (reglist_contains_address_register_local(&instruction->operands[1], reg))
+        memset(&state->relative_hardware[reg], 0, sizeof(state->relative_hardware[reg]));
+    }
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_DBF &&
+      operand_is_data_register_local(&instruction->operands[0], &reg)) {
+    M68kHardwareWordSet result = {0};
+    result.requires_input_contract = before->word_values[reg].requires_input_contract;
+    for (i = 0U; i < before->word_values[reg].count; ++i)
+      (void)hardware_word_set_add(&result, (uint16_t)(before->word_values[reg].values[i] - 1U));
+    state->word_values[reg] = result;
+    return;
+  }
+  if (instruction->operand_count < 2U) return;
+  source = hardware_operand_word_values(before, &instruction->operands[0]);
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA && instruction->size_suffix == 'w' &&
+      operand_address_register_index_local(&instruction->operands[1], &dest)) {
+    M68kHardwareRelativeBase base = hardware_relative_register(before, dest), result;
+    uint8_t j;
+    memset(&result, 0, sizeof(result));
+    result.base_id = base.base_id;
+    result.offsets.requires_input_contract = base.offsets.requires_input_contract | source.requires_input_contract;
+    if (source.count == 0U || base.offsets.count == 0U) return;
+    for (i = 0U; i < base.offsets.count; ++i) for (j = 0U; j < source.count; ++j) {
+      int32_t offset = (int32_t)base.offsets.values[i] + (int16_t)source.values[j];
+      if (offset < 0 || offset > INT16_MAX || !hardware_word_set_add(&result.offsets, (uint16_t)offset)) return;
+    }
+    state->relative_hardware[dest] = result;
+  } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA ||
+              instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE) && instruction->size_suffix == 'l' &&
+      operand_address_register_index_local(&instruction->operands[1], &dest) &&
+      operand_address_register_index_local(&instruction->operands[0], &reg)) {
+    state->relative_hardware[dest] = hardware_relative_register(before, reg);
+  } else if (operand_is_data_register_local(&instruction->operands[1], &dest)) {
+    M68kHardwareWordSet result = {0};
+    result.requires_input_contract = source.requires_input_contract | before->word_values[dest].requires_input_contract;
+    if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ ||
+        (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+         (instruction->size_suffix == 'w' || instruction->size_suffix == 'l'))) {
+      state->word_values[dest] = source;
+    } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ||
+                instruction->mnemonic_id == M68K_ASM_MNEMONIC_MULU) &&
+        instruction->size_suffix == 'w' && source.count == 1U) {
+      uint16_t amount = source.values[0];
+      if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL && amount > 15U) return;
+      for (i = 0U; i < before->word_values[dest].count; ++i) {
+        uint32_t value = before->word_values[dest].values[i];
+        value = instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ? value << amount : value * amount;
+        if (!hardware_word_set_add(&result, (uint16_t)value)) return;
+      }
+      state->word_values[dest] = result;
+    }
+  }
+  for (reg = 0U; reg < 8U; ++reg)
+    if (state->relative_hardware[reg].offsets.count == 0U)
+      state->relative_hardware[reg] = hardware_relative_register(state, reg);
+}
+
+static void hardware_relative_apply_policy_inputs(M68kRenderPlatformState *state,
+    const M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
+  {
+    uint16_t seed_index;
+    for (seed_index = 0U; policy != NULL && seed_index < policy->register_seed_count; ++seed_index) {
+      const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[seed_index];
+      M68kHardwareRelativeBase *relative;
+      uint8_t value_index;
+      if (!seed->has_entry_offset || seed->entry_offset != offset ||
+          (seed->has_section_index && seed->section_index != section_index)) continue;
+      if (seed->reg_index >= 8U) continue;
+      if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED) {
+        if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS)
+          memset(&state->relative_hardware[seed->reg_index], 0, sizeof(state->relative_hardware[seed->reg_index]));
+        if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA)
+          memset(&state->word_values[seed->reg_index], 0, sizeof(state->word_values[seed->reg_index]));
+        continue;
+      }
+      if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->hardware_index_register >= 8U ||
+          seed->hardware_index_count == 0U || seed->hardware_index_count > 8U) continue;
+      relative = &state->relative_hardware[seed->reg_index];
+      memset(relative, 0, sizeof(*relative));
+      memset(&state->word_values[seed->hardware_index_register], 0,
+        sizeof(state->word_values[seed->hardware_index_register]));
+      if (!platform_facts_v2_hardware_base_id_for_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          seed->name, &relative->base_id)) continue;
+      relative->offsets.requires_input_contract = 1U;
+      state->word_values[seed->hardware_index_register].requires_input_contract = 1U;
+      for (value_index = 0U; value_index < seed->hardware_index_count; ++value_index) {
+        (void)hardware_word_set_add(&relative->offsets,
+          seed->hardware_index_values[value_index] * seed->hardware_stride);
+        (void)hardware_word_set_add(&state->word_values[seed->hardware_index_register],
+          seed->hardware_index_values[value_index]);
+      }
+      m68k_bitset_u32_clear(&state->address_hardware_base_known, seed->reg_index);
+      state->address_hardware_base_id[seed->reg_index] = 0U;
+    }
+  }
+}
+
 static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRenderPlatformState *source) {
   M68kRenderPlatformState old_state;
   size_t index;
@@ -8155,6 +8511,13 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
   if (dest == NULL || source == NULL) return 0;
   old_state = *dest;
   for (index = 0U; index < 8U; ++index) {
+    hardware_word_set_merge(&dest->word_values[index], &source->word_values[index]);
+    if (dest->relative_hardware[index].base_id != source->relative_hardware[index].base_id)
+      memset(&dest->relative_hardware[index], 0, sizeof(dest->relative_hardware[index]));
+    else {
+      hardware_word_set_merge(&dest->relative_hardware[index].offsets, &source->relative_hardware[index].offsets);
+      if (dest->relative_hardware[index].offsets.count == 0U) dest->relative_hardware[index].base_id = 0U;
+    }
     platform_state_merge_register_base(&dest->data_base_known, (uint8_t)index, &dest->data_base_id[index],
       dest->data_base_library[index], sizeof(dest->data_base_library[index]), source->data_base_known,
       source->data_base_id[index], source->data_base_library[index], &changed);
@@ -8165,6 +8528,9 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
     platform_state_merge_register_id(&dest->address_hardware_base_known, (uint8_t)index,
       &dest->address_hardware_base_id[index], source->address_hardware_base_known,
       source->address_hardware_base_id[index], &changed);
+    platform_state_merge_register_id(&dest->data_hardware_base_known, (uint8_t)index,
+      &dest->data_hardware_base_id[index], source->data_hardware_base_known,
+      source->data_hardware_base_id[index], &changed);
     platform_state_merge_register_name(&dest->data_layout_base_known, (uint8_t)index,
       dest->data_layout_base_symbol[index], sizeof(dest->data_layout_base_symbol[index]),
       source->data_layout_base_known,
@@ -8458,6 +8824,86 @@ void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(cons
   }
 }
 
+static int render_lookup_record_hardware_address_uses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderPlatformState *state, const M68kInstructionIR *instruction, uint32_t offset) {
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  size_t operand_index;
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    M68kPlatformAddressUseIR use;
+    M68kRenderHardwareAddressUse *entry;
+    const char *symbol = NULL;
+    char symbol_buf[96];
+    uint32_t address = 0U;
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
+    uint8_t access = metadata->operand_access_kinds[operand_index];
+    memset(&use, 0, sizeof(use));
+    if ((access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE ||
+         access == M68K_SIM_ACCESS_COMPUTE_ADDRESS) &&
+        operand_is_address_displacement_local(operand, &base_reg, &displacement) && displacement >= 0 &&
+        m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
+        platform_facts_v2_hardware_base_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          state->address_hardware_base_id[base_reg], &address)) {
+      symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement, symbol_buf, sizeof(symbol_buf));
+      address += (uint32_t)(uint16_t)displacement;
+      use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
+    } else if ((access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+        operand_is_address_displacement_local(operand, &base_reg, &displacement) && displacement >= 0 &&
+        state->relative_hardware[base_reg].offsets.count != 0U) {
+      const M68kHardwareRelativeBase *base = &state->relative_hardware[base_reg];
+      const AmigaOsHardwareRegisterFieldInfo *origin = amiga_os_find_hardware_register_field_by_base_id_offset(
+        base->base_id, (uint16_t)displacement);
+      uint8_t i;
+      if (origin == NULL) continue;
+      for (i = 0U; i < base->offsets.count; ++i) {
+        const AmigaOsHardwareRegisterFieldInfo *field = amiga_os_find_hardware_register_field_by_base_id_offset(
+          base->base_id, (uint16_t)displacement + (uint32_t)base->offsets.values[i]);
+        if (field == NULL || field->register_symbol_id != origin->register_symbol_id ||
+            field->field_symbol_id != origin->field_symbol_id || field->field_offset != origin->field_offset ||
+            field->register_offset != origin->register_offset + base->offsets.values[i]) break;
+      }
+      if (i != base->offsets.count) continue;
+      symbol = platform_facts_v2_hardware_base_offset_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+        base->base_id, (uint16_t)displacement, symbol_buf, sizeof(symbol_buf));
+      use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY;
+      use.relative_base_id = base->base_id;
+      use.relative_register_offset = (uint16_t)displacement;
+      use.relative_base_offset_count = base->offsets.count;
+      use.relative_requires_input_contract = base->offsets.requires_input_contract;
+      memcpy(use.relative_base_offsets, base->offsets.values, sizeof(use.relative_base_offsets));
+    } else if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction->size_suffix == 'l' &&
+        operand_index == metadata->source_operand_index && m68k_ir_operand_immediate_value(operand, &address)) {
+      symbol = platform_facts_v2_hardware_base_symbol_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK, address);
+      use.use_shape = M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS;
+    }
+    if (symbol == NULL || symbol[0] == '\0') continue;
+    if (lookup->hardware_address_use_count == lookup->hardware_address_use_capacity) {
+      size_t capacity = lookup->hardware_address_use_capacity == 0U ? 32U : lookup->hardware_address_use_capacity * 2U;
+      M68kRenderHardwareAddressUse *grown = (M68kRenderHardwareAddressUse *)render_lookup_grow_array(lookup,
+        lookup->hardware_address_uses, lookup->hardware_address_use_count, sizeof(*grown), capacity);
+      if (grown == NULL) return -1;
+      lookup->hardware_address_uses = grown;
+      lookup->hardware_address_use_capacity = capacity;
+    }
+    use.symbol_name = arena_strdup(render_lookup_arena(lookup), symbol);
+    if (use.symbol_name == NULL) return -1;
+    use.offset = offset;
+    use.operand_index = (uint32_t)operand_index;
+    use.address = address;
+    use.effective_address = address;
+    use.access_width = instruction->size_suffix == 'l' ? 4U : (instruction->size_suffix == 'w' ? 2U : 1U);
+    use.access_kind = access;
+    use.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    entry = &lookup->hardware_address_uses[lookup->hardware_address_use_count++];
+    entry->section_index = section_index;
+    entry->use = use;
+  }
+  return 0;
+}
+
 static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start,
     const M68kDecodeSectionIR *section, const M68kRenderTypedFlowNode *node, int allow_lookup_storage,
     int record_typed_accesses, M68kRenderTypedState *out_typed_state, M68kRenderPlatformState *out_platform_state,
@@ -8536,6 +8982,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       out_typed_state, &instruction, node->candidate->offset) != 0) {
     return -1;
   }
+  if (record_typed_accesses && render_lookup_record_hardware_address_uses(lookup, section->section_index,
+      out_platform_state, &instruction, node->candidate->offset) != 0) return -1;
   if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
       node->candidate->offset, record_typed_accesses, io_changed) != 0) {
     return -1;
@@ -8650,8 +9098,45 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   if (call_has_result_summary != 0U)
     typed_state_apply_function_summary_results(out_typed_state, &call_input_state, lookup, result_summary,
       section->section_index, node->candidate->offset);
-  platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
-  platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
+  /* Sequential rendering drops terminal/call contexts. CFG successors may retain
+   * literal hardware identities only across unchanged or proven preserved registers. */
+  {
+    M68kRenderPlatformState before = *out_platform_state;
+    const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(&instruction);
+    uint8_t reg;
+    platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
+    platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
+    for (reg = 0U; metadata != NULL && reg < 8U; ++reg) {
+      uint32_t bit = (uint32_t)1U << reg;
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+          (metadata->flow_kind == M68K_SIM_FLOW_CALL &&
+           function_summary_register_effect(selected_local_effects, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
+             M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)) {
+        out_platform_state->address_hardware_base_known |= before.address_hardware_base_known & bit;
+        out_platform_state->address_hardware_base_id[reg] = before.address_hardware_base_id[reg];
+      }
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+          (metadata->flow_kind == M68K_SIM_FLOW_CALL &&
+           function_summary_register_effect(selected_local_effects, M68K_ANALYSIS_REGISTER_DATA, reg) ==
+             M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)) {
+        out_platform_state->data_hardware_base_known |= before.data_hardware_base_known & bit;
+        out_platform_state->data_hardware_base_id[reg] = before.data_hardware_base_id[reg];
+      }
+    }
+    if (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+      M68kLocalHardwareValues values;
+      M68kRenderPlatformState hardware;
+      local_hardware_pack(&values, &before);
+      local_hardware_apply_call(&values, selected_local_effects);
+      local_hardware_unpack(&hardware, &values);
+      out_platform_state->data_hardware_base_known = hardware.data_hardware_base_known;
+      out_platform_state->address_hardware_base_known = hardware.address_hardware_base_known;
+      memcpy(out_platform_state->data_hardware_base_id, hardware.data_hardware_base_id,
+        sizeof(hardware.data_hardware_base_id));
+      memcpy(out_platform_state->address_hardware_base_id, hardware.address_hardware_base_id,
+        sizeof(hardware.address_hardware_base_id));
+    }
+  }
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
   if (candidate_terminates_a6_state(node->candidate)) typed_state_clear_all(out_typed_state);
   return 0;
@@ -8908,6 +9393,29 @@ static int typed_flow_enqueue_node(size_t *queue, uint8_t *queued, size_t capaci
   return 0;
 }
 
+/* DBF decrements the low WORD and branches only if it is not $FFFF. Do not
+ * merge the exhausted counter into the backedge, or a bounded loop becomes top. */
+static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *predecessor,
+    const M68kRenderTypedFlowNode *successor, M68kRenderPlatformState *state) {
+  M68kInstructionIR instruction;
+  M68kHardwareWordSet result = {0};
+  uint8_t reg, i;
+  int fallthrough;
+  if (predecessor->candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF ||
+      m68k_decode_candidate_to_instruction(predecessor->candidate, &instruction) != 0 ||
+      !operand_is_data_register_local(&instruction.operands[0], &reg) || state->word_values[reg].count == 0U)
+    return 1;
+  fallthrough = successor->candidate->offset == predecessor->candidate->offset + predecessor->candidate->byte_count;
+  for (i = 0U; i < state->word_values[reg].count; ++i) {
+    uint16_t value = state->word_values[reg].values[i];
+    if ((value == UINT16_MAX) == fallthrough) (void)hardware_word_set_add(&result, value);
+  }
+  if (result.count == 0U) return 0;
+  result.requires_input_contract = state->word_values[reg].requires_input_contract;
+  state->word_values[reg] = result;
+  return 1;
+}
+
 static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index) {
   M68kRenderTypedFlowNode *node;
   M68kRenderTypedState typed_input;
@@ -8941,6 +9449,106 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
   node->platform_in = platform_input;
   node->has_in = has_input ? 1U : 0U;
   return 1;
+}
+
+/* Hardware bounds have a separate fixed point. Unrelated typed memory/cursor
+ * churn cannot either suppress these proofs or certify an unfinished set. */
+static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
+    const M68kRenderTypedFlowGraph *graph, Arena *arena) {
+  M68kRenderPlatformState *inputs, *outputs;
+  uint8_t *has_in, *has_out, *queued;
+  size_t *queue, head = 0U, count = 0U, visits = 0U, index;
+  size_t limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
+    M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT);
+  ArenaMark mark;
+  int result = -1;
+  if (graph->node_count == 0U) return 0;
+  mark = arena_mark(arena);
+  inputs = arena_calloc(arena, graph->node_count, sizeof(*inputs));
+  outputs = arena_calloc(arena, graph->node_count, sizeof(*outputs));
+  has_in = arena_calloc(arena, graph->node_count, 1U);
+  has_out = arena_calloc(arena, graph->node_count, 1U);
+  queued = arena_calloc(arena, graph->node_count, 1U);
+  queue = arena_alloc(arena, graph->node_count * sizeof(*queue));
+  if (inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
+    goto done;
+  for (index = 0U; index < graph->node_count; ++index) if (graph->nodes[index].is_root) {
+    has_in[index] = 1U;
+    if (typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, index) != 0) goto done;
+  }
+  while (count != 0U && visits++ < limit) {
+    const M68kRenderTypedFlowNode *node;
+    M68kRenderPlatformState before, next, normalized;
+    M68kInstructionIR instruction;
+    uint8_t successor_index;
+    index = queue[head];
+    head = (head + 1U) % graph->node_count;
+    --count;
+    queued[index] = 0U;
+    node = &graph->nodes[index];
+    before = inputs[index];
+    platform_state_apply_policy_register_seeds(&before, lookup->policy, section->section_index,
+      node->candidate->offset);
+    hardware_relative_apply_policy_inputs(&before, lookup->policy, section->section_index, node->candidate->offset);
+    if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) goto done;
+    next = before;
+    platform_state_update_after_instruction(&next, lookup, &instruction);
+    /* Calls are top in this solver. Existing exact-address call proofs remain
+     * separate; no new preservation assumption is made for a relative base. */
+    hardware_relative_transfer(&next, &before, &instruction);
+    memset(&normalized, 0, sizeof(normalized));
+    normalized.data_hardware_base_known = next.data_hardware_base_known;
+    normalized.address_hardware_base_known = next.address_hardware_base_known;
+    memcpy(normalized.data_hardware_base_id, next.data_hardware_base_id, sizeof(next.data_hardware_base_id));
+    memcpy(normalized.address_hardware_base_id, next.address_hardware_base_id, sizeof(next.address_hardware_base_id));
+    memcpy(normalized.word_values, next.word_values, sizeof(next.word_values));
+    memcpy(normalized.relative_hardware, next.relative_hardware, sizeof(next.relative_hardware));
+    if (has_out[index] && platform_states_equal(&outputs[index], &normalized)) continue;
+    outputs[index] = normalized;
+    has_out[index] = 1U;
+    for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
+      size_t successor = node->successors[successor_index], predecessor_index;
+      M68kRenderPlatformState input;
+      int found = graph->nodes[successor].is_root != 0U;
+      memset(&input, 0, sizeof(input));
+      for (predecessor_index = graph->predecessor_offsets[successor];
+           predecessor_index < graph->predecessor_offsets[successor + 1U]; ++predecessor_index) {
+        size_t predecessor = graph->predecessors[predecessor_index];
+        M68kRenderPlatformState edge;
+        if (!has_out[predecessor]) continue;
+        edge = outputs[predecessor];
+        if (!hardware_relative_refine_dbf_edge(&graph->nodes[predecessor], &graph->nodes[successor], &edge)) continue;
+        if (!found) input = edge;
+        else (void)platform_state_merge_into(&input, &edge);
+        found = 1;
+      }
+      if (has_in[successor] == (uint8_t)found && platform_states_equal(&inputs[successor], &input)) continue;
+      inputs[successor] = input;
+      has_in[successor] = (uint8_t)found;
+      if (found && typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, successor) != 0) goto done;
+    }
+  }
+  if (count == 0U) for (index = 0U; index < graph->node_count; ++index) if (has_in[index]) {
+    M68kRenderPlatformState proof = inputs[index];
+    M68kInstructionIR instruction;
+    uint8_t reg;
+    platform_state_apply_policy_register_seeds(&proof, lookup->policy, section->section_index,
+      graph->nodes[index].candidate->offset);
+    hardware_relative_apply_policy_inputs(&proof, lookup->policy, section->section_index,
+      graph->nodes[index].candidate->offset);
+    for (reg = 0U; reg < 8U; ++reg)
+      if (m68k_bitset_u32_has(proof.address_hardware_base_known, reg) &&
+          proof.relative_hardware[reg].offsets.count == 1U && proof.relative_hardware[reg].offsets.values[0] == 0U)
+        memset(&proof.relative_hardware[reg], 0, sizeof(proof.relative_hardware[reg]));
+    proof.address_hardware_base_known = proof.data_hardware_base_known = 0U;
+    if (m68k_decode_candidate_to_instruction(graph->nodes[index].candidate, &instruction) != 0 ||
+        render_lookup_record_hardware_address_uses(lookup, section->section_index, &proof, &instruction,
+          graph->nodes[index].candidate->offset) != 0) goto done;
+  }
+  result = 0;
+done:
+  arena_rewind(arena, mark);
+  return result;
 }
 
 static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
@@ -9010,6 +9618,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         goto cleanup;
       }
     }
+    if (hardware_relative_analyze_graph(lookup, section, graph, arena) != 0) goto cleanup;
   }
   result = 0;
 
@@ -9069,6 +9678,7 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
       for (operand_index = 0U; operand_index < 8U; ++operand_index)
         if (m68k_bitset_u32_has(state.address_base_known, (uint8_t)operand_index))
           m68k_bitset_u32_set(&seen_library_base, (uint8_t)operand_index);
+      if (state.data_hardware_base_known != 0U || state.address_hardware_base_known != 0U) return 1;
     }
   }
   return 0;
@@ -9164,6 +9774,7 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
     changed = 0;
     if (final_pass) {
       lookup->typed_access_count = 0U;
+      lookup->hardware_address_use_count = 0U;
       lookup->affine_address_use_count = 0U;
     }
     for (section_index = 0U; section_index < decode->section_count; ++section_index) {
@@ -9191,6 +9802,7 @@ static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68k
   if (workflow->graphs == NULL) return 0;
   if (workflow->section_count != decode->section_count) return -1;
   lookup->typed_access_count = 0U;
+  lookup->hardware_address_use_count = 0U;
   lookup->affine_address_use_count = 0U;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
@@ -9782,7 +10394,9 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
     for (uint8_t result_index = 0U; result_index < inferred->result_count; ++result_index) {
       const M68kAnalysisFunctionSummaryResult *inferred_result = &inferred->results[result_index];
       M68kFunctionSummaryResultIR *result = &summary.results[summary.result_count++];
-      result->kind = M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+      result->kind = inferred_result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE ?
+        M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE : M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
+      result->hardware_base_id = inferred_result->hardware_base_id;
       result->location = inferred_result->location;
       result->identity_input_index = inferred_result->input_index;
     }
@@ -12675,9 +13289,16 @@ static void render_lookup_materialize_typed_address_target(M68kRenderLookup *loo
   *target_offset_out = target_offset;
   *resolution = M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED;
   if (provenance != NULL && provenance->kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE) {
-    render_lookup_mark_label(lookup, target_section_index, target_offset);
-    render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
-    render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    const M68kAnalysisManualRepresentation *representation = lookup_manual_operand_representation(lookup,
+      provenance->section_index, provenance->offset, provenance->producer_operand_index);
+    /* Keep the resolved analysis target, but a value EQU does not require a
+     * source declaration inside the target's data owner. */
+    if (representation == NULL || representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+        representation->target_equate_index == 0U) {
+      render_lookup_mark_label(lookup, target_section_index, target_offset);
+      render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
+      render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    }
   }
 }
 
@@ -13775,6 +14396,7 @@ static int displacement_is_custom_hardware_offset(int16_t displacement) {
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement) {
   if (state == NULL || base_reg >= 8U) return 0;
+  if (state->relative_hardware[base_reg].offsets.count != 0U) return 0;
   if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) return 0;
   if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) return 1;
   if (m68k_bitset_u32_has(state->address_base_known, base_reg))
@@ -14894,43 +15516,58 @@ static int append_manual_data_references_for_section(const M68kRenderLookup *loo
     const M68kAnalysisManualDataReference *manual = &lookup->policy->manual_data_references[index];
     M68kDataReferenceIR ref;
     const M68kDecodeSectionIR *source;
+    uint32_t cursor;
+    uint32_t scale = manual->is_range ? manual->value_scale : 1U;
+    uint8_t is_signed = manual->is_range ? manual->raw_value_signed : 1U;
     if (manual->section_index != section->section_index) continue;
     if (manual->section_index >= decode->section_count) return -1;
     source = &decode->sections[manual->section_index];
-    if (source->data == NULL || manual->size != 2U || manual->offset > source->size ||
-        2U > source->size - manual->offset || m68k_read_u16be(source->data + manual->offset) != manual->raw_value ||
-        manual->base_section_index != manual->target_section_index ||
+    if (source->data == NULL || manual->size < 2U || (manual->size & 1U) || manual->offset > source->size ||
+        manual->size > source->size - manual->offset ||
+        m68k_read_u16be(source->data + manual->offset) != manual->raw_value ||
         manual->base_section_index != manual->section_index ||
-        manual->base_section_index >= decode->section_count ||
-        manual->base_offset >= decode->sections[manual->base_section_index].size ||
-        manual->target_offset >= decode->sections[manual->target_section_index].size ||
-        (int64_t)manual->base_offset + (int16_t)manual->raw_value != (int64_t)manual->target_offset) return -1;
-    memset(&ref, 0, sizeof(ref));
-    ref.source_kind = M68K_DATA_REFERENCE_SOURCE_MANUAL;
-    ref.source_offset = manual->offset;
-    ref.reference_kind = M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT;
-    ref.raw_value = manual->raw_value;
-    ref.raw_value_width = 2U;
-    ref.raw_value_signed = 1U;
-    ref.has_base = 1U;
-    ref.base_section_index = manual->base_section_index;
-    ref.base_offset = manual->base_offset;
-    ref.target_section_index = manual->target_section_index;
-    ref.target_offset = manual->target_offset;
-    ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
-    ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
-    ref.owner_kind = (char *)manual->owner_kind;
-    ref.owner_id = (char *)manual->owner_id;
-    ref.owner_layout_id = (char *)manual->owner_layout_id;
-    ref.owner_element_offset = manual->owner_element_offset;
-    ref.xref_generation_mode = (char *)manual->xref_generation_mode;
-    if (m68k_ir_section_analysis_append_data_reference(section, &ref) != 0) return -1;
+        manual->target_section_index != manual->section_index ||
+        manual->base_offset >= source->size) return -1;
+    for (cursor = 0U; cursor < manual->size; cursor += 2U) {
+      uint32_t raw = m68k_read_u16be(source->data + manual->offset + cursor);
+      int64_t target = (int64_t)manual->base_offset +
+        (is_signed ? (int16_t)raw : (int64_t)raw) * scale;
+      if (target < 0 || target >= source->size) return -1;
+      memset(&ref, 0, sizeof(ref));
+      ref.source_kind = M68K_DATA_REFERENCE_SOURCE_MANUAL;
+      ref.source_offset = manual->offset + cursor;
+      ref.reference_kind = manual->is_range ? M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE :
+        M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT;
+      ref.raw_value = raw;
+      ref.value_scale = scale;
+      ref.raw_value_width = 2U;
+      ref.raw_value_signed = is_signed;
+      ref.has_base = 1U;
+      ref.base_section_index = manual->base_section_index;
+      ref.base_offset = manual->base_offset;
+      ref.target_section_index = manual->target_section_index;
+      ref.target_offset = (uint32_t)target;
+      ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+      ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
+      ref.owner_kind = (char *)manual->owner_kind;
+      ref.owner_id = (char *)manual->owner_id;
+      ref.owner_layout_id = (char *)manual->owner_layout_id;
+      ref.owner_element_offset = manual->owner_element_offset + cursor;
+      ref.xref_generation_mode = (char *)manual->xref_generation_mode;
+      if (m68k_ir_section_analysis_append_data_reference(section, &ref) != 0) return -1;
+    }
   }
   return 0;
 }
 
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  for (index = 0U; index < lookup->hardware_address_use_count; ++index) {
+    const M68kRenderHardwareAddressUse *entry = &lookup->hardware_address_uses[index];
+    if (entry->section_index == section_analysis->section_index &&
+        m68k_ir_section_analysis_append_platform_address_use(section_analysis, &entry->use) != 0) return -1;
+  }
   if (append_manual_data_references_for_section(lookup, decode, section_analysis) != 0) return -1;
   if (append_render_lookup_platform_effects_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_app_slot_refs_for_section(lookup, section_analysis) != 0) return -1;

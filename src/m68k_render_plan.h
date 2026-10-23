@@ -170,6 +170,7 @@ typedef struct M68kRenderPlanRow {
   uint8_t reserved[3];
   uint32_t data_class_flags;
   char data_class[32];
+  char generated_field_comment[64];
   char *text;
 } M68kRenderPlanRow;
 

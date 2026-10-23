@@ -1,0 +1,2145 @@
+{
+  "schema_version": 1,
+  "base_commit": "a83b976d78494f629c203783e9a2aef9e76e20e7",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "status": "saved_earth_and_player_escaped_from_continuous_cold_boot",
+  "profile": "Copperline1.0.0 A500OCS PAL68000 512Kchip+512Kslow original direct payload",
+  "public_plan_cli_matches_authored_sha256": "968d837857626859b525d057b317a55315f3ea9a0f19c99ea9f74f41b18e51d2",
+  "summary": {
+    "ending_qualified": true,
+    "continuous_cold_boot_passes_added": 1,
+    "tests_passed": 184,
+    "tests_skipped": 0,
+    "target_source_changes": 0,
+    "new_gap_watch_runs": 0,
+    "paused_B07_files_unchanged": 9,
+    "PR5_merged": false,
+    "final_frame": 14332,
+    "final_health": 49,
+    "phases": 576,
+    "input_events": 375,
+    "elapsed_run_session_seconds": 306.07,
+    "ending": {
+      "frame": 14331,
+      "source_pc": "0x4c9dc",
+      "runtime_pc": "0x5c9dc",
+      "message_runtime_pointer": "0x5cae5",
+      "message_source_offset": "0x4cae5",
+      "self_destruct_state": 255,
+      "event_flags": 92,
+      "earth_deadline_word": "0x8258"
+    }
+  },
+  "route": [
+    "Engineer50 and sonicdriver5",
+    "Commander48 with Blue33/Scarlet35",
+    "Exit Lieutenant gate holding49",
+    "Defeat Icelord with sonicdriver before trade; retain Thermolance11",
+    "Defeat Hooligan with Thermolance, remainingHP49",
+    "Captain SDI38 in pocket0",
+    "Wrap top-to-bottom; Engineer approach and sonicdriver-to-Ochre36 trade",
+    "Retain AWOL55 in carried1",
+    "Console consumes SDI38, Scarlet35, Ochre36, Blue33; recover Engineer50",
+    "Engineering departure; bottom-to-top wrap past defeated Icelord",
+    "Pocket Engineer through Thief strip; equipAWOL55 at descriptor21",
+    "Horizontal tile236 approach selects saved-Earth outcome"
+  ],
+  "development_findings": {
+    "early-icelord-a": "Wrong held card at Lieutenant gate; preserved as rejected branch.",
+    "loot-icelord-a": "Thermolance is not pocket-sized; successful recipe uses carried storage.",
+    "revised-ochre-a": "Permissive Defence Controller band admitted unsafe patrol direction; later diagnosticHP4.",
+    "revised-ochre-b": "Wackobrain has no assumed southern pause; bounded timeoutHP49.",
+    "revised-ochre-c": "Western route then encountered DeathFly; diagnosticHP7.",
+    "revised-ochre-d": "Leftward Y550 blocked; source-led north corridor and explicit camera wrap used instead.",
+    "finale-arm-a": "Console inputs succeeded but changed exit drift; obsolete XYguard refused receipt.",
+    "finale-return-a": "Armed exit needed one explicit right-alignment action before the known departure.",
+    "finale-cold-a": "Next-section XYentry guard was mistakenly applied to every transient Hooligan goal-search visit. Fixed by preserving an explicit post-goal entry phase, with a focused regression; no gameplay death or state repair."
+  },
+  "source_anchors": {
+    "console_state": "process_self_destruct_card_input",
+    "authorization": "latch_authorized_checkpoint_visit",
+    "horizontal_escape": "test_escape_authorization_for_requested_tile",
+    "outcome_selection": "enqueue_game_outcome_and_rank_messages"
+  },
+  "health_budget": {
+    "initial": 95,
+    "after_icelord": 70,
+    "after_hooligan": 49,
+    "ending": 49,
+    "hooligan_weapon": {
+      "item_id": 11,
+      "name": "Thermolance",
+      "damage": 25,
+      "reload": 4
+    },
+    "not_a_universal_dependency": "Icelord is a tactical prerequisite of this wrapped return, not a direct ending predicate."
+  },
+  "limits": [
+    "Original direct-payload boot/materialization, not original disk-loader parity.",
+    "Cold qualification has no checkpoint loads; earlier checkpoint branches are development only.",
+    "Normal controller inputs only after the infrastructure handoff; no injected gameplay state or routine calls.",
+    "Final original outcome selection, escape authorization/trigger and movement inhibition are validated; no claim about reading every scrolling message or waiting for automatic title restart.",
+    "No new CPU memory-watch, DMA-access, general behavioural-equivalence, relocation or native-C evidence.",
+    "One deterministic intended item chain and tactical route; not all optional encounters or all ending variants."
+  ],
+  "runs": [
+    {
+      "name": "early-icelord-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 37,
+      "phases_observed": 13,
+      "input_events_requested": 25,
+      "elapsed_run_session_seconds": 13.26,
+      "last_action": {
+        "action": "ei_early_icelord_1",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 3261,
+        "state": {
+          "xy": [
+            241,
+            866
+          ],
+          "health": 95,
+          "held": 0,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 0,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 7,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            143,
+            202
+          ],
+          "health": 95,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            48,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            0,
+            0
+          ]
+        }
+      },
+      "artifact_sha256": {
+        "authored.json": "778afbd5f514caee0041bb1f6cdf403d66d339bc3832bafe998d25e216c192b1",
+        "compiled.json": "535afb476924f233e4d8deac179d21764e17e3b678bf0d2b81778c553f9149d8",
+        "report.json": "0507cafa01557adb76df2afbd00b4bac2bf8c1aa9e969455a36c93c8c40854cd",
+        "summary.json": "aaf0c883e15449baa012011cae9ff54dc548f5e51940448455f90f7320007cfe",
+        "execution-identities.json": "61a718fe51afa2972308f59228eeef8acf708c91d714dc5155a0fab02490f7b6"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "b373a8a46cd640be46b8d0eadd879fdca858513fe3c22381a0f324e7eaceba94",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "early-icelord-b",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 33,
+      "phases_observed": 33,
+      "input_events_requested": 22,
+      "elapsed_run_session_seconds": 24.06,
+      "last_action": {
+        "action": "ei_early_icelord_result",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 4214,
+        "state": {
+          "xy": [
+            1298,
+            206
+          ],
+          "health": 70,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            49,
+            48,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "ed74b8b24699f20c998b9e79c983c2bf63d7f4edd3564bef81f0ffc884a40eeb",
+        "compiled.json": "9877ee027fca8fc7d6befba55edd79df59a69ca60dff041de99966088ba8442b",
+        "report.json": "92d59f13d30f8bebb9f7b667edcdc9b5da01f5dbb1e9e2b37e80fa175ed459f1",
+        "summary.json": "621b5f86b7d290d13192b583ded840d86d7fcbeda6f2710e8b03b3a2a49413d9",
+        "execution-identities.json": "9d1f3d47778beabb5e8434fa1f217716b5494fc435d397ffbdbe8579f374de42"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "b795d1900ef58fcaab08014f35b1b81bf5bd16bc163d047851859b1f874b6e3c",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "6eacbe55666a3760ec78ee38d8126acd66af55f3933268cb8df60eaf695d6477"
+    },
+    {
+      "name": "loot-icelord-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 20,
+      "phases_observed": 12,
+      "input_events_requested": 9,
+      "elapsed_run_session_seconds": 2.01,
+      "last_action": {
+        "action": "il_pocket_thermolance",
+        "status": "not_hit",
+        "reason": "goal_not_reached",
+        "frame": 4304,
+        "state": {
+          "xy": [
+            1298,
+            190
+          ],
+          "health": 70,
+          "held": 11,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 116,
+          "cached_id": 5,
+          "cursor": [
+            96,
+            147
+          ],
+          "carried": [
+            50,
+            49,
+            48,
+            0
+          ],
+          "display_ids": [
+            105,
+            5,
+            0,
+            0
+          ]
+        },
+        "visits": 16
+      },
+      "artifact_sha256": {
+        "authored.json": "45c658a4307fde95c50295acfb32670696322391605b4737050da856248ae7e7",
+        "compiled.json": "85b5c073f2b625a47c5ac39fca5ec84095e882c5a41683f7722295f401ad8bad",
+        "report.json": "0e708007239c8d5741e3779f422e46e2fa0666b5ab71a41b0799eeb070d579f6",
+        "summary.json": "be56b371b200a8d774ded5cfa43dfd6fd240a02ab56c1c54b1f68d408b463176",
+        "execution-identities.json": "ee416bc43072bc8b609181082be9781e3a8428f9b79cbef5b7698c752a669095"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "9a52230fd69cfd6a32b3916e882d1582dd390b155935c7ec670896c1619f89d3",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "loot-icelord-b",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 24,
+      "phases_observed": 24,
+      "input_events_requested": 11,
+      "elapsed_run_session_seconds": 3.82,
+      "last_action": {
+        "action": "il_weapon_retained",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 4397,
+        "state": {
+          "xy": [
+            1298,
+            190
+          ],
+          "health": 70,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            49,
+            48,
+            11
+          ],
+          "display_ids": [
+            105,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "8c841a80eba207bab603b6320cd539e5f0cb433beb1f5b476c8c4b868af8e80d",
+        "compiled.json": "166bdcd0029d04e1349c7854cdf879e48fd7b706926c197827c8268cf8644b15",
+        "report.json": "2ae1a9bf79cf7fa0b84f98a68b9f24ca5f6c5af5e20b3d878f3882ce79166630",
+        "summary.json": "b22f503fdc2cd6592dafeb48f22649d6bb225083336a1e302c5c2c6ee8800d61",
+        "execution-identities.json": "62e5552e26b3d89de0b3f55e13cd9a5dde5de8d2f2cee0e54f2b1228e2940a9a"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "84891156fc2b9aeb91c7745338238bb9be0fab41d93f93ed060bb85e2c7f20e9",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "c7dad6047076ad35bef3f5170ef94ee696e916856a8a1f0d7e8faf09e0343549"
+    },
+    {
+      "name": "prepare-hooligan-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 47,
+      "phases_observed": 47,
+      "input_events_requested": 32,
+      "elapsed_run_session_seconds": 32.26,
+      "last_action": {
+        "action": "rh_natural_hooligan_entry",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 6019,
+        "state": {
+          "xy": [
+            500,
+            606
+          ],
+          "health": 70,
+          "held": 11,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            49,
+            0
+          ],
+          "display_ids": [
+            105,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "3fd391429abbc1a2b1628131aace64f4eccc9cc505cb38e36c48e7dcb88336fa",
+        "compiled.json": "0012c91217dbeb5153275dc6bbed68646f4fe251861b13ce2919657884469d14",
+        "report.json": "567ba3f4430a21e5306473b624633440cd4614b0c08b82ebbb3045c4f6b3fcd4",
+        "summary.json": "d387d19e4a6e5ccf4f7542a4ea45aa013e6ba237cacd0cad2ab61d232d720276",
+        "execution-identities.json": "67d20330f3cb379aede2a599b152f77e394fdd6ab1b1e690feb684310c20e283"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "ecd055759bd72f20f88da32105a9531f052fe9c3b4cc6e378c18cf17414e10e3",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "bc8e596c83a5b4bcf91309de9390f10542c789b1fcc6b8c41e4e722b1040bd31"
+    },
+    {
+      "name": "thermolance-hooligan-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 8,
+      "phases_observed": 8,
+      "input_events_requested": 3,
+      "elapsed_run_session_seconds": 6.54,
+      "last_action": {
+        "action": "thermolance_hooligan_defeated",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 6309,
+        "state": {
+          "xy": [
+            500,
+            606
+          ],
+          "health": 49,
+          "held": 11,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            49,
+            0
+          ],
+          "display_ids": [
+            105,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 2
+      },
+      "artifact_sha256": {
+        "authored.json": "01d755eaa4022e694556ec2b2f6a293fef62446c55a5437dc670b52327dbafd7",
+        "compiled.json": "37d9ab961b2ac221204d35aae3b50c31afa477bca526c55c2d3d523bf0f87672",
+        "report.json": "ef849b33fc0b108d76524cc1f90456489beec55555a6906e61b7f8374af0f0a3",
+        "summary.json": "795b9ab7bc8ec99d4e60f725d6da5a9a46a12b97e9f2f3be5bca376d09a25340",
+        "execution-identities.json": "67d20330f3cb379aede2a599b152f77e394fdd6ab1b1e690feb684310c20e283"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "ecd055759bd72f20f88da32105a9531f052fe9c3b4cc6e378c18cf17414e10e3",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "89b75c660e995aa78028c6bd32f3b4af9e1237cd918f735f51d04dc9bb9e6424",
+        "amiga_reversing/tools/pandora_completion.py": "8ee71b03dd36ce0ca64d63e17e0581a2efc7020bfd55b0e1175bdca3c6d4b5c3",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "06453b42fe555a8533221f6db0933ab763bb669a209e9f311714947f9fcecd29"
+    },
+    {
+      "name": "revised-captain-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 46,
+      "phases_observed": 46,
+      "input_events_requested": 27,
+      "elapsed_run_session_seconds": 11.37,
+      "last_action": {
+        "action": "rc_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 6894,
+        "state": {
+          "xy": [
+            647,
+            986
+          ],
+          "health": 49,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "8c2f73877cd816caf39833d86692980d1e07995561c08ad8b63194b79997058e",
+        "compiled.json": "29a116c1fbf767b646315c307b27f2870b1b304ec11c628f2d6c22f0b69ff5e7",
+        "report.json": "d673f10827b766b0eefb8cd0b5c490f14981608c85ce544a9ca34effa18e393c",
+        "summary.json": "4f9c768a150af4db8dffd697ef182134f514f36846ddfa797401b978e8d9cfe6",
+        "execution-identities.json": "9e8304d199fd61393121f31905c4731cae8df29a49d15cb2e4d43a66a853ef13"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "92927fe2bdda9af5abc1b73abcbe61a8633cb7165c303447125f50859cf966cc",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "f615562a90df0aadeff5825fd05119b7a31ae8a08f65fe6c09ea3fdd0f649184",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "cf4ca8263c0541d206754dbc95ad57594ee5fccdd05988a55a5940f81cace962"
+    },
+    {
+      "name": "revised-ochre-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 76,
+      "phases_observed": 27,
+      "input_events_requested": 62,
+      "elapsed_run_session_seconds": 22.69,
+      "last_action": {
+        "action": "oc_engineering_8",
+        "status": "not_hit",
+        "reason": "combat_blocks_movement",
+        "frame": 8072,
+        "state": {
+          "xy": [
+            10325,
+            1226
+          ],
+          "health": 4,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 34,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 23,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            325,
+            1226
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "artifact_sha256": {
+        "authored.json": "1a26ce69edbcad20701d3f088b308b4792fbda64903f35cbec388d231f69f805",
+        "compiled.json": "a8e411f05b7039c03ae052e5a357326acd4a9f92d2275afdb880907340de48f6",
+        "report.json": "2e73c1223b8603e721231cb57d8da21897e1557d018ff06b6ff76a68fc7be914",
+        "summary.json": "2f9e9b19dd6837a185fd0478cc66ec52431b0be545102cebc52e83b0219626d1",
+        "execution-identities.json": "9e8304d199fd61393121f31905c4731cae8df29a49d15cb2e4d43a66a853ef13"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "92927fe2bdda9af5abc1b73abcbe61a8633cb7165c303447125f50859cf966cc",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "f615562a90df0aadeff5825fd05119b7a31ae8a08f65fe6c09ea3fdd0f649184",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "revised-ochre-b",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 76,
+      "phases_observed": 32,
+      "input_events_requested": 62,
+      "elapsed_run_session_seconds": 54.03,
+      "last_action": {
+        "action": "oc_wait_wackobrain_south",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 9705,
+        "state": {
+          "xy": [
+            430,
+            1170
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 799,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            430,
+            1170
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "artifact_sha256": {
+        "authored.json": "fc70ab015eb65dbb93c2191a8db4302f0e9ed3928f1309a47f4783d13bc71599",
+        "compiled.json": "3e1f7fa54d3750ac99e5f9585b46f38a6ca7767691de7c9b00641efa2b8d802b",
+        "report.json": "bffd52247d65eff650960dd7c9ebc6098440afaf7bd805667f0e50efbf96ee63",
+        "summary.json": "c8430a5d8de42d8d23d68f0daef2018efd2f1b0bfe035492f193104d49d03690",
+        "execution-identities.json": "a7b6bd372d882fdb34e10015122764af206d6075a5ce4ea1b2287cdd216477e5"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "6007082ae9cd27e3f1792e514105b4a551106d5db3135474115e806b06199f02",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "eef0c8abb3638f086006b785cf27997c25659b265c3c67f529ac2bf9e4ee8bfd",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "088631bf80305834bb1a63202d9bdbf473270123e7172aff9c088e17ec90343f",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "revised-ochre-c",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 76,
+      "phases_observed": 44,
+      "input_events_requested": 62,
+      "elapsed_run_session_seconds": 43.59,
+      "last_action": {
+        "action": "oc_engineering_22",
+        "status": "not_hit",
+        "reason": "combat_blocks_movement",
+        "frame": 9311,
+        "state": {
+          "xy": [
+            11053,
+            1262
+          ],
+          "health": 7,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 34,
+          "position_domain": "combat_x_bias_10000",
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 25,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            1053,
+            1262
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "artifact_sha256": {
+        "authored.json": "48da191158485b0b8ecc9ac4f344800197e6d53bad3d31a9c6433e00aa63d1fd",
+        "compiled.json": "ce7bd0015b81b4e4cf0c7fce55be4eff203d00d8db1656f6316dc2a39fecc80a",
+        "report.json": "e4283a452098b38773326afe6ec9bef8d4ec6cee68c4c777d9cdeffd8a5677e9",
+        "summary.json": "02057a68b7299f5179a6f6c1e41604b495ffccc30833368ffcfd4e137e7befd0",
+        "execution-identities.json": "82bffe1a30e33409aebc2973ff6781021e859c6c789c53074bb8771a0f22b492"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "6007082ae9cd27e3f1792e514105b4a551106d5db3135474115e806b06199f02",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "3b539c8a2f10269e590c7f299f960808b399c3051f939443c7798478a7245b53",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "120ece510be49bd572fea07e526cf60b522facecb9ae01ec03a65a84eb36d547",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "revised-ochre-d",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 76,
+      "phases_observed": 26,
+      "input_events_requested": 64,
+      "elapsed_run_session_seconds": 17.98,
+      "last_action": {
+        "action": "ro_to_top_shaft_9",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 7898,
+        "state": {
+          "xy": [
+            458,
+            550
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 6,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            458,
+            550
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            5,
+            49,
+            11
+          ],
+          "display_ids": [
+            32,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "artifact_sha256": {
+        "authored.json": "f956f7c8b7bee92a5afd598b85df016f777553a4f0cbd9d57014f547a2a0f444",
+        "compiled.json": "d310260d7c1bfdacb43977aa0de3978f865f1d947346ad7f662df4ad78f85177",
+        "report.json": "9ecbab2b6ebd0efa727081bd36390555c903f27f9d91cb720ec8e80c87f2987b",
+        "summary.json": "8ff0b5da50eab5f41d63c93fe9c0fc2db67a9b9cda98c55e2a82c96784e3e801",
+        "execution-identities.json": "0a42da914f8c32e028e28b386b742d204b948bd13e606818c99ac87f9bd8681e"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "66d7d75540c01550f789db42d5be94734a0db4206f8799b955856829f87bee7d",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "revised-ochre-e",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 98,
+      "phases_observed": 98,
+      "input_events_requested": 76,
+      "elapsed_run_session_seconds": 150.73,
+      "last_action": {
+        "action": "ro_ochre_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 9720,
+        "state": {
+          "xy": [
+            556,
+            1604
+          ],
+          "health": 49,
+          "held": 36,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            50,
+            49,
+            11
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "4eaf5518baa7a2983f42432bb86b2d34e93177cf5e4b040a1599104bd3ea815c",
+        "compiled.json": "421a5df3d1bbf31197cea1c823cb8c7ee5a9fe33b8e36abc753abe229e80c226",
+        "report.json": "765831d9302b062a812c40bff1c7a2a1a1625c9d76fb628a267a2afad066fda5",
+        "summary.json": "720cb8e226d3b4e4e26e1c221e8c7e7e693682f511efcbdf2a2fa818db7e99b5",
+        "execution-identities.json": "317a396043f9ebf21917cffb75516f56ac58f5c8254e127ca6d6aa377590c1a9"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "433855ec87e6880733f68c20cb4dbbac5d29164d90addee0a86d4fe34220ceee",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "693b367ccb818ac467c0d4543c162cae7a95590ffcd72da19e011875e1c28300"
+    },
+    {
+      "name": "revised-awol-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 48,
+      "phases_observed": 48,
+      "input_events_requested": 27,
+      "elapsed_run_session_seconds": 15.1,
+      "last_action": {
+        "action": "ra_awol_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 10493,
+        "state": {
+          "xy": [
+            934,
+            1748
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "6cb46186f7c7c1f07b548687c90dd203adb7847b97b3b1121c13104fdcc0e17a",
+        "compiled.json": "565ca4373f1a8225217931eb582202ff92af6836b85230664dc992ca908ce00e",
+        "report.json": "f5503fd7c5b84f765458306b594d9eb7cece2c0ebbc3a8e0f472e5a1d79e224e",
+        "summary.json": "2729fa08b006bc4c9350d0a243e19a66668473c6804821e38395fa785f409082",
+        "execution-identities.json": "f5ff12e2e308c889628561d52342d7462dbc7de250302532327846151b0456d7"
+      },
+      "executed_code_sha256": {
+        "amiga_reversing/tools/pandora_revised.py": "2bcbb201634d08f641810eceec37b0e18c60adba267e527dc9304c48ce51d75e",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "8b8e30d5dfed0f2e336898ff5090ae315d0addd7345b7b9139e9c1ca23a672d0"
+    },
+    {
+      "name": "revised-prefix-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 319,
+      "phases_observed": 319,
+      "input_events_requested": 210,
+      "elapsed_run_session_seconds": 139.35,
+      "last_action": {
+        "action": "ra_awol_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 10493,
+        "state": {
+          "xy": [
+            934,
+            1748
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "f089b5e59fbd6caeaad6d7e68b3a1aa1fce6408fa83ff87cb4df4d3d2b95772c",
+        "compiled.json": "df60d1b2e443b72b39692819a3ae88389cf0debd1262be4f82b48b8e28229513",
+        "report.json": "bcce1ead26bcd2864d094b2ccf116cb280d2542ead3746468dc6d387bee1167b",
+        "summary.json": "4917378c55da29432bd367c0bed8ebcaf93514f30d66b568994998be64977421",
+        "execution-identities.json": "b1a3bc3c57b285920ffca4443f20c2b46de42620caa5bef4345d54de2dbff03d"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "823f26445b8f494be4209b27dfb71bcb81d092f6be5b5e9ec2b205139caa1d1d",
+        "amiga_reversing/tools/pandora_revised.py": "89d15e33e9d13dc6c27e415c5030aa939a23013458f003df3839760ebd267a63",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "a6ca80005733c5ec8f5adbc1d9171695c128e615e436fb25dfcfb0fd3a4dd402"
+    },
+    {
+      "name": "finale-console-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 24,
+      "phases_observed": 24,
+      "input_events_requested": 19,
+      "elapsed_run_session_seconds": 13.07,
+      "last_action": {
+        "action": "uc_world_ready",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 11221,
+        "state": {
+          "xy": [
+            514,
+            1708
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "397cc44b5b89deee2d76ed0942b27abf9038b928a559db6dcef5ea3d433c9494",
+        "compiled.json": "63bc6c921d41910567ca715b5aa2734218bf3b6c4ee51cb18ed19e6fa7589467",
+        "report.json": "18f04fe68126f80a885ec0a157d436a1ccea77aa1b879b8b173c446851e74607",
+        "summary.json": "4b65a49cfc7ec17c47f752049de388322b304d523e1fc29e97b2178d41661fdd",
+        "execution-identities.json": "95fca3eb415b1ada72029d5a0388528fa239b5b45131910a83cb3f5a85847763"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "d1bdd9e504f639e305253ce18bad175674e7c896726450ea33f9411a3c01b6c0",
+        "amiga_reversing/tools/pandora_finale.py": "7d8d20cb2918570fbed15a33dfae18e6a7b905a93137674495778aef7bd39018",
+        "amiga_reversing/tools/pandora_revised.py": "89d15e33e9d13dc6c27e415c5030aa939a23013458f003df3839760ebd267a63",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "098535d3afbe72907469fbeeb3645d5aee3b039c117241fe48eb3124bbcc42dc"
+    },
+    {
+      "name": "finale-depart-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 23,
+      "phases_observed": 23,
+      "input_events_requested": 20,
+      "elapsed_run_session_seconds": 21.8,
+      "last_action": {
+        "action": "ud_outside_engineering",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 12425,
+        "state": {
+          "xy": [
+            1298,
+            1320
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "8df502f39e5f1a54439e25fbf0fd07d8a0f896f13f4e6b32c9e5a7f0cc74ab54",
+        "compiled.json": "fa524265ede9b8568d80b5a9acc95c3c65505ea25d2fc83b10f9f4d269b48f17",
+        "report.json": "82b7fedc11945e0d274a2b0a28187e8484de046f887c8a5c495c5a4dd3c097f3",
+        "summary.json": "d34fc061ce82587896c32a334cb75acc04f4d958924f3969e40ba147b87071a8",
+        "execution-identities.json": "95fca3eb415b1ada72029d5a0388528fa239b5b45131910a83cb3f5a85847763"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "d1bdd9e504f639e305253ce18bad175674e7c896726450ea33f9411a3c01b6c0",
+        "amiga_reversing/tools/pandora_finale.py": "7d8d20cb2918570fbed15a33dfae18e6a7b905a93137674495778aef7bd39018",
+        "amiga_reversing/tools/pandora_revised.py": "89d15e33e9d13dc6c27e415c5030aa939a23013458f003df3839760ebd267a63",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "2cc4a3132de272059c15fff2ccff13636022a97690273b9d0683da9787fe09ff"
+    },
+    {
+      "name": "finale-wrap-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 10,
+      "phases_observed": 10,
+      "input_events_requested": 7,
+      "elapsed_run_session_seconds": 10.66,
+      "last_action": {
+        "action": "uw_upper_return_ready",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 12985,
+        "state": {
+          "xy": [
+            1298,
+            232
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 128,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "862f30d1f03659c92d7749eb4dc4c9c4e3e5d8f28a776e940b0ae2103b41f0d7",
+        "compiled.json": "14bbba9e025f2b0899a025047eac942e085cda0b475a3ad90c7f4f83db794125",
+        "report.json": "7da4d81059d0f83cc4c08fec406e05dfa7981bb67e002e1e501633ece8e122c6",
+        "summary.json": "229437b3d9d8c4349560113b0c69500825c4bb27dc7ee2cb0bc9ff5930d57426",
+        "execution-identities.json": "95fca3eb415b1ada72029d5a0388528fa239b5b45131910a83cb3f5a85847763"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "d1bdd9e504f639e305253ce18bad175674e7c896726450ea33f9411a3c01b6c0",
+        "amiga_reversing/tools/pandora_finale.py": "7d8d20cb2918570fbed15a33dfae18e6a7b905a93137674495778aef7bd39018",
+        "amiga_reversing/tools/pandora_revised.py": "89d15e33e9d13dc6c27e415c5030aa939a23013458f003df3839760ebd267a63",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "8520c5567a552d6b41692f222416d991f437098a670bca397efb03aef6528ea0"
+    },
+    {
+      "name": "finale-arm-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 78,
+      "phases_observed": 78,
+      "input_events_requested": 46,
+      "elapsed_run_session_seconds": 31.03,
+      "last_action": {
+        "action": "ac_world_ready",
+        "status": "not_hit",
+        "reason": "capture_expectation_mismatch",
+        "frame": 11391,
+        "state": {
+          "xy": [
+            507,
+            1708
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "2e99fdec537cb7cd154a97ad304fc939df2900675d445dce6ab7c6d71981614c",
+        "compiled.json": "83bd73840b452f1ceb466455c73fac74e13b583fd0e6cff33ca8d27e8a30c2a1",
+        "report.json": "85a5d1487d5502078b26e520369096000125e81afc79183aac1eb28083338e0e",
+        "summary.json": "83897c755660bac4a7c0e4aa292b8d68c70b36a0318413c432e2165c1178861a",
+        "execution-identities.json": "95fca3eb415b1ada72029d5a0388528fa239b5b45131910a83cb3f5a85847763"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "d1bdd9e504f639e305253ce18bad175674e7c896726450ea33f9411a3c01b6c0",
+        "amiga_reversing/tools/pandora_finale.py": "7d8d20cb2918570fbed15a33dfae18e6a7b905a93137674495778aef7bd39018",
+        "amiga_reversing/tools/pandora_revised.py": "89d15e33e9d13dc6c27e415c5030aa939a23013458f003df3839760ebd267a63",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "console_acceptances": [
+        {
+          "action": "ac_submit_disk_accepted",
+          "frame": 11260,
+          "qualifying_count": 0,
+          "submitted_count": 0,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_scarlet_accepted",
+          "frame": 11301,
+          "qualifying_count": 1,
+          "submitted_count": 1,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_ochre_accepted",
+          "frame": 11332,
+          "qualifying_count": 2,
+          "submitted_count": 2,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_blue_accepted",
+          "frame": 11368,
+          "qualifying_count": 3,
+          "submitted_count": 3,
+          "state": 255
+        }
+      ]
+    },
+    {
+      "name": "finale-arm-b",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 78,
+      "phases_observed": 78,
+      "input_events_requested": 46,
+      "elapsed_run_session_seconds": 29.65,
+      "last_action": {
+        "action": "ac_world_ready",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 11391,
+        "state": {
+          "xy": [
+            507,
+            1708
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "1026ce32669a77b22bd546a547d78c0534237ae0f74e7b518401f8d3bd55837b",
+        "compiled.json": "cb1c356708e74ac06bffeb6a16cef974fb1ba1156aebfa2da10ccfd2cb7ed6d9",
+        "report.json": "ce08381894205081642894ad41c7b697ee1599d62aef45cc76258a3eb5763862",
+        "summary.json": "7e061d5cf9fe20191bd864f6a3f96f2ba24ed4d21f74e15ec12f7499bc419b3f",
+        "execution-identities.json": "2cbd13a1d0ef5249f8b0c12a59014d3ab134043ffbb634f115df6145d878a8d8"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "c207f38dbbca16877d2c7057ed307b0f0fef64645fa2e9c19fc2e1b492e71f93",
+        "amiga_reversing/tools/pandora_finale.py": "1dd91ea81773cdbf2cbe87bff22194356c1fc6a123ba6f7da1fc3b9d80839b61",
+        "amiga_reversing/tools/pandora_revised.py": "89d15e33e9d13dc6c27e415c5030aa939a23013458f003df3839760ebd267a63",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "f136a057a1f2a3591cbb2fd1596cd944cd394456f8cae9a1de8561087e4c688a",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "e5996c59321692a1e05c9741b417dc035b1670fa7fedda57025434b961945397",
+      "console_acceptances": [
+        {
+          "action": "ac_submit_disk_accepted",
+          "frame": 11260,
+          "qualifying_count": 0,
+          "submitted_count": 0,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_scarlet_accepted",
+          "frame": 11301,
+          "qualifying_count": 1,
+          "submitted_count": 1,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_ochre_accepted",
+          "frame": 11332,
+          "qualifying_count": 2,
+          "submitted_count": 2,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_blue_accepted",
+          "frame": 11368,
+          "qualifying_count": 3,
+          "submitted_count": 3,
+          "state": 255
+        }
+      ]
+    },
+    {
+      "name": "finale-return-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "incomplete",
+      "phases_requested": 32,
+      "phases_observed": 2,
+      "input_events_requested": 27,
+      "elapsed_run_session_seconds": 6.23,
+      "last_action": {
+        "action": "ad_engineering_departure_0",
+        "status": "not_hit",
+        "reason": "frame_budget_exhausted",
+        "frame": 11751,
+        "state": {
+          "xy": [
+            500,
+            1804
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 0,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 25,
+        "state_origin": "diagnostic_stop",
+        "last_canonical_state": {
+          "xy": [
+            500,
+            1804
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 0,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "artifact_sha256": {
+        "authored.json": "5a9265db86b27196e68207b609f66f774bfb067b377babcb6f6d5adbeead7fca",
+        "compiled.json": "f9063259fb00e263d3dfa7161a77973b85fc0290d204e5b041610aa1bcca665a",
+        "report.json": "36987a71c6e2edbea8495db6bfd2bad23dbf3192fcf170804d92acb051465a58",
+        "summary.json": "88a9b15ffc44e059f6f3c6a932d2470e1189b1cbdf5d0a4e1ae59139f244c0cb",
+        "execution-identities.json": "4d809adedd3f459a3c4a27bdeb9076278ec806746f1caafa8a1d9a29caae1be0"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "96da7dc62b803e08c3f9f72417ffbf88e3ebe964ebaa5a27a828e384a703dcd2",
+        "amiga_reversing/tools/pandora_finale.py": "1dd91ea81773cdbf2cbe87bff22194356c1fc6a123ba6f7da1fc3b9d80839b61",
+        "amiga_reversing/tools/pandora_revised.py": "6eb5ea129a4242205a2bf1a6e4944208683b8bb1f46a2d9e6a81e47570d1d42a",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "291d56e2423f48b32057feabab12c0f1bab19ac5e508ec0342e7e9d333c956ec",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "finale-return-b",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 33,
+      "phases_observed": 33,
+      "input_events_requested": 28,
+      "elapsed_run_session_seconds": 40.31,
+      "last_action": {
+        "action": "aw_upper_return_ready",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 13122,
+        "state": {
+          "xy": [
+            1298,
+            232
+          ],
+          "health": 49,
+          "held": 50,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 0,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            55,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "b46794074d721905dc08c0f109c62cf7fb246c5bf3774e01c8d3ed52b0598eda",
+        "compiled.json": "23da07bf487fede89ae9f0d9d2d2444b598d9abdea4de1b3ff172e06580f2541",
+        "report.json": "dd010e36ee3996f29db7cca9494562dce6793b288505a7eae70a0230d63d5817",
+        "summary.json": "c87ade09fcfab8a3c48c423190d9ca8fd3986a23acbb864555a5de618ef6595a",
+        "execution-identities.json": "17addd8c34c002107449796631b78afb3f47e61a52b3fabf8e8d7598e5d22e40"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "96da7dc62b803e08c3f9f72417ffbf88e3ebe964ebaa5a27a828e384a703dcd2",
+        "amiga_reversing/tools/pandora_finale.py": "fe911339f4bb434cfca6e27eb1e8258fd42f8187304eef766c1bead4c4d7cde6",
+        "amiga_reversing/tools/pandora_revised.py": "6eb5ea129a4242205a2bf1a6e4944208683b8bb1f46a2d9e6a81e47570d1d42a",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "291d56e2423f48b32057feabab12c0f1bab19ac5e508ec0342e7e9d333c956ec",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "47d0b51ad4701a7e5556ac015d02774b43f07d8a414618c4c122df31261790fa"
+    },
+    {
+      "name": "finale-upper-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 32,
+      "phases_observed": 32,
+      "input_events_requested": 22,
+      "elapsed_run_session_seconds": 20.98,
+      "last_action": {
+        "action": "ur_awol_authorized",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 14309,
+        "state": {
+          "xy": [
+            164,
+            792
+          ],
+          "health": 49,
+          "held": 55,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            11
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "bda4c283b173310378cf71ea2f8e9ef15bd5592d63faca4f0662cd22ae7c23da",
+        "compiled.json": "cf2840e1a3df6812b6f5afa7d1dde57ed623c65a53c28c29a30e113f7d133325",
+        "report.json": "75ff817440b522ff2315f33a488c97ccc05d96e461783b706a849c8f0fa2f9a0",
+        "summary.json": "8425fac8e6fe095976950168c5d66083da28287ea922b5e48f769227a4ecb836",
+        "execution-identities.json": "17addd8c34c002107449796631b78afb3f47e61a52b3fabf8e8d7598e5d22e40"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "96da7dc62b803e08c3f9f72417ffbf88e3ebe964ebaa5a27a828e384a703dcd2",
+        "amiga_reversing/tools/pandora_finale.py": "fe911339f4bb434cfca6e27eb1e8258fd42f8187304eef766c1bead4c4d7cde6",
+        "amiga_reversing/tools/pandora_revised.py": "6eb5ea129a4242205a2bf1a6e4944208683b8bb1f46a2d9e6a81e47570d1d42a",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "291d56e2423f48b32057feabab12c0f1bab19ac5e508ec0342e7e9d333c956ec",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "4fd87962bd6e6b077ec548f478349080a4f4114a7acb4ab5fda6a3c35fe78e30"
+    },
+    {
+      "name": "finale-escape-a",
+      "qualification": "verified_checkpoint_development",
+      "status": "ok",
+      "phases_requested": 6,
+      "phases_observed": 6,
+      "input_events_requested": 3,
+      "elapsed_run_session_seconds": 0.76,
+      "last_action": {
+        "action": "es_escape_commit_inhibited",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 14330,
+        "state": {
+          "xy": [
+            171,
+            804
+          ],
+          "health": 49,
+          "held": 55,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 0,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "73b57f6bed7a25ad93b3ad5563384a9570f5e96bae02b8827829ec231f1a17be",
+        "compiled.json": "ed88c7f7e48e10753a66d84a06e208f3a1192dddcc661180b1909c2c7ddd7d5f",
+        "report.json": "d03d65be8e7e2f9ded34682cf9cc873ddc5aa8618a38d81118151b948b3fd2f4",
+        "summary.json": "1c3650fb8bb157b1717d012d9912c90edd8820e7e0998226951ccbff44b39e15",
+        "execution-identities.json": "17addd8c34c002107449796631b78afb3f47e61a52b3fabf8e8d7598e5d22e40"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "96da7dc62b803e08c3f9f72417ffbf88e3ebe964ebaa5a27a828e384a703dcd2",
+        "amiga_reversing/tools/pandora_finale.py": "fe911339f4bb434cfca6e27eb1e8258fd42f8187304eef766c1bead4c4d7cde6",
+        "amiga_reversing/tools/pandora_revised.py": "6eb5ea129a4242205a2bf1a6e4944208683b8bb1f46a2d9e6a81e47570d1d42a",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "291d56e2423f48b32057feabab12c0f1bab19ac5e508ec0342e7e9d333c956ec",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "3cc9127de63252b27e281bdc1e07531daba589bf654d7fc124f086c4db2198f1",
+      "saved_earth_outcome": {
+        "frame": 14329,
+        "source_pc": "0x4c9dc",
+        "runtime_pc": "0x5c9dc",
+        "message_runtime_pointer": "0x5cae5",
+        "message_source_offset": "0x4cae5",
+        "self_destruct_state": 255,
+        "event_flags": 92,
+        "earth_deadline_word": "0x8258"
+      }
+    },
+    {
+      "name": "finale-cold-a",
+      "qualification": "continuous_cold_boot",
+      "status": "incomplete",
+      "phases_requested": 574,
+      "phases_observed": 240,
+      "input_events_requested": 375,
+      "elapsed_run_session_seconds": 132.24,
+      "last_action": {
+        "action": "thermolance_hooligan_defeated",
+        "status": "not_hit",
+        "reason": "capture_expectation_mismatch",
+        "frame": 6307,
+        "state": {
+          "xy": [
+            10500,
+            606
+          ],
+          "health": 49,
+          "held": 11,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 34,
+          "position_domain": "combat_x_bias_10000",
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            49,
+            0
+          ],
+          "display_ids": [
+            105,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "7846b42121336194856d07ba541c5e1c6aa78acd5407fd7cb93e8c6945529d5f",
+        "compiled.json": "528b765ba33ee138ea82515121fe5d4ffd6d7b9bb5268083a9d37e6f41b093a3",
+        "report.json": "fbf3383b9ea294d1c109aa964386f7303c38798a4c01dd7c3b7c2e16f28dae0c",
+        "summary.json": "f1e1ba02539ca329a1911ca40f320af2b5f1285e244b23a1fd38b5d9b17e1305",
+        "execution-identities.json": "773762a1e7e81f1e01680615474abfe0b626ce936b09b3510ccd16288e1b3d51"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "96da7dc62b803e08c3f9f72417ffbf88e3ebe964ebaa5a27a828e384a703dcd2",
+        "amiga_reversing/tools/pandora_finale.py": "9f3675e8059a657885c42cda4b729d866919afc3816fe3462ed789419f9ef53a",
+        "amiga_reversing/tools/pandora_revised.py": "6eb5ea129a4242205a2bf1a6e4944208683b8bb1f46a2d9e6a81e47570d1d42a",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "c1ca74d744a9b948809d266d87fb694ec79764fc833a8e07f9a910fed6e7abbf",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      }
+    },
+    {
+      "name": "finale-cold-b",
+      "qualification": "continuous_cold_boot",
+      "status": "ok",
+      "phases_requested": 576,
+      "phases_observed": 576,
+      "input_events_requested": 375,
+      "elapsed_run_session_seconds": 306.07,
+      "last_action": {
+        "action": "es_escape_commit_inhibited",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 14332,
+        "state": {
+          "xy": [
+            171,
+            804
+          ],
+          "health": 49,
+          "held": 55,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 32,
+          "cached_id": 0,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            48,
+            0,
+            49,
+            11
+          ],
+          "display_ids": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "artifact_sha256": {
+        "authored.json": "968d837857626859b525d057b317a55315f3ea9a0f19c99ea9f74f41b18e51d2",
+        "compiled.json": "cabf4d9049afd7f24ff2aed53f42a3253ebb53c6b13f223dea49f3aaf633f0f7",
+        "report.json": "763d9ec96740209b2fce66f5aaea412bafd551661b4398e458f80489895e009a",
+        "summary.json": "1d12968813d3daba37b66a593e46ab3b92fada771b124638348cfe484081144f",
+        "execution-identities.json": "7433763b02d6bbedeee34723b1fb9bd9dfce6cc2e977dfc5986ab47bf0cd6eb4"
+      },
+      "executed_code_sha256": {
+        ".runtime-state/pandora-player/run.py": "96da7dc62b803e08c3f9f72417ffbf88e3ebe964ebaa5a27a828e384a703dcd2",
+        "amiga_reversing/tools/pandora_finale.py": "9f3675e8059a657885c42cda4b729d866919afc3816fe3462ed789419f9ef53a",
+        "amiga_reversing/tools/pandora_revised.py": "18950e1ad4f41a7ccf0bb34f2f3336712561fbe18d457acdb68b733d7ef376f6",
+        "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+        "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+        "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+        "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+        "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+        "amiga_reversing/tools/copperline_runtime.py": "dc572c6b07c1c56d189a662f410e69d351e71415b48d18d463efecd6f5d24cf3",
+        "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+      },
+      "checkpoint_receipt_sha256": "848fe42736faca15508a98067f96245976d544f391e5a664193fac0fb3c9a93c",
+      "console_acceptances": [
+        {
+          "action": "ac_submit_disk_accepted",
+          "frame": 11260,
+          "qualifying_count": 0,
+          "submitted_count": 0,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_scarlet_accepted",
+          "frame": 11301,
+          "qualifying_count": 1,
+          "submitted_count": 1,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_ochre_accepted",
+          "frame": 11332,
+          "qualifying_count": 2,
+          "submitted_count": 2,
+          "state": 1
+        },
+        {
+          "action": "ac_submit_blue_accepted",
+          "frame": 11368,
+          "qualifying_count": 3,
+          "submitted_count": 3,
+          "state": 255
+        }
+      ],
+      "saved_earth_outcome": {
+        "frame": 14331,
+        "source_pc": "0x4c9dc",
+        "runtime_pc": "0x5c9dc",
+        "message_runtime_pointer": "0x5cae5",
+        "message_source_offset": "0x4cae5",
+        "self_destruct_state": 255,
+        "event_flags": 92,
+        "earth_deadline_word": "0x8258"
+      }
+    }
+  ],
+  "input_identities": {
+    "original_payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_rendered_source_sha256": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "accepted_instruction_facts_sha256": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+    "legal_rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "copperline_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "direct_payload_media_sha256": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a"
+  }
+}

@@ -1,0 +1,6238 @@
+{
+  "base_commit": "fcd9dc83167e87104aef298173976f5336108269",
+  "capacity_reconciliation": {
+    "classification_change": 0,
+    "next_experiment": "When a supported DMA read-event observer is available, replay only the captured final B packet:source49D16,width2 WORDs,height12,modulo12. Record agent,address,width and packet context at49DC8. Do not substitute a host memory snapshot or write watch. Then seek producer/reservation evidence before classifying the rest of1392 bytes.",
+    "proven": [
+      "Bank30 original initializer74BA..74D0 uses658 four-plane cells:5264 pixel input bytes,1316 mask output bytes.",
+      "Thirteen known defeat frames are tightly packed from source38938 through39DC8; their mask pointers track pixel offsets divided by4 from runtime32FC.",
+      "Next pixel root is source3A338. Keyboard root is runtime397C.",
+      "Pixel interval38938..3A338 is6656 bytes=13*512; mask interval32FC..397C is1664 bytes=13*128.",
+      "Capacity differences are1392 pixel bytes and348 mask bytes, at ratio4."
+    ],
+    "supported_interpretation": "A retained full-frame capacity/cropping suffix is supported by paired arithmetic. This is not an explicit recovered allocator or format declaration.",
+    "unknown": [
+      "Original producer or reservation declaration proving the complete capacity bounds and suffix role.",
+      "Whether the first modeled guard WORD is actually fetched by the chipset in the requested replay.",
+      "All readers/writers, exclusive ownership and lifetime for either suffix."
+    ]
+  },
+  "chipset_followup": {
+    "access_claim": "Guard-word access remains a modeled programmed fetch envelope, not an observed chipset read.",
+    "cli_error": "unrecognized arguments: --observation-memory-read-watch",
+    "cli_exit_code": 2,
+    "denied_by_permissions": false,
+    "emulator": {
+      "binary_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+      "present": true,
+      "version": "copperline 1.0.0"
+    },
+    "emulator_replay_launched": false,
+    "interface_evidence": [
+      {
+        "finding": "Public CLI provides observation-memory-write-watch, not a read/chipset-trace control.",
+        "path": "amiga_reversing/tools/copperline_session.py",
+        "symbol": "build_parser"
+      },
+      {
+        "finding": "Allowed capture keys are registers,memory_reads,custom_registers. These are snapshots, not bus-access events.",
+        "path": "amiga_reversing/tools/copperline_session.py",
+        "symbol": "validate_capture"
+      },
+      {
+        "finding": "Watch request is break.add kindwatch accesswrite.",
+        "path": "amiga_reversing/tools/copperline_runtime.py",
+        "symbol": "wait_for_marker"
+      },
+      {
+        "path": ".agents/skills/headless-amiga-runtime/SKILL.md",
+        "requirement": "Use amiga_reversing.tools.copperline_session; never launch a visible emulator or expose arbitrary control commands to an agent."
+      }
+    ],
+    "normalized_cli_probe": "python -m amiga_reversing.tools.copperline_session --target TARGET --rom EXISTING_LEGAL_ROM --copperline PINNED_BINARY --observation-memory-address 0x49dc8 --observation-memory-read-watch",
+    "reason": "The supported target-aware interface cannot arm or return a DMA-agent/read-event trace. No alternative debugger interface, upgrade, packet-injection extension or open-ended route was attempted.",
+    "requested_action": "Replay the original final bank30 B-channel packet with chipset read tracing at runtime49DC8..49DCA.",
+    "rom": {
+      "content_included": false,
+      "present": true,
+      "sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+      "version": "34.5"
+    },
+    "status": "blocked_supported_interface",
+    "target_runtime_interval": {
+      "end": 302538,
+      "start": 302536
+    },
+    "underlying_emulator_chipset_read_trace_capability": "unverified; no claim that Copperline itself fundamentally cannot trace reads"
+  },
+  "commit": "fcd9dc83167e87104aef298173976f5336108269",
+  "cursor": {
+    "bytes_per_group": 8,
+    "evidence": "Completed first original run; actual A0 recorded before each original MOVEM at9F06.",
+    "final_a0": 46248,
+    "groups": 16,
+    "last_read_end": 46240,
+    "observation_method": "A0 recorded before each original MOVEM.W at9F06;16 groups of8 source bytes, stride16. Original cursor initializer9EF2..9F18; external stack.",
+    "source_start": 45992,
+    "source_stride": 16,
+    "start": 40690,
+    "steps": 116,
+    "stop": 40728,
+    "tail_bytes": "unchanged",
+    "unknown_tail_reads": 0
+  },
+  "defeat_bank_capacity_hypothesis": {
+    "frame_count": 13,
+    "frames": [
+      {
+        "header_source": 312784,
+        "height": 32,
+        "mask": 13052,
+        "nominal_end": 297784,
+        "pixel": 297272,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 0
+      },
+      {
+        "header_source": 312802,
+        "height": 32,
+        "mask": 13180,
+        "nominal_end": 298296,
+        "pixel": 297784,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 0
+      },
+      {
+        "header_source": 312820,
+        "height": 32,
+        "mask": 13308,
+        "nominal_end": 298808,
+        "pixel": 298296,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 0
+      },
+      {
+        "header_source": 312838,
+        "height": 32,
+        "mask": 13436,
+        "nominal_end": 299320,
+        "pixel": 298808,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 0
+      },
+      {
+        "header_source": 312856,
+        "height": 32,
+        "mask": 13564,
+        "nominal_end": 299832,
+        "pixel": 299320,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 0
+      },
+      {
+        "header_source": 312874,
+        "height": 32,
+        "mask": 13692,
+        "nominal_end": 300344,
+        "pixel": 299832,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 0
+      },
+      {
+        "header_source": 312892,
+        "height": 31,
+        "mask": 13820,
+        "nominal_end": 300840,
+        "pixel": 300344,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 1
+      },
+      {
+        "header_source": 312910,
+        "height": 27,
+        "mask": 13944,
+        "nominal_end": 301272,
+        "pixel": 300840,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 4
+      },
+      {
+        "header_source": 312928,
+        "height": 21,
+        "mask": 14052,
+        "nominal_end": 301608,
+        "pixel": 301272,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 10
+      },
+      {
+        "header_source": 312946,
+        "height": 18,
+        "mask": 14136,
+        "nominal_end": 301896,
+        "pixel": 301608,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 14
+      },
+      {
+        "header_source": 312964,
+        "height": 15,
+        "mask": 14208,
+        "nominal_end": 302136,
+        "pixel": 301896,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 17
+      },
+      {
+        "header_source": 312982,
+        "height": 13,
+        "mask": 14268,
+        "nominal_end": 302344,
+        "pixel": 302136,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 19
+      },
+      {
+        "header_source": 313000,
+        "height": 12,
+        "mask": 14320,
+        "nominal_end": 302536,
+        "pixel": 302344,
+        "stride_words": 2,
+        "width": 32,
+        "y_offset": 20
+      }
+    ],
+    "full_frame_mask_bytes": 128,
+    "full_frame_pixel_bytes": 512,
+    "mask_base": 13052,
+    "mask_budget": 1664,
+    "mask_suffix": 348,
+    "next_keyboard_root": 14716,
+    "packed_mask_end": 14368,
+    "packed_masks": 1316,
+    "packed_pixels": 5264,
+    "pixel_budget": 6656,
+    "pixel_suffix": 1392,
+    "relationship": "pixel suffix = 4 * mask suffix; both full budgets = 13 maximum 32x32 frames.",
+    "status": "Strong retained-capacity/cropping hypothesis, not proof of padding intent or exclusive allocation. First two pixel-suffix bytes lie within a modeled programmed B-channel fetch."
+  },
+  "evidence_kind": "bounded_original_cpu_model_and_static_capacity_audit",
+  "glyph_index": {
+    "before_unknown_tail": false,
+    "excluded_inputs": {
+      "0": "string terminator",
+      "32": "space branch skips glyph read"
+    },
+    "inputs_tested": 254,
+    "maximum_source_offset": 82728,
+    "minimum_source_offset": 50088,
+    "preconditions": {
+      "app_base": 14844,
+      "cursor_destination": 524288,
+      "entry_source": 30536,
+      "limit": "Stops before raster data read; cannot establish complete glyph or display behavior.",
+      "register_zero_extension": "Original MOVEQ at7748, not a substituted register seed",
+      "stop_source": 30586,
+      "text": "One tested BYTE followed by NUL",
+      "text_address": 589824
+    },
+    "scope": "Original7748 wrapper through777A, before first raster read; D0 cleared by original MOVEQ. No full glyph/DMA proof.",
+    "selections": [
+      {
+        "input_byte": 1,
+        "source_offset": 74664,
+        "steps": 16
+      },
+      {
+        "input_byte": 2,
+        "source_offset": 74792,
+        "steps": 16
+      },
+      {
+        "input_byte": 3,
+        "source_offset": 74920,
+        "steps": 16
+      },
+      {
+        "input_byte": 4,
+        "source_offset": 75048,
+        "steps": 16
+      },
+      {
+        "input_byte": 5,
+        "source_offset": 75176,
+        "steps": 16
+      },
+      {
+        "input_byte": 6,
+        "source_offset": 75304,
+        "steps": 16
+      },
+      {
+        "input_byte": 7,
+        "source_offset": 75432,
+        "steps": 16
+      },
+      {
+        "input_byte": 8,
+        "source_offset": 75560,
+        "steps": 16
+      },
+      {
+        "input_byte": 9,
+        "source_offset": 75688,
+        "steps": 16
+      },
+      {
+        "input_byte": 10,
+        "source_offset": 75816,
+        "steps": 16
+      },
+      {
+        "input_byte": 11,
+        "source_offset": 75944,
+        "steps": 16
+      },
+      {
+        "input_byte": 12,
+        "source_offset": 76072,
+        "steps": 16
+      },
+      {
+        "input_byte": 13,
+        "source_offset": 76200,
+        "steps": 16
+      },
+      {
+        "input_byte": 14,
+        "source_offset": 76328,
+        "steps": 16
+      },
+      {
+        "input_byte": 15,
+        "source_offset": 76456,
+        "steps": 16
+      },
+      {
+        "input_byte": 16,
+        "source_offset": 76584,
+        "steps": 16
+      },
+      {
+        "input_byte": 17,
+        "source_offset": 76712,
+        "steps": 16
+      },
+      {
+        "input_byte": 18,
+        "source_offset": 76840,
+        "steps": 16
+      },
+      {
+        "input_byte": 19,
+        "source_offset": 76968,
+        "steps": 16
+      },
+      {
+        "input_byte": 20,
+        "source_offset": 77096,
+        "steps": 16
+      },
+      {
+        "input_byte": 21,
+        "source_offset": 77224,
+        "steps": 16
+      },
+      {
+        "input_byte": 22,
+        "source_offset": 77352,
+        "steps": 16
+      },
+      {
+        "input_byte": 23,
+        "source_offset": 77480,
+        "steps": 16
+      },
+      {
+        "input_byte": 24,
+        "source_offset": 77608,
+        "steps": 16
+      },
+      {
+        "input_byte": 25,
+        "source_offset": 77736,
+        "steps": 16
+      },
+      {
+        "input_byte": 26,
+        "source_offset": 77864,
+        "steps": 16
+      },
+      {
+        "input_byte": 27,
+        "source_offset": 77992,
+        "steps": 16
+      },
+      {
+        "input_byte": 28,
+        "source_offset": 78120,
+        "steps": 16
+      },
+      {
+        "input_byte": 29,
+        "source_offset": 78248,
+        "steps": 16
+      },
+      {
+        "input_byte": 30,
+        "source_offset": 78376,
+        "steps": 16
+      },
+      {
+        "input_byte": 31,
+        "source_offset": 78504,
+        "steps": 16
+      },
+      {
+        "input_byte": 33,
+        "source_offset": 78760,
+        "steps": 16
+      },
+      {
+        "input_byte": 34,
+        "source_offset": 78888,
+        "steps": 16
+      },
+      {
+        "input_byte": 35,
+        "source_offset": 79016,
+        "steps": 16
+      },
+      {
+        "input_byte": 36,
+        "source_offset": 79144,
+        "steps": 16
+      },
+      {
+        "input_byte": 37,
+        "source_offset": 79272,
+        "steps": 16
+      },
+      {
+        "input_byte": 38,
+        "source_offset": 79400,
+        "steps": 16
+      },
+      {
+        "input_byte": 39,
+        "source_offset": 79528,
+        "steps": 16
+      },
+      {
+        "input_byte": 40,
+        "source_offset": 79656,
+        "steps": 16
+      },
+      {
+        "input_byte": 41,
+        "source_offset": 79784,
+        "steps": 16
+      },
+      {
+        "input_byte": 42,
+        "source_offset": 79912,
+        "steps": 16
+      },
+      {
+        "input_byte": 43,
+        "source_offset": 80040,
+        "steps": 16
+      },
+      {
+        "input_byte": 44,
+        "source_offset": 80168,
+        "steps": 16
+      },
+      {
+        "input_byte": 45,
+        "source_offset": 80296,
+        "steps": 16
+      },
+      {
+        "input_byte": 46,
+        "source_offset": 80424,
+        "steps": 16
+      },
+      {
+        "input_byte": 47,
+        "source_offset": 80552,
+        "steps": 16
+      },
+      {
+        "input_byte": 48,
+        "source_offset": 80680,
+        "steps": 16
+      },
+      {
+        "input_byte": 49,
+        "source_offset": 80808,
+        "steps": 16
+      },
+      {
+        "input_byte": 50,
+        "source_offset": 80936,
+        "steps": 16
+      },
+      {
+        "input_byte": 51,
+        "source_offset": 81064,
+        "steps": 16
+      },
+      {
+        "input_byte": 52,
+        "source_offset": 81192,
+        "steps": 16
+      },
+      {
+        "input_byte": 53,
+        "source_offset": 81320,
+        "steps": 16
+      },
+      {
+        "input_byte": 54,
+        "source_offset": 81448,
+        "steps": 16
+      },
+      {
+        "input_byte": 55,
+        "source_offset": 81576,
+        "steps": 16
+      },
+      {
+        "input_byte": 56,
+        "source_offset": 81704,
+        "steps": 16
+      },
+      {
+        "input_byte": 57,
+        "source_offset": 81832,
+        "steps": 16
+      },
+      {
+        "input_byte": 58,
+        "source_offset": 81960,
+        "steps": 16
+      },
+      {
+        "input_byte": 59,
+        "source_offset": 82088,
+        "steps": 16
+      },
+      {
+        "input_byte": 60,
+        "source_offset": 82216,
+        "steps": 16
+      },
+      {
+        "input_byte": 61,
+        "source_offset": 82344,
+        "steps": 16
+      },
+      {
+        "input_byte": 62,
+        "source_offset": 82472,
+        "steps": 16
+      },
+      {
+        "input_byte": 63,
+        "source_offset": 82600,
+        "steps": 16
+      },
+      {
+        "input_byte": 64,
+        "source_offset": 82728,
+        "steps": 16
+      },
+      {
+        "input_byte": 65,
+        "source_offset": 50088,
+        "steps": 16
+      },
+      {
+        "input_byte": 66,
+        "source_offset": 50216,
+        "steps": 16
+      },
+      {
+        "input_byte": 67,
+        "source_offset": 50344,
+        "steps": 16
+      },
+      {
+        "input_byte": 68,
+        "source_offset": 50472,
+        "steps": 16
+      },
+      {
+        "input_byte": 69,
+        "source_offset": 50600,
+        "steps": 16
+      },
+      {
+        "input_byte": 70,
+        "source_offset": 50728,
+        "steps": 16
+      },
+      {
+        "input_byte": 71,
+        "source_offset": 50856,
+        "steps": 16
+      },
+      {
+        "input_byte": 72,
+        "source_offset": 50984,
+        "steps": 16
+      },
+      {
+        "input_byte": 73,
+        "source_offset": 51112,
+        "steps": 16
+      },
+      {
+        "input_byte": 74,
+        "source_offset": 51240,
+        "steps": 16
+      },
+      {
+        "input_byte": 75,
+        "source_offset": 51368,
+        "steps": 16
+      },
+      {
+        "input_byte": 76,
+        "source_offset": 51496,
+        "steps": 16
+      },
+      {
+        "input_byte": 77,
+        "source_offset": 51624,
+        "steps": 16
+      },
+      {
+        "input_byte": 78,
+        "source_offset": 51752,
+        "steps": 16
+      },
+      {
+        "input_byte": 79,
+        "source_offset": 51880,
+        "steps": 16
+      },
+      {
+        "input_byte": 80,
+        "source_offset": 52008,
+        "steps": 16
+      },
+      {
+        "input_byte": 81,
+        "source_offset": 52136,
+        "steps": 16
+      },
+      {
+        "input_byte": 82,
+        "source_offset": 52264,
+        "steps": 16
+      },
+      {
+        "input_byte": 83,
+        "source_offset": 52392,
+        "steps": 16
+      },
+      {
+        "input_byte": 84,
+        "source_offset": 52520,
+        "steps": 16
+      },
+      {
+        "input_byte": 85,
+        "source_offset": 52648,
+        "steps": 16
+      },
+      {
+        "input_byte": 86,
+        "source_offset": 52776,
+        "steps": 16
+      },
+      {
+        "input_byte": 87,
+        "source_offset": 52904,
+        "steps": 16
+      },
+      {
+        "input_byte": 88,
+        "source_offset": 53032,
+        "steps": 16
+      },
+      {
+        "input_byte": 89,
+        "source_offset": 53160,
+        "steps": 16
+      },
+      {
+        "input_byte": 90,
+        "source_offset": 53288,
+        "steps": 16
+      },
+      {
+        "input_byte": 91,
+        "source_offset": 53416,
+        "steps": 16
+      },
+      {
+        "input_byte": 92,
+        "source_offset": 53544,
+        "steps": 16
+      },
+      {
+        "input_byte": 93,
+        "source_offset": 53672,
+        "steps": 16
+      },
+      {
+        "input_byte": 94,
+        "source_offset": 53800,
+        "steps": 16
+      },
+      {
+        "input_byte": 95,
+        "source_offset": 53928,
+        "steps": 16
+      },
+      {
+        "input_byte": 96,
+        "source_offset": 54056,
+        "steps": 16
+      },
+      {
+        "input_byte": 97,
+        "source_offset": 50088,
+        "steps": 17
+      },
+      {
+        "input_byte": 98,
+        "source_offset": 50216,
+        "steps": 17
+      },
+      {
+        "input_byte": 99,
+        "source_offset": 50344,
+        "steps": 17
+      },
+      {
+        "input_byte": 100,
+        "source_offset": 50472,
+        "steps": 17
+      },
+      {
+        "input_byte": 101,
+        "source_offset": 50600,
+        "steps": 17
+      },
+      {
+        "input_byte": 102,
+        "source_offset": 50728,
+        "steps": 17
+      },
+      {
+        "input_byte": 103,
+        "source_offset": 50856,
+        "steps": 17
+      },
+      {
+        "input_byte": 104,
+        "source_offset": 50984,
+        "steps": 17
+      },
+      {
+        "input_byte": 105,
+        "source_offset": 51112,
+        "steps": 17
+      },
+      {
+        "input_byte": 106,
+        "source_offset": 51240,
+        "steps": 17
+      },
+      {
+        "input_byte": 107,
+        "source_offset": 51368,
+        "steps": 17
+      },
+      {
+        "input_byte": 108,
+        "source_offset": 51496,
+        "steps": 17
+      },
+      {
+        "input_byte": 109,
+        "source_offset": 51624,
+        "steps": 17
+      },
+      {
+        "input_byte": 110,
+        "source_offset": 51752,
+        "steps": 17
+      },
+      {
+        "input_byte": 111,
+        "source_offset": 51880,
+        "steps": 17
+      },
+      {
+        "input_byte": 112,
+        "source_offset": 52008,
+        "steps": 17
+      },
+      {
+        "input_byte": 113,
+        "source_offset": 52136,
+        "steps": 17
+      },
+      {
+        "input_byte": 114,
+        "source_offset": 52264,
+        "steps": 17
+      },
+      {
+        "input_byte": 115,
+        "source_offset": 52392,
+        "steps": 17
+      },
+      {
+        "input_byte": 116,
+        "source_offset": 52520,
+        "steps": 17
+      },
+      {
+        "input_byte": 117,
+        "source_offset": 52648,
+        "steps": 17
+      },
+      {
+        "input_byte": 118,
+        "source_offset": 52776,
+        "steps": 17
+      },
+      {
+        "input_byte": 119,
+        "source_offset": 52904,
+        "steps": 17
+      },
+      {
+        "input_byte": 120,
+        "source_offset": 53032,
+        "steps": 17
+      },
+      {
+        "input_byte": 121,
+        "source_offset": 53160,
+        "steps": 17
+      },
+      {
+        "input_byte": 122,
+        "source_offset": 53288,
+        "steps": 17
+      },
+      {
+        "input_byte": 123,
+        "source_offset": 53416,
+        "steps": 17
+      },
+      {
+        "input_byte": 124,
+        "source_offset": 53544,
+        "steps": 17
+      },
+      {
+        "input_byte": 125,
+        "source_offset": 53672,
+        "steps": 17
+      },
+      {
+        "input_byte": 126,
+        "source_offset": 53800,
+        "steps": 17
+      },
+      {
+        "input_byte": 127,
+        "source_offset": 53928,
+        "steps": 17
+      },
+      {
+        "input_byte": 128,
+        "source_offset": 58152,
+        "steps": 17
+      },
+      {
+        "input_byte": 129,
+        "source_offset": 58280,
+        "steps": 17
+      },
+      {
+        "input_byte": 130,
+        "source_offset": 58408,
+        "steps": 17
+      },
+      {
+        "input_byte": 131,
+        "source_offset": 58536,
+        "steps": 17
+      },
+      {
+        "input_byte": 132,
+        "source_offset": 58664,
+        "steps": 17
+      },
+      {
+        "input_byte": 133,
+        "source_offset": 58792,
+        "steps": 17
+      },
+      {
+        "input_byte": 134,
+        "source_offset": 58920,
+        "steps": 17
+      },
+      {
+        "input_byte": 135,
+        "source_offset": 59048,
+        "steps": 17
+      },
+      {
+        "input_byte": 136,
+        "source_offset": 59176,
+        "steps": 17
+      },
+      {
+        "input_byte": 137,
+        "source_offset": 59304,
+        "steps": 17
+      },
+      {
+        "input_byte": 138,
+        "source_offset": 59432,
+        "steps": 17
+      },
+      {
+        "input_byte": 139,
+        "source_offset": 59560,
+        "steps": 17
+      },
+      {
+        "input_byte": 140,
+        "source_offset": 59688,
+        "steps": 17
+      },
+      {
+        "input_byte": 141,
+        "source_offset": 59816,
+        "steps": 17
+      },
+      {
+        "input_byte": 142,
+        "source_offset": 59944,
+        "steps": 17
+      },
+      {
+        "input_byte": 143,
+        "source_offset": 60072,
+        "steps": 17
+      },
+      {
+        "input_byte": 144,
+        "source_offset": 60200,
+        "steps": 17
+      },
+      {
+        "input_byte": 145,
+        "source_offset": 60328,
+        "steps": 17
+      },
+      {
+        "input_byte": 146,
+        "source_offset": 60456,
+        "steps": 17
+      },
+      {
+        "input_byte": 147,
+        "source_offset": 60584,
+        "steps": 17
+      },
+      {
+        "input_byte": 148,
+        "source_offset": 60712,
+        "steps": 17
+      },
+      {
+        "input_byte": 149,
+        "source_offset": 60840,
+        "steps": 17
+      },
+      {
+        "input_byte": 150,
+        "source_offset": 60968,
+        "steps": 17
+      },
+      {
+        "input_byte": 151,
+        "source_offset": 61096,
+        "steps": 17
+      },
+      {
+        "input_byte": 152,
+        "source_offset": 61224,
+        "steps": 17
+      },
+      {
+        "input_byte": 153,
+        "source_offset": 61352,
+        "steps": 17
+      },
+      {
+        "input_byte": 154,
+        "source_offset": 61480,
+        "steps": 17
+      },
+      {
+        "input_byte": 155,
+        "source_offset": 61608,
+        "steps": 17
+      },
+      {
+        "input_byte": 156,
+        "source_offset": 61736,
+        "steps": 17
+      },
+      {
+        "input_byte": 157,
+        "source_offset": 61864,
+        "steps": 17
+      },
+      {
+        "input_byte": 158,
+        "source_offset": 61992,
+        "steps": 17
+      },
+      {
+        "input_byte": 159,
+        "source_offset": 62120,
+        "steps": 17
+      },
+      {
+        "input_byte": 160,
+        "source_offset": 58152,
+        "steps": 17
+      },
+      {
+        "input_byte": 161,
+        "source_offset": 58280,
+        "steps": 17
+      },
+      {
+        "input_byte": 162,
+        "source_offset": 58408,
+        "steps": 17
+      },
+      {
+        "input_byte": 163,
+        "source_offset": 58536,
+        "steps": 17
+      },
+      {
+        "input_byte": 164,
+        "source_offset": 58664,
+        "steps": 17
+      },
+      {
+        "input_byte": 165,
+        "source_offset": 58792,
+        "steps": 17
+      },
+      {
+        "input_byte": 166,
+        "source_offset": 58920,
+        "steps": 17
+      },
+      {
+        "input_byte": 167,
+        "source_offset": 59048,
+        "steps": 17
+      },
+      {
+        "input_byte": 168,
+        "source_offset": 59176,
+        "steps": 17
+      },
+      {
+        "input_byte": 169,
+        "source_offset": 59304,
+        "steps": 17
+      },
+      {
+        "input_byte": 170,
+        "source_offset": 59432,
+        "steps": 17
+      },
+      {
+        "input_byte": 171,
+        "source_offset": 59560,
+        "steps": 17
+      },
+      {
+        "input_byte": 172,
+        "source_offset": 59688,
+        "steps": 17
+      },
+      {
+        "input_byte": 173,
+        "source_offset": 59816,
+        "steps": 17
+      },
+      {
+        "input_byte": 174,
+        "source_offset": 59944,
+        "steps": 17
+      },
+      {
+        "input_byte": 175,
+        "source_offset": 60072,
+        "steps": 17
+      },
+      {
+        "input_byte": 176,
+        "source_offset": 60200,
+        "steps": 17
+      },
+      {
+        "input_byte": 177,
+        "source_offset": 60328,
+        "steps": 17
+      },
+      {
+        "input_byte": 178,
+        "source_offset": 60456,
+        "steps": 17
+      },
+      {
+        "input_byte": 179,
+        "source_offset": 60584,
+        "steps": 17
+      },
+      {
+        "input_byte": 180,
+        "source_offset": 60712,
+        "steps": 17
+      },
+      {
+        "input_byte": 181,
+        "source_offset": 60840,
+        "steps": 17
+      },
+      {
+        "input_byte": 182,
+        "source_offset": 60968,
+        "steps": 17
+      },
+      {
+        "input_byte": 183,
+        "source_offset": 61096,
+        "steps": 17
+      },
+      {
+        "input_byte": 184,
+        "source_offset": 61224,
+        "steps": 17
+      },
+      {
+        "input_byte": 185,
+        "source_offset": 61352,
+        "steps": 17
+      },
+      {
+        "input_byte": 186,
+        "source_offset": 61480,
+        "steps": 17
+      },
+      {
+        "input_byte": 187,
+        "source_offset": 61608,
+        "steps": 17
+      },
+      {
+        "input_byte": 188,
+        "source_offset": 61736,
+        "steps": 17
+      },
+      {
+        "input_byte": 189,
+        "source_offset": 61864,
+        "steps": 17
+      },
+      {
+        "input_byte": 190,
+        "source_offset": 61992,
+        "steps": 17
+      },
+      {
+        "input_byte": 191,
+        "source_offset": 62120,
+        "steps": 17
+      },
+      {
+        "input_byte": 192,
+        "source_offset": 66344,
+        "steps": 17
+      },
+      {
+        "input_byte": 193,
+        "source_offset": 66472,
+        "steps": 17
+      },
+      {
+        "input_byte": 194,
+        "source_offset": 66600,
+        "steps": 17
+      },
+      {
+        "input_byte": 195,
+        "source_offset": 66728,
+        "steps": 17
+      },
+      {
+        "input_byte": 196,
+        "source_offset": 66856,
+        "steps": 17
+      },
+      {
+        "input_byte": 197,
+        "source_offset": 66984,
+        "steps": 17
+      },
+      {
+        "input_byte": 198,
+        "source_offset": 67112,
+        "steps": 17
+      },
+      {
+        "input_byte": 199,
+        "source_offset": 67240,
+        "steps": 17
+      },
+      {
+        "input_byte": 200,
+        "source_offset": 67368,
+        "steps": 17
+      },
+      {
+        "input_byte": 201,
+        "source_offset": 67496,
+        "steps": 17
+      },
+      {
+        "input_byte": 202,
+        "source_offset": 67624,
+        "steps": 17
+      },
+      {
+        "input_byte": 203,
+        "source_offset": 67752,
+        "steps": 17
+      },
+      {
+        "input_byte": 204,
+        "source_offset": 67880,
+        "steps": 17
+      },
+      {
+        "input_byte": 205,
+        "source_offset": 68008,
+        "steps": 17
+      },
+      {
+        "input_byte": 206,
+        "source_offset": 68136,
+        "steps": 17
+      },
+      {
+        "input_byte": 207,
+        "source_offset": 68264,
+        "steps": 17
+      },
+      {
+        "input_byte": 208,
+        "source_offset": 68392,
+        "steps": 17
+      },
+      {
+        "input_byte": 209,
+        "source_offset": 68520,
+        "steps": 17
+      },
+      {
+        "input_byte": 210,
+        "source_offset": 68648,
+        "steps": 17
+      },
+      {
+        "input_byte": 211,
+        "source_offset": 68776,
+        "steps": 17
+      },
+      {
+        "input_byte": 212,
+        "source_offset": 68904,
+        "steps": 17
+      },
+      {
+        "input_byte": 213,
+        "source_offset": 69032,
+        "steps": 17
+      },
+      {
+        "input_byte": 214,
+        "source_offset": 69160,
+        "steps": 17
+      },
+      {
+        "input_byte": 215,
+        "source_offset": 69288,
+        "steps": 17
+      },
+      {
+        "input_byte": 216,
+        "source_offset": 69416,
+        "steps": 17
+      },
+      {
+        "input_byte": 217,
+        "source_offset": 69544,
+        "steps": 17
+      },
+      {
+        "input_byte": 218,
+        "source_offset": 69672,
+        "steps": 17
+      },
+      {
+        "input_byte": 219,
+        "source_offset": 69800,
+        "steps": 17
+      },
+      {
+        "input_byte": 220,
+        "source_offset": 69928,
+        "steps": 17
+      },
+      {
+        "input_byte": 221,
+        "source_offset": 70056,
+        "steps": 17
+      },
+      {
+        "input_byte": 222,
+        "source_offset": 70184,
+        "steps": 17
+      },
+      {
+        "input_byte": 223,
+        "source_offset": 70312,
+        "steps": 17
+      },
+      {
+        "input_byte": 224,
+        "source_offset": 66344,
+        "steps": 17
+      },
+      {
+        "input_byte": 225,
+        "source_offset": 66472,
+        "steps": 17
+      },
+      {
+        "input_byte": 226,
+        "source_offset": 66600,
+        "steps": 17
+      },
+      {
+        "input_byte": 227,
+        "source_offset": 66728,
+        "steps": 17
+      },
+      {
+        "input_byte": 228,
+        "source_offset": 66856,
+        "steps": 17
+      },
+      {
+        "input_byte": 229,
+        "source_offset": 66984,
+        "steps": 17
+      },
+      {
+        "input_byte": 230,
+        "source_offset": 67112,
+        "steps": 17
+      },
+      {
+        "input_byte": 231,
+        "source_offset": 67240,
+        "steps": 17
+      },
+      {
+        "input_byte": 232,
+        "source_offset": 67368,
+        "steps": 17
+      },
+      {
+        "input_byte": 233,
+        "source_offset": 67496,
+        "steps": 17
+      },
+      {
+        "input_byte": 234,
+        "source_offset": 67624,
+        "steps": 17
+      },
+      {
+        "input_byte": 235,
+        "source_offset": 67752,
+        "steps": 17
+      },
+      {
+        "input_byte": 236,
+        "source_offset": 67880,
+        "steps": 17
+      },
+      {
+        "input_byte": 237,
+        "source_offset": 68008,
+        "steps": 17
+      },
+      {
+        "input_byte": 238,
+        "source_offset": 68136,
+        "steps": 17
+      },
+      {
+        "input_byte": 239,
+        "source_offset": 68264,
+        "steps": 17
+      },
+      {
+        "input_byte": 240,
+        "source_offset": 68392,
+        "steps": 17
+      },
+      {
+        "input_byte": 241,
+        "source_offset": 68520,
+        "steps": 17
+      },
+      {
+        "input_byte": 242,
+        "source_offset": 68648,
+        "steps": 17
+      },
+      {
+        "input_byte": 243,
+        "source_offset": 68776,
+        "steps": 17
+      },
+      {
+        "input_byte": 244,
+        "source_offset": 68904,
+        "steps": 17
+      },
+      {
+        "input_byte": 245,
+        "source_offset": 69032,
+        "steps": 17
+      },
+      {
+        "input_byte": 246,
+        "source_offset": 69160,
+        "steps": 17
+      },
+      {
+        "input_byte": 247,
+        "source_offset": 69288,
+        "steps": 17
+      },
+      {
+        "input_byte": 248,
+        "source_offset": 69416,
+        "steps": 17
+      },
+      {
+        "input_byte": 249,
+        "source_offset": 69544,
+        "steps": 17
+      },
+      {
+        "input_byte": 250,
+        "source_offset": 69672,
+        "steps": 17
+      },
+      {
+        "input_byte": 251,
+        "source_offset": 69800,
+        "steps": 17
+      },
+      {
+        "input_byte": 252,
+        "source_offset": 69928,
+        "steps": 17
+      },
+      {
+        "input_byte": 253,
+        "source_offset": 70056,
+        "steps": 17
+      },
+      {
+        "input_byte": 254,
+        "source_offset": 70184,
+        "steps": 17
+      },
+      {
+        "input_byte": 255,
+        "source_offset": 70312,
+        "steps": 17
+      }
+    ]
+  },
+  "graphics": {
+    "bank30": {
+      "source_end": 237000,
+      "source_start": 231736,
+      "word_reads": 2632
+    },
+    "bank31": {
+      "source_end": 239416,
+      "source_start": 238392,
+      "word_reads": 512
+    },
+    "evidence": "Completed first original run; actual A0 recorded before each of the four original WORD-read instructions at771C/771E/7720/7722.",
+    "gap_bytes": "unchanged",
+    "independent_original_mask_comparison": "matched",
+    "observation_method": "A0 recorded before each original WORD read at771C,771E,7720,7722. Mask words independently compared against OR of each four original pixel WORDs. External stack; stop74E6.",
+    "start": 29882,
+    "steps": 4752,
+    "stop": 29926,
+    "unknown_gap_word_reads": 0
+  },
+  "known_nominal_geometry": {
+    "gap_overlaps": [],
+    "header_roots": 369,
+    "maximum_initial_height": 48,
+    "scope": "Known seeded bitplane-pointer fields plus the blocked player held header; nominal footprints only. Actual programmed overfetch is separate."
+  },
+  "last_defeat_frame_render_packets": {
+    "preconditions": {
+      "app_base": 14844,
+      "back_bitplane_base": 491520,
+      "descriptor_address": 528640,
+      "descriptor_world_x": [
+        132,
+        133
+      ],
+      "descriptor_world_y": 212,
+      "entry_source": 28526,
+      "frame_source": 313000,
+      "intreqr_shadow": 64,
+      "mask_RAM": "Zero-initialized model memory; no DMA data/output inference.",
+      "raster_offsets": "200 WORDs containing160*y",
+      "return_runtime": 2048,
+      "source_control": "Existing original shifted packet uses0FCA with SRCB enabled; 2 WORDs,12 rows, B modulo12. NDK hardware/blit.i defines HSIZEBITS6 and BC0F_SRCB400.",
+      "state_address": 528384,
+      "view_scroll_x": 100,
+      "view_scroll_y": 200
+    },
+    "runs": [
+      {
+        "frame_source": 313000,
+        "nominal_pixel_end": 302536,
+        "packets": [
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302524,
+            "pc": 27280,
+            "pixel_input": 302344,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302526,
+            "pc": 27322,
+            "pixel_input": 302346,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302528,
+            "pc": 27364,
+            "pixel_input": 302348,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302530,
+            "pc": 27406,
+            "pixel_input": 302350,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302532,
+            "pc": 27280,
+            "pixel_input": 302352,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302534,
+            "pc": 27322,
+            "pixel_input": 302354,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302536,
+            "pc": 27364,
+            "pixel_input": 302356,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 2,
+            "height": 12,
+            "modeled_pixel_read_end": 302538,
+            "pc": 27406,
+            "pixel_input": 302358,
+            "pixel_modulo": 12,
+            "words": 2
+          }
+        ],
+        "steps": 237,
+        "world_x": 132,
+        "world_y": 212
+      },
+      {
+        "frame_source": 313000,
+        "nominal_pixel_end": 302536,
+        "packets": [
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302524,
+            "pc": 27280,
+            "pixel_input": 302344,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302526,
+            "pc": 27322,
+            "pixel_input": 302346,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302528,
+            "pc": 27364,
+            "pixel_input": 302348,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302530,
+            "pc": 27406,
+            "pixel_input": 302350,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302532,
+            "pc": 27280,
+            "pixel_input": 302352,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302534,
+            "pc": 27322,
+            "pixel_input": 302354,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 0,
+            "height": 12,
+            "modeled_pixel_read_end": 302536,
+            "pc": 27364,
+            "pixel_input": 302356,
+            "pixel_modulo": 12,
+            "words": 2
+          },
+          {
+            "gap_overlap": 2,
+            "height": 12,
+            "modeled_pixel_read_end": 302538,
+            "pc": 27406,
+            "pixel_input": 302358,
+            "pixel_modulo": 12,
+            "words": 2
+          }
+        ],
+        "steps": 237,
+        "world_x": 133,
+        "world_y": 212
+      }
+    ],
+    "scope": "Original geometry reader and blit-packet CPU instructions with controlled view/position and completion-bit shadow. Read envelopes inferred from programmed B pointer, width, height and signed modulo, not observed chipset reads. No DMA is executed."
+  },
+  "loader": {
+    "all_three_unknown_spans_copied": true,
+    "copied_file_bytes": 349040,
+    "copy_helper_size": 42,
+    "copy_helper_source_start": 40,
+    "destination_runtime": 65536,
+    "scope": "Transport only: no allocation/format or semantic role for the gaps follows from the fixed copy."
+  },
+  "not_a_chipset_trace": true,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "provenance": {
+    "model_limit": "The concrete engine executes CPU instructions and byte-array MMIO shadows. It performs no chipset DMA, asynchronous interrupts or visible/audible output.",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "prior_exact_receipt": "b45c5b16a2a82b644116d62ddc49782d68d547b080a3d4ec4f3e8a8804e9a8b9",
+    "rendered_source_sha256": "fa44f48572a06a510a63c2fe4ab51b95cf90c41d637f14336b6bdf58d708cf4c",
+    "simulator_interface": "src.tests.test_m68k_simulator_arithmetic.engine / m68k_simulate_run_concrete",
+    "simulator_library_sha256": "e2fc47a9cdbb88c9418419a127ac898f8c3c664a9ec4a448c515c71952b897f2",
+    "source_instructions": "Unmodified original first349040 bytes loaded at runtime10000; source offsets equal runtime minus10000."
+  },
+  "schema": "pandora-dominant-payload-research-v1",
+  "scope": "Finite original CPU segments, no instruction patches, asynchronous interrupts or DMA. Register before original read instructions identifies these CPU reads only; not a whole-program watchpoint trace.",
+  "stack": {
+    "final_sp": 66642,
+    "first_attempt": "1MB fixture stopped at4C0: DFF044 outside mapped memory. No stack result was inferred from that failed attempt.",
+    "fixture_memory_bytes": 16777216,
+    "minimum_sp": 66614,
+    "minimum_sp_source_offset": 1078,
+    "name": "real_stack_setup_through_original_world_reset",
+    "observed_sp_footprint_bytes": 28,
+    "preconditions": {
+      "a5": 14675968,
+      "a6": 14844,
+      "entry_source": 1210,
+      "initial_sp": 66642,
+      "memory": "16MiB zero-filled bytearray with original copied image at10000; MMIO is only a writable shadow.",
+      "scope": "Prime blitter request and original world-reset prefix; no interrupt or deepest-stack closure.",
+      "sr": 9984,
+      "stop_source": 1244
+    },
+    "stack_gap_writes": [
+      [
+        66634,
+        66638
+      ],
+      [
+        66614,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        66626,
+        66630
+      ]
+    ],
+    "start": 1210,
+    "steps": 2812,
+    "stop": 1244,
+    "visited_source_pcs": [
+      1210,
+      1214,
+      1216,
+      1220,
+      1224,
+      1228,
+      1234,
+      1238,
+      1996,
+      2002,
+      2006,
+      2010,
+      2014,
+      2018,
+      2024,
+      2030,
+      9440,
+      9442,
+      9446,
+      9452,
+      9454,
+      9792,
+      9796,
+      9798,
+      9800,
+      9802,
+      9804,
+      9808,
+      9812,
+      11134,
+      11138,
+      11140,
+      11146,
+      11150,
+      11156,
+      11158,
+      11160,
+      26216,
+      26220,
+      26222,
+      26224,
+      26228,
+      40742,
+      40744,
+      40754,
+      40760,
+      40768,
+      40772,
+      40778,
+      40784,
+      40792,
+      40798,
+      40800,
+      40802,
+      40806,
+      40812,
+      40814,
+      40816,
+      40820,
+      40824,
+      40826,
+      40834,
+      40838,
+      40842,
+      40846,
+      40850,
+      40854,
+      40858,
+      40862,
+      40866,
+      40870,
+      40874,
+      40878,
+      40882,
+      40886,
+      40890,
+      40894,
+      40896,
+      40900,
+      40902,
+      40906,
+      40910,
+      40914,
+      40918,
+      40924,
+      40928,
+      40936,
+      40944,
+      40948,
+      40950,
+      40954,
+      40956,
+      40960,
+      40964,
+      40968,
+      40974,
+      40978,
+      40982,
+      40988,
+      40992,
+      40998,
+      41004,
+      41010,
+      41012,
+      41016,
+      41018,
+      41022,
+      41026,
+      41032,
+      41038,
+      41044,
+      41046,
+      41048,
+      41050,
+      41054,
+      41060,
+      41062,
+      41068,
+      41072,
+      41076,
+      41080,
+      41084,
+      41088,
+      41092,
+      41096,
+      41100,
+      41104,
+      41108,
+      41114,
+      41120,
+      41124,
+      41132,
+      41138,
+      41144,
+      41146,
+      41148,
+      41150,
+      41154,
+      41158,
+      41160,
+      41164,
+      41170,
+      41174,
+      41180,
+      41182,
+      41186,
+      41188,
+      41192,
+      41196,
+      41200,
+      41204,
+      41208,
+      41210,
+      41212,
+      41216,
+      41220,
+      41224,
+      41226,
+      41228,
+      41232,
+      41238,
+      41244,
+      41250,
+      41256,
+      41260,
+      41262,
+      41272,
+      41276,
+      41282,
+      41284,
+      41298,
+      41302,
+      41304,
+      41306,
+      41308,
+      41310,
+      41314,
+      41318,
+      41320,
+      41322,
+      41326,
+      41328,
+      41330,
+      41334,
+      41338,
+      41340,
+      41344,
+      41348,
+      41350,
+      41352,
+      41356,
+      41360,
+      41362,
+      41366
+    ],
+    "write_summary_scope": "Nonexhaustive: control-transfer stack writes are not all present in this trace summary. Minimum/final SP and original RAM checks are the evidence used.",
+    "writes": [
+      [
+        14676036,
+        14676038
+      ],
+      [
+        14676038,
+        14676040
+      ],
+      [
+        14676034,
+        14676036
+      ],
+      [
+        14676118,
+        14676120
+      ],
+      [
+        14676048,
+        14676052
+      ],
+      [
+        14676052,
+        14676056
+      ],
+      [
+        14676068,
+        14676070
+      ],
+      [
+        14676070,
+        14676072
+      ],
+      [
+        14676032,
+        14676034
+      ],
+      [
+        14676056,
+        14676058
+      ],
+      [
+        66634,
+        66638
+      ],
+      [
+        102990,
+        102992
+      ],
+      [
+        15652,
+        15654
+      ],
+      [
+        25792,
+        25796
+      ],
+      [
+        361886,
+        361888
+      ],
+      [
+        361898,
+        361900
+      ],
+      [
+        67442,
+        67444
+      ],
+      [
+        14716,
+        14720
+      ],
+      [
+        14720,
+        14724
+      ],
+      [
+        14724,
+        14728
+      ],
+      [
+        14728,
+        14732
+      ],
+      [
+        14732,
+        14736
+      ],
+      [
+        14736,
+        14740
+      ],
+      [
+        14740,
+        14744
+      ],
+      [
+        14744,
+        14748
+      ],
+      [
+        14748,
+        14752
+      ],
+      [
+        14752,
+        14756
+      ],
+      [
+        14756,
+        14760
+      ],
+      [
+        14760,
+        14764
+      ],
+      [
+        14764,
+        14768
+      ],
+      [
+        14768,
+        14772
+      ],
+      [
+        14772,
+        14776
+      ],
+      [
+        14776,
+        14780
+      ],
+      [
+        14780,
+        14784
+      ],
+      [
+        14784,
+        14788
+      ],
+      [
+        14788,
+        14792
+      ],
+      [
+        14792,
+        14796
+      ],
+      [
+        14796,
+        14800
+      ],
+      [
+        14800,
+        14804
+      ],
+      [
+        14804,
+        14808
+      ],
+      [
+        14808,
+        14812
+      ],
+      [
+        14812,
+        14816
+      ],
+      [
+        14816,
+        14820
+      ],
+      [
+        14820,
+        14824
+      ],
+      [
+        14824,
+        14828
+      ],
+      [
+        14828,
+        14832
+      ],
+      [
+        14832,
+        14836
+      ],
+      [
+        14836,
+        14840
+      ],
+      [
+        14840,
+        14844
+      ],
+      [
+        362755,
+        362756
+      ],
+      [
+        362821,
+        362822
+      ],
+      [
+        362887,
+        362888
+      ],
+      [
+        362953,
+        362954
+      ],
+      [
+        363019,
+        363020
+      ],
+      [
+        363115,
+        363116
+      ],
+      [
+        15506,
+        15508
+      ],
+      [
+        15508,
+        15510
+      ],
+      [
+        15668,
+        15669
+      ],
+      [
+        15669,
+        15670
+      ],
+      [
+        15650,
+        15651
+      ],
+      [
+        15654,
+        15655
+      ],
+      [
+        15655,
+        15656
+      ],
+      [
+        15651,
+        15652
+      ],
+      [
+        15573,
+        15574
+      ],
+      [
+        15639,
+        15640
+      ],
+      [
+        15258,
+        15262
+      ],
+      [
+        15568,
+        15572
+      ],
+      [
+        15368,
+        15372
+      ],
+      [
+        15372,
+        15376
+      ],
+      [
+        15574,
+        15578
+      ],
+      [
+        15578,
+        15582
+      ],
+      [
+        15582,
+        15586
+      ],
+      [
+        15586,
+        15590
+      ],
+      [
+        15590,
+        15594
+      ],
+      [
+        15594,
+        15598
+      ],
+      [
+        15598,
+        15602
+      ],
+      [
+        15602,
+        15606
+      ],
+      [
+        15606,
+        15610
+      ],
+      [
+        15610,
+        15614
+      ],
+      [
+        15614,
+        15618
+      ],
+      [
+        15618,
+        15622
+      ],
+      [
+        15622,
+        15626
+      ],
+      [
+        15626,
+        15630
+      ],
+      [
+        15630,
+        15634
+      ],
+      [
+        15634,
+        15638
+      ],
+      [
+        15572,
+        15573
+      ],
+      [
+        15562,
+        15563
+      ],
+      [
+        15563,
+        15564
+      ],
+      [
+        15564,
+        15566
+      ],
+      [
+        15366,
+        15367
+      ],
+      [
+        15332,
+        15336
+      ],
+      [
+        15340,
+        15344
+      ],
+      [
+        15367,
+        15368
+      ],
+      [
+        15288,
+        15290
+      ],
+      [
+        15284,
+        15286
+      ],
+      [
+        15286,
+        15288
+      ],
+      [
+        15282,
+        15284
+      ],
+      [
+        377684,
+        377686
+      ],
+      [
+        377682,
+        377684
+      ],
+      [
+        108642,
+        108646
+      ],
+      [
+        108646,
+        108650
+      ],
+      [
+        108650,
+        108654
+      ],
+      [
+        108654,
+        108658
+      ],
+      [
+        108658,
+        108662
+      ],
+      [
+        108662,
+        108666
+      ],
+      [
+        108666,
+        108670
+      ],
+      [
+        108670,
+        108674
+      ],
+      [
+        108674,
+        108678
+      ],
+      [
+        108678,
+        108682
+      ],
+      [
+        108682,
+        108686
+      ],
+      [
+        108686,
+        108690
+      ],
+      [
+        108690,
+        108694
+      ],
+      [
+        108694,
+        108698
+      ],
+      [
+        108698,
+        108702
+      ],
+      [
+        108702,
+        108706
+      ],
+      [
+        108706,
+        108710
+      ],
+      [
+        108710,
+        108714
+      ],
+      [
+        108714,
+        108718
+      ],
+      [
+        108718,
+        108722
+      ],
+      [
+        108722,
+        108726
+      ],
+      [
+        108726,
+        108730
+      ],
+      [
+        108730,
+        108734
+      ],
+      [
+        108734,
+        108738
+      ],
+      [
+        108738,
+        108742
+      ],
+      [
+        108742,
+        108746
+      ],
+      [
+        108746,
+        108750
+      ],
+      [
+        108750,
+        108754
+      ],
+      [
+        108754,
+        108758
+      ],
+      [
+        108758,
+        108762
+      ],
+      [
+        108762,
+        108766
+      ],
+      [
+        108766,
+        108770
+      ],
+      [
+        66614,
+        66630
+      ],
+      [
+        79042,
+        79044
+      ],
+      [
+        78946,
+        78948
+      ],
+      [
+        78948,
+        78950
+      ],
+      [
+        78950,
+        78952
+      ],
+      [
+        79044,
+        79046
+      ],
+      [
+        78952,
+        78954
+      ],
+      [
+        78954,
+        78956
+      ],
+      [
+        78956,
+        78958
+      ],
+      [
+        79046,
+        79048
+      ],
+      [
+        78958,
+        78960
+      ],
+      [
+        78960,
+        78962
+      ],
+      [
+        78962,
+        78964
+      ],
+      [
+        79048,
+        79050
+      ],
+      [
+        78964,
+        78966
+      ],
+      [
+        78966,
+        78968
+      ],
+      [
+        78968,
+        78970
+      ],
+      [
+        79050,
+        79052
+      ],
+      [
+        78970,
+        78972
+      ],
+      [
+        78972,
+        78974
+      ],
+      [
+        78974,
+        78976
+      ],
+      [
+        79052,
+        79054
+      ],
+      [
+        78976,
+        78978
+      ],
+      [
+        78978,
+        78980
+      ],
+      [
+        78980,
+        78982
+      ],
+      [
+        79054,
+        79056
+      ],
+      [
+        78982,
+        78984
+      ],
+      [
+        78984,
+        78986
+      ],
+      [
+        78986,
+        78988
+      ],
+      [
+        79056,
+        79058
+      ],
+      [
+        78988,
+        78990
+      ],
+      [
+        78990,
+        78992
+      ],
+      [
+        78992,
+        78994
+      ],
+      [
+        79058,
+        79060
+      ],
+      [
+        78994,
+        78996
+      ],
+      [
+        78996,
+        78998
+      ],
+      [
+        78998,
+        79000
+      ],
+      [
+        79060,
+        79062
+      ],
+      [
+        79000,
+        79002
+      ],
+      [
+        79002,
+        79004
+      ],
+      [
+        79004,
+        79006
+      ],
+      [
+        79062,
+        79064
+      ],
+      [
+        79006,
+        79008
+      ],
+      [
+        79008,
+        79010
+      ],
+      [
+        79010,
+        79012
+      ],
+      [
+        79064,
+        79066
+      ],
+      [
+        79012,
+        79014
+      ],
+      [
+        79014,
+        79016
+      ],
+      [
+        79016,
+        79018
+      ],
+      [
+        79066,
+        79068
+      ],
+      [
+        79018,
+        79020
+      ],
+      [
+        79020,
+        79022
+      ],
+      [
+        79022,
+        79024
+      ],
+      [
+        79068,
+        79070
+      ],
+      [
+        79024,
+        79026
+      ],
+      [
+        79026,
+        79028
+      ],
+      [
+        79028,
+        79030
+      ],
+      [
+        79070,
+        79072
+      ],
+      [
+        79030,
+        79032
+      ],
+      [
+        79032,
+        79034
+      ],
+      [
+        79034,
+        79036
+      ],
+      [
+        79072,
+        79074
+      ],
+      [
+        79036,
+        79038
+      ],
+      [
+        79038,
+        79040
+      ],
+      [
+        79040,
+        79042
+      ],
+      [
+        15250,
+        15254
+      ],
+      [
+        15254,
+        15258
+      ],
+      [
+        377704,
+        377705
+      ],
+      [
+        78870,
+        78874
+      ],
+      [
+        78914,
+        78918
+      ],
+      [
+        78874,
+        78878
+      ],
+      [
+        78918,
+        78922
+      ],
+      [
+        78878,
+        78882
+      ],
+      [
+        78922,
+        78926
+      ],
+      [
+        78882,
+        78886
+      ],
+      [
+        78926,
+        78930
+      ],
+      [
+        78518,
+        78522
+      ],
+      [
+        15404,
+        15406
+      ],
+      [
+        15402,
+        15403
+      ],
+      [
+        15479,
+        15480
+      ],
+      [
+        15522,
+        15523
+      ],
+      [
+        15672,
+        15673
+      ],
+      [
+        15673,
+        15674
+      ],
+      [
+        15674,
+        15675
+      ],
+      [
+        15474,
+        15478
+      ],
+      [
+        15406,
+        15410
+      ],
+      [
+        15488,
+        15489
+      ],
+      [
+        15490,
+        15492
+      ],
+      [
+        15492,
+        15493
+      ],
+      [
+        15556,
+        15558
+      ],
+      [
+        15498,
+        15500
+      ],
+      [
+        15500,
+        15502
+      ],
+      [
+        15502,
+        15504
+      ],
+      [
+        15504,
+        15506
+      ],
+      [
+        15524,
+        15528
+      ],
+      [
+        15528,
+        15530
+      ],
+      [
+        377706,
+        377707
+      ],
+      [
+        377634,
+        377638
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        377704,
+        377705
+      ],
+      [
+        377710,
+        377711
+      ],
+      [
+        377694,
+        377696
+      ],
+      [
+        377670,
+        377674
+      ],
+      [
+        377702,
+        377704
+      ],
+      [
+        375470,
+        375471
+      ],
+      [
+        375398,
+        375402
+      ],
+      [
+        110848,
+        110849
+      ],
+      [
+        110849,
+        110850
+      ],
+      [
+        110850,
+        110851
+      ],
+      [
+        110851,
+        110852
+      ],
+      [
+        110852,
+        110853
+      ],
+      [
+        110853,
+        110854
+      ],
+      [
+        110854,
+        110855
+      ],
+      [
+        110855,
+        110856
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375468,
+        375469
+      ],
+      [
+        375474,
+        375475
+      ],
+      [
+        375458,
+        375460
+      ],
+      [
+        375434,
+        375438
+      ],
+      [
+        375466,
+        375468
+      ],
+      [
+        377370,
+        377371
+      ],
+      [
+        377298,
+        377302
+      ],
+      [
+        111312,
+        111313
+      ],
+      [
+        111313,
+        111314
+      ],
+      [
+        111314,
+        111315
+      ],
+      [
+        111315,
+        111316
+      ],
+      [
+        111316,
+        111317
+      ],
+      [
+        111317,
+        111318
+      ],
+      [
+        111318,
+        111319
+      ],
+      [
+        111319,
+        111320
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        377368,
+        377369
+      ],
+      [
+        377374,
+        377375
+      ],
+      [
+        377358,
+        377360
+      ],
+      [
+        377334,
+        377338
+      ],
+      [
+        377366,
+        377368
+      ],
+      [
+        375554,
+        375555
+      ],
+      [
+        375482,
+        375486
+      ],
+      [
+        110976,
+        110977
+      ],
+      [
+        110977,
+        110978
+      ],
+      [
+        110978,
+        110979
+      ],
+      [
+        110979,
+        110980
+      ],
+      [
+        110980,
+        110981
+      ],
+      [
+        110981,
+        110982
+      ],
+      [
+        110982,
+        110983
+      ],
+      [
+        110983,
+        110984
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375552,
+        375553
+      ],
+      [
+        375558,
+        375559
+      ],
+      [
+        375542,
+        375544
+      ],
+      [
+        375518,
+        375522
+      ],
+      [
+        375550,
+        375552
+      ],
+      [
+        375638,
+        375639
+      ],
+      [
+        375566,
+        375570
+      ],
+      [
+        110992,
+        110993
+      ],
+      [
+        110993,
+        110994
+      ],
+      [
+        110994,
+        110995
+      ],
+      [
+        110995,
+        110996
+      ],
+      [
+        110996,
+        110997
+      ],
+      [
+        110997,
+        110998
+      ],
+      [
+        110998,
+        110999
+      ],
+      [
+        110999,
+        111000
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375636,
+        375637
+      ],
+      [
+        375642,
+        375643
+      ],
+      [
+        375626,
+        375628
+      ],
+      [
+        375602,
+        375606
+      ],
+      [
+        375634,
+        375636
+      ],
+      [
+        365148,
+        365149
+      ],
+      [
+        365076,
+        365080
+      ],
+      [
+        111344,
+        111345
+      ],
+      [
+        111345,
+        111346
+      ],
+      [
+        111346,
+        111347
+      ],
+      [
+        111347,
+        111348
+      ],
+      [
+        111348,
+        111349
+      ],
+      [
+        111349,
+        111350
+      ],
+      [
+        111350,
+        111351
+      ],
+      [
+        111351,
+        111352
+      ],
+      [
+        111504,
+        111505
+      ],
+      [
+        111505,
+        111506
+      ],
+      [
+        111506,
+        111507
+      ],
+      [
+        111507,
+        111508
+      ],
+      [
+        111508,
+        111509
+      ],
+      [
+        111509,
+        111510
+      ],
+      [
+        111510,
+        111511
+      ],
+      [
+        111511,
+        111512
+      ],
+      [
+        365146,
+        365147
+      ],
+      [
+        365152,
+        365153
+      ],
+      [
+        365136,
+        365138
+      ],
+      [
+        365112,
+        365116
+      ],
+      [
+        365144,
+        365146
+      ],
+      [
+        365702,
+        365703
+      ],
+      [
+        365630,
+        365634
+      ],
+      [
+        111296,
+        111297
+      ],
+      [
+        111297,
+        111298
+      ],
+      [
+        111298,
+        111299
+      ],
+      [
+        111299,
+        111300
+      ],
+      [
+        111300,
+        111301
+      ],
+      [
+        111301,
+        111302
+      ],
+      [
+        111302,
+        111303
+      ],
+      [
+        111303,
+        111304
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        365700,
+        365701
+      ],
+      [
+        365706,
+        365707
+      ],
+      [
+        365690,
+        365692
+      ],
+      [
+        365666,
+        365670
+      ],
+      [
+        365698,
+        365700
+      ],
+      [
+        375722,
+        375723
+      ],
+      [
+        375650,
+        375654
+      ],
+      [
+        111008,
+        111009
+      ],
+      [
+        111009,
+        111010
+      ],
+      [
+        111010,
+        111011
+      ],
+      [
+        111011,
+        111012
+      ],
+      [
+        111012,
+        111013
+      ],
+      [
+        111013,
+        111014
+      ],
+      [
+        111014,
+        111015
+      ],
+      [
+        111015,
+        111016
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375720,
+        375721
+      ],
+      [
+        375726,
+        375727
+      ],
+      [
+        375710,
+        375712
+      ],
+      [
+        375686,
+        375690
+      ],
+      [
+        375718,
+        375720
+      ],
+      [
+        375806,
+        375807
+      ],
+      [
+        375734,
+        375738
+      ],
+      [
+        111168,
+        111169
+      ],
+      [
+        111169,
+        111170
+      ],
+      [
+        111170,
+        111171
+      ],
+      [
+        111171,
+        111172
+      ],
+      [
+        111172,
+        111173
+      ],
+      [
+        111173,
+        111174
+      ],
+      [
+        111174,
+        111175
+      ],
+      [
+        111175,
+        111176
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375804,
+        375805
+      ],
+      [
+        375810,
+        375811
+      ],
+      [
+        375794,
+        375796
+      ],
+      [
+        375770,
+        375774
+      ],
+      [
+        375802,
+        375804
+      ],
+      [
+        375890,
+        375891
+      ],
+      [
+        375818,
+        375822
+      ],
+      [
+        110864,
+        110865
+      ],
+      [
+        110865,
+        110866
+      ],
+      [
+        110866,
+        110867
+      ],
+      [
+        110867,
+        110868
+      ],
+      [
+        110868,
+        110869
+      ],
+      [
+        110869,
+        110870
+      ],
+      [
+        110870,
+        110871
+      ],
+      [
+        110871,
+        110872
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375888,
+        375889
+      ],
+      [
+        375894,
+        375895
+      ],
+      [
+        375878,
+        375880
+      ],
+      [
+        375854,
+        375858
+      ],
+      [
+        375886,
+        375888
+      ],
+      [
+        366928,
+        366929
+      ],
+      [
+        366856,
+        366860
+      ],
+      [
+        111216,
+        111217
+      ],
+      [
+        111217,
+        111218
+      ],
+      [
+        111218,
+        111219
+      ],
+      [
+        111219,
+        111220
+      ],
+      [
+        111220,
+        111221
+      ],
+      [
+        111221,
+        111222
+      ],
+      [
+        111222,
+        111223
+      ],
+      [
+        111223,
+        111224
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        366926,
+        366927
+      ],
+      [
+        366932,
+        366933
+      ],
+      [
+        366916,
+        366918
+      ],
+      [
+        366892,
+        366896
+      ],
+      [
+        366924,
+        366926
+      ],
+      [
+        367482,
+        367483
+      ],
+      [
+        367410,
+        367414
+      ],
+      [
+        111248,
+        111249
+      ],
+      [
+        111249,
+        111250
+      ],
+      [
+        111250,
+        111251
+      ],
+      [
+        111251,
+        111252
+      ],
+      [
+        111252,
+        111253
+      ],
+      [
+        111253,
+        111254
+      ],
+      [
+        111254,
+        111255
+      ],
+      [
+        111255,
+        111256
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        367480,
+        367481
+      ],
+      [
+        367486,
+        367487
+      ],
+      [
+        367470,
+        367472
+      ],
+      [
+        367446,
+        367450
+      ],
+      [
+        367478,
+        367480
+      ],
+      [
+        368752,
+        368753
+      ],
+      [
+        368680,
+        368684
+      ],
+      [
+        110928,
+        110929
+      ],
+      [
+        110929,
+        110930
+      ],
+      [
+        110930,
+        110931
+      ],
+      [
+        110931,
+        110932
+      ],
+      [
+        110932,
+        110933
+      ],
+      [
+        110933,
+        110934
+      ],
+      [
+        110934,
+        110935
+      ],
+      [
+        110935,
+        110936
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        368750,
+        368751
+      ],
+      [
+        368756,
+        368757
+      ],
+      [
+        368740,
+        368742
+      ],
+      [
+        368716,
+        368720
+      ],
+      [
+        368748,
+        368750
+      ],
+      [
+        370716,
+        370717
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        370732,
+        370736
+      ],
+      [
+        370644,
+        370648
+      ],
+      [
+        110832,
+        110833
+      ],
+      [
+        110833,
+        110834
+      ],
+      [
+        110834,
+        110835
+      ],
+      [
+        110835,
+        110836
+      ],
+      [
+        110836,
+        110837
+      ],
+      [
+        110837,
+        110838
+      ],
+      [
+        110838,
+        110839
+      ],
+      [
+        110839,
+        110840
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        370714,
+        370715
+      ],
+      [
+        370720,
+        370721
+      ],
+      [
+        370704,
+        370706
+      ],
+      [
+        370680,
+        370684
+      ],
+      [
+        370712,
+        370714
+      ],
+      [
+        370856,
+        370857
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        370872,
+        370876
+      ],
+      [
+        370784,
+        370788
+      ],
+      [
+        110960,
+        110961
+      ],
+      [
+        110961,
+        110962
+      ],
+      [
+        110962,
+        110963
+      ],
+      [
+        110963,
+        110964
+      ],
+      [
+        110964,
+        110965
+      ],
+      [
+        110965,
+        110966
+      ],
+      [
+        110966,
+        110967
+      ],
+      [
+        110967,
+        110968
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        370854,
+        370855
+      ],
+      [
+        370860,
+        370861
+      ],
+      [
+        370844,
+        370846
+      ],
+      [
+        370820,
+        370824
+      ],
+      [
+        370852,
+        370854
+      ],
+      [
+        370996,
+        370997
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        371012,
+        371016
+      ],
+      [
+        370924,
+        370928
+      ],
+      [
+        110816,
+        110817
+      ],
+      [
+        110817,
+        110818
+      ],
+      [
+        110818,
+        110819
+      ],
+      [
+        110819,
+        110820
+      ],
+      [
+        110820,
+        110821
+      ],
+      [
+        110821,
+        110822
+      ],
+      [
+        110822,
+        110823
+      ],
+      [
+        110823,
+        110824
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        370994,
+        370995
+      ],
+      [
+        371000,
+        371001
+      ],
+      [
+        370984,
+        370986
+      ],
+      [
+        370960,
+        370964
+      ],
+      [
+        370992,
+        370994
+      ],
+      [
+        371136,
+        371137
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        371152,
+        371156
+      ],
+      [
+        371064,
+        371068
+      ],
+      [
+        111024,
+        111025
+      ],
+      [
+        111025,
+        111026
+      ],
+      [
+        111026,
+        111027
+      ],
+      [
+        111027,
+        111028
+      ],
+      [
+        111028,
+        111029
+      ],
+      [
+        111029,
+        111030
+      ],
+      [
+        111030,
+        111031
+      ],
+      [
+        111031,
+        111032
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        371134,
+        371135
+      ],
+      [
+        371140,
+        371141
+      ],
+      [
+        371124,
+        371126
+      ],
+      [
+        371100,
+        371104
+      ],
+      [
+        371132,
+        371134
+      ],
+      [
+        371276,
+        371277
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        371292,
+        371296
+      ],
+      [
+        371204,
+        371208
+      ],
+      [
+        111056,
+        111057
+      ],
+      [
+        111057,
+        111058
+      ],
+      [
+        111058,
+        111059
+      ],
+      [
+        111059,
+        111060
+      ],
+      [
+        111060,
+        111061
+      ],
+      [
+        111061,
+        111062
+      ],
+      [
+        111062,
+        111063
+      ],
+      [
+        111063,
+        111064
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        371274,
+        371275
+      ],
+      [
+        371280,
+        371281
+      ],
+      [
+        371264,
+        371266
+      ],
+      [
+        371240,
+        371244
+      ],
+      [
+        371272,
+        371274
+      ],
+      [
+        371398,
+        371399
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        371414,
+        371418
+      ],
+      [
+        371326,
+        371330
+      ],
+      [
+        111200,
+        111201
+      ],
+      [
+        111201,
+        111202
+      ],
+      [
+        111202,
+        111203
+      ],
+      [
+        111203,
+        111204
+      ],
+      [
+        111204,
+        111205
+      ],
+      [
+        111205,
+        111206
+      ],
+      [
+        111206,
+        111207
+      ],
+      [
+        111207,
+        111208
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        371396,
+        371397
+      ],
+      [
+        371402,
+        371403
+      ],
+      [
+        371386,
+        371388
+      ],
+      [
+        371362,
+        371366
+      ],
+      [
+        371394,
+        371396
+      ],
+      [
+        369746,
+        369747
+      ],
+      [
+        369674,
+        369678
+      ],
+      [
+        110944,
+        110945
+      ],
+      [
+        110945,
+        110946
+      ],
+      [
+        110946,
+        110947
+      ],
+      [
+        110947,
+        110948
+      ],
+      [
+        110948,
+        110949
+      ],
+      [
+        110949,
+        110950
+      ],
+      [
+        110950,
+        110951
+      ],
+      [
+        110951,
+        110952
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        369744,
+        369745
+      ],
+      [
+        369750,
+        369751
+      ],
+      [
+        369734,
+        369736
+      ],
+      [
+        369710,
+        369714
+      ],
+      [
+        369742,
+        369744
+      ],
+      [
+        368066,
+        368067
+      ],
+      [
+        367994,
+        367998
+      ],
+      [
+        111376,
+        111377
+      ],
+      [
+        111377,
+        111378
+      ],
+      [
+        111378,
+        111379
+      ],
+      [
+        111379,
+        111380
+      ],
+      [
+        111380,
+        111381
+      ],
+      [
+        111381,
+        111382
+      ],
+      [
+        111382,
+        111383
+      ],
+      [
+        111383,
+        111384
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        368064,
+        368065
+      ],
+      [
+        368070,
+        368071
+      ],
+      [
+        368054,
+        368056
+      ],
+      [
+        368030,
+        368034
+      ],
+      [
+        368062,
+        368064
+      ],
+      [
+        370164,
+        370165
+      ],
+      [
+        370092,
+        370096
+      ],
+      [
+        111104,
+        111105
+      ],
+      [
+        111105,
+        111106
+      ],
+      [
+        111106,
+        111107
+      ],
+      [
+        111107,
+        111108
+      ],
+      [
+        111108,
+        111109
+      ],
+      [
+        111109,
+        111110
+      ],
+      [
+        111110,
+        111111
+      ],
+      [
+        111111,
+        111112
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        370162,
+        370163
+      ],
+      [
+        370168,
+        370169
+      ],
+      [
+        370152,
+        370154
+      ],
+      [
+        370128,
+        370132
+      ],
+      [
+        370160,
+        370162
+      ],
+      [
+        371538,
+        371539
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        371554,
+        371558
+      ],
+      [
+        371466,
+        371470
+      ],
+      [
+        111264,
+        111265
+      ],
+      [
+        111265,
+        111266
+      ],
+      [
+        111266,
+        111267
+      ],
+      [
+        111267,
+        111268
+      ],
+      [
+        111268,
+        111269
+      ],
+      [
+        111269,
+        111270
+      ],
+      [
+        111270,
+        111271
+      ],
+      [
+        111271,
+        111272
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        371536,
+        371537
+      ],
+      [
+        371542,
+        371543
+      ],
+      [
+        371526,
+        371528
+      ],
+      [
+        371502,
+        371506
+      ],
+      [
+        371534,
+        371536
+      ],
+      [
+        371758,
+        371759
+      ],
+      [
+        66626,
+        66630
+      ],
+      [
+        371774,
+        371778
+      ],
+      [
+        371686,
+        371690
+      ],
+      [
+        111280,
+        111281
+      ],
+      [
+        111281,
+        111282
+      ],
+      [
+        111282,
+        111283
+      ],
+      [
+        111283,
+        111284
+      ],
+      [
+        111284,
+        111285
+      ],
+      [
+        111285,
+        111286
+      ],
+      [
+        111286,
+        111287
+      ],
+      [
+        111287,
+        111288
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        371756,
+        371757
+      ],
+      [
+        371762,
+        371763
+      ],
+      [
+        371746,
+        371748
+      ],
+      [
+        371722,
+        371726
+      ],
+      [
+        371754,
+        371756
+      ],
+      [
+        370396,
+        370397
+      ],
+      [
+        370324,
+        370328
+      ],
+      [
+        111088,
+        111089
+      ],
+      [
+        111089,
+        111090
+      ],
+      [
+        111090,
+        111091
+      ],
+      [
+        111091,
+        111092
+      ],
+      [
+        111092,
+        111093
+      ],
+      [
+        111093,
+        111094
+      ],
+      [
+        111094,
+        111095
+      ],
+      [
+        111095,
+        111096
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        370394,
+        370395
+      ],
+      [
+        370400,
+        370401
+      ],
+      [
+        370384,
+        370386
+      ],
+      [
+        370360,
+        370364
+      ],
+      [
+        370392,
+        370394
+      ],
+      [
+        362242,
+        362243
+      ],
+      [
+        362170,
+        362174
+      ],
+      [
+        111328,
+        111329
+      ],
+      [
+        111329,
+        111330
+      ],
+      [
+        111330,
+        111331
+      ],
+      [
+        111331,
+        111332
+      ],
+      [
+        111332,
+        111333
+      ],
+      [
+        111333,
+        111334
+      ],
+      [
+        111334,
+        111335
+      ],
+      [
+        111335,
+        111336
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        362240,
+        362241
+      ],
+      [
+        362246,
+        362247
+      ],
+      [
+        362230,
+        362232
+      ],
+      [
+        362206,
+        362210
+      ],
+      [
+        362238,
+        362240
+      ],
+      [
+        371906,
+        371907
+      ],
+      [
+        371834,
+        371838
+      ],
+      [
+        111360,
+        111361
+      ],
+      [
+        111361,
+        111362
+      ],
+      [
+        111362,
+        111363
+      ],
+      [
+        111363,
+        111364
+      ],
+      [
+        111364,
+        111365
+      ],
+      [
+        111365,
+        111366
+      ],
+      [
+        111366,
+        111367
+      ],
+      [
+        111367,
+        111368
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        371904,
+        371905
+      ],
+      [
+        371910,
+        371911
+      ],
+      [
+        371894,
+        371896
+      ],
+      [
+        371870,
+        371874
+      ],
+      [
+        371902,
+        371904
+      ],
+      [
+        372460,
+        372461
+      ],
+      [
+        372388,
+        372392
+      ],
+      [
+        111120,
+        111121
+      ],
+      [
+        111121,
+        111122
+      ],
+      [
+        111122,
+        111123
+      ],
+      [
+        111123,
+        111124
+      ],
+      [
+        111124,
+        111125
+      ],
+      [
+        111125,
+        111126
+      ],
+      [
+        111126,
+        111127
+      ],
+      [
+        111127,
+        111128
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        372458,
+        372459
+      ],
+      [
+        372464,
+        372465
+      ],
+      [
+        372448,
+        372450
+      ],
+      [
+        372424,
+        372428
+      ],
+      [
+        372456,
+        372458
+      ],
+      [
+        373734,
+        373735
+      ],
+      [
+        373662,
+        373666
+      ],
+      [
+        111152,
+        111153
+      ],
+      [
+        111153,
+        111154
+      ],
+      [
+        111154,
+        111155
+      ],
+      [
+        111155,
+        111156
+      ],
+      [
+        111156,
+        111157
+      ],
+      [
+        111157,
+        111158
+      ],
+      [
+        111158,
+        111159
+      ],
+      [
+        111159,
+        111160
+      ],
+      [
+        111472,
+        111473
+      ],
+      [
+        111473,
+        111474
+      ],
+      [
+        111474,
+        111475
+      ],
+      [
+        111475,
+        111476
+      ],
+      [
+        111476,
+        111477
+      ],
+      [
+        111477,
+        111478
+      ],
+      [
+        111478,
+        111479
+      ],
+      [
+        111479,
+        111480
+      ],
+      [
+        373732,
+        373733
+      ],
+      [
+        373738,
+        373739
+      ],
+      [
+        373722,
+        373724
+      ],
+      [
+        373698,
+        373702
+      ],
+      [
+        373730,
+        373732
+      ],
+      [
+        374086,
+        374087
+      ],
+      [
+        374014,
+        374018
+      ],
+      [
+        111040,
+        111041
+      ],
+      [
+        111041,
+        111042
+      ],
+      [
+        111042,
+        111043
+      ],
+      [
+        111043,
+        111044
+      ],
+      [
+        111044,
+        111045
+      ],
+      [
+        111045,
+        111046
+      ],
+      [
+        111046,
+        111047
+      ],
+      [
+        111047,
+        111048
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        374084,
+        374085
+      ],
+      [
+        374090,
+        374091
+      ],
+      [
+        374074,
+        374076
+      ],
+      [
+        374050,
+        374054
+      ],
+      [
+        374082,
+        374084
+      ],
+      [
+        374640,
+        374641
+      ],
+      [
+        374568,
+        374572
+      ],
+      [
+        110912,
+        110913
+      ],
+      [
+        110913,
+        110914
+      ],
+      [
+        110914,
+        110915
+      ],
+      [
+        110915,
+        110916
+      ],
+      [
+        110916,
+        110917
+      ],
+      [
+        110917,
+        110918
+      ],
+      [
+        110918,
+        110919
+      ],
+      [
+        110919,
+        110920
+      ],
+      [
+        111392,
+        111393
+      ],
+      [
+        111393,
+        111394
+      ],
+      [
+        111394,
+        111395
+      ],
+      [
+        111395,
+        111396
+      ],
+      [
+        111396,
+        111397
+      ],
+      [
+        111397,
+        111398
+      ],
+      [
+        111398,
+        111399
+      ],
+      [
+        111399,
+        111400
+      ],
+      [
+        374638,
+        374639
+      ],
+      [
+        374644,
+        374645
+      ],
+      [
+        374628,
+        374630
+      ],
+      [
+        374604,
+        374608
+      ],
+      [
+        374636,
+        374638
+      ],
+      [
+        375296,
+        375297
+      ],
+      [
+        375224,
+        375228
+      ],
+      [
+        111072,
+        111073
+      ],
+      [
+        111073,
+        111074
+      ],
+      [
+        111074,
+        111075
+      ],
+      [
+        111075,
+        111076
+      ],
+      [
+        111076,
+        111077
+      ],
+      [
+        111077,
+        111078
+      ],
+      [
+        111078,
+        111079
+      ],
+      [
+        111079,
+        111080
+      ],
+      [
+        111424,
+        111425
+      ],
+      [
+        111425,
+        111426
+      ],
+      [
+        111426,
+        111427
+      ],
+      [
+        111427,
+        111428
+      ],
+      [
+        111428,
+        111429
+      ],
+      [
+        111429,
+        111430
+      ],
+      [
+        111430,
+        111431
+      ],
+      [
+        111431,
+        111432
+      ],
+      [
+        375294,
+        375295
+      ],
+      [
+        375300,
+        375301
+      ],
+      [
+        375284,
+        375286
+      ],
+      [
+        375260,
+        375264
+      ],
+      [
+        375292,
+        375294
+      ],
+      [
+        373198,
+        373199
+      ],
+      [
+        373126,
+        373130
+      ],
+      [
+        111136,
+        111137
+      ],
+      [
+        111137,
+        111138
+      ],
+      [
+        111138,
+        111139
+      ],
+      [
+        111139,
+        111140
+      ],
+      [
+        111140,
+        111141
+      ],
+      [
+        111141,
+        111142
+      ],
+      [
+        111142,
+        111143
+      ],
+      [
+        111143,
+        111144
+      ],
+      [
+        111456,
+        111457
+      ],
+      [
+        111457,
+        111458
+      ],
+      [
+        111458,
+        111459
+      ],
+      [
+        111459,
+        111460
+      ],
+      [
+        111460,
+        111461
+      ],
+      [
+        111461,
+        111462
+      ],
+      [
+        111462,
+        111463
+      ],
+      [
+        111463,
+        111464
+      ],
+      [
+        373196,
+        373197
+      ],
+      [
+        373202,
+        373203
+      ],
+      [
+        373186,
+        373188
+      ],
+      [
+        373162,
+        373166
+      ],
+      [
+        373194,
+        373196
+      ],
+      [
+        375112,
+        375113
+      ],
+      [
+        375040,
+        375044
+      ],
+      [
+        111232,
+        111233
+      ],
+      [
+        111233,
+        111234
+      ],
+      [
+        111234,
+        111235
+      ],
+      [
+        111235,
+        111236
+      ],
+      [
+        111236,
+        111237
+      ],
+      [
+        111237,
+        111238
+      ],
+      [
+        111238,
+        111239
+      ],
+      [
+        111239,
+        111240
+      ],
+      [
+        111520,
+        111521
+      ],
+      [
+        111521,
+        111522
+      ],
+      [
+        111522,
+        111523
+      ],
+      [
+        111523,
+        111524
+      ],
+      [
+        111524,
+        111525
+      ],
+      [
+        111525,
+        111526
+      ],
+      [
+        111526,
+        111527
+      ],
+      [
+        111527,
+        111528
+      ],
+      [
+        375110,
+        375111
+      ],
+      [
+        375116,
+        375117
+      ],
+      [
+        375100,
+        375102
+      ],
+      [
+        375076,
+        375080
+      ],
+      [
+        375108,
+        375110
+      ],
+      [
+        374902,
+        374903
+      ],
+      [
+        374830,
+        374834
+      ],
+      [
+        110896,
+        110897
+      ],
+      [
+        110897,
+        110898
+      ],
+      [
+        110898,
+        110899
+      ],
+      [
+        110899,
+        110900
+      ],
+      [
+        110900,
+        110901
+      ],
+      [
+        110901,
+        110902
+      ],
+      [
+        110902,
+        110903
+      ],
+      [
+        110903,
+        110904
+      ],
+      [
+        111408,
+        111409
+      ],
+      [
+        111409,
+        111410
+      ],
+      [
+        111410,
+        111411
+      ],
+      [
+        111411,
+        111412
+      ],
+      [
+        111412,
+        111413
+      ],
+      [
+        111413,
+        111414
+      ],
+      [
+        111414,
+        111415
+      ],
+      [
+        111415,
+        111416
+      ],
+      [
+        374900,
+        374901
+      ],
+      [
+        374906,
+        374907
+      ],
+      [
+        374890,
+        374892
+      ],
+      [
+        374866,
+        374870
+      ],
+      [
+        374898,
+        374900
+      ],
+      [
+        378654,
+        378658
+      ],
+      [
+        15523,
+        15524
+      ],
+      [
+        15522,
+        15523
+      ]
+    ]
+  },
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "target_state": {
+    "classification_changed": false,
+    "decision_journal_changed": false,
+    "guest_snapshot_included": false,
+    "manual_action_log_changed": false,
+    "payload_unknown_bytes": 6494,
+    "rendered_source_changed": false,
+    "rom_included": false,
+    "workspace_coordinate_gap_bytes": 750
+  }
+}

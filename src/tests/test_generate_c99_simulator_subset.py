@@ -42,6 +42,22 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls._tmp.cleanup()
 
+    def test_signed_encoded_immediate_normalization_is_data_driven(self) -> None:
+        from copy import deepcopy
+        entry = next(i for i in self._generator._load_kb()["instructions"] if i["mnemonic"] == "MOVEQ")
+        access = entry["execution"]["operands"][0]["access"]
+        bind = self._generator._immediate_signed_bits
+        self.assertEqual(bind(entry, access), 8)
+        changed = deepcopy(entry)
+        changed["mnemonic"] = "RENAMED"
+        self.assertEqual(bind(changed, access), 8)
+        changed["constraints"]["immediate_range"]["signed"] = False
+        self.assertEqual(bind(changed, access), 0)
+        self.assertEqual(bind(entry, {**access, "width": 1}), 0)
+        self.assertEqual(bind(entry, {**access, "width": None, "width_source": "instruction_size"}), 0)
+        self.assertEqual(bind(entry, {**access, "kind": "branch_target"}), 0)
+        self.assertEqual(bind({}, access), 0)
+
     def test_generates_form_metadata(self) -> None:
         self.assertIn("static const M68kSimFormLookup g_m68k_sim_form_lookup[", self._tables)
         self.assertIn(

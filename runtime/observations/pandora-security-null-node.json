@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "question": "Does ordinary gameplay reach the static defeat NULL animation-node writes?",
+  "result": "not_established_in_this_window",
+  "scenario": "runtime/scenarios/pandora-security-null-node.json",
+  "raw_report_sha256": "5301a755cafb6d5b46123196db0a7579970017dfa1a584345b463710fd74b40f",
+  "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "checkpoint_origin": "Verified ordinary-joystick reverse-security-damage route; no guest-state edits for this probe. Local snapshot is intentionally not published.",
+  "runner_status": "incomplete",
+  "phases": [
+    {
+      "name": "first_damage_anchor",
+      "stable_key": "s0:0000887C:instruction",
+      "capture": {
+        "registers": {
+          "a0": "0x00013502",
+          "a4": "0x0005c322",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "sr": "0x00002000"
+        },
+        "memory_reads": [
+          {
+            "address": "0x0005c35e",
+            "bytes": "005f",
+            "base_register": null,
+            "offset": null,
+            "expectation": {
+              "expected_hex": "005f",
+              "mask_hex": "ffff",
+              "matched": true
+            }
+          },
+          {
+            "address": "0x00000008",
+            "bytes": "00fc081800fc081a00fc081c",
+            "base_register": null,
+            "offset": null
+          }
+        ]
+      },
+      "resolved_function": {
+        "name": "store_security_damage_health_byte",
+        "source_start": 34940,
+        "source_end": 34966,
+        "runtime_start": 100476,
+        "runtime_end": 100502
+      },
+      "address": "0x0001887c",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "breakpoint-hit",
+      "pc": "0x0001887c",
+      "sp": "0x0001044e",
+      "stack_return_address": "0x000105f0",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x887c"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x887c",
+        "runtime_base": "0x00010000"
+      }
+    },
+    {
+      "name": "first_damage_applied",
+      "stable_key": "s0:00008896:instruction",
+      "capture": {
+        "registers": {
+          "a0": "0x0001aa72",
+          "a4": "0x000132d6",
+          "a5": "0x0005c322",
+          "a6": "0x000039fc",
+          "sr": "0x00002010"
+        },
+        "memory_reads": [
+          {
+            "address": "0x0005c35e",
+            "bytes": "002c",
+            "base_register": null,
+            "offset": null,
+            "expectation": {
+              "expected_hex": "002c",
+              "mask_hex": "ffff",
+              "matched": true
+            }
+          },
+          {
+            "address": "0x00000008",
+            "bytes": "00fc081800fc081a00fc081c",
+            "base_register": null,
+            "offset": null
+          }
+        ]
+      },
+      "resolved_function": {
+        "name": "service_security_damage_palette_flash",
+        "source_start": 34966,
+        "source_end": 35004,
+        "runtime_start": 100502,
+        "runtime_end": 100540
+      },
+      "address": "0x00018896",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "breakpoint-hit",
+      "pc": "0x00018896",
+      "sp": "0x0001044e",
+      "stack_return_address": "0x000105f0",
+      "payload": {
+        "payload_name": "binary.bin",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "sample_size": 16,
+        "matching_offsets": [
+          "0x8896"
+        ],
+        "status": "pc_matched",
+        "payload_offset": "0x8896",
+        "runtime_base": "0x00010000"
+      }
+    },
+    {
+      "name": "second_damage_before_store",
+      "stable_key": "s0:0000887C:instruction",
+      "capture": null,
+      "resolved_function": null,
+      "address": "0x0001887c",
+      "status": "timeout",
+      "termination": "deadline_interrupt",
+      "stop_reason": "pause",
+      "pc": "0x00018522",
+      "sp": "0x0001044a",
+      "stack_return_address": "0x000183b2"
+    }
+  ],
+  "interpretation": [
+    "First original damage store reached and HP changed from 95 to 44.",
+    "Second damage store did not occur within the bounded 12-second phase; later phases did not execute. This does not establish unreachability.",
+    "At both captured first-hit stops, bytes 0x8..0x13 were 00fc081800fc081a00fc081c.",
+    "Isolated original CPU regression establishes that a NULL node clears bit 0 of byte 0xA and the word at 0x10. Byte 0xA belongs to the bus-error vector; word 0x10 is the high word of the illegal-instruction vector.",
+    "The observed byte 0xA is 0x08, whose bit 0 is already clear. The word at 0x10 is 0x00fc; a later NULL-node call would zero that word if unchanged. This conditional effect was not observed in gameplay.",
+    "No corrected variant or patch record was implemented because ordinary gameplay reachability remains unconfirmed."
+  ],
+  "regression_tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_pandora_security.py tests/test_pandora_state_transitions.py",
+    "result": "15 passed in 33.40s"
+  },
+  "next_step": "Use bounded ordinary joystick movement to remain near or follow the responding actor, or establish an independently reproducible normal defeat route; do not force HP or pointers.",
+  "startup_diagnosis": {
+    "failed_launch_error": "CopperlineError: Copperline exited during startup (1)",
+    "failure_stage": "process poll before socket.create_connection",
+    "socket_denial_demonstrated_for_emulator": false,
+    "cause": "unknown; emulator output is discarded by the launcher, temporary endpoint directory is cleaned, and the failed CLI log was overwritten by the subsequent run",
+    "comparison": "Earlier first-damage invocation and later death-path invocation used the same executable, legal ROM and deterministic direct-payload contract. First-damage succeeded; later permission-added invocation completed with an incomplete gameplay scenario. This does not isolate a permissions cause.",
+    "permission_request": {
+      "mode": "with_additional_permissions",
+      "network_enabled": true,
+      "filesystem_additions": [],
+      "reason_for_request": "Inference from restricted sandbox and loopback debugger use, not a demonstrated socket failure. No further escalation is justified by the startup exit alone."
+    },
+    "separate_restoration_api_error": "A subsequent ordinary restoration state request failed with urlopen error [Errno 1] Operation not permitted; this establishes a restriction on that connection, not the cause of the earlier emulator exit."
+  },
+  "next_damage_preconditions": [
+    "Player active; no combat gate while flash is zero.",
+    "Existing flash advances for 31 service calls without decrementing damage countdown.",
+    "After flash, a non-NULL nearby object must resolve to a position state with flag bit 7.",
+    "Player must still map to a restricted zone and selected card must fail clearance.",
+    "Damage occurs only after the countdown reaches zero from 50 eligible decrements; elapsed wall time alone is insufficient."
+  ],
+  "offline_followup": {
+    "status": "original_cpu_paths_verified_with_explicit_local_state",
+    "tests": [
+      {
+        "command": ".venv/bin/python -m pytest -q tests/test_pandora_security.py tests/test_pandora_descriptor_partition.py",
+        "result": "22 passed in 65.28s",
+        "scope": "Prior eleven policy cases, seven new eligibility/pause/lost-checkpoint cases and four descriptor-partition cases."
+      },
+      {
+        "command": ".venv/bin/python -m pytest -q tests/test_pandora_security.py::test_static_defeat_executes_original_callees_without_reseeding_registers",
+        "result": "1 passed in 3.69s",
+        "scope": "Additional original death-branch continuation through actual message and health-draw callees to exchange return."
+      }
+    ],
+    "eligible_counter_progression": "With player active, combat off, stable bit7 nearby state, restricted original map cell and insufficient selected clearance: 31 flash service calls leave countdown50 untouched; 49 eligible calls reduce it to1; the next call reaches source887C with D0 low byte0 from HP44, before storing health.",
+    "pause_and_resume": "Inactive, combat, sufficient card and unrestricted zone each preserve countdown50 and response-active1 for three calls; removing the gate makes the next original service call decrement to49.",
+    "lost_checkpoint": "NULL nearest pointer and non-bit7 state each branch to source8848 before decrement. The audio-clearing helper is not executed in these bounded cases.",
+    "death_continuation": {
+      "entry": "s0:000088BC:instruction",
+      "stop": "s0:00008902:instruction",
+      "assumptions": [
+        "Already-busy status queue with tail at its empty head; initialized original player descriptor and NULL-node static defeat state.",
+        "Original compact-font bitmap pointer supplied. Low-memory sentinel byteA=A5 and word10=BEEF explicitly supplied.",
+        "No forced register restoration after message/health callees; no replaced instructions or stubbed callbacks."
+      ],
+      "observed": [
+        "Original outcome/rank calls append three messages and retain A4 context until the caller stages static defeat.",
+        "Actual health draw completes; exchange binds static defeat state and saves previous state.",
+        "A5 remains the player, byteA becomesA4 and word10 becomes0."
+      ],
+      "trace_bound": "At most4096 instructions, collected in64-instruction chunks preserving all CPU/stack state; each chunk must complete without trace-range overflow or error diagnostics.",
+      "limit": "Starting at the death branch is synthetic local execution. It does not demonstrate that ordinary joystick play reaches the branch."
+    },
+    "conclusion": "The caller/callee continuity gap is closed for this explicit local state. Ordinary-input reachability is still unresolved; optional corrected build remains deferred."
+  }
+}

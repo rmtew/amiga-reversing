@@ -58,8 +58,14 @@ start a new build. Responses include `revision`,
 and `next_cursor`; send that cursor with the same query and revision to continue.
 The server rejects stale cursors rather than joining different snapshots.
 
-`typed_pointers` selects canonical bound fields with explicit pointer semantics,
-and supports only the optional `struct_name` filter. Its total and outcome/reason
+`typed_pointers` selects canonical bound fields with explicit pointer semantics.
+Use `struct_name` and/or `section_index`, with optional `source_offset` (inclusive)
+and `end_offset` (exclusive), to inspect a source family. Interval bounds require
+the section and select **field starts**; returned fields retain their complete
+native extent even if an upper bound cuts through one. Selection happens before
+native row lookup, so unselected families do not inflate work or counts. Cursors
+bind the complete filter set and refuse reuse with another interval.
+Its total and outcome/reason
 counts cover the entire selected population, while field details are paged.
 With `exceptions_only: true`, `total` counts unresolved/invalid fields and
 `population_total` retains the full denominator. The UI's **Pointer exceptions**
@@ -72,6 +78,22 @@ conflicts and missing native results remain explicit. For a standalone summary:
 python -m amiga_reversing.tools.typed_pointer_report --target TARGET --summary
 ```
 
+Instruction query records also expose native `operand_facts` (EA shape, base,
+displacement, index, generated width and operand role), `app_slot_refs`, typed and
+unresolved typed accesses, address observations and platform address uses. These
+are structured analysis evidence, not parsed instruction text or runtime events.
+App attribution can use the analyzer's A6 fallback; it does not establish an
+all-path base value. Hardware families retain their offset set and input-contract
+flag with no invented concrete address. MOVEM widths are per element; the
+`bulk_transfer` flag prevents treating them as a complete footprint. Form roles
+alone do not independently enumerate every read side of read-modify-write uses.
+Consumers requiring a complete inventory must refuse truncated previews and join
+only pages from one revision. Operand evidence also exposes native direct
+registers, expanded register lists, immediate values and normalized EA updates.
+The exact-one-instruction native evidence entry point reuses this serializer for
+retained identity-checked bytes; it supplies no platform attribution or callee,
+exception-frame, register-flow or gameplay proof by itself.
+
 `query` text is a case-sensitive literal substring of symbol names for `symbols`
 and generated instruction text for `instructions`; it does not normalize numeric
 values or search instruction annotations. Function queries match names without
@@ -83,10 +105,115 @@ relations include `callers`, `callees`, `ranges`, `owned_blocks`,
 `unresolved_transfers`, `entry_evidence` and `name_evidence`. Ownership is a
 conservative candidate, not proof of a complete function boundary.
 
+Native CFG queries include accepted traced destinations for indirect transfers,
+using each code-start fact's source section and instruction offset. A resolved
+destination edge identifies a known candidate; it does not close the target set.
+The unresolved edge remains alongside candidates because discovery does not
+establish completeness across mutable stores or all callers. Table addresses,
+cross-section aliases and unaccepted instruction starts are not destinations.
+
+Discovery also recognizes an inline resume producer: an address register holds
+the source instruction immediately after an unconditional transfer to shared
+code. Its continuation provenance travels through the bounded work queue,
+including previously accepted code and indirect table destinations. At most
+eight distinct states are retained per instruction. Register overwrites and
+opaque calls discard the affected provenance; an opaque call return clears all
+register/cache values in this extended trace. Ordinary discovery retains its
+existing short replay. Multiple traced producer destinations are reported as
+`per_caller`, rather than as a jump-table proof. These are known paths, not an
+exhaustive caller, lifetime, or callback-effects contract.
+
 For mutation parameters use `--request request.json` (or `--request -` for stdin).
+`target.code.register_seed.add` and the row's `semantic.register.struct_ptr`
+accept optional `array_length` (1..65535 records). It is a bounded typed-prefix
+contract, not allocation ownership or proof that a dynamic index stays inside
+it. The count and source section survive normal MAL replay/undo and native
+import; fixed record members can resolve while indexed and out-of-prefix
+accesses remain explicit. Omit the count to retain the existing type contract
+and any independently inferred array bounds. Only struct pointers accept it;
+omitted counts retain legacy metadata serialization.
 RSSET region renaming requires an explicit `size` from the current declaration.
 An omitted extent can otherwise become four bytes and cover neighboring fields.
 Existing add/edit defaults and historical records remain supported.
+
+`target.data_block.layout.rename` takes an active manual `layout_id` and `name`.
+It reuses the existing sparse layout-edit action, preserving the ID, range,
+role, elements, type bindings and interpreted references. Unknown or removed
+manual IDs are refused before append. This does not rename source symbols;
+use inspected `label.rename` actions for those identities as a separate part
+of the same swath. Seeded-only layouts must first have a supported manual
+layout identity rather than relying on implicit range/default reconstruction.
+
+`target.data_block.layout.resize` changes only an active raw section-0 owner's
+exclusive `source_end`. Supply `layout_id`, inspected `expected_source_end` and
+new `source_end`, as well as the service revision. Start, identity, role, fields,
+bindings and interpreted references remain unchanged. It refuses empty/out-of-file
+ranges, stale endpoints, excluded fields/references, overlaps and runtime views.
+Other source formats are explicitly unsupported; no section bounds are inferred.
+Undo/redo and review use the normal append-only histories. This operation corrects
+a proved source ownership boundary; it does not establish allocation or lifetime.
+
+Known compatibility limit: legacy MAL source-style numeric strings are not fully
+normalized by resize and can be refused (or raise `TypeError` for a string start).
+Canonical integer entries, including Pandora, are unaffected. Numeric-string
+normalization remains a bounded follow-up; other edit guards are unchanged.
+
+`target.data_block.layout.describe` takes an active manual `layout_id` and a
+nonempty `role`. It uses the same sparse edit/history path as layout rename,
+preserving name, extent, unit, elements, type bindings and reference identities.
+Use it to refine a resource's discovered uses without replacing its owner or
+rewriting history. Unknown identities and stale revisions refuse the edit.
+
+Current native boundary: an untyped layout element copies its owner role into
+the seeded-entity subtype field, whose parser accepts at most 63 bytes. Use a
+short role category and retain longer explanations in interpretation evidence
+or source comments. A longer role can be accepted on an empty owner but will
+fail native preflight when its first element is added; that failure appends no
+action. General support for longer free-form roles remains open.
+
+A row `label.rename` explicitly supersedes its predecessor name at the same
+section/address within its address domain, including an older manual label
+with a different ID. The renamed declaration takes precedence; unrelated
+same-address aliases remain available. Repeated row renames retain their name
+chain through replay and undo/redo. Original metadata and action history are
+preserved. This avoids an accepted rename silently rendering the older name.
+
+`target.data_block.elements.rename` accepts 1..1000 explicit `{layout_id,
+offset, name}` selectors. It changes only names of active manual elements,
+preserving their widths, types, binding IDs, binding provenance and reference
+owners. Duplicate identities, unknown elements and non-name edits refuse the
+whole append. Normal undo/redo applies to the single bulk action. This is useful
+for propagating a reviewed owner identity without recreating every typed element.
+
+`target.data_block.element.interpret_ref` accepts `base_displacement_range` for
+a packed range of 1..65535 WORDs within one existing element. Here `width` is
+the entire byte span; explicit `signed`, positive uint32 `scale`, and
+`base_locator` define `target = base + decoded_word * scale` in the same source
+section. `source_value` and `target_offset` pin the first WORD and its target.
+The native reader decodes every remaining WORD from the identity-bound binary,
+checks every target before admission, and publishes each raw value, signedness,
+scale, source position and precise base/target coordinates. A declaration uses
+one policy slot; it does not expand the scalar-reference policy capacity.
+
+Ranges require aligned WORD-array storage or complete declared scalar WORD
+leaves of a resolved type; padding, mixed-width fields and overlapping reference
+owners refuse admission. Existing fields, type bindings and resource owners
+remain intact. Native queries expose both expression roles and honor the usual
+xref mode. Symbolic rendering uses bounded source owners with explicit addends,
+so interior references do not manufacture resource boundaries. A scaled form
+uses an exact same-section label difference divided by a literal stride; the
+native assembler rejects relocatable, cross-section and inexact label divisions.
+When base and target share one owner without an independently named record, an
+index retains its original numeric WORD instead of emitting a cancelling
+`owner-owner` expression; both coordinates and the scale remain available in
+native references.
+Missing compatible owners, address mappings or arithmetic capacity retain numeric
+output. This is a source-encoding contract, not a pointer lifetime, allocation,
+DMA extent or runtime reachability claim. The existing `base_displacement`
+scalar form remains restricted to a signed, unscaled WORD.
+
+RSSET aggregate extents support 1..32767 bytes through the catalog, metadata
+projection and native policy; absolute-storage slots retain their separate limit.
 The file is an object of operation parameters, without `operation`. For example:
 
 ```json
@@ -104,9 +231,49 @@ The file is an object of operation parameters, without `operation`. For example:
 }
 ```
 
-The context above is schematic: copy the complete context and command from the
-actual `inspect.commands` catalog. Do not invent locators or arbitrary manual
-payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
+The context above is schematic: use the current native locator and element ID
+when applicable, plus a command discovered in the catalog. Do not invent locators
+or arbitrary manual payload kinds. Supported evidence status is `hypothesis` or `analysis_proven`.
+
+Native policy storage permits 32,768 structured-data items and 32,768 named
+labels, allocated on demand. Overflow is refused before history append; the
+bounded counts still fit the existing 16-bit native counters.
+
+A custom structure bound to an explicit `kind: array` retains that array kind.
+Packed arrays of uniform scalar BYTE/WORD/LONG fields project as one typed
+native range, retaining the shared field schema and canonical count/stride.
+Native static-data analysis derives record indices and interior field cursors
+from the range; source rendering keeps ordinary references and authored
+interior labels through the existing range planner. Logical fields do not each
+consume a policy label or item. This path supports 1..65,535 records, exact
+record strides, complete field coverage and default/hex scalar presentation.
+Embedded custom records also qualify when every declared record has its exact
+declared size and the complete recursive layout has one scalar width. This
+retains composition (for example, a cell containing rows) without expanding
+all logical fields or inferring an array from an oversized embedded field.
+For multiple records the public declaration shows `ARRAY type[count]` once;
+collecting its data into an asset does not repeat its owner name as a comment
+for every row.
+
+Typed pointer-table entries into a bounded source owner render as the owner's
+name plus an offset. Their canonical reference targets remain the actual source
+locations. This avoids introducing automatic interior labels that split bitmap
+assets; explicit interior labels retain their authored source boundary. Pointer
+expressions still have to reproduce the stored numeric value exactly.
+
+Explicit `kind: struct` presentations remain expanded. Mixed widths, pointers,
+unknown/cyclic or size-mismatched embedded records, gaps/strided padding,
+value-specific representations and authored
+expressions depending on generated field aliases also keep the existing leaf
+projection. Expanded leaves still count against the native capacities. This
+preserves field-specific rendering rather than dropping its semantics to make
+an array fit.
+
+An absolute operand explicitly bound to a runtime-domain EQU does not inherit
+a source-image structure merely because its numeric address overlaps an image
+load view. The runtime namespace and a mapped source identity remain distinct;
+ordinary value constants and accepted source identities retain their existing
+analysis paths.
 
 Use `interpret_batch` for a connected set of 1..100 interpretations from the same
 inspected revision:
@@ -121,18 +288,86 @@ entry contains `command_id`, the actual catalog `context`, `parameters` and
 omit `operation` and `expected_revision`. All evidence references and command
 contexts are checked against the same native artifact before any write. Identical
 contexts reuse their resolved rows and catalog only within that preparation; each
-command and its parameters are still validated independently. The Manual Action Log validates the complete batch and appends it atomically; an
+command and its parameters are still validated independently. Catalog availability
+uses the already validated context rather than resolving it a second time.
+Displacement-use witnesses share one native scan within that locked preparation,
+keyed by project/projection and artifact identity. This temporary index is discarded
+before append, including failed preparations; it is never reused by another request.
+The Manual Action Log validates the complete batch and appends it atomically; an
 invalid final entry or stale revision leaves both histories unchanged. The
 service applies the actions and invalidates the projection once, then returns
 `actions`, per-entry `commands`, and the resulting revision. Inspect and verify
 that resulting revision before review. Batches do not observe earlier entries
 as fresh catalog state, so dependent commands require a new inspection.
 
+For an already-discovered element command, the minimal context is
+`{ "kind": "element", "locator": NATIVE_LOCATOR, "element_id": NATIVE_ELEMENT_ID }`.
+The batch endpoint resolves that current native element and checks its catalog
+before append. A separate client catalog read per operand is redundant when the
+command contract is unchanged; preserve native identities and the inspected
+revision rather than synthesizing operand values or silently refreshing state.
+
 `target.function_summary.add` also accepts the canonical optional `results`,
 `effects` and `note` fields. Explicit register effects must partition all sixteen
 general registers; omitted effects remain unknown. The command validates the
-complete summary before appending it. Native metadata reading accepts compact
+complete summary before appending it. `inputs: []` is valid for an effect-only
+leaf with no typed pointer arguments; an identity result or input-relative effect
+still requires an existing input index. Empty and malformed input arrays remain
+distinct. Native metadata reading accepts compact
 and indented JSON for these arrays without changing the contract or ABI.
+
+Bounded native callee inference may also publish a generated `hardware_base`
+register result with a stable `hardware_base_id`. The proof starts without
+caller hardware values, follows original register transfers, and requires the
+same full address on every reached normal return. Such a result establishes a
+fixed return value; it does not assert that the entry register is preserved.
+Partial writes, unresolved calls, conflicting returns and proof limits retain
+unknown state. This generated result is not a new target-metadata result kind;
+reviewer-authored results remain restricted to `identity_input`. Hardware value
+domains consume validated native address uses, including call/CFG proofs,
+instead of requiring a second linear lifetime proof. Existing manual operand
+representations take precedence over newly inferred value-domain expressions.
+The symbol-element catalog does not yet expose numeric representation editing
+for an already symbolized SDK literal; replay of earlier accepted bindings is
+supported, while adding that editing path remains a separate command gap.
+
+`representation.hardware_offset` binds a decoded address-register displacement
+to a registered SDK base's offset domain. The caller supplies `base_symbol`;
+the command takes the encoded offset from the native listing element. Native
+policy admission requires a known base and field, and rendering checks that
+the instruction still contains that displacement. This preserves expressions
+such as `aud0+ac_len(a6)` when A6 selects a channel with a runtime stride.
+It asserts the literal's meaning, supplies SDK dependencies and access notes,
+and creates no runtime address, register identity, or call-preservation fact.
+The same SDK access notes also consume validated native hardware address uses,
+so explanations survive call and CFG proofs alongside operand names. Pointer
+notes inferred from a destination field yield to existing pointer-provenance
+notes. Unknown calls and conflicting values remain conservative.
+
+`target.code.hardware_indexed_input.add` declares an explicit entry precondition:
+an address register equals a registered hardware base plus `stride` times the
+low WORD of a data register. Its `hardware_indexed` object contains
+`base_symbol`, `index_register`, `stride` and a sorted closed `index_values`
+list of at most eight nonnegative members. The command also requires an entry
+address, section, destination register and precondition note. Native admission
+checks the registered base, register classes, set capacity and offset extent
+before history is appended. Source comments say `INPUT contract`, rather than
+presenting the destination as a fixed address or a recovered game struct.
+
+The bounded hardware solver tracks low-WORD constants, moves, immediate shifts
+and multiplies, ADDA.W, and DBF's separate backedge/exhaustion states. It unions
+closed sets at joins and discards unknown or overflowing sets. Its fixed point
+is independent of typed-memory propagation; an exhausted hardware proof budget
+publishes no family facts. Calls, unmodelled/partial writes, memory loads and
+address autoupdates invalidate the affected domain. Each member must resolve
+to the same SDK register-family field before an automatic symbol/note is added.
+The resulting `hardware_register_family` facts expose `relative_base_offsets`
+and `proof_scope: analysis_entry_contracts`; `address` and `effective_address`
+are null. `requires_indexed_input_contract` records whether such an explicit
+indexed precondition supplied the bounds, including after scalar transfers and
+joins. Literal offset interpretations remain valid fallbacks where these
+bounds are unknown. An accepted input precondition is not proof that every
+possible indirect caller or opcode supplies it.
 
 Native policy storage accepts up to 16,384 structured data items and 16,384 named
 labels after array fields expand. The merged pending interpretation is checked
@@ -177,6 +412,12 @@ ranges remain governed by native analysis. First adoption requires the current
 canonical source to match freshly rendered inline source. Explicit ZIP export
 continues to select its own presentation independently.
 
+Forward EQU expressions over source or asset labels are not supported end to end
+by the current C assembler, even when vasm accepts them. For a proved address
+value, a numeric named EQU avoids that forward dependency while the evidence
+retains its canonical owner/offset relationship. Extending forward dependency
+resolution is separate work; do not accept a slice on vasm equality alone.
+
 Custom pointer fields can explicitly declare `pointer_address_domain` as
 `mapped_source` or `runtime_only`; omission retains the existing `legacy`
 behavior. `mapped_source` requires a unique eligible source mapping and an
@@ -188,6 +429,10 @@ not allocated memory, pointee types, DMA safety, lifetime, or phase exclusivity.
 Schema edits propagate through all bound instances; evidence remains required.
 
 Optional structure macros are an export view of the same canonical schemas.
+Compact scalar arrays retain `ARRAY Type[count]` at their public source label,
+including `count=1`. A singleton has no expanded field comments, so the label
+annotation preserves its declared layout. Expanded structures keep their
+individual field annotations.
 Choose **vasm + structure macros** in Export Source, or use:
 
 ```sh
@@ -233,6 +478,11 @@ address, size/alignment, CPU placement, persistent lifetime and DMA requirement
 through ordinary revision-checked interpretation/history. `query` with
 `kind: "memory_regions"` projects native instruction references and bounded
 pointer-path obligations. Definitions do not assert relocation safety.
+Distinct region identities may overlap: the native projection reports their
+exact shared interval and offsets in `overlapping_regions`, with a
+`coordinated_source_placement` obligation. A single-region plan refuses with
+`overlapping_source_regions`; no joint-move or phase-based split is implemented.
+Persistent storage does not mean immutable contents or exclusive ownership.
 `source_domain: "mapped_source"` additionally requires a unique contiguous native
 materialization for the initial bytes. Plans retain PC-displacement encoding when
 the new signed displacement fits; indexed and PC-relative pointer producers remain
@@ -264,3 +514,159 @@ establish absolute stack ownership or separation from application/object writes.
 [The next proof capability](proposals/044-runtime-memory-relocation-proof.md)
 records address provenance and interrupt/context requirements. Conditional build
 or runtime guard enforcement is not implemented.
+
+Operand symbol presentations may select a canonical source declaration as well
+as a platform symbol or target equate. Immediate target EQUs must match the
+decoded unsigned or signed value before append. Decoded bit-number immediates
+carry no byte width; equal-value EQUs remain valid for these operands. A requested
+presentation can replace a generated immediate-address name; explicit source/SDK names remain
+protected. A value EQU keeps resolved address-analysis facts but creates no
+unused source-label obligation inside an asset. The append preflight resolves one native
+render-plan declaration and persists `source_symbol` with `section_index`,
+`source_offset`, `runtime_view` (0/1) and `encoded_value`. It checks the current
+native operand value/width and address view before writing history. No Python
+load-address arithmetic or generated-label parsing participates. Ambiguous,
+missing and mismatched choices refuse the entire batch. The native renderer
+checks the identity again and derives the current name from its coordinates,
+so renaming a label preserves both the expression and its xref identity.
+
+An explicit data layout with role `opaque_data` and a raw element can be
+packaged as an INCBIN through the existing binary-assets output mode. This
+classification preserves bytes with unknown purpose; it does not assert media
+format, unused storage or relocation safety. Unclassified bytes remain excluded
+from automatic asset extraction, and existing label, expression, fixup, ORG and
+range-overlap guards still apply.
+
+Typed record cursors support bounded ordinary source reads and destination
+stores through postincrement or predecrement EAs. Generated access/width metadata
+determines the field address and signed cursor step. Field references on these
+modes are comment-only so their encoded syntax and bytes stay intact. A7,
+multi-register transfers, multiple EA updates, conflicting base uses, pointer-table
+cursors and accesses outside the known record keep their conservative boundary.
+This is type/field evidence, not memory ownership or alias-exclusion proof.
+
+A bounded record cursor may retain its one-past-end value after reading the
+last field. A later predecrement can reenter that same record and resolve its
+fields, including after the cursor is stored as an address. Reads or writes at
+the endpoint remain unresolved; an invalid extra postincrement drops the cursor.
+The final declared array element follows the same rule without inventing a next
+element. Byte, WORD and LONG accesses retain their encoded auto-update syntax.
+
+Brief address-register indexed operands expose their encoded signed-byte
+`indexed_displacement` as an element. `representation.symbol` accepts only an
+equal-valued canonical target EQU; the native renderer checks the actual decoded
+displacement again and preserves the base register, index register, width and
+scale. This names the fixed displacement only. It does not resolve the dynamic
+index, infer a structure field, or prove array bounds. PC-indexed and full-extension
+forms are outside this command's scope.
+
+Fixed `d16(An)` operands similarly expose a signed-word `displacement` element.
+Its symbol presentation requires an equal-valued canonical EQU and a second
+native decoded-value check. The encoded word and base register remain intact,
+including an explicit word extension for zero. Plain indirect, auto-update and
+PC-relative operands do not offer this fixed-displacement command.
+
+Function-summary commands also accept type-neutral `abi_pointer` inputs in
+single-register or register-tuple locations. Combined with `identity_input`
+results, these express shared save/restore wrappers without imposing a fixed
+pointee type on every caller. Register preservation alone retains the existing
+conservative treatment of storage-derived types across opaque memory effects.
+
+Presentation edits replace the previous active style for the same native owner:
+section, byte span and optional operand index. The action log remains append-only;
+undo restores the preceding style and redo restores the edit. An explicit manual
+edit also replaces a matching legacy metadata presentation. Different operands,
+sections and spans remain independent, and conflicting raw metadata remains an
+error rather than silently picking a winner.
+
+Typed custom-structure fields inherit an owning layout's explicit `bitmap`,
+`sound_sample` or `opaque_data` role for the existing binary-assets export.
+Other descriptive roles do not become media classifications. Inline analysis
+retains every typed field. The package projection omits an exact generated
+field-name comment when coalescing its numeric bytes into INCBIN; manual, role
+and additional comments survive. Interior labels, expressions, fixups, ORG and
+overlap guards continue to bound or prevent extraction.
+
+## Read-only completeness accounting
+
+```sh
+python -m amiga_reversing.tools.restoration_accounting --target TARGET \
+  --verification-receipt RECEIPT.json \
+  --json-output accounting.json --text-output accounting.txt
+```
+
+This offline report builds one native artifact from the current canonical
+metadata; it needs no running server. It reads the Manual Action Log, validates
+the Decision Journal and asset identities, and rejects canonical inputs that
+change during collection. Only the requested report files are written; target
+facts, source and review decisions are unchanged. The optional receipt is reused
+only when its original, source and package hashes match and both C and vasm
+reported exact original-layout output. Accounting never runs or substitutes a
+new verification gate. The native source-plan DTO includes canonical stored and
+allocated section extents, keeping BSS and allocation tails out of payload totals.
+
+The JSON (`restoration-accounting/v2`) and compact text view separate:
+
+- Disjoint native payload classification, provisional/conflicting claims and
+  unknown gaps, with coordinate identities and native evidence anchors.
+- Base-relative workspace envelopes, aliases, overlaps, unknown gaps, declared
+  runtime regions and absolute observations. Coordinate spaces have no additive
+  grand total; mapped-source views do not create extra payload bytes. Hardware,
+  vectors and external cells are separate, including observations of unknown width.
+- Discovered function candidates, declared data owners, explicit array/typed
+  record counts and asset emission chunks. Their complete semantic denominators
+  and unproved function/resource boundaries remain unknown.
+- Purpose/confidence, native field and reference resolution, presentation signals,
+  original-layout verification, final review and relocation readiness.
+
+Native accepted classification is not semantic acceptance. Purpose/confidence now
+has a minimal typed `PurposeAssessment` fact, replayed from the same Manual Action
+Log projection as other target facts. `target.purpose.assess` and
+`target.purpose.remove` are normal target catalog commands; creation/removal and
+undo/redo use the existing append-only replay path. There is no second tracker.
+The facts do not enter native analysis/rendering policy or assembly comments.
+
+An assessment declares `coordinate_space` (source with `section_index`,
+base_relative with exact `layout_name`/`base_symbol`, or absolute), nonempty
+`start`/`end`, a purpose category, concrete `purpose`, explicit low/medium/high
+`confidence`, `coverage` and `limits`. `whole_scope` concerns the stated purpose
+throughout that interval; it does not assert complete fields, all writers,
+reachability, control-flow closure, resource boundaries or relocation safety.
+`partial_scope` deliberately leaves byte-level purpose coverage unresolved.
+
+Restoration interpretations carry the existing canonical row evidence and reason.
+The existing Decision Journal owns acceptance, deferral and rejection; its normal
+current-subject exact-verification requirement remains in force. Only accepted,
+evidence-bearing whole-scope claims support purpose byte accounting. Confidence
+is never promoted by acceptance. Unreviewed, deferred, rejected, partial,
+unmapped and overlapping claims remain explicit; overlaps are review obligations,
+not summed coverage or automatically averaged confidence. Untouched regions remain
+unassessed even when names, comments, schemas or INCBIN already exist.
+
+The report separately inventories native asset encoding classes and declared
+schema instance counts. This exposes bitmap/sample evidence underneath the coarse
+`structured_data` ownership class without bulk assigning game purpose. The owner
+IDs, scope coordinates, MAL action IDs, journal decisions, native entry evidence
+and listing links retain the evidence trail.
+
+RSSET accounting uses native normalized layout/base identities. Its observed
+minimum/maximum envelope is not a proved workspace allocation bound: unknown
+prefix/suffix extents remain outside the denominator. Missing declarations or
+observed accesses never prove unused storage. Data-layout `padding` elements
+retain their explicit classification; workspace reserved/padding/unused intent is
+reported unavailable where the canonical model does not encode it. Dynamic field
+indices, unresolved references and indirect sites remain separate obligations.
+Unresolved operand records are grouped by native classification and root layout,
+with source listing links. Each can link to an explicitly assessed enclosing
+instruction purpose while retaining its original unresolved status. Such context
+does not prove the dynamic index, field selection or owner bounds. The text view
+also shows supported workspace purpose bytes and the separate native bitmap,
+sample and opaque asset inventories; none of these dimensions are additive.
+Generic names are review signals only; each has a canonical source-coordinate
+listing link. Unknown workspace gaps include links to named neighboring field
+uses and navigation facts; neighbor use does not prove that the gap is used.
+These URLs are relative to the resident project-server origin. No overall
+percentage is computed.
+
+The Pandora baseline is in [pandora-completeness-baseline.json](targets/pandora-completeness-baseline.json)
+and [pandora-completeness-baseline.txt](targets/pandora-completeness-baseline.txt).

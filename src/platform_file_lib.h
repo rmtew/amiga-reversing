@@ -30,6 +30,8 @@ PLATFORM_FILE_API size_t platform_file_entry_comment_text_capacity(void);
 PLATFORM_FILE_API size_t platform_file_entry_comment_count_capacity(void);
 /* Native target equate storage bound for durable-writer preflight. */
 PLATFORM_FILE_API size_t platform_file_target_equate_count_capacity(void);
+/* Resolve registered platform constants even when no source declaration uses them yet. */
+PLATFORM_FILE_API int platform_file_symbol_constant_value(const char *backend, const char *symbol, int32_t *out_value);
 PLATFORM_FILE_API size_t platform_file_structured_data_item_count_capacity(void);
 PLATFORM_FILE_API size_t platform_file_named_label_count_capacity(void);
 PLATFORM_FILE_API size_t platform_file_manual_data_reference_count_capacity(void);
@@ -189,6 +191,8 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_analysis_json_allo
     char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_navigation_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text);
+PLATFORM_FILE_API int platform_file_instruction_evidence_json_alloc(const unsigned char *data,
+    size_t size, uint8_t cpu, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListingArtifact *artifact,
     const char *kind, const char *query, int has_section, uint32_t section_index,
     int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,

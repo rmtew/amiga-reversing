@@ -1,0 +1,7812 @@
+{
+  "schema_version": 1,
+  "base_commit": "12ceae7248a3139ae2868440d04711a32cdc43c3",
+  "objective": "Reconcile actual ending dependencies and acquire required-route IDs plus Blue/Scarlet codes without optional Icelord combat.",
+  "summary": {
+    "continuous_cold_boot_passes": 1,
+    "qualified_run": "commander-cold-a",
+    "final_frame": 2572,
+    "final_xy": [
+      192,
+      190
+    ],
+    "health": 95,
+    "held": "Commander ID48",
+    "carried": [
+      50,
+      5,
+      0,
+      0
+    ],
+    "pockets": [
+      0,
+      0,
+      33,
+      35
+    ],
+    "self_destruct_armed": false,
+    "earth_deadline_nonzero": true,
+    "ending_validated": false,
+    "phases_including_boot": 112,
+    "input_events": 66,
+    "tests": "165 passed, no skips",
+    "new_source_classification_bytes": 0,
+    "new_memory_watches": 0
+  },
+  "runs": [
+    {
+      "name": "ending-actor-probe",
+      "status": "ok",
+      "raw_sha256": "dccda2c4a701fcae32e3eb414771904d7f896400c221f145d0f52098cfeebf46",
+      "authored_sha256": "8acf7d553f142aaa9b6d293d1910037f596d98a40ff0d44de0f87501022d4dc1",
+      "compiled_sha256": "b3de0d503aa820e1cf88c4d755706b56b9554d103e6a769c130c2ff7b2087aa7",
+      "last_action": {
+        "action": "ending_actor_positions",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 1228,
+        "state": {
+          "xy": [
+            640,
+            734
+          ],
+          "health": 95,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "completion-map-probe",
+      "status": "ok",
+      "raw_sha256": "d83deef797d522e9be570627a426b1ea7bacd54f36bf0a4ed10ff8a0f1e664ad",
+      "authored_sha256": "68f96c431d7174da5ec8e1a1069c04c9cd9d839dac481349a51f2c13d040e450",
+      "compiled_sha256": "f7b90d7ee9688c08ed44bab2c82d9f67b96104e007bc14e45fd28eded4b0cbeb",
+      "last_action": {
+        "action": "completion_and_map_probe",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 1228,
+        "state": {
+          "xy": [
+            640,
+            734
+          ],
+          "health": 95,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "ending-collision-probe",
+      "status": "ok",
+      "raw_sha256": "16ddc361cb899cdd0606e2420212b01feea20901b75472f6ce8c637181af4419",
+      "authored_sha256": "ad92659cd2639b59f675a8679f4143354952b32db4091e5e0bb3f3ae2d13a98e",
+      "compiled_sha256": "cd76fdf95fe54c65921a066fdc6c85380d7a71905ab52d6e4a1af901164f86da",
+      "last_action": {
+        "action": "ending_actor_positions",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 1228,
+        "state": {
+          "xy": [
+            640,
+            734
+          ],
+          "health": 95,
+          "held": 5,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "lieutenant-a",
+      "status": "ok",
+      "raw_sha256": "ba28440302d6eae741f228feb35ae89e89a2c18fec96b77a81b6bfba4747a07a",
+      "authored_sha256": "1e6eb7688fe185dfc6e6c5269cead162c4de88231c665d90cd54a3797041855a",
+      "compiled_sha256": "0e6095664c92d3144bf045e6430e840bd6f3dee271bc6843df0399f4fa46dcfd",
+      "last_action": {
+        "action": "lc_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 1944,
+        "state": {
+          "xy": [
+            388,
+            162
+          ],
+          "health": 95,
+          "held": 49,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            43,
+            37,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "lieutenant-cold-a",
+      "status": "ok",
+      "raw_sha256": "ac30767bce77deccae7bea03a07071f7091271f7b114f5b250ba96ca49a67355",
+      "authored_sha256": "b5379713be127dcd99e3cb56a17c688d9703f2d2f7cae05cc5c540862a761798",
+      "compiled_sha256": "cf27942911b0c4fd2d92c7c35799184a885a3b00ed4c33b21811e7187433d044",
+      "last_action": {
+        "action": "lc_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 1944,
+        "state": {
+          "xy": [
+            388,
+            162
+          ],
+          "health": 95,
+          "held": 49,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            43,
+            37,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "commander-a",
+      "status": "incomplete",
+      "raw_sha256": "a85ee69c38aa334abaf9f1afe5a6abb03db8cc626b5c99474313cc5b9098fade",
+      "authored_sha256": "a9962fce6ff37bfd1a06391af02c78d42a28256a6e4d419de5089e4d8f192b93",
+      "compiled_sha256": "7da23d6f0ca9e9195a32d507ba9c4aa3a0074bf898e60564f1b97a653ac406cf",
+      "last_action": {
+        "action": "inventory_closed",
+        "status": "not_hit",
+        "reason": "goal_not_reached",
+        "frame": 2354,
+        "state": {
+          "xy": [
+            192,
+            190
+          ],
+          "health": 95,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 60,
+          "cached_id": 5,
+          "cursor": [
+            192,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            33,
+            35
+          ]
+        },
+        "visits": 16
+      },
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1944,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "commander_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1968,
+          "state": {
+            "xy": [
+              388,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "commander_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2180,
+          "state": {
+            "xy": [
+              108,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "commander_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2247,
+          "state": {
+            "xy": [
+              115,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 23
+        },
+        {
+          "action": "commander_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2293,
+          "state": {
+            "xy": [
+              199,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "commander_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2297,
+          "state": {
+            "xy": [
+              192,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "commander_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2303,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2306,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              48,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "take_commander_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2311,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              48,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "take_commander_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2316,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2322,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "inventory_closed",
+          "status": "not_hit",
+          "reason": "goal_not_reached",
+          "frame": 2354,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 16
+        }
+      ],
+      "guest_key_samples": [
+        {
+          "phase": "anchor",
+          "frame": 1944,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_0",
+          "frame": 1968,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_1",
+          "frame": 2180,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_2",
+          "frame": 2247,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_3",
+          "frame": 2293,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_4",
+          "frame": 2297,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_5",
+          "frame": 2303,
+          "value": "00"
+        },
+        {
+          "phase": "inventory_open",
+          "frame": 2306,
+          "value": "ff"
+        },
+        {
+          "phase": "take_commander_id_ready",
+          "frame": 2311,
+          "value": "ff"
+        },
+        {
+          "phase": "take_commander_id",
+          "frame": 2316,
+          "value": "ff"
+        },
+        {
+          "phase": "key_release_services",
+          "frame": 2322,
+          "value": "ff"
+        },
+        {
+          "phase": "inventory_closed",
+          "frame": 2354,
+          "value": "ff"
+        }
+      ],
+      "keyboard_control_records": [
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "anchor": {
+            "phase": "commander_waypoint_5",
+            "stop": {
+              "cck": 163685593,
+              "detail": "Breakpoint at $019844",
+              "frame": 2303,
+              "hpos": 206,
+              "pc": 104516,
+              "reason": "breakpoint",
+              "retired_instructions": 2828527,
+              "seconds": 46.14898185596134,
+              "vpos": 242
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "anchor": {
+            "phase": "inventory_open",
+            "stop": {
+              "cck": 163914348,
+              "detail": "Breakpoint at $0128D4",
+              "frame": 2306,
+              "hpos": 145,
+              "pc": 75988,
+              "reason": "breakpoint",
+              "retired_instructions": 2857454,
+              "seconds": 46.213476294054374,
+              "vpos": 311
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "anchor": {
+            "phase": "key_release_services",
+            "stop": {
+              "cck": 165022587,
+              "detail": "Breakpoint at $0128D4",
+              "frame": 2322,
+              "hpos": 170,
+              "pc": 75988,
+              "reason": "breakpoint",
+              "retired_instructions": 2982836,
+              "seconds": 46.5259295806614,
+              "vpos": 185
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "anchor": {
+            "phase": "inventory_closed",
+            "stop": {
+              "cck": 167296231,
+              "detail": "Breakpoint at $0105D6",
+              "frame": 2354,
+              "hpos": 182,
+              "pc": 67030,
+              "reason": "breakpoint",
+              "retired_instructions": 3233126,
+              "seconds": 47.166953349337945,
+              "vpos": 185
+            }
+          },
+          "cleanup": true,
+          "outcome": "acknowledged"
+        }
+      ]
+    },
+    {
+      "name": "commander-release-check",
+      "status": "incomplete",
+      "raw_sha256": "53954b1b172c89f87b2b22c90b4c814a46920fa4537a6859d864c89ae20e0201",
+      "authored_sha256": "6dfdde66461167457107617f47de7560bccf460bd25034d9044a456b5aeaf3e6",
+      "compiled_sha256": "3c7c9fa87b6fc106e7a0b3b96c4a9a49d62324645ffd6c0ec90dfc5bc50d32e6",
+      "last_action": {
+        "action": "key_release_services",
+        "status": "not_hit",
+        "reason": "goal_not_reached",
+        "frame": 2444,
+        "state": {
+          "xy": [
+            192,
+            190
+          ],
+          "health": 95,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 60,
+          "cached_id": 5,
+          "cursor": [
+            192,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            33,
+            35
+          ]
+        },
+        "visits": 64
+      },
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1944,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "commander_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1968,
+          "state": {
+            "xy": [
+              388,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "commander_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2180,
+          "state": {
+            "xy": [
+              108,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "commander_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2247,
+          "state": {
+            "xy": [
+              115,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 23
+        },
+        {
+          "action": "commander_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2293,
+          "state": {
+            "xy": [
+              199,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "commander_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2297,
+          "state": {
+            "xy": [
+              192,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "commander_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2303,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2306,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              48,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "take_commander_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2311,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              48,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "take_commander_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2316,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "key_release_services",
+          "status": "not_hit",
+          "reason": "goal_not_reached",
+          "frame": 2444,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 64
+        }
+      ],
+      "guest_key_samples": [
+        {
+          "phase": "anchor",
+          "frame": 1944,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_0",
+          "frame": 1968,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_1",
+          "frame": 2180,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_2",
+          "frame": 2247,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_3",
+          "frame": 2293,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_4",
+          "frame": 2297,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_5",
+          "frame": 2303,
+          "value": "00"
+        },
+        {
+          "phase": "inventory_open",
+          "frame": 2306,
+          "value": "ff"
+        },
+        {
+          "phase": "take_commander_id_ready",
+          "frame": 2311,
+          "value": "ff"
+        },
+        {
+          "phase": "take_commander_id",
+          "frame": 2316,
+          "value": "ff"
+        },
+        {
+          "phase": "key_release_services",
+          "frame": 2444,
+          "value": "ff"
+        }
+      ],
+      "keyboard_control_records": [
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "anchor": {
+            "phase": "commander_waypoint_5",
+            "stop": {
+              "cck": 163685593,
+              "detail": "Breakpoint at $019844",
+              "frame": 2303,
+              "hpos": 206,
+              "pc": 104516,
+              "reason": "breakpoint",
+              "retired_instructions": 2828527,
+              "seconds": 46.14898185596134,
+              "vpos": 242
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "anchor": {
+            "phase": "inventory_open",
+            "stop": {
+              "cck": 163914348,
+              "detail": "Breakpoint at $0128D4",
+              "frame": 2306,
+              "hpos": 145,
+              "pc": 75988,
+              "reason": "breakpoint",
+              "retired_instructions": 2857454,
+              "seconds": 46.213476294054374,
+              "vpos": 311
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        }
+      ]
+    },
+    {
+      "name": "commander-early-release",
+      "status": "ok",
+      "raw_sha256": "0a4ce4baa2e90c12d106ca6ee66fcb3890aeb34ffba6658dd292e6f5911be8d9",
+      "authored_sha256": "1d33c947b9514b8a80f5fb87a73a9568a6c23ea8799a5409f404774797a04022",
+      "compiled_sha256": "a5a16d7fff6999c5e715c7914ceaa792b9b61f021ee252421ee54419e14190d1",
+      "last_action": {
+        "action": "commander_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 2327,
+        "state": {
+          "xy": [
+            192,
+            190
+          ],
+          "health": 95,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            33,
+            35
+          ]
+        },
+        "visits": 1
+      },
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1944,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "commander_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1968,
+          "state": {
+            "xy": [
+              388,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "commander_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2180,
+          "state": {
+            "xy": [
+              108,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "commander_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2247,
+          "state": {
+            "xy": [
+              115,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 23
+        },
+        {
+          "action": "commander_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2293,
+          "state": {
+            "xy": [
+              199,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "commander_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2297,
+          "state": {
+            "xy": [
+              192,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "commander_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2303,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2305,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 44,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "take_commander_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2309,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              48,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "take_commander_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2314,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2316,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "inventory_closed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2319,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "released_close_key",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2325,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "commander_objective",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2327,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        }
+      ],
+      "guest_key_samples": [
+        {
+          "phase": "anchor",
+          "frame": 1944,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_0",
+          "frame": 1968,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_1",
+          "frame": 2180,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_2",
+          "frame": 2247,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_3",
+          "frame": 2293,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_4",
+          "frame": 2297,
+          "value": "00"
+        },
+        {
+          "phase": "commander_waypoint_5",
+          "frame": 2303,
+          "value": "00"
+        },
+        {
+          "phase": "inventory_open",
+          "frame": 2305,
+          "value": "ff"
+        },
+        {
+          "phase": "take_commander_id_ready",
+          "frame": 2309,
+          "value": "00"
+        },
+        {
+          "phase": "take_commander_id",
+          "frame": 2314,
+          "value": "00"
+        },
+        {
+          "phase": "key_release_services",
+          "frame": 2316,
+          "value": "00"
+        },
+        {
+          "phase": "inventory_closed",
+          "frame": 2319,
+          "value": "ff"
+        },
+        {
+          "phase": "released_close_key",
+          "frame": 2325,
+          "value": "00"
+        },
+        {
+          "phase": "commander_objective",
+          "frame": 2327,
+          "value": "00"
+        }
+      ],
+      "keyboard_control_records": [
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "anchor": {
+            "phase": "commander_waypoint_5",
+            "stop": {
+              "cck": 163685593,
+              "detail": "Breakpoint at $019844",
+              "frame": 2303,
+              "hpos": 206,
+              "pc": 104516,
+              "reason": "breakpoint",
+              "retired_instructions": 2828527,
+              "seconds": 46.14898185596134,
+              "vpos": 242
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "anchor": {
+            "phase": "inventory_open",
+            "stop": {
+              "cck": 163777582,
+              "detail": "Breakpoint at $0127EA",
+              "frame": 2305,
+              "hpos": 33,
+              "pc": 75754,
+              "reason": "breakpoint",
+              "retired_instructions": 2841086,
+              "seconds": 46.174916934389096,
+              "vpos": 22
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "anchor": {
+            "phase": "key_release_services",
+            "stop": {
+              "cck": 164596303,
+              "detail": "Breakpoint at $0128D4",
+              "frame": 2316,
+              "hpos": 192,
+              "pc": 75988,
+              "reason": "breakpoint",
+              "retired_instructions": 2935907,
+              "seconds": 46.405744461000396,
+              "vpos": 185
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "anchor": {
+            "phase": "inventory_closed",
+            "stop": {
+              "cck": 164815947,
+              "detail": "Breakpoint at $0105D6",
+              "frame": 2319,
+              "hpos": 100,
+              "pc": 67030,
+              "reason": "breakpoint",
+              "retired_instructions": 2963638,
+              "seconds": 46.46767017348977,
+              "vpos": 214
+            }
+          },
+          "cleanup": false,
+          "outcome": "acknowledged"
+        }
+      ]
+    },
+    {
+      "name": "commander-codes-a",
+      "status": "ok",
+      "raw_sha256": "94ec72844f4ae1ca448e5cb74d05b413b5eb19c01741c871e36831c94d7a111f",
+      "authored_sha256": "1d49cf897e3cec33db17d3dce20e1d776a0e1ac77567b9cf63d6fd45215a4124",
+      "compiled_sha256": "e0223ba6bcb06436c3c1112b8e3a56632250670df426fea861755bfac899e188",
+      "last_action": {
+        "action": "cm_commander_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 2578,
+        "state": {
+          "xy": [
+            192,
+            190
+          ],
+          "health": 95,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      }
+    },
+    {
+      "name": "commander-cold-a",
+      "status": "ok",
+      "raw_sha256": "49d97056a8a826cb3f3027dff7e7d9a5c52ff939ad0589a81e0553785ed47188",
+      "authored_sha256": "12615b103197605d9af110af6a23e3a34c990c0f73215fd2b4008767bed766e0",
+      "compiled_sha256": "01a1a86c7be4d85fba83a82d8970eb1acf0a261585455905fcc42238f644fd20",
+      "last_action": {
+        "action": "cm_commander_objective",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 2572,
+        "state": {
+          "xy": [
+            192,
+            190
+          ],
+          "health": 95,
+          "held": 48,
+          "inactive": false,
+          "map": [
+            16384,
+            90,
+            129
+          ],
+          "ui": 48,
+          "cached_id": 5,
+          "cursor": [
+            420,
+            139
+          ],
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ],
+          "display_ids": [
+            49,
+            34,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "execution_identities": {
+        "amiga_reversing/tools/pandora_completion.py": "110a68c88746b6f65ddc1b384df74fd18acd4b4688e9f3539903a80d8aa9f224",
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "ade41229440dd91e95515d9ed18c74c6e86a015de5bf18dfd358d012d97b233a",
+        "amiga_reversing/tools/copperline_runtime.py": "190883d50014a53cc46a5e3e2a83e0435d0373208c0fbc25e9a6a7706edcfb86",
+        "amiga_reversing/tools/copperline_session.py": "3339cd35a17db41aa154cbbf9f0b19b59c27724d1a148aa47834ab13957751fb",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d",
+        "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/runtime-scenario.json": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/direct-payload-pandora.adf": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+        "emulator": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "rom": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f"
+      },
+      "actions": [
+        {
+          "action": "title_menu_loop",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 459,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null
+        },
+        {
+          "action": "ui_overlay_initialization",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 461,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null
+        },
+        {
+          "action": "initial_proximity_context",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 463,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null
+        },
+        {
+          "action": "entry_officer_card_transferred",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 652,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null
+        },
+        {
+          "action": "down_19_before_inventory",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 700,
+          "state": {
+            "xy": [
+              241,
+              942
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 19
+        },
+        {
+          "action": "north",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 794,
+          "state": {
+            "xy": [
+              241,
+              794
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 37
+        },
+        {
+          "action": "east",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1000,
+          "state": {
+            "xy": [
+              549,
+              794
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 44
+        },
+        {
+          "action": "opening_row",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1060,
+          "state": {
+            "xy": [
+              542,
+              702
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 24
+        },
+        {
+          "action": "cross_opening",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1098,
+          "state": {
+            "xy": [
+              598,
+              702
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 8
+        },
+        {
+          "action": "console_row",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1118,
+          "state": {
+            "xy": [
+              591,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "terminal_entry",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1148,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "terminal_display",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1151,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 0,
+            "cached_id": 54,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1153,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 28,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cursor_to_192_147_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1158,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              145
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "cursor_to_192_147_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1159,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "take_engineer_card_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1161,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "take_engineer_card",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1164,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "terminal_card_displayed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1164,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cursor_to_192_139_up_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1169,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              141
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "cursor_to_192_139_up_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1170,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cursor_to_0_139_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1188,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              12,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 18
+        },
+        {
+          "action": "cursor_to_0_139_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1189,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "store_engineer_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1191,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "store_engineer",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1193,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cursor_to_192_139_right_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1211,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              180,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 18
+        },
+        {
+          "action": "cursor_to_192_139_right_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1212,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "take_sonicdriver_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1214,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "take_sonicdriver",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1216,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "terminal_noncard_display",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1216,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1217,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "inventory_closed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1219,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "released_close_key",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1222,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "exit_direction",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1222,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "world_restored",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1222,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "world_main",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1224,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_initial_turn",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1226,
+          "state": {
+            "xy": [
+              633,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1228,
+          "state": {
+            "xy": [
+              633,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1250,
+          "state": {
+            "xy": [
+              591,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 6
+        },
+        {
+          "action": "lc_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1254,
+          "state": {
+            "xy": [
+              598,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1258,
+          "state": {
+            "xy": [
+              591,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1274,
+          "state": {
+            "xy": [
+              591,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 8
+        },
+        {
+          "action": "lc_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1304,
+          "state": {
+            "xy": [
+              535,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 8
+        },
+        {
+          "action": "lc_waypoint_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1308,
+          "state": {
+            "xy": [
+              542,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_waypoint_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1342,
+          "state": {
+            "xy": [
+              542,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "lc_waypoint_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1368,
+          "state": {
+            "xy": [
+              493,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 7
+        },
+        {
+          "action": "lc_waypoint_9",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1372,
+          "state": {
+            "xy": [
+              500,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_waypoint_10",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1522,
+          "state": {
+            "xy": [
+              500,
+              410
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 60
+        },
+        {
+          "action": "lc_waypoint_11",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1672,
+          "state": {
+            "xy": [
+              500,
+              170
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 60
+        },
+        {
+          "action": "lc_waypoint_12",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1700,
+          "state": {
+            "xy": [
+              500,
+              114
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 14
+        },
+        {
+          "action": "lc_waypoint_13",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1775,
+          "state": {
+            "xy": [
+              381,
+              114
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 17
+        },
+        {
+          "action": "lc_waypoint_14",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1803,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 13
+        },
+        {
+          "action": "lc_inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1806,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 60,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_cursor_to_192_147_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1817,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              145
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "lc_cursor_to_192_147_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1819,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_cursor_to_0_147_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1855,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              12,
+              147
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 18
+        },
+        {
+          "action": "lc_cursor_to_0_147_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1857,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_store_sonicdriver_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1861,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "lc_store_sonicdriver",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1866,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              147
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "lc_cursor_to_192_147_right_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1902,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              180,
+              147
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 18
+        },
+        {
+          "action": "lc_cursor_to_192_147_right_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1904,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_cursor_to_192_155_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1914,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              153
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "lc_cursor_to_192_155_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1916,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_take_lieutenant_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1920,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              49,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "lc_take_lieutenant_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1924,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "lc_key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1926,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_inventory_closed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1929,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "lc_released_close_key",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1936,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "lc_objective",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1938,
+          "state": {
+            "xy": [
+              388,
+              162
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_commander_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1962,
+          "state": {
+            "xy": [
+              388,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "cm_commander_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2174,
+          "state": {
+            "xy": [
+              108,
+              114
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 40
+        },
+        {
+          "action": "cm_commander_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2241,
+          "state": {
+            "xy": [
+              115,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 23
+        },
+        {
+          "action": "cm_commander_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2287,
+          "state": {
+            "xy": [
+              199,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 12
+        },
+        {
+          "action": "cm_commander_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2291,
+          "state": {
+            "xy": [
+              192,
+              202
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_commander_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2297,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "cm_inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2299,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 44,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              43,
+              37,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_take_commander_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2303,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 49,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              48,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_take_commander_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2308,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_cursor_to_192_155_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2328,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              153
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 10
+        },
+        {
+          "action": "cm_cursor_to_192_155_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2330,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_cursor_to_0_155_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2366,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              12,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 18
+        },
+        {
+          "action": "cm_cursor_to_0_155_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2368,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_store_commander_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2372,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_store_commander_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2376,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_cursor_to_192_155_right_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2412,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              180,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 18
+        },
+        {
+          "action": "cm_cursor_to_192_155_right_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2414,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_take_blue_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2418,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              33,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_take_blue",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2422,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 33,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_cursor_to_96_155_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2440,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 33,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              108,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "cm_cursor_to_96_155_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2442,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 33,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              96,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_store_blue_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2446,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 33,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              96,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_store_blue",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2450,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              96,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_cursor_to_192_155_right_brake_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2468,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              180,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "cm_cursor_to_192_155_right_settled_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2470,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_cursor_to_192_163_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2480,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              161
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "cm_cursor_to_192_163_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2482,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_take_scarlet_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2486,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              35
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_take_scarlet",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2490,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 35,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_cursor_to_96_163_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2508,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 35,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              108,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "cm_cursor_to_96_163_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2510,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 35,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              96,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_store_scarlet_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2514,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 35,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              96,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_store_scarlet",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2519,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              96,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_cursor_to_0_163_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2537,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              12,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 9
+        },
+        {
+          "action": "cm_cursor_to_0_163_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2539,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              163
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_cursor_to_0_155_up_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2549,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              157
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 5
+        },
+        {
+          "action": "cm_cursor_to_0_155_up_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2551,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_retrieve_commander_id_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2555,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              48,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_retrieve_commander_id",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2559,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 2
+        },
+        {
+          "action": "cm_key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2561,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 52,
+            "cached_id": 5,
+            "cursor": [
+              0,
+              155
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_inventory_closed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2564,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        },
+        {
+          "action": "cm_released_close_key",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2570,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 3
+        },
+        {
+          "action": "cm_commander_objective",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2572,
+          "state": {
+            "xy": [
+              192,
+              190
+            ],
+            "health": 95,
+            "held": 48,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              5,
+              0,
+              0
+            ],
+            "display_ids": [
+              49,
+              34,
+              0,
+              0
+            ]
+          },
+          "visits": 1
+        }
+      ],
+      "input_trace": [
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 459,
+          "cck": 32616485,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 461,
+          "cck": 32812039,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 652,
+          "cck": 46330759,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 700,
+          "cck": 49791227,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 794,
+          "cck": 56469686,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1000,
+          "cck": 71105698,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1060,
+          "cck": 75369634,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1098,
+          "cck": 78068777,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1118,
+          "cck": 79490651,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1148,
+          "cck": 81621170,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1151,
+          "cck": 81782679,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1153,
+          "cck": 81935681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1153,
+          "cck": 81935681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1158,
+          "cck": 82279174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1161,
+          "cck": 82492098,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1164,
+          "cck": 82705233,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1164,
+          "cck": 82709104,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1169,
+          "cck": 83060494,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1170,
+          "cck": 83131549,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1188,
+          "cck": 84410226,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1191,
+          "cck": 84623383,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1193,
+          "cck": 84765778,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1211,
+          "cck": 86044681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1214,
+          "cck": 86257840,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1216,
+          "cck": 86400278,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1217,
+          "cck": 86471239,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1219,
+          "cck": 86618312,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1222,
+          "cck": 86827626,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1222,
+          "cck": 86827828,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1224,
+          "cck": 87009582,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1228,
+          "cck": 87305814,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1250,
+          "cck": 88868573,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1254,
+          "cck": 89152779,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1258,
+          "cck": 89437174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1274,
+          "cck": 90574716,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1304,
+          "cck": 92705337,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1308,
+          "cck": 92989691,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1342,
+          "cck": 95405319,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1368,
+          "cck": 97252420,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1372,
+          "cck": 97536855,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1700,
+          "cck": 120841738,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1775,
+          "cck": 126171079,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1803,
+          "cck": 128160049,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1803,
+          "cck": 128160049,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1806,
+          "cck": 128383253,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1806,
+          "cck": 128383253,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1817,
+          "cck": 129141848,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1819,
+          "cck": 129283920,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1855,
+          "cck": 131841756,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1861,
+          "cck": 132268062,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1866,
+          "cck": 132623317,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1902,
+          "cck": 135181183,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1904,
+          "cck": 135323285,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1914,
+          "cck": 136033765,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1920,
+          "cck": 136460071,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1924,
+          "cck": 136744275,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1926,
+          "cck": 136886377,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1929,
+          "cck": 137110715,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1938,
+          "cck": 137739066,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1962,
+          "cck": 139457136,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2174,
+          "cck": 154519828,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2241,
+          "cck": 159280885,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2287,
+          "cck": 162548464,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 2291,
+          "cck": 162832857,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2297,
+          "cck": 163259287,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2297,
+          "cck": 163259287,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2299,
+          "cck": 163351276,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2303,
+          "cck": 163673182,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2308,
+          "cck": 164028464,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2328,
+          "cck": 165448879,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2330,
+          "cck": 165590981,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2366,
+          "cck": 168148817,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2372,
+          "cck": 168575153,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2376,
+          "cck": 168859327,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2412,
+          "cck": 171417163,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2418,
+          "cck": 171843469,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2422,
+          "cck": 172127673,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2440,
+          "cck": 173406591,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2446,
+          "cck": 173832897,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 2450,
+          "cck": 174117101,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2468,
+          "cck": 175396019,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 2470,
+          "cck": 175538121,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2480,
+          "cck": 176248661,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2486,
+          "cck": 176674937,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2490,
+          "cck": 176959141,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2508,
+          "cck": 178238059,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2514,
+          "cck": 178664365,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 2519,
+          "cck": 179019650,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2537,
+          "cck": 180298538,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 2539,
+          "cck": 180440640,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2549,
+          "cck": 181151150,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2555,
+          "cck": 181577456,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2559,
+          "cck": 181861660,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 2561,
+          "cck": 182003762,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 2564,
+          "cck": 182223641,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 1
+          },
+          "frame": 2572,
+          "cck": 182785892,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2572,
+          "cck": 182785892,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        }
+      ],
+      "pocket_ids": [
+        0,
+        0,
+        33,
+        35
+      ],
+      "qualification": "uninterrupted cold boot, no checkpoint load or manual intervention; optional Icelord omitted"
+    },
+    {
+      "name": "required-mission-probe",
+      "status": "ok",
+      "raw_sha256": "768955997f767dc734262dee5eaeb862d891996d7ae6dc8f6dff38aa37136dd1",
+      "authored_sha256": "3365cdf293b7ef56b178daa3172da9b88c955611e798d37be64f5f0cd0458f7d",
+      "compiled_sha256": "db8af9da98d260f234a1eb70438b854c99ccab07134733a492191de51bcce62a",
+      "last_action": {
+        "action": "mission_state",
+        "status": "hit",
+        "reason": "breakpoint_hit",
+        "frame": 2574,
+        "state": {
+          "xy": [
+            192,
+            190
+          ],
+          "health": 95,
+          "held": 48,
+          "inactive": false,
+          "carried": [
+            50,
+            5,
+            0,
+            0
+          ]
+        },
+        "visits": 1
+      },
+      "mission": {
+        "self_destruct_state": 0,
+        "authorized_checkpoint_count": 1,
+        "checkpoint_seen_bits": 2,
+        "event_flags": 132,
+        "earth_deadline_word_hex": "9732",
+        "inventory_ids": [
+          50,
+          5,
+          0,
+          0,
+          0,
+          0,
+          33,
+          35
+        ]
+      }
+    }
+  ],
+  "dependency_verdict": {
+    "target": "Earth saved AND escaped, not simply escaped or kill-ranked. Self-destruct negative plus nonzero Earth deadline selects success message; require original escape event as well.",
+    "engineer": "Original checkpoint20 tests exact50; intended route uses it on engineering departure. It is not directly tested by the ending helper. Retained.",
+    "sonicdriver": "Robomechanic offer value40 selects Ochre36 of value30. Tool is a demonstrated trade dependency, not an ending input. Retained and not consumed by the optional fight.",
+    "icelord": "NULL completion callback, Ice Pendant/Thermolance inventory, no required disk/code. Optional on present evidence; omitted here. No claim that every legal kill advances the ending.",
+    "no_irreversible_bypass": "SDI/Ochre/AWOL and final submissions remain unperformed, not silently assumed complete. Lt Commander49 is now left in Commander body after the ID swap, recoverable. Engineer and sonicdriver are retained.",
+    "current_health": "Latest completed branch is healthy95. Earlier optional Icelord checkpoint70 was active and continuable, but is not the preferred completion prefix.",
+    "mandatory_inputs": "Disk38; three qualifying submissions using distinct intended Scarlet35/Ochre36/Blue33; AWOL55 authorization; escape tile236. Original console does not test colour order/uniqueness, but the route will not exploit duplicates."
+  },
+  "remaining": {
+    "next": "Captain SDI disk, using Commander48 for its guard approach. A candidate route exists but is not yet live-validated.",
+    "codes": "Blue/Scarlet safely pocketed; Ochre trade unexecuted. Robomechanic approach remains unresolved in the current terrain model, not proved unreachable.",
+    "finish": "After disk/Ochre, submit items at the console, obtain AWOL authorization and validate saved-Earth escape outcome from a continuous ordinary-input route."
+  },
+  "input_diagnosis": {
+    "failure": "Late Space release at inventory input hook was acknowledged by Copperline but guest byte39BC stayedFF through64 subsequent services. Closing correctly refused.",
+    "correction": "Release at original nearby-body entry27EA before rendering, then check actual guest release0 before another press. The subsequent original-key close and world return succeeded. No guest writes or fabricated inputs.",
+    "other_driver_fixes": "World inventory close now uses world service5D6 rather than modal9074. Repeated semantic actions receive unique hooks. Actual full route needs112 phases/66 events, admitted by shared bounds128/96 with boundary tests."
+  },
+  "documentation": {
+    "hints_url": "https://amiga.abime.net/1008",
+    "availability": "Search index accessible. Direct full-page fetch via network proxy returned403 Forbidden; no escalation or bypass attempted. Indexed hints corroborate Engineer/sonicdriver, Captain disk, Ochre trade and intended console sequence.",
+    "source_anchors": [
+      "process_self_destruct_card_input",
+      "validate_self_destruct_qualifying_card_count",
+      "test_escape_authorization_for_requested_tile",
+      "enqueue_game_outcome_and_rank_messages",
+      "robomechanic_trade_offers",
+      "robomechanic_inventory_slots",
+      "commander_inventory_slots",
+      "captain_inventory_slots"
+    ]
+  },
+  "limits": [
+    "Qualification is original direct-payload cold boot, not original disk-loader parity. Debug checkpoints and post-run mission snapshot are distinguished.",
+    "No ending yet, no full walkthrough completion, no proof of universal route optimality or every card prerequisite.",
+    "Terrain model is conditional; the first Robomechanic staging search failed and live grid samples do not prove all approaches impossible.",
+    "No source-byte changes, code conversion, state injection, DMA claims, repeat gap watches, B07 work or PR merge.",
+    "ROM/media, raw reports, snapshots and full stacks remain private."
+  ]
+}

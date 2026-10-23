@@ -1,0 +1,485 @@
+{
+  "schema_version": 1,
+  "stage": "policy",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "subject_revision": "dafcbaadab7426f7769fd4db559214b88e4030f712b70510c2194604e47f7500",
+  "details": {
+    "macrocell_table": {
+      "source_start": 13570,
+      "source_end": 16150,
+      "columns": 30,
+      "rows": 43,
+      "pixels_per_cell": 48,
+      "player_center_offset": [
+        12,
+        24
+      ],
+      "tier_counts": {
+        "unrestricted": 1214,
+        "0": 22,
+        "1": 23,
+        "2": 15,
+        "3": 16
+      },
+      "bounds_guard": false
+    },
+    "possession_ids": [
+      48,
+      56
+    ],
+    "selected_authorization_ids": [
+      48,
+      54
+    ],
+    "clearance_tiers": [
+      4,
+      3,
+      1,
+      3,
+      0,
+      2
+    ],
+    "comparison": "clearance strictly greater than tier",
+    "service_contract": "Inactive freezes; active flash bypasses combat and checkpoint tests. Valid clearance or unrestricted tier pauses, not clears. Missing/non-trigger nearest state clears only outside flash. Damage occurs only on WORD decrement to zero; subtract51 from low HP byte with signed-result clamp. Reload50 damage steps,31 flash steps; normal flash uses entries1..30 then restores saved color.",
+    "reselection": "First live inventory slot of the checkpoint actor; not the initial inventory and not consumption.",
+    "scope": "Original initialized map, all BYTE selected IDs and explicit local CPU inputs. No normal UI/audio route or all-pointer lifetime proof."
+  },
+  "canonical_action_ids": [
+    "manual-13c84e89572b4f7cbf2e8263b4c69043",
+    "manual-161ec2027f064d3abc193f83017951fc",
+    "manual-ef327cc019254c69b2c3d10df743002b",
+    "manual-8facf4b8962b46a995d78c3b2e1941e8",
+    "manual-b55ecc1880db429ea2f3c5eda215cd12",
+    "manual-4106b28115e24230b7a09ee329ecb3e0",
+    "manual-9d2fbf4f3c70464b8b334369d73e07a0",
+    "manual-4ac9563a3f31415e826503af15536858",
+    "manual-3524344e5e864b0eb8838553b0efb820",
+    "manual-4246fb5509154d4e8b1adc3b401d2b3f",
+    "manual-6fd183e0165f4ff885a4e6529ee018dc",
+    "manual-e1abee8825c44655b750b155565d5b6d",
+    "manual-41f0454484eb4765841c1c9acbe6821e",
+    "manual-cc9b9430cf2c4631afb343217b5913f1",
+    "manual-fcdfc6d7542b4da097f6aa73c89d73b6",
+    "manual-2bb51a5b2d8d429bb0caa4985a41178a",
+    "manual-2856250036c24ff0a66683bdc0bbf2e5",
+    "manual-4631a24dcebe4c8b9015bf56e88db1fa",
+    "manual-5183cf0d7c9546d29545ee524eaa7e01",
+    "manual-d44fc1e5b555447badc95be9c55a3add",
+    "manual-8b4be9fb13984b95a8779e09f6417cfb",
+    "manual-486655495e62484f9c9a5ae0738ff3ea",
+    "manual-b6ff9ee97ebe494fa9eb7c2261beb50e",
+    "manual-af29f067856e47b89bc07f0303046fe6",
+    "manual-1fc28f8954854151804602bef6f94aa1",
+    "manual-f4cdd5880f274341a8d1e2878acfadf2",
+    "manual-8208a4695d514ac2b7209692542a2dd2",
+    "manual-ad27f2fb4a7f4660bad3452335e03b56",
+    "manual-b44f6a8e2fcb46ef979581aebac01777",
+    "manual-139727692c524dceb86fd5dbbe435cfa",
+    "manual-38ee25a1fb874eafbe9ce8296ce6ce45",
+    "manual-7b032c9b93a8453fb981c1b2bc0b8543",
+    "manual-6b0460845711475b8ccf1333938279ef",
+    "manual-f21e3133243c4a78af3b92c44d16a967",
+    "manual-a06f015da66245cdb19c9f548e03a789",
+    "manual-1ace0006a27042d3bcc182017f297a44",
+    "manual-79c8b568bd754af9b584d24af56eb8bd",
+    "manual-274f8addd0e141faa0ebc9f0d91afff2",
+    "manual-1d879114253643dfadd0a7c04e6e16bf",
+    "manual-3386edf61863434493c16be4b54369ee",
+    "manual-8675ff2ccd934c978c805f04a8eb2260",
+    "manual-1df5e91c14be40b5b02e7cf399246d2b",
+    "manual-e59256813f9a461e8645c3e586a54b6d",
+    "manual-64a7f6ad07e24e909eeab80e01810641",
+    "manual-6c4266afae2e408496be6cbe0bd4e283",
+    "manual-2996070306e943d98dd1d9128171e628",
+    "manual-37a7f3fbbe3143f0849410305c487a79",
+    "manual-d3f50c88efb34e52829b00ce9742ec8b",
+    "manual-86ba231a28b34fdb94bd15d37876b662",
+    "manual-ebfa20865d35487894a4589ee88a321d",
+    "manual-0ccd939641764867ac3009af44294d0c",
+    "manual-06c94c7b8973429a98ee77fc49179199",
+    "manual-d39717661437450b867a98a5b0d4a998",
+    "manual-29a8ceb12b674fe58c930c541ee650c3",
+    "manual-228f07d8d6214cc88d0562fd59975735",
+    "manual-431e6e6743b742d885af95ca4b353615",
+    "manual-a7c7b1c4be4546b5a9b2a9549ebdc5dd",
+    "manual-f0c0ad47e4b44aea9e956cd14ad6ea44",
+    "manual-fcc53d9a45df47118bb49cfb76a05999",
+    "manual-9013712dbad24b1c8802348bb7a058d3",
+    "manual-54a2ae72f8314f58a55827f329de6565",
+    "manual-bc98ec1c60bd406185777b486a7417f3",
+    "manual-5133a3f32fe94faaa3be91fff82a6365",
+    "manual-e199f1417ffe4b3e81d7b032a9353ebc"
+  ],
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "66b810b6db004709bbce4dd3c7a5a720c2efa497ae7955600842361340f7848e",
+    "revision": "593afddc361c4ad1c9b72f684c88d3b7068f43b95f1fc2f47e371958be518272",
+    "source_package_sha256": "1456f3a5886932a41a79d77c941d8de61dcfb8d2508eefe5c766bcfff1b677f1",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/1456f3a5886932a41a79d77c941d8de61dcfb8d2508eefe5c766bcfff1b677f1/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "4a76f8e418c6394cbf0a5a341fcdfb240c49dccb0d5513e1e2097a5e87baf93c",
+    "status": "exact",
+    "subject_revision": "dafcbaadab7426f7769fd4db559214b88e4030f712b70510c2194604e47f7500",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "review": {
+    "decisions": [
+      {
+        "action": "accept_fact",
+        "action_id": "manual-13c84e89572b4f7cbf2e8263b4c69043",
+        "decision_id": "restoration-9b8ee46d426543e4ba75447df7750ae7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-161ec2027f064d3abc193f83017951fc",
+        "decision_id": "restoration-e7f2cf271888490290afce9b89fc0b2b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ef327cc019254c69b2c3d10df743002b",
+        "decision_id": "restoration-522846227dbe47a39c82db566a4c2bc1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8facf4b8962b46a995d78c3b2e1941e8",
+        "decision_id": "restoration-0b65d5e2e1ed4a50a9dbca828d74c4fb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b55ecc1880db429ea2f3c5eda215cd12",
+        "decision_id": "restoration-8fc04a0d63fc440a9732f2d981e36811"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4106b28115e24230b7a09ee329ecb3e0",
+        "decision_id": "restoration-d4222fb6b48b4204a0832214aad71388"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9d2fbf4f3c70464b8b334369d73e07a0",
+        "decision_id": "restoration-02a169311ead4d7f9256f5729ef7bc88"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4ac9563a3f31415e826503af15536858",
+        "decision_id": "restoration-2b26c4905edd4ac2afa54a9ff50dadab"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3524344e5e864b0eb8838553b0efb820",
+        "decision_id": "restoration-9ca81a9d13fd4145bd2b2f2e07ef0328"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4246fb5509154d4e8b1adc3b401d2b3f",
+        "decision_id": "restoration-5f9e70de8e2a4445b3bd73d06ed951da"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6fd183e0165f4ff885a4e6529ee018dc",
+        "decision_id": "restoration-60e0e88746cf4c84a3a6502634b9fd7d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e1abee8825c44655b750b155565d5b6d",
+        "decision_id": "restoration-bb6a2ac4717b4642bb481a551a7a373c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-41f0454484eb4765841c1c9acbe6821e",
+        "decision_id": "restoration-6bdb89f9defb4281a4e35febb1b55552"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cc9b9430cf2c4631afb343217b5913f1",
+        "decision_id": "restoration-7bcde9e397c641e6908676c0ec101937"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fcdfc6d7542b4da097f6aa73c89d73b6",
+        "decision_id": "restoration-d40a6b476a8e449a92adab9a69df2c27"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2bb51a5b2d8d429bb0caa4985a41178a",
+        "decision_id": "restoration-8744d202297543c5b788603493e5501e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2856250036c24ff0a66683bdc0bbf2e5",
+        "decision_id": "restoration-142573d8f71142f38d514301c80e61b2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4631a24dcebe4c8b9015bf56e88db1fa",
+        "decision_id": "restoration-28ee76daaf87435290fa19f44982b686"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5183cf0d7c9546d29545ee524eaa7e01",
+        "decision_id": "restoration-657a1b2d3d664fcba92ee18cc98d4bf7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d44fc1e5b555447badc95be9c55a3add",
+        "decision_id": "restoration-e85541a1394d48a19b7e3ee76f044051"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8b4be9fb13984b95a8779e09f6417cfb",
+        "decision_id": "restoration-c33739b203e14e37838548cdd65d2b11"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-486655495e62484f9c9a5ae0738ff3ea",
+        "decision_id": "restoration-848c556d96884bb99ba99347e13de67c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b6ff9ee97ebe494fa9eb7c2261beb50e",
+        "decision_id": "restoration-1b45305d4dff4be3ab5ac8b28c85cf21"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-af29f067856e47b89bc07f0303046fe6",
+        "decision_id": "restoration-d93dc49afc3544a4b4c7c9ae602fb0d3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1fc28f8954854151804602bef6f94aa1",
+        "decision_id": "restoration-e33acf3f5d4a48b39b16e14f0b9af0b4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f4cdd5880f274341a8d1e2878acfadf2",
+        "decision_id": "restoration-63c6515c714247ada36b37c80ef0cd72"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8208a4695d514ac2b7209692542a2dd2",
+        "decision_id": "restoration-0684754dd047416db7a27f0369b02bd8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ad27f2fb4a7f4660bad3452335e03b56",
+        "decision_id": "restoration-5ec6873bcf794d4b8a3afe671150c4b4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b44f6a8e2fcb46ef979581aebac01777",
+        "decision_id": "restoration-d04be7bd92bc447c9520062b68027e64"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-139727692c524dceb86fd5dbbe435cfa",
+        "decision_id": "restoration-512265776bdb4b68a2dc49e054fc7a96"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-38ee25a1fb874eafbe9ce8296ce6ce45",
+        "decision_id": "restoration-9352ff57f8474a19a678321126743a1c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7b032c9b93a8453fb981c1b2bc0b8543",
+        "decision_id": "restoration-02329fb761dd4095830ca1649f711f5c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6b0460845711475b8ccf1333938279ef",
+        "decision_id": "restoration-f5ec2a7e70d34fe4b06a9af8637d95c2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f21e3133243c4a78af3b92c44d16a967",
+        "decision_id": "restoration-2b1edd2709c646208a3e03e97f866f28"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a06f015da66245cdb19c9f548e03a789",
+        "decision_id": "restoration-2c4887728d124a7795e67f775170ed6c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1ace0006a27042d3bcc182017f297a44",
+        "decision_id": "restoration-1a2c77a2043349fbbfb6464e17950df8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-79c8b568bd754af9b584d24af56eb8bd",
+        "decision_id": "restoration-2421bb374f5e4caaaf17b29bba9ad894"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-274f8addd0e141faa0ebc9f0d91afff2",
+        "decision_id": "restoration-ed2fa6e660e14253b6640fedd08eb9ee"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1d879114253643dfadd0a7c04e6e16bf",
+        "decision_id": "restoration-1347475f9f0f434691c71f9f2a3ce9f0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3386edf61863434493c16be4b54369ee",
+        "decision_id": "restoration-d33a9c024ec34e3e98780d9985547d1b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8675ff2ccd934c978c805f04a8eb2260",
+        "decision_id": "restoration-e4a4e15cdfeb4384b7ba6bef609ffadb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1df5e91c14be40b5b02e7cf399246d2b",
+        "decision_id": "restoration-d4ccbcec03e64f968dc02cb379196a0a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e59256813f9a461e8645c3e586a54b6d",
+        "decision_id": "restoration-0f66a5530fa2405daf20f705017fd5a4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-64a7f6ad07e24e909eeab80e01810641",
+        "decision_id": "restoration-b0daac17e8004cd29c33e687cf2aaa36"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6c4266afae2e408496be6cbe0bd4e283",
+        "decision_id": "restoration-cf70e702b1c5471cb14064b425d55e2d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2996070306e943d98dd1d9128171e628",
+        "decision_id": "restoration-3962a9cff54c419ebab9afb548829ddc"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-37a7f3fbbe3143f0849410305c487a79",
+        "decision_id": "restoration-1580ec1d97b741f4b1439f78684580f7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d3f50c88efb34e52829b00ce9742ec8b",
+        "decision_id": "restoration-8b930b81634f4c0a8c2edcd389c2db19"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-86ba231a28b34fdb94bd15d37876b662",
+        "decision_id": "restoration-c69b5925513f4f8b8c023fda12a3f516"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ebfa20865d35487894a4589ee88a321d",
+        "decision_id": "restoration-4e5df67ba92447c2adb19c153f4aa1b2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0ccd939641764867ac3009af44294d0c",
+        "decision_id": "restoration-edb4938e26ac457580f4d3a35ed50f3b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-06c94c7b8973429a98ee77fc49179199",
+        "decision_id": "restoration-4d76811f3b614cdb88c671e1c7c2ff9b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d39717661437450b867a98a5b0d4a998",
+        "decision_id": "restoration-5c21ecd220ce4d6e9a1ebc8adc2ea9fa"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-29a8ceb12b674fe58c930c541ee650c3",
+        "decision_id": "restoration-f334d58a09ef481c8050c8b5fb83d474"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-228f07d8d6214cc88d0562fd59975735",
+        "decision_id": "restoration-36a2154fb8a4432e8ce93f86e6437a26"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-431e6e6743b742d885af95ca4b353615",
+        "decision_id": "restoration-71a5854f2a794fcebd2c3df601cd821a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a7c7b1c4be4546b5a9b2a9549ebdc5dd",
+        "decision_id": "restoration-005375301c4849758a1e7e0be768cb16"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f0c0ad47e4b44aea9e956cd14ad6ea44",
+        "decision_id": "restoration-f0b3e4b4c6374a3cab612fd2ba635f60"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fcc53d9a45df47118bb49cfb76a05999",
+        "decision_id": "restoration-a42b065d7ac64590a78cdf9ed4f21605"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9013712dbad24b1c8802348bb7a058d3",
+        "decision_id": "restoration-89f451e5528244edae4b05205c65e366"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-54a2ae72f8314f58a55827f329de6565",
+        "decision_id": "restoration-ff42bb44fe9445d1a43c0bb650489913"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-bc98ec1c60bd406185777b486a7417f3",
+        "decision_id": "restoration-c13977e0411a4df1b0f9c078b69344c9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5133a3f32fe94faaa3be91fff82a6365",
+        "decision_id": "restoration-1499f8eacb2a43f78ecbd32f78d2aec7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e199f1417ffe4b3e81d7b032a9353ebc",
+        "decision_id": "restoration-ce9fb154a2bc4e7580ce2ebf36978dd4"
+      }
+    ],
+    "probe": null,
+    "revision": "d1fe1416fee1d127bad2a7b59bb330bbc7a94d6d0fcc95c2782ec70387e48734",
+    "subject_revision": "dafcbaadab7426f7769fd4db559214b88e4030f712b70510c2194604e47f7500",
+    "verification": {
+      "exact": true,
+      "kind": "verification",
+      "receipt_id": "66b810b6db004709bbce4dd3c7a5a720c2efa497ae7955600842361340f7848e",
+      "subject_revision": "dafcbaadab7426f7769fd4db559214b88e4030f712b70510c2194604e47f7500"
+    }
+  },
+  "tests": "15 passed (10 new security checks plus existing state-transition/scripted-pose checks)",
+  "preservation": {
+    "immutable_tracked_target_files": 99,
+    "prior_history_prefixes_unchanged": true,
+    "appended_records": {
+      "manual_actions.jsonl": 64,
+      "decision_journal.jsonl": 64
+    }
+  },
+  "shared_tail_relocation": "Separate obligation; unchanged and unresolved",
+  "new_runtime_routes": 0,
+  "framework": "Existing revision-bound batch, schema/type-binding, symbol presentation and name-propagation commands reused. No generated-source patch or target-specific production renderer introduced."
+}

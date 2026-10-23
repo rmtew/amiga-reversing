@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
+from amiga_reversing.tools.runtime_analysis import build_project_listing_artifact_profile
 from amiga_reversing.disasm.function_facts import canonical_function_facts
 
 
@@ -98,7 +98,8 @@ def _runtime_eligible_facts(facts: list[object]) -> tuple[list[FunctionSymbol], 
 
 
 def generate_runtime_symbol_artifact(
-    target_id: str, output_directory: Path, *, artifact: object | None = None
+    target_id: str, output_directory: Path, *, artifact: object | None = None,
+    excluded_ranges: tuple[tuple[int, int], ...] = (),
 ) -> dict[str, object]:
     """Write canonical function metadata, containing no executable or target bytes.
 
@@ -113,6 +114,8 @@ def generate_runtime_symbol_artifact(
         _, _, artifact = build_project_listing_artifact_profile(target_id)
     try:
         view, functions = _eligible_functions(target_id, artifact)
+        functions = tuple(f for f in functions if not any(
+            f.source_start < end and start < f.source_end for start, end in excluded_ranges))
     finally:
         if owns_artifact:
             artifact.close()

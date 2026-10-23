@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-rifle-west-wall-shot",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "checkpoint",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "shot_anchor",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 102988,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375878,
+            "size": 2,
+            "expect_hex": "0037"
+          },
+          {
+            "base_register": "a6",
+            "offset": 795,
+            "size": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "first_ray_sample",
+      "breakpoint_stable_key": "s0:000092E2:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 102988,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375878,
+            "size": 2,
+            "expect_hex": "0037"
+          },
+          {
+            "base_register": "a6",
+            "offset": 795,
+            "size": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "wall_stops_ray",
+      "breakpoint_stable_key": "s0:00009410:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d5",
+          "d6",
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 102988,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375878,
+            "size": 2,
+            "expect_hex": "0037"
+          },
+          {
+            "base_register": "a6",
+            "offset": 795,
+            "size": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "shot_completed_loop",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 5,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 377694,
+            "size": 2,
+            "expect_hex": "005f"
+          },
+          {
+            "address": 102988,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 1,
+            "expect_hex": "00",
+            "expect_mask_hex": "06"
+          },
+          {
+            "address": 375878,
+            "size": 2,
+            "expect_hex": "0037"
+          },
+          {
+            "base_register": "a6",
+            "offset": 795,
+            "size": 1
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "shot_anchor",
+      "release_after_phase": "first_ray_sample",
+      "control": "port1 left"
+    },
+    {
+      "after_phase": "shot_anchor",
+      "release_after_phase": "first_ray_sample",
+      "control": "port1 fire"
+    }
+  ]
+}

@@ -1,0 +1,883 @@
+{
+  "schema_version": 1,
+  "stage": "defeat",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246",
+  "details": {
+    "new_layouts": [
+      {
+        "layout_id": "catalog-680ff3fa730d447eb310af77309a8e25",
+        "hunk": 0,
+        "source_start": 312722,
+        "source_end": 312758,
+        "seed_origin": "manual_analysis",
+        "review_status": "seeded",
+        "citation": "manual_action_log:catalog-680ff3fa730d447eb310af77309a8e25",
+        "runtime_execution_view_id": null,
+        "runtime_start": null,
+        "runtime_end": null,
+        "role": "Two final-pose geometry records: static defeat and escape",
+        "name": "player_final_pose_geometry_frames",
+        "default_unit": "word",
+        "version": 1,
+        "provenance": null,
+        "elements": [
+          {
+            "layout_id": "catalog-680ff3fa730d447eb310af77309a8e25",
+            "offset": 0,
+            "width": 36,
+            "kind": "struct",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "manual_action_log:catalog-680ff3fa730d447eb310af77309a8e25:0",
+            "name": "player_final_pose_geometry_frames",
+            "array_count": 2,
+            "array_stride": 18,
+            "representation": null,
+            "type_binding": {
+              "array_count": 2,
+              "binding_kind": "custom_struct",
+              "bound_type_id": "WorldPositionAnimationFrame",
+              "element_offset": 0,
+              "element_width": 36,
+              "layout_id": "catalog-680ff3fa730d447eb310af77309a8e25",
+              "type_binding_id": "catalog-680ff3fa730d447eb310af77309a8e25:0:36:custom_struct:WorldPositionAnimationFrame",
+              "owner_action_id": "manual-3bb08654732a499f989d4147aba84e78"
+            },
+            "reference_interpretation": null,
+            "provenance": null
+          }
+        ]
+      },
+      {
+        "layout_id": "catalog-967980d83ae64777aa9d61ac5032c2c0",
+        "hunk": 0,
+        "source_start": 312758,
+        "source_end": 312784,
+        "seed_origin": "manual_analysis",
+        "review_status": "seeded",
+        "citation": "manual_action_log:catalog-967980d83ae64777aa9d61ac5032c2c0",
+        "runtime_execution_view_id": null,
+        "runtime_start": null,
+        "runtime_end": null,
+        "role": "Static defeat render-state prefix with NULL node",
+        "name": "player_static_defeat_state",
+        "default_unit": "byte",
+        "version": 1,
+        "provenance": null,
+        "elements": [
+          {
+            "layout_id": "catalog-967980d83ae64777aa9d61ac5032c2c0",
+            "offset": 0,
+            "width": 26,
+            "kind": "struct",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "manual_action_log:catalog-967980d83ae64777aa9d61ac5032c2c0:0",
+            "name": "player_static_defeat_state",
+            "array_count": 1,
+            "array_stride": 26,
+            "representation": null,
+            "type_binding": {
+              "array_count": 1,
+              "binding_kind": "custom_struct",
+              "bound_type_id": "world_position_render_state_prefix",
+              "element_offset": 0,
+              "element_width": 26,
+              "layout_id": "catalog-967980d83ae64777aa9d61ac5032c2c0",
+              "type_binding_id": "catalog-967980d83ae64777aa9d61ac5032c2c0:0:26:custom_struct:world_position_render_state_prefix",
+              "owner_action_id": "manual-fd91f4e2d59649abbfad319f1cf7aa4c"
+            },
+            "reference_interpretation": null,
+            "provenance": null
+          }
+        ]
+      },
+      {
+        "layout_id": "catalog-ac967500d22d47c5a0b29b265120897f",
+        "hunk": 0,
+        "source_start": 312856,
+        "source_end": 313018,
+        "seed_origin": "manual_analysis",
+        "review_status": "seeded",
+        "citation": "manual_action_log:catalog-ac967500d22d47c5a0b29b265120897f",
+        "runtime_execution_view_id": null,
+        "runtime_start": null,
+        "runtime_end": null,
+        "role": "Nine geometry records continuing the existing four shared frames",
+        "name": "shared_defeat_animation_extended_geometry_frames",
+        "default_unit": "word",
+        "version": 1,
+        "provenance": null,
+        "elements": [
+          {
+            "layout_id": "catalog-ac967500d22d47c5a0b29b265120897f",
+            "offset": 0,
+            "width": 162,
+            "kind": "struct",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "manual_action_log:catalog-ac967500d22d47c5a0b29b265120897f:0",
+            "name": "shared_defeat_animation_extended_geometry_frames",
+            "array_count": 9,
+            "array_stride": 18,
+            "representation": null,
+            "type_binding": {
+              "array_count": 9,
+              "binding_kind": "custom_struct",
+              "bound_type_id": "WorldPositionAnimationFrame",
+              "element_offset": 0,
+              "element_width": 162,
+              "layout_id": "catalog-ac967500d22d47c5a0b29b265120897f",
+              "type_binding_id": "catalog-ac967500d22d47c5a0b29b265120897f:0:162:custom_struct:WorldPositionAnimationFrame",
+              "owner_action_id": "manual-1fa954857cca4f1380ff8a3d0896c5e1"
+            },
+            "reference_interpretation": null,
+            "provenance": null
+          }
+        ]
+      },
+      {
+        "layout_id": "catalog-f07025a433184f1cad3dc54fce126833",
+        "hunk": 0,
+        "source_start": 313018,
+        "source_end": 313044,
+        "seed_origin": "manual_analysis",
+        "review_status": "seeded",
+        "citation": "manual_action_log:catalog-f07025a433184f1cad3dc54fce126833",
+        "runtime_execution_view_id": null,
+        "runtime_start": null,
+        "runtime_end": null,
+        "role": "Shared animated player defeat render-state prefix",
+        "name": "player_animated_defeat_state",
+        "default_unit": "byte",
+        "version": 1,
+        "provenance": null,
+        "elements": [
+          {
+            "layout_id": "catalog-f07025a433184f1cad3dc54fce126833",
+            "offset": 0,
+            "width": 26,
+            "kind": "struct",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "manual_action_log:catalog-f07025a433184f1cad3dc54fce126833:0",
+            "name": "player_animated_defeat_state",
+            "array_count": 1,
+            "array_stride": 26,
+            "representation": null,
+            "type_binding": {
+              "array_count": 1,
+              "binding_kind": "custom_struct",
+              "bound_type_id": "world_position_render_state_prefix",
+              "element_offset": 0,
+              "element_width": 26,
+              "layout_id": "catalog-f07025a433184f1cad3dc54fce126833",
+              "type_binding_id": "catalog-f07025a433184f1cad3dc54fce126833:0:26:custom_struct:world_position_render_state_prefix",
+              "owner_action_id": "manual-473d66d3287a40f28ed2653659b3a01e"
+            },
+            "reference_interpretation": null,
+            "provenance": null
+          }
+        ]
+      },
+      {
+        "layout_id": "catalog-a5e761156e2242d6a680abeea7ae26af",
+        "hunk": 0,
+        "source_start": 313044,
+        "source_end": 313062,
+        "seed_origin": "manual_analysis",
+        "review_status": "seeded",
+        "citation": "manual_action_log:catalog-a5e761156e2242d6a680abeea7ae26af",
+        "runtime_execution_view_id": null,
+        "runtime_start": null,
+        "runtime_end": null,
+        "role": "Thirteen-frame hold-at-end animation header",
+        "name": "player_animated_defeat_node",
+        "default_unit": "byte",
+        "version": 1,
+        "provenance": null,
+        "elements": [
+          {
+            "layout_id": "catalog-a5e761156e2242d6a680abeea7ae26af",
+            "offset": 0,
+            "width": 18,
+            "kind": "struct",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "manual_action_log:catalog-a5e761156e2242d6a680abeea7ae26af:0",
+            "name": "player_animated_defeat_node",
+            "array_count": 1,
+            "array_stride": 18,
+            "representation": null,
+            "type_binding": {
+              "array_count": 1,
+              "binding_kind": "custom_struct",
+              "bound_type_id": "WorldPositionStateNode",
+              "element_offset": 0,
+              "element_width": 18,
+              "layout_id": "catalog-a5e761156e2242d6a680abeea7ae26af",
+              "type_binding_id": "catalog-a5e761156e2242d6a680abeea7ae26af:0:18:custom_struct:WorldPositionStateNode",
+              "owner_action_id": "manual-7fa6519b146446b78f67bed6a23570d5"
+            },
+            "reference_interpretation": null,
+            "provenance": null
+          }
+        ]
+      },
+      {
+        "layout_id": "catalog-3a02b01999f84e8d85beb7ddb86552cc",
+        "hunk": 0,
+        "source_start": 313062,
+        "source_end": 313118,
+        "seed_origin": "manual_analysis",
+        "review_status": "seeded",
+        "citation": "manual_action_log:catalog-3a02b01999f84e8d85beb7ddb86552cc",
+        "runtime_execution_view_id": null,
+        "runtime_start": null,
+        "runtime_end": null,
+        "role": "Held last frame followed by thirteen active frame references",
+        "name": "player_animated_defeat_frame_refs",
+        "default_unit": "long",
+        "version": 1,
+        "provenance": null,
+        "elements": [
+          {
+            "layout_id": "catalog-3a02b01999f84e8d85beb7ddb86552cc",
+            "offset": 0,
+            "width": 56,
+            "kind": "struct",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "manual_action_log:catalog-3a02b01999f84e8d85beb7ddb86552cc:0",
+            "name": "player_animated_defeat_frame_refs",
+            "array_count": 14,
+            "array_stride": 4,
+            "representation": null,
+            "type_binding": {
+              "array_count": 14,
+              "binding_kind": "custom_struct",
+              "bound_type_id": "WorldPositionDescriptorPointer",
+              "element_offset": 0,
+              "element_width": 56,
+              "layout_id": "catalog-3a02b01999f84e8d85beb7ddb86552cc",
+              "type_binding_id": "catalog-3a02b01999f84e8d85beb7ddb86552cc:0:56:custom_struct:WorldPositionDescriptorPointer",
+              "owner_action_id": "manual-c03581c795f4492fa1e5c3d2c8c3441c"
+            },
+            "reference_interpretation": null,
+            "provenance": null
+          }
+        ]
+      }
+    ],
+    "new_typed_bytes": 324,
+    "new_field_instances": 116,
+    "unknown_struct_bytes": 1,
+    "existing_four_frame_owner": {
+      "layout_id": "catalog-a2ed6c7227b2463bac477dfe025a4f5d",
+      "hunk": 0,
+      "source_start": 312784,
+      "source_end": 312856,
+      "seed_origin": "manual_analysis",
+      "review_status": "seeded",
+      "citation": "manual_action_log:catalog-a2ed6c7227b2463bac477dfe025a4f5d",
+      "runtime_execution_view_id": null,
+      "runtime_start": null,
+      "runtime_end": null,
+      "role": "rooted_npc_animation_records",
+      "name": "entry_officer_animation_bank_2",
+      "default_unit": "word",
+      "version": 1,
+      "provenance": null,
+      "elements": [
+        {
+          "layout_id": "catalog-a2ed6c7227b2463bac477dfe025a4f5d",
+          "offset": 0,
+          "width": 72,
+          "kind": "struct",
+          "seed_origin": "manual_analysis",
+          "review_status": "seeded",
+          "citation": "manual_action_log:catalog-a2ed6c7227b2463bac477dfe025a4f5d:0",
+          "name": "entry_officer_frames_4C5D0_0",
+          "array_count": 4,
+          "array_stride": 18,
+          "representation": "hex",
+          "type_binding": {
+            "array_count": 4,
+            "binding_kind": "custom_struct",
+            "bound_type_id": "WorldPositionAnimationFrame",
+            "element_offset": 0,
+            "element_width": 72,
+            "layout_id": "catalog-a2ed6c7227b2463bac477dfe025a4f5d",
+            "type_binding_id": "catalog-a2ed6c7227b2463bac477dfe025a4f5d:0:72:custom_struct:WorldPositionAnimationFrame",
+            "owner_action_id": "manual-44c8ac5884214045b29ddcff04615c09"
+          },
+          "reference_interpretation": null,
+          "provenance": null
+        }
+      ]
+    },
+    "animation": {
+      "frame_count": 13,
+      "physical_frame_references": 14,
+      "phase_step": 40,
+      "direct_services_to_hold": 84,
+      "held_frame_source_offset": 313000
+    },
+    "static_state_node": "NULL initially. Original exchange clears bit0 at absolute0xA and WORD0x10; this is conditional original behavior, not a valid-node or safe-low-memory claim.",
+    "scope": "Eight known incoming native instruction references plus the explicit escape geometry store share these resources across combat, ID failure and checkpoint damage. Original CPU tests use explicit local return/input contexts; no artwork exclusivity, normal draw reachability, mutable-pointer or asynchronous lifetime proof."
+  },
+  "canonical_action_ids": [
+    "manual-0c6f667bdbf14a22ac1acd35a44ec7fb",
+    "manual-5186cae6e22d432fa9ed7a558a2cf004",
+    "manual-aa5e39e052a74397b231a1b999807864",
+    "manual-5cd0930cab8a456b95bb7d2d7fcf0b93",
+    "manual-70584466ac204698b9891605540bf3b9",
+    "manual-a259c24e0be04ce1841a5fa197d64de9",
+    "manual-ec8e4228b025478baf5df301a816bc8f",
+    "manual-4d97ec8b37a943b4844ff5bc23f9d282",
+    "manual-70d65f4c470242dfa113a7445e9263e2",
+    "manual-188f1675f279487b822722d7092cce4e",
+    "manual-12aec418fe1948dd98bf5fd07096ad88",
+    "manual-0815c31ea2474d63878893235a01b12b",
+    "manual-b23ee8f9415441ba82946e17f37a6c6a",
+    "manual-3bb08654732a499f989d4147aba84e78",
+    "manual-fd91f4e2d59649abbfad319f1cf7aa4c",
+    "manual-1fa954857cca4f1380ff8a3d0896c5e1",
+    "manual-473d66d3287a40f28ed2653659b3a01e",
+    "manual-7fa6519b146446b78f67bed6a23570d5",
+    "manual-c03581c795f4492fa1e5c3d2c8c3441c",
+    "manual-2810fc960e95407cb7b4682c50e7e435",
+    "manual-7b6a21f167aa4ae685ff109604264fcf",
+    "manual-d08e968d1f7c462dbad17f6d59bf72b4",
+    "manual-77e013f177be4d59aff6bff25b909b7a",
+    "manual-1038ad595c204e5c8e137f2411330437",
+    "manual-8c5ae056560d4645b300e0301cc937bf",
+    "manual-3994efc8845644758f4e6874f58efb18"
+  ],
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "65a94e792c8a308779fe30cc222b6e57038a4d954a58d275758f886669668b4a",
+    "revision": "0c36cf1aeaf87fe7e63c4dec66d7bbeaed2cd975d70f3d90b5860a02929c141a",
+    "source_package_sha256": "8bea1d15f0bfbf48a4ded0cd8de2cdd07c25705618b7334b76873535619f9c62",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/8bea1d15f0bfbf48a4ded0cd8de2cdd07c25705618b7334b76873535619f9c62/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "0a98261f42da98a1217f6b92a6a6c1fcae2516f9dc67cb0f842e6e272276e202",
+    "status": "exact",
+    "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "review": {
+    "decisions": [
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0c6f667bdbf14a22ac1acd35a44ec7fb",
+        "decision_id": "restoration-120f42b6384a4b109fd5a2ba6e158402"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5186cae6e22d432fa9ed7a558a2cf004",
+        "decision_id": "restoration-d03f08fca3f845f1b110360a8186c748"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-aa5e39e052a74397b231a1b999807864",
+        "decision_id": "restoration-43547860e316406b942d1c1ff02ec6a0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5cd0930cab8a456b95bb7d2d7fcf0b93",
+        "decision_id": "restoration-7752678ee181410ab2ace80aa96a26c6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-70584466ac204698b9891605540bf3b9",
+        "decision_id": "restoration-2918323e56a84d76881fca375cf56349"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a259c24e0be04ce1841a5fa197d64de9",
+        "decision_id": "restoration-3a37682faaf84662a86d6f548aa857d7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ec8e4228b025478baf5df301a816bc8f",
+        "decision_id": "restoration-4a2f6c415bef4b6eab02efaf60ddadfd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4d97ec8b37a943b4844ff5bc23f9d282",
+        "decision_id": "restoration-052c733f361f49cfbda730fec0bb9b53"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-70d65f4c470242dfa113a7445e9263e2",
+        "decision_id": "restoration-7592afb533174d94b7886b505b8cf644"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-188f1675f279487b822722d7092cce4e",
+        "decision_id": "restoration-2d126fc07f534932a82d254a8358149d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-12aec418fe1948dd98bf5fd07096ad88",
+        "decision_id": "restoration-d086a61c2a394bc193c728d4be271d21"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0815c31ea2474d63878893235a01b12b",
+        "decision_id": "restoration-112d3aadfb2940228ad15b9dfb868b47"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b23ee8f9415441ba82946e17f37a6c6a",
+        "decision_id": "restoration-03a72c3b7f5e45f1930d333d53318e3b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3bb08654732a499f989d4147aba84e78",
+        "decision_id": "restoration-be19411592d04669881feb8547204935"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fd91f4e2d59649abbfad319f1cf7aa4c",
+        "decision_id": "restoration-2cc11772320145fa93f566b950c82e38"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1fa954857cca4f1380ff8a3d0896c5e1",
+        "decision_id": "restoration-5436b0438364427fa8336132a60e12a5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-473d66d3287a40f28ed2653659b3a01e",
+        "decision_id": "restoration-c746a0a080234b49ab1e52a106c09e14"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7fa6519b146446b78f67bed6a23570d5",
+        "decision_id": "restoration-779b945a6ede46588a3345f4840e7378"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c03581c795f4492fa1e5c3d2c8c3441c",
+        "decision_id": "restoration-776d69cf620e4c2f864635f5211d2278"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2810fc960e95407cb7b4682c50e7e435",
+        "decision_id": "restoration-fd8a696d611c421c97c6047a6a7342af"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7b6a21f167aa4ae685ff109604264fcf",
+        "decision_id": "restoration-736eb6e7f96849b88b4a0bbce41abcbb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d08e968d1f7c462dbad17f6d59bf72b4",
+        "decision_id": "restoration-0c9188b80ca044f090889603f3875f16"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-77e013f177be4d59aff6bff25b909b7a",
+        "decision_id": "restoration-0df38c68e3384bc781e217967fbd2643"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1038ad595c204e5c8e137f2411330437",
+        "decision_id": "restoration-9bc1c626321f449e95131d5a363c6ce5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8c5ae056560d4645b300e0301cc937bf",
+        "decision_id": "restoration-def95de5a074473096bc605b9cc13101"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3994efc8845644758f4e6874f58efb18",
+        "decision_id": "restoration-76b42b5c2f19468f9f646987a073bfa3"
+      }
+    ],
+    "probe": null,
+    "revision": "2350f3fff2b5f3645d3050d974fc12fb0d66c0474149dc9ccf25a42bf2b23585",
+    "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246",
+    "verification": {
+      "exact": true,
+      "kind": "verification",
+      "receipt_id": "65a94e792c8a308779fe30cc222b6e57038a4d954a58d275758f886669668b4a",
+      "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246"
+    }
+  },
+  "tests": "16 original-CPU checks passed collectively (15 combined plus1 new escape continuation);106 focused framework checks pass.",
+  "preservation": {
+    "immutable_tracked_target_files": 99,
+    "prior_history_prefixes_unchanged": true,
+    "appended_records": {
+      "manual_actions.jsonl": 26,
+      "decision_journal.jsonl": 26
+    }
+  },
+  "shared_tail_relocation": "Separate obligation; unchanged and unresolved",
+  "new_runtime_routes": 0,
+  "framework": "Added sparse layout-role editing and source-interval selection for canonical typed-pointer reports; existing shared schema bindings automatically resolve all14 frame fields and the escape store. No target-specific renderer or source patch.",
+  "native_reference_audit": {
+    "frame_references": {
+      "exceptions_only": false,
+      "has_more": false,
+      "items": [
+        {
+          "end_offset": 313066,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378536,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C6A8",
+            "symbol_group": "",
+            "target_offset": 313000,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313062,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313070,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_1",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378320,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "entry_officer_animation_bank_2",
+            "symbol_group": "",
+            "target_offset": 312784,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313066,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313074,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_2",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378338,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "entry_officer_animation_bank_2_bitplane_data_ptr_1",
+            "symbol_group": "",
+            "target_offset": 312802,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313070,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313078,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_3",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378356,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "entry_officer_animation_bank_2_bitplane_data_ptr_2",
+            "symbol_group": "",
+            "target_offset": 312820,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313074,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313082,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_4",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378374,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "entry_officer_animation_bank_2_bitplane_data_ptr_3",
+            "symbol_group": "",
+            "target_offset": 312838,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313078,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313086,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_5",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378392,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "shared_defeat_animation_extended_geometry_frames",
+            "symbol_group": "",
+            "target_offset": 312856,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313082,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313090,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_6",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378410,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C62A",
+            "symbol_group": "",
+            "target_offset": 312874,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313086,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313094,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_7",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378428,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C63C",
+            "symbol_group": "",
+            "target_offset": 312892,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313090,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313098,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_8",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378446,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C64E",
+            "symbol_group": "",
+            "target_offset": 312910,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313094,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313102,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_9",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378464,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C660",
+            "symbol_group": "",
+            "target_offset": 312928,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313098,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313106,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_10",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378482,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C672",
+            "symbol_group": "",
+            "target_offset": 312946,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313102,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313110,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_11",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378500,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C684",
+            "symbol_group": "",
+            "target_offset": 312964,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313106,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313114,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_12",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378518,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C696",
+            "symbol_group": "",
+            "target_offset": 312982,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313110,
+          "struct_name": "WorldPositionDescriptorPointer"
+        },
+        {
+          "end_offset": 313118,
+          "field_name": "frame_ptr",
+          "name": "player_animated_defeat_frame_refs_frame_ptr_13",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "legacy",
+            "encoded_value": 378536,
+            "outcome": "symbolic",
+            "reason": "resolved_source",
+            "symbol": "abs_0_0005C6A8",
+            "symbol_group": "",
+            "target_offset": 313000,
+            "target_section_index": 0
+          },
+          "section_index": 0,
+          "source_offset": 313114,
+          "struct_name": "WorldPositionDescriptorPointer"
+        }
+      ],
+      "limit": 20,
+      "next_cursor": null,
+      "offset": 0,
+      "outcomes": {
+        "symbolic": 14
+      },
+      "population_total": 14,
+      "reasons": {
+        "resolved_source": 14
+      },
+      "response_byte_budget": 65536,
+      "revision": "2350f3fff2b5f3645d3050d974fc12fb0d66c0474149dc9ccf25a42bf2b23585",
+      "scope": "canonical bound pointer fields and native render-plan outcomes",
+      "selection": "Canonical bound fields with explicit pointer semantics; scalar candidates excluded.",
+      "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246",
+      "total": 14,
+      "unknowns": [
+        "Static encoded fields; no claim about runtime mutations, pointee extent, or lifetime.",
+        "Native symbolic resolution establishes an expression, not semantic evidence for the type."
+      ]
+    },
+    "escape_store_reference": {
+      "has_more": false,
+      "items": [
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 0,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 38802,
+          "symbol": "player_escape_geometry",
+          "target_offset": 312740,
+          "target_section_index": 0
+        },
+        {
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "operand_index": 1,
+          "provenance": "typed_operand",
+          "section_index": 0,
+          "source_offset": 38802,
+          "symbol": "player_position_state",
+          "target_offset": 313130,
+          "target_section_index": 0
+        }
+      ],
+      "limit": 20,
+      "next_cursor": null,
+      "offset": 0,
+      "response_byte_budget": 65536,
+      "revision": "2350f3fff2b5f3645d3050d974fc12fb0d66c0474149dc9ccf25a42bf2b23585",
+      "scope": "native_artifact",
+      "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246",
+      "total": 2,
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    },
+    "revision": "2350f3fff2b5f3645d3050d974fc12fb0d66c0474149dc9ccf25a42bf2b23585",
+    "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246"
+  },
+  "resident_service": {
+    "pid": 4652,
+    "listen": "127.0.0.1:8123",
+    "ready": true,
+    "target_ui_http_status": 200,
+    "subject_revision": "4b1f846bcb47feffaee88b218267c82945c8690fe5d339bb45c2a32dbf6b4246"
+  }
+}

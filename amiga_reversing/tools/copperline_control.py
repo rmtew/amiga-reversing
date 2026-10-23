@@ -25,6 +25,11 @@ class CopperlineError(RuntimeError):
 class CopperlineTimeout(CopperlineError):
     """The wall deadline expired; the machine was paused or disconnected."""
 
+    def __init__(self, message, *, stop_event=None, pause_event=None):
+        super().__init__(message)
+        self.stop_event = stop_event
+        self.pause_event = pause_event
+
 
 class CopperlineClient:
     MAX_LINE = 4 * 1024 * 1024
@@ -152,10 +157,11 @@ class CopperlineClient:
                 pause_deadline = time.monotonic() + self.request_timeout
                 pause_id = self._send("pause", {}, pause_deadline)
                 replies = self._responses({ident, pause_id}, pause_deadline)
-                self._result(replies[ident])
-                self._result(replies[pause_id])
+                stop_event = self._result(replies[ident])
+                pause_event = self._result(replies[pause_id])
                 raise CopperlineTimeout(
-                    "Run deadline expired; emulator paused"
+                    "Run deadline expired; emulator paused",
+                    stop_event=stop_event, pause_event=pause_event,
                 ) from None
         except CopperlineTimeout:
             raise

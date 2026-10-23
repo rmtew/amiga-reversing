@@ -19,6 +19,23 @@ def test_native_session_plan_is_explicit_and_bounded():
     assert session.plan()["continue_seconds"] == 12
 
 
+@pytest.mark.parametrize("phase", [
+    {"name": "boot", "observable": "direct_payload_handoff",
+     "memory_access_watch": {"address": 0, "access": "read", "engine": "cpu", "wait_seconds": 1}},
+    {"name": "packet", "breakpoint_stable_key": "s0:00006B0A:instruction",
+     "wait_seconds": 1, "memory_access_watch": {"address": 0, "access": "read",
+     "engine": "blitter", "wait_seconds": 1, "class": "cpu"}},
+])
+def test_compile_rejects_unanchored_or_extra_watch_fields_before_listing(tmp_path, phase):
+    first = {"name": "boot", "observable": "direct_payload_handoff"}
+    phases = [phase, {"name": "next"}] if phase["name"] == "boot" else [first, phase]
+    path = tmp_path / "scenario.json"
+    path.write_text(json.dumps({"schema_version": 1, "target_id": "fixture",
+                               "identifier": "invalid", "phases": phases}))
+    with pytest.raises(ValueError, match="Memory access watch requires"):
+        copperline_session.compile_scenario("fixture", path, tmp_path / "compiled.json")
+
+
 @pytest.mark.parametrize("observable", ["direct_payload_handoff", "verified_checkpoint"])
 def test_compile_scenario_resolves_only_canonical_rows_once(
     monkeypatch, tmp_path: Path, observable
@@ -37,6 +54,10 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
                         "name": "title",
                         "breakpoint_stable_key": "s0:00000BA8:instruction:760",
                         "wait_seconds": 10,
+                        "memory_access_watch": {
+                            "address": 0x49DC8, "access": "read",
+                            "engine": "blitter", "wait_seconds": 2,
+                        },
                     },
                     {
                         "name": "inventory",
@@ -100,6 +121,9 @@ def test_compile_scenario_resolves_only_canonical_rows_once(
     assert compiled["phases"][1]["occurrences"] == 64
     assert compiled["phases"][1]["capture_first"] is True
     assert compiled["start_observable"] == observable
+    assert compiled["phases"][0]["memory_access_watch"] == {
+        "address": 0x49DC8, "access": "read", "engine": "blitter", "wait_seconds": 2,
+    }
     assert json.loads(output.read_text(encoding="utf-8"))["identifier"] == "test"
 
 
@@ -522,9 +546,10 @@ def test_region_capture_resolves_native_identity_and_bounds(
         ]
 
 
-def test_custom_register_capture_is_bounded_and_names_only():
+def test_custom_register_capture_is_bounded_by_names_or_even_offsets():
     copperline_session.validate_capture({'custom_registers': ['AUD0VOL', 'DMACON']})
-    for names in [['AUD0VOL']*17, ['mem.write'], [12]]:
+    copperline_session.validate_capture({'custom_registers': [0, 2, 0x1C, 0x1E, 0x1FE]})
+    for names in [['AUD0VOL']*17, ['mem.write'], [True], [-2], [1], [0x200]]:
         with pytest.raises(ValueError, match='custom registers'):
             copperline_session.validate_capture({'custom_registers': names})
 
@@ -533,7 +558,7 @@ def test_compiler_and_runner_share_bounded_phase_capacity(monkeypatch, tmp_path)
     path = tmp_path/'many-phases.json'
     phases = [{'name': 'boot', 'observable': 'direct_payload_handoff'}] + [
         {'name': f'visit_{i}', 'breakpoint_stable_key': 's0:00000004:instruction', 'wait_seconds': 1}
-        for i in range(63)]
+        for i in range(copperline_session.MAX_SCENARIO_PHASES-1)]
     scenario = {'schema_version': 1, 'identifier': 'many', 'target_id': 'fixture', 'phases': phases}
     row = {'stable_key': 's0:00000004:instruction', 'start_offset': 4}
     artifact = _FakeArtifact(row)
@@ -541,10 +566,10 @@ def test_compiler_and_runner_share_bounded_phase_capacity(monkeypatch, tmp_path)
     monkeypatch.setattr(copperline_session, 'build_project_listing_artifact_profile', lambda _: (0, {}, artifact))
     path.write_text(json.dumps(scenario))
     compiled = copperline_session.compile_scenario('fixture', path, tmp_path/'compiled.json')
-    assert len(compiled['phases']) == 63
+    assert len(compiled['phases']) == copperline_session.MAX_SCENARIO_PHASES-1
     scenario['phases'].append(dict(phases[-1], name='excess'))
     path.write_text(json.dumps(scenario))
-    with pytest.raises(ValueError, match='2..64'):
+    with pytest.raises(ValueError, match=f'2..{copperline_session.MAX_SCENARIO_PHASES}'):
         copperline_session.compile_scenario('fixture', path, tmp_path/'excess.json')
 
 
@@ -562,3 +587,39 @@ def test_capture_expectations_reject_malformed_or_size_mismatched_values(expecta
 def test_capture_expectation_preserves_register_and_region_addressing():
     for address in ({'base_register': 'a6', 'offset': 558}, {'region_id': 'test'}):
         copperline_session.validate_capture({'memory_reads': [dict(size=1, expect_hex='00', expect_mask_hex='06', **address)]})
+
+
+def test_state_goal_and_frame_budget_compile_through_shared_service(monkeypatch,tmp_path):
+    row={'stable_key':'s0:00000004:instruction','start_offset':4}
+    artifact=_FakeArtifact(row)
+    artifact._runtime_observation_views=({'base_addr':0x10000,'source_start':0,'source_end':16},)
+    monkeypatch.setattr(copperline_session,'build_project_listing_artifact_profile',lambda _:(0,{},artifact))
+    p={'name':'goal','breakpoint_stable_key':row['stable_key'],'wait_seconds':1,
+       'occurrences':1024,'max_frames':12,'until_memory':{'address':0x6000,'size':1,'expect_hex':'03'}}
+    s={'schema_version':1,'identifier':'goal','target_id':'fixture','phases':[
+        {'name':'boot','observable':'direct_payload_handoff'},
+        {'name':'anchor','breakpoint_stable_key':row['stable_key'],'wait_seconds':1},p]}
+    path=tmp_path/'goal.json';path.write_text(json.dumps(s))
+    r=copperline_session.compile_scenario('fixture',path,tmp_path/'compiled.json')
+    assert r['phases'][-1]['until_memory']==p['until_memory']
+    assert r['phases'][-1]['max_frames']==12
+    p['occurrences']=8
+    del p['max_frames'];path.write_text(json.dumps(s))
+    with pytest.raises(ValueError,match='frame and visit budgets'):
+        copperline_session.compile_scenario('fixture',path,tmp_path/'rejected.json')
+
+
+def test_compiler_accepts_shared_input_limit_and_rejects_excess(monkeypatch,tmp_path):
+    row={'stable_key':'s0:00000004:instruction','start_offset':4}
+    artifact=_FakeArtifact(row)
+    artifact._runtime_observation_views=({'base_addr':0x10000,'source_start':0,'source_end':16},)
+    monkeypatch.setattr(copperline_session,'build_project_listing_artifact_profile',lambda _:(0,{},artifact))
+    s={'schema_version':1,'identifier':'events','target_id':'fixture','phases':[
+       {'name':'boot','observable':'direct_payload_handoff'},
+       {'name':'start','breakpoint_stable_key':row['stable_key'],'wait_seconds':1},
+       {'name':'end','breakpoint_stable_key':row['stable_key'],'wait_seconds':1}],
+       'input_events':[{'after_phase':'start','control':'port1 fire','release_after_phase':'end'}]*copperline_session.MAX_SCENARIO_INPUT_EVENTS}
+    path=tmp_path/'events.json';path.write_text(json.dumps(s))
+    assert len(copperline_session.compile_scenario('fixture',path,tmp_path/'out.json')['input_events'])==copperline_session.MAX_SCENARIO_INPUT_EVENTS
+    s['input_events'].append(dict(s['input_events'][0]));path.write_text(json.dumps(s))
+    with pytest.raises(ValueError):copperline_session.compile_scenario('fixture',path,tmp_path/'reject.json')

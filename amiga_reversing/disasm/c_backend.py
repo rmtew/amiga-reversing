@@ -821,6 +821,20 @@ def extract_macos_hfs_code_resource_bytes_with_c_backend(
     )
 
 
+def platform_constant_value_with_c_backend(
+    binary_source: BinarySource, symbol: str, *, project_root: Path = PROJECT_ROOT,
+) -> int | None:
+    """Read the generated native platform registry, including unused constants."""
+    dll = _platform_file_dll(project_root)
+    function = dll.platform_file_symbol_constant_value
+    function.argtypes = [c_char_p, c_char_p, POINTER(ctypes.c_int32)]
+    function.restype = c_int
+    value = ctypes.c_int32()
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        found = function(_c_arg(source_file.platform_name), _c_arg(symbol), byref(value))
+    return value.value if found else None
+
+
 def validate_target_equate_count_with_c_backend(
     count: int, *, project_root: Path = PROJECT_ROOT,
 ) -> None:
@@ -2196,7 +2210,7 @@ class CListingArtifact:
         return analysis, profile
 
     def source_plan_payload(self) -> dict[str, object]:
-        """Internal canonical row coordinates for schema-derived presentations."""
+        """Canonical row coordinates and stored/allocation extents for projections."""
         return cast(dict[str, object], json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc)))
 

@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "starting_commit": "f27a53e4a5bdbd4fd59fe373ae5880a469a1c074",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do seed initialization, fixed cursor-row production and world restart reconstruct state?",
+  "prng": {
+    "absolute_state_span": [
+      2024,
+      2032
+    ],
+    "seed_table_source_span": [
+      12210,
+      12226
+    ],
+    "seed_values": [
+      1744692274,
+      2504167784,
+      3657799587,
+      1426040434
+    ],
+    "selection": "VHPOSR WORD bits 2..3 select LONG offsets 0,4,8,12.",
+    "writes": "The LONG store at $7EA and WORD store at $7E8 write six bytes; old WORD $7EE..$7EF survives into the second state LONG. Seed entry falls through one complete advance.",
+    "recurrence": "Repeat 32 times: feedback = (shift bit 3 XOR history bit 0); history.B = outgoing shift bit 31 ? FF : 00; shift = (shift<<1)|feedback. Preserve history high 24 bits and return the second LONG in D0/D1.",
+    "registers": "Normal return changes D0,D1,A0 and CCR; D2-D7,A1-A6 retain identity, A7 balances under a disjoint valid stack.",
+    "limits": "No period, entropy, distribution or gameplay-reachability claim. This is absolute low RAM, distinct from A6-relative grid-cell aliases."
+  },
+  "restart": {
+    "source_entry": 40742,
+    "original_object_count": 35,
+    "initial_active_descriptor_count": 67,
+    "object_writes": "Restore initial flags, selected item, item state, HP and script; recompute the name from the current item-definition byte and zero script delay. Two banks copy eight BYTEs forward, with ordinary sequential overlap effects.",
+    "initial_player_xy": [
+      241,
+      866
+    ],
+    "initial_camera_tile_row": 51,
+    "self_destruct_service_steps": 3000,
+    "earth_bcd": "9999",
+    "seed_lifecycle": "The complete world reset does not reseed or modify the absolute eight-byte PRNG state. Runtime tilemap initialization calls the seed entry separately.",
+    "limits": "Full reset witness uses valid original records and current flags matching their initial inactive parity. Existing exchange/conditional-receptacle tests cover those separate branches; arbitrary replacement graphs, aliases and lifetime remain open.",
+    "coordinates": "All 35 table-record coordinates are perturbed in the full-reset witness. NPC object XY remain as stored; player XY reset to (241,866). This routine resets script cursors, but later script execution is a separate operation."
+  },
+  "cursor_rows": {
+    "source_entry": 40710,
+    "row_groups": 16,
+    "source_group_bytes": 16,
+    "consumed_bytes_per_group": 8,
+    "output_rows_addresses": [
+      414580,
+      414648
+    ],
+    "output_bytes_each": 64,
+    "behavior": "Copy first two WORDs to plane 0 rows and next two to plane 1 rows, then skip eight input bytes. Both preceding control LONGs remain unchanged.",
+    "limits": "CPU writes in flat RAM only. No file-backed allocation, chipset DMA completion or complete alias/writer proof."
+  },
+  "coverage": {
+    "pytest_cases": 11,
+    "independent_recurrence_states": 64,
+    "chained_stream_steps": 256,
+    "beam_and_prior_tail_combinations": 76,
+    "history_bit_independence_cases": 10,
+    "full_original_object_records": 35,
+    "overlap_direction_cases": 2,
+    "empty_table_cases": 1,
+    "cursor_row_groups": 16,
+    "updated_full_reset_coordinate_case_passed": true
+  },
+  "reused_checks": {
+    "native": 819,
+    "focused_framework": 150,
+    "reason": "No framework, CPU or reference-rendering implementation changes in this batch. Prior state-exchange and conditional-receptacle witnesses remain applicable."
+  },
+  "bootstrap_fixture_limitation": {
+    "test": "tests/test_c_backend.py::test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression",
+    "status": "Pre-existing: same full_source_policy_load_view versus overlaid_by_runtime_copy assertion with published f45c38bb renderer and unchanged production objects in an isolated temporary library.",
+    "scope": "Retained, not counted among passing checks; no bootstrap-discovery expansion."
+  },
+  "preservation": "Retain all existing owner identities/bounds, SDK/hardware expressions, comments, encoded-value reference spellings, assets and history prefixes. Preserve raw 6A16..6A1E and unselected pointer 48606..4860A. Unknown reset slots and hardcoded store at $64C0 receive no new semantics.",
+  "facts": {
+    "count": 100,
+    "labels": 12,
+    "equates": 40,
+    "field_equate_aliases": 17,
+    "operand_presentations": 43,
+    "comments": 5
+  },
+  "presentation_boundary": "The displacement catalog requires equal-valued canonical EQU declarations. Seventeen explicit aliases reference existing RSSET field symbols, preserving their widths/owners; the first 83-action candidate was rejected atomically before any append.",
+  "mutation_profile_seconds": {
+    "command_context": 251.1,
+    "command_catalog": 256.75,
+    "manual_action_append": 25.784,
+    "scope": "Recorded profile for the successful 100-action batch; no performance implementation change."
+  },
+  "verification": {
+    "receipt_id": "e6a4a304951afd1e41d8d86df378c2d875ee3a825400896acebdd0709319dbb8",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "ac6a84b0bd47cd868e1084208e82e0507af4c5a37caacd990b679608f72a735a",
+    "source_package_sha256": "d008ab975902794d340480725f35e6b60d9b4f244a1d46216de26ec5a7af2fc4"
+  },
+  "accepted_actions": 100,
+  "source_preservation_passed": true,
+  "native_refresh_seconds": 187.114
+}

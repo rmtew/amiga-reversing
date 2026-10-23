@@ -1,0 +1,442 @@
+{
+  "baseline_commit": "27bc9a02ef3be038f8a9f62bdddd59c7a7ca909b",
+  "scope": "Primary audio channel-relative hardware register family; original dispatch entry contracts, not unconditional indirect-target closure.",
+  "reviewed_sites": 12,
+  "symbolic_before": 10,
+  "symbolic_after": 12,
+  "newly_symbolic_sites": 2,
+  "bounded_family_facts_before": 0,
+  "bounded_family_facts_after": 12,
+  "newly_resolved_under_entry_contracts": 12,
+  "unconditional_indirect_dispatch_closure_proved": false,
+  "accepted_indexed_entry_contracts": 11,
+  "sites": [
+    {
+      "source_offset": 317892,
+      "symbolic_before": true,
+      "rendered": "move.l a2,aud0+ac_ptr(a6)\t; sound_sample pointer",
+      "native_hardware_family": {
+        "offset": 317892,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 160,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 4,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_ptr"
+      }
+    },
+    {
+      "source_offset": 317896,
+      "symbolic_before": true,
+      "rendered": "move.w d1,aud0+ac_len(a6)",
+      "native_hardware_family": {
+        "offset": 317896,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 164,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_len"
+      }
+    },
+    {
+      "source_offset": 317920,
+      "symbolic_before": true,
+      "rendered": "move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)\t; sound_sample pointer",
+      "native_hardware_family": {
+        "offset": 317920,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 160,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 4,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_ptr"
+      }
+    },
+    {
+      "source_offset": 317926,
+      "symbolic_before": true,
+      "rendered": "move.w #$20,aud0+ac_len(a6)\t; sound sample length 64 bytes",
+      "native_hardware_family": {
+        "offset": 317926,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 164,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_len"
+      }
+    },
+    {
+      "source_offset": 318046,
+      "symbolic_before": true,
+      "rendered": "move.l audio_sample_metadata_sample_ptr.w(a5),aud0+ac_ptr(a6)\t; sound_sample pointer",
+      "native_hardware_family": {
+        "offset": 318046,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 160,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 4,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_ptr"
+      }
+    },
+    {
+      "source_offset": 318052,
+      "symbolic_before": true,
+      "rendered": "move.w audio_sample_metadata_sample_length(a5),aud0+ac_len(a6)",
+      "native_hardware_family": {
+        "offset": 318052,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 164,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_len"
+      }
+    },
+    {
+      "source_offset": 318058,
+      "symbolic_before": true,
+      "rendered": "move.w d1,aud0+ac_vol(a6)",
+      "native_hardware_family": {
+        "offset": 318058,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 168,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_vol"
+      }
+    },
+    {
+      "source_offset": 318096,
+      "symbolic_before": true,
+      "rendered": "move.w d0,aud0+ac_per(a6)\t; audio period",
+      "native_hardware_family": {
+        "offset": 318096,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 166,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_per"
+      }
+    },
+    {
+      "source_offset": 318318,
+      "symbolic_before": true,
+      "rendered": "move.w d0,aud0+ac_per(a6)\t; audio period",
+      "native_hardware_family": {
+        "offset": 318318,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 166,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_per"
+      }
+    },
+    {
+      "source_offset": 318368,
+      "symbolic_before": true,
+      "rendered": "move.w d1,aud0+ac_vol(a6)",
+      "native_hardware_family": {
+        "offset": 318368,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 168,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_vol"
+      }
+    },
+    {
+      "source_offset": 318598,
+      "symbolic_before": false,
+      "rendered": "move.l audio_player_globals_silence_sample_ptr(pc),aud0+ac_ptr(a6)\t; sound_sample pointer",
+      "native_hardware_family": {
+        "offset": 318598,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 160,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 4,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_ptr"
+      }
+    },
+    {
+      "source_offset": 318604,
+      "symbolic_before": false,
+      "rendered": "move.w #$20,aud0+ac_len(a6)\t; sound sample length 64 bytes",
+      "native_hardware_family": {
+        "offset": 318604,
+        "operand_index": 1,
+        "address": null,
+        "effective_address": null,
+        "use_shape_id": 7,
+        "relative_base_id": 3,
+        "relative_register_offset": 164,
+        "requires_indexed_input_contract": true,
+        "proof_scope": "analysis_entry_contracts",
+        "relative_base_offsets": [
+          0,
+          16,
+          32,
+          48
+        ],
+        "use_shape_name": "hardware_register_family",
+        "access_kind_id": 4,
+        "access_kind_name": "memory_write",
+        "access_width": 2,
+        "confidence": 2,
+        "symbol_name": "aud0+ac_len"
+      }
+    }
+  ],
+  "canonical_declarations": {
+    "custom_structs": 61,
+    "data_block_layouts": 496,
+    "function_summaries": 86,
+    "entry_register_seeds": 82,
+    "rsset_layout_regions": 114,
+    "seeded_code_labels": 835,
+    "target_equates": 276,
+    "manual_data_references": 284,
+    "manual_representations": 1982
+  },
+  "native_counts": {
+    "instructions": {
+      "count": 7043,
+      "scope": "native_artifact"
+    },
+    "symbols": {
+      "count": 4489,
+      "scope": "native_artifact"
+    },
+    "references": {
+      "count": 5165,
+      "scope": "native_artifact"
+    },
+    "functions": {
+      "count": 225,
+      "scope": "current accepted analysis"
+    },
+    "fields": {
+      "count": 910,
+      "scope": "native_artifact",
+      "native_record_status_counts": {
+        "resolved": 883,
+        "unresolved": 27
+      }
+    },
+    "edges": {
+      "count": 3418,
+      "scope": "native_artifact"
+    },
+    "gaps": {
+      "count": 89,
+      "scope": "native analysis review items"
+    }
+  },
+  "verification": {
+    "receipt_id": "5046acf61f021bc19c38f5276d168ad74c1bfc016a5bd301f07474b9c5b71cd0",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "704c25cd347d1b642647c7d38c0942f08b50c4d30dbd2cbdbdb6c187d1e17a1b",
+    "source_package_sha256": "ec458eb30e48a0fd8d9ba34e43b142021c7c1ae4577effb5f011c11bb08ff628",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "preservation": {
+    "asset_hashes_unchanged": 86,
+    "both_history_prefixes_preserved": true,
+    "baseline_named_instructions_and_inline_notes_preserved": true,
+    "only_old_instruction_lines_replaced": [
+      "\tmove.l audio_player_globals_silence_sample_ptr(pc),$00A0(a6)",
+      "\tmove.w #$20,$00A4(a6)"
+    ]
+  },
+  "tests": {
+    "native": 819,
+    "focused_framework_catalog_and_cpu": 380,
+    "original_audio_cpu": 52,
+    "new_generic_hardware_tests": 29,
+    "new_group_source_snapshot_failed_before_regeneration": true
+  },
+  "codec_id_provenance": {
+    "status": "closed_as_pre_existing_environment_issue",
+    "evidence": "pandora-render-quality-correction.json#codec_environment_baseline",
+    "reason": "Isolated 8fcfd31f backend and current decompression producer return the identical missing ancient-cli provider payload; no codec_id is supplied. This batch does not change decompression."
+  },
+  "limits": [
+    "All twelve new family facts require accepted original-dispatch entry contracts. None claims a fixed A6 address or unconditional validity for arbitrary direct handler entry.",
+    "The original player initializes D7 to 3 and builds _custom+16*D7.w. All eleven known opcode handlers preserve A6 and D7 across all four tested channels; reset is executed through RTS.",
+    "Native indirect jump 4DC2A remains unresolved. Valid original opcode selection and operand memory are preconditions, not a proved arbitrary stream/replacement contract.",
+    "The bounded solver joins at most eight low-WORD candidates, refines DBF exhaustion separately and checks every candidate against the same SDK family field. Unknown, overflowing or unfinished proofs publish no family fact.",
+    "Calls, unmodelled/partial writes, memory loads and address autoupdates invalidate affected values. Existing exact-address call results and accepted literal offset renderings remain separate.",
+    "CPU MMIO is a memory shadow. No audio output, DMA timing, alias safety or arbitrary replacement admission is established."
+  ]
+}

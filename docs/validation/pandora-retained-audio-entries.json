@@ -1,0 +1,206 @@
+{
+  "scope": "section 0 source offsets, exclusive ends",
+  "entries": [
+    {
+      "source_start": 316110,
+      "source_end": 316116,
+      "name": "retained_feedback_channel3_config0_entry_1",
+      "selector": 768,
+      "channel": 3,
+      "configuration": 0,
+      "original_bytes": "303c0300605c"
+    },
+    {
+      "source_start": 316116,
+      "source_end": 316122,
+      "name": "retained_feedback_channel2_config0_entry_2",
+      "selector": 512,
+      "channel": 2,
+      "configuration": 0,
+      "original_bytes": "303c02006056"
+    },
+    {
+      "source_start": 316122,
+      "source_end": 316128,
+      "name": "retained_feedback_channel3_config0_entry_3",
+      "selector": 768,
+      "channel": 3,
+      "configuration": 0,
+      "original_bytes": "303c03006050"
+    },
+    {
+      "source_start": 316128,
+      "source_end": 316134,
+      "name": "retained_feedback_channel3_config0_entry_4",
+      "selector": 768,
+      "channel": 3,
+      "configuration": 0,
+      "original_bytes": "303c0300604a"
+    },
+    {
+      "source_start": 316134,
+      "source_end": 316140,
+      "name": "retained_feedback_channel3_config0_entry_5",
+      "selector": 768,
+      "channel": 3,
+      "configuration": 0,
+      "original_bytes": "303c03006044"
+    },
+    {
+      "source_start": 316140,
+      "source_end": 316146,
+      "name": "retained_feedback_channel3_config0_entry_6",
+      "selector": 768,
+      "channel": 3,
+      "configuration": 0,
+      "original_bytes": "303c0300603e"
+    },
+    {
+      "source_start": 316146,
+      "source_end": 316152,
+      "name": "retained_feedback_channel3_config0_entry_7",
+      "selector": 768,
+      "channel": 3,
+      "configuration": 0,
+      "original_bytes": "303c03006038"
+    },
+    {
+      "source_start": 316152,
+      "source_end": 316158,
+      "name": "retained_feedback_channel2_config17_entry_8",
+      "selector": 529,
+      "channel": 2,
+      "configuration": 17,
+      "original_bytes": "303c02116032"
+    }
+  ],
+  "incoming_static_references": 0,
+  "conditional_cpu_cases": 64,
+  "cpu_test": "tests/test_pandora_retained_audio_entries.py",
+  "limits": "Conditional entry behavior only: no static incoming references found, and ordinary activation, game-event/sound identities, dynamic callers and audible/DMA behavior remain unproved.",
+  "action_ids": [
+    "manual-bf51bfc915764c5f8d895045676f37cb",
+    "manual-19497482773448ab9ce82eb668baf6bc",
+    "manual-93e7b98667144eeda45da08f22b1cfc1",
+    "manual-ab6e0db619ba447e9dc8e0f0066dab10",
+    "manual-a8ca07420c804abfa11a6092f0fc5202",
+    "manual-c76f6bd6cdd9409fa5b95283b5ae5ce1",
+    "manual-8f15bff94c4b4154af474194c1f915b3",
+    "manual-f6101d2f43ec4ec5a3876b1748da6d0e",
+    "manual-6871601e00464f519ea09e7f1930317c",
+    "manual-8cbbb5f510b748a78de011377559a6f1",
+    "manual-84c89598f4874a8b96fe67854b14578b",
+    "manual-48040fd054214016baf6ea791f309b7e",
+    "manual-86aa38f91f57408a815629a92b860890",
+    "manual-840db5bd2f1d463ba640b9b62ef52e98",
+    "manual-9432255fe74b4612a0eb87144d9c4ee2",
+    "manual-1590762906b7419dbd0df75b233f5831",
+    "manual-eb3bfaf82aef4940ad95d3cdec719ac3"
+  ],
+  "inspected_revision": "1d2776fddc9d6f203143934e0e8270e3cf8215e89a6d51d79ffb84c5a3c8e686",
+  "source_evidence_refs": [
+    "s0:0004D2CE:data",
+    "s0:0004D2DE:data",
+    "s0:0004D2EE:data",
+    "s0:0004D2FE:instruction",
+    "s0:0004D302:instruction",
+    "s0:0004D304:instruction",
+    "s0:0004D308:instruction",
+    "s0:0004D330:instruction",
+    "s0:0004D336:instruction",
+    "s0:0004D33A:instruction",
+    "s0:0004D340:instruction",
+    "s0:0004D344:instruction"
+  ],
+  "cpu_contract": {
+    "stop_source": 320492,
+    "steps_per_case": 5,
+    "saved_register_bytes": 52,
+    "callee_return_source": 316224,
+    "memory_oracle": "unmodified original image with controlled RAM; stopped before audio MMIO"
+  },
+  "label_evidence_refs": [
+    "s0:0004D2CE:instruction",
+    "s0:0004D2D2:instruction",
+    "s0:0004D2D4:instruction",
+    "s0:0004D2D8:instruction",
+    "s0:0004D2DA:instruction",
+    "s0:0004D2DE:instruction",
+    "s0:0004D2E0:instruction",
+    "s0:0004D2E4:instruction",
+    "s0:0004D2E6:instruction",
+    "s0:0004D2EA:instruction",
+    "s0:0004D2EC:instruction",
+    "s0:0004D2F0:instruction",
+    "s0:0004D2F2:instruction",
+    "s0:0004D2F6:instruction",
+    "s0:0004D2F8:instruction",
+    "s0:0004D2FC:instruction",
+    "s0:0004D330:instruction",
+    "s0:0004D336:instruction",
+    "s0:0004D33A:instruction",
+    "s0:0004D340:instruction",
+    "s0:0004D344:instruction"
+  ],
+  "native_reference_query": {
+    "kind": "references",
+    "section_index": 0,
+    "source_offset": 316110,
+    "end_offset": 316158,
+    "direction": "incoming",
+    "total": 0,
+    "scope": "static reference facts in the inspected projection; no dynamic reachability conclusion"
+  },
+  "presentation_correction": "Code seeds classified the entries but retained generic labels; explicit code-label facts provide the selector names. Both stages use normal catalog actions; the final named source is independently verified.",
+  "verification": {
+    "receipt_id": "76386fbb85d4e3f05f79fc9f2d9330c908b022f0fbc603cf1a7d1ceb8aa6d850",
+    "revision": "9e3d02c8c63951f88a2b8fc97247373c2726d1238b21741ff783e31db21885fe",
+    "subject_revision": "bf49fad07f2f50f4ace5569436caa9eefb180368a0af9ec96c1142ce985b9acb",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "cb61a2d4b85eeb03f7a82a17470c2f570b556a7cff4aa4d239280ccfbe7afe87",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    }
+  },
+  "accepted_actions": 17,
+  "accepted_decisions": 17,
+  "preservation": {
+    "prior_manual_action_bytes": "unchanged prefix",
+    "prior_decision_journal_bytes": "unchanged prefix",
+    "asset_files": 126,
+    "sdk_includes": 16,
+    "non_source_package_files": "identities, classifications, paths, sizes, hashes and actual bytes unchanged; numeric listing row positions may shift",
+    "original_image_bytes": 376832
+  },
+  "progress": {
+    "unknown_payload_bytes": {
+      "before": 6494,
+      "after": 6446
+    },
+    "code_bytes": {
+      "before": 24260,
+      "after": 24308
+    },
+    "supported_source_purpose_bytes": {
+      "before": 41805,
+      "after": 41853
+    },
+    "purpose_assessments": {
+      "before": 75,
+      "after": 76
+    },
+    "generic_label_signals": {
+      "before": 48,
+      "after": 48
+    },
+    "prior_field_access_records_and_unresolved_structure_records": "unchanged"
+  }
+}

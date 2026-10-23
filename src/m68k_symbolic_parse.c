@@ -16,7 +16,7 @@ static int is_register_like_symbol(const char *text, uint8_t target_cpu) {
   M68kParseControlRegisterResult control_reg = m68k_parse_control_register_token(text, target_cpu);
   return data_reg.ok || address_reg.ok ||
     m68k_ascii_equal_ci(text, "sp") || m68k_ascii_equal_ci(text, "pc") ||
-    control_reg.ok;
+    control_reg.ok || m68k_parse_special_register_token(text) != M68K_ASM_OPERAND_NONE;
 }
 
 static int mnemonic_uses_relative_label_operand(const char *mnemonic) {

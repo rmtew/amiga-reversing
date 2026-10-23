@@ -687,6 +687,23 @@ def _shift_variant_for_form(entry: dict[str, object], form: object) -> dict[str,
     return None
 
 
+def _immediate_signed_bits(entry: dict[str, object], access: dict[str, object]) -> int:
+    # The KB already records signed encoded ranges (MOVEQ: DATA, PRM p238).
+    # A fixed logical operand wider than that encoded value needs extension.
+    # Do not apply an inline-field width to variable-size extension operands
+    # (e.g. LINK.W/L) or to branch-target operands.
+    constraints = entry.get("constraints", {})
+    bounds = constraints.get("immediate_range", {}) if isinstance(constraints, dict) else {}
+    if not isinstance(bounds, dict):
+        return 0
+    bits = bounds.get("bits")
+    width = access.get("width")
+    if (access.get("kind") == "immediate" and bounds.get("signed") is True
+            and type(bits) is int and type(width) is int and 0 < bits < width * 8 <= 32):
+        return bits
+    return 0
+
+
 def _specialize_shift_execution(entry: dict[str, object], execution: dict[str, object], form: object) -> dict[str, object]:
     semantic_op = str(execution.get("semantic_op", ""))
     constraints = entry.get("constraints", {})
@@ -857,6 +874,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
         result_kinds = ["M68K_SIM_RESULT_NONE"] * 4
         operand_width_modes = ["M68K_SIM_WIDTH_NONE"] * 4
         operand_widths = ["0u"] * 4
+        immediate_signed_bits = ["0u"] * 4
         ea_category_widths = [0, 0]
         for operand in execution_operands:
             if not isinstance(operand, dict):
@@ -867,6 +885,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             access = operand.get("access", {})
             if not isinstance(access, dict):
                 continue
+            immediate_signed_bits[operand_index] = f"{_immediate_signed_bits(entry, access)}u"
             access_kind = str(access.get("kind", ""))
             access_kinds[operand_index] = ACCESS_KIND_ENUM.get(
                 access_kind,
@@ -1135,6 +1154,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             "      { "
             f"{operand_widths[0]}, {operand_widths[1]}, {operand_widths[2]}, {operand_widths[3]} "
             "},",
+            "      { " + ", ".join(immediate_signed_bits) + " },",
             f"      {ea_category_widths[0]}u, {ea_category_widths[1]}u,",
             "      "
             f"{sp_start}u, {len(sp_effects)}u, "

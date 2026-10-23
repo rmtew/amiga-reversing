@@ -1,0 +1,463 @@
+{
+  "schema": "pandora-original-layout-reviewed-closeout-v1",
+  "deliverable": "original-layout reviewed closeout with explicit unknowns",
+  "date": "2026-10-21",
+  "base_commit": "3f15c7ddbc7b148b344d5d2ce017af0154285bc1",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "final_review": {
+    "status": "original_layout_reviewed_closeout_with_explicit_unknowns",
+    "source_correction_required": false,
+    "full_semantic_restoration": false,
+    "all_historical_milestones_complete": false,
+    "all_B01_B10_complete": false,
+    "review_scope": "Existing original-layout source, seven consolidated subsystem groups, all32 old unknown intervals, named producer/continuation and opaque-resource exceptions, source-package/preservation audit. No claim of an exhaustive function/resource denominator."
+  },
+  "residual_interval_review": [
+    {
+      "source_start": 82,
+      "source_end": 1110,
+      "bytes": 1028,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain uninterpreted original bytes. Source452 is the known stack top and touched stack addresses are observed; neither proves a1028-byte allocation or the meaning of the complete span.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 4244,
+      "source_end": 4254,
+      "bytes": 10,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain raw unresolved terminal-decode candidate. Existing low-confidence orphan evidence has no durable executable entry; neither code, padding nor deadness is promoted.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 4371,
+      "source_end": 4372,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 5302,
+      "source_end": 5304,
+      "bytes": 2,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain raw4AFB fallback target of the guarded world-command dispatcher. Unsupported-opcode execution/exception behavior is unproved; do not name it an ILLEGAL instruction.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 11133,
+      "source_end": 11134,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 12005,
+      "source_end": 12006,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 27158,
+      "source_end": 27166,
+      "bytes": 8,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain eight raw bytes before the known shifted masked-frame routine. Opcode resemblance and adjacency alone do not establish an entry, function or data format.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 29071,
+      "source_end": 29072,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 33145,
+      "source_end": 33146,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 34379,
+      "source_end": 34380,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 34417,
+      "source_end": 34423,
+      "bytes": 6,
+      "prior_native_classification": "unknown",
+      "review_disposition": "accounted_by_existing_canonical_fact",
+      "reason": "Already bounded by the existing seven-byte weapon table; native ownership reconciliation remains stale, and this adds no new classification/purpose credit.",
+      "existing_owners": [
+        {
+          "layout_id": "catalog-62b6478593584ecc919425feed1093ca",
+          "name": "weapon_combat_charge_reload_table",
+          "source_start": 34416,
+          "source_end": 34423
+        }
+      ]
+    },
+    {
+      "source_start": 34424,
+      "source_end": 34430,
+      "bytes": 6,
+      "prior_native_classification": "unknown",
+      "review_disposition": "accounted_by_existing_canonical_fact",
+      "reason": "Already bounded by the existing seven-byte weapon table; native ownership reconciliation remains stale, and this adds no new classification/purpose credit.",
+      "existing_owners": [
+        {
+          "layout_id": "catalog-e294405c8ba94deca5113df1026f7d85",
+          "name": "weapon_combat_damage_table",
+          "source_start": 34423,
+          "source_end": 34430
+        }
+      ]
+    },
+    {
+      "source_start": 36179,
+      "source_end": 36180,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 36261,
+      "source_end": 36262,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 36319,
+      "source_end": 36320,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 36477,
+      "source_end": 36478,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 36619,
+      "source_end": 36620,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 36645,
+      "source_end": 36646,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 36849,
+      "source_end": 36850,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 37240,
+      "source_end": 37242,
+      "bytes": 2,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the two original nonzero bytes without a supported format or consumer interpretation.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 38021,
+      "source_end": 38022,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 41564,
+      "source_end": 41565,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 42968,
+      "source_end": 43012,
+      "bytes": 44,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain44 raw bytes. Filename/header-like inputs do not establish an executed loader, allocation or complete record format; palette/return-splicing limits remain explicit.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 45344,
+      "source_end": 45360,
+      "bytes": 16,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the sixteen zero bytes after the bounded retained offer prefix. No new source owner/reservation or unused/padding intent is inferred.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 45648,
+      "source_end": 45664,
+      "bytes": 16,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the sixteen zero bytes after the bounded retained offer prefix. No new source owner/reservation or unused/padding intent is inferred.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 46248,
+      "source_end": 50088,
+      "bytes": 3840,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain original seed bytes as unknown. Bounded later DMA scratch production/consumption explains overwritten rows, not their initial contents or all3840 bytes. Prior static probe exhausted; no repeat.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 237000,
+      "source_end": 238392,
+      "bytes": 1392,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the zero bank30 suffix as unknown. Nominal retained-capacity arithmetic and bounded windows do not establish reservation/padding intent, activation or non-use. No repeated route.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 312182,
+      "source_end": 312200,
+      "bytes": 18,
+      "prior_native_classification": "unknown",
+      "review_disposition": "accounted_by_existing_canonical_fact",
+      "reason": "Already restored as the18-byte held-frame header after the84-byte player owner. Reuse its canonical seven-field type; no new restoration is made here.",
+      "existing_owners": [
+        {
+          "layout_id": "catalog-aae645c4515a4e74b6be25e02c0000e0",
+          "name": "abs_0_0005C376",
+          "source_start": 312182,
+          "source_end": 312200
+        }
+      ]
+    },
+    {
+      "source_start": 319783,
+      "source_end": 319784,
+      "bytes": 1,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the single zero byte as uninterpreted original material; do not infer alignment, padding, terminator extension or unused intent.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 320356,
+      "source_end": 320376,
+      "bytes": 20,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain20 raw bytes; no supported program-entry/consumer contract establishes their format. Audio-like byte patterns alone are insufficient.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 322262,
+      "source_end": 322264,
+      "bytes": 2,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain the two original nonzero bytes before the first bounded sample header; no new code/data/padding interpretation is justified.",
+      "existing_owners": []
+    },
+    {
+      "source_start": 348874,
+      "source_end": 348894,
+      "bytes": 20,
+      "prior_native_classification": "unknown",
+      "review_disposition": "retain_explicit_unknown",
+      "reason": "Retain20 raw bytes. Instruction/container-signature resemblance is not enough to classify their role.",
+      "existing_owners": []
+    }
+  ],
+  "cohort_totals": {
+    "old_intervals": 32,
+    "old_bytes": 6446,
+    "existing_fact_intervals": 3,
+    "existing_fact_bytes": 30,
+    "retained_unknown_intervals": 29,
+    "retained_unknown_bytes": 6416,
+    "warning": "Disposition of the old cohort only.6416 is not a refreshed full-image native unknown total; no new classification credit."
+  },
+  "separate_opaque_tail": {
+    "source_start": 349040,
+    "source_end": 376832,
+    "bytes": 27792,
+    "representation": "preserved_uncopied_payload_tail INCBIN, original bytes retained",
+    "original_purpose": "unknown",
+    "disposition": "retain explicit opaque original-layout exception; not unused/padding",
+    "not_part_of_old_unknown_classification_cohort": true
+  },
+  "workspace_exceptions": {
+    "app_relative_gap": [
+      876,
+      1540
+    ],
+    "app_gap_bytes": 664,
+    "stack_source_top": 1106,
+    "allocated_stack_extent": null,
+    "whole_program_stack_bound": false,
+    "coordinate_warning": "Workspace coordinates are separate from payload accounting."
+  },
+  "source_quality_audit": {
+    "status": "pass",
+    "source_sha256": "15f28b305710b0c54affbd4b3eb6fa54744f67360b572812255e332959db7ee8",
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_bytes": 376832,
+    "effective_metadata_sha256": "5ab48e61b24307f04136ecb68e7b058b64565b2ffe2077f140a60c5ae0f203ce",
+    "source_package_sha256": "866b810f29bfa7bc0d08ee37e5323f4f8f3c8a33fd9596436212972ad6ee41fc",
+    "exact_receipt_id": "d4fd9cb2cc9d6c1843f8e4f93207fb5599a62a0b29f1d2ac45cb3c50bdf6c49a",
+    "exact_receipt_reused": true,
+    "source_metadata_and_package_identity_match": true,
+    "all_package_files_verified": {
+      "asset": 126,
+      "include": 16,
+      "source": 1
+    },
+    "all_noncomment_source_characters_unchanged_since": "e19817e4",
+    "labels_in_original_order_preserved": 3772,
+    "EQU_RS_declarations_preserved": 2824,
+    "representative_SDK_display_and_audio_operand_checks": 12,
+    "full_file_C_and_vasm_result": "existing source-bound exact receipt; not rerun",
+    "manual_and_decision_history_prefixes_preserved": true,
+    "target_files_unchanged": true,
+    "paused_B07_files_unchanged": 9,
+    "new_generation": false,
+    "new_tests": false,
+    "new_capture": false
+  },
+  "native_access": {
+    "revision": "96579a45d7ff01a7d3423657803d5baf00c12bd4932bd6c387e858c3d76f663a",
+    "subject_revision": "c4ad05b15cdfd7da042f6a00d1d0555c7dd348796f292b803311b22eab523ddf",
+    "receipt_subject_matches": true,
+    "current_native_artifact_readable": true,
+    "operation": "read-only history and one instruction query; no listing-open/state/build request",
+    "fresh_full_accounting": "unsupported through resident HTTP surface",
+    "reason": "Restoration queries export functions/symbols/references/fields/instructions/edges/gaps/typed_pointers/memory_regions, not full range_ownerships and stored/allocation source-plan DTOs. Navigation exports groups/app_slot_analysis/type_flow_analysis. Offline account_target constructs another complete artifact before build_accounting. No new endpoint or regeneration was introduced.",
+    "source_query": {
+      "section_index": 0,
+      "source_offset": 0,
+      "limit": 1
+    }
+  },
+  "accounting": {
+    "full_native_partition_status": "stale, deliberately not regenerated solely for counters",
+    "last_partition": {
+      "code": 24308,
+      "structured_data": 339648,
+      "table": 1690,
+      "text": 4740,
+      "unknown": 6446
+    },
+    "baseline_source_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db",
+    "fresh_purpose_union_bytes": 283380,
+    "fresh_active_purpose_assessments": 216,
+    "metadata_counts": {
+      "owners": 558,
+      "schemas": 147,
+      "function_summaries": 95
+    },
+    "not_recomputed": [
+      "full-image native code/data/unknown partition",
+      "native field-resolution totals",
+      "native candidate/generic-label counts",
+      "global workspace accounting"
+    ],
+    "reason": "Restoration queries export functions/symbols/references/fields/instructions/edges/gaps/typed_pointers/memory_regions, not full range_ownerships and stored/allocation source-plan DTOs. Navigation exports groups/app_slot_analysis/type_flow_analysis. Offline account_target constructs another complete artifact before build_accounting. No new endpoint or regeneration was introduced."
+  },
+  "remaining_questions": [
+    {
+      "question": "What is the original meaning of the stack-adjacent span, scratch seed, bank30 suffix and opaque uncopied tail?",
+      "new_evidence": "Positive original producer/consumer before overwrite, original format/loader evidence or explicit allocation/reservation evidence for the claimed bounds. Zero bytes and absent observed reads are insufficient."
+    },
+    {
+      "question": "Do the retained small raw intervals contain code, data or intentional alignment?",
+      "new_evidence": "A durable executable entry/xref or a complete producer/consumer/format boundary; instruction/signature resemblance alone is insufficient. Every interval is already dispositioned above, so no new probe is scheduled."
+    },
+    {
+      "question": "What original producers activate nonzero Blitter/UI callbacks or optional XY?",
+      "source_sites": [
+        2354,
+        26260,
+        38356,
+        38362
+      ],
+      "new_evidence": "An identity-bound original nonzero assignment/reference with owner/caller context. Keep known consumer semantics and do not infer unused/unreachable from NULL initial values."
+    },
+    {
+      "question": "What executes after the four palette-helper stack-spliced transfers, and can an external path return?",
+      "source_sites": [
+        29152,
+        29166,
+        29216,
+        29232
+      ],
+      "new_evidence": "Concrete original loader/indirect caller, external code lineage or continuation evidence. Known local stack arithmetic/escaped targets is not a loader/allocation or crash claim."
+    },
+    {
+      "question": "What are the remaining unknown field/flag intentions?",
+      "new_evidence": "A positive original reader/writer or external format/design evidence for star byte9, animation node+11/physical flag intent, audio global byte13/skip writer/saved increment reader/shift-state intent. Existing conservative names and conditional source meanings stand."
+    }
+  ],
+  "scope_exclusions": [
+    "Full semantic restoration and exhaustive function/resource closure",
+    "Original disk/loader parity",
+    "Alternate-layout/native-C portability",
+    "All possible mutation/hostile-input safety and asynchronous DMA/Paula equivalence",
+    "New captures, generic B07 capabilities, fonts/bank45/EQU-policy changes or PR5 merge"
+  ],
+  "final_action": "Stop this original-layout review; retain explicit unknowns and reopen only on the listed positive evidence. No new tasks or probes are manufactured."
+}

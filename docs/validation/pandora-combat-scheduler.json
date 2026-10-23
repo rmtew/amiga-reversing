@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "starting_commit": "f45c38bb1067b7258b4b1e6c664a76051be4b0d0",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do combat scheduling, equipment, damage and hit-feedback selection consume shared state?",
+  "new_logic": {
+    "opponent_clock": "BYTE decrement; expiry reloads, adds two for reload 1 or one otherwise, then compares charge low BYTE with 23. Attempt clears the charge WORD before the comparand gate.",
+    "player_clock": "Negative overlay flag WORD gates all work. BYTE expiry adds one for reload 1 or two otherwise; updated WORD above 40 clears. Zero countdown wraps.",
+    "player_fire": "Charge low BYTE 0..16 clears, 17..22 selects half damage, 23..24 full damage, 25..255 retains charge. Gauge service follows the decision.",
+    "damage": "Player defeat uses unsigned borrow or equality. Opponent subtraction writes the BYTE first and defeats on negative result or equality; a wrapped positive result can survive.",
+    "equipment": "BYTE IDs 7..13 select seven reload/damage pairs with C=1; fallback uses full MOVEQ 3/5 and C=0. Kriptonite reduction precedes actor-specific overrides.",
+    "gauge": "24 packed rows by five bytes are cleared. Full cells consume repeated four-byte patterns, followed by a masked partial cell. All 41 normal charge states are memory-compared."
+  },
+  "selector_alias": {
+    "workspace_base": 14844,
+    "word_displacement": 2030,
+    "word_address": 16874,
+    "byte_address": 16875,
+    "grid_base": 16384,
+    "cell_index": 122,
+    "cell_address": 16872,
+    "grid_zero_based_row_column": [
+      1,
+      32
+    ],
+    "macro_map_zero_based_index": 10,
+    "macro_id": 131,
+    "definition_field": "r1c2_pixels_offset",
+    "pixel_offset": 28416,
+    "original_pointer": 147368,
+    "selector_word": 16296,
+    "selector_byte": 168,
+    "opponent_comparand_threshold": 84,
+    "player_feedback_index": 2,
+    "opponent_feedback_index": 0,
+    "proof": "Original builder executes to completion with a stack outside the grid. Both feedback helpers then execute using its selector, and attack-gate values 83/84 take opposite branches. All 4212 original pixel offsets are 128-byte aligned and force feedback indices 2/0.",
+    "limits": [
+      "Fixed normal workspace and original initializer are required.",
+      "Other grid writers and later replacements are not excluded.",
+      "Synthetic selectors test arithmetic, not a random distribution or gameplay occurrence."
+    ],
+    "existing_runtime_corroboration": {
+      "file": "runtime/observations/pandora-combat-null-node.json",
+      "captures": [
+        {
+          "phase": "first_damage_anchor",
+          "stable_key": "s0:0000887C:instruction",
+          "a6": "0x000039fc"
+        },
+        {
+          "phase": "first_damage_applied",
+          "stable_key": "s0:00008896:instruction",
+          "a6": "0x000039fc"
+        },
+        {
+          "phase": "combat_player_defeat",
+          "stable_key": "s0:000079A8:instruction",
+          "a6": "0x000039fc"
+        },
+        {
+          "phase": "before_combat_state_exchange",
+          "stable_key": "s0:00007A06:instruction",
+          "a6": "0x000039fc"
+        },
+        {
+          "phase": "null_node_before_writes",
+          "stable_key": "s0:0000868A:instruction",
+          "a6": "0x000039fc"
+        },
+        {
+          "phase": "null_node_after_writes",
+          "stable_key": "s0:00008694:instruction",
+          "a6": "0x000039fc"
+        },
+        {
+          "phase": "combat_exchange_returned",
+          "stable_key": "s0:00007A0A:instruction",
+          "a6": "0x000039fc"
+        }
+      ],
+      "scope": "Existing original-payload captures corroborate A6 only; they do not capture or establish current selector contents. No new emulator run is claimed."
+    }
+  },
+  "new_data_owners": [
+    {
+      "start": 296184,
+      "end": 296328,
+      "name": "combat_hit_feedback_geometry_records"
+    },
+    {
+      "start": 296328,
+      "end": 296346,
+      "name": "combat_hit_feedback_idle_geometry"
+    },
+    {
+      "start": 296358,
+      "end": 296370,
+      "name": "opponent_combat_hit_visual_descriptor"
+    },
+    {
+      "start": 296396,
+      "end": 296422,
+      "name": "opponent_combat_hit_visual_state"
+    },
+    {
+      "start": 296422,
+      "end": 296454,
+      "name": "combat_hit_feedback_geometry_ptrs"
+    }
+  ],
+  "precise_object_field": {
+    "offset": 65,
+    "width": 1,
+    "name": "combat_attack_check_value",
+    "initialized_record_count": 35,
+    "unknown_prefix_byte": 64,
+    "word_read_displacement": 64
+  },
+  "coverage": {
+    "distinct_pytest_cases": 13,
+    "equipment_byte_cases": 256,
+    "actor_override_cases": 24,
+    "opponent_clock_cases": 144,
+    "opponent_comparand_cases": 1274,
+    "damage_boundary_cases": 2560,
+    "player_fire_cases": 1536,
+    "player_clock_cases": 97,
+    "complete_gauge_buffers": 41,
+    "feedback_selector_calls": 512,
+    "timer_pairs": 16,
+    "original_grid_alias_witness": 1
+  },
+  "unchanged_checks_reused": {
+    "native_checks": 819,
+    "focused_cursor_and_hardware_tests": 71,
+    "reason": "CPU implementation is unchanged; native checks are also rerun after the focused reference-renderer fix."
+  },
+  "preserved_unknowns": [
+    "Unreferenced eight-byte gap 6A16..6A1E.",
+    "Unselected ninth pointer at 48606..4860A remains outside the eight-entry owner.",
+    "World-object BYTE +40 has no new interpretation.",
+    "DMA output/completion, whole-game writer coverage, arbitrary coordinates, pointer allocation/lifetime and prior font/scratch limits.",
+    "Pre-existing Hunk numeric-pointer regression remains deferred."
+  ],
+  "normal_return_contract_limits": [
+    "Valid original object/state records and a disjoint ABI stack are required.",
+    "Memory and escape effects remain unknown.",
+    "No arbitrary replacement allocation/lifetime or alias-exclusion proof is asserted."
+  ],
+  "framework_fix": {
+    "problem": "Canonical absolute references bounded within wider data-block owners survived replay but were omitted from effective metadata and symbolic array rendering.",
+    "behavior": "Project each bounded encoded span without splitting its durable owner. Honor scalar symbolic spans in arrays and pointer-table fallbacks. Interior array references whose selected source address disagrees with their encoded value retain that value; existing exact-width scalar pointer resolution is preserved.",
+    "tests": "tests/test_absolute_array_data_refs.py covers BYTE/WORD/LONG arrays, independent removal, rejected crossing/outside spans, native incoming xrefs, byte-exact builds, mapping disagreement and a suppressed discovered-copy fallback.",
+    "focused_python_checks_passed": 150,
+    "native_checks_passed": 819,
+    "scope_limit": "The eight combat LONGs retain the standard encoded-value EQU spellings, with canonical source targets and bidirectional xrefs. No new materialization or owner-expression inference is introduced."
+  },
+  "additional_opt_in_check": {
+    "test": "tests/test_c_backend.py::test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression",
+    "result": "Fails: the policy view reports full_source_policy_load_view instead of overlaid_by_runtime_copy.",
+    "scope": "Observed while constructing a copy-mapping fixture; not counted among passing checks. Bootstrap discovery is outside this combat/reference rendering change. The new conservative fixture instead checks that a suppressed discovered copy retains its encoded-value fallback.",
+    "baseline_comparison": "Reproduced with f45c38bb m68k_render_ir.c compiled into an isolated temporary native library against unchanged production objects; same failure."
+  },
+  "source_preservation_gate": {
+    "first_receipt": "81c6466e3a2e3e01661e9d15e24ff3bd5be7c3cc454965f625a433fe6a1a7d14",
+    "byte_exact": true,
+    "source_audit": "Rejected eight old star-pixel function pointers becoming generic symbols; no actions accepted. Narrowed the new guard to wider owners to preserve the established exact-width scalar path.",
+    "runtime_view": "Full generated source retains the discovered $10000 materialization. The listing row loader alias was not evidence of a global source mapping regression.",
+    "final_receipt": "470e345b4786dd4f48489e7bc3c342975714bc47e017a8174a516ef6a65c69fd",
+    "final_source_audit": "Passed: all prior annotations and SDK expressions, all old owner identities/bounds, 86 assets, history prefixes and both raw gaps retained, including all eight star-pixel pointer names."
+  },
+  "verification": {
+    "receipt_id": "470e345b4786dd4f48489e7bc3c342975714bc47e017a8174a516ef6a65c69fd",
+    "exact": true,
+    "framework_exact": true,
+    "original_size": 376832,
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "source_sha256": "e8c0834be9c67034ddb25fefec82d1f82f291b8c8ec01051f964e1eb55505fff",
+    "source_package_sha256": "dfc86efeea102825de1750db9e68a52e3838102efca54a9eb96b1121a8c00190"
+  },
+  "accepted_actions": 115
+}

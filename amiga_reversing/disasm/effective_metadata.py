@@ -24,6 +24,7 @@ from amiga_reversing.disasm.manual_actions import (
     ManualSeedMode,
     ReviewItemKind,
     load_manual_projection,
+    manual_representation_owner_key,
 )
 from amiga_reversing.disasm.source_numbers import parse_source_int
 from amiga_reversing.disasm.target_metadata import (
@@ -59,6 +60,7 @@ from amiga_reversing.disasm.target_metadata import (
     load_target_metadata,
     target_metadata_json_payload,
     validate_base_displacement_owner,
+    validate_base_displacement_range,
     validate_base_displacement_reference,
 )
 
@@ -172,15 +174,13 @@ def _manual_action_citation(action_object: Mapping[str, object], id_field: str) 
 
 
 def _manual_seed_comment(seed: dict[str, object]) -> str | None:
-    comment = _manual_seed_text(seed, "comment")
-    if comment is not None:
-        return comment
-    details: list[str] = []
-    for key in ("mode", "data_role", "unit", "encoding"):
-        value = _manual_seed_text(seed, key)
-        if value is not None:
-            details.append(f"{key}={value}")
-    return ", ".join(details) if details else None
+    """Project authored prose, never synthesize renderer comments from controls.
+
+    Mode remains in the Manual Action Log; data role, unit and encoding have
+    their own effective-metadata fields. Treating those controls as prose leaks
+    diagnostics into every normal assembly declaration.
+    """
+    return _manual_seed_text(seed, "comment")
 
 
 def _manual_seed_to_code_entrypoint(seed: dict[str, object]) -> SeededCodeEntrypointMetadata | None:
@@ -250,6 +250,32 @@ def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMeta
     )
 
 
+def _append_manual_label_declaration(declarations, declaration, label):
+    """An explicit row rename replaces that name at its exact address identity.
+
+    Older manual labels can have another durable ID. Keep unrelated aliases,
+    but place the renamed declaration first so native lookup sees the new name.
+    No runtime/source address arithmetic or cross-section matching is implied.
+    """
+    previous = set(label.get("previous_names", []))
+    if isinstance(label.get("previous_name"), str):
+        previous.add(label["previous_name"])
+    if not previous:
+        declarations.append(declaration)
+        return
+    kept = []
+    position = None
+    for item in declarations:
+        same_address = (getattr(item, "hunk", None) == getattr(declaration, "hunk", None)
+                        and item.addr == declaration.addr)
+        if same_address and position is None:
+            position = len(kept)
+        if not (same_address and item.name in previous):
+            kept.append(item)
+    kept.insert(len(kept) if position is None else position, declaration)
+    declarations[:] = kept
+
+
 def _manual_label_to_absolute_code_label(label: dict[str, object]) -> AbsoluteCodeLabelMetadata | None:
     if _manual_seed_text(label, "address_domain") != "runtime":
         return None
@@ -307,6 +333,8 @@ def _manual_representation_to_metadata(representation: dict[str, object]) -> Man
         element_kind=_manual_seed_text(representation, "element_kind"),
         operand_index=_manual_seed_int(representation, "operand_index"),
         symbol=_manual_seed_text(representation, "symbol"),
+        source_symbol=representation.get("source_symbol"),
+        hardware_offset=representation.get("hardware_offset"),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(representation, "representation_id"),
@@ -382,6 +410,11 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
         register=register,
         kind=kind,
         note=_manual_seed_text(register_seed, "note") or _manual_action_citation(register_seed, "register_seed_id"),
+        hardware_indexed=register_seed.get("hardware_indexed"),
+        array_length=register_seed.get("array_length"),
+        hunk=_manual_seed_int(register_seed, "hunk")
+        if kind is EntryRegisterSeedKind.HARDWARE_INDEXED or register_seed.get("array_length") is not None
+        else None,
         library_name=_manual_seed_text(register_seed, "library_name"),
         struct_name=_manual_seed_text(register_seed, "struct_name"),
         context_name=_manual_seed_text(register_seed, "context_name"),
@@ -645,7 +678,7 @@ def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetL
     if symbol is None:
         return None
     size = _manual_seed_int(region, "size")
-    if size is not None and (size <= 0 or size > 255):
+    if size is not None and (size <= 0 or size > 32767):
         return None
     storage_kind_text = _manual_seed_text(region, "storage_kind")
     try:
@@ -1245,6 +1278,9 @@ def _data_block_custom_struct_field_entity(
         name=name,
         type="data",
         unit=_data_block_unit_for_address(addr, field.size),
+        # Media classification is independent of the retained field type.
+        # Other (possibly descriptive) layout roles are not native subtypes.
+        subtype=layout.role if layout.role in {"bitmap", "sound_sample", "opaque_data"} else None,
         struct_name=struct.name,
         field_name=field.name,
         field_type=field.type,
@@ -1303,9 +1339,11 @@ def _data_block_bound_struct_entities(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
     custom_structs: Mapping[str, CustomStructMetadata],
+    *,
+    _seen: frozenset[str] = frozenset(),
 ) -> tuple[SeededEntityMetadata, ...]:
     struct = _data_block_bound_struct(element, custom_structs)
-    if struct is None or struct.size <= 0:
+    if struct is None or struct.size <= 0 or struct.name in _seen:
         return ()
     binding = element.type_binding if isinstance(element.type_binding, dict) else {}
     array_count = _manual_seed_int(binding, "array_count") or element.array_count or 1
@@ -1336,12 +1374,32 @@ def _data_block_bound_struct_entities(
                 if gap is None:
                     return ()
                 entities.append(gap)
-            field_entity = _data_block_custom_struct_field_entity(
-                layout, element, struct, field, instance_offset, instance_index, base_label
-            )
-            if field_entity is None:
-                return ()
-            entities.append(field_entity)
+            nested = custom_structs.get(field.struct) if field.type.upper() == "STRUCT" else None
+            nested_entities = ()
+            if nested is not None and nested.size == field.size:
+                # This is a projection of the declared embedded record, not a
+                # new owner or an array inferred from a byte count. Unknown,
+                # cyclic and size-mismatched records keep their opaque field.
+                nested_element = replace(element,
+                    offset=element.offset + instance_offset + field.offset,
+                    width=field.size, array_count=1, array_stride=field.size,
+                    name=_data_block_typed_field_label(base_label, field.name, instance_index),
+                    type_binding={**binding, "bound_type_id": nested.name, "array_count": 1})
+                nested_entities = _data_block_bound_struct_entities(layout, nested_element, custom_structs,
+                    _seen=_seen | {struct.name})
+            if nested_entities:
+                projected = [replace(entity, source_owner_start=None, source_owner_size=None)
+                             for entity in nested_entities]
+                if instance_offset == 0 and field.offset == 0 and base_label:
+                    projected[0] = replace(projected[0], name=base_label)
+                entities.extend(projected)
+            else:
+                field_entity = _data_block_custom_struct_field_entity(
+                    layout, element, struct, field, instance_offset, instance_index, base_label
+                )
+                if field_entity is None:
+                    return ()
+                entities.append(field_entity)
             cursor = field.offset + field.size
         if cursor < struct.size:
             gap = _data_block_custom_struct_gap_entity(
@@ -1367,6 +1425,117 @@ def _data_block_bound_struct_entities(
     return tuple(entities)
 
 
+def _packed_struct_scalar_prototype(
+    struct: CustomStructMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+    seen: frozenset[str] = frozenset(),
+) -> CustomStructFieldMetadata | None:
+    """Find the common scalar unit of fully covered, embedded records.
+
+    Embedded records must match their declared size exactly. This permits
+    composition of an existing row format without inventing repetitions from
+    a field's byte width; unknown, cyclic or heterogeneous layouts stay leaves.
+    """
+    if struct.name in seen or not struct.fields or struct.size <= 0:
+        return None
+    cursor = 0
+    prototype = None
+    for field in sorted(struct.fields, key=lambda item: item.offset):
+        if (field.offset != cursor or field.size <= 0
+                or field.pointer_struct or field.value_kind != "scalar"
+                or field.pointer_address_domain or field.pointer_symbol_group):
+            return None
+        if field.type.upper() == "STRUCT":
+            nested = custom_structs.get(field.struct)
+            if nested is None or nested.size != field.size:
+                return None
+            scalar = _packed_struct_scalar_prototype(nested, custom_structs, seen | {struct.name})
+            if scalar is None:
+                return None
+        else:
+            if field.struct or field.size not in {1, 2, 4}:
+                return None
+            scalar = field
+        if prototype is not None and scalar.size != prototype.size:
+            return None
+        prototype = prototype or scalar
+        cursor += field.size
+    return prototype if cursor == struct.size else None
+
+
+def _data_block_compact_struct_array_entity(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+    representations: Sequence[ManualRepresentationMetadata],
+    equates: Sequence[TargetEquateMetadata],
+) -> SeededEntityMetadata | None:
+    """Project a packed homogeneous array as one typed native range.
+
+    Native static-data typing already resolves a range's record count and
+    interior cursor from its shared struct. There is no reason to allocate a
+    policy item and an automatic label for every scalar leaf just to render
+    an array of words. Explicit ``struct`` presentation and fields requiring
+    individual representations retain the existing leaf projection.
+    """
+    if element.kind is not DataBlockElementKind.ARRAY or element.reference_interpretation:
+        return None
+    struct = _data_block_bound_custom_struct(element, custom_structs)
+    if struct is None or not struct.fields or struct.size <= 0:
+        return None
+    binding = element.type_binding or {}
+    count = _manual_seed_int(binding, "array_count") or element.array_count or 1
+    stride = element.array_stride or struct.size
+    if (not 1 <= count <= 65535 or stride != struct.size
+            or element.width != count * stride
+            or element.representation not in {None, ManualRepresentationStyle.HEX}):
+        return None
+    scalar = _packed_struct_scalar_prototype(struct, custom_structs)
+    if scalar is None:
+        return None
+    width = scalar.size
+    start, end = _data_block_element_span(layout, element)
+    if (width not in {1, 2, 4} or end > layout.source_end
+            or _data_block_unit_for_address(start, width) != _data_block_unit_from_width(width)):
+        return None
+    # A value-specific presentation must keep its exact field boundary. This
+    # also preserves existing symbolic scalar instructions and encoded refs;
+    # ordinary incoming references and independent source labels need no
+    # expansion and are handled by the native range/label planner.
+    if any(rep.hunk == layout.hunk and rep.addr < end
+           and (rep.end if rep.end is not None else rep.addr + 1) > start
+           for rep in representations):
+        return None
+    base_label = layout.name if element.offset == 0 and layout.name else element.name
+    # An authored expression may deliberately name an old derived field alias.
+    # Keep that representation rather than silently removing its declaration.
+    if base_label:
+        alias_fields = list(struct.fields)
+        leading = struct
+        # A leading embedded record inherits the public owner name in the
+        # leaf path, so its aliases omit that embedding field's name.
+        while True:
+            first = min(leading.fields, key=lambda field: field.offset)
+            if first.offset != 0 or first.type.upper() != "STRUCT":
+                break
+            leading = custom_structs[first.struct]
+            alias_fields.extend(leading.fields)
+        prefixes = tuple(label for field in alias_fields
+                         if (label := _data_block_typed_field_label(base_label, field.name, None)))
+        expressions = [rep.symbol for rep in representations if rep.symbol]
+        expressions.extend(eq.value_expression for eq in equates if eq.value_expression)
+        if any(prefix in expression for expression in expressions for prefix in prefixes):
+            return None
+    prototype = _data_block_custom_struct_field_entity(
+        layout, element, struct, replace(scalar, offset=0), 0, 0, base_label,
+    )
+    if prototype is None:
+        return None
+    return replace(prototype, end=end, field_name=None, field_type=None, c_type=None,
+                   source_owner_start=start if prototype.name else None,
+                   source_owner_size=element.width if prototype.name else None)
+
+
 def _data_block_element_entity(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -1375,7 +1544,9 @@ def _data_block_element_entity(
     if end <= addr or end > layout.source_end:
         return None
     name = element.name or (layout.name if element.offset == 0 else None)
-    comment = layout.role
+    # A generic classification is not an authored source comment. Keep specific
+    # roles and independent manual comments, rather than synthesizing '; data'.
+    comment = layout.role if layout.role != "data" else None
     value_domain = _data_block_bound_value_domain(element)
     pointer_struct = _data_block_bound_pointer_struct(element)
     # A pointee contract makes this element a pointer table independently of
@@ -1504,17 +1675,22 @@ def _data_block_element_interpreted_data_reference(
     ref: Mapping[str, object],
     custom_structs: Mapping[str, CustomStructMetadata],
 ) -> ManualDataReferenceMetadata | None:
-    if not isinstance(ref, dict) or ref.get("reference_kind") != "base_displacement":
+    if not isinstance(ref, dict) or ref.get("reference_kind") not in {"base_displacement", "base_displacement_range"}:
         return None
-    validate_base_displacement_reference(ref, source_hunk=layout.hunk)
+    is_range = ref.get("reference_kind") == "base_displacement_range"
+    if is_range:
+        validate_base_displacement_range(ref, source_hunk=layout.hunk)
+    else:
+        validate_base_displacement_reference(ref, source_hunk=layout.hunk)
+    width = cast(int, ref["width"]) if is_range else 2
     offset = _manual_seed_int(ref, "offset")
     if offset is None:
         raise ValueError("base_displacement requires source offset")
-    addr, end = layout.source_start + offset, layout.source_start + offset + 2
+    addr, end = layout.source_start + offset, layout.source_start + offset + width
     if addr < layout.source_start or end > layout.source_end:
         raise ValueError("base_displacement must occupy one word within its layout")
     owners = [element for element in layout.elements
-              if element.offset <= offset and offset + 2 <= element.offset + element.width]
+              if element.offset <= offset and offset + width <= element.offset + element.width]
     if len(owners) != 1:
         raise ValueError("base_displacement requires one unambiguous data-block owner")
     owner = owners[0]
@@ -1527,10 +1703,11 @@ def _data_block_element_interpreted_data_reference(
         # generation. This includes seeded types and current field edits and
         # rejects invalid/overlapping declarations and invalid array strides.
         leaves = _data_block_bound_struct_entities(layout, owner, custom_structs)
-        matches = [leaf for leaf in leaves if leaf.addr == addr and leaf.end == end
+        matches = [leaf for leaf in leaves if addr <= leaf.addr and leaf.end is not None and leaf.end <= end
+                   and leaf.end - leaf.addr == 2 and (leaf.addr - addr) % 2 == 0
                    and leaf.unit == "word" and (leaf.field_type or "").upper() in {"WORD", "UWORD"}
                    and leaf.value_kind == "scalar" and leaf.field_name]
-        if len(matches) != 1:
+        if len(matches) != width // 2 or len({leaf.addr for leaf in matches}) != width // 2:
             raise ValueError("base_displacement requires an exact declared WORD leaf in its struct owner")
     elif owner.kind in {DataBlockElementKind.STRUCT, DataBlockElementKind.PLATFORM_STRUCT} or (
         isinstance(owner.type_binding, dict)
@@ -1539,8 +1716,9 @@ def _data_block_element_interpreted_data_reference(
         raise ValueError("base_displacement struct owner requires a resolved type declaration")
     base = cast(dict[str, int], ref["base_locator"])
     return ManualDataReferenceMetadata(
-        addr=addr, hunk=layout.hunk, size=2,
-        source_value=cast(int, ref["source_value"]), reference_kind="base_displacement", signed=True,
+        addr=addr, hunk=layout.hunk, size=width,
+        source_value=cast(int, ref["source_value"]), reference_kind=str(ref["reference_kind"]),
+        signed=cast(bool, ref["signed"]), scale=cast(int, ref.get("scale", 1)),
         base_hunk=base["hunk"], base_offset=base["offset"],
         target_hunk=cast(int, ref["target_hunk"]), target_offset=cast(int, ref["target_offset"]),
         owner_kind="data_block_interpreted_ref", owner_id=cast(str, _manual_data_block_reference_id(ref)),
@@ -2115,18 +2293,26 @@ def _apply_manual_seed_projection(
     for label in labels:
         code_label = _manual_label_to_code_label(label)
         if code_label is not None:
-            seeded_code_labels.append(code_label)
+            _append_manual_label_declaration(seeded_code_labels, code_label, label)
         absolute_label = _manual_label_to_absolute_code_label(label)
         if absolute_label is not None:
-            absolute_code_labels.append(absolute_label)
+            _append_manual_label_declaration(absolute_code_labels, absolute_label, label)
     for comment in comments:
         entry_comment = _manual_comment_to_entry_comment(comment)
         if entry_comment is not None:
             entry_comments.append(entry_comment)
+    presentation_edits = []
+    edited_presentation_owners = set()
     for representation in representations:
         manual_representation = _manual_representation_to_metadata(representation)
         if manual_representation is not None:
-            manual_representations.append(manual_representation)
+            edited_presentation_owners.add(manual_representation_owner_key(manual_representation.hunk,
+                manual_representation.addr, manual_representation.end, manual_representation.operand_index))
+            presentation_edits.append(manual_representation)
+    manual_representations = [previous for previous in manual_representations
+        if manual_representation_owner_key(previous.hunk, previous.addr, previous.end,
+            previous.operand_index) not in edited_presentation_owners]
+    manual_representations.extend(presentation_edits)
     for hint in semantic_hints:
         manual_representation = _manual_semantic_hint_to_representation(hint)
         if manual_representation is not None:
@@ -2275,23 +2461,45 @@ def _apply_manual_seed_projection(
             data_block_layouts.append(data_block_layout)
     merged_data_block_layouts = {layout.layout_id: layout for layout in data_block_layouts}
     effective_data_block_layouts = list(merged_data_block_layouts.values())
+    # A bound structure emits its fields, not the enclosing element's display
+    # representation. Preserve an explicit symbolic identity of an exact scalar
+    # field; broad/partial overlaps and pointer identities keep their owners.
+    typed_entities_by_element = {}
+    for layout in effective_data_block_layouts:
+        for element in layout.elements:
+            compact = _data_block_compact_struct_array_entity(
+                layout, element, merged_custom_structs, manual_representations, target_equates,
+            )
+            typed_entities_by_element[(layout.layout_id, element.offset)] = (
+                (compact,) if compact is not None
+                else _data_block_bound_struct_entities(layout, element, merged_custom_structs)
+            )
+    scalar_field_spans = {
+        (entity.hunk, entity.addr, entity.end)
+        for entities in typed_entities_by_element.values() for entity in entities
+        if entity.field_name and entity.end is not None and entity.end - entity.addr in {1, 2, 4}
+        and entity.value_kind == "scalar" and not entity.pointer_struct
+    }
     data_block_representation_ranges = _data_block_element_representation_ranges(effective_data_block_layouts)
     if data_block_representation_ranges:
         manual_representations = [
             representation
             for representation in manual_representations
             if not _representation_overlaps_data_block_element(representation, data_block_representation_ranges)
+            or (representation.element_kind == "data_literal"
+                and representation.style is ManualRepresentationStyle.SYMBOL
+                and (representation.hunk, representation.addr, representation.end) in scalar_field_spans)
         ]
     for effective_layout in effective_data_block_layouts:
         for element in effective_layout.elements:
-            typed_entities = _data_block_bound_struct_entities(effective_layout, element, merged_custom_structs)
+            typed_entities = typed_entities_by_element[(effective_layout.layout_id, element.offset)]
             if typed_entities:
                 seeded_entities.extend(typed_entities)
             else:
                 entity = _data_block_element_entity(effective_layout, element)
                 if entity is not None:
                     seeded_entities.append(entity)
-            if isinstance(element.reference_interpretation, dict) and element.reference_interpretation.get("reference_kind") == "base_displacement":
+            if isinstance(element.reference_interpretation, dict) and element.reference_interpretation.get("reference_kind") in {"base_displacement", "base_displacement_range"}:
                 continue
             interpreted_ref_equate = (
                 _data_block_interpreted_ref_equate(element.reference_interpretation)
@@ -2309,7 +2517,7 @@ def _apply_manual_seed_projection(
                 element_representation = _data_block_element_representation(effective_layout, element)
                 if element_representation is not None:
                     manual_representations.append(element_representation)
-    # Each encoded word has its own canonical ref, even inside a wider array.
+    # Each encoded value has its own canonical ref, even inside a wider array.
     relative_ref_interpretations = dict(data_block_reference_interpretations)
     for effective_layout in effective_data_block_layouts:
         for element in effective_layout.elements:
@@ -2323,6 +2531,33 @@ def _apply_manual_seed_projection(
                 )
                 if interpreted_data_reference is not None:
                     manual_data_references.append(interpreted_data_reference)
+                # Absolute references also own individual encoded values inside
+                # arrays/records. Keep the durable owner intact; only the ref's
+                # display/xref projection uses this bounded scalar span.
+                if ref.get("reference_kind") != "absolute":
+                    continue
+                offset = _manual_seed_int(ref, "offset")
+                width = _manual_seed_int(ref, "width")
+                if offset is None or width not in {1, 2, 4}:
+                    continue
+                owners = [element for element in effective_layout.elements
+                          if element.offset <= offset
+                          and offset + width <= element.offset + element.width]
+                if len(owners) != 1:
+                    continue
+                owner = owners[0]
+                if owner.offset == offset and owner.width == width:
+                    continue  # Exact elements were projected above.
+                leaf = replace(owner, offset=offset, width=width, reference_interpretation=ref)
+                representation = _data_block_element_interpreted_ref_representation(effective_layout, leaf)
+                equate = _data_block_interpreted_ref_equate(ref)
+                if representation is None or equate is None:
+                    continue
+                target_equates.append(equate)
+                manual_representations.append(representation)
+                runtime_ref = _data_block_element_interpreted_ref_runtime_address_ref(effective_layout, leaf)
+                if runtime_ref is not None:
+                    manual_runtime_address_refs.append(runtime_ref)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     merged_manual_runtime_address_refs = {
         (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr, ref.target_hunk, ref.target_offset): ref

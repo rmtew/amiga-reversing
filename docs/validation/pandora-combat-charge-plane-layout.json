@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "kind": "static-source-restoration-batch",
+  "batch": "Combat-charge stored plane bytes and partial-cell masks",
+  "base_commit": "4d2597a8080e952a8ac96db295ea13c76d98dbfd",
+  "source_scope": {
+    "section": 0,
+    "start": "0x82D4",
+    "end_exclusive": "0x82F0",
+    "bytes": 28,
+    "pattern_bytes": 20,
+    "mask_bytes": 8
+  },
+  "producer_consumer_evidence": {
+    "producer": "0x817A",
+    "full_pattern_read": "0x820A",
+    "partial_masking": "0x8216",
+    "writer": "0x823A",
+    "static_values": {
+      "cells": [
+        {
+          "cell": 0,
+          "plane_bytes": [
+            254,
+            0,
+            254,
+            254
+          ],
+          "longword": "fe00fefe"
+        },
+        {
+          "cell": 1,
+          "plane_bytes": [
+            254,
+            0,
+            254,
+            254
+          ],
+          "longword": "fe00fefe"
+        },
+        {
+          "cell": 2,
+          "plane_bytes": [
+            254,
+            0,
+            254,
+            254
+          ],
+          "longword": "fe00fefe"
+        },
+        {
+          "cell": 3,
+          "plane_bytes": [
+            0,
+            254,
+            254,
+            0
+          ],
+          "longword": "00fefe00"
+        },
+        {
+          "cell": 4,
+          "plane_bytes": [
+            0,
+            254,
+            254,
+            0
+          ],
+          "longword": "00fefe00"
+        }
+      ],
+      "remainder_masks": [
+        128,
+        192,
+        224,
+        240,
+        248,
+        252,
+        254,
+        255
+      ],
+      "normal_charge_range": [
+        0,
+        40
+      ],
+      "pattern_SHA256": "29d691bdd5477edf362b673429aa060260afa36f683e90d98fb8c4b7ccb1b17f",
+      "mask_SHA256": "a6fbab9e1709af824a6fb52fd5f97e302b2f636a5e05b36ba7061a1a1d78ffcf",
+      "consumer": "0x823A rotates8 before each BYTE store, one byte per plane, repeats6 raster rows; 0x8216 ANDs the four bytes with one remainder mask.",
+      "scope": "Static original data/layout check, not new execution evidence."
+    }
+  },
+  "representation": {
+    "pattern": "20 explicit binary BYTE scalars, five groups of four bitmap planes",
+    "masks": "eight binary leading-bit masks",
+    "table_base": "combat_charge_full_cell_patterns",
+    "new_qualified_component_names": 19,
+    "aggregate_type_binding": false,
+    "reason": "Aggregate trial inferred misleading first-BYTE comments for LONG reads; it was undone through MAL. Explicit scalar representation asserts the stored plane layout without register pointee inference. No framework rendering policy change."
+  },
+  "canonical": {
+    "accepted_action_ids": [
+      "manual-e9339b5220bf4fc383ef8d8767f79aa5",
+      "manual-5b4b4d0749ec4ede81db68274cfb2694",
+      "manual-4f0c8d3915de42d49f254f52374c35a7",
+      "manual-601cec47176f4793bf52d2c3d59a4961",
+      "manual-b9b21ca04b4249838bdaa9bc30cc7e31",
+      "manual-e33b3399b22342b4ae2444c28648fa55",
+      "manual-36a231cac1e34fb487e6022aa0a5fd50",
+      "manual-ecd02a1704e241e48fc981abeae94a34",
+      "manual-f060c380d0fe41f39caf542c8c4a9b52",
+      "manual-8e866d1759f446f8a51fafec0af8bae9",
+      "manual-e1924e621f4241639e39d2db044a47d4",
+      "manual-995edd31f8fe4a66ba9862033681d8d3",
+      "manual-f390de9d765248ffad3a7d6993879d16",
+      "manual-d5f4981cab474dd1b346141b05c02d48",
+      "manual-2399154a632143738b4eb358018c2283",
+      "manual-5449efbaa8e3449982ecc1c8b8c2105e",
+      "manual-125898d5f485446283d8a2f6b83ecff3",
+      "manual-56ff060a63de4896b41d7cd8c0b7404e",
+      "manual-47d32dc0e7c547a1b3b8a7bd64e3b8b7",
+      "manual-9e4af4d2933a40bc951747360df16c09",
+      "manual-0cc40dfce96d40aea9f44be874594ce5",
+      "manual-e5319de57b58447ba4b1d34fadffba05",
+      "manual-1ff20e40d649438fa8fae24589627389"
+    ],
+    "undone_aggregate_action_id": "manual-4e5972535a5e42449ed945df9d74d208",
+    "review": {
+      "decision_count": 23,
+      "revision": "a59dda7d947bafda8dbab5e6024bacf97d7d7db729730247b8d49be1f2524db5",
+      "subject_revision": "e04069d2a58de3464b08121f23bcd3ffd3273cf0599bf5a393ac0c659c4c4944"
+    }
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "receipt_id": "e3dc4f9b72e38402e0750b7a14f45a546532ca9e2697df77741369dd56a16348",
+    "revision": "ab24ad10c73b786808f8a0b1e3ab9a56b3d6062cd966310c4aa2ee7f61f843af",
+    "source_package_sha256": "cade9e582ec7218e87dfe6bd037799b5d6a6791bc717b41d1e214816657310a8",
+    "source_sha256": "d2c1ff530c090dd5a080ec13e4a2c5be4d2c919efdaa65fde5f7af2c547b60c3",
+    "status": "exact",
+    "subject_revision": "e04069d2a58de3464b08121f23bcd3ffd3273cf0599bf5a393ac0c659c4c4944",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "source_quality": {
+    "source_sha256": "d2c1ff530c090dd5a080ec13e4a2c5be4d2c919efdaa65fde5f7af2c547b60c3",
+    "only_target_table_block_changed": true,
+    "source_layout": "20 explicit scalar plane bytes; no pointer type binding",
+    "explicit_scalar_bytes": 20,
+    "named_plane_fields": 19,
+    "original_table_base_preserved": true,
+    "binary_remainder_masks": 8,
+    "EQU_RS_declarations_unchanged": true,
+    "paused_B07_preserved": true
+  },
+  "accounting": {
+    "newly_classified_bytes": 0,
+    "unknown_bytes_before": 6446,
+    "unknown_bytes_after": 6446,
+    "source_purpose_union_before": 282427,
+    "source_purpose_union_after": 282455,
+    "purpose_credit_bytes": 28,
+    "already_classified": true,
+    "schemas_before": 147,
+    "schemas_after": 147,
+    "owner_count_before": 557,
+    "owner_count_after": 557,
+    "owner_extents_roles_preserved": true,
+    "entities_before": 18304,
+    "entities_after": 18323,
+    "behaviour_predicates_added": 0,
+    "behaviour_fixtures_added": 0
+  },
+  "history": {
+    "manual_actions.jsonl": {
+      "prefix_sha256": "f3aefd3a5f4329ecc29ad84b5ed2cc89b5979f426a65d9cc34473eb52ecb649a",
+      "prefix_bytes": 16401938,
+      "prefix_preserved": true,
+      "appended_records": 25
+    },
+    "decision_journal.jsonl": {
+      "prefix_sha256": "5c77f9fa5921ac55da6fe5934b5e67cc3955ea37a14bfd68fb9750668d7b7763",
+      "prefix_bytes": 17889247,
+      "prefix_preserved": true,
+      "appended_records": 23
+    }
+  },
+  "external_assets_unchanged": true,
+  "paused_B07_preserved": true,
+  "validation": {
+    "new_tests_run": 0,
+    "new_runtime_captures": 0,
+    "historical_test_consulted": "tests/test_pandora_combat_scheduler.py::test_charge_gauge_all_41_normal_charges_match_complete_cpu_pixel_writes",
+    "historical_test_rerun": false,
+    "reason": "Existing catalogue commands only; full C/vasm rebuild and focused source/metadata checks suffice for representation-only restoration."
+  },
+  "workflow_cost": {
+    "full_generation_seconds": [
+      282.294,
+      251.311,
+      258.152,
+      240.661
+    ],
+    "full_generation_total_seconds": 1032.418,
+    "note": "Whole-target generation; aggregate inference and scalar label review corrections required two additional builds. Healthy jobs were retained; no duplicate or speculative optimization work."
+  },
+  "limits": [
+    "Original stored layout and normal charge 0..40 CPU consumer only.",
+    "Charge 40 reads the mask prefix in a one-past LONG lookahead, then zero remainder skips partial drawing; owner boundaries are not extended.",
+    "No arbitrary-charge indexing, allocation bounds, visible color, DMA, gameplay reachability or exclusive lifetime claim.",
+    "No new B capability or behaviour coverage. B07 and generic capability work remain paused."
+  ]
+}

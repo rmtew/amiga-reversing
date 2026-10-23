@@ -1,0 +1,810 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-unknown-span-route-checkpoint",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "initial_proximity_context",
+      "breakpoint_stable_key": "s0:000083AE:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "breakpoint_stable_key": "s0:0004B13C:instruction",
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "downward_moves_complete",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 19,
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          }
+        ]
+      },
+      "capture_first": true
+    },
+    {
+      "name": "rightward_moves_complete",
+      "breakpoint_stable_key": "s0:00009844:instruction",
+      "occurrences": 20,
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a4",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 454,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          }
+        ]
+      },
+      "capture_first": true
+    },
+    {
+      "name": "interaction_callback_call",
+      "breakpoint_stable_key": "s0:000083FE:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "a0",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a5",
+            "offset": 4,
+            "size": 16
+          },
+          {
+            "base_register": "a5",
+            "offset": 48,
+            "size": 36
+          },
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 414,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "interaction_callback_return",
+      "breakpoint_stable_key": "s0:00008400:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "a0",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a5",
+            "offset": 4,
+            "size": 16
+          },
+          {
+            "base_register": "a5",
+            "offset": 48,
+            "size": 36
+          },
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 414,
+            "size": 4
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_stack_adjacent_01",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 65618,
+            "size": 64
+          },
+          {
+            "address": 65682,
+            "size": 64
+          },
+          {
+            "address": 65746,
+            "size": 64
+          },
+          {
+            "address": 65810,
+            "size": 64
+          },
+          {
+            "address": 65874,
+            "size": 64
+          },
+          {
+            "address": 65938,
+            "size": 64
+          },
+          {
+            "address": 66002,
+            "size": 64
+          },
+          {
+            "address": 66066,
+            "size": 64
+          },
+          {
+            "address": 66130,
+            "size": 64
+          },
+          {
+            "address": 66194,
+            "size": 64
+          },
+          {
+            "address": 66258,
+            "size": 64
+          },
+          {
+            "address": 66322,
+            "size": 64
+          },
+          {
+            "address": 66386,
+            "size": 64
+          },
+          {
+            "address": 66450,
+            "size": 64
+          },
+          {
+            "address": 66514,
+            "size": 64
+          },
+          {
+            "address": 66578,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_stack_adjacent_02",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 66642,
+            "size": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_cursor_gap_01",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 111784,
+            "size": 64
+          },
+          {
+            "address": 111848,
+            "size": 64
+          },
+          {
+            "address": 111912,
+            "size": 64
+          },
+          {
+            "address": 111976,
+            "size": 64
+          },
+          {
+            "address": 112040,
+            "size": 64
+          },
+          {
+            "address": 112104,
+            "size": 64
+          },
+          {
+            "address": 112168,
+            "size": 64
+          },
+          {
+            "address": 112232,
+            "size": 64
+          },
+          {
+            "address": 112296,
+            "size": 64
+          },
+          {
+            "address": 112360,
+            "size": 64
+          },
+          {
+            "address": 112424,
+            "size": 64
+          },
+          {
+            "address": 112488,
+            "size": 64
+          },
+          {
+            "address": 112552,
+            "size": 64
+          },
+          {
+            "address": 112616,
+            "size": 64
+          },
+          {
+            "address": 112680,
+            "size": 64
+          },
+          {
+            "address": 112744,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_cursor_gap_02",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 112808,
+            "size": 64
+          },
+          {
+            "address": 112872,
+            "size": 64
+          },
+          {
+            "address": 112936,
+            "size": 64
+          },
+          {
+            "address": 113000,
+            "size": 64
+          },
+          {
+            "address": 113064,
+            "size": 64
+          },
+          {
+            "address": 113128,
+            "size": 64
+          },
+          {
+            "address": 113192,
+            "size": 64
+          },
+          {
+            "address": 113256,
+            "size": 64
+          },
+          {
+            "address": 113320,
+            "size": 64
+          },
+          {
+            "address": 113384,
+            "size": 64
+          },
+          {
+            "address": 113448,
+            "size": 64
+          },
+          {
+            "address": 113512,
+            "size": 64
+          },
+          {
+            "address": 113576,
+            "size": 64
+          },
+          {
+            "address": 113640,
+            "size": 64
+          },
+          {
+            "address": 113704,
+            "size": 64
+          },
+          {
+            "address": 113768,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_cursor_gap_03",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 113832,
+            "size": 64
+          },
+          {
+            "address": 113896,
+            "size": 64
+          },
+          {
+            "address": 113960,
+            "size": 64
+          },
+          {
+            "address": 114024,
+            "size": 64
+          },
+          {
+            "address": 114088,
+            "size": 64
+          },
+          {
+            "address": 114152,
+            "size": 64
+          },
+          {
+            "address": 114216,
+            "size": 64
+          },
+          {
+            "address": 114280,
+            "size": 64
+          },
+          {
+            "address": 114344,
+            "size": 64
+          },
+          {
+            "address": 114408,
+            "size": 64
+          },
+          {
+            "address": 114472,
+            "size": 64
+          },
+          {
+            "address": 114536,
+            "size": 64
+          },
+          {
+            "address": 114600,
+            "size": 64
+          },
+          {
+            "address": 114664,
+            "size": 64
+          },
+          {
+            "address": 114728,
+            "size": 64
+          },
+          {
+            "address": 114792,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_cursor_gap_04",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 114856,
+            "size": 64
+          },
+          {
+            "address": 114920,
+            "size": 64
+          },
+          {
+            "address": 114984,
+            "size": 64
+          },
+          {
+            "address": 115048,
+            "size": 64
+          },
+          {
+            "address": 115112,
+            "size": 64
+          },
+          {
+            "address": 115176,
+            "size": 64
+          },
+          {
+            "address": 115240,
+            "size": 64
+          },
+          {
+            "address": 115304,
+            "size": 64
+          },
+          {
+            "address": 115368,
+            "size": 64
+          },
+          {
+            "address": 115432,
+            "size": 64
+          },
+          {
+            "address": 115496,
+            "size": 64
+          },
+          {
+            "address": 115560,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_defeat_suffix_01",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 302536,
+            "size": 64
+          },
+          {
+            "address": 302600,
+            "size": 64
+          },
+          {
+            "address": 302664,
+            "size": 64
+          },
+          {
+            "address": 302728,
+            "size": 64
+          },
+          {
+            "address": 302792,
+            "size": 64
+          },
+          {
+            "address": 302856,
+            "size": 64
+          },
+          {
+            "address": 302920,
+            "size": 64
+          },
+          {
+            "address": 302984,
+            "size": 64
+          },
+          {
+            "address": 303048,
+            "size": 64
+          },
+          {
+            "address": 303112,
+            "size": 64
+          },
+          {
+            "address": 303176,
+            "size": 64
+          },
+          {
+            "address": 303240,
+            "size": 64
+          },
+          {
+            "address": 303304,
+            "size": 64
+          },
+          {
+            "address": 303368,
+            "size": 64
+          },
+          {
+            "address": 303432,
+            "size": 64
+          },
+          {
+            "address": 303496,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "snapshot_defeat_suffix_02",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 303560,
+            "size": 64
+          },
+          {
+            "address": 303624,
+            "size": 64
+          },
+          {
+            "address": 303688,
+            "size": 64
+          },
+          {
+            "address": 303752,
+            "size": 64
+          },
+          {
+            "address": 303816,
+            "size": 64
+          },
+          {
+            "address": 303880,
+            "size": 48
+          }
+        ]
+      }
+    },
+    {
+      "name": "post_route_checkpoint",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    },
+    {
+      "after_phase": "entry_officer_card_transferred",
+      "control": "port1 down",
+      "release_after_phase": "downward_moves_complete"
+    },
+    {
+      "after_phase": "downward_moves_complete",
+      "control": "port1 right",
+      "release_after_phase": "rightward_moves_complete"
+    }
+  ]
+}

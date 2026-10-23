@@ -451,12 +451,21 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
   if (operand->value.ea_mode == 5)
     return append_format(out_text, out_text_size, inout_used, operand->value.value == 0U ? "%s.w(a%u)" : "%s(a%u)",
       name, (unsigned)operand->value.ea_reg);
+  if (m68k_ir_operand_brief_index_displacement(operand, NULL)) {
+    if (append_format(out_text, out_text_size, inout_used, "%s(a%u,", name,
+        (unsigned)operand->value.ea_reg) != 0)
+      return -1;
+    if (append_index_register_text(out_text, out_text_size, inout_used, &operand->value) != 0)
+      return -1;
+    return append_text(out_text, out_text_size, inout_used, ")");
+  }
   if (operand->value.ea_mode == 2)
     /* A symbolic zero displacement changes mode 2 to mode 5 in external
      * assemblers. Keep the encoded addressing mode; the render plan retains
      * the field identity as a comment-only symbol access. */
     return append_format(out_text, out_text_size, inout_used, "(a%u)", (unsigned)operand->value.ea_reg);
-  if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT)
+  if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+      m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_PREDECREMENT)
     /* The field is comment-only: reuse the decoded operand's exact EA syntax. */
     return append_ea_text(out_text, out_text_size, inout_used, &operand->value, '\0', 0U, 0U, 0U);
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2) {
@@ -800,7 +809,8 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
       } else if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) == 0) {
           if (operand->value.ea_mode != 2U &&
-              m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT)
+              m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+              m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_PREDECREMENT)
             mark_rendered_operand_symbol(&result, operand_index);
         } else if (append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
             operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0) {

@@ -67,6 +67,7 @@ class RssetLayoutStorageKind(StrEnum):
 class EntryRegisterSeedKind(StrEnum):
     LIBRARY_BASE = "library_base"
     STRUCT_PTR = "struct_ptr"
+    HARDWARE_INDEXED = "hardware_indexed"
 
 
 class ManualRepresentationStyle(StrEnum):
@@ -76,6 +77,7 @@ class ManualRepresentationStyle(StrEnum):
     CHARACTER = "character"
     STRING = "string"
     SYMBOL = "symbol"
+    HARDWARE_OFFSET = "hardware_offset"
 
 
 class DataBlockElementKind(StrEnum):
@@ -234,6 +236,31 @@ class EntryRegisterSeedMetadata:
     contradicted_evidence_id: str | None = None
     reason: str | None = None
     cleanup_scope: dict[str, object] | None = None
+    hardware_indexed: dict[str, object] | None = None
+    hunk: int | None = None
+    array_length: int | None = None
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.kind, EntryRegisterSeedKind)
+        if self.array_length is not None and (
+            type(self.array_length) is not int or not 1 <= self.array_length <= 65535
+            or self.kind != EntryRegisterSeedKind.STRUCT_PTR or not self.struct_name
+        ):
+            raise ValueError("array_length requires a struct pointer and 1..65535 elements")
+        if self.kind != EntryRegisterSeedKind.HARDWARE_INDEXED:
+            if self.hardware_indexed is not None:
+                raise ValueError("indexed hardware input requires hardware_indexed kind")
+            return
+        d = self.hardware_indexed
+        if (not isinstance(d, dict) or set(d) != {"base_symbol", "index_register", "stride", "index_values"}
+                or not isinstance(d["base_symbol"], str) or not d["base_symbol"]
+                or not isinstance(d["index_register"], str) or d["index_register"] not in {f"D{i}" for i in range(8)}
+                or self.register not in {f"A{i}" for i in range(8)} or self.entry_offset is None
+                or type(d["stride"]) is not int or not 1 <= d["stride"] <= 32767
+                or not isinstance(d["index_values"], (list, tuple)) or not 1 <= len(d["index_values"]) <= 8
+                or any(type(v) is not int or not 0 <= v <= 32767 // d["stride"] for v in d["index_values"])
+                or list(d["index_values"]) != sorted(set(d["index_values"]))):
+            raise ValueError("invalid indexed hardware input contract")
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> EntryRegisterSeedMetadata:
@@ -277,6 +304,9 @@ class EntryRegisterSeedMetadata:
             entry_offset=entry_offset,
             register=register,
             kind=_entry_register_seed_kind(kind),
+            hardware_indexed=payload.get("hardware_indexed"),
+            hunk=payload.get("hunk"),
+            array_length=payload.get("array_length"),
             note=note,
             library_name=library_name,
             struct_name=struct_name,
@@ -292,10 +322,6 @@ class EntryRegisterSeedMetadata:
             reason=reason,
             cleanup_scope=cleanup_scope,
         )
-
-    def __post_init__(self) -> None:
-        assert isinstance(self.kind, EntryRegisterSeedKind)
-
 
 @dataclass(frozen=True, slots=True)
 class FunctionSummaryAbiLocationMetadata:
@@ -541,7 +567,6 @@ class FunctionSummaryMetadata:
             FunctionSummaryInputMetadata.from_dict(_json_object(item))
             for item in _json_list(inputs)
         )
-        assert parsed_inputs
         assert len({item.location for item in parsed_inputs}) == len(parsed_inputs)
         parsed_results = tuple(
             FunctionSummaryResultMetadata.from_dict(_json_object(item), parsed_inputs)
@@ -840,7 +865,7 @@ class RssetLayoutRegionMetadata:
         seed_origin = _target_metadata_seed_origin(seed_origin)
         review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
-        assert size is None or (isinstance(size, int) and 0 < size <= 255)
+        assert size is None or (isinstance(size, int) and 0 < size <= 32767)
         assert layout_name is None or isinstance(layout_name, str)
         assert base_symbol is None or isinstance(base_symbol, str)
         assert sizeof_symbol is None or isinstance(sizeof_symbol, str)
@@ -1354,6 +1379,8 @@ class ManualRepresentationMetadata:
     element_kind: str | None = None
     operand_index: int | None = None
     symbol: str | None = None
+    source_symbol: dict[str, object] | None = None
+    hardware_offset: dict[str, object] | None = None
     source_id: str | None = None
     source_path: str | None = None
     source_locator: str | None = None
@@ -1361,6 +1388,24 @@ class ManualRepresentationMetadata:
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
         assert isinstance(self.style, ManualRepresentationStyle)
+        if self.style == ManualRepresentationStyle.HARDWARE_OFFSET:
+            domain = self.hardware_offset
+            if (not isinstance(domain, dict) or set(domain) != {"base_symbol", "offset"}
+                    or not isinstance(domain["base_symbol"], str) or not domain["base_symbol"]
+                    or type(domain["offset"]) is not int or not 0 <= domain["offset"] <= 32767
+                    or self.operand_index is None or self.element_kind != "displacement"):
+                raise ValueError("invalid hardware offset literal domain")
+        elif self.hardware_offset is not None:
+            raise ValueError("hardware offset domain requires hardware_offset style")
+        if self.source_symbol is not None:
+            identity = self.source_symbol
+            if (not isinstance(identity, dict) or set(identity) != {
+                    "section_index", "source_offset", "runtime_view", "encoded_value"}
+                    or any(type(v) is not int or not 0 <= v <= 0xFFFFFFFF for v in identity.values())
+                    or identity["runtime_view"] not in {0, 1}
+                    or self.operand_index is None or self.style != ManualRepresentationStyle.SYMBOL):
+                raise ValueError("invalid canonical source symbol identity")
+
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> ManualRepresentationMetadata:
@@ -1395,6 +1440,8 @@ class ManualRepresentationMetadata:
             element_kind=element_kind,
             operand_index=operand_index,
             symbol=symbol,
+            source_symbol=payload.get("source_symbol"),
+            hardware_offset=payload.get("hardware_offset"),
             seed_origin=_target_metadata_seed_origin(seed_origin),
             review_status=_target_metadata_review_status(review_status),
             citation=citation,
@@ -1496,6 +1543,37 @@ def validate_base_displacement_reference(ref: Mapping[str, object], *, source_hu
         raise ValueError("base_displacement does not accept runtime_address")
 
 
+def validate_base_displacement_range(ref: Mapping[str, object], *, source_hunk: int | None = None) -> None:
+    """A packed WORD range with one explicit source-coordinate base and scale.
+
+    source_value/target_offset describe the first WORD only. The native reader
+    decodes every WORD from the pinned input, retaining the original raw bits.
+    """
+    width = ref.get("width", ref.get("size"))
+    scale = ref.get("scale")
+    base = ref.get("base_locator")
+    integer = lambda value: isinstance(value, int) and not isinstance(value, bool)
+    if not integer(width) or not 2 <= width <= 131070 or width % 2:
+        raise ValueError("base_displacement_range requires a packed range of 1..65535 WORDs")
+    if not isinstance(ref.get("signed"), bool) or not integer(scale) or not 1 <= scale <= 0xFFFFFFFF:
+        raise ValueError("base_displacement_range requires explicit signedness and positive uint32 scale")
+    if not isinstance(base, Mapping):
+        raise ValueError("base_displacement_range requires explicit base_locator")
+    bh, bo = base.get("hunk"), base.get("offset")
+    th, to, raw = ref.get("target_hunk"), ref.get("target_offset"), ref.get("source_value")
+    if any(not integer(v) or not 0 <= v <= 0xFFFFFFFF for v in (bh, bo, th, to)):
+        raise ValueError("base_displacement_range requires uint32 base and first target locators")
+    if bh != th or (source_hunk is not None and bh != source_hunk):
+        raise ValueError("base_displacement_range requires source, base and targets in the same section")
+    if not integer(raw) or not 0 <= raw <= 0xFFFF:
+        raise ValueError("base_displacement_range source_value must retain first encoded WORD bits")
+    decoded = raw - 0x10000 if ref["signed"] and raw >= 0x8000 else raw
+    if bo + decoded * scale != to:
+        raise ValueError("base_displacement_range first target must equal base plus decoded WORD times scale")
+    if "runtime_address" in ref:
+        raise ValueError("base_displacement_range does not accept runtime_address")
+
+
 def validate_base_displacement_owner(
     ref: Mapping[str, object], element: Mapping[str, object], *, defer_struct_leaf: bool = False,
 ) -> None:
@@ -1519,7 +1597,8 @@ def validate_base_displacement_owner(
         and binding.get("binding_kind") in {"custom_struct", "platform_struct"}
         and isinstance(binding.get("bound_type_id"), str) and bool(binding.get("bound_type_id"))
     )
-    if not (scalar_word or array_word or deferred_struct) or offset < owner_offset or offset + 2 > owner_offset + width:
+    span = ref.get("width", 2) if ref.get("reference_kind") == "base_displacement_range" else 2
+    if not (scalar_word or array_word or deferred_struct) or offset < owner_offset or offset + span > owner_offset + width:
         raise ValueError("base_displacement requires a scalar word or aligned word-array entry")
 
 
@@ -1543,15 +1622,19 @@ class ManualDataReferenceMetadata:
     seed_origin: TargetMetadataSeedOrigin
     review_status: TargetMetadataReviewStatus
     citation: str
+    scale: int = 1
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
-        if self.reference_kind != "base_displacement":
+        if self.reference_kind not in {"base_displacement", "base_displacement_range"}:
             raise ValueError("manual_data_references supports only base_displacement")
-        validate_base_displacement_reference(
-            {**asdict(self), "base_locator": {"hunk": self.base_hunk, "offset": self.base_offset}},
-            source_hunk=self.hunk, source_addr=self.addr,
-        )
+        ref = {**asdict(self), "base_locator": {"hunk": self.base_hunk, "offset": self.base_offset}}
+        if self.reference_kind == "base_displacement_range":
+            validate_base_displacement_range(ref, source_hunk=self.hunk)
+            if not 0 <= self.addr <= 0xFFFFFFFF - self.size:
+                raise ValueError("base_displacement_range source span overflows uint32")
+        else:
+            validate_base_displacement_reference(ref, source_hunk=self.hunk, source_addr=self.addr)
         assert isinstance(self.owner_element_offset, int) and not isinstance(self.owner_element_offset, bool)
         assert 0 <= self.owner_element_offset <= 0xFFFFFFFF
         assert self.owner_kind == "data_block_interpreted_ref"
@@ -1575,6 +1658,7 @@ class ManualDataReferenceMetadata:
             seed_origin=_target_metadata_seed_origin(payload["seed_origin"]),
             review_status=_target_metadata_review_status(payload["review_status"]),
             citation=cast(str, payload["citation"]),
+            scale=cast(int, payload.get("scale", 1)),
         )
 
 
@@ -2122,13 +2206,25 @@ def _function_summary_location_payload(location: object) -> dict[str, object]:
         assert isinstance(offset, int) and isinstance(width, int) and isinstance(convention, str)
         return {"kind": kind, "offset": offset, "width": width, "convention": convention}
     registers = location.get("registers"); width = location.get("width")
-    assert kind == "register_tuple" and isinstance(registers, list) and isinstance(width, int)
-    return {"kind": kind, "registers": registers, "width": width}
+    assert kind == "register_tuple" and isinstance(registers, (list, tuple)) and isinstance(width, int)
+    return {"kind": kind, "registers": list(registers), "width": width}
 
 
 def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
     payload = asdict(metadata)
+    for seed in payload.get("entry_register_seeds", ()):
+        if seed.get("hardware_indexed") is None:
+            seed.pop("hardware_indexed", None)
+        if seed.get("hunk") is None:
+            seed.pop("hunk", None)
+        if seed.get("array_length") is None:
+            seed.pop("array_length", None)
     # Optional address-domain declarations do not change the legacy wire shape.
+    for representation in payload.get("manual_representations", ()):
+        if representation.get("source_symbol") is None:
+            representation.pop("source_symbol", None)
+        if representation.get("hardware_offset") is None:
+            representation.pop("hardware_offset", None)
     for entity in payload.get("seeded_entities", ()):
         for key in ("pointer_address_domain", "pointer_symbol_group", "source_owner_start", "source_owner_size"):
             if entity.get(key) is None:

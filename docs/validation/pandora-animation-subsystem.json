@@ -1,0 +1,1584 @@
+{
+  "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "baseline_commit": "c9945ec8f309d0f88f4d8f765e6df0194ed40fb1",
+  "scope": "Animation consumers, all initialized node roots, typed node-only/replacement script commands, and four proximity-selected sequences. Static inventory and bounded original-byte execution; not global gameplay/lifetime closure.",
+  "original": {
+    "size": 376832,
+    "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "ca583c74699c90514446336436ee94dbc95856e99373b8ed26b7dc42227564af",
+    "revision": "99f95156c7fea845e96a12e8854ee9e5d22511083d86872649729ab0e5117a6f",
+    "source_package_sha256": "6bfe653be03e813fc9b9602cfed4ca9b2d5cc900c2fd85b512cf76ccd317eb1e",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/6bfe653be03e813fc9b9602cfed4ca9b2d5cc900c2fd85b512cf76ccd317eb1e/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "d41ac6c7a3a8168dfd02d70c6092cdd95375607e6542100384344fe55e66bd58",
+    "status": "exact",
+    "subject_revision": "44e99cf244c23987479d914660059549c43e1d4b0b001a5f396ce5f676f20f9e",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "canonical_actions": 202,
+  "inventory": {
+    "nodes": 89,
+    "node_sizes": {
+      "basic": 18,
+      "guarded_chain_variant": 22
+    },
+    "initialized_chain_nodes": 0,
+    "initialized_xy_sequences": 0,
+    "short_node_commands": 82,
+    "replacement_commands": 26,
+    "replacement_handlers": 3,
+    "proximity_variants": 4,
+    "proximity_eligible_initial_states": 18,
+    "sequences": {
+      "established_starts": 63,
+      "role_partitioned_before": 0,
+      "role_partitioned_after": 63,
+      "covered_pointer_entries": 416,
+      "remaining_unassigned_entries": 14
+    },
+    "node_pointer_outcomes_before": {
+      "null": 89,
+      "symbolic": 178
+    },
+    "node_pointer_outcomes_after": {
+      "null": 89,
+      "symbolic": 178
+    },
+    "frame_pointer_outcomes_before": {
+      "null": 3,
+      "symbolic": 427
+    },
+    "frame_pointer_outcomes_after": {
+      "null": 3,
+      "symbolic": 427
+    },
+    "field_accesses": {
+      "node_before": 70,
+      "node_after": 78,
+      "xy_after": 6
+    },
+    "symbolic_accesses_added": {
+      "indexed_fixed_displacements": 3,
+      "mode_bit_operands": 9,
+      "nonzero_mode_initializers": 49,
+      "proximity_threshold": 1
+    },
+    "initial_modes": {
+      "4": 31,
+      "0": 40,
+      "1": 18
+    },
+    "phase_steps": {
+      "128": 8,
+      "30": 1,
+      "40": 4,
+      "64": 68,
+      "45": 1,
+      "43": 2,
+      "42": 2,
+      "32": 2,
+      "25": 1
+    }
+  },
+  "new_type": "WorldPositionXYOffset { WORD x_offset; WORD y_offset; }",
+  "pointer_type_updates": [
+    "WorldPositionStateNode.xy_sequence_ptr -> WorldPositionXYOffset",
+    "cmd_node_sequence.frame_sequence_ptr -> WorldPositionDescriptorPointer"
+  ],
+  "new_equates": [
+    "ANIM_ACTIVE_FRAME_OFFSET",
+    "ANIM_ACTIVE_X_OFFSET",
+    "ANIM_ACTIVE_Y_OFFSET",
+    "ANIM_MODE_HOLD_AT_END_MASK",
+    "WORLD_PROXIMITY_ANIMATION_DISTANCE"
+  ],
+  "shared_contract": {
+    "function": "start_feedback_audio_sequence",
+    "source_offset": 316208,
+    "preserved": [
+      "D1-D7",
+      "A1-A6",
+      "A7 on normal return"
+    ],
+    "may_change": [
+      "D0",
+      "A0"
+    ],
+    "memory": "unknown",
+    "escape": "unknown",
+    "identity_result_groups": [
+      [
+        "D1",
+        "D2",
+        "D3",
+        "D4"
+      ],
+      [
+        "D5",
+        "D6",
+        "D7"
+      ],
+      [
+        "A1",
+        "A2",
+        "A3",
+        "A4"
+      ],
+      [
+        "A5",
+        "A6"
+      ]
+    ],
+    "direct_calls_in_inventory": 28
+  },
+  "sequence_bounds": [
+    {
+      "source_start": 296602,
+      "source_end": 296634,
+      "active_count": 7,
+      "name": "ranged_hit_visual_frame_ptrs"
+    },
+    {
+      "source_start": 296908,
+      "source_end": 296932,
+      "active_count": 5,
+      "name": "musician_sequence_4870E_5"
+    },
+    {
+      "source_start": 297502,
+      "source_end": 297514,
+      "active_count": 2,
+      "name": "item_receptacle_4_attachment_frame_sequence"
+    },
+    {
+      "source_start": 299296,
+      "source_end": 299316,
+      "active_count": 4,
+      "name": "world_position_descriptor_sequence_ptrs"
+    },
+    {
+      "source_start": 299316,
+      "source_end": 299344,
+      "active_count": 6,
+      "name": "world_proximity_near_sequence_0"
+    },
+    {
+      "source_start": 299344,
+      "source_end": 299372,
+      "active_count": 6,
+      "name": "world_proximity_far_sequence_0"
+    },
+    {
+      "source_start": 299372,
+      "source_end": 299400,
+      "active_count": 6,
+      "name": "world_proximity_near_sequence_1"
+    },
+    {
+      "source_start": 299400,
+      "source_end": 299428,
+      "active_count": 6,
+      "name": "world_proximity_far_sequence_1"
+    },
+    {
+      "source_start": 300012,
+      "source_end": 300044,
+      "active_count": 7,
+      "name": "squash_player_sequence_49268_6"
+    },
+    {
+      "source_start": 300062,
+      "source_end": 300094,
+      "active_count": 7,
+      "name": "squash_player_sequence_49268_8"
+    },
+    {
+      "source_start": 301034,
+      "source_end": 301066,
+      "active_count": 7,
+      "name": "wackobrain_actor_sequence_49492_5"
+    },
+    {
+      "source_start": 301084,
+      "source_end": 301100,
+      "active_count": 3,
+      "name": "wackobrain_actor_sequence_49492_7"
+    },
+    {
+      "source_start": 301118,
+      "source_end": 301150,
+      "active_count": 7,
+      "name": "wackobrain_actor_sequence_49492_9"
+    },
+    {
+      "source_start": 301168,
+      "source_end": 301200,
+      "active_count": 7,
+      "name": "wackobrain_actor_sequence_49492_11"
+    },
+    {
+      "source_start": 301218,
+      "source_end": 301250,
+      "active_count": 7,
+      "name": "wackobrain_actor_sequence_49492_13"
+    },
+    {
+      "source_start": 301268,
+      "source_end": 301320,
+      "active_count": 12,
+      "name": "wackobrain_actor_sequence_49492_15"
+    },
+    {
+      "source_start": 301792,
+      "source_end": 301824,
+      "active_count": 7,
+      "name": "thief_sequence_4995C_5"
+    },
+    {
+      "source_start": 301842,
+      "source_end": 301874,
+      "active_count": 7,
+      "name": "thief_sequence_4995C_7"
+    },
+    {
+      "source_start": 302372,
+      "source_end": 302408,
+      "active_count": 8,
+      "name": "priest_sequence_49B98_4"
+    },
+    {
+      "source_start": 302426,
+      "source_end": 302458,
+      "active_count": 7,
+      "name": "priest_sequence_49B98_6"
+    },
+    {
+      "source_start": 302966,
+      "source_end": 303046,
+      "active_count": 19,
+      "name": "icelord_sequence_49DCE_4"
+    },
+    {
+      "source_start": 303064,
+      "source_end": 303144,
+      "active_count": 19,
+      "name": "icelord_sequence_49DCE_6"
+    },
+    {
+      "source_start": 303904,
+      "source_end": 303932,
+      "active_count": 6,
+      "name": "hooligan_sequence_4A07C_5"
+    },
+    {
+      "source_start": 303950,
+      "source_end": 303978,
+      "active_count": 6,
+      "name": "hooligan_sequence_4A07C_7"
+    },
+    {
+      "source_start": 303996,
+      "source_end": 304028,
+      "active_count": 7,
+      "name": "hooligan_sequence_4A07C_9"
+    },
+    {
+      "source_start": 304046,
+      "source_end": 304078,
+      "active_count": 7,
+      "name": "hooligan_sequence_4A07C_11"
+    },
+    {
+      "source_start": 304096,
+      "source_end": 304108,
+      "active_count": 2,
+      "name": "hooligan_sequence_4A07C_13"
+    },
+    {
+      "source_start": 304126,
+      "source_end": 304138,
+      "active_count": 2,
+      "name": "hooligan_sequence_4A07C_15"
+    },
+    {
+      "source_start": 304466,
+      "source_end": 304498,
+      "active_count": 7,
+      "name": "entry_officer_sequence_4A45E_4"
+    },
+    {
+      "source_start": 304516,
+      "source_end": 304556,
+      "active_count": 9,
+      "name": "entry_officer_sequence_4A45E_6"
+    },
+    {
+      "source_start": 304776,
+      "source_end": 304788,
+      "active_count": 2,
+      "name": "death_fly_sequence_4A600_4"
+    },
+    {
+      "source_start": 305080,
+      "source_end": 305108,
+      "active_count": 6,
+      "name": "driffid_sequence_4A6E8_5"
+    },
+    {
+      "source_start": 306786,
+      "source_end": 306802,
+      "active_count": 3,
+      "name": "menial_droid_sequence_4AE50_1"
+    },
+    {
+      "source_start": 308044,
+      "source_end": 308076,
+      "active_count": 7,
+      "name": "technician_sequence_4B1DA_5"
+    },
+    {
+      "source_start": 308094,
+      "source_end": 308126,
+      "active_count": 7,
+      "name": "technician_sequence_4B1DA_7"
+    },
+    {
+      "source_start": 308462,
+      "source_end": 308478,
+      "active_count": 3,
+      "name": "robomechanic_sequence_4B454_4"
+    },
+    {
+      "source_start": 308958,
+      "source_end": 308986,
+      "active_count": 6,
+      "name": "doctor_sequence_4B552_4"
+    },
+    {
+      "source_start": 309004,
+      "source_end": 309032,
+      "active_count": 6,
+      "name": "doctor_sequence_4B552_6"
+    },
+    {
+      "source_start": 309286,
+      "source_end": 309294,
+      "active_count": 1,
+      "name": "diabetic_pose_frames_by_mode"
+    },
+    {
+      "source_start": 309496,
+      "source_end": 309504,
+      "active_count": 1,
+      "name": "security_officer_sequence_4B882_5"
+    },
+    {
+      "source_start": 309854,
+      "source_end": 309862,
+      "active_count": 1,
+      "name": "chemist_sequence_4BA0C_3"
+    },
+    {
+      "source_start": 310618,
+      "source_end": 310642,
+      "active_count": 5,
+      "name": "fixed_npc_saved_frame_sequence"
+    },
+    {
+      "source_start": 311290,
+      "source_end": 311310,
+      "active_count": 4,
+      "name": "fixed_npc_frame_sequences_early_0"
+    },
+    {
+      "source_start": 311310,
+      "source_end": 311330,
+      "active_count": 4,
+      "name": "fixed_npc_frame_sequences_early_1"
+    },
+    {
+      "source_start": 311330,
+      "source_end": 311350,
+      "active_count": 4,
+      "name": "fixed_npc_frame_sequences_early_2"
+    },
+    {
+      "source_start": 311350,
+      "source_end": 311370,
+      "active_count": 4,
+      "name": "fixed_npc_frame_sequences_early_3"
+    },
+    {
+      "source_start": 311430,
+      "source_end": 311450,
+      "active_count": 4,
+      "name": "fixed_npc_frame_sequences_late_0"
+    },
+    {
+      "source_start": 311450,
+      "source_end": 311462,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_1"
+    },
+    {
+      "source_start": 311462,
+      "source_end": 311474,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_2"
+    },
+    {
+      "source_start": 311474,
+      "source_end": 311486,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_3"
+    },
+    {
+      "source_start": 311486,
+      "source_end": 311498,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_4"
+    },
+    {
+      "source_start": 311498,
+      "source_end": 311510,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_5"
+    },
+    {
+      "source_start": 311510,
+      "source_end": 311522,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_6"
+    },
+    {
+      "source_start": 311522,
+      "source_end": 311534,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_7"
+    },
+    {
+      "source_start": 311534,
+      "source_end": 311546,
+      "active_count": 2,
+      "name": "fixed_npc_frame_sequences_late_8"
+    },
+    {
+      "source_start": 312054,
+      "source_end": 312082,
+      "active_count": 6,
+      "name": "pianist_actor_sequence_4C226_5"
+    },
+    {
+      "source_start": 313062,
+      "source_end": 313118,
+      "active_count": 13,
+      "name": "player_animated_defeat_frame_refs"
+    },
+    {
+      "source_start": 313174,
+      "source_end": 313206,
+      "active_count": 7,
+      "name": "player_move_positive_x_frames_sequence_0"
+    },
+    {
+      "source_start": 313224,
+      "source_end": 313256,
+      "active_count": 7,
+      "name": "player_move_negative_x_frames_sequence_0"
+    },
+    {
+      "source_start": 313274,
+      "source_end": 313302,
+      "active_count": 6,
+      "name": "player_move_positive_y_frames_sequence_0"
+    },
+    {
+      "source_start": 313320,
+      "source_end": 313348,
+      "active_count": 6,
+      "name": "player_move_negative_y_frames_sequence_0"
+    },
+    {
+      "source_start": 313636,
+      "source_end": 313664,
+      "active_count": 6,
+      "name": "combat_active_frame_sequence"
+    },
+    {
+      "source_start": 313682,
+      "source_end": 313710,
+      "active_count": 6,
+      "name": "combat_exit_frame_sequence"
+    }
+  ],
+  "command_routine_entries": [
+    {
+      "name": "world_object_command_set_node_if_flag3_clear",
+      "section_index": 0,
+      "source_offset": 4736
+    },
+    {
+      "name": "world_object_command_set_node_for_flag3_set",
+      "section_index": 0,
+      "source_offset": 4774
+    },
+    {
+      "name": "world_object_command_set_node_for_flag3_clear",
+      "section_index": 0,
+      "source_offset": 4822
+    },
+    {
+      "name": "world_object_command_set_node_sequence_if_flag3_clear",
+      "section_index": 0,
+      "source_offset": 4870
+    },
+    {
+      "name": "world_object_command_set_node_sequence_for_flag3_set",
+      "section_index": 0,
+      "source_offset": 4916
+    },
+    {
+      "name": "world_object_command_set_node_sequence_for_flag3_clear",
+      "section_index": 0,
+      "source_offset": 4972
+    },
+    {
+      "name": "world_object_command_toggle_node_for_flag3_set",
+      "section_index": 0,
+      "source_offset": 5028
+    },
+    {
+      "name": "world_object_command_toggle_node_for_flag3_clear",
+      "section_index": 0,
+      "source_offset": 5068
+    }
+  ],
+  "node_inventory": [
+    {
+      "node": 296584,
+      "count": 7,
+      "step": 128,
+      "mode": 4,
+      "frame": 362138,
+      "xy": 0
+    },
+    {
+      "node": 296890,
+      "count": 5,
+      "step": 30,
+      "mode": 0,
+      "frame": 362444,
+      "xy": 0
+    },
+    {
+      "node": 297484,
+      "count": 2,
+      "step": 40,
+      "mode": 0,
+      "frame": 363038,
+      "xy": 0
+    },
+    {
+      "node": 298864,
+      "count": 4,
+      "step": 64,
+      "mode": 0,
+      "frame": 364832,
+      "xy": 0
+    },
+    {
+      "node": 298882,
+      "count": 4,
+      "step": 64,
+      "mode": 0,
+      "frame": 364832,
+      "xy": 0
+    },
+    {
+      "node": 298900,
+      "count": 4,
+      "step": 64,
+      "mode": 0,
+      "frame": 364832,
+      "xy": 0
+    },
+    {
+      "node": 298918,
+      "count": 4,
+      "step": 64,
+      "mode": 0,
+      "frame": 364832,
+      "xy": 0
+    },
+    {
+      "node": 298936,
+      "count": 4,
+      "step": 64,
+      "mode": 0,
+      "frame": 364832,
+      "xy": 0
+    },
+    {
+      "node": 298954,
+      "count": 4,
+      "step": 64,
+      "mode": 0,
+      "frame": 364832,
+      "xy": 0
+    },
+    {
+      "node": 298972,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 298990,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364880,
+      "xy": 0
+    },
+    {
+      "node": 299008,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299026,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364880,
+      "xy": 0
+    },
+    {
+      "node": 299044,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299062,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364880,
+      "xy": 0
+    },
+    {
+      "node": 299080,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299098,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299116,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364880,
+      "xy": 0
+    },
+    {
+      "node": 299134,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299152,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364880,
+      "xy": 0
+    },
+    {
+      "node": 299170,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299188,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299206,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364880,
+      "xy": 0
+    },
+    {
+      "node": 299224,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299242,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299260,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299278,
+      "count": 6,
+      "step": 64,
+      "mode": 1,
+      "frame": 364936,
+      "xy": 0
+    },
+    {
+      "node": 299994,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 365548,
+      "xy": 0
+    },
+    {
+      "node": 300044,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 365598,
+      "xy": 0
+    },
+    {
+      "node": 301016,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 366570,
+      "xy": 0
+    },
+    {
+      "node": 301066,
+      "count": 3,
+      "step": 64,
+      "mode": 0,
+      "frame": 366620,
+      "xy": 0
+    },
+    {
+      "node": 301100,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 366654,
+      "xy": 0
+    },
+    {
+      "node": 301150,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 366704,
+      "xy": 0
+    },
+    {
+      "node": 301200,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 366754,
+      "xy": 0
+    },
+    {
+      "node": 301250,
+      "count": 12,
+      "step": 45,
+      "mode": 4,
+      "frame": 366804,
+      "xy": 0
+    },
+    {
+      "node": 301774,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 367328,
+      "xy": 0
+    },
+    {
+      "node": 301824,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 367378,
+      "xy": 0
+    },
+    {
+      "node": 302354,
+      "count": 8,
+      "step": 40,
+      "mode": 4,
+      "frame": 367908,
+      "xy": 0
+    },
+    {
+      "node": 302408,
+      "count": 7,
+      "step": 43,
+      "mode": 0,
+      "frame": 367962,
+      "xy": 0
+    },
+    {
+      "node": 302948,
+      "count": 19,
+      "step": 42,
+      "mode": 4,
+      "frame": 368502,
+      "xy": 0
+    },
+    {
+      "node": 303046,
+      "count": 19,
+      "step": 42,
+      "mode": 4,
+      "frame": 368600,
+      "xy": 0
+    },
+    {
+      "node": 303886,
+      "count": 6,
+      "step": 64,
+      "mode": 0,
+      "frame": 369440,
+      "xy": 0
+    },
+    {
+      "node": 303932,
+      "count": 6,
+      "step": 64,
+      "mode": 0,
+      "frame": 369486,
+      "xy": 0
+    },
+    {
+      "node": 303978,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 369532,
+      "xy": 0
+    },
+    {
+      "node": 304028,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 369582,
+      "xy": 0
+    },
+    {
+      "node": 304078,
+      "count": 2,
+      "step": 32,
+      "mode": 4,
+      "frame": 369632,
+      "xy": 0
+    },
+    {
+      "node": 304108,
+      "count": 2,
+      "step": 32,
+      "mode": 4,
+      "frame": 369662,
+      "xy": 0
+    },
+    {
+      "node": 304448,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 370002,
+      "xy": 0
+    },
+    {
+      "node": 304498,
+      "count": 9,
+      "step": 64,
+      "mode": 4,
+      "frame": 370052,
+      "xy": 0
+    },
+    {
+      "node": 304758,
+      "count": 2,
+      "step": 128,
+      "mode": 0,
+      "frame": 370312,
+      "xy": 0
+    },
+    {
+      "node": 305062,
+      "count": 6,
+      "step": 64,
+      "mode": 0,
+      "frame": 370616,
+      "xy": 0
+    },
+    {
+      "node": 306382,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 306768,
+      "count": 3,
+      "step": 128,
+      "mode": 0,
+      "frame": 372322,
+      "xy": 0
+    },
+    {
+      "node": 306936,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 308026,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 373580,
+      "xy": 0
+    },
+    {
+      "node": 308076,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 373630,
+      "xy": 0
+    },
+    {
+      "node": 308210,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 308444,
+      "count": 3,
+      "step": 40,
+      "mode": 0,
+      "frame": 373998,
+      "xy": 0
+    },
+    {
+      "node": 308940,
+      "count": 6,
+      "step": 64,
+      "mode": 0,
+      "frame": 374494,
+      "xy": 0
+    },
+    {
+      "node": 308986,
+      "count": 6,
+      "step": 64,
+      "mode": 0,
+      "frame": 374540,
+      "xy": 0
+    },
+    {
+      "node": 309268,
+      "count": 1,
+      "step": 128,
+      "mode": 0,
+      "frame": 374822,
+      "xy": 0
+    },
+    {
+      "node": 309478,
+      "count": 1,
+      "step": 128,
+      "mode": 0,
+      "frame": 375032,
+      "xy": 0
+    },
+    {
+      "node": 309836,
+      "count": 1,
+      "step": 128,
+      "mode": 0,
+      "frame": 375390,
+      "xy": 0
+    },
+    {
+      "node": 310642,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 310686,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 310730,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 310774,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 310818,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 310862,
+      "count": 5,
+      "step": 64,
+      "mode": 4,
+      "frame": 376154,
+      "xy": 0
+    },
+    {
+      "node": 311546,
+      "count": 2,
+      "step": 64,
+      "mode": 4,
+      "frame": 377070,
+      "xy": 0
+    },
+    {
+      "node": 311564,
+      "count": 4,
+      "step": 64,
+      "mode": 4,
+      "frame": 376966,
+      "xy": 0
+    },
+    {
+      "node": 311582,
+      "count": 2,
+      "step": 64,
+      "mode": 4,
+      "frame": 377070,
+      "xy": 0
+    },
+    {
+      "node": 311600,
+      "count": 4,
+      "step": 64,
+      "mode": 4,
+      "frame": 376966,
+      "xy": 0
+    },
+    {
+      "node": 311618,
+      "count": 2,
+      "step": 64,
+      "mode": 4,
+      "frame": 377070,
+      "xy": 0
+    },
+    {
+      "node": 311636,
+      "count": 4,
+      "step": 64,
+      "mode": 4,
+      "frame": 376966,
+      "xy": 0
+    },
+    {
+      "node": 311654,
+      "count": 2,
+      "step": 64,
+      "mode": 4,
+      "frame": 377070,
+      "xy": 0
+    },
+    {
+      "node": 311672,
+      "count": 4,
+      "step": 64,
+      "mode": 4,
+      "frame": 376966,
+      "xy": 0
+    },
+    {
+      "node": 311690,
+      "count": 2,
+      "step": 64,
+      "mode": 4,
+      "frame": 377070,
+      "xy": 0
+    },
+    {
+      "node": 311708,
+      "count": 4,
+      "step": 64,
+      "mode": 4,
+      "frame": 376966,
+      "xy": 0
+    },
+    {
+      "node": 311726,
+      "count": 2,
+      "step": 64,
+      "mode": 4,
+      "frame": 377070,
+      "xy": 0
+    },
+    {
+      "node": 311744,
+      "count": 4,
+      "step": 64,
+      "mode": 4,
+      "frame": 376966,
+      "xy": 0
+    },
+    {
+      "node": 312036,
+      "count": 6,
+      "step": 25,
+      "mode": 0,
+      "frame": 377590,
+      "xy": 0
+    },
+    {
+      "node": 313044,
+      "count": 13,
+      "step": 40,
+      "mode": 4,
+      "frame": 378598,
+      "xy": 0
+    },
+    {
+      "node": 313156,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 378710,
+      "xy": 0
+    },
+    {
+      "node": 313206,
+      "count": 7,
+      "step": 64,
+      "mode": 0,
+      "frame": 378760,
+      "xy": 0
+    },
+    {
+      "node": 313256,
+      "count": 6,
+      "step": 128,
+      "mode": 0,
+      "frame": 378810,
+      "xy": 0
+    },
+    {
+      "node": 313302,
+      "count": 6,
+      "step": 128,
+      "mode": 0,
+      "frame": 378856,
+      "xy": 0
+    },
+    {
+      "node": 313618,
+      "count": 6,
+      "step": 64,
+      "mode": 0,
+      "frame": 379172,
+      "xy": 0
+    },
+    {
+      "node": 313664,
+      "count": 6,
+      "step": 43,
+      "mode": 4,
+      "frame": 379218,
+      "xy": 0
+    }
+  ],
+  "replacement_inventory": [
+    {
+      "offset": 6520,
+      "owner": "world_object_secdroid_pi_behavior_script",
+      "opcode": 30,
+      "node": 377190,
+      "frame": 377034
+    },
+    {
+      "offset": 6554,
+      "owner": "world_object_secdroid_pi_behavior_script",
+      "opcode": 30,
+      "node": 377190,
+      "frame": 376998
+    },
+    {
+      "offset": 6632,
+      "owner": "world_object_secdroid_pi_behavior_script",
+      "opcode": 30,
+      "node": 377190,
+      "frame": 377070
+    },
+    {
+      "offset": 6646,
+      "owner": "world_object_secdroid_pi_behavior_script",
+      "opcode": 30,
+      "node": 377190,
+      "frame": 377010
+    },
+    {
+      "offset": 6716,
+      "owner": "world_object_secdroid_pi_behavior_script",
+      "opcode": 30,
+      "node": 377190,
+      "frame": 377046
+    },
+    {
+      "offset": 6750,
+      "owner": "world_object_secdroid_pi_behavior_script",
+      "opcode": 30,
+      "node": 377190,
+      "frame": 377010
+    },
+    {
+      "offset": 6776,
+      "owner": "world_object_secdroid_omega_behavior_script",
+      "opcode": 30,
+      "node": 377226,
+      "frame": 376998
+    },
+    {
+      "offset": 6810,
+      "owner": "world_object_secdroid_omega_behavior_script",
+      "opcode": 30,
+      "node": 377226,
+      "frame": 377070
+    },
+    {
+      "offset": 6840,
+      "owner": "world_object_secdroid_omega_behavior_script",
+      "opcode": 30,
+      "node": 377226,
+      "frame": 377010
+    },
+    {
+      "offset": 6870,
+      "owner": "world_object_secdroid_omega_behavior_script",
+      "opcode": 30,
+      "node": 377226,
+      "frame": 377034
+    },
+    {
+      "offset": 7876,
+      "owner": "world_object_secdroid_alpha_1_behavior_script",
+      "opcode": 30,
+      "node": 377100,
+      "frame": 376846
+    },
+    {
+      "offset": 7906,
+      "owner": "world_object_secdroid_alpha_1_behavior_script",
+      "opcode": 30,
+      "node": 377082,
+      "frame": 377010
+    },
+    {
+      "offset": 7936,
+      "owner": "world_object_secdroid_alpha_1_behavior_script",
+      "opcode": 30,
+      "node": 377082,
+      "frame": 377046
+    },
+    {
+      "offset": 7966,
+      "owner": "world_object_secdroid_alpha_1_behavior_script",
+      "opcode": 30,
+      "node": 377100,
+      "frame": 376886
+    },
+    {
+      "offset": 8000,
+      "owner": "world_object_secdroid_alpha_1_behavior_script",
+      "opcode": 30,
+      "node": 377082,
+      "frame": 376986
+    },
+    {
+      "offset": 8030,
+      "owner": "world_object_secdroid_alpha_1_behavior_script",
+      "opcode": 30,
+      "node": 377082,
+      "frame": 377034
+    },
+    {
+      "offset": 8076,
+      "owner": "world_object_secdroid_alpha_2_behavior_script",
+      "opcode": 30,
+      "node": 377280,
+      "frame": 376866
+    },
+    {
+      "offset": 8106,
+      "owner": "world_object_secdroid_alpha_2_behavior_script",
+      "opcode": 30,
+      "node": 377262,
+      "frame": 376998
+    },
+    {
+      "offset": 8136,
+      "owner": "world_object_secdroid_alpha_2_behavior_script",
+      "opcode": 30,
+      "node": 377262,
+      "frame": 377058
+    },
+    {
+      "offset": 8166,
+      "owner": "world_object_secdroid_alpha_2_behavior_script",
+      "opcode": 30,
+      "node": 377280,
+      "frame": 376826
+    },
+    {
+      "offset": 8200,
+      "owner": "world_object_secdroid_alpha_2_behavior_script",
+      "opcode": 30,
+      "node": 377262,
+      "frame": 377022
+    },
+    {
+      "offset": 8230,
+      "owner": "world_object_secdroid_alpha_2_behavior_script",
+      "opcode": 30,
+      "node": 377262,
+      "frame": 377070
+    },
+    {
+      "offset": 8276,
+      "owner": "world_object_secdroid_delta_2_behavior_script",
+      "opcode": 30,
+      "node": 377172,
+      "frame": 376886
+    },
+    {
+      "offset": 8350,
+      "owner": "world_object_secdroid_delta_2_behavior_script",
+      "opcode": 30,
+      "node": 377172,
+      "frame": 376846
+    },
+    {
+      "offset": 8436,
+      "owner": "world_object_secdroid_delta_1_behavior_script",
+      "opcode": 30,
+      "node": 377136,
+      "frame": 376846
+    },
+    {
+      "offset": 8510,
+      "owner": "world_object_secdroid_delta_1_behavior_script",
+      "opcode": 30,
+      "node": 377136,
+      "frame": 376886
+    }
+  ],
+  "related_routines": [
+    "initialize_player_and_fixed_animation_nodes",
+    "start_diabetic_attachment_animation",
+    "start_feedback_audio_sequence",
+    "update_world_object_interactions",
+    "world_object_command_set_node_for_flag3_clear",
+    "world_object_command_set_node_for_flag3_set",
+    "world_object_command_set_node_if_flag3_clear",
+    "world_object_command_set_node_sequence_for_flag3_clear",
+    "world_object_command_set_node_sequence_for_flag3_set",
+    "world_object_command_set_node_sequence_if_flag3_clear",
+    "world_object_command_toggle_node_for_flag3_clear",
+    "world_object_command_toggle_node_for_flag3_set"
+  ],
+  "code_changes": {
+    "removed": [
+      "bclr.b #0,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #0,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #0,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #0,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #0,WorldPositionStateNode_mode_flags(a0)",
+      "cmp.w #$2C,d0",
+      "lea.l world_position_descriptor_sequence_ptrs_frame_ptr_5.l,a3",
+      "lea.l world_position_descriptor_sequence_ptrs_frame_ptr_19.l,a3",
+      "move.l a3,$0006(a5)",
+      "move.l a3,$0006(a5)",
+      "bclr.b #0,$000A(a5)",
+      "bclr.b #0,$000A(a5)",
+      "bset.b #2,$000A(a5)",
+      "bset.b #2,$000A(a5)",
+      "clr.w $0010(a5)",
+      "clr.w $0010(a5)",
+      "lea.l world_position_descriptor_sequence_ptrs_frame_ptr_12.l,a3",
+      "lea.l world_position_descriptor_sequence_ptrs_frame_ptr_26.l,a3",
+      "move.w (a1)+,world_position_state_record_world_x_offset(a4)",
+      "move.w (a1),world_position_state_record_world_y_offset(a4)",
+      "move.w (a2)+,world_position_state_record_world_x_offset(a4)",
+      "move.w (a2),world_position_state_record_world_y_offset(a4)",
+      "move.l $4(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)",
+      "move.w $4(a2,d0.w),world_position_state_record_world_x_offset(a4)",
+      "move.w $6(a2,d0.w),world_position_state_record_world_y_offset(a4)"
+    ],
+    "added": [
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)",
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a0)",
+      "cmp.w #WORLD_PROXIMITY_ANIMATION_DISTANCE,d0",
+      "lea.l world_proximity_near_sequence_0_held.l,a3",
+      "lea.l world_proximity_near_sequence_1_held.l,a3",
+      "move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)",
+      "move.l a3,WorldPositionStateNode_frame_sequence_ptr(a5)",
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)",
+      "bclr.b #ANIM_MODE_HOLD_HEADER_BIT,WorldPositionStateNode_mode_flags(a5)",
+      "bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)",
+      "bset.b #ANIM_MODE_HOLD_AT_END_BIT,WorldPositionStateNode_mode_flags(a5)",
+      "clr.w WorldPositionStateNode_frame_index_and_phase(a5)",
+      "clr.w WorldPositionStateNode_frame_index_and_phase(a5)",
+      "lea.l world_proximity_far_sequence_0_held.l,a3",
+      "lea.l world_proximity_far_sequence_1_held.l,a3",
+      "move.w (a1)+,world_position_state_record_world_x_offset(a4)\t; operand 1: WorldPositionXYOffset_x_offset at (a1)+",
+      "move.w (a1),world_position_state_record_world_y_offset(a4)\t; operand 1: WorldPositionXYOffset_y_offset at (a1)",
+      "move.w (a2)+,world_position_state_record_world_x_offset(a4)\t; operand 1: WorldPositionXYOffset_x_offset at (a2)+",
+      "move.w (a2),world_position_state_record_world_y_offset(a4)\t; operand 1: WorldPositionXYOffset_y_offset at (a2)",
+      "move.l ANIM_ACTIVE_FRAME_OFFSET(a1,d0.w),world_position_state_record_current_geometry_ptr.w(a4)",
+      "move.w ANIM_ACTIVE_X_OFFSET(a2,d0.w),world_position_state_record_world_x_offset(a4)",
+      "move.w ANIM_ACTIVE_Y_OFFSET(a2,d0.w),world_position_state_record_world_y_offset(a4)"
+    ]
+  },
+  "exceptions": [
+    {
+      "source_start": 299428,
+      "source_end": 299484,
+      "reason": "14 typed frame pointers have no established sequence consumer/count; preserved as one unassigned array."
+    },
+    {
+      "offset_in_basic_node": 11,
+      "reason": "Byte remains an explicit unknown gap in the 18-byte node; no padding/flag meaning inferred."
+    },
+    {
+      "reason": "Flag 5 selects a proximity variant; no physical facing/direction name is established."
+    },
+    {
+      "reason": "No initialized chain or XY instance exists in the 89-node population. Guarded consumer semantics are documented/tested; actual gameplay producers and scheduling remain unestablished."
+    },
+    {
+      "reason": "Known count/sequence pairs fit their recovered spans. The engine performs no general allocation-bound check, and arbitrary later mutation/shared-node lifetime is outside this inventory."
+    }
+  ],
+  "assets": {
+    "count": 86,
+    "identities_sizes_paths_and_sha256": "unchanged from baseline"
+  },
+  "tests": {
+    "framework": {
+      "passed": 165,
+      "log_summary": "165 passed in 1.27s"
+    },
+    "pandora": {
+      "passed": 326,
+      "log_summary": "326 passed in 668.22s (0:11:08)"
+    },
+    "native": {
+      "passed": 816
+    }
+  },
+  "review": {
+    "accepted_actions": 202,
+    "verification_id": "ca583c74699c90514446336436ee94dbc95856e99373b8ed26b7dc42227564af",
+    "manual_and_decision_history_prefixes_preserved": true
+  }
+}

@@ -12,7 +12,149 @@ from pathlib import Path
 from .copperline_control import CopperlineError, CopperlineProcess, CopperlineTimeout
 from .direct_payload_adapter import HANDOFF_RELEASE_VALUE, load_contract
 
-MAX_SCENARIO_PHASES = 64
+# The measured Pandora ending uses577 authored stages/375 input events. Keep a finite
+# plan budget while permitting that single continuous route. Per-phase frame,
+# visit, wait and input-release limits remain unchanged.
+MAX_SCENARIO_PHASES = 768
+MAX_SCENARIO_INPUT_EVENTS = 512
+MEMORY_ACCESS_ENGINES = frozenset(
+    ["cpu", "blitter", "disk", "copper"]
+    + [f"bpl{i}" for i in range(1, 9)]
+    + [f"spr{i}" for i in range(8)]
+    + [f"aud{i}" for i in range(4)]
+)
+
+
+def validate_memory_access_watch(watch):
+    """One address/event or bounded CPU range, independent of snapshot reads."""
+    address = watch.get("address") if isinstance(watch, dict) else None
+    absolute = type(address) is int and 0 <= address <= 0xFFFFFF
+    relative = (
+        isinstance(address, dict)
+        and set(address) == {"base_register", "offset"}
+        and isinstance(address.get("base_register"), str)
+        and re.fullmatch(r"a[0-7]", address["base_register"]) is not None
+        and type(address.get("offset")) is int
+        and -0x1000000 < address["offset"] < 0x1000000
+    )
+    if (
+        not isinstance(watch, dict)
+        or set(watch) not in (
+            {"address", "access", "engine", "wait_seconds"},
+            {"address", "access", "engine", "wait_seconds", "length"},
+            {"address", "access", "engine", "wait_seconds", "length", "frames"},
+        )
+        or not (absolute or relative)
+        or watch.get("access") not in ("read", "write", "access")
+        or not isinstance(watch.get("engine"), str)
+        or watch["engine"] not in MEMORY_ACCESS_ENGINES
+        or type(watch.get("wait_seconds")) is not int
+        or not 1 <= watch["wait_seconds"] <= 120
+        or ("frames" in watch and (
+            type(watch["frames"]) is not int or not 1 <= watch["frames"] <= 600
+        ))
+        or ("length" in watch and (
+            watch["engine"] != "cpu" or type(watch["length"]) is not int
+            or not 1 <= watch["length"] <= 4096
+            or (absolute and address + watch["length"] > 0x1000000)
+        ))
+    ):
+        raise ValueError(
+            "Memory access watch requires a 24-bit integer address or a0..a7/offset binding, access "
+            "read/write/access, supported engine and wait_seconds (1..120); "
+            "optional CPU-only length (1..4096) and frames (1..600), with no address wrapping; no other fields"
+        )
+
+
+def wait_for_memory_access(client, watch, *, start_event=None):
+    """Wait for one engine-filtered access; retain backend evidence verbatim.
+
+    Only called after a canonical scenario anchor has passed identity checks.
+    The owned session has no other armed watches during this bounded operation.
+    CPU ranges use the backend's documented mmio data-access trap. No access
+    width is inferred when the backend event does not provide one.
+    """
+    validate_memory_access_watch(watch)
+    frame_window = None
+    if "frames" in watch:
+        frame = start_event.get("frame") if isinstance(start_event, dict) else None
+        if type(frame) is not int or frame < 0:
+            raise ValueError("Frame-bounded watch requires the canonical anchor frame")
+        frame_window = {"start_frame": frame, "target_frame": frame + watch["frames"]}
+    address = watch["address"]
+    if isinstance(address, dict):
+        address = client.registers()[address["base_register"]] + address["offset"]
+        if not 0 <= address <= 0xFFFFFF:
+            raise ValueError("Resolved memory access watch address exceeds 24-bit memory")
+    if "length" in watch:
+        if address + watch["length"] > 0x1000000:
+            raise ValueError("Resolved memory access watch address range exceeds 24-bit memory")
+        armed = {"kind": "mmio", "addr": address,
+                 "len": watch["length"], "access": watch["access"]}
+    else:
+        armed = {"kind": "watch", "addr": address,
+                 "access": watch["access"], "class": watch["engine"]}
+    expected_reason = "mmio" if armed["kind"] == "mmio" else "watchpoint"
+    registration = client.request("break.add", armed)
+    ident = registration["id"]
+    started = time.monotonic()
+    result = {"requested_watch": dict(watch), "armed_watch": dict(armed),
+              "registration": registration, "watch_id": ident,
+              "wait_seconds": watch["wait_seconds"], "stop_event": None}
+    if frame_window is not None:
+        result["frame_window"] = frame_window
+    try:
+        result["backend_watch_state"] = client.request("break.list")
+        state = result["backend_watch_state"]
+        breaks = state.get("breaks", []) if isinstance(state, dict) else []
+        result["filter_confirmed"] = isinstance(breaks, list) and any(
+            isinstance(b, dict) and b.get("id") == ident
+            and all(b.get(k) == v for k, v in armed.items()) for b in breaks
+        )
+        if not result["filter_confirmed"]:
+            result.update(status="not_hit", termination="watch_filter_readback_mismatch")
+        else:
+            try:
+                stop = client.run_until(
+                    {"frame": frame_window["target_frame"]} if frame_window is not None
+                    else {"seconds": 1_000_000_000}, timeout=watch["wait_seconds"]
+                )
+                result.update(
+                    status="hit" if stop.get("reason") == expected_reason else "not_hit",
+                    termination="access_observed" if stop.get("reason") == expected_reason
+                    else "unexpected_stop",
+                    stop_event=stop,
+                )
+                if frame_window is not None:
+                    position = (stop.get("access") or {}).get("position") or {}
+                    access_frame = position.get("frame", stop.get("frame"))
+                    if result["status"] == "hit" and not (
+                        type(access_frame) is int
+                        and frame_window["start_frame"] <= access_frame < frame_window["target_frame"]
+                    ):
+                        result.update(status="not_hit", termination="access_outside_frame_window")
+                    elif (stop.get("reason") == "target"
+                          and type(stop.get("frame")) is int
+                          and stop.get("frame") == frame_window["target_frame"]):
+                        result.update(status="not_hit", termination="frame_budget_completed_no_access")
+            except CopperlineTimeout as exc:
+                result.update(
+                    status="timeout", termination="deadline_interrupt",
+                    stop_event=exc.stop_event,
+                    deadline_recovery={"resume_stop": exc.stop_event,
+                                       "pause_stop": exc.pause_event},
+                )
+        result["queued_stop_notifications"] = [
+            event for event in getattr(client, "events", ())
+            if event.get("method") == "event.stopped"
+        ]
+        result["registers"] = client.registers()
+        result["elapsed_seconds"] = round(time.monotonic() - started, 3)
+        return result
+    finally:
+        # A failure to remove the watch must fail the scenario, not leave an
+        # untracked watch that could make a later access appear successful.
+        client.remove_breakpoint(ident)
 
 
 def detect_payload_execution(
@@ -92,6 +234,14 @@ def validate_memory_expectation(read):
             raise ValueError("Capture expectation must be size-matched hexadecimal bytes")
 
 
+def validate_custom_registers(custom):
+    # Copperline accepts named registers or even offsets in the custom block.
+    if (not isinstance(custom, list) or len(custom) > 16
+            or any(not ((isinstance(n, str) and re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n))
+                        or (type(n) is int and 0 <= n < 0x200 and n % 2 == 0)) for n in custom)):
+        raise ValueError("Capture requires at most 16 custom registers by name or even offset below 0x200")
+
+
 def capture_scenario_state(client, capture):
     if not isinstance(capture, dict):
         raise ValueError("Scenario capture must be an object")
@@ -159,15 +309,19 @@ def capture_scenario_state(client, capture):
                     a & m == e & m for a, e, m in zip(actual, expected, mask))}
     result = {"registers": {n: f"0x{regs[n]:08x}" for n in names}, "memory_reads": output}
     custom = capture.get("custom_registers", [])
-    if (not isinstance(custom, list) or len(custom) > 16
-            or any(not isinstance(n, str) or not re.fullmatch(r"[A-Z][A-Z0-9]{1,31}", n) for n in custom)):
-        raise ValueError("Capture requires at most 16 named custom registers")
+    validate_custom_registers(custom)
     if custom:
-        result["custom_registers"] = {name: client.request("custom.read", {"reg": name}) for name in custom}
+        result["custom_registers"] = {}
+        for name in custom:
+            key = name if isinstance(name, str) else f"0x{name:03x}"
+            try:
+                result["custom_registers"][key] = client.request("custom.read", {"reg": name})
+            except CopperlineError as exc:
+                raise CopperlineError(f"Custom register capture {key} failed: {exc}") from None
     return result
 
 
-def wait_for_pc(client, address, seconds):
+def wait_for_pc(client, address, seconds, *, frame_limit=None):
     if (
         type(address) is not int
         or not 0 <= address <= 0xFFFFFF
@@ -181,14 +335,22 @@ def wait_for_pc(client, address, seconds):
     ident = client.add_breakpoint(address)
     try:
         try:
-            stop = client.run_until({"pc": address}, timeout=seconds)
+            stop = client.run_until(
+                {"frame": frame_limit} if frame_limit is not None else {"pc": address},
+                timeout=seconds,
+            )
             regs = client.registers()
             hit = (
                 stop.get("reason") in ("target", "breakpoint") and regs["pc"] == address
             )
+            if frame_limit is not None and type(stop.get("frame")) is int and stop["frame"] >= frame_limit:
+                hit = False
             status, termination = (
                 ("hit", "breakpoint_hit") if hit else ("not_hit", "unexpected_stop")
             )
+            if (not hit and frame_limit is not None and stop.get("reason") == "target"
+                    and stop.get("frame") == frame_limit):
+                termination = "frame_budget_exhausted"
         except CopperlineTimeout:
             regs = client.registers()
             stop, status, termination = (
@@ -201,6 +363,7 @@ def wait_for_pc(client, address, seconds):
             "status": status,
             "termination": termination,
             "stop_reason": "breakpoint-hit" if status == "hit" else stop.get("reason"),
+            "stop_event": stop if status != "timeout" else None,
             "pc": f"0x{regs['pc']:08x}",
             "sp": f"0x{regs['sp']:08x}",
             "stack_return_address": None,
@@ -357,14 +520,37 @@ def prepare_materialization(client, contract, payload_path, seconds):
     return boundary | {"materialization": report}
 
 
+def validate_phase_occurrences(phase):
+    """Slow semantic goals may poll longer, within an explicit frame bound."""
+    value = phase.get("occurrences", 1)
+    limit = 1024 if phase.get("until_memory") is not None and "max_frames" in phase else 64
+    if type(value) is not int or not 1 <= value <= limit:
+        raise ValueError(f"Scenario occurrences must be an integer from 1 to {limit}")
+    return value
+
+
 def _run_scenario_phase(
-    client, phase, payload_path, symbols, function, *, depart_current=False
+    client, phase, payload_path, symbols, function, *, depart_current=False, trace_directory=None,
+    start_event=None,
 ):
     address, seconds = phase.get("breakpoint_address"), phase.get("wait_seconds")
     occurrences = phase.get("occurrences", 1)
     capture_first = phase.get("capture_first", False)
-    if type(occurrences) is not int or not 1 <= occurrences <= 64:
-        raise ValueError("Scenario occurrences must be an integer from 1 to 64")
+    goal = phase.get("until_memory")
+    if goal is not None:
+        validate_memory_goal(goal)
+        if "max_frames" not in phase or "occurrences" not in phase:
+            raise ValueError("Memory goal requires explicit frame and visit budgets")
+    if "memory_access_watch" in phase:
+        validate_memory_access_watch(phase["memory_access_watch"])
+        if not isinstance(phase.get("stable_key"), str):
+            raise ValueError("Memory access watch requires a canonical source-row phase")
+    if "chip_bus_trace" in phase:
+        from .copperline_bus_trace import validate_bus_trace
+        validate_bus_trace(phase['chip_bus_trace'])
+        if not isinstance(phase.get('stable_key'), str) or 'memory_access_watch' in phase:
+            raise ValueError('Chip-bus trace requires its own canonical source-row phase')
+    validate_phase_occurrences(phase)
     if type(capture_first) is not bool:
         raise ValueError("Scenario capture_first must be boolean")
     counted = "occurrences" in phase or capture_first or depart_current
@@ -373,6 +559,13 @@ def _run_scenario_phase(
     if type(seconds) not in (int, float) or not 0 < seconds <= 120:
         raise ValueError("Scenario phase wait must be from 0 to 120 seconds")
     deadline = time.monotonic() + seconds
+    frame_limit = None
+    if "max_frames" in phase:
+        validate_phase_frame_budget(phase["max_frames"])
+        if (not isinstance(start_event, dict) or type(start_event.get("frame")) is not int
+                or start_event["frame"] < 0):
+            raise ValueError("Phase frame budget requires a preceding stopped-frame anchor")
+        frame_limit = start_event["frame"] + phase["max_frames"]
     item = {
         "name": phase["name"],
         "stable_key": phase.get("stable_key"),
@@ -410,8 +603,13 @@ def _run_scenario_phase(
         if remaining <= 0:
             item.update(status="timeout", termination="phase_deadline")
             break
-        item.update(wait_for_pc(client, address, remaining if counted else seconds))
+        kwargs = {"frame_limit": frame_limit} if frame_limit is not None else {}
+        item.update(wait_for_pc(client, address, remaining if counted else seconds, **kwargs))
         if item["status"] != "hit":
+            if frame_limit is not None:
+                item["diagnostic_capture"] = capture_scenario_state(client, phase.get("capture", {}))
+                item["diagnostic_payload"] = payload_at_pc(client, payload_path, client.registers()["pc"])
+                item["frame_limit"] = frame_limit
             break
         detection = payload_at_pc(client, payload_path, address, runtime_view=phase.get("runtime_view"))
         item["payload"] = detection
@@ -447,10 +645,59 @@ def _run_scenario_phase(
             break
         if capture_first and item["occurrences_observed"] == 1:
             item["first_capture"] = item["capture"]
+        if counted and time.monotonic() > deadline:
+            item.update(status="timeout", termination="phase_deadline")
+            break
+        if goal is not None:
+            goal_capture = capture_scenario_state(client, {"memory_reads": [goal]})
+            item["goal_capture"] = goal_capture
+            if time.monotonic() > deadline:
+                item.update(status="timeout", termination="phase_deadline")
+                break
+            if goal_capture["memory_reads"][0]["expectation"]["matched"]:
+                break
+            item.update(status="not_hit", termination="goal_not_reached")
         item["resolved_function"] = function
         if counted and time.monotonic() > deadline:
             item.update(status="timeout", termination="phase_deadline")
             break
+    if item.get("status") == "hit" and "memory_access_watch" in phase:
+        watch = wait_for_memory_access(
+            client, phase["memory_access_watch"], start_event=item.get("stop_event")
+        )
+        item["memory_access_watch"] = watch
+        watch["payload_at_stop"] = payload_at_pc(
+            client, payload_path, watch["registers"]["pc"],
+        )
+        access = (watch.get("stop_event") or {}).get("access")
+        if (watch["status"] == "hit" and phase["memory_access_watch"]["engine"] == "cpu"
+                and isinstance(access, dict) and type(access.get("pc")) is int
+                and 0 <= access["pc"] <= 0xFFFFFF):
+            # The paused PC can follow the accessing instruction. Verify the
+            # event's instruction address independently rather than conflating them.
+            watch["payload_at_access"] = payload_at_pc(client, payload_path, access["pc"])
+        watch["capture"] = capture_scenario_state(client, phase.get("capture", {}))
+        if watch["status"] != "hit":
+            item.update(status=watch["status"], termination=watch["termination"])
+        elif any(not r.get("expectation", {}).get("matched", True)
+                 for r in watch["capture"]["memory_reads"]):
+            item.update(status="not_hit", termination="watch_capture_expectation_mismatch")
+        item["stop_reason"] = (
+            watch["stop_event"].get("reason") if watch["stop_event"] else watch["termination"]
+        )
+    if item.get('status') == 'hit' and 'chip_bus_trace' in phase:
+        from .copperline_bus_trace import capture_bus_trace
+        trace = capture_bus_trace(client, phase['chip_bus_trace'], item.get('stop_event'), trace_directory)
+        item['chip_bus_trace'] = trace
+        trace['registers'] = client.registers()
+        trace['payload_at_stop'] = payload_at_pc(client, payload_path, trace['registers']['pc'])
+        trace['capture'] = capture_scenario_state(client, phase.get('capture', {}))
+        if trace['status'] != 'captured':
+            item.update(status='not_hit', termination='chip_bus_trace_'+trace['status'])
+        elif any(not r.get('expectation', {}).get('matched', True)
+                 for r in trace['capture']['memory_reads']):
+            item.update(status='not_hit', termination='trace_capture_expectation_mismatch')
+        item['stop_reason'] = (trace.get('stop_event') or {}).get('reason', trace['status'])
     if not counted:
         for key in (
             "occurrences_requested",
@@ -462,17 +709,40 @@ def _run_scenario_phase(
     return item
 
 
-def run_scenario(client, scenario, payload_path, release=None):
+def validate_phase_frame_budget(value):
+    if type(value) is not int or not 1 <= value <= 3600:
+        raise ValueError("Phase max_frames must be an integer from 1 to 3600")
+
+
+def validate_memory_goal(value):
+    if not isinstance(value, dict) or "expect_hex" not in value or "address" not in value:
+        raise ValueError("Memory goal requires an absolute capture read and expectation")
+    # Reuse exactly the capture read schema and expectation semantics.
+    from .copperline_session import validate_capture
+    validate_capture({"memory_reads": [value]})
+
+
+def phase_stop_event(item):
+    """Use the actual paused endpoint after an optional observer hook."""
+    if item is None:
+        return None
+    for name in ("chip_bus_trace", "memory_access_watch"):
+        if name in item:
+            return item[name].get("stop_event")
+    return item.get("stop_event")
+
+
+def run_scenario(client, scenario, payload_path, release=None, *, trace_directory=None):
     phases, events = scenario.get("phases"), scenario.get("input_events", [])
     if (
         not isinstance(phases, list)
         or not phases
         or len(phases) > MAX_SCENARIO_PHASES
         or not isinstance(events, list)
-        or len(events) > 64
+        or len(events) > MAX_SCENARIO_INPUT_EVENTS
     ):
         raise ValueError(
-            "Scenario requires 1..64 compiled phases and at most 64 input events"
+            f"Scenario requires 1..{MAX_SCENARIO_PHASES} compiled phases and at most {MAX_SCENARIO_INPUT_EVENTS} input events"
         )
     names = [p.get("name") for p in phases if isinstance(p, dict)]
     if (
@@ -501,6 +771,16 @@ def run_scenario(client, scenario, payload_path, release=None):
     held, result, confirmed = {1: {}, 2: {}}, [], False
     held_keys = set()
     reverse_boundary = None
+    input_trace = []
+    input_anchor = None
+    def send_input(method, arguments, *, cleanup=False):
+        row = {"method": method, "arguments": arguments, "anchor": input_anchor,
+               "cleanup": cleanup, "outcome": "uncertain"}
+        input_trace.append(row)
+        response = (client.key(arguments["rawkey"], pressed=arguments["pressed"])
+                    if method == "key" else client.joystick(**arguments))
+        row["outcome"] = "acknowledged"
+        return response
     try:
         for index, phase in enumerate(phases):
             address, transition = (
@@ -529,8 +809,11 @@ def run_scenario(client, scenario, payload_path, release=None):
                 symbols,
                 function,
                 depart_current=depart_current,
+                trace_directory=trace_directory,
+                start_event=phase_stop_event(previous),
             )
             result.append(item)
+            input_anchor = {"phase": phase["name"], "stop": phase_stop_event(item)}
             if item["status"] != "hit":
                 break
             confirmed = True
@@ -550,28 +833,29 @@ def run_scenario(client, scenario, payload_path, release=None):
                     next_held[port]["red" if key == "fire" else key] = True
             for port, state in next_held.items():
                 if state != held[port]:
-                    client.joystick(port=port, **state)
+                    send_input("joystick", {"port": port, **state})
             held = next_held
             for key in sorted(held_keys - next_keys):
-                client.key(key, pressed=False)
+                send_input("key", {"rawkey": key, "pressed": False})
                 held_keys.remove(key)
             for key in sorted(next_keys - held_keys):
                 # Track before sending: a lost response can still have pressed it.
                 held_keys.add(key)
-                client.key(key, pressed=True)
+                send_input("key", {"rawkey": key, "pressed": True})
         return {
             "identifier": scenario.get("identifier"),
             "symbols": symbols,
             "phases": result,
             "reverse_boundary": reverse_boundary,
+            "input_trace": input_trace,
         }
     finally:
         for key in sorted(held_keys):
             with suppress(CopperlineError):
-                client.key(key, pressed=False)
+                send_input("key", {"rawkey": key, "pressed": False}, cleanup=True)
         for port in held:
             with suppress(CopperlineError):
-                client.joystick(port=port)
+                send_input("joystick", {"port": port}, cleanup=True)
 
 
 def ndk_field_offset(ndk: dict[str, object], struct_name: str, field_name: str) -> int:
@@ -848,6 +1132,7 @@ def observe(session):
                 scenario,
                 session.target_payload_path,
                 release,
+                trace_directory=getattr(session, 'state_directory', None),
             )
             reverse_boundary = scenario_result["reverse_boundary"]
             if scenario_result["phases"]:

@@ -1,0 +1,716 @@
+{
+  "schema_version": 1,
+  "base_commit": "1c20e9ea4da8ced1d931ad99073cda6a3ac55ef1",
+  "family": "primary_audio_sample_bank_constructor_and_mutable_waveform",
+  "original_size": 376832,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "source_scope": {
+    "record_stream_start": 322264,
+    "record_stream_end": 348170,
+    "record_stream_bytes": 25906,
+    "header_bytes": 66,
+    "payload_bytes": 25840,
+    "header_count": 11,
+    "record_header_stride": "Variable: six-byte header followed by its declared payload; not a contiguous header array.",
+    "runtime_metadata_start": 319152,
+    "runtime_metadata_end": 319284,
+    "runtime_descriptor_count": 11,
+    "runtime_descriptor_stride": 12,
+    "silence_start": 348170,
+    "silence_end": 348234
+  },
+  "samples": [
+    {
+      "index": 0,
+      "header_start": 322264,
+      "header_end": 322270,
+      "payload_end": 327372,
+      "payload_bytes": 5102,
+      "period_divisor": 8450,
+      "new_purpose_bytes": 5108
+    },
+    {
+      "index": 1,
+      "header_start": 327372,
+      "header_end": 327378,
+      "payload_end": 330526,
+      "payload_bytes": 3148,
+      "period_divisor": 8450,
+      "new_purpose_bytes": 3154
+    },
+    {
+      "index": 2,
+      "header_start": 330526,
+      "header_end": 330532,
+      "payload_end": 335166,
+      "payload_bytes": 4634,
+      "period_divisor": 8450,
+      "new_purpose_bytes": 4640
+    },
+    {
+      "index": 3,
+      "header_start": 335166,
+      "header_end": 335172,
+      "payload_end": 340672,
+      "payload_bytes": 5500,
+      "period_divisor": 18900,
+      "new_purpose_bytes": 5506
+    },
+    {
+      "index": 4,
+      "header_start": 340672,
+      "header_end": 340678,
+      "payload_end": 345978,
+      "payload_bytes": 5300,
+      "period_divisor": 13500,
+      "new_purpose_bytes": 5306
+    },
+    {
+      "index": 5,
+      "header_start": 345978,
+      "header_end": 345984,
+      "payload_end": 347984,
+      "payload_bytes": 2000,
+      "period_divisor": 16100,
+      "new_purpose_bytes": 2006
+    },
+    {
+      "index": 6,
+      "header_start": 347984,
+      "header_end": 347990,
+      "payload_end": 348054,
+      "payload_bytes": 64,
+      "period_divisor": 8500,
+      "new_purpose_bytes": 70
+    },
+    {
+      "index": 7,
+      "header_start": 348054,
+      "header_end": 348060,
+      "payload_end": 348124,
+      "payload_bytes": 64,
+      "period_divisor": 8500,
+      "new_purpose_bytes": 6
+    },
+    {
+      "index": 8,
+      "header_start": 348124,
+      "header_end": 348130,
+      "payload_end": 348146,
+      "payload_bytes": 16,
+      "period_divisor": 8500,
+      "new_purpose_bytes": 22
+    },
+    {
+      "index": 9,
+      "header_start": 348146,
+      "header_end": 348152,
+      "payload_end": 348160,
+      "payload_bytes": 8,
+      "period_divisor": 8500,
+      "new_purpose_bytes": 14
+    },
+    {
+      "index": 10,
+      "header_start": 348160,
+      "header_end": 348166,
+      "payload_end": 348170,
+      "payload_bytes": 4,
+      "period_divisor": 8500,
+      "new_purpose_bytes": 10
+    }
+  ],
+  "shared_header_schema": {
+    "name": "audio_sample_header",
+    "size": 6,
+    "fields": [
+      {
+        "name": "byte_length",
+        "type": "long",
+        "offset": 0,
+        "size": 4,
+        "available_since": "1.0",
+        "struct": null,
+        "pointer_struct": null,
+        "named_base": null,
+        "value_kind": "scalar",
+        "pointer_address_domain": null,
+        "pointer_symbol_group": null
+      },
+      {
+        "name": "period_divisor",
+        "type": "word",
+        "offset": 4,
+        "size": 2,
+        "available_since": "1.0",
+        "struct": null,
+        "pointer_struct": null,
+        "named_base": null,
+        "value_kind": "scalar",
+        "pointer_address_domain": null,
+        "pointer_symbol_group": null
+      }
+    ],
+    "seed_origin": "manual_analysis",
+    "review_status": "seeded",
+    "citation": "manual_action_log:audio_sample_header",
+    "source": "manual_action_log",
+    "base_offset": 0,
+    "base_struct": null,
+    "available_since": "1.0"
+  },
+  "new_native_header_field_uses": [
+    {
+      "field_name": "byte_length",
+      "field_offset": 0,
+      "field_size": 4,
+      "operand_index": 0,
+      "owner_struct_name": "audio_sample_header",
+      "provenance": {
+        "kind": 11,
+        "section_index": 0,
+        "source_offset": 320394
+      },
+      "root_struct_name": "audio_sample_header",
+      "section_index": 0,
+      "source_offset": 320394
+    },
+    {
+      "field_name": "period_divisor",
+      "field_offset": 4,
+      "field_size": 2,
+      "operand_index": 0,
+      "owner_struct_name": "audio_sample_header",
+      "provenance": {
+        "kind": 11,
+        "section_index": 0,
+        "source_offset": 320394
+      },
+      "root_struct_name": "audio_sample_header",
+      "section_index": 0,
+      "source_offset": 320396
+    }
+  ],
+  "stored_pointer_scope": {
+    "sample_pointer_population": 11,
+    "source_pointer_outcome": "all NULL",
+    "native_report": {
+      "exceptions_only": false,
+      "has_more": false,
+      "items": [
+        {
+          "end_offset": 319156,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319152,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319168,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_1",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319164,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319180,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_2",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319176,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319192,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_3",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319188,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319204,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_4",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319200,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319216,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_5",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319212,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319228,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_6",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319224,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319240,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_7",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319236,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319252,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_8",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319248,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319264,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_9",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319260,
+          "struct_name": "audio_sample_metadata"
+        },
+        {
+          "end_offset": 319276,
+          "field_name": "sample_ptr",
+          "name": "audio_sample_metadata_sample_ptr_10",
+          "resolution": {
+            "addend": 0,
+            "address_domain": "mapped_source",
+            "encoded_value": 0,
+            "outcome": "null",
+            "reason": "null_pointer",
+            "symbol": "",
+            "symbol_group": ""
+          },
+          "section_index": 0,
+          "source_offset": 319272,
+          "struct_name": "audio_sample_metadata"
+        }
+      ],
+      "limit": 20,
+      "next_cursor": null,
+      "offset": 0,
+      "outcomes": {
+        "null": 11
+      },
+      "population_total": 11,
+      "reasons": {
+        "null_pointer": 11
+      },
+      "response_byte_budget": 65536,
+      "revision": "289742a149fd4f54dc1c5b1f766e071a900ae538f65d12ba10bad0d1f1401d7a",
+      "scope": "canonical bound pointer fields and native render-plan outcomes",
+      "selection": "Canonical bound fields with explicit pointer semantics; scalar candidates excluded.",
+      "subject_revision": "d9b048f8437cee92eb27fd80d4a9335fd746bcc822c2617dbd3feb6486d794f8",
+      "total": 11,
+      "unknowns": [
+        "Static encoded fields; no claim about runtime mutations, pointee extent, or lifetime.",
+        "Native symbolic resolution establishes an expression, not semantic evidence for the type."
+      ]
+    },
+    "limits": "The constructor supplies runtime pointers. No static source pointer values or references to individual computed payloads were fabricated."
+  },
+  "source_changes": {
+    "constructor": "initialize_audio_sample_bank_once",
+    "named_constants": [
+      [
+        "AUDIO_SAMPLE_LAST_INDEX",
+        10,
+        "DBF terminal index for the eleven original sample records."
+      ],
+      [
+        "AUDIO_PERIOD_DIVIDEND",
+        3579545,
+        "Original DIVU period numerator; no video-profile-derived clock assumption."
+      ],
+      [
+        "AUDIO_SILENCE_BUFFER_BYTES",
+        64,
+        "Bytes between the primary bank end/silence pointer and secondary waveform base."
+      ],
+      [
+        "AUDIO_WAVE_HALF_LAST_WORD",
+        15,
+        "Sixteen WORD writes per initialized 32-byte waveform half."
+      ],
+      [
+        "AUDIO_WAVE_LOW_PCM_PAIR",
+        49344,
+        "Two signed PCM bytes of -64 used by the initializer and waveform writer."
+      ],
+      [
+        "AUDIO_WAVE_HIGH_PCM_PAIR",
+        16191,
+        "Two signed PCM bytes of +63 written at runtime; stored sample7 initially has +62."
+      ],
+      [
+        "AUDIO_MUTABLE_WAVE_DMA_WORDS",
+        32,
+        "The mutable 64-byte waveform DMA length in WORDs."
+      ],
+      [
+        "AUDIO_WAVE_LOWER_TURN_BYTE_OFFSET",
+        32,
+        "Decreasing-writer turn test and initialized word-write byte offset."
+      ],
+      [
+        "AUDIO_WAVE_UPPER_TURN_BYTE_OFFSET",
+        44,
+        "Increasing-writer turn test; not a global allocation/index bound."
+      ]
+    ],
+    "symbolic_immediate_sites": 14,
+    "cursor_units": "WORD variable stores a BYTE offset at which a WORD is written. Both the sparse base view and data symbol now say word_write_byte_offset.",
+    "short_waveforms": [
+      {
+        "name": "audio_square_wave_16_bytes",
+        "source_sample_index": 8,
+        "bytes": 16,
+        "negative_half_value": -64,
+        "positive_half_value": 61,
+        "half_bytes": 8
+      },
+      {
+        "name": "audio_square_wave_8_bytes",
+        "source_sample_index": 9,
+        "bytes": 8,
+        "negative_half_value": -64,
+        "positive_half_value": 61,
+        "half_bytes": 4
+      },
+      {
+        "name": "audio_square_wave_4_bytes",
+        "source_sample_index": 10,
+        "bytes": 4,
+        "negative_half_value": -64,
+        "positive_half_value": 61,
+        "half_bytes": 2
+      }
+    ],
+    "mutable_sample_7": "Original stored C0/3E halves remain unchanged. Existing guarded initializer writes C0/3F halves and known updates alter WORDs at a byte offset. Its previously reviewed64-byte purpose claim is retained, not counted twice.",
+    "named_internal_labels": 4
+  },
+  "current_inventory": {
+    "custom_structs": 69,
+    "entry_register_seeds": 106,
+    "declared_owners": 557,
+    "target_equates": 735
+  },
+  "purpose_addition": {
+    "assessments": 16,
+    "bytes": 26218,
+    "prior_reviewed_sample7_bytes_excluded": 64,
+    "scope": "Stored format, metadata staging and local constructor/writer purpose. Not complete sound identity, actual playback, all callers/writers, bounds, lifetime or allocation proof."
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "75e097551ee0eca7a800788ca9faaadaab2ab4d629e224e0e76ade863a76ffb2",
+    "revision": "eb54230e04b41de89d44ddacb52c2f48f70b60bd4008067ce09b5ede5f3c2973",
+    "source_package_sha256": "e507bb0befeeacbbbe6cf6cdc64cc8feac4af3731ec1527b241c9d73fc64e4c3",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/e507bb0befeeacbbbe6cf6cdc64cc8feac4af3731ec1527b241c9d73fc64e4c3/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "bd3eaee36e865893e6591a352e25327928d8fe1393dabc6a1302c0306f7b1ac9",
+    "status": "exact",
+    "subject_revision": "b0fdfd208d33edf8c89391c93ef4b7303c654d46dbd1a95acd7ecfb0dc3550a6",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "review": {
+    "accepted_actions": 95,
+    "revision": "7c4dca3247f72a70f4ddb65c1bd74e01e25de562240cde9d2ca5f634aafbdf0c",
+    "subject_revision": "b0fdfd208d33edf8c89391c93ef4b7303c654d46dbd1a95acd7ecfb0dc3550a6",
+    "action_ids": [
+      "manual-0d328a2513474e6fbd70b4fb3ac8180f",
+      "manual-3b871eeb88364672b1fe03d3aa70c4d0",
+      "manual-bc9879bde16642c1aec52a71e925bacb",
+      "manual-90e903118f764bdbb374ef268c1afe3c",
+      "manual-e542070936224720935a8226d20920a8",
+      "manual-c0c4216b050a46a7b68c4523eed76345",
+      "manual-7ec32e5c033c46aa9c58e7014163f334",
+      "manual-abdf0855f66342f8b40ffed2fa14b81c",
+      "manual-21fdb0f065d04a4a86a24eb873d0e918",
+      "manual-451af5626a85428dbe11818b6f164abb",
+      "manual-31cd09ad220041b4abbbb1a4fbdb9fe2",
+      "manual-b91b40ba0073465a82b9fd3e92467c3e",
+      "manual-5e190fe14d274780a429379fd71a7db3",
+      "manual-4017e766ae034993856dc21a1568372d",
+      "manual-659c3dd318374e15beb512c6666ef6a8",
+      "manual-975b04c666be4b39b7f3906f7b44c70e",
+      "manual-4358217a505c43959c6a0c8f3e4dc405",
+      "manual-8d3e560db74f46239d6eb6419abb759e",
+      "manual-24fc60b2687346799b33cf787d6c880e",
+      "manual-2c1a2b2e8b564456aaa78a931c31d057",
+      "manual-0dc9943415224e0cb0de43112bf8231f",
+      "manual-c07132cdd0cd40ea9cf466b93d2e0c24",
+      "manual-9bd1704c3c6c40e09abdd236d7af985e",
+      "manual-ddf55dd1b7dc4c1fadf0ec3c56c4dabb",
+      "manual-8635d78e2a414ca6af24037b48d1d85f",
+      "manual-be511d5e1a21471dbdb86ece3cba5703",
+      "manual-8237f249062d43f08eccd167b81103d0",
+      "manual-d6ee53faae7646558c5624eaf6a4f6a4",
+      "manual-5b1a37ac7b024db9b952ad63c956a2b7",
+      "manual-09c3f197f78a48038223aa36bc4a30a8",
+      "manual-b669089d414f4e19b08fcca875e1d0fe",
+      "manual-e4063caee53f4bfd9160771e851fe606",
+      "manual-aa48e06084ad4350a8c40e1960b5fde0",
+      "manual-e3ab8702b2704f07bac0fb59b1792f83",
+      "manual-ea9ed1ba97b6410ab6b8b820b373d8b9",
+      "manual-35d5bd538f5d4663b2f2dea9b394d886",
+      "manual-a15f14c2b9a748eb8968524efe0daac7",
+      "manual-2fd233616fa0412baaa99c26583244a0",
+      "manual-792fb7e897974d55b55ba55f6006576b",
+      "manual-54e3759d89c14db8a30809b4ccf47c95",
+      "manual-422fa556c47544b785cbf328c8599f42",
+      "manual-106a81f084ce4ff4afd71d88879171c0",
+      "manual-a4fe97398725448a9659986019fb11f0",
+      "manual-a9ccd17adc904affbe9f9d95e5001fc9",
+      "manual-8bf79d676ba64645a04ad2c107459b6b",
+      "manual-5ebc4c72fb9a40e685b37470a249e1e4",
+      "manual-cdaba2fd2da946db8d4f3652ef7f7d4c",
+      "manual-713ee09b98c34c0083e2e4aabe156f49",
+      "manual-48e5904449594359b321c46a388f0023",
+      "manual-ed730af0b39042039d2936fb0c06eec7",
+      "manual-a286885eaaa14fcea76a974011285a5a",
+      "manual-73a0d1fe7a3d45fbb0d73bbb2b9074aa",
+      "manual-8b56cbcd4509475781e0561e628f7006",
+      "manual-98065f9831904a61ae29b753460b9121",
+      "manual-c9071640d474448c8fd71b18553f9739",
+      "manual-1d43eb384811458e8a378f740f272010",
+      "manual-d870113e0ae440a086e56cd0798c7015",
+      "manual-4c8c2c9e48b94984a1643e35e7ac53a8",
+      "manual-a3027bf512334e298adcacfb43745082",
+      "manual-5b4af5e0339d43138a0bcda3d6ff60ac",
+      "manual-d9e15db76c334ec09218496b9081f412",
+      "manual-6fc53b6b6bf84e43921bfc2da0ca716b",
+      "manual-fe738229569b4bf899492a0de609f8e1",
+      "manual-4fb5321c9d2c4cd4983b72a0fcd447e3",
+      "manual-de50275be0a84d26b25425720e94631f",
+      "manual-0b162a659d8a4fa39b56a151345325bd",
+      "manual-383f3a490cac4a839b3c0ebb4a21726f",
+      "manual-b4e698f51a734d42a1e752d6e7808c19",
+      "manual-01fe8d7edf3c43d8a682e3eedefb5f1b",
+      "manual-23e1838ce8af4b2db81c088b44e821f5",
+      "manual-bf59a4c151ac48fa8293e117dd484a68",
+      "manual-ba63581f8bba4e1886f463bf68f8ef36",
+      "manual-d695248ed9384cd980fdcef09bfb3bd8",
+      "manual-30c00134cb624f2d80ff1e4f44b2c2ee",
+      "manual-35acba43dd984ae296a4a0d81f08c822",
+      "manual-e2537bcb01254b0dac82963ddbd4b29e",
+      "manual-281da4e738884275aab1f9b8e4d9efe9",
+      "manual-92ca9a8ec9c54e0488a81b74715d66c5",
+      "manual-1bca50375a9f4e20a0c04e4e717b965a",
+      "manual-d35999bd4b1a44708f62dc9705c190c4",
+      "manual-4c8225ca2978471da4ad3e296a6a2072",
+      "manual-4d5406b9450c4060b1001c8914073947",
+      "manual-c179e31bc7f442ddb9f87c0d6e56a0dd",
+      "manual-bc6f174d2a244f0c99b238237de12c63",
+      "manual-30e342658f27421fa3fc2daebecd5da5",
+      "manual-69790b73a53846ff8ed6e0f02fda46fe",
+      "manual-8a3bf05397844d4094f24145dc169d1f",
+      "manual-3b4b04f8152441a2be32888af6ea1de6",
+      "manual-2ed6db1db0aa4b289fd7ecc1f7034812",
+      "manual-923b413ca5c5460c9d1b19dfbde4c8b4",
+      "manual-1915e8ae9c57438690a99e6dc84dff2a",
+      "manual-cc3e6ea60e644463bdc65bd231e17abe",
+      "manual-7a11b3abbbad43fa982df4d5da4865ea",
+      "manual-560333dd45634ba5a732c740b237240b",
+      "manual-8005d961b0d04560ac723b554ff1222f"
+    ]
+  },
+  "history_prefixes": {
+    "manual_actions.jsonl": {
+      "prefix_sha256": "f2f609c01fad10475d5d87c269239ceaf48a5f899cb68d7aa57d4d3aa8a63239",
+      "prefix_bytes": 14462253,
+      "appended_records": 95
+    },
+    "decision_journal.jsonl": {
+      "prefix_sha256": "a39baaf23a5b9695f59c66f272b20daa55d38fb0fe59d31a2e4ec73784261e28",
+      "prefix_bytes": 16165227,
+      "appended_records": 95
+    }
+  },
+  "package_preservation": {
+    "asset_count": 126,
+    "sdk_include_count": 16,
+    "stable_identifiers_and_bytes_unchanged": true,
+    "excluded_comparison_field": "source_row_id (native projection position)"
+  },
+  "validation": {
+    "original_CPU_cases_passed": 7,
+    "hardware_readability_guard_passed": 1,
+    "tests": [
+      "tests/test_pandora_audio_global_state.py::test_sample_initializer_sets_guard_and_both_sample_bases",
+      "tests/test_pandora_primary_audio.py::test_complete_four_channel_service_uses_distinct_typed_records_and_register_banks",
+      "tests/test_pandora_primary_audio.py::test_sample_resume_uses_signed_byte_offset_but_word_length_arithmetic",
+      "tests/test_pandora_audio_dispatch_contracts.py::test_silence_handler_writes_the_selected_hardware_channel",
+      "tests/test_hardware_render_quality.py::test_pandora_retains_reviewed_hardware_rendering"
+    ],
+    "CPU_scope": "Original instructions with controlled RAM/MMIO shadows; no DMA bus or audible-output claim.",
+    "framework_changes": false
+  },
+  "parked_draw_reconciliation": {
+    "input": "runtime/observations/pandora-bank30-access-watch.json",
+    "programmed_B_source": 202030,
+    "encoded_BLTSIZE": 1922,
+    "width_words": 2,
+    "height_rows": 30,
+    "B_modulo": 12,
+    "address_envelope_end_exclusive": 202498,
+    "limit": "Configured address envelope, not observed DMA or meaningful image-content bounds. This captured30-row packet is not the modeled final bank30 12-row packet; no new bank30 classification or repeat analysis."
+  },
+  "limits": [
+    "Recorded sound/instrument identities remain unknown.",
+    "The original period dividend is named without deriving it from the configured PAL runtime profile.",
+    "Per-record header/payload extents and conditional staging do not establish exclusive allocation, immutable lifetime or every possible consumer.",
+    "Sample selector bounds, arbitrary replacement header values and all writers remain open.",
+    "No new DMA experiment or denied external source access was attempted."
+  ],
+  "accounting": {
+    "payload_classification": {
+      "code": 24260,
+      "structured_data": 340288,
+      "table": 1050,
+      "text": 4740,
+      "unknown": 6494
+    },
+    "supported_payload_purpose_before": 14305,
+    "supported_payload_purpose_after": 40523,
+    "purpose_assessments_before": 57,
+    "purpose_assessments_after": 73,
+    "generic_label_signals_before": 64,
+    "generic_label_signals_after": 50,
+    "native_field_accesses_before": {
+      "resolved_native_access_records": 967,
+      "unresolved_native_access_records": 32
+    },
+    "native_field_accesses_after": {
+      "resolved_native_access_records": 969,
+      "unresolved_native_access_records": 32
+    },
+    "function_candidates": 265,
+    "data_owners": 557,
+    "asset_chunks": 126,
+    "verification": {
+      "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "receipt_id": "75e097551ee0eca7a800788ca9faaadaab2ab4d629e224e0e76ade863a76ffb2",
+      "semantic_proof": false,
+      "source_bound": true,
+      "status": "exact_original_layout"
+    },
+    "unresolved_structure_identity_set_unchanged": true
+  },
+  "accounting_report_sha256": "79ecd549469c8139e4013039d345ae9e243221c099a13aae27089b15c9541e6e"
+}

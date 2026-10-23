@@ -191,6 +191,18 @@ def create_server(client: RestorationClient):
                     destination=destination, memory_class=memory_class, verification_id=verification_id)
 
     @server.tool(annotations=write, structured_output=True)
+    def restoration_behaviour(project: str, expected_revision: str, contract_id: str,
+                              manifest: str | None = None, capture: str | None = None,
+                              previous_receipt_id: str | None = None) -> dict[str, object]:
+        """Evaluate one canonical bounded contract; persist evidence, not acceptance.
+
+        Paths are constrained by the shared service to owned local evidence.
+        A prior receipt is admitted only against all current bound identities.
+        """
+        return call(project,'behaviour',expected_revision=expected_revision,contract_id=contract_id,
+                    manifest=manifest,capture=capture,previous_receipt_id=previous_receipt_id)
+
+    @server.tool(annotations=write, structured_output=True)
     def restoration_probe(
         project: str,
         expected_revision: str,

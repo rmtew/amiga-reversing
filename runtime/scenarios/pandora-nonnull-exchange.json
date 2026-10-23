@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-nonnull-exchange",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "title_menu_loop",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "ui_overlay_initialization",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "initial_proximity_context",
+      "breakpoint_stable_key": "s0:000083AE:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "entry_officer_card_transferred",
+      "breakpoint_stable_key": "s0:0004B13C:instruction",
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a5",
+          "a6",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 377682,
+            "size": 36
+          },
+          {
+            "base_register": "a6",
+            "offset": 406,
+            "size": 12
+          },
+          {
+            "base_register": "a6",
+            "offset": 558,
+            "size": 2
+          },
+          {
+            "base_register": "a6",
+            "offset": 635,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 678,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 854,
+            "size": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "nonnull_exchange_before",
+      "breakpoint_stable_key": "s0:0004B16C:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a0",
+          "a5",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 369718,
+            "size": 4
+          },
+          {
+            "address": 369752,
+            "size": 4
+          },
+          {
+            "address": 369920,
+            "size": 4
+          },
+          {
+            "address": 369966,
+            "size": 4,
+            "expect_hex": "0005a572"
+          },
+          {
+            "address": 370034,
+            "size": 18
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "base_register": "a7",
+            "offset": -16,
+            "size": 32
+          }
+        ]
+      }
+    },
+    {
+      "name": "nonnull_exchange_after",
+      "breakpoint_stable_key": "s0:0004B172:instruction",
+      "wait_seconds": 10,
+      "capture": {
+        "registers": [
+          "a0",
+          "a5",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 369718,
+            "size": 4
+          },
+          {
+            "address": 369752,
+            "size": 4
+          },
+          {
+            "address": 369920,
+            "size": 4
+          },
+          {
+            "address": 369966,
+            "size": 4,
+            "expect_hex": "0005a572"
+          },
+          {
+            "address": 370034,
+            "size": 18
+          },
+          {
+            "address": 8,
+            "size": 12
+          },
+          {
+            "base_register": "a7",
+            "offset": -16,
+            "size": 32
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_menu_loop",
+      "control": "port1 fire",
+      "release_after_phase": "ui_overlay_initialization"
+    },
+    {
+      "after_phase": "entry_officer_card_transferred",
+      "release_after_phase": "nonnull_exchange_after",
+      "control": "port1 up"
+    }
+  ]
+}

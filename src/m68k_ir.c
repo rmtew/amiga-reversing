@@ -1,5 +1,8 @@
 #include "platform_host_compat.h"
 #include "m68k_ir.h"
+#include "m68k_instruction_spec.h"
+#include "m68k_parse_util.h"
+#include "m68k_simulator.h"
 
 #include "generated/amiga_os_runtime.h"
 #include "generated/atari_st_os_runtime.h"
@@ -214,6 +217,7 @@ const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE) != 0U) return "sprite";
   if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM) != 0U)
     return "string_control_stream";
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA) != 0U) return "opaque_data";
   return NULL;
 }
 
@@ -734,6 +738,8 @@ const char *m68k_platform_address_use_shape_name(uint8_t use_shape) {
       return "execbase_literal";
     case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
       return "hardware_base_address";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY:
+      return "hardware_register_family";
     default:
       return "unknown";
   }
@@ -858,6 +864,18 @@ uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStruct
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) return 2U;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return 4U;
   return 0U;
+}
+
+/* Presentation of the decoded brief displacement is independent of the
+ * dynamic index value. It does not establish array bounds or field identity. */
+int m68k_ir_operand_brief_index_displacement(const M68kOperandIR *operand, int32_t *out_value) {
+  if (operand == NULL || operand->kind != M68K_ASM_OPERAND_EA ||
+      m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_INDEX ||
+      operand->value.ea_mode != 6U || operand->value.full_ext_base_suppress ||
+      operand->value.full_ext_index_suppress || operand->value.full_ext_base_disp_size ||
+      operand->value.full_ext_outer_disp_size || operand->value.full_ext_iis) return 0;
+  if (out_value != NULL) *out_value = (int32_t)m68k_sign_extend32(operand->value.value, 8U);
+  return 1;
 }
 
 int m68k_ir_operand_immediate_value(const M68kOperandIR *operand, uint32_t *out_value) {
@@ -2626,20 +2644,28 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
       (!ref->owner_kind || !ref->owner_id || !ref->owner_layout_id || !ref->xref_generation_mode ||
        !ref->owner_id[0] || !ref->owner_kind[0] || !ref->owner_layout_id[0] ||
        (strcmp(ref->xref_generation_mode, "bidirectional") && strcmp(ref->xref_generation_mode, "source_only") &&
-        strcmp(ref->xref_generation_mode, "none")) || ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT ||
-       !ref->has_base || ref->raw_value_width != 2U || !ref->raw_value_signed || ref->raw_value > UINT16_MAX ||
+        strcmp(ref->xref_generation_mode, "none")) || (ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT &&
+        ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE) ||
+       (ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT &&
+        (!ref->raw_value_signed || ref->value_scale > 1U)) ||
+       (ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE && !ref->value_scale) ||
+       !ref->has_base || ref->raw_value_width != 2U || ref->raw_value > UINT16_MAX ||
        ref->source_offset > UINT32_MAX - 2U ||
        ref->base_section_index != ref->target_section_index ||
        ref->base_section_index != section_analysis->section_index ||
-       (int64_t)ref->base_offset + (int16_t)ref->raw_value != (int64_t)ref->target_offset)) return -1;
+       (int64_t)ref->base_offset + (ref->raw_value_signed ? (int16_t)ref->raw_value : (int64_t)ref->raw_value) *
+         (ref->value_scale ? ref->value_scale : 1U) != (int64_t)ref->target_offset)) return -1;
   for (index = 0U; index < section_analysis->data_reference_count; ++index) {
     M68kDataReferenceIR *existing = &section_analysis->data_references[index];
     if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL &&
         existing->source_kind == ref->source_kind && existing->owner_id != NULL && ref->owner_id != NULL &&
-        strcmp(existing->owner_id, ref->owner_id) == 0) {
+        strcmp(existing->owner_id, ref->owner_id) == 0 &&
+        (ref->reference_kind != M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE ||
+         existing->source_offset == ref->source_offset)) {
       if (existing->source_offset != ref->source_offset || existing->reference_kind != ref->reference_kind ||
           existing->raw_value != ref->raw_value || existing->raw_value_width != ref->raw_value_width ||
-          existing->raw_value_signed != ref->raw_value_signed || existing->has_base != ref->has_base ||
+          existing->raw_value_signed != ref->raw_value_signed || existing->value_scale != ref->value_scale ||
+          existing->has_base != ref->has_base ||
           existing->base_section_index != ref->base_section_index || existing->base_offset != ref->base_offset ||
           existing->target_section_index != ref->target_section_index || existing->target_offset != ref->target_offset ||
           existing->owner_element_offset != ref->owner_element_offset ||
@@ -3412,7 +3438,12 @@ static int function_summary_is_valid(const M68kFunctionSummaryIR *summary) {
     const M68kFunctionSummaryResultIR *result = &summary->results[index];
     if (!m68k_function_summary_abi_location_is_valid(&result->location) ||
         result->kind < M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER ||
-        result->kind > M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) return 0;
+        result->kind > M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE) return 0;
+    if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE &&
+        (result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+         result->location.width != 4U || result->location.register_count != 1U ||
+         platform_facts_v2_hardware_base_symbol(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+           result->hardware_base_id) == NULL)) return 0;
     if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
       const M68kFunctionSummaryAbiLocation *input_location;
       if (result->identity_input_index >= summary->input_count) return 0;
@@ -3618,7 +3649,13 @@ int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *
         existing->address == use->address &&
         existing->effective_address == use->effective_address &&
         existing->access_kind == use->access_kind &&
-        existing->use_shape == use->use_shape) {
+        existing->use_shape == use->use_shape &&
+        existing->relative_base_id == use->relative_base_id &&
+        existing->relative_register_offset == use->relative_register_offset &&
+        existing->relative_base_offset_count == use->relative_base_offset_count &&
+        existing->relative_requires_input_contract == use->relative_requires_input_contract &&
+        memcmp(existing->relative_base_offsets, use->relative_base_offsets,
+          sizeof(use->relative_base_offsets)) == 0) {
       return 0;
     }
   }

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-unknown-stack_adjacent-cpu-read",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "resume_route",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "watch_stack_adjacent_read",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "memory_access_watch": {
+        "address": 65618,
+        "length": 1028,
+        "engine": "cpu",
+        "access": "read",
+        "wait_seconds": 2
+      },
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 65618,
+            "size": 64
+          },
+          {
+            "address": 66132,
+            "size": 64
+          },
+          {
+            "address": 66582,
+            "size": 64
+          },
+          {
+            "base_register": "a7",
+            "offset": 0,
+            "size": 32
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

@@ -67,6 +67,7 @@ from amiga_reversing.disasm.target_metadata import (
     write_target_metadata,
     write_target_seeded_metadata,
 )
+from amiga_reversing.disasm.tool_graph import resolve_capability
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
     make_synthetic_atari_prg,
@@ -81,6 +82,32 @@ from tests.c_backend_listing_rows import (
     build_project_listing_rows_window_with_c_artifact,
     build_project_listing_rows_with_c_artifact,
 )
+
+
+def _require_game_fixture(relative_path: str) -> None:
+    if not (PROJECT_ROOT / relative_path).is_file():
+        pytest.skip(
+            f"Missing optional game fixture: {relative_path}. Restore your authorized "
+            "original input at that recorded path; no substitute bytes are generated."
+        )
+
+
+def _assert_raw_fixture_exact(tmp_path: Path, text: str, original: bytes) -> None:
+    rebuilt, _ = assemble_platform_source_text_with_c_backend("amiga-raw", text, project_root=PROJECT_ROOT)
+    assert rebuilt == original
+    assembly, output = tmp_path / "verified.s", tmp_path / "verified.bin"
+    assembly.write_text(text)
+    capability = resolve_capability("assemble_vasm_source", project_root=PROJECT_ROOT)
+    assert capability["available"], capability
+    selected = capability["selected"]
+    assert selected["runtime_tool_id"] == "host", selected
+    result = subprocess.run(
+        [selected["functional_resolved_path"], "-quiet", "-Fbin", "-m68000",
+         "-no-opt", "-o", str(output), str(assembly)],
+        capture_output=True, text=True, timeout=20,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert output.read_bytes() == original
 
 
 def _requires_c_backend_dlls() -> None:
@@ -1150,6 +1177,10 @@ class _M68kAnalysisRegisterSeed(ctypes.Structure):
         ("name", ctypes.c_char * 64),
         ("type_name", ctypes.c_char * 64),
         ("context_name", ctypes.c_char * 64),
+        ("hardware_stride", ctypes.c_uint16),
+        ("hardware_index_values", ctypes.c_uint16 * 8),
+        ("hardware_index_count", ctypes.c_uint8),
+        ("hardware_index_register", ctypes.c_uint8),
     ]
 
 
@@ -1342,6 +1373,11 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("semantic_role", ctypes.c_char * 65),
         ("source_pattern", ctypes.c_char * 65),
         ("comment", ctypes.c_char * 97),
+        ("pointer_address_domain", ctypes.c_uint8),
+        ("pointer_symbol_group", ctypes.c_char * 64),
+        ("has_source_owner_span", ctypes.c_uint8),
+        ("source_owner_start", ctypes.c_uint32),
+        ("source_owner_size", ctypes.c_uint32),
     ]
 
 
@@ -1349,7 +1385,8 @@ class _M68kAnalysisNamedLabel(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
         ("domain", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("is_source_declaration", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 1),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("name", ctypes.c_char * 64),
@@ -1392,10 +1429,9 @@ class _M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
 class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     _fields_ = [
         ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint8),
+        ("size", ctypes.c_uint16),
         ("flags", ctypes.c_uint8),
         ("storage_kind_id", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 1),
         ("layout_name", ctypes.c_char * 32),
         ("base_symbol", ctypes.c_char * 64),
         ("sizeof_symbol", ctypes.c_char * 64),
@@ -1444,6 +1480,11 @@ class _M68kAnalysisManualRepresentation(ctypes.Structure):
         ("operand_index", ctypes.c_uint8),
         ("symbol_id", ctypes.c_uint16),
         ("target_equate_index", ctypes.c_uint16),
+        ("has_source_symbol", ctypes.c_uint8),
+        ("source_symbol_runtime_view", ctypes.c_uint8),
+        ("source_symbol_section", ctypes.c_uint32),
+        ("source_symbol_offset", ctypes.c_uint32),
+        ("source_symbol_value", ctypes.c_uint32),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),
@@ -1457,6 +1498,9 @@ class _M68kAnalysisTargetEquate(ctypes.Structure):
         ("value_style_id", ctypes.c_uint8),
         ("reserved", ctypes.c_uint8 * 3),
         ("value_expr", ctypes.c_char * 64),
+        ("group", ctypes.c_char * 64),
+        ("extent_bytes", ctypes.c_uint32),
+        ("address_domain", ctypes.c_uint8),
     ]
 
 
@@ -1491,6 +1535,8 @@ class _M68kAnalysisCustomStructField(ctypes.Structure):
         ("named_base", ctypes.c_char * 64),
         ("value_kind", ctypes.c_uint8),
         ("reserved", ctypes.c_uint8 * 3),
+        ("pointer_address_domain", ctypes.c_uint8),
+        ("pointer_symbol_group", ctypes.c_char * 64),
     ]
 
 
@@ -1504,12 +1550,52 @@ class _M68kAnalysisCustomStruct(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisManualDataReference(ctypes.Structure):
+    _fields_ = [
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("raw_value", ctypes.c_uint32),
+        ("base_section_index", ctypes.c_uint32),
+        ("base_offset", ctypes.c_uint32),
+        ("target_section_index", ctypes.c_uint32),
+        ("target_offset", ctypes.c_uint32),
+        ("owner_element_offset", ctypes.c_uint32),
+        ("owner_kind", ctypes.c_char * 32),
+        ("owner_id", ctypes.c_char * 96),
+        ("owner_layout_id", ctypes.c_char * 64),
+        ("xref_generation_mode", ctypes.c_char * 32),
+    ]
+
+
+class _M68kAnalysisAbstractRegion(ctypes.Structure):
+    _fields_ = [
+        ("section_index", ctypes.c_uint32),
+        ("start_offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("region_id", ctypes.c_char * 96),
+    ]
+
+
+class _M68kMemoryRegionIR(ctypes.Structure):
+    _fields_ = [
+        ("region_id", ctypes.c_char * 96),
+        ("name", ctypes.c_char * 64),
+        ("runtime_address", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("alignment", ctypes.c_uint32),
+        ("dma_access", ctypes.c_uint8),
+        ("persistent", ctypes.c_uint8),
+        ("source_mapped", ctypes.c_uint8),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
         ("has_entry_offset", ctypes.c_uint8),
         ("disable_implicit_entry_points", ctypes.c_uint8),
-        ("reserved0", ctypes.c_uint8 * 1),
+        ("storage_capacity_status", ctypes.c_uint8),
         ("register_seed_count", ctypes.c_uint16),
         ("function_summary_count", ctypes.c_uint16),
         ("entry_point_count", ctypes.c_uint16),
@@ -1524,36 +1610,44 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("manual_representation_count", ctypes.c_uint16),
         ("target_equate_count", ctypes.c_uint16),
         ("manual_runtime_address_ref_count", ctypes.c_uint16),
+        ("manual_data_reference_count", ctypes.c_uint16),
+        ("abstract_region_count", ctypes.c_uint16),
+        ("memory_region_count", ctypes.c_uint16),
         ("custom_struct_count", ctypes.c_uint16),
         ("custom_struct_capacity", ctypes.c_uint16),
         ("structured_data_item_capacity", ctypes.c_uint16),
         ("named_label_capacity", ctypes.c_uint16),
+        ("manual_representation_capacity", ctypes.c_uint16),
         ("custom_struct_owner", ctypes.c_uint8),
         ("structured_data_items_owner", ctypes.c_uint8),
         ("named_labels_owner", ctypes.c_uint8),
-        ("reserved1", ctypes.c_uint8 * 1),
+        ("manual_representations_owner", ctypes.c_uint8),
         ("entry_offset", ctypes.c_uint32),
         ("source_context_kind", ctypes.c_char * 512),
         ("source_context_disk_id", ctypes.c_char * 512),
         ("source_context_disk_path", ctypes.c_char * 512),
         ("source_context_entry_path", ctypes.c_char * 512),
         ("source_context_parent_disk_id", ctypes.c_char * 512),
-        ("register_seeds", _M68kAnalysisRegisterSeed * 64),
+        ("register_seeds", _M68kAnalysisRegisterSeed * 256),
         ("function_summaries", _M68kAnalysisFunctionSummary * 192),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
         ("structured_data_items_inline", _M68kAnalysisStructuredDataItem * 4),
         ("structured_data_items", ctypes.POINTER(_M68kAnalysisStructuredDataItem)),
         ("named_labels_inline", _M68kAnalysisNamedLabel * 4),
         ("named_labels", ctypes.POINTER(_M68kAnalysisNamedLabel)),
-        ("entry_comments", _M68kAnalysisEntryComment * 128),
+        ("entry_comments", _M68kAnalysisEntryComment * 512),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
         ("absolute_storage_slots", _M68kAnalysisAbsoluteStorageSlot * 128),
         ("rsset_use_site_bindings", _M68kAnalysisRssetUseSiteBinding * 128),
-        ("manual_representations", _M68kAnalysisManualRepresentation * 128),
-        ("target_equates", _M68kAnalysisTargetEquate * 128),
+        ("manual_representations_inline", _M68kAnalysisManualRepresentation * 4),
+        ("manual_representations", ctypes.POINTER(_M68kAnalysisManualRepresentation)),
+        ("target_equates", _M68kAnalysisTargetEquate * 1024),
         ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
+        ("manual_data_references", _M68kAnalysisManualDataReference * 512),
+        ("abstract_regions", _M68kAnalysisAbstractRegion * 128),
+        ("memory_regions", _M68kMemoryRegionIR * 16),
         ("custom_structs", ctypes.POINTER(_M68kAnalysisCustomStruct)),
     ]
 
@@ -1762,7 +1856,8 @@ def test_full_listing_move_source_immediate_exposes_operand_part(tmp_path: Path)
     assert move["operand_parts"][0]["width_bits"] == 32
 
 
-def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path) -> None:
+@pytest.mark.parametrize("established", [False, True])
+def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path, established: bool) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
     metadata_path = tmp_path / "target_metadata.json"
@@ -1783,6 +1878,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
                 "execution_views": [
                     {"source_start": 0x10, "source_end": 0x20, "base_addr": 0x80},
                     {"source_start": 0x20, "source_end": 0x24, "base_addr": 0x100},
+                    *([{"source_start": 0, "source_end": 0x10, "base_addr": 0}] if established else []),
                 ]
             }
         ),
@@ -1805,6 +1901,13 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         project_root=PROJECT_ROOT,
     )
     combined = analyze_source_with_c_artifact(binary_source, metadata_text=str(metadata_path), project_root=PROJECT_ROOT)
+    _assert_raw_fixture_exact(tmp_path, source_text, path.read_bytes())
+    if not established:
+        assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
+        assert "\tjmp $00000080.l\n" in source_text
+        assert "    ORG $80\n" not in source_text and "    ORG $100\n" not in source_text
+        assert all(not v["materialized"] for v in combined["analysis"]["sections"][0]["runtime_views"])
+        return
     assert "\tlea.l loc_0_00000020-(*+2)(pc),a0\n" in source_text
     assert "\tjmp $00000080.l\n" in source_text
     assert "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n" in source_text
@@ -1864,27 +1967,19 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert runtime_row["runtime_view_id"] == 1
 
 
-def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: Path) -> None:
+@pytest.mark.parametrize("established", [False, True])
+def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: Path, established: bool) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"
     metadata_path = tmp_path / "target_metadata.json"
-    path.write_bytes(bytes.fromhex("4ef9000000804ef900000084000000004e714e754e714e75"))
+    path.write_bytes(bytes.fromhex("4eb9000000804ef900000084000000004e714e754e714e75"))
     metadata_path.write_text(
         json.dumps(
             {
-                "seeded_code_entrypoints": [
-                    {
-                        "hunk": 0,
-                        "addr": 6,
-                        "name": "second_runtime_ref",
-                        "source_id": "test",
-                        "source_path": "test",
-                        "source_locator": "test",
-                    }
-                ],
                 "execution_views": [
                     {"source_start": 0x10, "source_end": 0x18, "base_addr": 0x80},
                     {"source_start": 0x14, "source_end": 0x18, "base_addr": 0x84},
+                    *([{"source_start": 0, "source_end": 0x10, "base_addr": 0}] if established else []),
                 ],
             }
         ),
@@ -1907,11 +2002,16 @@ def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: 
         project_root=PROJECT_ROOT,
     )
 
+    _assert_raw_fixture_exact(tmp_path, source_text, path.read_bytes())
     assert source_profile["facts_v2"]["asm_source_refused"] is False
+    if not established:
+        assert "\tnop\n" not in source_text
+        assert source_text.count("\tdc.b $4E,$71,$4E,$75\n") == 2
+        return
     assert source_text.count("    ORG $80\n") == 1
     assert "    ORG $84\n" not in source_text
     assert "    ORG $14\n" not in source_text
-    assert "\tjmp abs_0_00000080.l\n" in source_text
+    assert "\tjsr abs_0_00000080.l\n" in source_text
     assert "\tjmp abs_0_00000084.l\n" in source_text
     assert "abs_0_00000084:\n\tnop\n\trts\n" in source_text
 
@@ -3176,7 +3276,8 @@ def test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range(tm
 
     policy = effective_policy_project_source_with_c_backend(source, project_root=PROJECT_ROOT)["analysis_policy"]
     assert policy["runtime_ranges"] == [
-        {"section_index": 0, "offset": 0, "size": len(original), "runtime_address": 0x4000, "name": "raw_load"}
+        {"section_index": 0, "offset": 0, "size": len(original), "runtime_address": 0x4000,
+         "provenance": 0, "use_mask": 0, "name": "raw_load"}
     ]
     assert policy["runtime_entry_points"] == [{"section_index": 0, "runtime_address": 0x4000}]
     analysis = analyze_project_source_with_c_backend(source, project_root=PROJECT_ROOT)
@@ -3480,13 +3581,20 @@ helper:
         )
 
     assert policy["implicit_entry_points"] is False
-    assert policy["entrypoints"] == [{"section_index": 0, "offset": 4}]
+    assert policy["entrypoints"] == [{"section_index": 0, "offset": 4, "provenance": "manual_action_log"}]
     block_starts = {block["start_offset"] for block in analysis["sections"][0]["blocks"]}
     assert 0 not in block_starts
     assert {4, 8}.issubset(block_starts)
 
 
-def test_real_dll_required_manual_data_seed_splits_rendered_subrange(tmp_path: Path) -> None:
+@pytest.mark.parametrize("authored_comment", [
+    None,
+    "Keep the original spelling and NUL terminator.",
+    "mode=required, data_role=string, unit=byte, encoding=ascii",
+])
+def test_real_dll_required_manual_data_seed_splits_rendered_subrange(
+    tmp_path: Path, authored_comment: str | None,
+) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -3544,6 +3652,7 @@ after_data:
                     "unit": "byte",
                     "encoding": "ascii",
                     "name": "manual_text",
+                    **({"comment": authored_comment} if authored_comment is not None else {}),
                 },
             },
             sort_keys=True,
@@ -3561,10 +3670,18 @@ after_data:
         )
 
     assert "loc_0_00000000:\n\tbra.b loc_0_00000008\n" in rendered
-    assert (
-        'manual_text:\n\tdc.b "TEXT",$00\t; mode=required, data_role=string, unit=byte, encoding=ascii\n'
-        in rendered
-    )
+    suffix = f"\t; {authored_comment}" if authored_comment is not None else ""
+    assert f'manual_text:\n\tdc.b "TEXT",$00{suffix}\n' in rendered
+    if authored_comment is None:
+        assert "mode=required" not in rendered and "data_role=" not in rendered
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+    entity = next(e for e in effective_target_metadata(target_dir).seeded_entities if e.name == "manual_text")
+    assert (entity.subtype, entity.unit, entity.encoding) == ("string", "byte", "ascii")
+    assert entity.comment == authored_comment
+    log = [json.loads(line) for line in (target_dir / MANUAL_ACTION_LOG_FILE_NAME).read_text().splitlines()]
+    assert log[-1]["seed"]["mode"] == "required"
+    rebuilt, _ = assemble_platform_source_text_with_c_backend("amiga-hunk", rendered, project_root=PROJECT_ROOT)
+    assert rebuilt == binary_path.read_bytes()
     assert "\tdc.b $00\nloc_0_00000008:\n\trts\n" in rendered
 
 
@@ -4013,10 +4130,12 @@ after_data:
             project_root=PROJECT_ROOT,
         )
 
-    assert f"data_role={data_role}" in rendered
-    assert f"unit={unit}" in rendered
-    if encoding is not None:
-        assert f"encoding={encoding}" in rendered
+    # Classification is a structured contract, not a diagnostic ASM comment.
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+    entity = next(e for e in effective_target_metadata(target_dir).seeded_entities if e.addr == 2)
+    assert (entity.subtype, entity.unit, entity.encoding) == (data_role, unit, encoding)
+    assert entity.comment is None
+    assert all(tag not in rendered for tag in ("mode=", "data_role=", "unit=", "encoding="))
     assert "\trts\n" in rendered
     assert rebuilt == binary_path.read_bytes()
     assert direct_profile["direct_rebuild_refused"] is False
@@ -4121,7 +4240,7 @@ after_data:
     assert policy["manual_representations"] == [
         {"section_index": 0, "offset": 2, "size": 4, "style": "character"}
     ]
-    assert "manual_bytes:\n\tdc.b 'A','B','C','D'\t; mode=required, unit=byte\n" in rendered
+    assert "manual_bytes:\n\tdc.b 'A','B','C','D'\n" in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,
@@ -4345,8 +4464,8 @@ after_data:
         (2, 2, "magic", "UWORD"),
         (4, 4, "next_offset", "APTR"),
     ]
-    assert "DataHeader.magic" in rendered
-    assert "DataHeader.next_offset" in rendered
+    assert "DataHeader_magic" in rendered and "; magic" in rendered
+    assert "DataHeader_next_offset" in rendered and "; next_offset" in rendered
     assert "; STRUCT DataHeader\n    RSRESET\nDataHeader_magic RS.W 1\n" in rendered
     assert "data_header_next_offset:" not in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
@@ -4399,7 +4518,7 @@ after_data:
         assert metadata_path is not None
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
 
-    assert "OddStrideRecord.next_offset" in rendered
+    assert "OddStrideRecord_next_offset" in rendered and "; next_offset" in rendered
     # This Hunk stores non-relocated numeric longs.  Symbolizing them would
     # invent relocations, so pointer semantics must preserve the bytes here.
     assert "dc.l odd_stride_records_gap_6_1" not in rendered
@@ -7857,7 +7976,7 @@ def test_listing_artifact_runtime_observation_view_maps_pc_without_source_view(t
     finally:
         artifact.close()
     assert row is not None
-    assert row["stable_key"] == "s0:00000000:instruction:0"
+    assert row["stable_key"] == "s0:00000000:instruction"
     assert row["runtime_address"] == 0x10000
     assert row["runtime_observation_view"] == {
         "execution_view_id": "observed-stage",
@@ -7919,6 +8038,7 @@ def test_runtime_data_range_shadows_overlapping_runtime_observation_view(tmp_pat
 
 def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> None:
     _requires_c_backend_dlls()
+    _require_game_fixture('targets/amiga_disk_epic-1992-ocean-disk-1/targets/amiga_raw_bootloader_stage_1/binary.bin')
     paths = resolve_project_paths(
         "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootloader_stage_1",
         project_root=PROJECT_ROOT,
@@ -8219,6 +8339,7 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
 
 def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend() -> None:
     _requires_c_backend_dlls()
+    _require_game_fixture('targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootloader_stage_1/binary.bin')
     paths = resolve_project_paths(
         "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootloader_stage_1",
         project_root=PROJECT_ROOT,
@@ -8240,18 +8361,19 @@ def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_b
     assert "abs_0_00040046-" not in source
 
 
-def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_path: Path) -> None:
+@pytest.mark.parametrize("executes", [False, True])
+def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_path: Path, executes: bool) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "runtime_ref_copied_entry.bin"
-    code = bytes.fromhex(
-        "41fa000e"      # lea.l payload(pc),a0
-        "43f900000400"  # lea.l $400.l,a1
-        "7000"          # moveq.l #0,d0
-        "32d8"          # move.w (a0)+,(a1)+
-        "4e75"          # rts
-        "4e75"          # payload: rts
-        "0000"
-    )
+    # Both fixtures copy the same four bytes. Only the positive arm transfers
+    # control to its destination; a destination LEA is not execution evidence.
+    payload_offset = 0x20 if executes else 0x10
+    code = (bytes.fromhex("41fa") + (payload_offset-2).to_bytes(2,"big")
+        + bytes.fromhex("43f900000400700022d8")
+        + (bytes.fromhex("4ef900000400") if executes else bytes.fromhex("4e75")))
+    # Separate the positive payload, and copy through its section end, so this
+    # tests ORG entry rather than suppression of uncopied storage continuation.
+    code = code.ljust(payload_offset, b"\0") + bytes.fromhex("4e750000")
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
     source = HunkFileBinarySource(
         kind=BinarySourceKind.HUNK_FILE,
@@ -8267,15 +8389,18 @@ def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_pat
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert "loc_0_00000010:\n\trts\n" in source_text
-    assert any(
-        ref.get("reason_name") == "runtime_view_entry" and ref.get("offset") == 0x10
-        for ref in analyze_project_source_with_c_backend(
-            source,
-            metadata_path=None,
-            project_root=PROJECT_ROOT,
-        )["sections"][0]["code_start_refs"]
-    )
+    analysis = analyze_project_source_with_c_backend(source, project_root=PROJECT_ROOT)["sections"][0]
+    if not executes:
+        # Mapping may materialize an ORG; it must not promote the bytes to code.
+        assert "abs_0_00000400:\n\tdc.b $4E,$75,$00,$00\n" in source_text
+        assert not any(ref.get("evidence_kind")=="runtime_control_target" and ref.get("offset")==0x10
+                       for ref in analysis["code_start_refs"])
+        return
+    assert "    ORG $400\nabs_0_00000400:\n\trts\n" in source_text
+    assert "\tjmp abs_0_00000400.l\n" in source_text
+    assert any(ref.get("evidence_kind")=="runtime_control_target" and ref.get("offset")==payload_offset
+                   and ref.get("source_offset")==14 and ref.get("runtime_address")==0x400
+               for ref in analysis["code_start_refs"])
     assert "\tdc.b $4E,$75" not in source_text
 
 
@@ -8439,6 +8564,7 @@ def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> No
 
 def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:
     _requires_c_backend_dlls()
+    _require_game_fixture('resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip')
     paths = resolve_project_paths(
         "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
         project_root=PROJECT_ROOT,
@@ -9709,19 +9835,21 @@ def test_real_dll_custom_struct_seed_renders_typed_field(tmp_path: Path) -> None
             "operand_index": 0,
             "base_register": "A0",
             "displacement": 8,
+            "base_cursor": 0,
             "field_offset": 8,
             "struct_size": 16,
             "field_size": 4,
             "root_struct_name": "GamePlayer",
             "owner_struct_name": "GamePlayer",
             "field_name": "player_score",
-            "field_expr": "player_score",
+            "field_expr": "GamePlayer_player_score",
             "inherited": 0,
             "nested": 0,
             "type_provenance_kind_id": 11,
             "type_provenance_kind": "policy_seed",
             "type_provenance_section": 0,
             "type_provenance_offset": 0,
+            "type_provenance_operand_index": 0,
         }
     ]
     assert any("player_score(a0)" in row["text"] for row in combined["listing"]["rows"])
@@ -12173,3 +12301,28 @@ def test_real_dll_extract_disk_entry_reports_c_error() -> None:
 
     with pytest.raises(RuntimeError, match="C disk backend DLL failed:"):
         extract_disk_entry_with_c_backend(disk_path, "missing/file")
+
+
+@pytest.mark.parametrize('count', [65, 256, 257])
+def test_custom_struct_metadata_beyond_old_limit_and_new_boundary(tmp_path: Path, count: int) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / 'keys.bin'
+    binary.write_bytes(bytes.fromhex('102800504e75'))  # MOVE.B 80(A0),D0; RTS.
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+                             address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+                             code_start_offset=0, display_path=str(binary),
+                             analysis_cache_path=tmp_path / 'binary.analysis')
+    metadata = tmp_path / 'types.json'
+    metadata.write_text(json.dumps({
+        'entry_register_seeds': [{'hunk': 0, 'entry_offset': 0, 'kind': 'struct_ptr', 'register': 'A0', 'note': 'Recovered key state',
+                                  'struct_name': f'RecoveredType{count-1}'}],
+        'custom_structs': [
+            {'name': f'RecoveredType{i}', 'size': 128, 'fields': [
+                {'name': 'held_ff', 'type': 'UBYTE', 'offset': 80, 'size': 1}]}
+            for i in range(count)]}))
+    if count == 257:
+        with pytest.raises(RuntimeError, match='failed parsing target metadata custom struct'):
+            render_project_source_with_c_backend(source, metadata_path=metadata, project_root=PROJECT_ROOT)
+    else:
+        rendered = render_project_source_with_c_backend(source, metadata_path=metadata, project_root=PROJECT_ROOT)
+        assert f'RecoveredType{count-1}_held_ff(a0)' in rendered

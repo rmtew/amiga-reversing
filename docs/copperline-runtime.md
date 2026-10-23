@@ -54,7 +54,8 @@ AppImage was verified against its published SHA256SUMS before extraction:
 `9ab3e2ecc89beb25344bd1b0d8aa3dcf9370ade8f3b08fdec2fb37e59461f55d`.
 The extracted executable is selected explicitly; binaries are not vendored.
 Startup requires authenticated protocol 1 and emulator version `copperline 1.0.0`.
-See the release's `docs/control.md` for protocol details. Future versions require
+See the release's [control contract](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/control.md)
+for protocol details. Future versions require
 explicit compatibility verification before changing the version check.
 
 The existing user-supplied Kickstart attachment is readable: 524288 bytes,
@@ -75,6 +76,150 @@ bytes, SHA256 `7f225192a177d9c06c54a99210de801ab0c840d4773bd99031aed5c7741a1c95`
 Original disk-image and loader parity are explicitly excluded by the user from
 this task. The absent image is historical input context, not a blocker or a
 required next step; direct-payload scenarios do not require it.
+
+### Bounded engine-filtered memory access observations
+
+A canonical source-row scenario phase may include:
+
+```json
+"memory_access_watch": {
+  "address": 302536,
+  "access": "read",
+  "engine": "blitter",
+  "wait_seconds": 5
+}
+```
+
+The wrapper first reaches the phase's source anchor, verifies original payload
+bytes and canonical mapping, and captures the anchor state. After the last
+requested anchor visit, it arms one `break.add` memory watch with the declared
+address, access and engine (`class` in Copperline), then resumes for a separately
+bounded wall-time window. It retains the actual armed request, owned watch ID,
+raw stop event, elapsed time, registers, payload identification at the stop and
+a second capture using the phase's capture specification. Anchor captures stay
+separate from access-stop captures; expectation failures at either point make
+the phase incomplete. The watch is removed on success, timeout or error; removal
+failure aborts the session. Existing marker-value polling is unchanged.
+The backend's `break.list` must echo the owned ID, kind, address, access and
+engine before the wrapper resumes; missing/coerced fields produce
+`watch_filter_readback_mismatch`. The registration reply and raw readback are
+retained independently of the requested specification.
+
+Addresses are integer 24-bit addresses, or a typed binding such as
+`{"base_register": "a0", "offset": 0}` resolved while paused at the verified
+anchor. The requested binding and actual armed address are both retained;
+out-of-range sums fail without wrapping. Access is `read`, `write` or `access`;
+engine is `cpu`, `blitter`, `disk`, `copper`, `bpl1`..`bpl8`, `spr0`..`spr7`, or
+`aud0`..`aud3`. The watch budget is an integer 1..120 seconds. Unsupported fields,
+including arbitrary protocol commands, are rejected. CPU range watches have the
+explicit extension described below. For single-address watches the backend
+defines address granularity; this interface makes no extra claim about
+access width. A matching watchpoint is attributed through the armed filter in
+the isolated owned session, which has no other concurrent watches. Preserve
+the raw event rather than inventing address, width or engine fields it lacks.
+
+A snapshot read is not a bus access observation. Unexpected stops are incomplete;
+a timeout means only not observed in that window. The CPU PC at a DMA stop need
+not be the instruction that programmed the packet, or even be in the payload.
+Its byte identification is reported independently. Saving a checkpoint requires
+a subsequent canonical source-row phase, because a DMA watch stop does not bind
+the final PC to the arming anchor.
+
+For the current A500OCS/PAL/68000 profile the Copperline 1.0.0 pin is retained.
+The [1.0.1 release notes](https://github.com/CopperlineHQ/Copperline/releases/tag/v1.0.1)
+describe a blitter terminal-window fix for faster CPUs and explicitly state the
+68000 cannot hit that race. No upgrade is needed to expose the documented read
+watch; changing emulator fingerprints would also invalidate local receipt bindings.
+
+The bank30 experiment is recorded in
+[`pandora-bank30-access-watch.json`](../runtime/observations/pandora-bank30-access-watch.json).
+Registration/readback succeeded, but a programmed B-source positive control
+also timed out. No DMA read was observed, so the suffix timeout is not evidence
+of non-use. Packet-register snapshot batches returned RPC `-32007` for named
+and numeric selector sets; the final experiment uses CPU/RAM captures instead.
+Capture errors now identify the failed selector. The final readback guard was
+added after the live capture and tested against that response format; the
+recorded suffix registration satisfies its exact matching predicate.
+Reproduce with the public command above, substituting
+`runtime/scenarios/pandora-bank30-suffix-watch.json` and a fresh state directory.
+`pandora-bank30-access-watch.json` runs the B-source control first and stops on
+its timeout, so it deliberately does not reach the suffix phase in that run.
+
+### Read-watch stop diagnosis
+
+[`pandora-read-watch-stop-diagnosis.json`](../runtime/observations/pandora-read-watch-stop-diagnosis.json)
+records a minimal one-second CPU stack-read control followed by a two-second
+blitter B-source control, using the corresponding scenario of the same name.
+The CPU watch hit at `$10416`: event detail identifies the original MOVEM at
+`$16B0E`, while the paused PC is `$16B12` after its execution. The reported WORD
+matches the saved stack capture. The blitter watch on `$31536` timed out with
+matching filter readback. Execution advanced from frame 464 to 555 and retired
+752,370 instructions between the CPU stop and final pause, including the
+intervening anchor wait. The intended draw path and CPU read-stop delivery are
+validated; blitter read delivery remains unvalidated.
+
+Deadline recovery previously drained and discarded both reply bodies. The
+transport now attaches them as `stop_event` and `pause_event` on
+`CopperlineTimeout`; access-watch reports retain them in `deadline_recovery`
+and retain the bounded queued `event.stopped` snapshot. That queue may include
+earlier stops and is not automatically attributed to the current watch. A late
+watchpoint remains a timeout rather than becoming an in-budget hit. Focused
+tests reproduce the loss and verify preservation in either reply order.
+In this live run, both recovered replies say pause and the notification queue
+is empty, so the defect does not explain this newly missed blitter control.
+No fresh source-access attempts or bank30 classification changes were made.
+
+### CPU ranges and full chip-bus captures
+
+A CPU watch may additionally declare `"length": 1028` (1..4096 bytes).
+This uses the documented CPU `mmio` data-access trap, checks the exact
+`kind/addr/len/access` readback, and requires an `mmio` stop. Other engines
+continue to use the single-address watch interface. Addresses cannot wrap the
+24-bit space. The event's accessing instruction PC is independently matched
+against original target bytes when provided; it can differ from the paused PC.
+A CPU architectural LONG access and two physical WORD bus transfers are different
+observations and must not be counted interchangeably.
+
+A separate canonical phase may request a bounded full chip-bus profile:
+
+```json
+"chip_bus_trace": {
+  "frames": 4,
+  "wait_seconds": 5,
+  "ranges": [
+    {"name": "cursor_gap", "address": 111784, "length": 3840}
+  ]
+}
+```
+
+The interface permits 1..4 frames, 1..30 wall seconds and 1..4 uniquely named
+ranges of 1..4096 bytes; addresses support the same paused A-register binding.
+It uses Copperline 1.0.0's documented
+[full slot profiling format](https://github.com/CopperlineHQ/Copperline/blob/v1.0.0/docs/debugger/profiling.md),
+without requesting RAM baselines or screenshots. It validates the fixed 24-byte
+little-endian record layout and complete sidecar extents, filters actual
+transfers by range overlap, and retains engine, direction, address, width, value,
+raster position and raw flags. All matching transfers are counted; only the
+first 4096 records are retained, with an explicit omission count. Owner-only,
+missing, repositioned and unsupported instantaneous-transfer records fail closed.
+The profile is stopped on every outcome; cleanup failure aborts the session.
+
+Raw slot sidecars stay in ignored owned runtime storage because they can contain
+unrelated guest/ROM bus values. Publish only filtered target observations and
+hashes. Native frame labels and the first frame's `partial` flag are preserved;
+a committed profile-frame label can differ by one from the arming stop's frame.
+Do not infer coverage before arming or join those labels without their semantics.
+Phase PC/SP, payload, capture and `stop_event` describe the canonical anchor;
+the nested hook contains the later stop and capture. Phase status/termination
+report the overall result. CPU slot records do not identify the accessing
+instruction; use a separate CPU range event for that context. A snapshot is still not a transfer event.
+
+The [unknown-span tracing record](../runtime/observations/pandora-unknown-span-tracing.json)
+contains a live B-source positive control with 40 validated blitter reads. This
+independently validates the profiler path; it does not repair or validate the
+older single-address blitter read-watch delivery. Negative captures apply only
+to their exact recorded windows. Saving a checkpoint after a bus trace requires
+a subsequent plain canonical phase, just as for an access watch.
 
 ## Preserved contracts and deliberate changes
 
@@ -218,8 +363,8 @@ Pandora declares its native `$55370`-byte copy to `$10000`, ending before entry
 The volume's logical two bytes use an eight-byte lease. Accepted native owner
 regions, runtime equates and materialized views reject conflicting destinations.
 Keyboard's five pointer/frame obligations remain open. No original-disk-loader
-parity is implied. `capture.custom_registers` accepts at most sixteen names and
-uses Copperline's read-only `custom.read`, including the stored values of
+parity is implied. `capture.custom_registers` accepts at most sixteen names or even numeric offsets
+below `$200` and uses Copperline's read-only `custom.read`, including the stored values of
 write-only Paula registers; CPU memory reads of those addresses are insufficient.
 
 For the volume comparison, use the command above with
@@ -723,3 +868,869 @@ Final reload check: 42,219 Pandora rows, successful three-row listing API read.
 All 121 preserved-KB execution entries reproduce through the normal builder;
 only the seven documented access kinds differ from the previous commit. The
 previous global-project-index orphan-metadata error remains unrelated.
+
+### Snapshot lifecycle observation
+
+`runtime/scenarios/pandora-overlay-clear-order.json` stops around the initial
+panel clear and CPU border/text work. `custom_registers` numeric offsets `$002`,
+`$01C` and `$01E` obtain live DMACONR/INTENAR/INTREQR through `custom.read`.
+The pinned runtime refused the named DMACONR query, while debugger `memory_reads`
+of custom-register addresses returned `FFFF`; those memory values were discarded
+as hardware-status evidence. The narrow adapter addition accepts only names or
+even offsets below `$200`, with the existing sixteen-register limit.
+
+The initial clear run reaches every canonical stop and then gameplay with the
+original payload identity verified. BBUSY is clear and BLIT request set at the
+first stop after BLTSIZE, border entry/exit and READY marking. BLITHOG remains
+set. This observes completion in this initial panel case; it does not establish
+all geometry, gameplay-display contention or arbitrary CPU/DMA ordering.
+See `runtime/observations/pandora-snapshot-lifecycle.json` for the compact receipt
+and `docs/validation/pandora-snapshot-lifecycle.json` for conditional contracts.
+
+The connected gameplay probe composes snapshot stops into the existing successful
+Feed input route, without duplicating its full scenario or editing guest state:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario /tmp/pandora-snapshot.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 \
+  --rom /workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom \
+  --copperline /workspace/copperline-assessment/squashfs-root/usr/bin/copperline \
+  --direct-payload-contract pandora \
+  --state-directory .runtime-state/pandora-snapshot-reproduction \
+  --scenario /tmp/pandora-snapshot.json --run > /tmp/pandora-snapshot-result.json
+```
+
+Use a fresh state directory. The recorded run is **partial**, not an all-phases
+success: hit capture, six Feed hits, combat-exit restore and return to gameplay
+are observed. Correction: the subsequent timeout watches `$27E0`, a trade
+announcement, rather than body entry `$27EA`; it is not negative body-entry
+evidence. Later scripted body phases do not run. Next capture nearest-object pointer, collision
+carry and object bit1 at inventory guards `$2736/$2748/$274A`; a timeout does not
+identify which guard failed. Second combat recapture and hit-tail palette reuse
+remain unobserved. Snapshot sample hashes and hardware values in the compact
+receipt are observations, not complete lifetime/alias guarantees.
+
+### Body inventory guard and recapture stages
+
+The snapshot scenario composer also supports `--stage root`, `--stage guards`
+and `--stage body`. Root replays the established Feed encounter and ends at
+post-combat `$5CA`; save it with `--checkpoint-save`. Guards resumes that root,
+uses key64, and stops after resolving the original descriptor/state/geometry
+pointers at `$26A4`; optionally save that diagnostic checkpoint separately.
+Body resumes the **root**, not the partly opened guard checkpoint. Direct up
+movement is terrain-blocked; the stage checks an 18-move local route to
+`(822,146)`, then probes canonical body entry `$27EA`, capture, restore and
+recapture. The route derives from the existing terrain model and is checked at
+each commit. The previous `$27E0` probe was a trade-announcement instruction.
+
+Generate each stage with the public composer:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage root /tmp/pandora-body-root.json
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage guards /tmp/pandora-body-guards.json
+.venv/bin/python -m amiga_reversing.tools.pandora_snapshot_lifecycle_scenario --stage body /tmp/pandora-body-cycle.json
+```
+
+Use the same target/ROM/Copperline/direct-contract CLI arguments as above, with
+fresh state directories and these checkpoint arguments:
+
+| Scenario | Load receipt | Save receipt |
+| --- | --- | --- |
+| `/tmp/pandora-body-root.json` | none | a fresh local `post-combat.json` |
+| `/tmp/pandora-body-guards.json` | `post-combat.json` | optional fresh `geometry.json` |
+| `/tmp/pandora-body-cycle.json` | `post-combat.json` | a fresh local `body-recaptured.json` |
+
+Checkpoint hashes, guard inputs, phase outcomes and remaining limits are recorded
+in `runtime/observations/pandora-snapshot-body-guards.json`; no guest snapshots are
+published. The palette-stack witnesses are modeled original-CPU calls, separate
+from the normal Copperline gameplay observations.
+
+
+The corrected body stage completes all 37 source-row phases in the recorded run,
+including 18 coordinate-checked moves to `(822,146)`, body open at canonical
+`$27EA`, first capture, direct close restore and reopen/second capture. A verified
+successor is saved. Flags cycle `$40,$60,$E0,$40,$60,$E0`; before each capture
+BLIT request is clear and the first post-start stop shows completion and no
+BBUSY. Six sampled body chunks retain identical hashes through restore and
+second capture (384 of 2,304 bytes). These are bounded observations, not all-path
+allocation, alias exclusion or bus arbitration guarantees. Hit-family second
+capture and palette-tail entry/exclusion remain unresolved.
+
+### Version check, 2026-10-15
+
+The selected executable remains
+`/workspace/copperline-assessment/squashfs-root/usr/bin/copperline`.
+`--version` reports `copperline 1.0.0`; executable SHA256 is
+`e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c`.
+The retained official AppImage still hashes to
+`9ab3e2ecc89beb25344bd1b0d8aa3dcf9370ade8f3b08fdec2fb37e59461f55d`,
+matching the release checksum recorded above. The official
+[latest stable release](https://github.com/CopperlineHQ/Copperline/releases/tag/v1.0.0)
+is v1.0.0, published October 10 at commit `1a284cd`. Newer main commits are not
+evidence that a particular observed behavior is fixed; no upgrade was performed.
+
+The MOVEQ sign-extension defect was in this project's generated simulator and
+is fixed there. The CLR.W predecrement defect was also in that simulator; concrete execution
+is now fixed and the strict expected failure is a passing regression. Neither
+test executes Copperline. The subsequent five-defect follow-up also fixes
+abstract scalar EA updates and shared-register operand scheduling; see
+`docs/validation/framework-defects-2026-10-15.md`. The earlier
+negative body-open inference used the wrong source entry (`$27E0`); the corrected
+`$27EA` route completed body capture/restore/recapture in Copperline. The palette
+return issue is currently supported by modeled original-game stack/control-flow
+witnesses, separately from those runtime observations. It is not an observed
+Copperline CPU failure, nor is ordinary gameplay reachability of that spliced
+palette path established. Do not attribute it to emulator version without an
+isolated architectural discrepancy or a relevant upstream fix.
+
+## Replacement-worker checkpoint recreation and combat defeat
+
+On October 16 the pinned official Copperline 1.0.0 AppImage was downloaded again
+and verified against its published checksum. The existing legal ROM was reused;
+`ctennis` was not changed. The original corridor, west staging, flight crossing,
+rifle approach, pickup and fresh-process audit all passed, followed by the
+neutral observation, reverse staging and first-security-damage route. Local
+receipts and snapshots are in `.runtime-state/pandora-takeover`; guest snapshots
+are not committed. This recreation no longer depends on transferring the old
+worker's checkpoint archive.
+
+The original `pandora-security-null-node.json` again times out awaiting a second
+security hit. The new `pandora-security-eligibility-window.json` instead counts
+160 service entries after the first hit, retaining the first and last capture
+of each 32-call group. Combat flag bit 1 becomes set, the security countdown
+pauses at 33, and HP drops to 0. This contradicts the provisional lost-proximity
+explanation for that observed window: the sampled nearest object remains the
+flight controller.
+
+`pandora-combat-null-node.json`, loaded from the saved first-damage receipt,
+passes all seven canonical stops. It observes combat defeat `$79A8`, call site
+`$7A06`, A0=0 before the node writes at `$868A`, word `$10` changed from `$00FC`
+to zero after them at `$8694`, and the return at `$7A0A`. Byte `$A` remains `$08`
+because its cleared bit was already zero. No HP, pointer, predicate, or gameplay
+register was injected. The direct-payload boot contract remains the explicit
+original-loader limitation.
+
+Use the existing public checkpoint command with scenario
+`runtime/scenarios/pandora-combat-null-node.json`, load receipt
+`.runtime-state/pandora-takeover/damage.json`, and a fresh state directory.
+The damage receipt is recreated by the documented chain above; save it after
+`pandora-reverse-security-damage.json` completes at the pre-store stop.
+[Compact evidence](../runtime/observations/pandora-combat-null-node.json) records
+the chain, input cleanup, payload identity, captures and raw report hashes.
+[Optional correction](optional-patches.md) remains separate from default source.
+
+## Corrected-build combat comparison
+
+The opt-in NULL-node guard now completes a fresh corrected boot, the same
+corridor/rifle/return route, and combat defeat using only corrected-build
+checkpoints. All ten segments pass. Each snapshot binds the corrected payload
+`ee345a4a502415dd717509f834a05db5039fbcc0acc4e28b6f3b14c813a78535`,
+its artifact receipt, media, ROM and emulator. An original checkpoint is refused
+against that context. No guest HP, pointer or predicate was forced.
+
+All captured values in the eight shared west-through-first-damage segments
+match the original. Common combat registers, PC/SP and memory also match except
+for the intended vector preservation after exchange. Original `$10..$13`
+changes `$00FC081C`→`$0000081C`; corrected remains `$00FC081C`. The bus-error
+vector `$8..$B` remains `$00FC0818` in both: bit 0 of byte `$A` was already clear.
+These are exception vectors, not overwritten handler code.
+
+Eight following main-loop visits retain HP 0, the defeated flag, static defeat
+state and cleared combat mode, with vectors intact. The exit counter remains 70
+in this short window. No complete exit/title transition, visual comparison,
+exception-consequence test or player-visible improvement is claimed. This is a
+low-impact original bug used to prove explicit optional correction.
+
+The non-NULL entry-officer exchange matches original captured registers and
+object/state/node/vector bytes; only the declared four-byte extra stack scratch
+differs. Runtime admission rejects original instruction anchors inside replaced
+ranges and omits overlapping function symbols. One immutable canonical analysis
+snapshot is reused within each CLI invocation and closed on all exits; payload
+and checkpoint identity checks are unchanged. **127 focused framework tests pass.**
+The default binary and rendered-source hashes still match the prior C/vasm exact
+receipt `95a4fdbeb207af048a0afd556358d3a7e87f26a5f881d9cc6c4f7e4ec7b3f836`.
+
+[Evidence](../runtime/observations/pandora-corrected-combat-defeat.json) and
+[reproduction](optional-patches.md#reproduce-the-corrected-route) record the build,
+checkpoint lineage, captures and comparison limits. No guest snapshots are
+published. The corrected local chain is under `.runtime-state/pandora-corrected`.
+
+### Original rifle descriptor and retained-aim audit
+
+The [descriptor and shot receipt](../runtime/observations/pandora-rifle-descriptor-admission.json)
+uses the original `pandora` contract and verified original
+`.runtime-state/pandora-takeover/audit.json` checkpoint, with inherited full payload
+and copied-image verification. The pinned emulator/ROM and snapshot hashes are
+recorded there. No guest snapshots are published. Reproduce with the usual CLI,
+`--checkpoint-load` that receipt, and either
+[`pandora-rifle-descriptor-audit.json`](../runtime/scenarios/pandora-rifle-descriptor-audit.json)
+or [`pandora-rifle-simultaneous-left-fire.json`](../runtime/scenarios/pandora-rifle-simultaneous-left-fire.json),
+using a fresh isolated `--state-directory`. Inputs release at the first sampled
+ray point and on runner cleanup. The shot's historical execution identifier says
+`west-wall-shot`; “west” describes requested input, not the resulting aim.
+
+The live table contains 67 distinct descriptors and NULL: 29 fixed prefix entries,
+32 reordered entries, and six fixed tail entries. The flight controller's root
+has ray-state skip bit3, but its linked attachment does not. That root flag alone
+therefore does not establish immunity. Feed has cached geometry even with its
+outside-view flag set. These are table/state observations, not successful hits.
+
+Pressing left and fire together leaves player XY at (1228,874) and uses retained
+rightward request (7,0). The first sample, (1270,888), reaches the blocked-tile
+handler, then execution returns to the canonical main-loop anchor. Original tile
+306 is blocking there. Player HP remains 95, controller HP 55. The four-byte capture
+at `$1924C` changes from `05010501` to `05010401`: initial ammunition 5/1 remains,
+while mutable ammunition falls to 4/1. Earlier audits read the initial pair at
+`$1924C`; the audit scenario now reads mutable ammunition at `$1924E`. It also
+separates cached neutral input at A6+$1C6 from retained aim at A6+$31C. No general
+ray termination, ordinary NPC hit, Feed return, BYTE write, DMA/pixels or audible
+output is established. Changing aim requires a separately accepted movement request
+before the fresh fire press.
+
+The [separated left-aim scenario](../runtime/scenarios/pandora-rifle-separated-left-aim.json)
+uses the same original checkpoint. A two-visit direction window did not admit a
+movement request; this is a bounded negative observation. An eight-visit window
+records accepted request (-7,0); two neutral visits settle player XY at (1207,874)
+with cached input zero. A fresh fire press then samples (1193,888), clear original
+tile 92, and (1179,888), blocking tile 64. Mutable ammo 5/1 becomes 4/1; initial ammo
+and both measured HP values stay unchanged, then the canonical main loop is hit.
+Only these two ray samples are bounded. The native instruction anchors from the
+preceding CLI compilation were reused unchanged; captures and inputs pass normal
+runner validation. This adds no successful NPC hit or global ray bound.
+
+A [guarded northward firing-line candidate](../runtime/scenarios/pandora-flight-firing-line-guard.json)
+was also tested from the original rifle checkpoint. At visit 11 of a maximum 32,
+the combat UI bit violated the guard; later movement and firing did not run.
+HP 95 and ammo 5/1 remained. Player X 11221 includes the known 10000 combat-entry
+bias. The guard receipt records the stop before firing. This result applies only
+to that input window and route.
+
+Two bounded west-before-north follow-ups retained the same guards. Short staging
+still entered combat before firing. Farther-west staging completed one shot from
+(1130,870), first sample (1116,884), with controller HP 55 unchanged and one round
+consumed. Their canonical captures are summarized in the same rifle receipt.
+Successful NPC targeting and the Feed/BYTE route remain unproved.
+
+## Bounded behavioural-validation programme
+
+[Proposal 045](proposals/045-behavioural-validation.md) tracks B01–B10.
+The [first batch evidence](validation/pandora-behavioural-validation-first-slice.json)
+separates capability implementation, bounded target coverage and remaining
+obligations. Contracts are versioned bounded predicates in existing canonical
+function-summary notes (`BOUNDED_BEHAVIOUR_V1`), created through the normal catalog
+and reviewed through MAL/DJ. These notes declare conditional test contracts;
+they do not manufacture a universal ABI, allocation or lifetime fact.
+
+The shared operation is `behaviour`, available through the existing restoration
+HTTP endpoint, CLI and thin `restoration_behaviour` MCP adapter. No second
+comparison engine, fact database or acceptance store is introduced. A dedicated
+UI results panel and live optional MCP SDK transport are not delivered here.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.restoration --target "$TARGET" \
+  behaviour --request /tmp/behaviour-request.json
+```
+
+For the CPU case, the request contains the revision actually inspected,
+`contract_id: "pandora.volume.local.v1"`, and the owned local `manifest` path
+returned by `memory_build`. First use normal `verify` and `memory_build` for
+`audio_master_volume`, destination `0x65400`, memory class `chip`. Do not copy an
+old analysis revision into a new manifest. The candidate is the existing five
+fixed-width ASM rewrites, not a C translation. The verified donor is
+`runtime/observations/pandora-volume-local-context.json`.
+
+The opt-in generated-backend observer records ordered architectural fetch/data
+accesses and call frames. Captured and explicitly modeled cells are known;
+unlisted image/zero-shadow cells remain unknown and required reads refuse.
+Repeated, unchanged and transient writes remain in order. Normalization covers
+only the two-byte logical volume location. Inputs include a modeled call/return
+frame and guards. Nineteen routine cases cover admitted guards and arithmetic
+boundaries; the separate single BYTE-store check exhausts all 65,536 WORD inputs
+under its fixed modeled context. This is not exhaustive routine/state coverage,
+normal gameplay reachability, CPU bus cycles, IRQ or Paula/DMA equivalence.
+
+For DMA, first use the public `copperline_session` scenario
+`pandora-shared-scratch-producer-consumer.json` and its verified original route
+checkpoint, as in the tracing instructions. Keep the captured JSON under owned
+`.runtime-state` storage. A `behaviour` request uses
+`contract_id: "pandora.scratch.second-word.v1"` and that `capture` path. The
+canonical contract pins the private checkpoint receipt, reference capture and
+scenario identity; missing private prerequisites produce a non-pass receipt.
+A new fixture binding requires normal contract review, not silent replacement
+of a hash. The evaluator uses existing checkpoint validation and re-decodes
+complete native sidecars, then checks D staging writes, A copy reads, exact
+address order and preceding-write values. The original-only replay comparison
+establishes repeatability, never candidate DMA equivalence. Source/mask bounds,
+destination bitmap, all-callers lifetime, original seed meaning, unobserved
+remainder and relocation safety remain outside this predicate.
+
+Results use `kind: "behaviour_verification"`, distinct from byte-exact receipts.
+They bind original/candidate binaries, fixture, canonical contract, backend and
+profile/checker identities. `previous_receipt_id` requests explicit admission
+against the current identities; changed assumptions return stale. Only an
+accepted canonical contract can qualify a passing evaluation. Pre-review
+predicate passes remain missing-prerequisite, and explicitly reviewed deviations
+remain a separate outcome, never equivalence. CLI exit 0 requires `status: pass`;
+other structured outcomes exit 2. Transport/domain request errors remain errors.
+
+Full receipts and fixture manifests stay in the existing ignored local evidence
+store. Public batch reports contain identities and summaries, not payloads,
+ROMs, raw checkpoints, complete captured register arrays or unfiltered bus data.
+Every connected batch records B IDs/contracts advanced, positive/boundary/failing
+cases, exact identities, remaining obligations and its next evidence question.
+Source changes still require the independent byte-exact gates.
+
+### Pandora app declaration-gap watches
+
+`pandora_app_memory_watch_scenario` composes one bounded CPU range watch from
+`docs/validation/pandora-app-access-audit.json` into the existing normal input
+route. A declaration gap is not evidence of unused memory. App addresses are
+absolute workspace addresses (`$39FC + offset`), without the payload's `$10000`
+runtime-view adjustment.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_app_memory_watch_scenario \
+  --gap-start 0x190 --window moving \
+  --output .runtime-state/app-watch-moving.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora \
+  --scenario .runtime-state/app-watch-moving.json \
+  --state-directory .runtime-state/app-watch-moving-fresh \
+  --continue-seconds 30 --run > .runtime-state/app-watch-moving-report.json
+```
+
+Use `--window startup --access write` in a separate fresh run for the startup
+clear control. The moving route boots through the verified direct-payload
+handoff, presses fire at the title anchor, releases it at UI initialization,
+waits for the officer's card transfer, then counts 19 downward and 21 rightward
+movement commits. The watch starts **after** that last commit with right held;
+it does not cover earlier route accesses. Input is released on completion or
+failure. Each run watches one selected gap; it does not arm all gaps together.
+
+The prefix uses canonical instruction anchors, not host delays. The watch ends
+on the first matching access or a three-second wall deadline. Consequently a
+no-hit window has a variable emulated duration; compare the actual recorded
+frames/CCK and route captures, not an assumed fixed frame count. Timeout means
+not observed within bounds, not unused or a successful equivalence check.
+Source anchor and accessing-PC payload matches are separate from the paused PC.
+
+Range watches use Copperline's CPU-only `mmio` data-access trap; instruction
+fetch coverage is excluded. Registers are paused-state snapshots, not asserted
+pre-access registers. Startup `CLR.B (A0)+` can
+report both a read and a write: distinguish those events using separate access
+filters before claiming a reader. These watches establish no DMA coverage.
+Keep full reports, stack samples, ROMs, payloads and generated ADFs local; publish
+only filtered observations and identities. The initial run results are in
+[`pandora-app-memory-watch.json`](../runtime/observations/pandora-app-memory-watch.json).
+
+#### Earlier windows and a finite frame end
+
+Use the same composer with `--window early` to arm at source `$83AE`, before
+active-object/proximity text processing. Fire has already been released at UI
+initialization. This idle-entry route adds no movement or manual inventory input.
+The watch requests `frames: 240` and a 60-second wall safety deadline. In this
+profile its anchor is frame 463 and its target frame is 703; actual CCK/raster
+endpoints remain in the report. These are frame-label bounds, not a claim that
+the first and last frames are complete bus captures.
+
+`--window overlay` instead arms at source `$7A2`, one LEA after the existing UI
+initialization anchor, with fire already released. It covers initial overlay
+construction omitted by the proximity anchor. The first targeted overlay probe
+watches `+$190`; it does not establish pre-overlay coverage for the other gaps.
+Both modes reuse the existing original boot route and accept no guest patches.
+
+The optional `frames` field is supported only with a CPU range `length`. The
+runtime derives the target from the byte-verified canonical anchor's frame,
+checks filter readback, and uses Copperline's existing `run_until(frame)` stop.
+`frame_budget_completed_no_access` requires an exact target-frame stop. A wall
+deadline remains `timeout/deadline_interrupt`, even if recovery carries a late
+hit or target event. A completed no-access window remains a non-pass scenario
+result, separate from an access hit, unexpected stop or infrastructure timeout.
+
+[Early-window evidence](../runtime/observations/pandora-app-early-memory-watch.json)
+contains completed observations for all 14 gaps, the retained partial timeout
+and failed boot, and two matching pre-overlay reads of `+$190` at source `$6130`.
+The nearby-distance text loop computes Y=25 on its fifth geometric position,
+although its pointer cursor remains at NULL `line_1`. Cursor setup precedes the
+NULL test, so this is an observed original-UI arithmetic alias of the startup
+noop pointer's high WORD, not evidence of a callback consumer or pixel access
+using that cursor. It leaves the existing source annotations accurate.
+
+The live runs reused the prior compiled route/media, with payload/source
+identities checked and provenance recorded. The added `$7A2` anchor was checked
+against the retained native accepted instruction and original bytes using the
+cached UI runtime view; all live source PCs were independently byte-matched.
+A normal invocation of the public session CLI may freshly compile the generated
+scenario instead. Raw reports and descriptor/stack captures stay local.
+
+#### Inventory and salvage-deposit interaction windows
+
+`pandora_app_interaction_watch_scenario` extends the same original route using
+normal keyboard/joystick inputs. It moves down 19 times, opens the player's own
+inventory with key 64, stores the starting `$36` card in carried slot 0, closes
+and reopens the panel, retrieves the card, then moves down twice and left 13
+times. The observed deposit approach is `(150,950)`, Manhattan distance 16 from
+the marker `(148,964)`. This is the salvage receptacle, not terminal modal UI.
+
+Three ordinary main-loop visits after each close let the released inventory key
+clear its latch before the next press. The initial attempt reopened too early:
+it stored and closed successfully but retained UI `$28`; the retry and final
+fresh full-route run verify the corrected sequence. No guest registers or
+workspace bytes are forced.
+
+Generate `--stage route` for the complete cold-boot route. For inexpensive
+repeated watches, first generate `--stage inventory-root` or `--stage deposit-root`
+and run it with the existing session CLI's `--checkpoint-save` option. Then:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_app_interaction_watch_scenario \
+  --stage deposit-root --output .runtime-state/deposit-root.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/deposit-root.json \
+  --state-directory .runtime-state/deposit-root-fresh \
+  --checkpoint-save .runtime-state/deposit-root-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/deposit-root-report.json
+.venv/bin/python -m amiga_reversing.tools.pandora_app_interaction_watch_scenario \
+  --stage deposit --offset 0x368 --length 4 --resume \
+  --output .runtime-state/deposit-watch.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/deposit-watch.json \
+  --state-directory .runtime-state/deposit-watch-fresh \
+  --checkpoint-load .runtime-state/deposit-root-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/deposit-watch-report.json
+```
+
+Use the matching inventory root with `--stage inventory` for the store window.
+Each resume starts at the saved byte-verified source PC, with media/context,
+snapshot hash and exact registers verified by the existing checkpoint service.
+The watch arms at source `$28F4` for store selection or `$89D6` for the deposit
+scan, then uses a 120-frame-label window and a separate 60-second wall deadline.
+Fire stays held through the hook; the selection latch prevents another swap,
+and deposit clears the held ID before later visits. Endpoint state, not input
+injection alone, validates each interaction.
+
+[Interaction evidence](../runtime/observations/pandora-app-interaction-memory-watch.json)
+records 32 completed no-hit CPU data windows: all 14 gaps plus `+$2D4` and `+$368`
+for both store and deposit. Every endpoint confirms the intended transfer.
+The ordinary route separately verifies retrieval and the complete deposit call.
+Opening/closing/retrieval/approach are not watched in these cases. Each deposit
+resumes empty storage and writes one ID; this does not test a growing prefix or
+its 64-byte boundary. No DMA, instruction-fetch, unused-memory, all-alias,
+terminal-screen or full-playthrough claim follows. Snapshots and raw captures
+stay private; no shared runtime or general validation framework changed.
+
+
+#### Terminal modal entry and nearby inventory windows
+
+The [terminal composer](../amiga_reversing/tools/pandora_terminal_modal_scenario.py)
+uses the previous **inventory-root**, not the deposit root. From `(241,942)` with
+Amy held, up 37/right 44/up 24/right 8/down 9 then right enters the north terminal at
+`(640,734)`. The opening crosses Y702; the failed Y734 path hits the partition.
+The original tile `$9C` probe branches to source `$8FF2` before movement commits.
+At `$9074` the header is `$18A20`,20×8, with cached ID `$36`; a private snapshot
+thumbnail confirms the terminal text. The normal exit uses down, releases at
+`$9088`, observes world-header restoration at `$90B0`, then main `$5D6`.
+
+Generate `--stage entry-root` or `--stage approach` and resume the existing
+verified inventory-root using the public session CLI. Save separate entry and
+modal checkpoints respectively. Every checkpoint restore verifies media/context,
+snapshot hashes, exact registers and the saved canonical source PC. For example,
+after saving an entry checkpoint:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_terminal_modal_scenario \
+  --stage entry --offset 0x368 --length 4 --output .runtime-state/terminal-watch.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/terminal-watch.json \
+  --state-directory .runtime-state/terminal-watch-fresh \
+  --checkpoint-load .runtime-state/terminal-entry-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/terminal-watch-report.json
+```
+
+Use `--stage inventory-open` with the **modal** checkpoint for Space/key64 panel
+opening. `--stage lifecycle` with that same modal checkpoint verifies normal
+direction exit only. Inventory opening takes the **nearby-object** branch here,
+not the own-inventory branch: UI flags `$1C`, displayed IDs 5/50/0/0. A retained
+initial script waited for own-panel `$2754` and timed out; no terminal card
+store/retrieve or authorization is claimed. Card-name/clearance/entry headings
+alone do not establish successful submission.
+
+[Filtered evidence](../runtime/observations/pandora-terminal-modal-memory-watch.json)
+records 48 live runs, including failed routes, the HP diagnostic and **32 finite
+watch windows**. Entry/render watches arm at `$8FF2`; inventory-opening watches
+arm at `$9078`, before the next key scan. Each watches one of14 gaps/750 bytes
+or declared `+$2D4`/`+$368` for 120 frame labels, with a separate 60-second wall
+budget. All reach their exact target frame with no hit, and every endpoint
+confirms the terminal header and expected panel state. These remain non-pass
+bounded observations, never unused-memory proofs. CCK/raster positions are
+retained; frame-label endpoints may be partial raster frames. No approach,
+instruction-fetch or DMA coverage follows.
+
+The southern route failed for distinct observed reasons: solid terrain at
+`(458,950)` and an exact Commander-card contact near `(564,960)`. The diagnostic
+write watch catches source `$801A` storing HP low byte 95→85 at physical `$5C35F`,
+A1=`$58CD0` (descriptor 18), D7=3. Held Amy `$36` fails its Commander `$30` predicate;
+this is not a general terminal authorization rule. No memory/register forcing,
+new source meaning or classification follows. Original bytes/source are
+unchanged; existing compiled media/native facts were identity-checked and every
+new canonical instruction matched original bytes. Live PCs are independently
+byte-matched. No shared runtime service changed. ROM/media, raw reports,
+screenshots and checkpoint data stay local.
+
+#### State-aware Pandora player
+
+[`pandora_player`](../amiga_reversing/tools/pandora_player.py) separates reusable
+player actions from snapshot decoding and memory observers. `PlayerPlan` provides
+movement to a known position, inventory open, cursor movement, selection, close
+and terminal exit. Actions send ordinary keyboard/joystick inputs, release them
+on success/failure, and stop on explicit state goals. The plans are waypoint-led;
+they do not perform autonomous pathfinding or decide mission objectives.
+
+The shared scenario runner adds `until_memory`, an exact/masked capture-read goal,
+with mandatory `occurrences` and `max_frames` budgets. It samples only at a
+byte-verified canonical PC. Stable map, HP95 and inactive-bit guards are separate
+from completion goals. Visit or frame exhaustion, mismatching guards and wall
+timeouts fail closed. If an expected PC is not reached, a bounded frame stop
+captures registers/state for diagnostics without claiming a canonical PC hit.
+Input changes are recorded with their paused source phase/frame/CCK anchor and
+acknowledgement; final cleanup is included. After an observer hook, the actual
+observer endpoint supplies this anchor, not its earlier arming point. This is
+not a trace of every internal hardware poll.
+
+Use the public session CLI as before, with legal local ROM and explicit emulator:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_player \
+  --plan provision --output .runtime-state/player-provision.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/player-provision.json \
+  --state-directory .runtime-state/player-provision-fresh \
+  --checkpoint-save .runtime-state/player-provision-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/player-provision-report.json
+.venv/bin/python -m amiga_reversing.tools.pandora_player \
+  --report .runtime-state/player-provision-report.json \
+  --output .runtime-state/player-provision-summary.json
+```
+
+`inventory-deposit` repeats the previous cold-boot store/retrieve/deposit route,
+adding state assertions and finite bounds. `north-terminal` starts from the
+verified inventory root; `card` starts from the verified terminal-frame root.
+`walkthrough` composes cold boot, northern approach and the Engineer-card
+interaction. `provision` then stores that card and takes the sonicdriver before
+normal exit. These last two are **continuous cold-boot routes without checkpoint
+loads**. Private checkpoint replays remain useful for development, not substitutes
+for that qualification. Every resume has explicit origin/map/held-item guards.
+
+[Evaluation evidence](../runtime/observations/pandora-player-evaluation.json)
+records matching qualified cold-boot provisioning runs: frame1226, position
+`(640,734)`, HP95, sonicdriver `$05` held and Engineer `$32` in carried slot0.
+The old inventory/deposit plan also repeats with identical action states and
+frame/CCK input records. A known-wall replay stops after30 frames, captures the
+unchanged position and releases input. No memory-watch campaign was added.
+
+The first cursor action overshot: at handler entry `$28D4`, direction has already
+been sampled. Brake one service before the final step, wait for the intended
+cursor position with input released, then select. The card row requires Y147;
+braking at145 prevents another move from starting. Navigation similarly uses
+the original movement-commit anchor `$9844` so a new direction precedes the next
+sample. Both failures and the too-short180-frame east-leg bound are retained in
+the evidence rather than silently retried or counted as successful progress.
+
+This normal terminal has a held-ID redraw, **no separate submit command**.
+Engineer `$32` selects the original Alpha clearance-label entry; Lt Commander is
+`$31` (development progress initially misnamed `$32`, now corrected). The routine
+completion at `$9078` after cache32 establishes the display path, not unrestricted
+security access or mission completion. The later held sonicdriver is outside the
+card-ID domain. Source meanings/bytes are unchanged; no new exact source rebuild
+is needed. The player expects the admitted healthy route; damage, new encounters,
+other maps or arbitrary cursor states require another reviewed plan rather than
+silent continuation. Original disk/loader parity, full playthrough, DMA and
+all-alias coverage remain outside this result. ROMs, media, raw reports, full
+register/stack data and guest checkpoints stay private.
+
+#### Sonicdriver defeats Icelord
+
+[`pandora_icelord`](../amiga_reversing/tools/pandora_icelord.py) uses the existing
+player actions for a concrete next objective: reach the Icelord, use the
+sonicdriver combat override, defeat it and return alive to world gameplay.
+Generate `--stage cold-fight` and run it through the same session CLI/direct
+payload contract. No checkpoint load is used for this qualified route:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_icelord \
+  --stage cold-fight --output .runtime-state/icelord.json
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target "$TARGET" --rom "$COPPERLINE_ROM" --copperline "$COPPERLINE_BINARY" \
+  --direct-payload-contract pandora --scenario .runtime-state/icelord.json \
+  --state-directory .runtime-state/icelord-fresh \
+  --checkpoint-save .runtime-state/icelord-checkpoint.json \
+  --continue-seconds 90 --run > .runtime-state/icelord-report.json
+```
+
+`--stage approach` resumes the prior provisioning checkpoint at world `$5D6`;
+`--stage fight` resumes the staged `(1305,230)` movement-commit checkpoint.
+These debugging runs remain distinct from the continuous cold-boot result in
+[filtered evidence](../runtime/observations/pandora-icelord-progression.json).
+The terrain/pose model suggested the route below the Icelord; a west-side goal
+was inside a wall, so its failed model search was not a reachability conclusion.
+A live first-step probe establishes the post-terminal geometry correction
+`(640,734)`→`(633,734)` before the route seed moves north. All19 later waypoints
+were validated live, reaching `(1305,230)` at frame2163 in checkpoint development.
+
+The sonicdriver override at original `$784E`, observed after execution at `$7854`,
+sets player damage20 for the Icelord. Captured opponent pointer `$59D7A` and item
+definition `$42` bind the encounter. Charge23 is unreachable with reload2: the
+original gauge adds2. The retained failed attempt exhausts64 visits without23.
+Waiting for the first charge24 at `$7938` leaves the required input-sampling
+window for a full20-point attack; each fire hold ends on its verified effect.
+
+The cold run finishes at **frame2444**, player `(1298,206)`, HP70, sonicdriver
+held, Engineer in carried slot0. Icelord HP follows95→75→55→35→15→251; signed
+BYTE underflow on the final hit is expected original arithmetic. Defeat is the
+actor flagbit1 after cleanup at world loop `$5D6`, with its X restored to1312,
+player X restored from the temporary10000 combat bias, and combat UI cleared.
+Zero enemy HP is not used as an invented oracle. Combat guards permit observed
+player damage while requiring active player, world map, held tool, exact opponent
+and retained Engineer card. The healthy navigation guards remain unchanged.
+
+The complete route fits the existing64-phase cap by omitting three redundant
+terminal observation/idle phases while retaining input-release hooks. Its44 input
+events require a concrete compiler fix: accept the runner's existing64-event
+bound;64/65 boundary tests accompany it. No phase-cap increase, new emulator,
+state injection, generic observer project or gap-watch campaign was needed.
+Focused runtime/session/player/Icelord checks: **163 passed, no skips**.
+Original target bytes/source and paused B07 work remain unchanged; no source
+rebuild was required. One continuous cold-boot pass proves this bounded objective,
+not full-game completion, original disk-loader parity, arbitrary combat safety,
+new byte-purpose classification or CPU/DMA memory-access coverage. Raw states,
+media, ROMs and full captures remain private.
+
+#### Required ending route: IDs, Blue and Scarlet
+
+The [completion dependency checklist](targets/pandora-restoration-plan.md#walkthrough-completion-dependencies-2026-10-22-after-12ceae72)
+now distinguishes intended-route dependencies from optional encounters. The target
+is a saved-Earth escape, not kill-ranked combat. Engineer ID is an exact checkpoint
+item; sonicdriver has a direct trade use for Ochre. The Icelord has no ending input
+or completion callback and is omitted from this completion prefix. Its earlier
+legal defeat remains optional evidence, not a certified golden-path step.
+
+[`pandora_completion`](../amiga_reversing/tools/pandora_completion.py) generates
+`--stage lieutenant --cold` or `--stage commander --cold`. Run the generated JSON
+with the established session CLI/direct-payload contract and a fresh state folder,
+**without** checkpoint load for continuous qualification. Omitting `--cold` uses
+the matching verified prior checkpoint for debugging. For example:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_completion \
+  --stage commander --cold --output .runtime-state/required-cards.json
+```
+
+[Required-route evidence](../runtime/observations/pandora-required-progression.json)
+records one uninterrupted cold boot through Lt Commander acquisition, its guarded
+Commander approach, Commander ID acquisition and Blue/Scarlet collection. At
+frame2572 the player is `(192,190)`, HP95, holding Commander48; carried slots0/1
+retain Engineer50 and sonicdriver5; pocket slots2/3 contain Blue33 and Scarlet35.
+The post-run identity-bound mission probe reads self-destruct state0, authorized
+checkpoint count1/seen bits2, and nonzero Earth deadline WORD`$9732`. Nothing is
+submitted or armed yet; escape and the successful ending remain unobserved.
+
+A concrete input failure was retained: releasing Space at the late inventory
+handler was acknowledged, but guest key byte`$39BC` stayedFF for64 subsequent
+services. The driver refused to close/continue. Releasing at original body-panel
+entry`$27EA`, before rendering, then waiting for observed guest release0 fixed the
+interaction. This is ordinary controller timing, not a guest-memory repair.
+World inventory close uses main loop`$5D6`, distinct from terminal`$9074`.
+Repeated cursor actions get unique input hooks. The actual112-phase/66-event
+continuous route requires shared bounded capacities128 phases/96 events; the
+compiler and runner agree and boundary tests cover refusal beyond those limits.
+Focused tests:165 passed, no skips. No new observer campaign or emulator was added.
+
+Next required acquisition is Captain's SDI disk, then the still-unexecuted Ochre
+trade, console arming, AWOL authorization and escape. The Robomechanic's live
+patrol Y1592 and sampled grid data are retained; a failed first staging search
+is not proof that every approach is impossible. The full hint page fetch was
+blocked by a proxy403; indexed hints are corroboration only, with local source
+predicates explicitly separated. Original bytes/source and paused B07 files are
+unchanged. Proprietary assets, raw RAM/stack captures and checkpoints stay local.
+
+#### Captain SDI disk with protected inventory
+
+`pandora_completion --stage captain --cold` extends the required-code route to
+Captain's SDI disk. Use the existing headless session CLI without checkpoint load
+for the full qualification; a matching preceding Commander checkpoint is useful
+for development. [SDI evidence](../runtime/observations/pandora-sdi-progression.json)
+records one complete cold boot, frame4846, HP32, Commander48 held, carried
+`[50,5,49,38]`, pockets`[0,0,33,35]`. All218 phases passed, with128 input events.
+The existing run completed normally in108.5 seconds; no duplicate was launched
+while it ran. Raw reports/checkpoints remain private.
+
+Exact-card gates require sequencing, not just possessing all IDs: recover49 to
+leave the Lt Commander area, clear its contact region including the next turn's
+lateral drift, then retrieve48 outside. Stash48 before the Thief's Y532 crossing,
+walk empty-handed, and retrieve it beyond the strict interaction range. The
+Thief clears only held IDs>=2; carried items are not transferred or stolen by
+that branch. Movement goals now assert the expected held item after successful
+selection, preventing another silent loss.
+
+The next apparent wall was actually Hooligan combat. A naturally reached entry
+at`$7792` identifies opponent`$5A028`, HP60, weapon damage21/reload5. Twelve full
+5-point player attacks defeated it, leaving HP32. The subsequent original-world
+route and inventory transfers acquire SDI38 in carried3 and recover48 for exit.
+This engagement enables the chosen corridor; it is not claimed as a universal
+ending prerequisite. Original combat setup opens a shared passage tile, so
+side effects of optional fights must also be tracked, not dismissed from a NULL
+completion callback alone. Combat-biased X and actual world X are distinguished.
+
+The existing planning model lacked the original animation-toggle command. Its
+handler changes a node flag and advances2, leaving object world X/Y unchanged;
+adding that bounded case closes Hooligan X430..684/Y620..872 and Thief
+X186..772/Y532. Those are original-script conditional bounds, not a theorem
+about arbitrary pointer aliases or mutated scripts. No new timing/pathfinding
+framework or memory-watch campaign was introduced. The concrete continuous route
+fits shared bounded256-phase/128-event limits;186 focused tests pass.
+
+One diagnostic was initially rejected by automatic approval review as perceived
+state injection/artificial routine entry. Read-only inspection established that
+constructor values emit capture assertions, both phases use`continue`, and the
+saved root was naturally reached with51 recorded controller changes. One retry
+was approved and completed. No guest PC/position/health/item write, artificial
+routine call or access workaround occurred.
+
+Next is actual Ochre acquisition: the earlier staging goal above Robomechanic
+was blocked terrain, whereas Y1606 below its patrol is within the strict
+interaction range and has a model route. Engineer50 must be held through the
+engineering checkpoint, then sonicdriver5 offered near the NPC. The SDI result
+is not yet a completed game; Ochre, AWOL authorization, console and ending remain
+explicit obligations. Target source bytes, nine paused B07 files and source
+policies remain unchanged; no redundant source regeneration was needed.
+
+
+## Required Ochre trade and patrol waits (2026-10-22)
+
+Generate the recipe with:
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_ochre \
+  --cold --output .runtime-state/player-ochre.json
+```
+
+Compile/run through the existing `copperline_session` CLI with the same target,
+legal ROM, explicit Copperline executable and original direct-payload contract.
+The [qualified receipt](../runtime/observations/pandora-ochre-progression.json)
+records one uninterrupted cold boot:293 phases/190 events,169.99 seconds inside
+`run_session`, frame8095, HP32, heldOchre36, all other required-route items safe.
+Source/nav preparation and agent time are excluded from that duration.
+
+The original Defence Controller/Wackobrain patrols require timed crossings.
+The driver observes their Y WORDs, waits for the south-side range, then follows
+the validated waypoints. The Robomechanic exchange uses ordinary fire, checking
+player holding and subsequent NPC inventory/offer mutation. A terrain-model
+candidate alone did not establish safe passage; failed attempts are retained.
+These predicates are qualified for this deterministic prefix, not every patrol
+phase or replacement state.
+
+Compiler and runner share `validate_phase_occurrences`: ordinary counted phases
+remain1..64; `until_memory` phases with mandatory explicit frame/visit budgets
+allow1..1024. Frame limits1..3600 and wall wait limits remain independent.
+The real waits took92/111 visits and exchange196. Scenario capacities512/256
+fit this concrete route; excess is refused. Capture assertions are checked on
+**every visit**: put post-action assertions in a subsequent phase, not in a goal
+wait whose early visits precede the mutation. The first cold attempt exposed
+that mistake and failed closed; a focused regression preserves the correction.
+195 focused tests passed, no skips, including a goal reached after70 visits.
+
+Next is AWOL55, followed by console submissions/authorization/escape. No full
+ending, source-byte change, new emulator backend, memory-watch campaign or
+CPU/DMA access completeness follows. Raw media/checkpoints remain private.
+
+
+## AWOL acquisition and body context (2026-10-22)
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_awol \
+  --cold --output .runtime-state/player-awol.json
+```
+
+Use the existing session compiler/run with the same explicit legal ROM/emulator
+and original direct-payload profile. The [qualified evidence](../runtime/observations/pandora-awol-progression.json)
+records340 phases/217 events,177.44 seconds within `run_session`, frame8818,
+HP32, heldEngineer50, carried `[48,0,49,38]`, pockets `[36,55,33,35]`.
+No checkpoint load or inside-run intervention.12 focused recipe/player tests
+pass; runtime/session implementations are unchanged since the195-test Ochre pass.
+
+Kwik-Kleen actually entered combat in a rejected approach; pointer$5BBB6 and
+biased playerX establish the cause. Waiting safely outside its rectangle until
+the opposite patrol segment enabled passage without accepting damage. At the
+body, collision alone did not ensure inventory ownership: the original nearest
+selection can change through cooldown/message clobbers. The recipe samples
+`app_nearest_object_ptr` at source$5EA, after proximity update, and sends the
+inventory key only after it identifies AWOL$5AA7E. Body entry$27EA, held55 and
+final pocket55/held50 establish the actual normal exchange. All diagnostic
+checkpoints remain separate from cold qualification.
+
+Next is console/departure preparation, then submissions and saved-Earth escape.
+AWOL ownership does not itself prove descriptor21 authorization. No target
+source change, new general mechanism, raw guest capture publication, new
+memory-watch coverage, health reset, B07 work or PR merge accompanies this step.
+
+
+### Failure snapshots versus the last canonical hit
+
+On a failed bounded phase, a last expected-PC capture can precede a later stop
+by hundreds of frames. The player observer must report `diagnostic_capture`
+when available, with `state_origin: diagnostic_stop`, and retain the older
+snapshot as `last_canonical_state`. The diagnostic stop is not claimed as a hit
+on the expected source row. This fixes actual rejected-route reports that hid
+combat damage/death behind the earlier healthy movement state.13 focused
+recipe/player checks pass, including both competing snapshots and death.
+
+Affected SDI/Ochre/AWOL failure summaries were re-read against their exact raw
+report hashes; their `failure_snapshot_correction` records the decoder identity
+and affected runs. Successful cold receipts and original execution identities
+remain unchanged. Rejected branches never replace the healthy checkpoint used
+for qualified progression.
+
+
+## Unarmed return-route inspection (2026-10-22)
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.pandora_escape \
+  --stage inspect-return --output .runtime-state/return-inspection.json
+```
+
+Compile/run through the existing session CLI with the verified AWOL checkpoint,
+same original direct-payload profile and explicit legal ROM/emulator. The
+[receipt](../runtime/observations/pandora-return-preparation.json) binds that
+inherited root and the actual code/scenario/media identities. It is a55-phase/
+45-event **checkpoint extension**,44.56 seconds inside `run_session`, final
+frame11293, `(1298,144)`, HP32, all mission items retained and console0. No fire
+is authored in this inspection.15 focused player/recipe checks passed, no skips.
+
+`--stage prepare --cold` emits385 phases/256 events for console/departure only;
+that full cold composition is admission-tested, not a new live cold receipt.
+Return inspection starts from the qualified AWOL checkpoint. Normal inputs
+enter active console tile400 from its left atY1706; tile402 below and231 above
+explain the two rejected approaches. Modal entry$9C00, loop$9C88 and return
+$9C9C..9CBC are observed; `9074` is the different terminal loop and must not be
+used as a self-destruct inventory-close hook.
+
+The game camera explicitly wraps down the right shaft when Y >=(129-3)*16:
+source$9960 assigns Y16, observed at$9966 after ordinary down input. The terrain
+planner currently omits that transition; its no-route result is not a proof
+that DeathFly cannot be bypassed. The upper shaft then meets live Icelord. Both
+routes were probed with bounded normal inputs; actual Icelord parameters are
+25/reload4 against current default5/reload3 atHP32. The healthy pre-encounter
+checkpoint is retained, not a damaged rejected branch.
+
+The next completion-prefix revision should clear Icelord with the existing
+Sonicdriver special fight before the Ochre trade, then remeasure the connected
+health/return route before arming. Its lack of an ending predicate does not
+make it ignorable on this particular route. Neither late encounter was won;
+no console submissions, AWOL authorization or ending are claimed. No general
+planner rewrite, memory injection, new memory watches or target-byte edits.

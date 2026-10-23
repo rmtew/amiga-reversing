@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-warm-audio-start-inputs",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "resume_gameplay",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "gameplay_anchor",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "warm_audio_donor",
+      "breakpoint_stable_key": "s0:000005CA:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 414462,
+            "size": 64
+          },
+          {
+            "address": 414526,
+            "size": 50
+          },
+          {
+            "address": 382942,
+            "size": 64
+          },
+          {
+            "address": 383006,
+            "size": 64
+          },
+          {
+            "address": 383070,
+            "size": 64
+          },
+          {
+            "address": 383134,
+            "size": 64
+          },
+          {
+            "address": 383198,
+            "size": 20
+          },
+          {
+            "address": 385912,
+            "size": 64
+          },
+          {
+            "address": 385976,
+            "size": 52
+          },
+          {
+            "address": 384820,
+            "size": 30
+          },
+          {
+            "address": 385624,
+            "size": 24
+          },
+          {
+            "address": 384254,
+            "size": 18
+          },
+          {
+            "address": 377370,
+            "size": 1
+          },
+          {
+            "address": 377682,
+            "size": 4
+          },
+          {
+            "address": 12574721,
+            "size": 1
+          },
+          {
+            "base_register": "a6",
+            "offset": 829,
+            "size": 1
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

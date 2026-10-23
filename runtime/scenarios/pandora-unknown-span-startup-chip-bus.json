@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-unknown-span-startup-chip-bus",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "boot_handoff",
+      "observable": "direct_payload_handoff"
+    },
+    {
+      "name": "initialization_bus_window",
+      "breakpoint_stable_key": "s0:0000046A:instruction",
+      "wait_seconds": 20,
+      "chip_bus_trace": {
+        "frames": 4,
+        "wait_seconds": 5,
+        "ranges": [
+          {
+            "name": "stack_adjacent",
+            "address": 65618,
+            "length": 1028
+          },
+          {
+            "name": "cursor_gap",
+            "address": 111784,
+            "length": 3840
+          },
+          {
+            "name": "defeat_suffix",
+            "address": 302536,
+            "length": 1392
+          }
+        ]
+      },
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 111784,
+            "size": 64
+          },
+          {
+            "address": 112168,
+            "size": 64
+          },
+          {
+            "address": 115560,
+            "size": 64
+          },
+          {
+            "address": 302536,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "title_contents",
+      "breakpoint_stable_key": "s0:00000BA8:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 111784,
+            "size": 64
+          },
+          {
+            "address": 112168,
+            "size": 64
+          },
+          {
+            "address": 115560,
+            "size": 64
+          },
+          {
+            "address": 302536,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "ui_contents",
+      "breakpoint_stable_key": "s0:0000079E:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 111784,
+            "size": 64
+          },
+          {
+            "address": 112168,
+            "size": 64
+          },
+          {
+            "address": 115560,
+            "size": 64
+          },
+          {
+            "address": 302536,
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "first_gameplay_contents",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20,
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "address": 111784,
+            "size": 64
+          },
+          {
+            "address": 112168,
+            "size": 64
+          },
+          {
+            "address": 115560,
+            "size": 64
+          },
+          {
+            "address": 302536,
+            "size": 16
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "title_contents",
+      "control": "port1 fire",
+      "release_after_phase": "ui_contents"
+    }
+  ]
+}

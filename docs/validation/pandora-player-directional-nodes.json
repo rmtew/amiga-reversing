@@ -1,0 +1,80 @@
+{
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "layout": [
+    {
+      "source_start": "0x4C71E",
+      "size": 12,
+      "type": "world_position_descriptor_prefix"
+    },
+    {
+      "source_start": "0x4C72A",
+      "size": 26,
+      "type": "world_position_render_state_prefix"
+    },
+    {
+      "source_start": "0x4C744",
+      "size": 18,
+      "type": "WorldPositionStateNode"
+    },
+    {
+      "source_start": "0x4C756",
+      "count": 8,
+      "stride": 4,
+      "type": "WorldPositionDescriptorPointer"
+    }
+  ],
+  "finding": "The former overlap came from applying the generic 30-byte extended state to the player instance. Concrete supported uses establish the existing 26-byte render prefix followed by a directional animation node. No phase-specific interaction-tail interpretation is established for the player.",
+  "readers_writers": [
+    {
+      "source": "0x4AFFA..0x4B008",
+      "effect": "Install node 0x4C744 in player state+8; do not write node descriptor."
+    },
+    {
+      "source": "0x9844..0x98AE",
+      "effect": "Select one of four directional nodes; clear index/phase only on node change; clear hold and skip modes."
+    },
+    {
+      "source": "0x9984..0x999C",
+      "effect": "Clear node index/phase, set hold-header and clear skip-update."
+    },
+    {
+      "source": "0x951A..0x95E0",
+      "effect": "Read header/sequence; phase_step $40 advances every second visit. Seven active pointers follow one held pointer; initialized node loops without chaining."
+    },
+    {
+      "source": "0x7E10..0x7E34; 0x80C2; 0x814E",
+      "effect": "Interaction flags and world flag bit2 gate receptacle-tail consumers. Initial player flags $02 skip this route."
+    },
+    {
+      "source": "0x9F66..0x9F82",
+      "effect": "Restart tail reader visits six explicit receptacle states, excluding player."
+    },
+    {
+      "source": "0x1328,0x1360,0x1398",
+      "effect": "Generic script handlers can replace node sequences; no global immutability claim."
+    }
+  ],
+  "limits": [
+    "Node byte +11 remains an unknown gap.",
+    "Tests use bounded original-byte execution and synthetic call contexts, not proof of all normal-gameplay reachability.",
+    "Arbitrary flag/script mutations, extended chained nodes and allocation lifetime remain unproved."
+  ],
+  "tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_pandora_player_directional_nodes.py tests/test_pandora_scripted_pose.py tests/test_pandora_state_transitions.py tests/test_pandora_camera_and_local_compare.py",
+    "result": "29 passed",
+    "new_original_byte_cases": 6
+  },
+  "framework_changes": false,
+  "unchanged_assets": 86,
+  "history_prefixes_preserved": true,
+  "verification": {
+    "receipt_id": "a4e8efab5eab68825bd5c014b85c605d14bbc4372be185a5704d38fa86e1c14a",
+    "exact": true,
+    "framework_exact": true,
+    "source_sha256": "4c98999f1f0aeab1bd1478907a3c52264893d37cacf143fc0c2e6f8532ade80a",
+    "source_package_sha256": "aafadd0f7c71b50c820c85c6e2c6759b64baa3863b2ae0188d0ff327da10e2f7"
+  },
+  "original_size": 376832,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "next_gap": "Extended chained animation nodes: the +18 next-node pointer and successor field accesses at $9582..$9594 still lack a faithful typed extended record and bounded instance/lifetime coverage."
+}

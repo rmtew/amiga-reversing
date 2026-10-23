@@ -1,0 +1,5546 @@
+{
+  "schema_version": 1,
+  "base_commit": "e92b3ab5abe6019c1f0c524b12ea788f21c47fc8",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+  "emulator_version": "copperline 1.0.0",
+  "identities": {
+    "emulator": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "rom": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "amiga_reversing/tools/copperline_runtime.py": "d367726726d93f1d0eff15dce7447d618cb5c0bc8e43779a0f156c5faf1498f4",
+    "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+    ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/pandora_3e1ee0f1_bk_00_000000e8.s": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "amiga_reversing/tools/pandora_app_memory_watch_scenario.py": "b95a25958730cfc9b33d33acd073956fa03e11db9d5b0491a6205e5a559bafa6",
+    "docs/validation/pandora-app-access-audit.json": "3ea8921e59c3405a2cf1c87869d57e640080c75999a887297c15bbde056b567d",
+    "runtime/scenarios/pandora-nearby-interaction-callback.json": "a352fff8d11725767b4773a0453ce32ba7581d3e3b93c3e13cc52bbb92aa1dcb"
+  },
+  "app_base": 14844,
+  "gap_ranges": [
+    {
+      "app_start": 400,
+      "app_end_exclusive": 405,
+      "address": 15244,
+      "length": 5
+    },
+    {
+      "app_start": 422,
+      "app_end_exclusive": 426,
+      "address": 15266,
+      "length": 4
+    },
+    {
+      "app_start": 430,
+      "app_end_exclusive": 434,
+      "address": 15274,
+      "length": 4
+    },
+    {
+      "app_start": 436,
+      "app_end_exclusive": 438,
+      "address": 15280,
+      "length": 2
+    },
+    {
+      "app_start": 462,
+      "app_end_exclusive": 468,
+      "address": 15306,
+      "length": 6
+    },
+    {
+      "app_start": 504,
+      "app_end_exclusive": 522,
+      "address": 15348,
+      "length": 18
+    },
+    {
+      "app_start": 540,
+      "app_end_exclusive": 546,
+      "address": 15384,
+      "length": 6
+    },
+    {
+      "app_start": 547,
+      "app_end_exclusive": 548,
+      "address": 15391,
+      "length": 1
+    },
+    {
+      "app_start": 650,
+      "app_end_exclusive": 654,
+      "address": 15494,
+      "length": 4
+    },
+    {
+      "app_start": 702,
+      "app_end_exclusive": 706,
+      "address": 15546,
+      "length": 4
+    },
+    {
+      "app_start": 707,
+      "app_end_exclusive": 712,
+      "address": 15551,
+      "length": 5
+    },
+    {
+      "app_start": 831,
+      "app_end_exclusive": 854,
+      "address": 15675,
+      "length": 23
+    },
+    {
+      "app_start": 860,
+      "app_end_exclusive": 864,
+      "address": 15704,
+      "length": 4
+    },
+    {
+      "app_start": 876,
+      "app_end_exclusive": 1540,
+      "address": 15720,
+      "length": 664
+    }
+  ],
+  "runs": [
+    {
+      "name": "moving-190-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-190-a-report.json",
+      "raw_report_sha256": "d9c377c3865d69323e258ee802f322d456f92a5a5361f94f9a0058bf58614b23",
+      "authored_scenario_sha256": "6fc648b37cd2963ea7c12635a1d354e970122187944a68417aecff44411b7385",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.005,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6850"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6850",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 935,
+              "cck": 66470061,
+              "vpos": 164,
+              "hpos": 148,
+              "pc": 92240,
+              "retired_instructions": 9213450,
+              "seconds": 18.740352054402514
+            },
+            "register_context": {
+              "d0": 36700400,
+              "a0": 376646,
+              "a6": 14844,
+              "a7": 66590,
+              "pc": 92240,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-190-b",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-190-b-report.json",
+      "raw_report_sha256": "5ea98ddfa4dbdff597257807aa4fcf29407294868ad840221c58f2e987265192",
+      "authored_scenario_sha256": "6fc648b37cd2963ea7c12635a1d354e970122187944a68417aecff44411b7385",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.003,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x679a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x679a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 928,
+              "cck": 65950524,
+              "vpos": 66,
+              "hpos": 214,
+              "pc": 92058,
+              "retired_instructions": 9150972,
+              "seconds": 18.593875488279185
+            },
+            "register_context": {
+              "d0": 320,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66634,
+              "pc": 92058,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-1a6-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-1a6-a-report.json",
+      "raw_report_sha256": "1cd8603bfe2779612c7b09a9f3b7200633e8102c4db991acc771067b6e8bb4eb",
+      "authored_scenario_sha256": "95289486b0244d71873113ac005f76b58877b650e8e4a6cc36a9bef0176dfa4d",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15266,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15266,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15266,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.007,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x247c"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x247c",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 903,
+              "cck": 64162068,
+              "vpos": 13,
+              "hpos": 64,
+              "pc": 74876,
+              "retired_instructions": 8934295,
+              "seconds": 18.089644040773692
+            },
+            "register_context": {
+              "d0": 0,
+              "a0": 363584,
+              "a6": 14844,
+              "a7": 66626,
+              "pc": 74876,
+              "sr": 8196
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-1ae-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-1ae-a-report.json",
+      "raw_report_sha256": "c253b1d8f6362eb62b6676e051bfd7bcaa356d2cefb412789e6233e5e1b907c4",
+      "authored_scenario_sha256": "ac7ef3a682ea49f82df9d2a7622106912a963848d4c7a8589f946f1edd34c72d",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15274,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15274,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15274,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.01,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x679a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x679a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 936,
+              "cck": 66527526,
+              "vpos": 104,
+              "hpos": 182,
+              "pc": 92058,
+              "retired_instructions": 9219712,
+              "seconds": 18.756553548949153
+            },
+            "register_context": {
+              "d0": 320,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66634,
+              "pc": 92058,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-1b4-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-1b4-a-report.json",
+      "raw_report_sha256": "34b3345314e73096c747362d43b79ef4b87c02a8ddac4e358d29affecfc35a62",
+      "authored_scenario_sha256": "85d3f7c838da1b405bdaa1355bc6528ca4ba5829c5cbcb8b40dcf1b0a282da8f",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15280,
+              "length": 2,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15280,
+              "len": 2,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15280,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 2
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.093,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5c2"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5c2",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 929,
+              "cck": 66066201,
+              "vpos": 263,
+              "hpos": 121,
+              "pc": 67010,
+              "retired_instructions": 9165564,
+              "seconds": 18.626489084114414
+            },
+            "register_context": {
+              "d0": 491520,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66642,
+              "pc": 67010,
+              "sr": 8196
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-1ce-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-1ce-a-report.json",
+      "raw_report_sha256": "be4105799b3ff4b6d46986fa3f2ca8ed762cf0a014f2a64944b18e183068dee5",
+      "authored_scenario_sha256": "0d70e1c98aa6019adcc0ec9654b7f4665f261a9f241af4b3575c4ef5a43b7c70",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15306,
+              "length": 6,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15306,
+              "len": 6,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15306,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 6
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.005,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6f7e"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6f7e",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 941,
+              "cck": 66873733,
+              "vpos": 64,
+              "hpos": 214,
+              "pc": 94078,
+              "retired_instructions": 9261771,
+              "seconds": 18.8541620205842
+            },
+            "register_context": {
+              "d0": 362786,
+              "a0": 362786,
+              "a6": 14844,
+              "a7": 66610,
+              "pc": 94078,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-1f8-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-1f8-a-report.json",
+      "raw_report_sha256": "4783132a2129ad9d2c62b3f404d2c71713463a8020866d7cef6fa23f354b69e2",
+      "authored_scenario_sha256": "c5220a0e967f42753312b00bac18e9403dfd90248abcd234a1bc831ce355d199",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15348,
+              "length": 18,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15348,
+              "len": 18,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15348,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 18
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.01,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x679a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x679a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 944,
+              "cck": 67104562,
+              "vpos": 142,
+              "hpos": 184,
+              "pc": 92058,
+              "retired_instructions": 9288472,
+              "seconds": 18.91924119546815
+            },
+            "register_context": {
+              "d0": 320,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66634,
+              "pc": 92058,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-21c-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-21c-a-report.json",
+      "raw_report_sha256": "54b7ea443a3c4d6fb0337b7c209ff7944aab5569fdde4dabec8f2acff9daed76",
+      "authored_scenario_sha256": "e5f5b2dc84236005d080cc51828417161f86d77693ae97369739cdc70ea201fd",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15384,
+              "length": 6,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15384,
+              "len": 6,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15384,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 6
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.004,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x6f9e"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x6f9e",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 933,
+              "cck": 66296705,
+              "vpos": 26,
+              "hpos": 220,
+              "pc": 94110,
+              "retired_instructions": 9192026,
+              "seconds": 18.691476629559094
+            },
+            "register_context": {
+              "d0": 1168,
+              "a0": 364218,
+              "a6": 14844,
+              "a7": 66610,
+              "pc": 94110,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-223-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-223-a-report.json",
+      "raw_report_sha256": "d8ccac0c100c3959a3a14d4aec08f480cbfbe8b5b160f2957424f1fe9c829571",
+      "authored_scenario_sha256": "4f9e12c3770f9741a85623d678bc3b10dadbeab349ab46384e8343c124091a87",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15391,
+              "length": 1,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15391,
+              "len": 1,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15391,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 1
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.006,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5c8"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5c8",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 925,
+              "cck": 65778046,
+              "vpos": 246,
+              "hpos": 29,
+              "pc": 67016,
+              "retired_instructions": 9130793,
+              "seconds": 18.545247603890164
+            },
+            "register_context": {
+              "d0": 491520,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66642,
+              "pc": 67016,
+              "sr": 8196
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-28a-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-28a-a-report.json",
+      "raw_report_sha256": "79e30e82922e52066990d9443fb3766adf42e1a0eded198400df92c2bf8dd43a",
+      "authored_scenario_sha256": "0ed18b77d579077ba8b7f1c25e547e5645d4a47e1baf0e0199c0e10cbb7c64dd",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15494,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15494,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15494,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.005,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x5c8"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x5c8",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 933,
+              "cck": 66354425,
+              "vpos": 281,
+              "hpos": 55,
+              "pc": 67016,
+              "retired_instructions": 9200455,
+              "seconds": 18.707750017973467
+            },
+            "register_context": {
+              "d0": 491520,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66642,
+              "pc": 67016,
+              "sr": 8196
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-2be-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-2be-a-report.json",
+      "raw_report_sha256": "02a7b697759d3736f6e93ece3aaeb13b3ff9dc8786e56dffe385fd38b2bf9d81",
+      "authored_scenario_sha256": "c4b8c1b64c1910d1ecbe294f5c944378079258f8751d35e6d5e585d3a3db5b3b",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15546,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15546,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15546,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.013,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x679a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x679a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 932,
+              "cck": 66239009,
+              "vpos": 85,
+              "hpos": 182,
+              "pc": 92058,
+              "retired_instructions": 9185395,
+              "seconds": 18.67521000762639
+            },
+            "register_context": {
+              "d0": 320,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66634,
+              "pc": 92058,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-2c3-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-2c3-a-report.json",
+      "raw_report_sha256": "7e622ebee5f4866e1ed1f176ded38ba8bf2ccbc096501bf6c3174b1ee57c719e",
+      "authored_scenario_sha256": "d712aa154dcdfc57f1e3e5b93d55e331d6ac24fa58a83d3f22a89e2d54d521df",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15551,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15551,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15551,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.002,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x679a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x679a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 914,
+              "cck": 64970079,
+              "vpos": 129,
+              "hpos": 182,
+              "pc": 92058,
+              "retired_instructions": 9031626,
+              "seconds": 18.317452024940124
+            },
+            "register_context": {
+              "d0": 320,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66634,
+              "pc": 92058,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-33f-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-33f-a-report.json",
+      "raw_report_sha256": "0bc5deb5449d75000aec2c92aeb5a5988f2e3c39fc7ba43e4a4bd01ae0e44376",
+      "authored_scenario_sha256": "e67b6bf9643d359c9b6b148c5449ea2b18d2e5cb275b4c262cae25353a5caa70",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15675,
+              "length": 23,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15675,
+              "len": 23,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15675,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 23
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.006,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x679a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x679a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 936,
+              "cck": 66527526,
+              "vpos": 104,
+              "hpos": 182,
+              "pc": 92058,
+              "retired_instructions": 9219712,
+              "seconds": 18.756553548949153
+            },
+            "register_context": {
+              "d0": 320,
+              "a0": 14716,
+              "a6": 14844,
+              "a7": 66634,
+              "pc": 92058,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-35c-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-35c-a-report.json",
+      "raw_report_sha256": "1cfd31e4e6dc3de55722203eacf88f474f928fc57c9fe4b5c7429bef7ecd2362",
+      "authored_scenario_sha256": "daf2b5c2b824d1940a51b98c2c8d126b8bb58e9e3d5209ae0af0f11ed09cf805",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15704,
+              "length": 4,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15704,
+              "len": 4,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15704,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 4
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.004,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 64,
+              "matching_offsets": [
+                "0x8b8"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x8b8",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 942,
+              "cck": 66931077,
+              "vpos": 4,
+              "hpos": 127,
+              "pc": 67768,
+              "retired_instructions": 9270133,
+              "seconds": 18.870329400785756
+            },
+            "register_context": {
+              "d0": 352,
+              "a0": 414648,
+              "a6": 14844,
+              "a7": 66608,
+              "pc": 67768,
+              "sr": 8960
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "moving-36c-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/moving-36c-a-report.json",
+      "raw_report_sha256": "047f485d1fe591238e9be5c12f3b0e51ad1e902274c2f41a58167087af0b5025",
+      "authored_scenario_sha256": "a2ffdb22fa882dfb2f05b158bb5f74273a597aa9d77e3a42643d28a74b5ea14a",
+      "runner_status": "incomplete",
+      "observation_status": "incomplete",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "title_menu_loop",
+          "stable_key": "s0:00000BA8:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 459,
+            "cck": 32616485,
+            "vpos": 17,
+            "hpos": 217,
+            "pc": 68520,
+            "retired_instructions": 5265927,
+            "seconds": 9.195785327730311
+          }
+        },
+        {
+          "name": "ui_overlay_initialization",
+          "stable_key": "s0:0000079E:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 461,
+            "cck": 32812039,
+            "vpos": 253,
+            "hpos": 97,
+            "pc": 67486,
+            "retired_instructions": 5281765,
+            "seconds": 9.250919184244248
+          }
+        },
+        {
+          "name": "initial_proximity_context",
+          "stable_key": "s0:000083AE:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 463,
+            "cck": 32958400,
+            "vpos": 272,
+            "hpos": 43,
+            "pc": 99246,
+            "retired_instructions": 5305928,
+            "seconds": 9.292183726893523
+          }
+        },
+        {
+          "name": "entry_officer_card_transferred",
+          "stable_key": "s0:0004B13C:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 652,
+            "cck": 46330759,
+            "vpos": 24,
+            "hpos": 59,
+            "pc": 373052,
+            "retired_instructions": 6833227,
+            "seconds": 13.062342978858974
+          }
+        },
+        {
+          "name": "downward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 19,
+          "occurrences_observed": 19,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 700,
+            "cck": 49791227,
+            "vpos": 244,
+            "hpos": 139,
+            "pc": 104516,
+            "retired_instructions": 7232141,
+            "seconds": 14.037976032558054
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 241,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "rightward_moves_complete",
+          "stable_key": "s0:00009844:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "occurrences_requested": 20,
+          "occurrences_observed": 20,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 794,
+            "cck": 56469225,
+            "vpos": 241,
+            "hpos": 24,
+            "pc": 104516,
+            "retired_instructions": 8013554,
+            "seconds": 15.920748993133431
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 381,
+            "y": 942,
+            "z": 0
+          }
+        },
+        {
+          "name": "watched_access",
+          "stable_key": "s0:00009844:instruction",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "occurrences_requested": 1,
+          "occurrences_observed": 1,
+          "first_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "last_visit": {
+            "pc": "0x00019844",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "breakpoint",
+            "frame": 798,
+            "cck": 56753487,
+            "vpos": 241,
+            "hpos": 82,
+            "pc": 104516,
+            "retired_instructions": 8047454,
+            "seconds": 16.000892893643595
+          },
+          "route_registers": {
+            "a4": "0x0005c322",
+            "a6": "0x000039fc",
+            "sr": "0x00002010"
+          },
+          "player_coordinate_words": {
+            "x": 388,
+            "y": 942,
+            "z": 0
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15720,
+              "length": 664,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15720,
+              "len": 664,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15720,
+                  "id": 47,
+                  "kind": "mmio",
+                  "len": 664
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "timeout",
+            "termination": "deadline_interrupt",
+            "elapsed_seconds": 3.004,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x680a"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x680a",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "pause",
+              "frame": 939,
+              "cck": 66758582,
+              "vpos": 183,
+              "hpos": 152,
+              "pc": 92170,
+              "retired_instructions": 9248238,
+              "seconds": 18.82169672347222
+            },
+            "register_context": {
+              "d0": 160,
+              "a0": 364322,
+              "a6": 14844,
+              "a7": 66602,
+              "pc": 92170,
+              "sr": 8192
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "startup-1f8-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/startup-1f8-a-report.json",
+      "raw_report_sha256": "c7b5c683cbe257d65cdd8f579e7b1551489038e5405a07cdc3e691708cfcd6f4",
+      "authored_scenario_sha256": "a730763ee7e29682e5add951343631f584bdf398990bc05dc0ce1e90cdf964bd",
+      "runner_status": "ok",
+      "observation_status": "ok",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "watched_access",
+          "stable_key": "s0:0000046A:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x46a"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x46a",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "target",
+            "frame": 441,
+            "cck": 31402784,
+            "vpos": 305,
+            "hpos": 58,
+            "pc": 66666,
+            "retired_instructions": 5005040,
+            "seconds": 8.853598429048505
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15348,
+              "length": 18,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15348,
+              "len": 18,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15348,
+                  "id": 4,
+                  "kind": "mmio",
+                  "len": 18
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "hit",
+            "termination": "access_observed",
+            "elapsed_seconds": 0.005,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x476"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x476",
+              "runtime_base": "0x00010000"
+            },
+            "payload_at_access": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x474"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x474",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "mmio",
+              "frame": 442,
+              "cck": 31408380,
+              "vpos": 16,
+              "hpos": 206,
+              "pc": 66678,
+              "retired_instructions": 5006051,
+              "seconds": 8.85517614702437,
+              "access": {
+                "access": "read",
+                "addr": 15348,
+                "pc": 66676,
+                "position": {
+                  "cck": 31408376,
+                  "frame": 442,
+                  "hpos": 202,
+                  "seconds": 8.855175019277425,
+                  "vpos": 16
+                },
+                "size": 1,
+                "value": 170
+              }
+            },
+            "native_instruction": {
+              "source_offset": 1140,
+              "text": "clr.b (a0)+"
+            },
+            "register_context": {
+              "d0": 371,
+              "a0": 15349,
+              "a6": 12583542,
+              "a7": 12588210,
+              "pc": 66678,
+              "sr": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "startup-a",
+      "private_report": ".runtime-state/pandora-app-memory-watch/startup-a-report.json",
+      "raw_report_sha256": "44c983cda711af13a0708d6b7ad94aed3c327f94773b052d1a8ff4a736c83500",
+      "authored_scenario_sha256": "986acecd71f548b05005e6453038c640e25b840bea18683c598ff14e2edecf66",
+      "runner_status": "ok",
+      "observation_status": "ok",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "startup_clear_watch",
+          "stable_key": "s0:0000046A:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x46a"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x46a",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "target",
+            "frame": 441,
+            "cck": 31402784,
+            "vpos": 305,
+            "hpos": 58,
+            "pc": 66666,
+            "retired_instructions": 5005040,
+            "seconds": 8.853598429048505
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "access",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "access"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "access",
+                  "addr": 15244,
+                  "id": 4,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "hit",
+            "termination": "access_observed",
+            "elapsed_seconds": 0.005,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x476"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x476",
+              "runtime_base": "0x00010000"
+            },
+            "payload_at_access": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x474"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x474",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "mmio",
+              "frame": 442,
+              "cck": 31407229,
+              "vpos": 11,
+              "hpos": 190,
+              "pc": 66678,
+              "retired_instructions": 5005843,
+              "seconds": 8.854851637840985,
+              "access": {
+                "access": "read",
+                "addr": 15244,
+                "pc": 66676,
+                "position": {
+                  "cck": 31407225,
+                  "frame": 442,
+                  "hpos": 186,
+                  "seconds": 8.85485051009404,
+                  "vpos": 11
+                },
+                "size": 1,
+                "value": 170
+              }
+            },
+            "native_instruction": {
+              "source_offset": 1140,
+              "text": "clr.b (a0)+"
+            },
+            "register_context": {
+              "d0": 475,
+              "a0": 15245,
+              "a6": 12583542,
+              "a7": 12588210,
+              "pc": 66678,
+              "sr": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "startup-write",
+      "private_report": ".runtime-state/pandora-app-memory-watch/startup-write-report.json",
+      "raw_report_sha256": "833cc78acb40d9b35c2212957363f0b4b1c0f189a9ab62cfa4af0e660dc3a8ba",
+      "authored_scenario_sha256": "79c75b500958f70ef44e8d4730ad57935e889a8d37a27b5eddcdf2d3399b8d4b",
+      "runner_status": "ok",
+      "observation_status": "ok",
+      "handoff": {
+        "status": "verified",
+        "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        "load_address": 131072,
+        "size": 376832
+      },
+      "phases": [
+        {
+          "name": "startup_clear_watch",
+          "stable_key": "s0:0000046A:instruction",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "payload": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x46a"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x46a",
+            "runtime_base": "0x00010000"
+          },
+          "anchor": {
+            "reason": "target",
+            "frame": 441,
+            "cck": 31402784,
+            "vpos": 305,
+            "hpos": 58,
+            "pc": 66666,
+            "retired_instructions": 5005040,
+            "seconds": 8.853598429048505
+          },
+          "watch": {
+            "requested_watch": {
+              "address": 15244,
+              "length": 5,
+              "engine": "cpu",
+              "access": "write",
+              "wait_seconds": 3
+            },
+            "armed_watch": {
+              "kind": "mmio",
+              "addr": 15244,
+              "len": 5,
+              "access": "write"
+            },
+            "backend_watch_state": {
+              "breaks": [
+                {
+                  "access": "write",
+                  "addr": 15244,
+                  "id": 4,
+                  "kind": "mmio",
+                  "len": 5
+                }
+              ]
+            },
+            "filter_confirmed": true,
+            "status": "hit",
+            "termination": "access_observed",
+            "elapsed_seconds": 0.006,
+            "payload_at_stop": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x476"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x476",
+              "runtime_base": "0x00010000"
+            },
+            "payload_at_access": {
+              "payload_name": "binary.bin",
+              "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "sample_size": 16,
+              "matching_offsets": [
+                "0x474"
+              ],
+              "status": "pc_matched",
+              "payload_offset": "0x474",
+              "runtime_base": "0x00010000"
+            },
+            "stop": {
+              "reason": "mmio",
+              "frame": 442,
+              "cck": 31407229,
+              "vpos": 11,
+              "hpos": 190,
+              "pc": 66678,
+              "retired_instructions": 5005843,
+              "seconds": 8.854851637840985,
+              "access": {
+                "access": "write",
+                "addr": 15244,
+                "pc": 66676,
+                "position": {
+                  "cck": 31407229,
+                  "frame": 442,
+                  "hpos": 190,
+                  "seconds": 8.854851637840985,
+                  "vpos": 11
+                },
+                "size": 1,
+                "value": 0
+              }
+            },
+            "native_instruction": {
+              "source_offset": 1140,
+              "text": "clr.b (a0)+"
+            },
+            "register_context": {
+              "d0": 475,
+              "a0": 15245,
+              "a6": 12583542,
+              "a7": 12588210,
+              "pc": 66678,
+              "sr": 4
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Each fresh run watches one CPU range, not all ranges simultaneously.",
+    "The moving watch covers only execution after the accepted 21st rightward movement commit; earlier route activity is not watched.",
+    "The route prefix uses named source anchors; a three-second wall-bounded no-hit window has variable emulated duration.",
+    "No-hit is not observed within this route/window, never proof of unused memory.",
+    "CPU mmio data-access events do not establish instruction-fetch or DMA coverage.",
+    "Original direct-payload execution, not original disk/loader parity, full playthrough or candidate equivalence.",
+    "Full register/stack/RAM captures and generated media remain private.",
+    "No source annotation or classification change is accepted merely from a watch hit.",
+    "Registers are paused-state snapshots, not asserted pre-access registers; accessing PC and paused PC are separately byte-matched."
+  ],
+  "summary": {
+    "live_runs": 18,
+    "startup_control_hits": 3,
+    "moving_runs": 15,
+    "distinct_moving_gap_ranges": 14,
+    "gap_bytes_watched_in_separate_runs": 750,
+    "later_access_hits": 0,
+    "later_timeouts_not_observed": 15,
+    "new_source_annotations": 0,
+    "newly_classified_bytes": 0
+  },
+  "repeatability": {
+    "fresh_run_pair": [
+      "moving-190-a",
+      "moving-190-b"
+    ],
+    "complete_prefix_stop_events_identical": true,
+    "all_moving_arming_frames": 798,
+    "all_moving_arming_player_coordinates": {
+      "x": 388,
+      "y": 942,
+      "z": 0
+    },
+    "prefix_frames": [
+      459,
+      461,
+      463,
+      652,
+      700,
+      794,
+      798
+    ],
+    "watch_end_frames": {
+      "moving-190-a": 935,
+      "moving-190-b": 928,
+      "moving-1a6-a": 903,
+      "moving-1ae-a": 936,
+      "moving-1b4-a": 929,
+      "moving-1ce-a": 941,
+      "moving-1f8-a": 944,
+      "moving-21c-a": 933,
+      "moving-223-a": 925,
+      "moving-28a-a": 933,
+      "moving-2be-a": 932,
+      "moving-2c3-a": 914,
+      "moving-33f-a": 936,
+      "moving-35c-a": 942,
+      "moving-36c-a": 939
+    },
+    "published_composer_reproduces_all_executed_moving_scenario_objects": true
+  },
+  "findings": [
+    "Startup app+$190 and app+$1F8 controls identify the existing CLR.B (A0)+ at source $474/runtime $10474; separate read/write filters report read $AA and write zero for app+$190. These are startup-clear events, not a newly discovered independent consumer.",
+    "The first watched gameplay suffix is operational and repeatable through arming. No later access was observed in the completed gap windows; none of the app-use semantic unknowns closes from these negative results."
+  ],
+  "next_evidence_question": "Which gaps are accessed during earlier proximity/text/card-transfer execution or inventory activity? This milestone watches only the suffix after the normal 19-down/21-right route, not those earlier phases.",
+  "validation": {
+    "generated_scenario_variants_validated": 28,
+    "validation": "Existing watch/capture validators and named input-boundary checks; 18 live original-payload runs. Moving timeout results are incomplete, not passes. No new generic test infrastructure.",
+    "target_source_sha256_unchanged": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "exact_rebuild": "Not rerun: no target source/fact changes. Prior exact source identity preserved.",
+    "paused_B07_file_hashes_unchanged": true
+  },
+  "workflow_cost": {
+    "first_moving_case_with_cold_analysis_wall_seconds": 300.9,
+    "reused_analysis_case_wall_seconds": {
+      "moving-190-b": 30.09,
+      "startup-1f8-a": 16.52,
+      "moving-1a6-a": 32.17,
+      "moving-1ae-a": 32.87,
+      "moving-1b4-a": 30.29,
+      "moving-1ce-a": 38.13,
+      "moving-1f8-a": 29.51,
+      "moving-21c-a": 31.1,
+      "moving-223-a": 29.98,
+      "moving-28a-a": 32.26,
+      "moving-2be-a": 29.56,
+      "moving-2c3-a": 32.85,
+      "moving-33f-a": 31.96,
+      "moving-35c-a": 29.08,
+      "moving-36c-a": 29.46
+    },
+    "private_progress_log_sha256": "4bbae16a0af902ae2ca2d84043423a1d29be4e6d28a9378c09173d6e76cdb14b"
+  }
+}

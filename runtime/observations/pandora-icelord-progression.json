@@ -1,0 +1,6173 @@
+{
+  "schema_version": 1,
+  "base_commit": "9a8b9aef3c965ca264ef3c6d96912078cb811e17",
+  "target_original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "profile": "Copperline1.0.0 A500OCS PAL68000 512Kchip+512Kslow original direct payload",
+  "summary": {
+    "objective": "Use sonicdriver to defeat Icelord, survive and return to world gameplay, retaining Engineer card.",
+    "continuous_cold_boot_passes": 1,
+    "checkpoint_loads_in_qualified_run": 0,
+    "manual_interventions_during_qualified_run": 0,
+    "final_frame": 2444,
+    "final_player": {
+      "xy": [
+        1298,
+        206
+      ],
+      "health": 70,
+      "held": 5,
+      "inactive": false,
+      "map": [
+        16384,
+        90,
+        129
+      ],
+      "ui": 48,
+      "cursor": [
+        420,
+        139
+      ],
+      "carried": [
+        50,
+        0,
+        0,
+        0
+      ],
+      "display_ids": [
+        0,
+        54,
+        0,
+        0
+      ]
+    },
+    "final_icelord": {
+      "xy": [
+        1312,
+        192
+      ],
+      "hp_word": 251,
+      "flags": 102,
+      "item_definition_id": 66
+    },
+    "sonicdriver_damage_per_full_hit": 20,
+    "hits": 5,
+    "phase_count_including_handoff": 64,
+    "input_events": 44,
+    "focused_tests": "163 passed, no skips",
+    "new_memory_watch_runs": 0,
+    "target_source_changes": 0,
+    "newly_classified_bytes": 0
+  },
+  "objective_evidence": {
+    "original_source": "Existing combat initialization at$784E applies20 only for Icelord and selected sonicdriver. Stop at$7854 proves branch completion; A6 app, opponent pointer$59D7A and item_definition_id$42 identify the actor.",
+    "charge_correction": "Reload2 advances charge by2. Exact23 is unreachable; first observed24 with countdown2 admits one pending input sample before full20 damage.",
+    "health_semantics": "Opponent HP low byte:95->75->55->35->15->251. Last value is signed-negative BYTE underflow, not healing or failure to kill. Defeat is proved by flagbit1 at world-loop$5D6 after original cleanup.",
+    "world_coordinates": "Combat temporarily adds10000 to X. The final playerXY is the restored world domain; biased combatX is not map traversal.",
+    "scope": "Actual original-input item use and one defeated actor, not full-game completion or a new static semantic classification."
+  },
+  "runs": [
+    {
+      "name": "icelord-first-step",
+      "kind": "verified_checkpoint_debug",
+      "status": "ok",
+      "raw_report_sha256": "fdc5f90b47d27800d052cc77d78084532031a2c0f4c05ee39a4a670ae85868cb",
+      "authored_sha256": "e687b7021daf88cea8be2cc3355b76001db20d2b0081c3cf201c1a4a66242a9f",
+      "compiled_sha256": "c8267d950a12ffae7919be18880ec3ffc587dcb977168bade1e333a09a030866",
+      "elapsed_run_session_seconds": 0.54,
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1226,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5d6"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5d6",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "initial_up",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1228,
+          "state": {
+            "xy": [
+              633,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "icelord-route-a",
+      "kind": "verified_checkpoint_debug",
+      "status": "ok",
+      "raw_report_sha256": "c2af24fa0513921b5cf646ff410d209009c54f6c2202964334ad974c8083c539",
+      "authored_sha256": "aeb68dbee87967d4f784a3b7a88c9da580f47d5cba0d97232bae554f9fb4b5e1",
+      "compiled_sha256": "830fc78167be7d15c55ea347796330198c349f1d5aa436e134ba405c4a3f8f07",
+      "elapsed_run_session_seconds": 18.54,
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1228,
+          "state": {
+            "xy": [
+              633,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1230,
+          "state": {
+            "xy": [
+              633,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1252,
+          "state": {
+            "xy": [
+              591,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 6,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1256,
+          "state": {
+            "xy": [
+              598,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1260,
+          "state": {
+            "xy": [
+              591,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1276,
+          "state": {
+            "xy": [
+              591,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 8,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1302,
+          "state": {
+            "xy": [
+              542,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 7,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1306,
+          "state": {
+            "xy": [
+              549,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1310,
+          "state": {
+            "xy": [
+              542,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1344,
+          "state": {
+            "xy": [
+              542,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 12,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_9",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1366,
+          "state": {
+            "xy": [
+              500,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 6,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_10",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1370,
+          "state": {
+            "xy": [
+              507,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_11",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1374,
+          "state": {
+            "xy": [
+              500,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_12",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1524,
+          "state": {
+            "xy": [
+              500,
+              410
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 60,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_13",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1582,
+          "state": {
+            "xy": [
+              500,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_14",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1853,
+          "state": {
+            "xy": [
+              920,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 60,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_15",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1881,
+          "state": {
+            "xy": [
+              969,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 7,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_16",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1885,
+          "state": {
+            "xy": [
+              962,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_17",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1937,
+          "state": {
+            "xy": [
+              962,
+              230
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 21,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_18",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2163,
+          "state": {
+            "xy": [
+              1305,
+              230
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 49,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "icelord-fight-a",
+      "kind": "verified_checkpoint_debug",
+      "status": "incomplete",
+      "raw_report_sha256": "5bd8aff9dc539ad141a4e17487c1bb197ffd98a33728efc9a21fc038c9678c19",
+      "authored_sha256": "7e09d6b497cc123d8eaff9aeab1677b19240606c3f94b004be1fc42effa83598",
+      "compiled_sha256": "d1d387dbc032f1f66e1dc1176337c83bc2b137d6bba7d2a855c994f7a23fd0a6",
+      "elapsed_run_session_seconds": 3.28,
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2163,
+          "state": {
+            "xy": [
+              1305,
+              230
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_override",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2189,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 95,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 0,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7854"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7854",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_1",
+          "status": "not_hit",
+          "reason": "goal_not_reached",
+          "frame": 2315,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 64,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 95,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 20,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "icelord-fight-b",
+      "kind": "verified_checkpoint_debug",
+      "status": "ok",
+      "raw_report_sha256": "a3d05100ded9d965f2986336350dc1f6e7b7af7c98849b3ca672396c827d3c1f",
+      "authored_sha256": "245b2f176bc2f0b1e8ed202a5ce09e2d3c927cf4b4d9ed05bd3f02505260426b",
+      "compiled_sha256": "e2af4fad5154f57ac12eb90506b39f607591137578db0ba48554a95460ad6fd9",
+      "elapsed_run_session_seconds": 5.85,
+      "actions": [
+        {
+          "action": "anchor",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2163,
+          "state": {
+            "xy": [
+              1305,
+              230
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_override",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2189,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 95,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 0,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7854"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7854",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2237,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 25,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 95,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2241,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 75,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2289,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 75,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2293,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 55,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2341,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 55,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2345,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 35,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2393,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 35,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2397,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 15,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2445,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 15,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_defeated_world",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2447,
+          "state": {
+            "xy": [
+              1298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              1312,
+              192
+            ],
+            "hp_word": 251,
+            "flags": 102,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 0,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5d6"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5d6",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ]
+    },
+    {
+      "name": "icelord-cold-a",
+      "kind": "continuous_cold_boot",
+      "status": "ok",
+      "raw_report_sha256": "fa8e08ff6369461f0a8784d95daf0baa2600d38d484a80008ca11c563709f60d",
+      "authored_sha256": "042f312669f04714b51c7f4d87af09569a0213a4795b4e4744da657881f9b2e5",
+      "compiled_sha256": "3b0223229cf136e3cebb195540a71d70c51b7c01066d26bf7d3f7cee71baece6",
+      "elapsed_run_session_seconds": 46.38,
+      "actions": [
+        {
+          "action": "title_menu_loop",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 459,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0xba8"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0xba8",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "ui_overlay_initialization",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 461,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x79e"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x79e",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "initial_proximity_context",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 463,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x83ae"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x83ae",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "entry_officer_card_transferred",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 652,
+          "state": {
+            "xy": [
+              241,
+              866
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "deposit": [
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": null,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x4b13c"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x4b13c",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "down_19_before_inventory",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 700,
+          "state": {
+            "xy": [
+              241,
+              942
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 19,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "north",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 794,
+          "state": {
+            "xy": [
+              241,
+              794
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 37,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "east",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1000,
+          "state": {
+            "xy": [
+              549,
+              794
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 44,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "opening_row",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1060,
+          "state": {
+            "xy": [
+              542,
+              702
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cross_opening",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1098,
+          "state": {
+            "xy": [
+              598,
+              702
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 8,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "console_row",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1118,
+          "state": {
+            "xy": [
+              591,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 9,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "terminal_entry",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1148,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 0,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x8ff2"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x8ff2",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "terminal_display",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1151,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 0,
+            "cached_id": 54,
+            "cursor": [
+              0,
+              0
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9074"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9074",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "inventory_open",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1153,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 28,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_192_147_down_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1158,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              145
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 5,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_192_147_down_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1159,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "take_engineer_card_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1161,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 54,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 54,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              50,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "take_engineer_card",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1164,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              147
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_192_139_up_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1169,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              141
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 5,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_192_139_up_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1170,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_0_139_left_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1188,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              12,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 18,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_0_139_left_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1189,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "store_engineer_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1191,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 50,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 50,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "store_engineer",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1193,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              0,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_192_139_right_brake",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1211,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              180,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 18,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "cursor_to_192_139_right_settled",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1212,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "take_sonicdriver_ready",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1214,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 0,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 0,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              5,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "take_sonicdriver",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1216,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "key_release_services",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1219,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 20,
+            "cached_id": 5,
+            "cursor": [
+              192,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 3,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x28d4"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x28d4",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "inventory_closed",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1221,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9074"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9074",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "exit_direction",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1221,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              100896,
+              20,
+              8
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9088"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9088",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "world_restored",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1221,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 56,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x90b0"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x90b0",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "world_main",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1223,
+          "state": {
+            "xy": [
+              640,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5d6"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5d6",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_initial_turn",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1225,
+          "state": {
+            "xy": [
+              633,
+              734
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_0",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1227,
+          "state": {
+            "xy": [
+              633,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1249,
+          "state": {
+            "xy": [
+              591,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 6,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1253,
+          "state": {
+            "xy": [
+              598,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1257,
+          "state": {
+            "xy": [
+              591,
+              730
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1273,
+          "state": {
+            "xy": [
+              591,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 8,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1299,
+          "state": {
+            "xy": [
+              542,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 7,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_6",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1303,
+          "state": {
+            "xy": [
+              549,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_7",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1307,
+          "state": {
+            "xy": [
+              542,
+              698
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_8",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1341,
+          "state": {
+            "xy": [
+              542,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 12,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_9",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1363,
+          "state": {
+            "xy": [
+              500,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 6,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_10",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1367,
+          "state": {
+            "xy": [
+              507,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_11",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1371,
+          "state": {
+            "xy": [
+              500,
+              650
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_12",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1521,
+          "state": {
+            "xy": [
+              500,
+              410
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 60,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_13",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1579,
+          "state": {
+            "xy": [
+              500,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_14",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1850,
+          "state": {
+            "xy": [
+              920,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 60,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_15",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1878,
+          "state": {
+            "xy": [
+              969,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 7,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_16",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1882,
+          "state": {
+            "xy": [
+              962,
+              314
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_17",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 1934,
+          "state": {
+            "xy": [
+              962,
+              230
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 21,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_waypoint_18",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2160,
+          "state": {
+            "xy": [
+              1305,
+              230
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cached_id": 5,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 49,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x9844"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x9844",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_override",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2186,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 1,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 95,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 0,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7854"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7854",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2234,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 25,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 95,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_1",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2238,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 75,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2286,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 75,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_2",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2290,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 55,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2338,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 55,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_3",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2342,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 95,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 35,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2390,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 35,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "sonicdriver_hit_4",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2394,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 15,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 2,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "charge_5",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2442,
+          "state": {
+            "xy": [
+              11298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 50,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 24,
+          "icelord": {
+            "xy": [
+              11312,
+              192
+            ],
+            "hp_word": 15,
+            "flags": 100,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 24,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x7938"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x7938",
+            "runtime_base": "0x00010000"
+          }
+        },
+        {
+          "action": "icelord_defeated_world",
+          "status": "hit",
+          "reason": "breakpoint_hit",
+          "frame": 2444,
+          "state": {
+            "xy": [
+              1298,
+              206
+            ],
+            "health": 70,
+            "held": 5,
+            "inactive": false,
+            "map": [
+              16384,
+              90,
+              129
+            ],
+            "ui": 48,
+            "cursor": [
+              420,
+              139
+            ],
+            "carried": [
+              50,
+              0,
+              0,
+              0
+            ],
+            "display_ids": [
+              0,
+              54,
+              0,
+              0
+            ]
+          },
+          "visits": 2,
+          "icelord": {
+            "xy": [
+              1312,
+              192
+            ],
+            "hp_word": 251,
+            "flags": 102,
+            "item_definition_id": 66
+          },
+          "combat": {
+            "charge": 0,
+            "reload": 2,
+            "opponent_damage": 25,
+            "player_damage": 20
+          },
+          "opponent_pointer": 367994,
+          "canonical_pc_proof": {
+            "payload_name": "binary.bin",
+            "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+            "sample_size": 16,
+            "matching_offsets": [
+              "0x5d6"
+            ],
+            "status": "pc_matched",
+            "payload_offset": "0x5d6",
+            "runtime_base": "0x00010000"
+          }
+        }
+      ],
+      "execution_identities": {
+        "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+        "amiga_reversing/tools/pandora_player.py": "6721451b949c663a639b5ded2a781aaca01dc161db75e1ed51a01ef436504a92",
+        "amiga_reversing/tools/copperline_runtime.py": "f8861cfa9104973bd9c02054a8442e943834b2bf53141eea0374ef50f73ee8d3",
+        "amiga_reversing/tools/copperline_session.py": "e7e364412c7383467f933f06d03c8c330758ae66171b13fd8e93680db826c9fd",
+        "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+        "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d",
+        "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+        ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/runtime-scenario.json": "31b71acccd97c55b6f0c7ab0b7ccf1c4d612708da68e2cb4d090ac17e7128615",
+        ".runtime-state/pandora-app-memory-watch/moving-190-a/direct-payload-pandora.adf": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a",
+        "emulator": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+        "rom": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f"
+      },
+      "input_trace": [
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 459,
+          "cck": 32616485,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 461,
+          "cck": 32812039,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 652,
+          "cck": 46330759,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 700,
+          "cck": 49791227,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 794,
+          "cck": 56469686,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1000,
+          "cck": 71105698,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1060,
+          "cck": 75369634,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1098,
+          "cck": 78068777,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1118,
+          "cck": 79490651,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1148,
+          "cck": 81621170,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1151,
+          "cck": 81782679,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1153,
+          "cck": 81935681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1153,
+          "cck": 81935681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1158,
+          "cck": 82279174,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1161,
+          "cck": 82492098,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1164,
+          "cck": 82705233,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1169,
+          "cck": 83060494,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1170,
+          "cck": 83131549,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1188,
+          "cck": 84410226,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1191,
+          "cck": 84623383,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1193,
+          "cck": 84765778,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1211,
+          "cck": 86044681,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 1214,
+          "cck": 86257840,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1216,
+          "cck": 86400278,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": true
+          },
+          "frame": 1219,
+          "cck": 86613350,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1221,
+          "cck": 86763403,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "key",
+          "arguments": {
+            "rawkey": 64,
+            "pressed": false
+          },
+          "frame": 1221,
+          "cck": 86763403,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 1221,
+          "cck": 86763606,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1223,
+          "cck": 86938559,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1227,
+          "cck": 87235533,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1249,
+          "cck": 88797552,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1253,
+          "cck": 89081728,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1257,
+          "cck": 89366123,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1273,
+          "cck": 90503665,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1299,
+          "cck": 92350044,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1303,
+          "cck": 92634288,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1307,
+          "cck": 92918640,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "left": true
+          },
+          "frame": 1341,
+          "cck": 95334268,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1363,
+          "cck": 96897165,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1367,
+          "cck": 97181371,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1371,
+          "cck": 97465768,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1579,
+          "cck": 112244503,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "down": true
+          },
+          "frame": 1878,
+          "cck": 133488541,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 1882,
+          "cck": 133772998,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "right": true
+          },
+          "frame": 1934,
+          "cck": 137468398,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "up": true
+          },
+          "frame": 2160,
+          "cck": 153525055,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2186,
+          "cck": 155340885,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2234,
+          "cck": 158729396,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2238,
+          "cck": 159013905,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2286,
+          "cck": 162424041,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2290,
+          "cck": 162708565,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2338,
+          "cck": 166118700,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2342,
+          "cck": 166403201,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2390,
+          "cck": 169813356,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2394,
+          "cck": 170097861,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2,
+            "red": true
+          },
+          "frame": 2442,
+          "cck": 173508006,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2444,
+          "cck": 173706943,
+          "cleanup": false,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 1
+          },
+          "frame": 2444,
+          "cck": 173706943,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        },
+        {
+          "method": "joystick",
+          "arguments": {
+            "port": 2
+          },
+          "frame": 2444,
+          "cck": 173706943,
+          "cleanup": true,
+          "outcome": "acknowledged"
+        }
+      ],
+      "checkpoint_save": {
+        "status": "saved",
+        "receipt_sha256": "1f0d8161c031224b29e6023486e7f9cdf940b15cf62dd754260ae636f0338f73",
+        "snapshot_sha256": "a63bae53f3bb3e0a6c49084298e6444508f5d899be9b05d9f4f7716cc5f184a1",
+        "stable_key": "s0:000005D6:instruction"
+      },
+      "objective_confirmed": true
+    }
+  ],
+  "retained_failures": {
+    "model_west_staging": "Initial route goal stood in wall west of Icelord and returned no model route. Revised goal uses accessible corridor below. No unreachable claim followed.",
+    "initial_pose": "A live one-step up probe confirms post-terminal world geometry:640734->633734. The planning seed records up after that observed correction.",
+    "charge23": "First debug fight reaches sonicdriver override but refuses after64 charge visits without23. HP95 remains; original even increment explains failure. Retried only after identifying that concrete condition."
+  },
+  "implementation": {
+    "module": "amiga_reversing/tools/pandora_icelord.py",
+    "reuse": "Existing PlayerPlan movement, goals, capture guards, canonical run/checkpoint/input services. No new combat emulator or generic trace mechanism.",
+    "compiler_fix": "Input event limit32 aligned to existing runner limit64; focused64/65 boundary test. Existing64-phase limit is unchanged.",
+    "phase_budget": "Three redundant terminal observer/idle phases omitted, with following press anchors rewired. Their input-release hooks are retained. Full route stays within64 phases.",
+    "combat_guards": "Before fight requires healthy original checkpoint. Fight permits observed HP loss while guarding inactivebit clear, world-map header, sonicdriver held, exact opponent identity and Engineer in carried0."
+  },
+  "limits": [
+    "Qualified result is one continuous cold-boot direct-payload run; checkpoint debug approach/fight are explicitly separate. No original disk/loader parity claim.",
+    "Terrain model offers conditional waypoints, not proof of NPC timing; every accepted live source PC is byte-matched.",
+    "No game-memory injection, artificial routine call, altered actor health or patched combat was used. Original direct-payload launch remains the established boot contract.",
+    "No repeated gap watches, CPU/DMA access claims, all-combat safety, all-app usage or full walkthrough completion follow.",
+    "Original bytes/source and all nine paused B07 files stay unchanged. No extra exact source generation was needed.",
+    "ROM/media, raw captures, stack bytes and guest checkpoints remain private."
+  ]
+}

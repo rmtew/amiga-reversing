@@ -2,6 +2,7 @@
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"
+#include "m68k_render_lookup_internal.h"
 #include "m68k_assembler.h"
 #include "m68k_bitset.h"
 #include "m68k_render_plan.h"
@@ -4768,6 +4769,13 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         for (result_index = 0U; result_index < summary->result_count; ++result_index) {
           const M68kFunctionSummaryResultIR *result = &summary->results[result_index];
           if (result_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+          if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE) {
+            if (json_builder_append(&builder, "{\"kind\":\"hardware_base\",\"location\":") != 0 ||
+                append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
+                json_builder_appendf(&builder, ",\"hardware_base_id\":%u}",
+                  (unsigned)result->hardware_base_id) != 0) goto oom;
+            continue;
+          }
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
             if (json_builder_append(&builder, "{\"kind\":\"identity_input\",\"location\":") != 0 ||
                 append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
@@ -4919,7 +4927,21 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       } else if (json_builder_appendf(&builder, "%u", (unsigned)use->operand_index) != 0) {
         goto oom;
       }
-      if (json_builder_appendf(&builder,
+      if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) {
+        uint8_t relative_index;
+        if (json_builder_appendf(&builder,
+            ",\"address\":null,\"effective_address\":null,\"use_shape_id\":%u,\"relative_base_id\":%u,"
+            "\"relative_register_offset\":%u,\"requires_indexed_input_contract\":%s,"
+            "\"proof_scope\":\"analysis_entry_contracts\",\"relative_base_offsets\":[",
+            (unsigned)use->use_shape, (unsigned)use->relative_base_id,
+            (unsigned)use->relative_register_offset, use->relative_requires_input_contract ? "true" : "false") != 0)
+          goto oom;
+        for (relative_index = 0U; relative_index < use->relative_base_offset_count; ++relative_index) {
+          if (json_builder_appendf(&builder, "%s%u", relative_index == 0U ? "" : ",",
+              (unsigned)use->relative_base_offsets[relative_index]) != 0) goto oom;
+        }
+        if (json_builder_append(&builder, "],\"use_shape_name\":") != 0) goto oom;
+      } else if (json_builder_appendf(&builder,
           ",\"address\":%u,\"effective_address\":%u,\"use_shape_id\":%u,\"use_shape_name\":",
           (unsigned)use->address, (unsigned)use->effective_address, (unsigned)use->use_shape) != 0)
         goto oom;
@@ -5022,10 +5044,11 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
       if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_MANUAL) {
         if (json_builder_appendf(&builder,
-            ",\"reference_kind\":\"base_displacement\",\"source_value\":%u,\"width\":%u,\"signed\":%s,"
+            ",\"reference_kind\":\"%s\",\"source_value\":%u,\"width\":%u,\"signed\":%s,\"scale\":%u,"
             "\"base_section_index\":%u,\"base_offset\":%u,\"owner_element_offset\":%u,\"owner_kind\":",
+            ref->reference_kind == M68K_DATA_REFERENCE_KIND_BASE_DISPLACEMENT_RANGE ? "base_displacement_range" : "base_displacement",
             (unsigned)ref->raw_value, (unsigned)ref->raw_value_width, ref->raw_value_signed ? "true" : "false",
-            (unsigned)ref->base_section_index, (unsigned)ref->base_offset, (unsigned)ref->owner_element_offset) != 0 ||
+            (unsigned)(ref->value_scale ? ref->value_scale : 1U), (unsigned)ref->base_section_index, (unsigned)ref->base_offset, (unsigned)ref->owner_element_offset) != 0 ||
             json_builder_append_nullable_string(&builder, ref->owner_kind) != 0 ||
             json_builder_append(&builder, ",\"owner_id\":") != 0 ||
             json_builder_append_nullable_string(&builder, ref->owner_id) != 0 ||
@@ -6424,45 +6447,41 @@ static int append_listing_source_context(JsonBuilder *builder, const char *kind,
   return json_builder_append(builder, "{\"section\":\"c-backend\"}");
 }
 
+static int listing_structured_data_item_covers(const M68kAnalysisStructuredDataItem *item,
+    int section_index, uint32_t offset) {
+  if (item == NULL || item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset)
+    return 0;
+  if (item->has_section_index ? item->section_index != (uint32_t)section_index : section_index != 0) return 0;
+  return offset - item->offset < item->size;
+}
+
 static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_offset(
     const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy, int section_index,
     uint32_t offset) {
+  const M68kAnalysisStructuredDataItem *best = NULL;
+  int best_is_policy = 0;
   size_t index;
-  size_t item_count;
+  size_t count;
   if (section_index < 0) return NULL;
-  item_count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
-  if (item_count != 0U) {
-    for (index = 0U; index < item_count; ++index) {
-      const M68kAnalysisStructuredDataItem *item =
-        m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
-      uint32_t end_offset;
-      if (item == NULL) continue;
-      if (item->has_section_index) {
-        if (item->section_index != (uint32_t)section_index) continue;
-      } else if (section_index != 0) {
-        continue;
+  count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
+  for (index = 0U; index < count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+    if (listing_structured_data_item_covers(item, section_index, offset) && (best == NULL || item->size < best->size))
+      best = item;
+  }
+  /* A covering inferred table must not hide an exact canonical field. On equal
+   * spans the explicit policy carries the user's domain/type contract. */
+  if (policy != NULL) {
+    for (index = 0U; index < policy->structured_data_item_count && index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+      if (listing_structured_data_item_covers(item, section_index, offset) &&
+          (best == NULL || item->size < best->size || (item->size == best->size && !best_is_policy))) {
+        best = item;
+        best_is_policy = 1;
       }
-      if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
-      end_offset = item->offset + item->size;
-      if (offset < end_offset) return item;
     }
-    return NULL;
   }
-  if (policy == NULL) return NULL;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    uint32_t end_offset;
-    if (item->has_section_index) {
-      if (item->section_index != (uint32_t)section_index) continue;
-    } else if (section_index != 0) {
-      continue;
-    }
-    if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
-    end_offset = item->offset + item->size;
-    if (offset < end_offset) return item;
-  }
-  return NULL;
+  return best;
 }
 
 static int append_listing_structured_data_json(JsonBuilder *builder, const M68kAnalysisStructuredDataItem *item) {
@@ -6918,14 +6937,25 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
     int is_immediate = listing_operand_is_immediate_value(operand, NULL);
     uint8_t shape = m68k_instruction_operand_decoded_ea_shape(operand);
     int is_absolute = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD || shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
+    int32_t indexed_displacement = 0;
+    int is_indexed_displacement = m68k_ir_operand_brief_index_displacement(operand, &indexed_displacement);
     unsigned width_bits = 0U;
     int32_t signed_value = (int32_t)operand->value.value;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
     int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
-    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !has_base_register) continue;
+    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !is_absolute && !is_indexed_displacement && !has_base_register) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
-    if (is_absolute) {
+    if (is_indexed_displacement) {
+      if (json_builder_appendf(builder,
+          "{\"kind\":\"indexed_displacement\",\"operand_index\":%u,\"value\":%d,\"width_bytes\":1,\"width_bits\":8,\"base_register\":\"A%u\"",
+          (unsigned)operand_index, indexed_displacement, (unsigned)operand->value.ea_reg) != 0) return -1;
+      if (symbol_name != NULL && symbol_name[0] != '\0') {
+        if (json_builder_append(builder, ",\"symbol\":") != 0 ||
+            json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+      }
+      if (json_builder_append(builder, "}") != 0) return -1;
+    } else if (is_absolute) {
       unsigned width = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ? 2U : 4U;
       if (json_builder_appendf(builder,
           "{\"kind\":\"absolute_address\",\"operand_index\":%u,\"value\":%u,\"width_bytes\":%u,\"width_bits\":%u",
@@ -6972,10 +7002,17 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
       if (json_builder_append(builder, "}}") != 0) return -1;
     } else {
       if (json_builder_appendf(builder,
-            "{\"kind\":\"displacement\",\"operand_index\":%u,\"text\":null,\"value\":null,"
+            "{\"kind\":\"displacement\",\"operand_index\":%u,\"text\":null,",
+            (unsigned)operand_index) != 0) return -1;
+      /* Only d16(An) carries an encoded signed word; plain (An) does not. */
+      if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT) {
+        if (json_builder_appendf(builder, "\"value\":%d,\"signed_value\":%d,\"width_bits\":16,\"width_bytes\":2,",
+              (int)displacement, (int)displacement) != 0) return -1;
+      } else if (json_builder_append(builder, "\"value\":null,") != 0) return -1;
+      if (json_builder_appendf(builder,
             "\"register\":null,\"base_register\":\"A%u\",\"displacement\":%d,"
             "\"segment_addr\":null,\"metadata\":{}}",
-            (unsigned)operand_index, (unsigned)base_reg, (int)displacement) != 0)
+            (unsigned)base_reg, (int)displacement) != 0)
         return -1;
     }
     emitted = 1;
@@ -7085,6 +7122,160 @@ static int append_listing_operand_accesses_json(JsonBuilder *builder, const M68k
     if (json_builder_append_json_string(builder, access_name) != 0) return -1;
   }
   return json_builder_append(builder, "]");
+}
+
+/* Read-only operand evidence. Width/access come from the Motorola-derived form
+ * metadata, never mnemonic spelling or the rendered operand string. */
+static int append_instruction_operand_facts_json(JsonBuilder *b, const M68kInstructionIR *ins) {
+  const M68kSimFormMetadata *meta = instruction_sim_metadata(ins);
+  size_t i;
+  if (json_builder_append(b, "[") != 0) return -1;
+  for (i = 0; i < ins->operand_count; ++i) {
+    const M68kOperandIR *op = &ins->operands[i];
+    uint8_t shape = m68k_instruction_operand_decoded_ea_shape(op);
+    int indexed = shape == M68K_SIM_EA_SHAPE_INDEX || shape == M68K_SIM_EA_SHAPE_PC_INDEX;
+    int an = shape >= M68K_SIM_EA_SHAPE_INDIRECT && shape <= M68K_SIM_EA_SHAPE_INDEX;
+    int32_t disp = 0;
+    const char *access = meta ? listing_operand_access_name(meta->operand_access_kinds[i]) : "unknown";
+    if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT || shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT)
+      disp = (int32_t)m68k_sign_extend32(op->value.value, 16U);
+    int displacement_known = !indexed || m68k_ir_operand_brief_index_displacement(op, &disp);
+    if ((i && json_builder_append(b, ",")) || json_builder_appendf(b,
+        "{\"operand_index\":%u,\"ea_shape_id\":%u,\"memory\":%s,\"indexed\":%s,\"displacement\":%d,\"displacement_known\":%s,\"access\":",
+        (unsigned)i, (unsigned)shape, shape != M68K_SIM_EA_SHAPE_NONE ? "true" : "false",
+        indexed ? "true" : "false", (int)disp, displacement_known ? "true" : "false") ||
+        json_builder_append_json_string(b, access ? access : "unknown") ||
+        json_builder_appendf(b, ",\"width_bytes\":%u,\"bulk_transfer\":%s,\"base_register\":",
+          (unsigned)m68k_sim_operand_width_bytes(ins, (uint8_t)i),
+          meta && meta->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER ? "true" : "false")) return -1;
+    if (an) {
+      if (json_builder_appendf(b, "\"A%u\"", (unsigned)op->value.ea_reg)) return -1;
+    } else if (json_builder_append(b, "null")) return -1;
+    if (json_builder_append(b, ",\"index_register\":")) return -1;
+    if (indexed) {
+      if (json_builder_appendf(b, "\"%c%u\",\"index_width_bytes\":%u,\"index_scale\":%u",
+          op->value.index_is_address ? 'A' : 'D', (unsigned)op->value.index_reg,
+          op->value.index_long ? 4U : 2U,
+          /* Same IR default normalization as sim_ea_index_value_with_metadata. */
+          (unsigned)(op->value.scale ? op->value.scale : 1U))) return -1;
+    } else if (json_builder_append(b, "null")) return -1;
+    if (json_builder_append(b, ",\"absolute_address\":")) return -1;
+    if (shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD || shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG) {
+      uint32_t address = shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ? m68k_sign_extend32(op->value.value, 16U) : op->value.value;
+      if (json_builder_appendf(b, "%u", (unsigned)address)) return -1;
+    } else if (json_builder_append(b, "null")) return -1;
+    {
+      uint8_t is_address = 0U, reg = 0U, list_reg;
+      uint32_t immediate = 0U;
+      int list_count = 0;
+      if (json_builder_append(b, ",\"direct_register\":")) return -1;
+      if (m68k_instruction_operand_direct_register(op, &is_address, &reg)) {
+        if (json_builder_appendf(b, "\"%c%u\"", is_address ? 'A' : 'D', (unsigned)reg)) return -1;
+      } else if (json_builder_append(b, "null")) return -1;
+      if (json_builder_append(b, ",\"immediate_value\":")) return -1;
+      if (m68k_ir_operand_immediate_value(op, &immediate)) {
+        if (json_builder_appendf(b, "%u", (unsigned)(uint32_t)immediate)) return -1;
+      } else if (json_builder_append(b, "null")) return -1;
+      if (json_builder_appendf(b, ",\"ea_update\":%u,\"register_list\":[",
+          (unsigned)m68k_sim_operand_ea_update(ins, (uint8_t)i))) return -1;
+      for (list_reg = 0U; list_reg < 8U; ++list_reg) {
+        if (reglist_contains_data_register_local(op, list_reg)) {
+          if (json_builder_appendf(b, "%s\"D%u\"", list_count++ ? "," : "", (unsigned)list_reg)) return -1;
+        }
+        if (reglist_contains_address_register_local(op, list_reg)) {
+          if (json_builder_appendf(b, "%s\"A%u\"", list_count++ ? "," : "", (unsigned)list_reg)) return -1;
+        }
+      }
+      if (json_builder_append(b, "]}")) return -1;
+    }
+  }
+  return json_builder_append(b, "]");
+}
+
+/* Replay the same evidence serializer against an identity-checked retained
+ * instruction. This decodes one exact instruction; it does not analyze or run
+ * a target, infer register flow, or assign platform/base provenance. */
+int platform_file_instruction_evidence_json_alloc(const unsigned char *data,
+    size_t size, uint8_t cpu, char **out_text) {
+  JsonBuilder b = {0};
+  M68kDiagList diagnostics;
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *meta;
+  if (!out_text) return -1;
+  *out_text = NULL;
+  if (!data || !size) return -1;
+  memset(&diagnostics, 0, sizeof(diagnostics));
+  instruction = m68k_ir_decode_one(data, size, cpu, m68k_diag_sink(&diagnostics));
+  if (m68k_diag_has_errors(&diagnostics) || instruction.byte_count != size) return -1;
+  meta = instruction_sim_metadata(&instruction);
+  if (json_builder_create(&b) || json_builder_appendf(&b,
+      "{\"size\":%u,\"metadata_available\":%s,\"flow\":",
+      (unsigned)instruction.byte_count, meta ? "true" : "false") ||
+      json_builder_append_json_string(&b, meta ? sim_flow_kind_name(meta->flow_kind) : "unknown") ||
+      json_builder_append(&b, ",\"operation\":") ||
+      json_builder_append_json_string(&b, meta && listing_operation_type_name(meta->operation_type) ? listing_operation_type_name(meta->operation_type) : "unknown") ||
+      json_builder_append(&b, ",\"operand_facts\":") ||
+      append_instruction_operand_facts_json(&b, &instruction) || json_builder_append(&b, "}")) {
+    json_builder_destroy(&b);
+    return -1;
+  }
+  *out_text = json_builder_build(&b);
+  json_builder_destroy(&b);
+  return *out_text ? 0 : -1;
+}
+
+static int append_instruction_address_evidence_json(JsonBuilder *b, const M68kSectionAnalysisIR *sec, uint32_t offset) {
+  size_t i, n = 0;
+  if (json_builder_append(b, "[")) return -1;
+  if (sec) for (i = 0; i < sec->address_observation_count; ++i) {
+    const M68kAddressObservationIR *a = &sec->address_observations[i];
+    if (a->offset != offset) continue;
+    if ((n++ && json_builder_append(b, ",")) || json_builder_appendf(b,
+        "{\"operand_index\":%u,\"has_address\":%s,\"address\":%u,\"width_bytes\":%u,\"conflicted\":%s,\"source\":",
+        (unsigned)a->operand_index, a->has_address ? "true" : "false", (unsigned)a->address,
+        (unsigned)a->access_width, a->conflicted ? "true" : "false") ||
+        json_builder_append_json_string(b, m68k_address_observation_source_name(a->source)) || json_builder_append(b, "}")) return -1;
+  }
+  return json_builder_append(b, "]");
+}
+
+static int append_instruction_platform_evidence_json(JsonBuilder *b, const M68kSectionAnalysisIR *sec, uint32_t offset) {
+  size_t i, j, n = 0;
+  if (json_builder_append(b, "[")) return -1;
+  if (sec) for (i = 0; i < sec->platform_address_use_count; ++i) {
+    const M68kPlatformAddressUseIR *a = &sec->platform_address_uses[i];
+    if (a->offset != offset) continue;
+    if ((n++ && json_builder_append(b, ",")) || json_builder_appendf(b,
+        "{\"operand_index\":%u,\"shape\":", (unsigned)a->operand_index) ||
+        json_builder_append_json_string(b, m68k_platform_address_use_shape_name(a->use_shape)) ||
+        json_builder_append(b, ",\"effective_address\":")) return -1;
+    if (a->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_FAMILY) {
+      if (json_builder_append(b, "null")) return -1;
+    } else if (json_builder_appendf(b, "%u", (unsigned)a->effective_address)) return -1;
+    if (json_builder_appendf(b, ",\"requires_input_contract\":%s,\"relative_register_offset\":%u,\"relative_base_offsets\":[",
+        a->relative_requires_input_contract ? "true" : "false", (unsigned)a->relative_register_offset)) return -1;
+    for (j = 0; j < a->relative_base_offset_count; ++j)
+      if (json_builder_appendf(b, "%s%u", j ? "," : "", (unsigned)a->relative_base_offsets[j])) return -1;
+    if (json_builder_append(b, "]}")) return -1;
+  }
+  return json_builder_append(b, "]");
+}
+
+int source_file_instruction_evidence_append_json(JsonBuilder *b,
+    const M68kInstructionIR *ins, const M68kInstructionIR *render_ins,
+    const M68kSectionAnalysisIR *sec, uint32_t offset) {
+  M68kStatementIR stmt;
+  memset(&stmt, 0, sizeof(stmt));
+  stmt.kind = M68K_STATEMENT_INSTRUCTION;
+  stmt.offset = offset;
+  stmt.u.instruction = *render_ins;
+  if (json_builder_append(b, ",\"operand_facts\":") || append_instruction_operand_facts_json(b, ins) ||
+      json_builder_append(b, ",\"app_slot_refs\":") || append_listing_app_slot_refs_json(b, &stmt, sec) ||
+      json_builder_append(b, ",\"typed_accesses\":") || append_listing_typed_accesses_json(b, &stmt, sec) ||
+      json_builder_append(b, ",\"unresolved_typed_accesses\":") || append_listing_unresolved_typed_accesses_json(b, &stmt, sec) ||
+      json_builder_append(b, ",\"address_evidence\":") || append_instruction_address_evidence_json(b, sec, offset) ||
+      json_builder_append(b, ",\"platform_evidence\":") || append_instruction_platform_evidence_json(b, sec, offset)) return -1;
+  return 0;
 }
 
 static int append_listing_operand_registers_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
@@ -8834,6 +9025,7 @@ static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
     int16_t displacement = 0;
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
     if (listing_operand_is_immediate_value(operand, NULL)) return 1;
+    if (m68k_ir_operand_brief_index_displacement(operand, NULL)) return 1;
     if (m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD ||
         m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG) return 1;
     if (operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U) return 1;

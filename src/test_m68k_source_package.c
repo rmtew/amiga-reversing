@@ -405,8 +405,59 @@ static int test_local_symbol_scope_blocks_new_alias_only(void) {
   return 0;
 }
 
+static int test_explicit_opaque_data_is_eligible_without_inventing_media_role(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kRenderPlan plan;
+  uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+  char *json = NULL;
+  package_fixture(&object, &section, bytes, &plan);
+  M68K_C_ASSERT(package_row(&plan, 0U, 4U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_OPAQUE_DATA) != NULL);
+  M68K_C_ASSERT(package_row(&plan, 4U, 4U, 0U) != NULL);
+  M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 4U, &json));
+  M68K_C_ASSERT(strstr(json, "\"classification\":\"opaque_data\"") != NULL);
+  M68K_C_ASSERT(strstr(json, "\"data_hex\":\"01020304\"") != NULL);
+  M68K_C_ASSERT(strstr(json, "o00000004_n00000004.bin") == NULL);
+  M68K_C_ASSERT(strstr(json, "sound_sample") == NULL);
+  free(json);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
+static int test_typed_media_omits_only_native_generated_field_comments(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kRenderPlan plan;
+  M68kRenderPlanRow *row;
+  uint8_t bytes[] = {1,2,3,4,5,6,7,8};
+  char *json = NULL;
+  package_fixture(&object, &section, bytes, &plan);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+    "; manual annotation\n\tdc.w $0102,$0304 ; plane_0\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 0U, 4U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, NULL, 0U);
+  m68k_render_plan_row_set_data_class_flags(row, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+  strcpy(row->generated_field_comment, "plane_0");
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&plan, M68K_RENDER_PLAN_ROW_DATA, 0U,
+    "\tdc.w $0506,$0708 ; plane_1 with extra annotation\n", &row));
+  m68k_render_plan_row_set_source_range(row, 0U, 4U, 4U);
+  m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, NULL, 0U);
+  m68k_render_plan_row_set_data_class_flags(row, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+  strcpy(row->generated_field_comment, "plane_1");
+  M68K_C_ASSERT_INT(0, m68k_source_package_json_alloc(&object, &plan, 8U, &json));
+  M68K_C_ASSERT(strstr(json, "INCBIN") != NULL);
+  M68K_C_ASSERT(strstr(json, "; plane_0") == NULL);
+  M68K_C_ASSERT(strstr(json, "; manual annotation") != NULL);
+  M68K_C_ASSERT(strstr(json, "; plane_1 with extra annotation") != NULL);
+  free(json);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 int m68k_c_source_package_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"typed_media_generated_comments", test_typed_media_omits_only_native_generated_field_comments},
+    {"explicit_opaque_data", test_explicit_opaque_data_is_eligible_without_inventing_media_role},
     {"local_symbol_scope_blocks_new_alias_only", test_local_symbol_scope_blocks_new_alias_only},
     {"full_native_basename_is_not_truncated", test_full_native_basename_is_not_truncated},
     {"native_names_and_stable_identity", test_native_names_and_stable_identity},

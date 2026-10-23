@@ -28,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
             "interpret_batch",
             "verify",
             "probe",
+            "behaviour",
             "review",
             "review_batch",
             "history",
@@ -128,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    if args.operation == 'behaviour' and result.get('status') != 'pass':
+        return 2
     return 0
 
 

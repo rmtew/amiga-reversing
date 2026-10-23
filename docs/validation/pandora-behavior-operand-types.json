@@ -1,0 +1,5706 @@
+{
+  "starting_commit": "4096586cf255828cb0ddba41af6bbbac385ecd7a",
+  "inspected_revision": "5deb3ffd4c74003d36df4ce2b09ff71912de902b76239811f08a1365e55562e2",
+  "question": "Which generic behavior operands can reuse the actual handler schemas across all original occurrences?",
+  "command_bytes": 1280,
+  "script_bytes": 3918,
+  "script_count": 24,
+  "typed_command_count": 320,
+  "delay_commands": 191,
+  "x_delta_commands": 64,
+  "y_delta_commands": 65,
+  "existing_types_reused": [
+    "cmd_delay",
+    "cmd_axis_delta"
+  ],
+  "dispatch_table_source": 5170,
+  "handler_sources": {
+    "add_x": 4432,
+    "add_y": 4444,
+    "set_delay": 4516
+  },
+  "banks": [
+    {
+      "name": "world_object_technician_behavior_script",
+      "layout_id": "catalog-96c9d311402442f1b9fdaeb7c7b06f2a",
+      "source_start": 6906,
+      "source_end": 6986,
+      "sha256": "f5518e5086807d53ed5f24391fb17494384e86bbfdeeb94e1076866f2eed27db",
+      "commands": [
+        {
+          "source": 6920,
+          "opcode": 5,
+          "operand_raw": 30,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6930,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6934,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6954,
+          "opcode": 5,
+          "operand_raw": 30,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6964,
+          "opcode": 0,
+          "operand_raw": 7,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6968,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_pianist_actor_behavior_script",
+      "layout_id": "catalog-2fc2ef22bc644ce0a1fb878699a47c26",
+      "source_start": 8586,
+      "source_end": 8608,
+      "sha256": "c01c52816ea80077aa2a2a7e8dcccba4b21473cfc32cfa4ce7edb946f90cb502",
+      "commands": [
+        {
+          "source": 8598,
+          "opcode": 5,
+          "operand_raw": 10000,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_musician_behavior_script",
+      "layout_id": "catalog-4ad31ab0eb624c7ca831abcb35cfb764",
+      "source_start": 8608,
+      "source_end": 8630,
+      "sha256": "c51a231e79ca486eaa7a64a11fb9ca17ec29e10cdc975a19780ba5f4477bcb84",
+      "commands": [
+        {
+          "source": 8620,
+          "opcode": 5,
+          "operand_raw": 10000,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_icelord_behavior_script",
+      "layout_id": "catalog-3e7ad81b099c4898a9a6de922aa03392",
+      "source_start": 8630,
+      "source_end": 8652,
+      "sha256": "bd390eb1075a3e4836561a5070bb5e03baccf127aedc3644d9fa3372766aa900",
+      "commands": [
+        {
+          "source": 8642,
+          "opcode": 5,
+          "operand_raw": 10000,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_security_officer_behavior_script",
+      "layout_id": "catalog-e341048d8b74445db32259d0d3e9d849",
+      "source_start": 8690,
+      "source_end": 8720,
+      "sha256": "ce054eeda2400de899970d9da46b0bdcc69e66ed079de817fe2e748cbfb323a8",
+      "commands": [
+        {
+          "source": 8702,
+          "opcode": 5,
+          "operand_raw": 100,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8708,
+          "opcode": 5,
+          "operand_raw": 5,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_chemist_behavior_script",
+      "layout_id": "catalog-3748e971e26b47a9948e45d7cdd472c3",
+      "source_start": 8720,
+      "source_end": 8790,
+      "sha256": "fbd39991cab5b757e2e3612b430d1d8026be1d9c1a0c9b468f3a929f70df74a3",
+      "commands": [
+        {
+          "source": 8734,
+          "opcode": 5,
+          "operand_raw": 250,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8744,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8748,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8760,
+          "opcode": 5,
+          "operand_raw": 100,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8768,
+          "opcode": 1,
+          "operand_raw": 65532,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8772,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_doctor_behavior_script",
+      "layout_id": "catalog-55f2d538ae364441aad45f9b3aca4448",
+      "source_start": 8790,
+      "source_end": 8876,
+      "sha256": "6861e094f7b3efdefb69a8fb19bf8cf8163eb7b9bf543b1c717fc248ff57592e",
+      "commands": [
+        {
+          "source": 8804,
+          "opcode": 5,
+          "operand_raw": 300,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8820,
+          "opcode": 1,
+          "operand_raw": 1,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8824,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8838,
+          "opcode": 5,
+          "operand_raw": 200,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8854,
+          "opcode": 1,
+          "operand_raw": 65535,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8858,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_priest_behavior_script",
+      "layout_id": "catalog-1e502d35714e4b0da55e566ab613cf75",
+      "source_start": 9078,
+      "source_end": 9100,
+      "sha256": "b8103393e9c8227f461a62ce00aebf943f5c94b61fcc326be911441bd41d20e7",
+      "commands": [
+        {
+          "source": 9090,
+          "opcode": 5,
+          "operand_raw": 10000,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_driffid_behavior_script",
+      "layout_id": "catalog-033e92b133e94b0f91e2d55b3218f9f1",
+      "source_start": 9174,
+      "source_end": 9254,
+      "sha256": "d0b5d0d3b61253cc1bed3d91add08bb99cee539fa5d2c0f2921d073782c79caf",
+      "commands": [
+        {
+          "source": 9186,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9192,
+          "opcode": 5,
+          "operand_raw": 200,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9208,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 9212,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9224,
+          "opcode": 5,
+          "operand_raw": 100,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9232,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 9236,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_robomechanic_behavior_script",
+      "layout_id": "catalog-46d275817b604ec6bd67e45cea1a9126",
+      "source_start": 9254,
+      "source_end": 9318,
+      "sha256": "25d8a47967faff14ee89eacc009aadd6d1f467a207f3c741eabbe1d537cbd48e",
+      "commands": [
+        {
+          "source": 9260,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9268,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 9272,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9284,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9292,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 9296,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9308,
+          "opcode": 5,
+          "operand_raw": 75,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_thief_behavior_script",
+      "layout_id": "catalog-092758c7eb414e3fa0eae57d7b8dc48a",
+      "source_start": 5304,
+      "source_end": 5470,
+      "sha256": "e436876b5cbf7a9aa74a47caddedc73ed0741a827b93df9d7937d6378768dc3a",
+      "commands": [
+        {
+          "source": 5316,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5324,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5328,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5344,
+          "opcode": 0,
+          "operand_raw": 65530,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5348,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5364,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5368,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5382,
+          "opcode": 5,
+          "operand_raw": 10,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5394,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5408,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5412,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5428,
+          "opcode": 0,
+          "operand_raw": 6,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5432,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5448,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5452,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_menial_droid_behavior_script",
+      "layout_id": "catalog-1bdadf57bb7b421da25014556e339075",
+      "source_start": 5470,
+      "source_end": 5650,
+      "sha256": "5629612339d7fceae68ce2703031cbbbb5dfe5f100d69e8c86c17987092d722e",
+      "commands": [
+        {
+          "source": 5476,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5484,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 5488,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5504,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5508,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5524,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 5528,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5544,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5548,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5560,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5568,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5572,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5588,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 5592,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5608,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5612,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5628,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 5632,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_squash_player_behavior_script",
+      "layout_id": "catalog-fcbe28ded4c441b38a071f5dd50fd2fb",
+      "source_start": 5650,
+      "source_end": 5830,
+      "sha256": "913c4ff7cbd95d38b15ffd6b099539ed80e7a6f68ffd54456aaf330a873b373f",
+      "commands": [
+        {
+          "source": 5662,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5668,
+          "opcode": 5,
+          "operand_raw": 120,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5678,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5682,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5704,
+          "opcode": 0,
+          "operand_raw": 7,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5708,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5730,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5734,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5756,
+          "opcode": 0,
+          "operand_raw": 7,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5760,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5782,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5786,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5808,
+          "opcode": 0,
+          "operand_raw": 7,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5812,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_wackobrain_actor_behavior_script",
+      "layout_id": "catalog-c16b23b402bf485d8bdd4a957830fc97",
+      "source_start": 5830,
+      "source_end": 6514,
+      "sha256": "3e05f3420729d9adae313f5243e176475f1661df43a9cb3ff13eb29764bfa001",
+      "commands": [
+        {
+          "source": 5842,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5850,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5854,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5872,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5886,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 5890,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5912,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5916,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5934,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5948,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 5952,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 5974,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 5978,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6000,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6004,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6026,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6030,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6048,
+          "opcode": 5,
+          "operand_raw": 100,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6062,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6066,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6088,
+          "opcode": 0,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6092,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6110,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6124,
+          "opcode": 0,
+          "operand_raw": 3,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6128,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6150,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6154,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6176,
+          "opcode": 0,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6180,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6202,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6206,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6224,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6238,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6242,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6260,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6274,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6278,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6300,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6304,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6326,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6330,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6352,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6356,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6378,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6382,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6400,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6414,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6418,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6440,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6444,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6466,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6470,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6492,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6496,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_secdroid_pi_behavior_script",
+      "layout_id": "catalog-f7816c12a7394a31beba259a50a8cbe2",
+      "source_start": 6514,
+      "source_end": 6770,
+      "sha256": "a912be1a5e91e085a591db00e0e1898817d8b1cab70457cf161fe5efeb030e7a",
+      "commands": [
+        {
+          "source": 6530,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6538,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6542,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6564,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6572,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6576,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6592,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6596,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6612,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6616,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6628,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6642,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6660,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6664,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6680,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6684,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6700,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6704,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6726,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6734,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6738,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6760,
+          "opcode": 5,
+          "operand_raw": 100,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_secdroid_omega_behavior_script",
+      "layout_id": "catalog-e7f3aa40133f44d28e2abfad74682a8f",
+      "source_start": 6770,
+      "source_end": 6906,
+      "sha256": "75b9099764b4a41a7ce95edbfe6889dc307b5e4a3b9316244868807373f685ec",
+      "commands": [
+        {
+          "source": 6786,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6794,
+          "opcode": 0,
+          "operand_raw": 8,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6798,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6824,
+          "opcode": 1,
+          "operand_raw": 8,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6828,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6854,
+          "opcode": 0,
+          "operand_raw": 65528,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 6858,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 6884,
+          "opcode": 1,
+          "operand_raw": 65528,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 6888,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_gardener_behavior_script",
+      "layout_id": "catalog-ef9627058e954b7687920392997ef7f3",
+      "source_start": 6986,
+      "source_end": 7198,
+      "sha256": "5ba66fb0453ebab867583fe6f39b3043e7371623275a02c499cb48919e907df4",
+      "commands": [
+        {
+          "source": 6996,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7000,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7016,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7020,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7036,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7040,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7056,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7060,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7076,
+          "opcode": 0,
+          "operand_raw": 1,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7080,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7096,
+          "opcode": 1,
+          "operand_raw": 1,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7100,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7116,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7120,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7136,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7140,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7156,
+          "opcode": 1,
+          "operand_raw": 65535,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7160,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7176,
+          "opcode": 0,
+          "operand_raw": 65535,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7180,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_hooligan_behavior_script",
+      "layout_id": "catalog-ebc29a9bee864cf6accc7d97bdcb7a79",
+      "source_start": 7198,
+      "source_end": 7866,
+      "sha256": "7488aa82efe06566f880b055409a1f0f24ad758332d9f4c6b8df1b0cbfef5e8a",
+      "commands": [
+        {
+          "source": 7210,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7218,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7222,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7244,
+          "opcode": 0,
+          "operand_raw": 7,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7248,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7270,
+          "opcode": 1,
+          "operand_raw": 65532,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7274,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7294,
+          "opcode": 5,
+          "operand_raw": 30,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7310,
+          "opcode": 1,
+          "operand_raw": 65532,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7314,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7336,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7340,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7362,
+          "opcode": 1,
+          "operand_raw": 65532,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7366,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7380,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7396,
+          "opcode": 0,
+          "operand_raw": 65535,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7400,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7418,
+          "opcode": 0,
+          "operand_raw": 65535,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7422,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7434,
+          "opcode": 5,
+          "operand_raw": 10,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7446,
+          "opcode": 5,
+          "operand_raw": 20,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7460,
+          "opcode": 0,
+          "operand_raw": 5,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7464,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7486,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7490,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7512,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7516,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7538,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7542,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7564,
+          "opcode": 0,
+          "operand_raw": 7,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7568,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7590,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7594,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7616,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7620,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7642,
+          "opcode": 1,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7646,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7668,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7672,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7686,
+          "opcode": 5,
+          "operand_raw": 15,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7698,
+          "opcode": 5,
+          "operand_raw": 15,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7708,
+          "opcode": 5,
+          "operand_raw": 10,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7718,
+          "opcode": 5,
+          "operand_raw": 10,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7734,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7738,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7758,
+          "opcode": 5,
+          "operand_raw": 10,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7768,
+          "opcode": 5,
+          "operand_raw": 20,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7778,
+          "opcode": 5,
+          "operand_raw": 20,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7792,
+          "opcode": 0,
+          "operand_raw": 5,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7796,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7818,
+          "opcode": 1,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7822,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7844,
+          "opcode": 0,
+          "operand_raw": 65529,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 7848,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_secdroid_alpha_1_behavior_script",
+      "layout_id": "catalog-aadbef5852674ac5a5ea87d03cc2a032",
+      "source_start": 7866,
+      "source_end": 8066,
+      "sha256": "3d7a89e6bef234d44360f9e53076da2bddc6a2898b101276af372242614709b1",
+      "commands": [
+        {
+          "source": 7872,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7890,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7894,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7920,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7924,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7950,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7954,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7976,
+          "opcode": 5,
+          "operand_raw": 30,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 7984,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 7988,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8014,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8018,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8044,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8048,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_secdroid_alpha_2_behavior_script",
+      "layout_id": "catalog-48ca41a9190a40d79b6f9b280247fce1",
+      "source_start": 8066,
+      "source_end": 8266,
+      "sha256": "ef7d26acfca23dd6aa2f4f042900501a2b8b066bfe9f6eee7990e497ee799808",
+      "commands": [
+        {
+          "source": 8072,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8090,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8094,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8120,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8124,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8150,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8154,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8176,
+          "opcode": 5,
+          "operand_raw": 30,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8184,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8188,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8214,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8218,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8244,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8248,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_secdroid_delta_2_behavior_script",
+      "layout_id": "catalog-4e0b3feace2c467288ae5dff635d61d0",
+      "source_start": 8266,
+      "source_end": 8426,
+      "sha256": "70597f575faf89f47290baedc460aa51267af5fcf508c92b42389103ef129101",
+      "commands": [
+        {
+          "source": 8272,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8290,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8294,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8310,
+          "opcode": 1,
+          "operand_raw": 65532,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8314,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8330,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8334,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8346,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8364,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8368,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8384,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8388,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8404,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8408,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_secdroid_delta_1_behavior_script",
+      "layout_id": "catalog-45ef9a6471374a8c97f8f1f843884023",
+      "source_start": 8426,
+      "source_end": 8586,
+      "sha256": "c7aef48f0adefadbcefbcb7219c2b071dad56fa0f44e684da939a519e05a8c2b",
+      "commands": [
+        {
+          "source": 8432,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8450,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8454,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8470,
+          "opcode": 1,
+          "operand_raw": 4,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8474,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8490,
+          "opcode": 1,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8494,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8506,
+          "opcode": 5,
+          "operand_raw": 50,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8524,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8528,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8544,
+          "opcode": 1,
+          "operand_raw": 65532,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8548,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8564,
+          "opcode": 1,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8568,
+          "opcode": 5,
+          "operand_raw": 2,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_death_fly_behavior_script",
+      "layout_id": "catalog-cb8d1b3e550c4366b0791b13179649bc",
+      "source_start": 8876,
+      "source_end": 9078,
+      "sha256": "50b539d11a0b885102a9f39c440604fa6535fa2a79528ca97fd5509a2981b188",
+      "commands": [
+        {
+          "source": 8888,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8896,
+          "opcode": 1,
+          "operand_raw": 6,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8900,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8916,
+          "opcode": 0,
+          "operand_raw": 2,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 8920,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8936,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 8940,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8956,
+          "opcode": 1,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 8960,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8976,
+          "opcode": 0,
+          "operand_raw": 65534,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 8980,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 8996,
+          "opcode": 1,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 9000,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9016,
+          "opcode": 0,
+          "operand_raw": 3,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 9020,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9036,
+          "opcode": 1,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4444,
+          "axis": "world_y"
+        },
+        {
+          "source": 9040,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        },
+        {
+          "source": 9056,
+          "opcode": 0,
+          "operand_raw": 65533,
+          "type": "cmd_axis_delta",
+          "field": "delta",
+          "handler": 4432,
+          "axis": "world_x"
+        },
+        {
+          "source": 9060,
+          "opcode": 5,
+          "operand_raw": 1,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    },
+    {
+      "name": "world_object_bank_manager_behavior_script",
+      "layout_id": "catalog-ec78e0e0d15948d389256c3154fc033d",
+      "source_start": 9100,
+      "source_end": 9116,
+      "sha256": "c07a5650a1aa2e56e4f7781d47a6b0fafcbdce978be8c4c8100b35e1bc0439ac",
+      "commands": [
+        {
+          "source": 9106,
+          "opcode": 5,
+          "operand_raw": 10000,
+          "type": "cmd_delay",
+          "field": "ticks",
+          "handler": 4516,
+          "axis": "behavior_script_delay_ticks"
+        }
+      ]
+    }
+  ],
+  "script_coverage": {
+    "script_count": 24,
+    "command_records": 761,
+    "all_spans_covered": true,
+    "opcode_counts": {
+      "0": 64,
+      "1": 65,
+      "5": 191,
+      "6": 129,
+      "20": 24,
+      "21": 129,
+      "23": 24,
+      "25": 1,
+      "27": 80,
+      "30": 26,
+      "32": 28
+    }
+  },
+  "source_quality": {
+    "removed_unreferenced_generated_aliases": [
+      {
+        "name": "backpack_inventory_overlay_y",
+        "source": 13323,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "body_inventory_overlay_y",
+        "source": 13279,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "hit_feedback_overlay_y",
+        "source": 13147,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "nearby_carrying_overlay_y",
+        "source": 13235,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "nearby_character_overlay_y",
+        "source": 13191,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "nearby_distance_overlay_y",
+        "source": 13103,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "opponent_health_overlay_y",
+        "source": 13059,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "player_health_overlay_y",
+        "source": 13015,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "player_holding_overlay_y",
+        "source": 12971,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "pocket_inventory_overlay_y",
+        "source": 13367,
+        "struct": "ui_overlay_descriptor",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "ranged_hit_visual_frame_ptrs_active_frame_ptr_1",
+        "source": 296610,
+        "struct": "WorldPositionDescriptorPointer",
+        "field": "frame_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "ranged_hit_visual_frame_ptrs_active_frame_ptr_2",
+        "source": 296614,
+        "struct": "WorldPositionDescriptorPointer",
+        "field": "frame_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "ranged_hit_visual_frame_ptrs_active_frame_ptr_3",
+        "source": 296618,
+        "struct": "WorldPositionDescriptorPointer",
+        "field": "frame_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "ranged_hit_visual_frame_ptrs_active_frame_ptr_4",
+        "source": 296622,
+        "struct": "WorldPositionDescriptorPointer",
+        "field": "frame_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "ranged_hit_visual_frame_ptrs_active_frame_ptr_5",
+        "source": 296626,
+        "struct": "WorldPositionDescriptorPointer",
+        "field": "frame_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "ranged_hit_visual_frame_ptrs_active_frame_ptr_6",
+        "source": 296630,
+        "struct": "WorldPositionDescriptorPointer",
+        "field": "frame_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_entry_officer_behavior_script_y",
+        "source": 9120,
+        "struct": "cmd_position_xy",
+        "field": "y",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_10",
+        "source": 12338,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_11",
+        "source": 12342,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_12",
+        "source": 12346,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_13",
+        "source": 12350,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_14",
+        "source": 12354,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_15",
+        "source": 12358,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_16",
+        "source": 12362,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_17",
+        "source": 12366,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_18",
+        "source": 12370,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_19",
+        "source": 12374,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_2",
+        "source": 12306,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_20",
+        "source": 12378,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_21",
+        "source": 12382,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_22",
+        "source": 12386,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_23",
+        "source": 12390,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_24",
+        "source": 12394,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_25",
+        "source": 12398,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_26",
+        "source": 12402,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_27",
+        "source": 12406,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_28",
+        "source": 12410,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_29",
+        "source": 12414,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_3",
+        "source": 12310,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_30",
+        "source": 12418,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_31",
+        "source": 12422,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_32",
+        "source": 12426,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_33",
+        "source": 12430,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_34",
+        "source": 12434,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_35",
+        "source": 12438,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_4",
+        "source": 12314,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_5",
+        "source": 12318,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_6",
+        "source": 12322,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_7",
+        "source": 12326,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_8",
+        "source": 12330,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      },
+      {
+        "name": "world_object_ptr_table_object_ptr_9",
+        "source": 12334,
+        "struct": "world_object_source_reference",
+        "field": "object_ptr",
+        "original_assembly_occurrences": 1,
+        "metadata_identity_unchanged": true
+      }
+    ],
+    "unchanged_equate_definitions": 940,
+    "added_equate_definitions": 0,
+    "rs_declarations_unchanged": true,
+    "new_symbolic_operand_expressions": 0,
+    "changed_operand_comments": 320,
+    "delay_ticks": 191,
+    "axis_deltas": 129,
+    "all_other_source_text_unchanged": true,
+    "hardware_sdk_symbols_preserved": true,
+    "assets_and_sdk_hashes_preserved": true
+  },
+  "verification": {
+    "exact": true,
+    "failure_kinds": [],
+    "framework_exact": true,
+    "framework_status": "exact",
+    "kind": "verification",
+    "message": "",
+    "oracle": {
+      "assembler_status": "accepted",
+      "comparison_level": "oracle.full_file_match",
+      "message": "oracle output matched original bytes",
+      "oracle_id": "vasm",
+      "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+    },
+    "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "rebuilt_path": "/workspace/amiga-reversing/.runtime-state/restoration/e10e35bb8f9ebe262c283b0ffea9e3aa748c7bc605d6b5ce7ddd9d89f8e9740a/70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f.bin",
+    "receipt_id": "110913bda1a6aa2b8dea23d85240f874bc426c86a7b63c7ff8bfe2d27cadef55",
+    "revision": "4604b8870413220be2d26a2e3bc383d8efa027f7cb2055b3f3484583f0923dad",
+    "source_package_sha256": "75f6bc765c851c0e94d1864a690c5d095b77c19060bbf2c45babf06e5460750a",
+    "source_path": "/workspace/amiga-reversing/bin/rebuilt/amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/source-packages/75f6bc765c851c0e94d1864a690c5d095b77c19060bbf2c45babf06e5460750a/pandora_3e1ee0f1_bk_00_000000e8.s",
+    "source_sha256": "85bfb2faaec8a717af0e240b9bbadf962269253d0cc1f8828fa73694bb09d0db",
+    "status": "exact",
+    "subject_revision": "9423219db20666d7c21933e5950a936200da9ea8fa08bacbe419862bfd4a97a2",
+    "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+  },
+  "action_ids": [
+    "manual-e3ff7a3342b1444da816c48400eea833",
+    "manual-54064aaeac0a412fb7f77a4650c27738",
+    "manual-9634efe16813493ca0f95496cbd81b2b",
+    "manual-98d70bd6365c4969a57173e8af1e0dd8",
+    "manual-652a4a7f0eec44e9b9f01b9e8397ac45",
+    "manual-51426cf61c754812a1505c5d45ab8adf",
+    "manual-f9b63d075ead4579a64ff12bcfacf809",
+    "manual-8bef6c54c2b744968b0477e5665de918",
+    "manual-b7f61592704e4cb2a39f121f717e0f1b",
+    "manual-4d243e11a2064873ac638420d3988361",
+    "manual-f4dc7e47b0ca441896760e9ba1271544",
+    "manual-c74a48f5c5ca4a5e8f1926ebef5238b7",
+    "manual-7e965b567a994ef1902d829a7fd3745d",
+    "manual-160e896d552048239266781e8acccfc5",
+    "manual-b49b3052092243c5860721b7222444ca",
+    "manual-47295347483444a59641577df5d82775",
+    "manual-95302b5e049e4324a7db72aa712280c8",
+    "manual-e5bbcceb90b14c15b3e4604d629e86f3",
+    "manual-cd36d805a4794c5685a312a45b166399",
+    "manual-f2319b46dd5a4ff9b367bbee36a07c26",
+    "manual-4bd6812ffafa46069d7d64c421dc1313",
+    "manual-d27c56599252447a96f2c162427938e0",
+    "manual-a674b032133c48a7b80df05fdc892fac",
+    "manual-f95fa56c56ff4c7bb4ad2b2e8f0818c2",
+    "manual-55d6a577b6cb4a3bb38bbc5f780dce58",
+    "manual-d433f4558a5242768164391772345044",
+    "manual-9530a09e748d43d1afca4d0215c5f248",
+    "manual-30e9681fa40944a4bc05c43ae8ff4427",
+    "manual-dbe4ecdbff814c9da6b5b74b1176d8d2",
+    "manual-befad6d96e214267aec853e14213a7d3",
+    "manual-38ce83094d624bc6886765ee0811cf26",
+    "manual-9a1c3e4b324643339df0905991cc2e59",
+    "manual-09879de26ae549a79c2026c86577fc10",
+    "manual-57478939537345d8a6252738f5f7ded3",
+    "manual-25e8912715d647288902ce94371ff9c7",
+    "manual-55a0b1eb45794f1995dbfb6af920c90b",
+    "manual-1170a706457b4cebb2858c0fea034b5e",
+    "manual-d024876b520340a6868907f0391effe9",
+    "manual-cdcc896e76be47e9af6294810181c44c",
+    "manual-6e21de04943d4c539c57f1dc74f88da9",
+    "manual-a79e1b71ce1846c580f8bd14b5d6203e",
+    "manual-dd57838cd91344678f55d93036abfac5",
+    "manual-2ffa89c5cd3549069bcd757ba9854d15",
+    "manual-f284a3e061c942b488c7e3e1889dec54",
+    "manual-a2cf492c68b3471eafae6dd5db37ac9e",
+    "manual-d6638ac31c8a4b929f431464da81f916",
+    "manual-20e508243995421a9ba77aafea5d21ed",
+    "manual-96db092ded28425892c97e85368f9e94",
+    "manual-9e4f4c16092c48868d47467cafd5bac5",
+    "manual-2eb0dfc522994c889a23594b1217fe10",
+    "manual-1e2eaf3898494acc9f6e1a69000276e1",
+    "manual-8f574f42911c4f2c91e60e0ed6fc7c55",
+    "manual-8d5e238685654d428ff5cdfad72f443d",
+    "manual-481ee41940ff4207a1c6aa10d26c50e6",
+    "manual-d3e6faeb5d024241a2401a4925d439c5",
+    "manual-8a663fb5a9af467db826e5b6ab15de24",
+    "manual-398938de0a8048cfa8be959bfa0470db",
+    "manual-7b8d201854ac426693cc734a53dbaf1a",
+    "manual-eccfc914334e4230be0732085005fa57",
+    "manual-8827e5732e60437087b56faf26f308c5",
+    "manual-707d7c8a0afd4b5d8be9a66a7ae6e63a",
+    "manual-2e1f4cd3a98646699fb8a1d30eaf2a59",
+    "manual-bedae8aabebb434688a530e6923b9484",
+    "manual-9f24daba6db1401c84a19ad98c261cc2",
+    "manual-efafd56e14744f888948685e45b39fa1",
+    "manual-a0b1b8ee79dc45b992243628c8bd43c5",
+    "manual-909f7d07b92a4f35bfde9052dda461bb",
+    "manual-5ea797a411cf4a62899b0636f4db80ef",
+    "manual-9be3640cc09e4fa88e68becfc447e58b",
+    "manual-ef83b5ccb2a4458781d95fecc0bfc9a1",
+    "manual-c8a1806e3e3041b6aefae4fb393bccb2",
+    "manual-9eaf110d2c8f46719fede072a98bbd33",
+    "manual-5d191f2d29d541c59e6d60f34f10050d",
+    "manual-1bfa3ee7d58745abb10fcbc62754e469",
+    "manual-685ae6a9697f41558dfc1e6e076c46c3",
+    "manual-3710fa7c091c4d1591378826fa4a591f",
+    "manual-fe2b9f19490e40ce8e0cf0bc753341fa",
+    "manual-7e35f0cbef964e5a884c70c52642fa0f",
+    "manual-86419da1ef2f4a05b9744719a06f01fd",
+    "manual-503906071bea405fb853ecf349fcb370",
+    "manual-ef9a8496a3b64020b24272d4e6c9fd95",
+    "manual-942d28c0e19c4cdbb06a2bee8762b8ae",
+    "manual-2afbaa094f404931b7ec3267ce3014b8",
+    "manual-f313f0a0e0754f3194ab3d380e4406fe",
+    "manual-175130c9a6df42799f2811ceb0f9c6ee",
+    "manual-c43a5db546d942dcba9ebae68d45b36e",
+    "manual-f04b8ee198744588942043d548e3a635",
+    "manual-ae84ff559c6e49449f8b4eae3798fb71",
+    "manual-a27e172632b64ea499175c3b105e75c8",
+    "manual-1728907ed9cc4a6fb55f83baf038e5ad",
+    "manual-477a10f0ad5a49e0a9287eb2e9b9be36",
+    "manual-5ac1595d6ee64d05a0fc93c473ec2ba7",
+    "manual-3ef4e93d69314c3a814c6d19a34d7251",
+    "manual-9b9e0d8b9f8c47d4ad3380cf45274ebe",
+    "manual-fb99048879ef48e9915036a8f309664c",
+    "manual-430082d5929441bb8edcbb971b112342",
+    "manual-c2a4b70e24da48588889cf651ce736f5",
+    "manual-6d08048b4a004ef2a0c3f107a0f04ea4",
+    "manual-7f57ab3756634e9780600a9f86ecedfe",
+    "manual-f342496480d840df819acd184d385d63",
+    "manual-8ee6d467ac4c4e8b9906d672851281ea",
+    "manual-77c4afa50eb7480980bc98c01df98703",
+    "manual-92ce7cf8829c4c4da1c67658008558cd",
+    "manual-c694ef05726043ed941d037a0d0ee38a",
+    "manual-4b4f291d57394253a91bdaa184422dea",
+    "manual-90f69c5d37f640c7adba323d2a5ba56a",
+    "manual-de10870fafa64e89a7bbddae028b5d34",
+    "manual-36e8525839ed4252a7273fd7f9acefac",
+    "manual-19074f0af55641e88f0c8168db4e9f04",
+    "manual-815fbabc83d74eceac3a79edf2a3877c",
+    "manual-c61549ccbfe24e6c93e5c7896f9c1d4b",
+    "manual-00a5ff1a806d479fa8f3d6c26b50e54a",
+    "manual-05212e9aff024db5892281a6411c7bd2",
+    "manual-cbf1b1e34d0b437b934fae5c93234314",
+    "manual-5bc41038db2e47fbaeb0ec336f224f67",
+    "manual-89eb7bce1fef4031b43590b06ddb88ff",
+    "manual-b11b6d3bd4a64b9bbac6e74350bcd008",
+    "manual-6553ee1a291d4065a14eb0709c10ca0f",
+    "manual-ac20117ade7d4e2081bd779cf93aff72",
+    "manual-e0f198e797d34a62a0020a61934c7cbe",
+    "manual-8ada045bcf9f40febe63a452232c40e3",
+    "manual-c24357d40dee411d90b211c49e1ae2d2",
+    "manual-397908f8e4ce4b66ac6bf2b837b2e2b4",
+    "manual-faa5e754118e470a94a1c444e5bb7849",
+    "manual-fa2b9ed0897d49a49058ac959f25f3e4",
+    "manual-7c43f9521446422c8ecec1e6052a9744",
+    "manual-33566c0bf45a42ab889c2af0c77f66fa",
+    "manual-f5c0429dbf094c5b8619a0dfae8f5dbb",
+    "manual-33b397919f9d40248ec119d088cffa54",
+    "manual-f0be9e37106c4d1bad3803671ca0a52f",
+    "manual-49e26fb9295548d4a0c17d5208d95ec9",
+    "manual-059af7671a2645b8861711adcd10c9d5",
+    "manual-3a5d4d94849c40df992acc0ea22bfec4",
+    "manual-7ec8a048b09c455abde4273aabd562fe",
+    "manual-4d01968276234a50aebb9f683e00aebc",
+    "manual-342b1efdc33d49b6be0ddcd3d6a3d384",
+    "manual-769311abd5844022960602185c1db8d1",
+    "manual-f3dea41d3e484f01a65f539646b9527e",
+    "manual-e12d1a843b4046b7be930bb9ebc343be",
+    "manual-7b7607351fe44898b9e181602a07a2a9",
+    "manual-17a7dfc1b8f94d4ea01ec915f03723d4",
+    "manual-0725a4d4ea294a6a9866e27c2381b90e",
+    "manual-83164558d98c428bb84c0d9ba934f58f",
+    "manual-17fb58f3e34841ceb20e1e8eddef4d0a",
+    "manual-e260e0daa2254f6c9982637349f134b7",
+    "manual-b894190db50444d99835c315a72c2395",
+    "manual-6ef7609ef77447708788ea40a90201d0",
+    "manual-b2a801c5d21f4af8afe525dec228c37a",
+    "manual-990d5b5e841a4637b051a5def91d32fb",
+    "manual-ed8c7e438f9842a1b19070df9dc1dc3e",
+    "manual-375152b70710422195a8f2f832765daa",
+    "manual-4f11169f88914a20976f9a910e2a3c1d",
+    "manual-5aedfafd8e1c4ef08ec6b32fa622aa36",
+    "manual-9af46b198e0e453fb09f89dff9d6d209",
+    "manual-f4e421b368ca4528b71fba974ac1a7c9",
+    "manual-25f3e54c25c7445f994b2f60e6754da8",
+    "manual-b38a1b3300604dbc8ba78d564794c43e",
+    "manual-0925c3a90a8145bd9210d66ae67cf7e3",
+    "manual-2bb23d2422b548b182f4b6de9419dda0",
+    "manual-d179c8bc66ee4255a8d67c2135e16317",
+    "manual-8bfa0c51f1664f6fafdc4d3833fedd91",
+    "manual-a62f84d49af54ce9bd9a7b3cdb572c77",
+    "manual-0469eae71ba4454bac8ffce82bc3b4d4",
+    "manual-2a7c30d66b3c4400b281499dc81b70e7",
+    "manual-9d6590850bf944f183c1477c6fbad5d0",
+    "manual-098a474ee1214aa2b1034894deff44eb",
+    "manual-bc8d10343a85403fae9cbb8097c95c31",
+    "manual-476d2eb40ae645828e5abc216f02368e",
+    "manual-576d7562d66043549402094789dfd539",
+    "manual-e616ba39d58445c49bc8b44589f7cde8",
+    "manual-d2c6af4d07234619b01e6cf9d2cedbd1",
+    "manual-884e75f7a8ed4314b8a26c60f72de4ca",
+    "manual-6284ca51b7744a00b7ee32d77bd98f50",
+    "manual-0ffedc9f91fb46808285f8fcf2586390",
+    "manual-517daa183d724d08a7353f19278d8af6",
+    "manual-47c7918b5beb40c09164759338e1e591",
+    "manual-eb480b84ea6c43a98c42530779d44186",
+    "manual-79d425134d3c4f8884bde3f8c11a3336",
+    "manual-46a8ed76ab774bcb84e2beea5239b5ee",
+    "manual-981e1b41a10b4ed6ab0f74358e48c94d",
+    "manual-a770c14017d846689a84f1fd39c5fefa",
+    "manual-a36de2dcc8384aff8ce618ff1142281a",
+    "manual-8b404e185bda488d9dd5a83296cb6799",
+    "manual-b8be64f184c54f5fb2f2acb4d965fb42",
+    "manual-0eaa54b75f07411abc1dac00e9e12045",
+    "manual-00f8d7d5fb5840d3820ebc3fa63e11be",
+    "manual-fb6eb1c513ea4c7fb8c9e43e1f3a96fe",
+    "manual-917f09cae36b4bcf8e02fbc58390f0d2",
+    "manual-7fed21b62bfd4f1983e52b67676686e1",
+    "manual-cecffc0c76be42f69e2cfa8453592073",
+    "manual-40aaa79fa5004b0e90a5bac0b6336504",
+    "manual-3cec52d6dcc8493ea5d4ce0b008c7080",
+    "manual-81e60f3aee334bc6a340d5febd597360",
+    "manual-09f5bd888b134a30a887043f6fb6330c",
+    "manual-23db0f9113b341bbac474e61642b0c59",
+    "manual-ffc81acc42af4e99a8f4503b19a04cc8",
+    "manual-180c6855a1a1453a84bd9ba5f52ad873",
+    "manual-e7a690def77347df867299e819db980f",
+    "manual-7560f7dbd16d4cca98eafa182d8c6257",
+    "manual-fa1fc56451014a1997168c10a62a7506",
+    "manual-ffa5c0f653b94c379b85ebf242601405",
+    "manual-a7a01020e81849a19ae955384df343c6",
+    "manual-d3da6bf9baa747e8bcc31e6c1e473a28",
+    "manual-a7bbafb2db8e4e90ab34d8e1853b2951",
+    "manual-3f7659718aad4626a2932bfa902757a6",
+    "manual-c1a2eaaa46174955bbfc1b52cf6284c1",
+    "manual-94ac4717cacc4cb785e032e214cd6622",
+    "manual-b27c8a554d324c11950e31b2ca7d2814",
+    "manual-37766035f9134dbfa6b08e6051cf4e3c",
+    "manual-7f301ab0f79743a9a1f9f465a748b8d3",
+    "manual-b770548ffc6c47aeb0b96c1b58449cca",
+    "manual-f084d512e23b4249bfe70c893753c739",
+    "manual-42a03b36cbcf4c3fbfbd14590f558ff9",
+    "manual-8abd73ed9ef04215afeb87525a8f3e23",
+    "manual-ca1c2200cb5d4b1288f34bae3ffaed75",
+    "manual-f98f6141da2140d886e50b4797477609",
+    "manual-1c77c12efec24d22b191336e4a8dc78c",
+    "manual-7e1facf6275f42c09af32607d0ffd3b0",
+    "manual-d1d4a7adbf8149a8975dd0de68a8e94a",
+    "manual-2821468ad3e44f30b09da0a046d5c88b",
+    "manual-7b2a3e2d28aa421ab9bb1273dfb6460f",
+    "manual-cc2e4e3a80d344fa98597529c122a63c",
+    "manual-cb1176dfc9854d779b31cd7a577153b9",
+    "manual-de4ad0eb11ef4005914131b599698a02",
+    "manual-27e84d7f79c846c9a79c1e99065ba8ec",
+    "manual-a64b434535414495ae2505ffc1c8bc62",
+    "manual-8a17c32711eb4f449a76d96a4a3cee87",
+    "manual-26c98c82551d411f882d3f02830f2fb6",
+    "manual-d70637fd1fee463a8ae99216604cffa4",
+    "manual-1a40a97b499f455a9a989a2448ed1fec",
+    "manual-0418f8e6891546dd988564a3b16cba85",
+    "manual-e2cecc18c7394017ac2efc527269ad7d",
+    "manual-445fe16fe67043b8a334115849ef0b0c",
+    "manual-a127473f47344c3498e297f1d8ace0ba",
+    "manual-42869bb47a71465c88d1ec968d6f1226",
+    "manual-3cc6d39530504c2592409ce1bfb557c3",
+    "manual-f128c42520d44c208167877df6c25e8a",
+    "manual-55a077e8a54b40daa66be953734f1030",
+    "manual-3919fbeb90354544a8791b6bf838ff99",
+    "manual-1e9cb2d3e1d84dc7a4531d3efc129fbc",
+    "manual-ffbbf141e29449558a366f876230ea58",
+    "manual-3fd7a7e359ea4ed292c8dbd88621e1b8",
+    "manual-6b2ba2a8f7dd4077ae720b130c20b008",
+    "manual-b7180509abe14f7b9d37474ff631ea68",
+    "manual-c393ca0d132d4d94a78fd8eeb688338b",
+    "manual-9456882313404bfca347ad5f4e6a1e75",
+    "manual-3f60eb4b56a84bf1be94391376e714de",
+    "manual-b3efe3e8cdb4449ca6a33e681723482c",
+    "manual-e76ad69926f647faaf54e1f07444181d",
+    "manual-8fc66d5ec1604734a0d19b6edd24a2d5",
+    "manual-849187d0fe424c298fea4af522fdd65e",
+    "manual-c0d71b2285154cef9df346cb9a57c402",
+    "manual-7d7261c5aae54d20bed0182eb13a831c",
+    "manual-6c5a36f3b95647e1b2ed1eea2f8310c9",
+    "manual-8cd15eeadff24b0da575a5ef2e7abebd",
+    "manual-dd2f169308b04e8390261ef0d19a43ea",
+    "manual-12c9b8000ebd41f0824b65f3c52cb5aa",
+    "manual-b7f524d08fea4132ac62e27926e98be6",
+    "manual-0bdaa7d6067249f6ab09e0c0ea7f5cd4",
+    "manual-b732af98bf62478f91d921e9b968cdab",
+    "manual-93cecb64b14b418295dea0206c2294ff",
+    "manual-0749898a56d74da2a8cdfaa08e91a564",
+    "manual-66be50d5a6ab4adea9fce332c5ebf705",
+    "manual-2ea3ecaa572b491fa0832cc14eae9591",
+    "manual-5839f8ae9de1404fb85d3be129e4044b",
+    "manual-138cbc2e290441419515b0f07b1feb24",
+    "manual-0cc59f5de39a4c85b3c80e7ea26f3da2",
+    "manual-ed085f6a43b74af9be13c62bbfc424a5",
+    "manual-a51f93b4b8de4461bfd2ea4c6808f223",
+    "manual-a8a9ebc35ff448b5896ca87336e8bc3e",
+    "manual-d995ac6b35654dfbbe37d90f1dc6403d",
+    "manual-4dbb67b1588b43dda5fcc0090f3cb6f8",
+    "manual-f32eb164034746919c0efd90a507b80e",
+    "manual-147560e34d504a72b6af36e24001f71f",
+    "manual-7f8e4c8abf984833996b23fedef4a363",
+    "manual-6fb764ee3073468baf4348c495cece35",
+    "manual-6ffb498ed33d4978a91a8b19d489f271",
+    "manual-8df02f21905b45118ee13f5e84b9aad3",
+    "manual-1ae257811b9c48ef880e6162b974f20d",
+    "manual-6e3c4aa0b0a748c2b36289de2e729d70",
+    "manual-3b43a199001f470ba950ea167f9ee653",
+    "manual-0c3e7003206345d8aa279ba30f2a8775",
+    "manual-6d6b41b6c3294fc98c6cb125db3fa28f",
+    "manual-4b2d4324823449e1b2e01b3ebd4b37cb",
+    "manual-93d9402e11204325b21e8df1cf59feea",
+    "manual-c3daa514ed74427b9e4251dc80e475f5",
+    "manual-9ba17f5fa3984e5dba91bdeb8464e119",
+    "manual-c43452df50c148609b5198507af6bbe4",
+    "manual-f0d7d2f3973f42789c8e69e7a00bcb98",
+    "manual-b591201fe2374256a4c5f46d539b5a75",
+    "manual-61c3b0929f1d4a47b228f6d2298f365e",
+    "manual-84b1ad98572e4d6ba9430b0fbb562ae0",
+    "manual-9ed47ab9853e49ef98ba697c4205dae0",
+    "manual-da5205e35d5541b5a0336b7fd894e02d",
+    "manual-f3f1542e23ef43d1b16a999ef4f3bf53",
+    "manual-1ce1464f56914f9784152a5635457e24",
+    "manual-78f0c0b73c24410f81da9c2f51ff22cf",
+    "manual-a71bf14a282442e2912ee4f4821f8b2c",
+    "manual-b0a97ccbf3034ea29f21cd3731cdbd1b",
+    "manual-06bfb11260e5453f82f89c84ca2344c1",
+    "manual-ddc6b5e94f724436b17f4cba8af05fbe",
+    "manual-5ff8f3c3b0664309b398ce454de21765",
+    "manual-21e11080bce44584a5a7096ce3dc6bf5",
+    "manual-b7a2d15e3ef64c56a3a850597a2fc5c7",
+    "manual-28760436dd0544cb892a828e91e18bf8",
+    "manual-6e942c9b00764cd0a91455d35124d885",
+    "manual-0b2a4b8416e54ea6a664bdf0f94de200",
+    "manual-656f9a1168af45cd9cbd9e30d8bf42e9",
+    "manual-95144529c6444e938dca327e88287675",
+    "manual-33cbbacf9aa04d26872aca8439d9c953",
+    "manual-c78bd627c14944ebbdf886e33561e17a",
+    "manual-b2d270b9670a4bbb9172fea0745f4614",
+    "manual-305d41b02e2742e5b03ab8434402ea42",
+    "manual-3553dd699b6c43e6a6d7124ddbe7e531",
+    "manual-94ab266f9482426091101c98bdc3ce26",
+    "manual-52e4d39725d94666be6a708ff3fde550",
+    "manual-20f38fef4b3246d4b696b7d50901f847",
+    "manual-da6d4ac02e9f46deac54a6ce76a2456a",
+    "manual-4f14eb4d731e4ba2989696f74e3f8d4a",
+    "manual-a49d98c38cec4a538cafbf22ff65b4b5",
+    "manual-f71eda2e4717465c9a1e4a9be3bcb99b",
+    "manual-5fdb25357a9547a8b299082022704286",
+    "manual-4454e485711f4b9ea6de7632af86427c",
+    "manual-63f48caed629406eb24428da8be31775",
+    "manual-8250802432714eb09565aa77b7c84fa4",
+    "manual-e4ee4469585c48aaa2f35a299f993ff7",
+    "manual-9f6bdbfbfe114670bc2d6f8eacc9d0ec",
+    "manual-ffd4549829244426a649ff19c1ae1f31",
+    "manual-07c00e8963d04734a54ee1aad83edbff",
+    "manual-c88e7a90681c47a7984fffa950b38d2b",
+    "manual-5498f917de794c3aaf5fd337f2ff6eef",
+    "manual-b7c7793e4e16444c8145e1f9d016590e",
+    "manual-1b0341909a2f444397ae52d6ad6edbe6",
+    "manual-26695e9ff86f4b5d892a9a3d84a3d98a",
+    "manual-ecbacae2d0b1444bbd3aaff958718f1c",
+    "manual-dcc9069b57e74045985cb1520a500c3e",
+    "manual-8718aeba03a74438a75fea046949866a",
+    "manual-cbf1535d1d6343939352b29be42588bf",
+    "manual-ff852cf6f14b414fada9baf07ccf0f17",
+    "manual-500bc57cb71c47589ba962924f081724",
+    "manual-6c86e27f562c4f878dfdbe7a71d6aa25",
+    "manual-678a36a6a6f745fe9b8065a8d64384c7",
+    "manual-c8fac07d3b2744e4a2d91595a4bd866b",
+    "manual-7b2f8aa59c0147cdbb9fc0ad0243454e"
+  ],
+  "accepted_review": {
+    "decisions": [
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e3ff7a3342b1444da816c48400eea833",
+        "decision_id": "restoration-c99d922dde134a2bba2441539219a856"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-54064aaeac0a412fb7f77a4650c27738",
+        "decision_id": "restoration-d13deaf00db4458a88c6ef346e628f54"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9634efe16813493ca0f95496cbd81b2b",
+        "decision_id": "restoration-fc759bc040f64d5fbd03ce2ea0723f1f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-98d70bd6365c4969a57173e8af1e0dd8",
+        "decision_id": "restoration-7048ed6ac7844d20b5759b80a95b3dbd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-652a4a7f0eec44e9b9f01b9e8397ac45",
+        "decision_id": "restoration-a74e32c5827e4d68baee3fe423a3ba4d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-51426cf61c754812a1505c5d45ab8adf",
+        "decision_id": "restoration-8eba61e05fe8428e9cf663a66cb8cd97"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f9b63d075ead4579a64ff12bcfacf809",
+        "decision_id": "restoration-fc21eb6de5af49999b7cc3f39b2d9bdc"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8bef6c54c2b744968b0477e5665de918",
+        "decision_id": "restoration-e2c3d7c1b4a14a5c9b7e7043967c1609"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b7f61592704e4cb2a39f121f717e0f1b",
+        "decision_id": "restoration-fa2e5f99e1f148fcb0b5f858e23077a8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4d243e11a2064873ac638420d3988361",
+        "decision_id": "restoration-c3b04e5e9d3d4b61bed91d87fda298e1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f4dc7e47b0ca441896760e9ba1271544",
+        "decision_id": "restoration-100fc567068c4778ada4135cb3f74fcf"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c74a48f5c5ca4a5e8f1926ebef5238b7",
+        "decision_id": "restoration-8fcd11a540c84d87a5c667a0374b49f7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7e965b567a994ef1902d829a7fd3745d",
+        "decision_id": "restoration-79fe94314d4c4d71ab36f8cc760eaaf8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-160e896d552048239266781e8acccfc5",
+        "decision_id": "restoration-e2391addf3d64989b1b756d31106a5b6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b49b3052092243c5860721b7222444ca",
+        "decision_id": "restoration-955d92a92070492da1d2c2979d5e96f7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-47295347483444a59641577df5d82775",
+        "decision_id": "restoration-0d88803ac7304092b47050300e18068b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-95302b5e049e4324a7db72aa712280c8",
+        "decision_id": "restoration-37df20daaaf245b5ad87e70213b1d61b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e5bbcceb90b14c15b3e4604d629e86f3",
+        "decision_id": "restoration-2d564688f94342c28ae1776eb7b19153"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cd36d805a4794c5685a312a45b166399",
+        "decision_id": "restoration-044332780fdd40428e724b5dafb22a44"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f2319b46dd5a4ff9b367bbee36a07c26",
+        "decision_id": "restoration-8b2bf09b3a3c4333bc8ca23bbca9f16e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4bd6812ffafa46069d7d64c421dc1313",
+        "decision_id": "restoration-40c028c9ced14cca8a8d0dd015cea0ce"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d27c56599252447a96f2c162427938e0",
+        "decision_id": "restoration-d85b914819c042e9bd81ecd9ddc8558d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a674b032133c48a7b80df05fdc892fac",
+        "decision_id": "restoration-37df866ec74e4c43af77cd17c185c880"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f95fa56c56ff4c7bb4ad2b2e8f0818c2",
+        "decision_id": "restoration-fa7da5216c2d45eb9877b22a9255cd91"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-55d6a577b6cb4a3bb38bbc5f780dce58",
+        "decision_id": "restoration-3aa0b6e9a05e4904869868310d7db08b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d433f4558a5242768164391772345044",
+        "decision_id": "restoration-4022dfec4c364757bbef632c81aa4b9a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9530a09e748d43d1afca4d0215c5f248",
+        "decision_id": "restoration-58de8b742b844748af8a6a1a8ac11d32"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-30e9681fa40944a4bc05c43ae8ff4427",
+        "decision_id": "restoration-e89320cb91d54a648208fedab5346cbe"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-dbe4ecdbff814c9da6b5b74b1176d8d2",
+        "decision_id": "restoration-b036377def3e47adaac2db5d1ed8e8de"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-befad6d96e214267aec853e14213a7d3",
+        "decision_id": "restoration-e3d817eb4fbe41118a6139134d2fa704"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-38ce83094d624bc6886765ee0811cf26",
+        "decision_id": "restoration-96217a31a27745e88ace789225419ea1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9a1c3e4b324643339df0905991cc2e59",
+        "decision_id": "restoration-a9a126eb7978403ea064af16aac8c8b4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-09879de26ae549a79c2026c86577fc10",
+        "decision_id": "restoration-b8164988db6247df801e4b0675f3e7f9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-57478939537345d8a6252738f5f7ded3",
+        "decision_id": "restoration-0479e5414e9c4909b3ee4915a8962d9b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-25e8912715d647288902ce94371ff9c7",
+        "decision_id": "restoration-1802e30eadc441dc910068b9f5acec04"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-55a0b1eb45794f1995dbfb6af920c90b",
+        "decision_id": "restoration-f90a76d7e2dd4bf58b76b973c8a05c31"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1170a706457b4cebb2858c0fea034b5e",
+        "decision_id": "restoration-da39e9f7293640aebf483e49ec813e44"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d024876b520340a6868907f0391effe9",
+        "decision_id": "restoration-1e93ee00e4844f16a540d12207c8d3c3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cdcc896e76be47e9af6294810181c44c",
+        "decision_id": "restoration-7b160246e77e49b981d7970db0ae2eff"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6e21de04943d4c539c57f1dc74f88da9",
+        "decision_id": "restoration-aeb24833aa6c4d3987fd6590e4c09625"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a79e1b71ce1846c580f8bd14b5d6203e",
+        "decision_id": "restoration-83b77108452441c38745df5c2d9b310b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-dd57838cd91344678f55d93036abfac5",
+        "decision_id": "restoration-01dc409f2cc6471c83ae68ee818dde29"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2ffa89c5cd3549069bcd757ba9854d15",
+        "decision_id": "restoration-9f02a78e642240a382c707bb83ad75a7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f284a3e061c942b488c7e3e1889dec54",
+        "decision_id": "restoration-cfaece2667654e769262d6cf3b00f404"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a2cf492c68b3471eafae6dd5db37ac9e",
+        "decision_id": "restoration-b78c3e585cca4aeaa6f5c67c1e97a831"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d6638ac31c8a4b929f431464da81f916",
+        "decision_id": "restoration-cc332361e3c7471ebed5d94af61d167b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-20e508243995421a9ba77aafea5d21ed",
+        "decision_id": "restoration-16531af289bd43c797f49e45e5e774ab"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-96db092ded28425892c97e85368f9e94",
+        "decision_id": "restoration-ae7db2e4fbe54acabb471b3fe7d2cd29"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9e4f4c16092c48868d47467cafd5bac5",
+        "decision_id": "restoration-364235249a5b47988c6dbaabb0c6ad5d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2eb0dfc522994c889a23594b1217fe10",
+        "decision_id": "restoration-36e56720b9e546f7b84405477e7e4f37"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1e2eaf3898494acc9f6e1a69000276e1",
+        "decision_id": "restoration-c099275a07db408b9e8b5571ed4f8121"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8f574f42911c4f2c91e60e0ed6fc7c55",
+        "decision_id": "restoration-fd910b400d664e95801a08ac72730296"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8d5e238685654d428ff5cdfad72f443d",
+        "decision_id": "restoration-2e12f59daa8b4cb783ba146f55cbe7b6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-481ee41940ff4207a1c6aa10d26c50e6",
+        "decision_id": "restoration-c08aadf33d0542d893effca961a568e1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d3e6faeb5d024241a2401a4925d439c5",
+        "decision_id": "restoration-86fa86b9d1154e6bbbd761e0fa23b028"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8a663fb5a9af467db826e5b6ab15de24",
+        "decision_id": "restoration-d507951e62624576b27311b5f673a5cc"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-398938de0a8048cfa8be959bfa0470db",
+        "decision_id": "restoration-152befdce593452986fb5e3381d30f94"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7b8d201854ac426693cc734a53dbaf1a",
+        "decision_id": "restoration-f2bfaebda91d4c7383daeaa173853b84"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-eccfc914334e4230be0732085005fa57",
+        "decision_id": "restoration-6dcbca8f13be478abdcdfd2b0b6e9dfa"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8827e5732e60437087b56faf26f308c5",
+        "decision_id": "restoration-7e08e542e6e84eda964524a71ed19a6b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-707d7c8a0afd4b5d8be9a66a7ae6e63a",
+        "decision_id": "restoration-dac550e84db346d68efd4edc6f9a7718"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2e1f4cd3a98646699fb8a1d30eaf2a59",
+        "decision_id": "restoration-d6ee74312d4b42758f41a5eda7d0760e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-bedae8aabebb434688a530e6923b9484",
+        "decision_id": "restoration-43f25c3f187644389bd714622aa11048"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9f24daba6db1401c84a19ad98c261cc2",
+        "decision_id": "restoration-0d38b23b17b04222bb37715cf75f6f0a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-efafd56e14744f888948685e45b39fa1",
+        "decision_id": "restoration-52aee1b0743a4b0bb21f9b433bb094d8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a0b1b8ee79dc45b992243628c8bd43c5",
+        "decision_id": "restoration-38d4ca06bb96423aba80bdb1deffae31"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-909f7d07b92a4f35bfde9052dda461bb",
+        "decision_id": "restoration-1d3ba50402974fc383a31eb1dd6d602a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5ea797a411cf4a62899b0636f4db80ef",
+        "decision_id": "restoration-c9b7cccbce3d43e192debfb2dbed2902"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9be3640cc09e4fa88e68becfc447e58b",
+        "decision_id": "restoration-240cd05e2d744553b7138ed281d4c55f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ef83b5ccb2a4458781d95fecc0bfc9a1",
+        "decision_id": "restoration-b908cf5df76f44a5b92c9aa0c915b37a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c8a1806e3e3041b6aefae4fb393bccb2",
+        "decision_id": "restoration-668ac5996f0a4838842d979ff6d80efc"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9eaf110d2c8f46719fede072a98bbd33",
+        "decision_id": "restoration-605bc91379084b5db6fd3d3e4e3403fe"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5d191f2d29d541c59e6d60f34f10050d",
+        "decision_id": "restoration-fce61ba980864ae1a1d27341202b67a8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1bfa3ee7d58745abb10fcbc62754e469",
+        "decision_id": "restoration-0b101f715c4343b28943346ec849347a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-685ae6a9697f41558dfc1e6e076c46c3",
+        "decision_id": "restoration-17b5236d47444bd1a473b5f235d84ce9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3710fa7c091c4d1591378826fa4a591f",
+        "decision_id": "restoration-54ff12203eb64172991140d4bb76295a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fe2b9f19490e40ce8e0cf0bc753341fa",
+        "decision_id": "restoration-513e71d7e2954b91ac1a4d9a075b149f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7e35f0cbef964e5a884c70c52642fa0f",
+        "decision_id": "restoration-e7af5e704cd24252b0e97ff6e5873150"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-86419da1ef2f4a05b9744719a06f01fd",
+        "decision_id": "restoration-3693789f3e3f4d69ab5b8f1b344a2fce"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-503906071bea405fb853ecf349fcb370",
+        "decision_id": "restoration-dacc3d6686b4476b858dbd3243004c3e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ef9a8496a3b64020b24272d4e6c9fd95",
+        "decision_id": "restoration-2d386754bf0f4479965ee2349c5bcebb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-942d28c0e19c4cdbb06a2bee8762b8ae",
+        "decision_id": "restoration-5f7bf572bc8346918fb898d11a1090a4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2afbaa094f404931b7ec3267ce3014b8",
+        "decision_id": "restoration-eb4d4a44ced3448297efaf2ef87c099b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f313f0a0e0754f3194ab3d380e4406fe",
+        "decision_id": "restoration-7e796abf5bff4162b15ca5d2ef167734"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-175130c9a6df42799f2811ceb0f9c6ee",
+        "decision_id": "restoration-0ecad2ac784b4f9cb70edae5ce75239e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c43a5db546d942dcba9ebae68d45b36e",
+        "decision_id": "restoration-b2f6a77f0cba4ec48354e79250b16170"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f04b8ee198744588942043d548e3a635",
+        "decision_id": "restoration-8776ece697b34fda9b62b3824f080df4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ae84ff559c6e49449f8b4eae3798fb71",
+        "decision_id": "restoration-3c23cc7dd34b46048390b90ce3efdb1a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a27e172632b64ea499175c3b105e75c8",
+        "decision_id": "restoration-49e2394e71c54a99ab68161b4e468278"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1728907ed9cc4a6fb55f83baf038e5ad",
+        "decision_id": "restoration-9a992a86cdef4bf88cb0dceece52bb78"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-477a10f0ad5a49e0a9287eb2e9b9be36",
+        "decision_id": "restoration-07d715b6d79a4410b14f53847e9de147"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5ac1595d6ee64d05a0fc93c473ec2ba7",
+        "decision_id": "restoration-7b8f3a473e324e1ab51de7ed27cb7ffd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3ef4e93d69314c3a814c6d19a34d7251",
+        "decision_id": "restoration-343e0c56a7b6489b95767f195dd8c40c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9b9e0d8b9f8c47d4ad3380cf45274ebe",
+        "decision_id": "restoration-c78c5aed4e994b579be5fd7e6a048b6b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fb99048879ef48e9915036a8f309664c",
+        "decision_id": "restoration-424ca176cc4e4029902eba9b5dd255e9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-430082d5929441bb8edcbb971b112342",
+        "decision_id": "restoration-21a13967259e4d84aaac3432e1e115e2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c2a4b70e24da48588889cf651ce736f5",
+        "decision_id": "restoration-d69ec2b737a342b18a827bb95bc9c8f0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6d08048b4a004ef2a0c3f107a0f04ea4",
+        "decision_id": "restoration-344f6e81c3f34e16892366d583160342"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7f57ab3756634e9780600a9f86ecedfe",
+        "decision_id": "restoration-2149303c738348f196242be9efa1b649"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f342496480d840df819acd184d385d63",
+        "decision_id": "restoration-601850b133cb46ce974004e999a2ddbd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8ee6d467ac4c4e8b9906d672851281ea",
+        "decision_id": "restoration-5f4dbc0a35c04b5f95cc467b35a8f05a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-77c4afa50eb7480980bc98c01df98703",
+        "decision_id": "restoration-1f7eebfe369d40f08b81538c241a6402"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-92ce7cf8829c4c4da1c67658008558cd",
+        "decision_id": "restoration-8147eb326da743f28294a9f3ef3703f9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c694ef05726043ed941d037a0d0ee38a",
+        "decision_id": "restoration-7a720d14dd46401c9ba2699762725f66"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4b4f291d57394253a91bdaa184422dea",
+        "decision_id": "restoration-2278d71edfa04cc1afc22aa8354a0625"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-90f69c5d37f640c7adba323d2a5ba56a",
+        "decision_id": "restoration-015b5d9a44594680ac7a81bebeb0e167"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-de10870fafa64e89a7bbddae028b5d34",
+        "decision_id": "restoration-5e3fbf7742b643ffa331c076a0ec30e8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-36e8525839ed4252a7273fd7f9acefac",
+        "decision_id": "restoration-13cb3dfa60c04676a20e548879f3a247"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-19074f0af55641e88f0c8168db4e9f04",
+        "decision_id": "restoration-7d3937b7db514235af0d66553862afe5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-815fbabc83d74eceac3a79edf2a3877c",
+        "decision_id": "restoration-f613158df4dd42038d061e6fd1404608"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c61549ccbfe24e6c93e5c7896f9c1d4b",
+        "decision_id": "restoration-5dd6d99e35a04831987b942cf9caf727"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-00a5ff1a806d479fa8f3d6c26b50e54a",
+        "decision_id": "restoration-a7ee1ee4b33c4445bef800251dbabf45"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-05212e9aff024db5892281a6411c7bd2",
+        "decision_id": "restoration-dc43df1e18a94164a6ce5105134fb4e2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cbf1b1e34d0b437b934fae5c93234314",
+        "decision_id": "restoration-75fed2b39d8d432ab6bdd1fb8453edd3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5bc41038db2e47fbaeb0ec336f224f67",
+        "decision_id": "restoration-25f99231da7e41c888ba81e53567cce6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-89eb7bce1fef4031b43590b06ddb88ff",
+        "decision_id": "restoration-8f2aa1797292427595fd21f4a99d8dd6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b11b6d3bd4a64b9bbac6e74350bcd008",
+        "decision_id": "restoration-98f0fdfe3ffc4cd498a167ce2a4a9649"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6553ee1a291d4065a14eb0709c10ca0f",
+        "decision_id": "restoration-2751854772b34a1da0d40c11c65bef03"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ac20117ade7d4e2081bd779cf93aff72",
+        "decision_id": "restoration-852a90e27f8b417eb5855b6dba3d982a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e0f198e797d34a62a0020a61934c7cbe",
+        "decision_id": "restoration-9b4246675af84a88a2549d1c19b59e71"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8ada045bcf9f40febe63a452232c40e3",
+        "decision_id": "restoration-3bbe0fe6df764a13bbc48269a5b152d7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c24357d40dee411d90b211c49e1ae2d2",
+        "decision_id": "restoration-b4c5a6b04b9d43549a4b7eca6cacc8a8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-397908f8e4ce4b66ac6bf2b837b2e2b4",
+        "decision_id": "restoration-82ba4643f2f840cd87e50dd6d8035634"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-faa5e754118e470a94a1c444e5bb7849",
+        "decision_id": "restoration-3a5a2509d54649078174ebc5a1cd149f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fa2b9ed0897d49a49058ac959f25f3e4",
+        "decision_id": "restoration-0da9211670d749229894f1ef056787a3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7c43f9521446422c8ecec1e6052a9744",
+        "decision_id": "restoration-3a54675a7b894b2fa8f2cb8c729531ee"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-33566c0bf45a42ab889c2af0c77f66fa",
+        "decision_id": "restoration-fde3bcda87e94dbf8e12bdf58516aaee"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f5c0429dbf094c5b8619a0dfae8f5dbb",
+        "decision_id": "restoration-65496541cdf743e1a8c99685f3631d5a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-33b397919f9d40248ec119d088cffa54",
+        "decision_id": "restoration-068f3e89336f473cbbd7aad44dbdb68d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f0be9e37106c4d1bad3803671ca0a52f",
+        "decision_id": "restoration-9174821fc8b747f48b3a3d344e875672"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-49e26fb9295548d4a0c17d5208d95ec9",
+        "decision_id": "restoration-d9faac4cb8254ea8af1b309534e496b5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-059af7671a2645b8861711adcd10c9d5",
+        "decision_id": "restoration-0f7edbef26914525885fb9bf67ab26ee"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3a5d4d94849c40df992acc0ea22bfec4",
+        "decision_id": "restoration-81b4733ca9254530b6ff6a092286085a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7ec8a048b09c455abde4273aabd562fe",
+        "decision_id": "restoration-c1dd484a2e5b40d7b85156d14dfd3dcf"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4d01968276234a50aebb9f683e00aebc",
+        "decision_id": "restoration-c58cf9317d4a498ba7f65fd38b1852fc"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-342b1efdc33d49b6be0ddcd3d6a3d384",
+        "decision_id": "restoration-9f29e06c43aa42e0b3aa50400121e292"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-769311abd5844022960602185c1db8d1",
+        "decision_id": "restoration-94a75ccf2c844181883436757da3fdab"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f3dea41d3e484f01a65f539646b9527e",
+        "decision_id": "restoration-207c303396b24259b2910f35d040fcfe"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e12d1a843b4046b7be930bb9ebc343be",
+        "decision_id": "restoration-e9f9276491884f4dbb6761e4aab28c90"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7b7607351fe44898b9e181602a07a2a9",
+        "decision_id": "restoration-48beb244372641689675f1fe5a6a3677"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-17a7dfc1b8f94d4ea01ec915f03723d4",
+        "decision_id": "restoration-a4499ab7f14e456794bb0c606e84478e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0725a4d4ea294a6a9866e27c2381b90e",
+        "decision_id": "restoration-dce6c7a10acc4b268474a65546209c4b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-83164558d98c428bb84c0d9ba934f58f",
+        "decision_id": "restoration-a75d9995656142eb9ae4c251aef477c4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-17fb58f3e34841ceb20e1e8eddef4d0a",
+        "decision_id": "restoration-73fc84957c7d4720bc6a7ade486fc074"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e260e0daa2254f6c9982637349f134b7",
+        "decision_id": "restoration-b6e6500ca7fa491cbc3f9f6553253601"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b894190db50444d99835c315a72c2395",
+        "decision_id": "restoration-64da46113b984ec28aafe6abb990bbec"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6ef7609ef77447708788ea40a90201d0",
+        "decision_id": "restoration-f740669f8929448aaeca2692e3053083"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b2a801c5d21f4af8afe525dec228c37a",
+        "decision_id": "restoration-39e7ee040f7f433ea322b0d22e9c6a43"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-990d5b5e841a4637b051a5def91d32fb",
+        "decision_id": "restoration-ceced868b302434895940d7939a3a4ce"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ed8c7e438f9842a1b19070df9dc1dc3e",
+        "decision_id": "restoration-1d7c03b9bfb849959fc6eff3310afca5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-375152b70710422195a8f2f832765daa",
+        "decision_id": "restoration-de89cd24c4dd45c09c47e452bfd8c650"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4f11169f88914a20976f9a910e2a3c1d",
+        "decision_id": "restoration-16603aa74c3443b8b3f391ba4095acaa"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5aedfafd8e1c4ef08ec6b32fa622aa36",
+        "decision_id": "restoration-5f45e69cfac44b728e4f1b17f26c77c7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9af46b198e0e453fb09f89dff9d6d209",
+        "decision_id": "restoration-16d37288177847f2a108f55f6ac8b91f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f4e421b368ca4528b71fba974ac1a7c9",
+        "decision_id": "restoration-18d2878e8681423aa6f10040fcdab682"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-25f3e54c25c7445f994b2f60e6754da8",
+        "decision_id": "restoration-a9fab02500b34d52bdfd739ef9f887e7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b38a1b3300604dbc8ba78d564794c43e",
+        "decision_id": "restoration-39fe51dac9084879954397c8809d46a9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0925c3a90a8145bd9210d66ae67cf7e3",
+        "decision_id": "restoration-4a4758445fba4efa82dd293586b9d9bf"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2bb23d2422b548b182f4b6de9419dda0",
+        "decision_id": "restoration-6f151a35f09049cba11eb61061dc576b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d179c8bc66ee4255a8d67c2135e16317",
+        "decision_id": "restoration-80535c028af44863a5f814cedddc4b8f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8bfa0c51f1664f6fafdc4d3833fedd91",
+        "decision_id": "restoration-c46032722c474809a5dcaa9de20188d5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a62f84d49af54ce9bd9a7b3cdb572c77",
+        "decision_id": "restoration-ed86cc589ec645669887ed12d68d339b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0469eae71ba4454bac8ffce82bc3b4d4",
+        "decision_id": "restoration-258347d64fc94d72ba97aa79dbe7a9bd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2a7c30d66b3c4400b281499dc81b70e7",
+        "decision_id": "restoration-5c0169bac2fa40e2b2f42462da865295"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9d6590850bf944f183c1477c6fbad5d0",
+        "decision_id": "restoration-78ff87d5ecb94d4689b52ad326931deb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-098a474ee1214aa2b1034894deff44eb",
+        "decision_id": "restoration-e32fe4c66e7c4ce8a3db3bdec103be8b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-bc8d10343a85403fae9cbb8097c95c31",
+        "decision_id": "restoration-db263a15ebaa4b37b2db531f29ba9c74"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-476d2eb40ae645828e5abc216f02368e",
+        "decision_id": "restoration-c4b560f643264425a8bd2117ef4fdd9d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-576d7562d66043549402094789dfd539",
+        "decision_id": "restoration-386e080e1eaf44cb85827f74878078f5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e616ba39d58445c49bc8b44589f7cde8",
+        "decision_id": "restoration-bb4a7a069f1646f09f1e9a782af0b7ae"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d2c6af4d07234619b01e6cf9d2cedbd1",
+        "decision_id": "restoration-aba54e5f698148b7a4a610ced723ccff"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-884e75f7a8ed4314b8a26c60f72de4ca",
+        "decision_id": "restoration-f27ca3dda1874fb19a600cb17763350d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6284ca51b7744a00b7ee32d77bd98f50",
+        "decision_id": "restoration-43521cd6707f43cd896179bfa69dee8d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0ffedc9f91fb46808285f8fcf2586390",
+        "decision_id": "restoration-66e03a7894854a8e9463585a41f38eb3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-517daa183d724d08a7353f19278d8af6",
+        "decision_id": "restoration-5ef9f781f1ff428c8536c63a89cd367e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-47c7918b5beb40c09164759338e1e591",
+        "decision_id": "restoration-a5668c66e8974da5be3ac20de20cc4df"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-eb480b84ea6c43a98c42530779d44186",
+        "decision_id": "restoration-43637ebcc2554bff8d77e85bb74a5e85"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-79d425134d3c4f8884bde3f8c11a3336",
+        "decision_id": "restoration-30eba5cd621a49deac34d26989417feb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-46a8ed76ab774bcb84e2beea5239b5ee",
+        "decision_id": "restoration-9ca7ef398c7746c7a654b85fadd40c0b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-981e1b41a10b4ed6ab0f74358e48c94d",
+        "decision_id": "restoration-a6adf5e6d5cd4da6b478179aa6e54f92"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a770c14017d846689a84f1fd39c5fefa",
+        "decision_id": "restoration-17c38d0e729646fb9613c703bc9365ab"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a36de2dcc8384aff8ce618ff1142281a",
+        "decision_id": "restoration-2ea114168072439580e55e7109e5f995"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8b404e185bda488d9dd5a83296cb6799",
+        "decision_id": "restoration-2ace287bd66e47a0b998f20c941f83bd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b8be64f184c54f5fb2f2acb4d965fb42",
+        "decision_id": "restoration-a18c21763ea24788b7c0a06cae9d56b2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0eaa54b75f07411abc1dac00e9e12045",
+        "decision_id": "restoration-ceb404b3c2464d41ae542e4b6729941b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-00f8d7d5fb5840d3820ebc3fa63e11be",
+        "decision_id": "restoration-e4e7da2785d84e5088664d4b4696a5f2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fb6eb1c513ea4c7fb8c9e43e1f3a96fe",
+        "decision_id": "restoration-d5f0f16871af4f37a9550f642e419de8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-917f09cae36b4bcf8e02fbc58390f0d2",
+        "decision_id": "restoration-fb38c58755b945efafbd606649e1a81a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7fed21b62bfd4f1983e52b67676686e1",
+        "decision_id": "restoration-f08e601328c449b6b2b68ea6a330c8a3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cecffc0c76be42f69e2cfa8453592073",
+        "decision_id": "restoration-7361a8ef01474e19bbd5ee84a3a6068a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-40aaa79fa5004b0e90a5bac0b6336504",
+        "decision_id": "restoration-29422cc757484f469ca73560bff0b924"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3cec52d6dcc8493ea5d4ce0b008c7080",
+        "decision_id": "restoration-20c1c898470840bd8e308860d0a948b2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-81e60f3aee334bc6a340d5febd597360",
+        "decision_id": "restoration-da2ef08de7d942468d89a028f943125e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-09f5bd888b134a30a887043f6fb6330c",
+        "decision_id": "restoration-672c0cc2b534406e8044c3cb52daed0e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-23db0f9113b341bbac474e61642b0c59",
+        "decision_id": "restoration-9fb038f2ac664f0e9ec8db6378499d26"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ffc81acc42af4e99a8f4503b19a04cc8",
+        "decision_id": "restoration-d013336a67984105879698a47572e0a1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-180c6855a1a1453a84bd9ba5f52ad873",
+        "decision_id": "restoration-d9268d7471a742b282ab51b1b12908a2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e7a690def77347df867299e819db980f",
+        "decision_id": "restoration-e8bab55f000e454196ef9e5b2d18dd77"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7560f7dbd16d4cca98eafa182d8c6257",
+        "decision_id": "restoration-09ed654533b7449a9eab082e5300b221"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-fa1fc56451014a1997168c10a62a7506",
+        "decision_id": "restoration-678fdd02086243d0a42d885f33c942d0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ffa5c0f653b94c379b85ebf242601405",
+        "decision_id": "restoration-1a90f428f2574c3594a0da216d036b51"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a7a01020e81849a19ae955384df343c6",
+        "decision_id": "restoration-ff892e81468e436f80b60233427d85e4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d3da6bf9baa747e8bcc31e6c1e473a28",
+        "decision_id": "restoration-66331fafd54d4e0f899b3e3cba72b85c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a7bbafb2db8e4e90ab34d8e1853b2951",
+        "decision_id": "restoration-619b998a8b284429b35e1aeb81551fd6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3f7659718aad4626a2932bfa902757a6",
+        "decision_id": "restoration-51e660cbc8ca406fbb4fbc87438d9b3f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c1a2eaaa46174955bbfc1b52cf6284c1",
+        "decision_id": "restoration-e30f05fa5a45457cad50a790bc88e5bf"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-94ac4717cacc4cb785e032e214cd6622",
+        "decision_id": "restoration-2cbe2f8612904fc5a14b00d6ff311616"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b27c8a554d324c11950e31b2ca7d2814",
+        "decision_id": "restoration-d73e8f20698f41eda15b1cc5d099a287"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-37766035f9134dbfa6b08e6051cf4e3c",
+        "decision_id": "restoration-451d2a22f39a41db8fb4cc2fdf3fb69f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7f301ab0f79743a9a1f9f465a748b8d3",
+        "decision_id": "restoration-68ba724b49d241d9a4105a15415181d6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b770548ffc6c47aeb0b96c1b58449cca",
+        "decision_id": "restoration-5863755bbfa3463c8ba37aa7f3b62197"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f084d512e23b4249bfe70c893753c739",
+        "decision_id": "restoration-77c64ff46c41405596269d4e9951847d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-42a03b36cbcf4c3fbfbd14590f558ff9",
+        "decision_id": "restoration-c61c4f1cdaaf4934bed5bdc6fd72c4f7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8abd73ed9ef04215afeb87525a8f3e23",
+        "decision_id": "restoration-4a47c59102d3420b874bfd55b1df4c4d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ca1c2200cb5d4b1288f34bae3ffaed75",
+        "decision_id": "restoration-ab4d345ffa52419dbaf51788bad305a9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f98f6141da2140d886e50b4797477609",
+        "decision_id": "restoration-2711c2f3f25746a19004d8bef4df5511"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1c77c12efec24d22b191336e4a8dc78c",
+        "decision_id": "restoration-36cbcf7561e64d82bb6f0df14b7953eb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7e1facf6275f42c09af32607d0ffd3b0",
+        "decision_id": "restoration-60b1cb3f58c94b8bb8f235935a7a7dea"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d1d4a7adbf8149a8975dd0de68a8e94a",
+        "decision_id": "restoration-d55c4d8c8b8342d6895f9f29db3695f4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2821468ad3e44f30b09da0a046d5c88b",
+        "decision_id": "restoration-5644a023810a4168a05047e6ad1f1219"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7b2a3e2d28aa421ab9bb1273dfb6460f",
+        "decision_id": "restoration-3cab98173c544311b6daf7cc5ca95386"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cc2e4e3a80d344fa98597529c122a63c",
+        "decision_id": "restoration-456780466959403e95c9458b57464b5d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cb1176dfc9854d779b31cd7a577153b9",
+        "decision_id": "restoration-5ecac94bc6f8404693732269b4487b2d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-de4ad0eb11ef4005914131b599698a02",
+        "decision_id": "restoration-e2912bb8cf164a12883cb911fbac01d7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-27e84d7f79c846c9a79c1e99065ba8ec",
+        "decision_id": "restoration-f73c01e9b4b84a3081449a6911f046c4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a64b434535414495ae2505ffc1c8bc62",
+        "decision_id": "restoration-bbb3572b1a5d481bbd8c081c21e70762"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8a17c32711eb4f449a76d96a4a3cee87",
+        "decision_id": "restoration-c75370854b9446fe83d524aa883296b7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-26c98c82551d411f882d3f02830f2fb6",
+        "decision_id": "restoration-3ba45d1692ad495db9e131938f6211d4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d70637fd1fee463a8ae99216604cffa4",
+        "decision_id": "restoration-9208177bbf47405ea31f250b01246e48"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1a40a97b499f455a9a989a2448ed1fec",
+        "decision_id": "restoration-b5e5742f16fe4b5f9aaa5ed66446ef65"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0418f8e6891546dd988564a3b16cba85",
+        "decision_id": "restoration-341b94acc6564067a4d835b8c326c39f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e2cecc18c7394017ac2efc527269ad7d",
+        "decision_id": "restoration-9da537a399d34229b32295258c33fff5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-445fe16fe67043b8a334115849ef0b0c",
+        "decision_id": "restoration-171b8bcaed9f4625a3a6e94041bb72ff"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a127473f47344c3498e297f1d8ace0ba",
+        "decision_id": "restoration-bfb0822d723149baa47477a544fce973"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-42869bb47a71465c88d1ec968d6f1226",
+        "decision_id": "restoration-e38bdb8be32b4d0e830d128db10b584c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3cc6d39530504c2592409ce1bfb557c3",
+        "decision_id": "restoration-6e1e8f79d431451697a475065dc3903f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f128c42520d44c208167877df6c25e8a",
+        "decision_id": "restoration-2318fba577cf4ac1ab6931e03530d787"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-55a077e8a54b40daa66be953734f1030",
+        "decision_id": "restoration-1ec36ea461064ffba0f54d941afe7169"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3919fbeb90354544a8791b6bf838ff99",
+        "decision_id": "restoration-193348c4e9fb40d9a91acf56858622eb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1e9cb2d3e1d84dc7a4531d3efc129fbc",
+        "decision_id": "restoration-bb7e0d07b5c6474aa18dd03cdb99c0ef"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ffbbf141e29449558a366f876230ea58",
+        "decision_id": "restoration-61087d8adfb14497ad24822a814e474b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3fd7a7e359ea4ed292c8dbd88621e1b8",
+        "decision_id": "restoration-74fe67b3c6bb480d8a0d769b93c3d44d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6b2ba2a8f7dd4077ae720b130c20b008",
+        "decision_id": "restoration-9ef901ee4ef040f78ad881095ea893f6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b7180509abe14f7b9d37474ff631ea68",
+        "decision_id": "restoration-81771ad20bca4b6791ed95d1e70fe2ca"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c393ca0d132d4d94a78fd8eeb688338b",
+        "decision_id": "restoration-8eb5d6084a5c46798713763964dd084d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9456882313404bfca347ad5f4e6a1e75",
+        "decision_id": "restoration-5595710ddcf94e4fa0c963e80d2c6349"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3f60eb4b56a84bf1be94391376e714de",
+        "decision_id": "restoration-67d63dc9ac8a486887e076eaee947e80"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b3efe3e8cdb4449ca6a33e681723482c",
+        "decision_id": "restoration-1a4ccfd2179646549b7b3439ccbd5e76"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e76ad69926f647faaf54e1f07444181d",
+        "decision_id": "restoration-b7603ac0d6be4993bab4f8d0624526cb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8fc66d5ec1604734a0d19b6edd24a2d5",
+        "decision_id": "restoration-66f78361f0df4bfe91f8178351d179b9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-849187d0fe424c298fea4af522fdd65e",
+        "decision_id": "restoration-ef7636a4a2784f96b2e75df9b1f13d46"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c0d71b2285154cef9df346cb9a57c402",
+        "decision_id": "restoration-677b4ae90ad7441086c194830661d9a6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7d7261c5aae54d20bed0182eb13a831c",
+        "decision_id": "restoration-f7941ae89b6e4a9e910d767460fd3101"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6c5a36f3b95647e1b2ed1eea2f8310c9",
+        "decision_id": "restoration-2900be426b954b6b93036f6dc6b84bc1"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8cd15eeadff24b0da575a5ef2e7abebd",
+        "decision_id": "restoration-622daa68a89b4bc78da8fc6260e8b0be"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-dd2f169308b04e8390261ef0d19a43ea",
+        "decision_id": "restoration-017bf169b70b4384a99066afa9ebcdf6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-12c9b8000ebd41f0824b65f3c52cb5aa",
+        "decision_id": "restoration-ac0d7c81b5bc4af8baa5d55c4b85cb90"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b7f524d08fea4132ac62e27926e98be6",
+        "decision_id": "restoration-f59099daf2d14933ac5d598107cbba11"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0bdaa7d6067249f6ab09e0c0ea7f5cd4",
+        "decision_id": "restoration-58de5dac3fce4a84b9897851df3ae9ae"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b732af98bf62478f91d921e9b968cdab",
+        "decision_id": "restoration-a379b304c3024803b4c6789c6a49cea0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-93cecb64b14b418295dea0206c2294ff",
+        "decision_id": "restoration-21b5af5e5f86432aab82a1f3c24e7cb6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0749898a56d74da2a8cdfaa08e91a564",
+        "decision_id": "restoration-ffdbf73009e547b9987ea91cc95a4c27"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-66be50d5a6ab4adea9fce332c5ebf705",
+        "decision_id": "restoration-90040ec507524a9aa60c6343cc34ccad"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-2ea3ecaa572b491fa0832cc14eae9591",
+        "decision_id": "restoration-e2a6b2873aec41299cc46387b01a29e0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5839f8ae9de1404fb85d3be129e4044b",
+        "decision_id": "restoration-5a33cdd37af6419198d0c1cde5400493"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-138cbc2e290441419515b0f07b1feb24",
+        "decision_id": "restoration-6b4296a6b33546e9912e7ea9d83f9001"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0cc59f5de39a4c85b3c80e7ea26f3da2",
+        "decision_id": "restoration-c70b5becbb884f2eb1d038ea70db431a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ed085f6a43b74af9be13c62bbfc424a5",
+        "decision_id": "restoration-cdeca8daa567473a85dc7ee48f8aa33e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a51f93b4b8de4461bfd2ea4c6808f223",
+        "decision_id": "restoration-6b384ff8e9414beb8e4df1258bdefa39"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a8a9ebc35ff448b5896ca87336e8bc3e",
+        "decision_id": "restoration-9de6fd46ac0b4b6bbb32844a7b945782"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-d995ac6b35654dfbbe37d90f1dc6403d",
+        "decision_id": "restoration-3a0642fea8d045a0a1284cdaf4acc586"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4dbb67b1588b43dda5fcc0090f3cb6f8",
+        "decision_id": "restoration-6d19c481b29e4c4a996e3796fa48783a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f32eb164034746919c0efd90a507b80e",
+        "decision_id": "restoration-05668bed357845da80c2ef0ac4a79696"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-147560e34d504a72b6af36e24001f71f",
+        "decision_id": "restoration-9597a8acf9a8461689399af4767532b5"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7f8e4c8abf984833996b23fedef4a363",
+        "decision_id": "restoration-7c7fb14201714594993bebf31a220b20"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6fb764ee3073468baf4348c495cece35",
+        "decision_id": "restoration-d3bc19e616824a8bbe8e9dab3c9c6175"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6ffb498ed33d4978a91a8b19d489f271",
+        "decision_id": "restoration-70b3e8d378e9454dbb235e91b2bb2331"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8df02f21905b45118ee13f5e84b9aad3",
+        "decision_id": "restoration-2e7832fe6a7648129d55e00ccc7ae901"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1ae257811b9c48ef880e6162b974f20d",
+        "decision_id": "restoration-ef061575c7604740bcf8635c97d12436"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6e3c4aa0b0a748c2b36289de2e729d70",
+        "decision_id": "restoration-2436d8193a9e4025a547e76792b1c034"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3b43a199001f470ba950ea167f9ee653",
+        "decision_id": "restoration-75ee43a56ff74ddaa647153ccc5f23b8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0c3e7003206345d8aa279ba30f2a8775",
+        "decision_id": "restoration-b059f6e86fbd480097283bed1a1dcead"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6d6b41b6c3294fc98c6cb125db3fa28f",
+        "decision_id": "restoration-12b6765b059d4ca1baf6020dbdde52c7"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4b2d4324823449e1b2e01b3ebd4b37cb",
+        "decision_id": "restoration-0eab198ed649430caf65c8d946e92928"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-93d9402e11204325b21e8df1cf59feea",
+        "decision_id": "restoration-1123e49c75d04a3f9b342210e55d61e3"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c3daa514ed74427b9e4251dc80e475f5",
+        "decision_id": "restoration-42fd5dfcd8214784998538ce4a39ac3b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9ba17f5fa3984e5dba91bdeb8464e119",
+        "decision_id": "restoration-c2cbeec2b3a74e6aa761c24435491ca9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c43452df50c148609b5198507af6bbe4",
+        "decision_id": "restoration-b50dffe61c4d463c83677f98ebd9869a"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f0d7d2f3973f42789c8e69e7a00bcb98",
+        "decision_id": "restoration-5ad9dff5d7af49e7a9665b3ad1b0efa8"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b591201fe2374256a4c5f46d539b5a75",
+        "decision_id": "restoration-46045387c27e46e380ad4672e429cc64"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-61c3b0929f1d4a47b228f6d2298f365e",
+        "decision_id": "restoration-57580a2c23dd48c79527cc69090e24db"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-84b1ad98572e4d6ba9430b0fbb562ae0",
+        "decision_id": "restoration-d87b310faa894086a85991dae50149fa"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9ed47ab9853e49ef98ba697c4205dae0",
+        "decision_id": "restoration-d5d5c5bfce9444138ed4ec6bc0cc3cfb"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-da5205e35d5541b5a0336b7fd894e02d",
+        "decision_id": "restoration-a2da4e37a3154f9f8fa395d1223cca39"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f3f1542e23ef43d1b16a999ef4f3bf53",
+        "decision_id": "restoration-4288f55a127b46ce8c2d35d5e16819b9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1ce1464f56914f9784152a5635457e24",
+        "decision_id": "restoration-1dabfc84cce145f6959a7d70fdceeac0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-78f0c0b73c24410f81da9c2f51ff22cf",
+        "decision_id": "restoration-eca56ddaf959486c9f33f3de943e7d26"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a71bf14a282442e2912ee4f4821f8b2c",
+        "decision_id": "restoration-5e367402be704e49a8bd87a00a82fa8c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b0a97ccbf3034ea29f21cd3731cdbd1b",
+        "decision_id": "restoration-6ede99a656bd499eafbfb6e3877c2345"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-06bfb11260e5453f82f89c84ca2344c1",
+        "decision_id": "restoration-134ce5b1159b4751a3e8eb1f9c074330"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ddc6b5e94f724436b17f4cba8af05fbe",
+        "decision_id": "restoration-2acdcb3b33ff4f1b97f2e39789081ea6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5ff8f3c3b0664309b398ce454de21765",
+        "decision_id": "restoration-81beaa8fec974d50825b0ead24e69b51"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-21e11080bce44584a5a7096ce3dc6bf5",
+        "decision_id": "restoration-63f95b49676f49cb8abc2161c0295101"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b7a2d15e3ef64c56a3a850597a2fc5c7",
+        "decision_id": "restoration-4f860cddc55f4720aa9e6bea36aeae47"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-28760436dd0544cb892a828e91e18bf8",
+        "decision_id": "restoration-06e01f924079494f9b42cf6e0cc2ee32"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6e942c9b00764cd0a91455d35124d885",
+        "decision_id": "restoration-e600cc0451a44fb1b89c64d0a72555ac"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-0b2a4b8416e54ea6a664bdf0f94de200",
+        "decision_id": "restoration-276af2cfd5434a8ea6057e500c903d70"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-656f9a1168af45cd9cbd9e30d8bf42e9",
+        "decision_id": "restoration-1fe5a14274104be693205ce3a058c190"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-95144529c6444e938dca327e88287675",
+        "decision_id": "restoration-fd7fbc405a5144bc9741d4935e080ad9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-33cbbacf9aa04d26872aca8439d9c953",
+        "decision_id": "restoration-2bd99f902a9b4609b60a9172bb3355c2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c78bd627c14944ebbdf886e33561e17a",
+        "decision_id": "restoration-73af4e4bc15942ec85c9858de65372d4"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b2d270b9670a4bbb9172fea0745f4614",
+        "decision_id": "restoration-0f4801532f494aee8927238c9e1e268f"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-305d41b02e2742e5b03ab8434402ea42",
+        "decision_id": "restoration-02655c4fab9f48edb017d11ce1553c5c"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-3553dd699b6c43e6a6d7124ddbe7e531",
+        "decision_id": "restoration-272cf262b07745c2a1f8ec45abe57602"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-94ab266f9482426091101c98bdc3ce26",
+        "decision_id": "restoration-dd8b60d8d42f48e7bf3503d6045c8421"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-52e4d39725d94666be6a708ff3fde550",
+        "decision_id": "restoration-2a83b604daa440d0981f9207a07c2fcd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-20f38fef4b3246d4b696b7d50901f847",
+        "decision_id": "restoration-33eed703c9d24e96a249e1a621f60bda"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-da6d4ac02e9f46deac54a6ce76a2456a",
+        "decision_id": "restoration-a7761af7c5ab41c39711a681e00e58e0"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4f14eb4d731e4ba2989696f74e3f8d4a",
+        "decision_id": "restoration-c77adbcb2648494fa902af79b3718317"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-a49d98c38cec4a538cafbf22ff65b4b5",
+        "decision_id": "restoration-2c53ea7377db412a86b7067d5cef4f7e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-f71eda2e4717465c9a1e4a9be3bcb99b",
+        "decision_id": "restoration-428457f4d7b34001b1dd67991f870cd2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5fdb25357a9547a8b299082022704286",
+        "decision_id": "restoration-855ff49c31ca40a7910b3f874ed89a3b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-4454e485711f4b9ea6de7632af86427c",
+        "decision_id": "restoration-5d7e2c965325400ab0dcabeea16c6cc6"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-63f48caed629406eb24428da8be31775",
+        "decision_id": "restoration-8df4e1fc1edb4ae68d0e75a1c222b1bd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8250802432714eb09565aa77b7c84fa4",
+        "decision_id": "restoration-519940e3cac74fd9a7df782b67ac70e9"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-e4ee4469585c48aaa2f35a299f993ff7",
+        "decision_id": "restoration-98a7f4be5eb34c83a0b2d63d00394d59"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-9f6bdbfbfe114670bc2d6f8eacc9d0ec",
+        "decision_id": "restoration-acc36162e9de475e8b4f83e325eb17ad"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ffd4549829244426a649ff19c1ae1f31",
+        "decision_id": "restoration-76221c3d97e34de1831f9f47baa2a46d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-07c00e8963d04734a54ee1aad83edbff",
+        "decision_id": "restoration-975578e3df6d45299d84a0aefb0ffd5b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c88e7a90681c47a7984fffa950b38d2b",
+        "decision_id": "restoration-e2e0aa243ad5447886ca8d20a4f93a10"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-5498f917de794c3aaf5fd337f2ff6eef",
+        "decision_id": "restoration-771fc8a39d254f0dadcc635e4f39b414"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-b7c7793e4e16444c8145e1f9d016590e",
+        "decision_id": "restoration-010257dd88ba40f483a1b707ac9a5415"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-1b0341909a2f444397ae52d6ad6edbe6",
+        "decision_id": "restoration-853d25642c924f9d8762fcb01cea7f7e"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-26695e9ff86f4b5d892a9a3d84a3d98a",
+        "decision_id": "restoration-f023e2fe7d144bfca54e64aa5e54ccda"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ecbacae2d0b1444bbd3aaff958718f1c",
+        "decision_id": "restoration-1729a0a4f6cb476eaff4f0fbbd1a6b45"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-dcc9069b57e74045985cb1520a500c3e",
+        "decision_id": "restoration-2e484f58bbb54d2b805cc6f7748c61e2"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-8718aeba03a74438a75fea046949866a",
+        "decision_id": "restoration-d82466e283794eb7bc0afe9a8bafb15b"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-cbf1535d1d6343939352b29be42588bf",
+        "decision_id": "restoration-5adf962859d84a1caf6a55737ca4ee6d"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-ff852cf6f14b414fada9baf07ccf0f17",
+        "decision_id": "restoration-ee7d344979854769a9216e6645b14e19"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-500bc57cb71c47589ba962924f081724",
+        "decision_id": "restoration-0d862fb7902b40a09516d5697393b309"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-6c86e27f562c4f878dfdbe7a71d6aa25",
+        "decision_id": "restoration-eefc0414a3d94517b81b3a530c75e9dd"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-678a36a6a6f745fe9b8065a8d64384c7",
+        "decision_id": "restoration-b42f4605f7cd44c48d16b7c7acbba233"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-c8fac07d3b2744e4a2d91595a4bd866b",
+        "decision_id": "restoration-4c5cc78a0e444ff191b6878694269f53"
+      },
+      {
+        "action": "accept_fact",
+        "action_id": "manual-7b2f8aa59c0147cdbb9fc0ad0243454e",
+        "decision_id": "restoration-32b29f91f2c0477db30bd54bd25146a9"
+      }
+    ],
+    "probe": null,
+    "revision": "c7c206e65d03fecb4eebb1024c0e098a7c5774c25654273615476143d4d2ccd8",
+    "subject_revision": "9423219db20666d7c21933e5950a936200da9ea8fa08bacbe419862bfd4a97a2",
+    "verification": {
+      "exact": true,
+      "kind": "verification",
+      "receipt_id": "110913bda1a6aa2b8dea23d85240f874bc426c86a7b63c7ff8bfe2d27cadef55",
+      "subject_revision": "9423219db20666d7c21933e5950a936200da9ea8fa08bacbe419862bfd4a97a2"
+    }
+  },
+  "validation": {
+    "dispatch_pointers_original_bytes_checked": true,
+    "all320_source_opcode_and_operand_words_checked": true,
+    "original_command_sizes_and_word_arithmetic_retained": true,
+    "all320_previous_derived_operand_aliases_unemitted": true,
+    "all129_relative_copy_commands_and_authored_aliases_unchanged": true,
+    "prior_types_preserved": 147,
+    "owner_count_preserved": 557,
+    "effective_entities_preserved": 18304,
+    "selected_derived_fields_changed": 640,
+    "all_other_metadata_contracts_preserved": true,
+    "all126_assets_and16_sdk_files_preserved": true,
+    "history_prefixes_preserved": true,
+    "removed_preexisting_generated_aliases": 51,
+    "all_removed_alias_metadata_retained": true,
+    "framework_fix": "Generated-field label suffix matching continues past an earlier occurrence in the owner name; EQU/RS policy unchanged.",
+    "focused_tests_passed": 61,
+    "native_cases_passed": 821,
+    "regression_cases": 6,
+    "regressions_failing_before_fix": 5,
+    "prior_original_script_audit_reused": "docs/targets/pandora-restoration-status.md: Callback register and carry contracts; original783-command/130-relative-write audit; binary/dispatch/handlers unchanged"
+  },
+  "accounting": {
+    "supported_source_purpose_before": 278509,
+    "supported_source_purpose_after": 282427,
+    "purpose_assessments_before": 161,
+    "purpose_assessments_after": 185,
+    "unknown_payload_bytes_unchanged": 6446,
+    "native_reference_targets_unchanged": 6225,
+    "resolved_native_field_records_unchanged": 973,
+    "unresolved_native_field_records_unchanged": 32,
+    "generic_label_signals_unchanged": 48
+  },
+  "limits": [
+    "Stored opcode selection and local WORD operand semantics only. No positive/nonzero range is inferred for delay values.",
+    "A delay is serviced by interpreter calls; ticks do not assert a fixed wall-clock duration. WORD arithmetic and wrap behavior are retained.",
+    "This does not establish ordinary script activation, complete callback or writer sets, allocation/lifetime or alternate-layout safety.",
+    "The129 relative-copy commands retain their prior schema and authored offset aliases; their indexed destinations remain conditional.",
+    "Bank45 and all fonts/glyph groupings are unchanged."
+  ]
+}

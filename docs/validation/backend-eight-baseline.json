@@ -1,0 +1,41 @@
+{
+  "baseline_commit": "ffae990464d2029d7e697f1502de227059876384",
+  "baseline_kind": "all tracked native sources rebuilt in isolated workspace",
+  "baseline_library_sha256": "a26f3aff9706e9e8596a244b1f8958495e2431c7b04d606d883dbda539cde5ad",
+  "source_verified_against_git": true,
+  "command": [
+    "pytest",
+    "-q",
+    "tests/test_c_backend.py::test_full_listing_runtime_copy_storage_alias_precedes_runtime_org",
+    "tests/test_c_backend.py::test_full_listing_contained_runtime_view_does_not_emit_second_org",
+    "tests/test_c_backend.py::test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range",
+    "tests/test_c_backend.py::test_listing_artifact_runtime_observation_view_maps_pc_without_source_view",
+    "tests/test_c_backend.py::test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org",
+    "tests/test_c_backend.py::test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend",
+    "tests/test_c_backend.py::test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code",
+    "tests/test_c_backend.py::test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry",
+    "-m",
+    ""
+  ],
+  "exit_code": 1,
+  "baseline_failures": [
+    "tests/test_c_backend.py::test_full_listing_runtime_copy_storage_alias_precedes_runtime_org",
+    "tests/test_c_backend.py::test_full_listing_contained_runtime_view_does_not_emit_second_org",
+    "tests/test_c_backend.py::test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range",
+    "tests/test_c_backend.py::test_listing_artifact_runtime_observation_view_maps_pc_without_source_view",
+    "tests/test_c_backend.py::test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org",
+    "tests/test_c_backend.py::test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend",
+    "tests/test_c_backend.py::test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code",
+    "tests/test_c_backend.py::test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry"
+  ],
+  "current_failures": [
+    "tests/test_c_backend.py::test_full_listing_runtime_copy_storage_alias_precedes_runtime_org",
+    "tests/test_c_backend.py::test_full_listing_contained_runtime_view_does_not_emit_second_org",
+    "tests/test_c_backend.py::test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range",
+    "tests/test_c_backend.py::test_listing_artifact_runtime_observation_view_maps_pc_without_source_view",
+    "tests/test_c_backend.py::test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org",
+    "tests/test_c_backend.py::test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend",
+    "tests/test_c_backend.py::test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code",
+    "tests/test_c_backend.py::test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry"
+  ]
+}

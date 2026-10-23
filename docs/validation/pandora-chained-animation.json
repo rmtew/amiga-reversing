@@ -1,0 +1,76 @@
+{
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "schema": {
+    "name": "WorldPositionChainedStateNode",
+    "size": 22,
+    "header": {
+      "offset": 0,
+      "size": 18,
+      "struct": "WorldPositionStateNode"
+    },
+    "next_node_ptr": {
+      "offset": 18,
+      "size": 4,
+      "encoding": "absolute long",
+      "target_struct": "WorldPositionStateNode"
+    }
+  },
+  "typing_scope": "A0 at the bit-3-guarded transition $9582 only; the loaded successor has the basic node type. No concrete initialized record is widened.",
+  "transition": {
+    "gate": "Skip and held modes exit earlier; phase must advance and incremented frame index must reach frame_count; bit3 then takes precedence over hold-at-end.",
+    "0x9582": "Load full LONG node+18 as successor; no NULL or sentinel test.",
+    "0x9586": "Clear successor WORD+16 (index and phase).",
+    "0x958A": "Clear only successor mode bit0; other bits, including skip and chain, are preserved.",
+    "0x9590": "Install successor in state+8 and return without rendering or recursively following it."
+  },
+  "null_sentinel_cases": {
+    "null_input_node": "Entry $951A returns without writes.",
+    "null_successor": "Synthetic original-byte execution clears low-memory WORD $10 and bit0 of BYTE $0A, then stores NULL; only the following service visit takes the NULL-input exit.",
+    "all_ones": "Original load preserves $FFFFFFFF and immediately reaches the unguarded reset instruction. No end-of-chain sentinel convention is supported by this path.",
+    "self_link": "Resets the same node and returns; no traversal loop occurs in one call."
+  },
+  "initial_population": {
+    "typed_node_records": 89,
+    "typed_node_mode_counts": {
+      "0": 40,
+      "1": 18,
+      "4": 31
+    },
+    "typed_node_pointer_fields": 224,
+    "null_pointer_fields": 75,
+    "unique_nonnull_node_targets": 77,
+    "rooted_node_mode_counts": {
+      "0": 34,
+      "1": 18,
+      "4": 25
+    },
+    "chain_bit_set_nodes": 0,
+    "native_typed_mode_accesses": 27,
+    "typed_mode_writes": "Only hold and skip bits changed in the inspected typed instructions; untyped writes are not exhaustively excluded."
+  },
+  "tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_pandora_chained_animation.py tests/test_pandora_player_directional_nodes.py tests/test_pandora_scripted_pose.py",
+    "result": "17 passed",
+    "new_synthetic_original_byte_cases": 10
+  },
+  "limits": [
+    "No concrete chain-enabled node or ordinary-gameplay chain reachability established.",
+    "No allocation, ownership or lifetime claim.",
+    "Invalid successor addresses are not validated by the code; synthetic NULL behavior does not establish gameplay consequences."
+  ],
+  "restored_source": "Three numeric field operands now use the extended successor identity and existing basic-node clock/mode identities; named transition and explicit guard limits.",
+  "framework_changes": false,
+  "all_data_directives_unchanged": true,
+  "unchanged_assets": 86,
+  "history_prefixes_preserved": true,
+  "verification": {
+    "receipt_id": "5517517db16b1669315db3fef98f9ffc8f284f8393210154fdc01be48d792a97",
+    "exact": true,
+    "framework_exact": true,
+    "source_sha256": "2d8406b3648ea29ce54163174c2608bd977e21339ca2bf20b2c7327055e82cdd",
+    "source_package_sha256": "88404ee4e972d5184aef6215e4d2731b4e844d35e52ebb5f05952afd1bdf76a4"
+  },
+  "original_size": 376832,
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "next_gap": "Indexed active frame and optional XY sequences at $95C6/$95D4/$95DA, including the held-prefix skip and bounds under script sequence replacement."
+}

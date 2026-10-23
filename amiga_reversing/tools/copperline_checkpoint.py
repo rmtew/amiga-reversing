@@ -8,6 +8,9 @@ import json
 from pathlib import Path
 
 from .copperline_control import CopperlineError
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 PROFILE = 'A500OCS PAL 68000 512K chip + 512K slow'
 
@@ -41,6 +44,7 @@ def snapshot_path(path):
 
 
 def read_checkpoint(path, expected):
+    LOADED_SOURCE.require_current()
     path=Path(path); record=json.loads(path.read_text())
     snapshot=snapshot_path(path)
     if (record.get('schema_version')!=1 or record.get('binding')!=expected

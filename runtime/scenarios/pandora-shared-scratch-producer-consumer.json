@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "identifier": "pandora-shared-scratch-producer-consumer",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "direct_payload_contract": "pandora",
+  "phases": [
+    {
+      "name": "resume_route",
+      "observable": "verified_checkpoint"
+    },
+    {
+      "name": "post_route_anchor",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20
+    },
+    {
+      "name": "second_word_scratch_renderer",
+      "breakpoint_stable_key": "s0:00006C60:instruction",
+      "wait_seconds": 20,
+      "chip_bus_trace": {
+        "frames": 2,
+        "wait_seconds": 5,
+        "ranges": [
+          {
+            "name": "shared_scratch",
+            "address": 111528,
+            "length": 768
+          }
+        ]
+      },
+      "capture": {
+        "registers": [
+          "d0",
+          "d1",
+          "d2",
+          "d3",
+          "d4",
+          "d5",
+          "d6",
+          "d7",
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "sr"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a7",
+            "offset": 0,
+            "size": 32
+          },
+          {
+            "address": 111528,
+            "size": 64
+          }
+        ]
+      }
+    },
+    {
+      "name": "post_scratch_gameplay_anchor",
+      "breakpoint_stable_key": "s0:000005D6:instruction",
+      "wait_seconds": 20
+    }
+  ],
+  "input_events": []
+}

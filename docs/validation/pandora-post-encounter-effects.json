@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "starting_commit": "d878df1e81ff51110025dc86c3b811da043e6e72",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "question": "How do post-encounter callbacks change the fixed passage and active world-object item state?",
+  "fixed_grid_cell": {
+    "absolute_address": 25792,
+    "grid_base": 16384,
+    "columns": 90,
+    "column": 12,
+    "row": 26,
+    "cell_index": 2352,
+    "open": {
+      "runtime_pixel_pointer": 125224,
+      "tile_id": 49,
+      "movement_block_bit": false,
+      "proved_owner_mapping": "world_tile_pixels_048_through_049+128; render numeric runtime EQU for both assemblers"
+    },
+    "closed": {
+      "runtime_pixel_pointer": 150568,
+      "tile_id": 247,
+      "movement_block_bit": true,
+      "proved_owner_mapping": "world_tile_pixels_178_through_312+69*128; render numeric runtime EQU for both assemblers"
+    },
+    "initial_selector": {
+      "macro_index": 244,
+      "macro_id": 450,
+      "definition_subcell": 6,
+      "tile_id": 247
+    },
+    "writers": [
+      {
+        "source_offset": 30916,
+        "effect": "Combat setup selects tile49 unconditionally."
+      },
+      {
+        "source_offset": 31218,
+        "effect": "Completion restores tile247 only when the completion callback is non-NULL, before invoking it."
+      },
+      {
+        "source_offset": 40760,
+        "effect": "World restart selects tile247 unconditionally."
+      },
+      {
+        "source_offset": 307406,
+        "effect": "Priest completion selects tile49, then falls through to message and negative item-state broadcast."
+      }
+    ],
+    "scope": "Fixed-grid alias, not a separate allocation. Current app_tilemap_base does not redirect these absolute stores. These four direct stores and the original builder are established; complete writer/alias closure is not claimed."
+  },
+  "item_state_broadcast": {
+    "source_span": [
+      34470,
+      34506
+    ],
+    "original_table_records": 35,
+    "includes_player": true,
+    "behavior": "Visit each non-NULL table pointer, skip only flag bit1, add D0.B modulo256 to item_state. Duplicate pointers apply repeatedly, first NULL stops, no active-count bound or saturation. Other record bytes and D0-D7/A0-A6 retain identity on the tested helper returns.",
+    "negative_tail": "Priest completion falls through source4B0D6: enqueue the original 52-byte boast then tail-call the broadcast with D0=-15. The source retains the signed MOVEQ #-15 literally.",
+    "positive_callbacks": [
+      {
+        "source_offset": 307466,
+        "name": "complete_bank_manager_interaction",
+        "delta": 15
+      },
+      {
+        "source_offset": 307474,
+        "name": "complete_thief_interaction",
+        "delta": 15
+      }
+    ],
+    "meaning_boundary": "Item state is the existing field; it is not established as health, hostility or another gameplay quantity."
+  },
+  "callback_references": {
+    "facts": [
+      {
+        "source_offset": 301882,
+        "target_offset": 307406,
+        "source_value": 372942,
+        "layout_id": "catalog-393a6300f8534af3a02c1b7c97778bb3"
+      },
+      {
+        "source_offset": 301328,
+        "target_offset": 307474,
+        "source_value": 373010,
+        "layout_id": "catalog-382c6a2e625d4192963dc87a1d985937"
+      },
+      {
+        "source_offset": 309512,
+        "target_offset": 307466,
+        "source_value": 373002,
+        "layout_id": "catalog-e8911dcfc3e74916b1fa4e2eaccc0542"
+      }
+    ],
+    "native_verification": "All three exact source fields and destinations pass outgoing and incoming native coordinate queries. Existing callback names and struct owner identities/bounds remain unchanged. Symbol-filtered reference queries do not enumerate these data references; coordinate queries do.",
+    "scope": "Original fields are mutable; these facts do not establish an immutable callback set or complete indirect-target closure."
+  },
+  "message": {
+    "source_span": [
+      315542,
+      315594
+    ],
+    "size_including_nul": 52,
+    "encoding": "ascii",
+    "name": "priest_completion_boast_message",
+    "behavior": "The original spelling, quotes and terminating NUL remain byte exact. In the preactivated status-queue witness, enqueue stores this pointer and sets duration to90 before the negative broadcast."
+  },
+  "facts": {
+    "accepted_actions": 31,
+    "initial_actions": 24,
+    "presentation_corrections": 7,
+    "local_labels": 2,
+    "equates": 5,
+    "absolute_pointer_aliases": 1,
+    "explicit_callback_references": 3,
+    "string_classifications": 1,
+    "message_label_renames": 1,
+    "operand_bindings": 12,
+    "comments": 4
+  },
+  "coverage": {
+    "pytest_cases": 17,
+    "all_byte_delta_state_pairs": 65536,
+    "flag_bytes": 256,
+    "original_35_record_broadcasts": 2,
+    "duplicate_and_null_table_case": 1,
+    "positive_callback_cases": 2,
+    "negative_tail_cases": 2,
+    "fixed_store_prefixes": 2,
+    "completion_prefix_cases": 5,
+    "completion_boundary": "Stops at source7A06 before state exchange, defeat marking and UI restore; retains the existing later NULL-node limitation.",
+    "trace_limit": "Original-table and callback paths use guest memory and normal-return checks; bounded write summaries need not be complete."
+  },
+  "verification": {
+    "framework_exact": true,
+    "oracle": "oracle.full_file_match",
+    "full_file_bytes": 376832,
+    "receipt_id": "1709c3d5c52e0a53dfd7c188d8e8f607cfc7ad72756990d7973b10f71e79a852",
+    "source_audit": "All previous source retained outside eight intended operand rows, three label substitutions and the exact 52-byte string conversion. Every prior comment, SDK/hardware expression, owner identity/bound, asset, both raw gaps and both history prefixes passes. Existing callback symbol spellings preserved. Exactly31 actions and31 review decisions appended; two provisional forward asset expressions were superseded by numeric runtime presentations.",
+    "framework": "Immediate value EQUs replace generated address names while retaining resolved analysis targets and suppressing unused interior-label obligations. Explicit source/SDK names remain protected; mismatched immediate EQUs refuse atomically before append. All 192 focused framework checks and 819 native checks pass. Eight new cases cover direct/register-mediated stores in local and runtime-absolute sources, original C/vasm bytes, complete bitmap asset bounds, retained resolved targets, absent obsolete labels and mismatch refusal. Numeric runtime EQUs avoid the separately documented C-assembler forward-source-expression boundary. No performance benchmark repeated.",
+    "known_unrelated_boundary": "The previously reproduced bootstrap-copy fixture reports full_source_policy_load_view where its assertion expects overlaid_by_runtime_copy; unchanged and not counted as passing."
+  },
+  "initial_24_action_workflow_seconds": {
+    "command_context": 25.872074,
+    "command_catalog": 0.637914,
+    "locator_resolution": 0.057133,
+    "manual_action_append": 11.252812,
+    "manual_action_application": 0.000171,
+    "listing_cache_invalidation": 0.029543,
+    "response_build": 7.3e-05
+  },
+  "limits": "Flat RAM with valid original data and a disjoint stack. No DMA completion, full combat-finish proof, arbitrary replacement-graph lifetime, complete writer closure, full-game completion or alternate-layout claim."
+}
