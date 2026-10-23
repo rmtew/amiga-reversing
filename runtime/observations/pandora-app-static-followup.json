@@ -1,0 +1,644 @@
+{
+  "schema_version": 1,
+  "scope": "targeted_static_followup_not_new_runtime_coverage",
+  "target_id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "input_sha256": {
+    ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+    ".runtime-state/pandora-app-usage-closure/decoded-registers.json": "4461e297a7cef19338c28b2a76406a33dd975ce9d76e1adc1b169adf494aa6ac",
+    ".runtime-state/pandora-app-usage-closure/edges.json": "790b66f21e5f83e9ff100a8dc3c9af5a9f8a5452551e1ecaa6c539c404a27cd0",
+    ".runtime-state/pandora-app-usage-closure/augmented-reachable.json": "48b68ceceb3cd7c0b203e6900b6b376e3d40928d0fbb28821376b05bd8fc6f2e",
+    ".runtime-state/pandora-original-layout-closeout/metadata.json": "ac86b1697b5938d7308d9396ec6f8feb37bf4c83cea2682545d5efdb3525884e",
+    "docs/validation/pandora-app-usage-closure.json": "84987836e82a34d5e45404b2326a67d65585241c73233914db7f01c4d9ff46a1",
+    "docs/validation/pandora-app-access-audit.json": "3ea8921e59c3405a2cf1c87869d57e640080c75999a887297c15bbde056b567d",
+    "docs/validation/pandora-indirect-closeout.json": "fa11495bc3c589e703917dc83a005deb6357dccb77647fac2da39f2d6f1b23d2",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/pandora_3e1ee0f1_bk_00_000000e8.s": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "src/m68k_simulator.h": "8298cfddcc7e40699f71ae800e8c9002f80340330d8c0e513c1763de0d41f7db",
+    ".runtime-state/pandora-app-access-audit/navigation.json": "2c5a34277854c1c07a5658599792a99866fde6ed5cfe798ab725ff0e23856ab5"
+  },
+  "auditor_sha256": "1850a27b6939250097981f05bc4aaf3bba11f9419ca999b49fcc21122d7e096c",
+  "prior_watch_receipt_sha256": "0d8370726f9412b248e0fb2451f16285a78d1ee81f6267b739c99a5587d07059",
+  "before": {
+    "unexplained_slots": 2,
+    "conditional_A6_entry_sites": 4,
+    "gap_regions": 14,
+    "gap_bytes": 750
+  },
+  "after": {
+    "unexplained_slots": 2,
+    "conditional_A6_entry_sites": 4,
+    "gap_regions": 14,
+    "gap_bytes": 750
+  },
+  "newly_closed_semantic_obligations": 0,
+  "adjudicated_new_static_leads": 2,
+  "new_runtime_runs": 0,
+  "discarded_intermediate_cache": {
+    "file": ".runtime-state/pandora-app-usage-closure/reviewed-data-edges.json",
+    "reason": "Private intermediate store provenance0xA9E differs from canonical0xA9C. The published closure supplies all40 reviewed edges; the intermediate is NOT consumed."
+  },
+  "new_mechanism_checks": {
+    "accepted_instruction_rows_checked": 7059,
+    "direct_A6_read_instructions": [
+      {
+        "source_offset": 4138,
+        "instruction": "move.l a6,-(a7)"
+      },
+      {
+        "source_offset": 38846,
+        "instruction": "move.l a6,-(a7)"
+      }
+    ],
+    "direct_A6_register_copy_escapes": [],
+    "register_list_A6_saves": [
+      {
+        "source_offset": 2276,
+        "instruction": "movem.l d0/a0-a1/a5-a6,-(a7)"
+      },
+      {
+        "source_offset": 2508,
+        "instruction": "movem.l d2-d7/a3-a6,-(a7)"
+      },
+      {
+        "source_offset": 4062,
+        "instruction": "movem.l d5/a6,-(a7)"
+      },
+      {
+        "source_offset": 316214,
+        "instruction": "movem.l d1-d7/a1-a6,-(a7)"
+      },
+      {
+        "source_offset": 316244,
+        "instruction": "movem.l d1-d7/a1-a6,-(a7)"
+      },
+      {
+        "source_offset": 316270,
+        "instruction": "movem.l d1-d7/a1-a6,-(a7)"
+      },
+      {
+        "source_offset": 348902,
+        "instruction": "movem.l d1-d7/a0-a6,-(a7)"
+      },
+      {
+        "source_offset": 348978,
+        "instruction": "movem.l d1-d7/a0-a6,-(a7)"
+      },
+      {
+        "source_offset": 349010,
+        "instruction": "movem.l d0-d1/a6,-(a7)"
+      }
+    ],
+    "reviewed_balanced_save_restore_pairs": [
+      {
+        "restore": 2314,
+        "save": 2276,
+        "save_instruction": "movem.l d0/a0-a1/a5-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d0/a0-a1/a5-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 2338,
+        "save": 2276,
+        "save_instruction": "movem.l d0/a0-a1/a5-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d0/a0-a1/a5-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 2362,
+        "save": 2276,
+        "save_instruction": "movem.l d0/a0-a1/a5-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d0/a0-a1/a5-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 2376,
+        "save": 2276,
+        "save_instruction": "movem.l d0/a0-a1/a5-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d0/a0-a1/a5-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 2518,
+        "save": 2508,
+        "save_instruction": "movem.l d2-d7/a3-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d2-d7/a3-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 4072,
+        "save": 4062,
+        "save_instruction": "movem.l d5/a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d5/a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 4148,
+        "save": 4138,
+        "save_instruction": "move.l a6,-(a7)",
+        "restore_instruction": "movea.l (a7)+,a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 38856,
+        "save": 38846,
+        "save_instruction": "move.l a6,-(a7)",
+        "restore_instruction": "movea.l (a7)+,a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 316224,
+        "save": 316214,
+        "save_instruction": "movem.l d1-d7/a1-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d1-d7/a1-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 316256,
+        "save": 316244,
+        "save_instruction": "movem.l d1-d7/a1-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d1-d7/a1-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 316280,
+        "save": 316270,
+        "save_instruction": "movem.l d1-d7/a1-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d1-d7/a1-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 348920,
+        "save": 348902,
+        "save_instruction": "movem.l d1-d7/a0-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d1-d7/a0-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 348996,
+        "save": 348978,
+        "save_instruction": "movem.l d1-d7/a0-a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d1-d7/a0-a6",
+        "register_list_matches": true
+      },
+      {
+        "restore": 349022,
+        "save": 349010,
+        "save_instruction": "movem.l d0-d1/a6,-(a7)",
+        "restore_instruction": "movem.l (a7)+,d0-d1/a6",
+        "register_list_matches": true
+      }
+    ],
+    "orphan_entry_groups": [
+      {
+        "entry": 9354,
+        "exclusive_accepted_instructions": 201,
+        "sites": [
+          28090,
+          28094,
+          28450
+        ],
+        "external_resolved_edges": [],
+        "outside_concrete_address_producers": [],
+        "typed_original_pointer_seeds": [],
+        "outside_raw_DWORD_coincidences_all_byte_alignments": [
+          {
+            "source_offset": 281583,
+            "target_source": 28416,
+            "containing_instruction": null,
+            "aligned_word": false,
+            "canonical_owners": [
+              {
+                "name": "scene_pixel_cells_for_mask_bank_47",
+                "start": 277232,
+                "end": 284464,
+                "role": "bitmap"
+              }
+            ]
+          }
+        ],
+        "indexed_address_producer_leads": [
+          41310
+        ],
+        "remaining": "No original external entry established. A computed/stack target from an unresolved domain or original entry evidence is still needed. No gameplay trigger invented; no dead-code claim."
+      },
+      {
+        "entry": 28106,
+        "exclusive_accepted_instructions": 8,
+        "sites": [
+          28118
+        ],
+        "external_resolved_edges": [],
+        "outside_concrete_address_producers": [],
+        "typed_original_pointer_seeds": [],
+        "outside_raw_DWORD_coincidences_all_byte_alignments": [],
+        "indexed_address_producer_leads": [
+          41310
+        ],
+        "remaining": "No original external entry established. A computed/stack target from an unresolved domain or original entry evidence is still needed. No gameplay trigger invented; no dead-code claim."
+      }
+    ],
+    "indexed_producer_review": {
+      "source_offset": 41310,
+      "instruction": "lea.l camera_scroll_profiles(pc,d0.w),a0",
+      "direct_scalar_writers": [
+        {
+          "source_offset": 1710,
+          "instruction": "clr.w app_camera_scroll_profile_index(a6)"
+        },
+        {
+          "source_offset": 1734,
+          "instruction": "move.w #CAMERA_SCROLL_INSET_PROFILE_INDEX,app_camera_scroll_profile_index(a6)"
+        },
+        {
+          "source_offset": 40684,
+          "instruction": "move.w #CAMERA_SCROLL_INSET_PROFILE_INDEX,app_camera_scroll_profile_index(a6)"
+        }
+      ],
+      "ordinary_profile_indices": [
+        0,
+        1
+      ],
+      "index_calculation": [
+        {
+          "source_offset": 41298,
+          "instruction": "move.w app_camera_scroll_profile_index(a6),d0"
+        },
+        {
+          "source_offset": 41302,
+          "instruction": "add.w d0,d0"
+        },
+        {
+          "source_offset": 41304,
+          "instruction": "move.w d0,d1"
+        },
+        {
+          "source_offset": 41306,
+          "instruction": "add.w d0,d0"
+        },
+        {
+          "source_offset": 41308,
+          "instruction": "add.w d1,d0"
+        }
+      ],
+      "ordinary_table_element_sources": [
+        41286,
+        41292
+      ],
+      "immediate_consumers": [
+        {
+          "source_offset": 41314,
+          "instruction": "move.w (a0)+,app_camera_scroll_countdown_reload_word(a6)"
+        },
+        {
+          "source_offset": 41318,
+          "instruction": "move.w (a0)+,d2"
+        },
+        {
+          "source_offset": 41320,
+          "instruction": "move.w (a0)+,d3"
+        }
+      ],
+      "disposition": "Camera data address, not an established code-entry producer under the original profile0/1 domain.",
+      "limits": "Direct scalar writer/initialized-state domain only; existing corrupted index/alias domains are not proved impossible."
+    },
+    "original_receptacle_states": [
+      {
+        "index": 0,
+        "descriptor_source": 297058,
+        "x": 186,
+        "y": 356,
+        "primary_state_source": 297154,
+        "initial_attachment_runtime": 362720,
+        "interaction_source": 297214,
+        "initial_saved_attachment_runtime": 0,
+        "required_item_id": 44
+      },
+      {
+        "index": 1,
+        "descriptor_source": 297070,
+        "x": 717,
+        "y": 754,
+        "primary_state_source": 297220,
+        "initial_attachment_runtime": 362786,
+        "interaction_source": 297280,
+        "initial_saved_attachment_runtime": 0,
+        "required_item_id": 24
+      },
+      {
+        "index": 2,
+        "descriptor_source": 297082,
+        "x": 1305,
+        "y": 516,
+        "primary_state_source": 297286,
+        "initial_attachment_runtime": 362852,
+        "interaction_source": 297346,
+        "initial_saved_attachment_runtime": 0,
+        "required_item_id": 46
+      },
+      {
+        "index": 3,
+        "descriptor_source": 297094,
+        "x": 1097,
+        "y": 466,
+        "primary_state_source": 297352,
+        "initial_attachment_runtime": 362918,
+        "interaction_source": 297412,
+        "initial_saved_attachment_runtime": 0,
+        "required_item_id": 23
+      },
+      {
+        "index": 4,
+        "descriptor_source": 297106,
+        "x": 745,
+        "y": 1008,
+        "primary_state_source": 297418,
+        "initial_attachment_runtime": 362984,
+        "interaction_source": 297478,
+        "initial_saved_attachment_runtime": 0,
+        "required_item_id": 104
+      },
+      {
+        "index": 5,
+        "descriptor_source": 297118,
+        "x": 1244,
+        "y": 867,
+        "primary_state_source": 297514,
+        "initial_attachment_runtime": 363080,
+        "interaction_source": 297574,
+        "initial_saved_attachment_runtime": 0,
+        "required_item_id": 18
+      }
+    ]
+  },
+  "known_slot_instructions": {
+    "190": [
+      {
+        "source_offset": 1206,
+        "instruction": "move.l a0,$0190(a6)"
+      },
+      {
+        "source_offset": 24880,
+        "instruction": "move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1"
+      }
+    ],
+    "2D4": [
+      {
+        "source_offset": 33634,
+        "instruction": "move.l a5,app_nearest_object_ptr(a6)"
+      },
+      {
+        "source_offset": 33638,
+        "instruction": "move.l a5,app_02D4(a6)"
+      },
+      {
+        "source_offset": 40882,
+        "instruction": "clr.l app_02D4(a6)"
+      }
+    ],
+    "368": [
+      {
+        "source_offset": 2292,
+        "instruction": "move.w intreqr(a5),d0"
+      },
+      {
+        "source_offset": 2344,
+        "instruction": "btst #INTB_BLIT,d0"
+      },
+      {
+        "source_offset": 2350,
+        "instruction": "movea.l app_blitter_interrupt_callback(a6),a0"
+      },
+      {
+        "source_offset": 2354,
+        "instruction": "jsr (a0)"
+      }
+    ]
+  },
+  "accepted_INTENA_writes": [
+    {
+      "source_offset": 0,
+      "instruction": "move.w #INTF_CLRALL,_custom+intena.l",
+      "operands": [
+        {
+          "operand_index": 0,
+          "ea_shape_id": 0,
+          "memory": false,
+          "indexed": false,
+          "displacement": 0,
+          "displacement_known": true,
+          "access": "memory_read",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": null,
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": 32767,
+          "ea_update": 0,
+          "register_list": []
+        },
+        {
+          "operand_index": 1,
+          "ea_shape_id": 7,
+          "memory": true,
+          "indexed": false,
+          "displacement": 0,
+          "displacement_known": true,
+          "access": "memory_write",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": null,
+          "index_register": null,
+          "absolute_address": 14676122,
+          "direct_register": null,
+          "immediate_value": null,
+          "ea_update": 0,
+          "register_list": []
+        }
+      ]
+    },
+    {
+      "source_offset": 1194,
+      "instruction": "move.w d0,intena(a5)",
+      "operands": [
+        {
+          "operand_index": 0,
+          "ea_shape_id": 0,
+          "memory": false,
+          "indexed": false,
+          "displacement": 0,
+          "displacement_known": true,
+          "access": "memory_read",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": null,
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": "D0",
+          "immediate_value": null,
+          "ea_update": 0,
+          "register_list": []
+        },
+        {
+          "operand_index": 1,
+          "ea_shape_id": 4,
+          "memory": true,
+          "indexed": false,
+          "displacement": 154,
+          "displacement_known": true,
+          "access": "memory_write",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": "A5",
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": null,
+          "ea_update": 0,
+          "register_list": []
+        }
+      ]
+    },
+    {
+      "source_offset": 1302,
+      "instruction": "move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a5)",
+      "operands": [
+        {
+          "operand_index": 0,
+          "ea_shape_id": 0,
+          "memory": false,
+          "indexed": false,
+          "displacement": 0,
+          "displacement_known": true,
+          "access": "memory_read",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": null,
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": 49200,
+          "ea_update": 0,
+          "register_list": []
+        },
+        {
+          "operand_index": 1,
+          "ea_shape_id": 4,
+          "memory": true,
+          "indexed": false,
+          "displacement": 154,
+          "displacement_known": true,
+          "access": "memory_write",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": "A5",
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": null,
+          "ea_update": 0,
+          "register_list": []
+        }
+      ]
+    },
+    {
+      "source_offset": 3988,
+      "instruction": "move.w #INTF_INTEN,intena(a5)",
+      "operands": [
+        {
+          "operand_index": 0,
+          "ea_shape_id": 0,
+          "memory": false,
+          "indexed": false,
+          "displacement": 0,
+          "displacement_known": true,
+          "access": "memory_read",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": null,
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": 16384,
+          "ea_update": 0,
+          "register_list": []
+        },
+        {
+          "operand_index": 1,
+          "ea_shape_id": 4,
+          "memory": true,
+          "indexed": false,
+          "displacement": 154,
+          "displacement_known": true,
+          "access": "memory_write",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": "A5",
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": null,
+          "ea_update": 0,
+          "register_list": []
+        }
+      ]
+    },
+    {
+      "source_offset": 4038,
+      "instruction": "move.w #INTF_SETCLR|INTF_INTEN,intena(a5)",
+      "operands": [
+        {
+          "operand_index": 0,
+          "ea_shape_id": 0,
+          "memory": false,
+          "indexed": false,
+          "displacement": 0,
+          "displacement_known": true,
+          "access": "memory_read",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": null,
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": 49152,
+          "ea_update": 0,
+          "register_list": []
+        },
+        {
+          "operand_index": 1,
+          "ea_shape_id": 4,
+          "memory": true,
+          "indexed": false,
+          "displacement": 154,
+          "displacement_known": true,
+          "access": "memory_write",
+          "width_bytes": 2,
+          "bulk_transfer": false,
+          "base_register": "A5",
+          "index_register": null,
+          "absolute_address": null,
+          "direct_register": null,
+          "immediate_value": null,
+          "ea_update": 0,
+          "register_list": []
+        }
+      ]
+    }
+  ],
+  "conclusions": [
+    "All accepted-code direct A6 reads are the two reviewed stack saves; no direct A6-to-other-register copy producer was found. Stack/group restore checks retain normal-return/valid-stack assumptions.",
+    "The14 earlier reviewed save/restore pairs match register populations. This does not establish exclusive values for662 generic register aliases or opaque/computed memory loads.",
+    "Initial NULL-attachment farming is not available in the six original receptacle seeds. A later reachable detach leaving saved attachment NULL would need a concrete original producer before a repetition scenario is justified.",
+    "INTENA writes alone do not establish that the raw BLIT callback branch cannot be selected: source$8F4 samples INTREQR without masking by INTENA. A sole raw BLIT request at that sample is the exact branch condition. No original condition producing that entry/sample combination was established.",
+    "The+$2D4 shadow producer/reset is already documented and now runtime-observed. No new consumer purpose follows; existing unchecked cursor/lifetime domains remain.",
+    "The+$190 noop seed and text-row alias are both established operations; neither identifies initialization intent. A former callback-offset/typo explanation remains a hypothesis requiring another original build/source or producer/consumer evidence.",
+    "The only indexed address producer at$A15E is the camera data-table lookup. Direct profile writers use0/1 and compute six-byte element addresses$A146/$A14C, not orphan code addresses. The single unaligned raw DWORD coincidence at$44BEF\u2192$6F00 is canonically owned by scene pixel bank47 and has no pointer seed or code reference; it is not admitted as an entry edge.",
+    "No original normal-input condition for the four unestablished A6 entries was found. The existing ending route is not repeated; arbitrary routine entry or injected state would not settle original use."
+  ],
+  "limits": [
+    "Accepted code and reviewed original seeds/CFG only. Computed, split, opaque, modified data and unaccepted-code targets are not excluded.",
+    "Raw DWORD coincidences, if any, are leads only, not recognized pointers or control-flow edges.",
+    "No dead-storage/unused-memory proof, source output changes, native-C work or paused capability work."
+  ]
+}

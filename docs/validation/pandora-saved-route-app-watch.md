@@ -143,3 +143,80 @@ the full197-event replay preserves outcome and exact input/timing; the reporter
 reproduces the accounting and refuses a controlled reported-loss variant. The
 failed stopping-trap attempt remains explicitly non-passing. PR5 stays unmerged;
 all nine paused B07 files are unchanged.
+
+## Targeted static follow-up (2026-10-23)
+
+[Reproducible static findings](../../runtime/observations/pandora-app-static-followup.json)
+reconcile the remaining questions against all7,059 accepted instructions,
+3,500 native CFG edges and40 published reviewed original-data edges. No ending
+replay or new gameplay capture was run for this follow-up. The older private
+edge cache has obsolete `$A9E` store provenance; the report consumes the canonical
+published `$A9C` reference instead, and checks the retained reachability topology.
+
+Two newly generated leads were adjudicated, without counting them as semantic
+unknowns closed:
+
+- The only indexed address-producing instruction is `$A15E`, the camera-profile
+  data lookup. All three direct scalar writers of the profile index are the
+  reset/shortcut sites `$6AE`, `$6C6`, `$9EEC`, assigning0 or1. The original domain
+  selects six-byte records at`$A146/$A14C`, followed by three WORD data loads.
+  This supplies no original entry to the missing background helpers. Corrupted
+  indices and indirect alias writes remain outside that qualified domain.
+- An all-byte-alignment raw DWORD search finds one outside coincidence into
+  the background component: bytes at`$44BEF` resemble runtime address`$16F00`.
+  That odd-offset location belongs to the classified `scene_pixel_cells_for_mask_bank_47`
+  bitmap, not a canonical pointer field; there is no incoming code reference or
+  stored pointer seed. It is not admitted as a control-flow edge.
+
+The background component has201 accepted instructions outside the established
+original-entry graph; it contains`$6DBA`, `$6DBE`, `$6F22`. The standalone helper
+at`$6DCA` has8 such instructions and contains`$6DD6`. Neither component has an
+external resolved edge, concrete address producer or typed original pointer
+seed after this bulk search. Absolute/immediate operands and native
+PC-displacement LEA/PEA producers were included. This does not exclude split,
+computed, opaque or unaccepted-code targets.
+
+The register-copy audit adds a distinct check to the earlier cursor list:
+**all** direct A6 reads are the two stack saves at`$102A/$97BE`; all9 group saves
+containing A6 also go to A7 and belong to the14 reviewed save/restore pairs.
+Register populations match, under the existing normal-return/valid-stack
+assumption. There is no accepted direct A6-to-another-register copy producer.
+This does not resolve all662 generic register aliases or prove pointer exclusivity.
+
+The remaining slots have the following exact evidence boundaries:
+
+| Question | Supported result | Missing evidence / next justified action |
+| --- | --- | --- |
+| `+$190` initialization intent | Original noop pointer store and indexed text-row read are both established. They describe different operations. | A typo/old callback-layout explanation needs another original source/build or a demonstrated pointer consumer. More repetitions of the row read cannot establish intent. |
+| `+$2D4` shadow purpose | `$8362/$8366` mirror the changed candidate pointer; `$9FB2` clears it. Existing source already says this. | Need an original semantic reader/owner or bounds for the remaining cursor/lifetime aliases. No dead-storage claim or cosmetic rename. |
+| `+$368` legitimate callback producer | Known scalar consumer is the raw BLIT callback dispatch at`$92E/$932`; A6 is explicitly rebound in the ISR. | An original installer/target is still absent. Known INTENA writes do not enable BLIT, but this alone is **not** proof the branch is unreachable: `$8F4` reads raw INTREQR. The exact selection condition is BLIT set with COPER/VBL clear at that sample; a natural entry reaching that combination needs evidence before a scenario is justified. |
+| Four conditional A6 sites | Helper roles and conditional base use are understood; no new original entry was established. | Need an original caller/stored or computed target producer. Calling the helpers artificially would not establish original-game use. |
+
+A proposed capacity experiment was rejected before execution: all six original
+receptacle primary states have non-NULL attachments and NULL saved-attachment
+pointers. The documented NULL-attachment pickup behavior therefore supplies no
+**initial** repeatable source for a terminal-deposit overflow route. This does
+not prove a lifetime stock bound; a later reachable detach that leaves the saved
+pointer NULL would be the concrete missing producer needed to revisit that
+hypothesis. No speculative farming route was run.
+
+**Before/after:** two unexplained slots, four conditional entry sites, and14 gaps
+/750 bytes remain unchanged; zero new semantic classifications. The benefit is
+closing the two generated static leads and bounding which evidence could
+actually settle each question. None currently supplies a concrete new normal-input
+scenario. Do not repeat the saved-Earth route or reinterpret no-hits as unused.
+
+Reproduce from the retained qualified evidence without importing held code:
+
+```sh
+python -m amiga_reversing.tools.pandora_app_static_followup \
+  --qualified-checkout /path/to/qualified-checkout \
+  --output /tmp/pandora-app-static-followup.json
+```
+
+The auditor binds every consumed artifact and checks the original binary,
+instruction bytes/population, canonical edge/metadata identities, reachability,
+register-save population, profile writers and original receptacle seeds. Focused
+validation uses this real retained dataset and controlled inconsistent-input
+refusals; no target source generation, byte-exact rebuild, generic behaviour
+programme, PR5 merge or B07 work is added.
