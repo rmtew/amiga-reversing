@@ -1,0 +1,72 @@
+{
+  "schema": "pandora-master-consolidation-v1",
+  "validated_code_head": "cde8634689e016e516e8c6aae735fabc4698a869",
+  "merge_commit": "57640fe8b92c8827f400debf11f60cc98d76f92f",
+  "prior_master": "61bc75f3ab419124153b1cc692061eec275eba3c",
+  "integrated_PR_head": "666b373ca9b612e0f4ad8eb92bd0a797d9389a89",
+  "PR_only_commits_preserved": 148,
+  "prior_master_only_commits_preserved": 3,
+  "merge_conflicts": 0,
+  "original_experiment_commit": "b3113d1bfe90add58533d4ac4eb696374d5783b8",
+  "experiment_cherry_pick": "cde8634689e016e516e8c6aae735fabc4698a869",
+  "original_layout": {
+    "source_sha256": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "size": 376832,
+    "C_full_file_exact": true,
+    "vasm_full_file_exact": true,
+    "native_sources_differ_from_qualified_PR": false
+  },
+  "tests": {
+    "focused_integration": {
+      "passed": 438,
+      "skipped": 3,
+      "skip_limits": [
+        "Two real Copperline tests require explicit emulator/media environment variables.",
+        "Optional MCP SDK transport unavailable; SDK-free adapter checks passed."
+      ]
+    },
+    "broader_interrupted": {
+      "passed": 927,
+      "skipped": 2,
+      "failed": 1,
+      "completed": false,
+      "reason_stopped": "Inspect the one stale inventory assertion instead of continuing expensive unrelated CPU batches."
+    },
+    "preexisting_reproduced_on_PR_head": [
+      "tests/test_pandora_animation_sequences.py::test_all_recovered_node_and_replacement_sequences_have_exact_typed_bounds (89 expected, 92 actual)",
+      "tests/test_c_backend.py::test_decompression_c_backend_reports_unknown_payload (provider_sha256 missing)",
+      "tests/test_c_backend.py::test_listing_analysis_identifies_tetragon_copied_stub_transfer_without_real_payload (no tetragon event)",
+      "tests/test_c_backend.py::test_decompression_c_backend_pandora_bk_section_range_contract (codec_id missing)"
+    ],
+    "all_tests_green_claimed": false,
+    "expectations_or_production_code_changed_to_hide_failures": false
+  },
+  "unfinished_local_B07": {
+    "inspected": true,
+    "included_in_master": false,
+    "unchanged_and_backed_up": true,
+    "files_sha256": {
+      "amiga_reversing/disasm/restoration_verification.py": "a1f56a817c35e84ec17d8ac0e5ef1097833eb3ad077d106d6219a42ff8311f84",
+      "amiga_reversing/tools/restoration_mcp.py": "d71da1b0c96eea7d9a6bcc5e26ee1a7605245e7234fe8f7bbedf7b6c6e495c02",
+      "tests/test_behaviour_adapters.py": "a82d2e635981ea7cf3c361b0f114ab1e6e9d5ec011d87fe32b04f9b66e2defbd",
+      "amiga_reversing/disasm/behaviour_reduction.py": "0a05563690b214927fd7ca525d17d217fee0035a90665caa5814f8b4a45560c9",
+      "amiga_reversing/tools/pandora_volume_failure_reduce.py": "5723fa3ea90e81abb7dd7b1e31977be21b8262a473c6e982c556b92352e04e94",
+      "tests/test_behaviour_reduction.py": "ed2a91d98a394591193f5d7efb81482fbc93059d5ef21af105540348800b6e8e",
+      "tests/test_behaviour_reduction_receipts.py": "049f0239f0d94956be5e4fe3d8fc7a5c97fa125194985342363ad6e11be204f0",
+      "tests/test_pandora_failure_reduction.py": "d9dd39b6373563c1f8b013a9079bd494e0b0629651b329c2ea9a50933848d19a",
+      "docs/proposals/045-behavioural-validation.md": "d7a60ead7a9d68fe28d1bd252b871d18c592e75216a8287bedc09f5c5caa7f56"
+    },
+    "status": "Unfinished controlled-negative CPU reducer, service/MCP hooks, tests and proposal edit; not accepted capability or target coverage. No original user hold established."
+  },
+  "other_original_untracked_files": {
+    "amiga_reversing/tools/pandora_route_app_watch.py": "Identical to integrated file; preserved.",
+    "tests/test_pandora_route_app_watch.py": "Older copy; integrated file adds missing MMIO loss-counter regression. Preserved."
+  },
+  "PR_metadata_at_validation": "GitHub GraphQL query returned Forbidden; closure not established by that query.",
+  "limits": [
+    "No new gameplay run, target regeneration or relocation repair.",
+    "Original proprietary reference preserved; no new ROM/media/raw captures published.",
+    "Publication/PR closure are reported separately after remote verification."
+  ]
+}

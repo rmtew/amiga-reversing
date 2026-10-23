@@ -1,5 +1,39 @@
 # Pandora restoration inventory and status
 
+## Master consolidation (2026-10-23)
+
+The user explicitly requested direct master publication and integration of PR5,
+superseding the inherited no-merge constraint. No original user instruction to
+hold PR5 or these nine working files could be established; the earlier hold
+attribution was incorrect. Integration preserves all 148 PR-only commits via
+merge `57640fe8` and the existing master watch/static reports. Experiment
+`b3113d1b` is included by cherry-pick `cde86346`; it remains experimental and
+stops at its first stale pointer, not a relocated walkthrough success.
+
+The nine local B07 files were inspected and copied with hashes and a tracked
+patch into the private `.runtime-state/pandora-consolidation-20261023` evidence
+directory. They are a deterministic CPU controlled-negative reducer, service/MCP
+hooks, tests and proposal-status edit. They are not accepted target behaviour
+coverage or part of this consolidation. They remain unchanged and uncommitted in
+the original working tree; this is preservation of unfinished work, not a user
+publication hold. The two other untracked watch files are older copies of work
+already integrated (master's test also checks missing queue-loss counters).
+
+Fresh merged-source C and vasm assemblies both reproduce the complete
+376,832-byte original, SHA-256
+`70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+No source regeneration, gameplay rerun, relocation repair or B07 expansion was
+performed for consolidation. Integration test results are recorded in the
+[consolidation evidence](../../runtime/observations/pandora-master-consolidation.json).
+The focused combined integration suite passed **438 tests with 3 skips** (two
+real-emulator prerequisites and optional MCP SDK). A broader selection was
+interrupted after **927 passes, 2 skips and one failure**: an old animation
+inventory assertion expects 89 nodes, while current accepted metadata has 92.
+That failure and three optional backend decompression/identification failures
+reproduce on the unchanged PR checkout. They are reported, not hidden or counted
+as green; no assertion or production code was weakened to publish the merge.
+
+
 ## Saved-Earth walkthrough qualified (2026-10-22)
 
 [Ending receipt](../../runtime/observations/pandora-saved-earth-walkthrough.json)
@@ -7443,5 +7477,6 @@ conditional meanings. This closes the requested **original-layout reviewed
 closeout with explicit unknowns** and stops this pass. It does not certify full
 semantic restoration, every historical milestone/B01–B10 item, all possible
 mutations or asynchronous DMA/Paula behavior, disk/loader parity, alternate
-layout or native C portability. PR #5 remains unmerged; B07, fonts, bank45 and
-EQU/RS policy remain unchanged.
+layout or native C portability. At that review PR #5 was unmerged; the later
+master consolidation is recorded above. Fonts, bank45 and EQU/RS policy remain
+unchanged.

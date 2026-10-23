@@ -378,4 +378,5 @@ and Copperline; omit it for build/extent validation only:
 The script uses the explicitly qualified checkout's existing runtime by pathname;
 it does not import held B07 changes into master or publish their files. The
 qualified runtime and private prerequisites are required, not a standalone public
-reproduction bundle. PR5 remains unmerged.
+reproduction bundle. PR5 was unmerged at the experiment milestone; the later
+master consolidation is recorded in the target status.
