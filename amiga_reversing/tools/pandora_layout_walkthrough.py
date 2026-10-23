@@ -171,10 +171,8 @@ def main():
     binary, config = build_from_export(PROJECT_ROOT, args.output.resolve(), payload,
         family=[json.loads(path.read_text()) for path in args.family_export_json])
     if args.run:
-        # Temporary observation seam only. The old source-patching builder is
-        # never called; it is retired after the normal runtime gates qualify.
-        from amiga_reversing.tools.pandora_minimal_rebase_experiment import observe
-        observe(PROJECT_ROOT,args.output.resolve(),binary,config,args.rom.resolve(),args.copperline.resolve(),
+        from amiga_reversing.tools.pandora_layout_runtime import observe
+        observe(args.output.resolve(),binary,config,args.rom.resolve(),args.copperline.resolve(),
             True,args.capture_pcm,args.stop_after,args.title_frames,False,args.phase_locked_boot,
             scenario_path=args.scenario.resolve())
     print(json.dumps(dict(layout_id=args.layout, payload_sha256=config['payload_sha256'],runtime_qualified=False)))

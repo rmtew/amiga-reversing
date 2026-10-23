@@ -32,9 +32,13 @@ profiles preserve C/vasm agreement and all original 376,832 bytes remain exact
 (receipt `da3c4265…`). 306 focused checks pass. No new unknown-byte reduction is
 claimed. The nine paused B07 files match their saved hashes and remain untouched.
 
-First delivery is still open for legacy-patcher retirement, frozen-plan
-reuse/invalidation and measured performance, and strict original HAND-cycle
-disposition. Layout selection now reaches the common exporter through HTTP,
+The target string-patching builder and alternate build CLI are retired; the
+normal observer now consumes native bounds and shared launcher/callback options.
+181 focused tests and a matching settled-title smoke pass; 24 retained DMA
+frames replay unchanged. The older single-region planner/build service remains
+a separate consolidation obligation. First delivery is still open for that work,
+frozen-plan reuse/invalidation, measured performance and strict original
+HAND-cycle disposition. Layout selection now reaches the common exporter through HTTP,
 CLI, real MCP stdio and the palette; 48 interface tests and four server-route
 tests pass. Browser E2E has not run. Full layout export still rebuilds analysis.
 

@@ -58,8 +58,19 @@ the existing palette parameter editor. The isolated SDK 2.3.0 interface suite
 passes 48 tests plus four server-route tests; the UI handler executes in Node.js,
 not browser E2E. Refused exports do not become downloads/runtime qualification.
 
-First delivery remains open: retire the superseded source patch builder, deliver
-and measure layout-only frozen-plan reuse/invalidation, and disposition the
+The superseded source patch builder is now retired: `symbolic_repairs`, ORG/CMPA
+string substitutions and the alternate build CLI are deleted. The remaining
+normal observer consumes native coordinates, uses shared fixed launcher/audio
+options and an explicit phase-observation callback. A finite settled-title smoke
+retains the exact boot ADF, HAND CPU/clock and pixels; 181 focused tests pass
+(two optional synthetic live probes deselected), and 24 existing DMA frames
+retain their identities/transfer totals. Historical source/receipts remain pinned.
+The older single-region data relocation planner/build service has not yet been
+consolidated; removing the target string builder does not claim that gate done.
+
+First delivery remains open: deliver
+and measure layout-only frozen-plan reuse/invalidation, consolidate the older
+single-region planning path where supported, and disposition the
 strict original-to-image HAND-cycle difference honestly. Full exports still
 rebuild analysis. The latest 178–254-second observations overlap other jobs and
 are not a controlled performance comparison. Independent block evidence is now
@@ -190,7 +201,7 @@ The audit examined the following implementation, not just earlier proposals:
 | `amiga_reversing/disasm/derived_artifact.py`: `validate_manifest`, `verify_native_binding` | Payload/manifest identity and fresh native proof binding; syntax validation alone is not proof. `exec_allocabs` is the currently admitted reservation contract. | Reuse identity/staleness safeguards. Version the manifest for layouts; retain read/verification of historical receipts without retaining old build engines. Do not label assembly-time export an Exec allocation proof. |
 | `amiga_reversing/disasm/optional_artifact.py`: `validate`, `verify_binding`; `amiga_reversing/tools/optional_patch.py` | Explicit fixed-size correction ledger; validates canonical instruction boundaries, not an interior relocated source map or bootstrap lifecycle. | Keep independent optional corrections supported. Do not repurpose this patch format as the layout authority or treat boundary validation as permission to strip initialization. Remove any layout-only adapter if introduced during migration; do not delete unrelated correction functionality. |
 | [Proposal 044](044-runtime-memory-relocation-proof.md) and its audio-volume/keyboard work | Narrow mapped-region execution/proof; keyboard remains conditional. | Preserve bounded results and unresolved facts. Consolidate address resolution; do not revive the deferred proof programme as a prerequisite for fixed-layout export. |
-| `amiga_reversing/tools/pandora_minimal_rebase_experiment.py`: `symbolic_repairs`, `build`, `observe` | Successful identity-bound experiment, but source `replace` anchors, target constants and a separate build path; not general native plan admission. | Migrate reviewed reference families and bootstrap recipe into canonical facts/normal export. Delete `symbolic_repairs` and the alternate source builder after M3 acceptance. Retain history/receipts; extract only the still-needed observation adapter into the existing runner. |
+| `amiga_reversing/tools/pandora_minimal_rebase_experiment.py`: `symbolic_repairs`, `build`, `observe` | Successful identity-bound experiment, but source `replace` anchors, target constants and a separate build path; not general native plan admission. | Retired after normal original/image/cursor builds and recorded cold/output evidence. `symbolic_repairs`, alternate source builder/CLI and process/phase monkeypatches are removed; the sole observer is `pandora_layout_runtime.py`. Historical receipts/script links are pinned. Strict original HAND-cycle refusal remains explicit and is not a build-path dependency. |
 | `amiga_reversing/tools/pandora_rebase_output_compare.py` and focused tests | Strict output comparator, fixed known route and explicit normalization/bounds limits. | Reuse as integration acceptance, bind the normal export manifest instead of experimental text identity. No new emulator or general verification programme. |
 
 Existing relevant tests include `tests/test_memory_regions.py`,

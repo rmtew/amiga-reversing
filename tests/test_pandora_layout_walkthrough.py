@@ -105,3 +105,15 @@ def test_family_controls_execute_identical_guest_seed_program_not_only_reservati
     moved['metadata_hash']='stale'
     with pytest.raises(ValueError,match='stale'):
         loader_family_context(original,data,data,[moved])
+
+
+def test_runtime_observer_consumes_native_context_and_refuses_legacy_or_stale_bounds():
+    from amiga_reversing.tools.pandora_layout_runtime import runtime_context
+    payload,_=fixture()
+    config=dict(normal_layout_export=True,layout_plan=payload['layout_plan'],
+        layout_plan_sha256=payload['layout_plan_sha256'],assembly_base=0x10000,
+        load_address=0x20000,entrypoint=0x20000,copied_prefix_bytes=2,old_materialized_interval=[0x10000,0x10002])
+    image,bootstrap=runtime_context(config)
+    assert image['runtime_address']==0x10000 and bootstrap['load_address']==0x20000
+    for field,value in [('normal_layout_export',False),('layout_plan_sha256','old'),('assembly_base',0x80000),('copied_prefix_bytes',3)]:
+        with pytest.raises(ValueError):runtime_context(config|{field:value})

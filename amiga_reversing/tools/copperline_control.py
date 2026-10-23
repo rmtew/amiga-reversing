@@ -17,6 +17,11 @@ import time
 from collections import deque
 from pathlib import Path
 
+MACHINE_PROFILES = {
+    'a500ocs_512k': dict(model='A500OCS',cpu='68000',chipset='OCS',video='PAL',chip='512K',slow='512K',fast='0'),
+    'a500ecs_1m': dict(model='A500',cpu='68000',chipset='ECS',video='PAL',chip='1M',slow='512K',fast='0'),
+}
+
 
 class CopperlineError(RuntimeError):
     """Protocol, process or emulator failure (never includes authentication data)."""
@@ -251,9 +256,18 @@ class CopperlineProcess:
         host_directory=None,
         startup_timeout=15,
         request_timeout=5,
+        machine_profile='a500ocs_512k',
+        audio_wav=None,
+        audio_stems=None,
     ):
+        if machine_profile not in MACHINE_PROFILES:
+            raise ValueError('Unsupported headless machine profile')
+        if audio_wav is not None and audio_stems is not None:
+            raise ValueError('Choose one bounded audio capture mode')
         self.binary = str(Path(binary).resolve())
         self.rom, self.floppy, self.host_directory = rom, floppy, host_directory
+        self.machine_profile = machine_profile
+        self.audio_wav, self.audio_stems = audio_wav, audio_stems
         self.startup_timeout, self.request_timeout = startup_timeout, request_timeout
         self.process = self.client = self._temporary = self._reader = None
         self.log_tail = deque(maxlen=64)
@@ -285,21 +299,8 @@ class CopperlineProcess:
             "--factory",
             "--config",
             str(root / "machine.toml"),
-            "--model",
-            "A500OCS",
-            "--cpu",
-            "68000",
-            "--chipset",
-            "OCS",
-            "--video",
-            "PAL",
-            "--chip",
-            "512K",
-            "--slow",
-            "512K",
-            "--fast",
-            "0",
-            "--noaudio",
+            *[part for key,setting in MACHINE_PROFILES[self.machine_profile].items() for part in ('--'+key,setting)],
+            *([] if self.audio_wav is not None or self.audio_stems is not None else ['--noaudio']),
             "--floppy-speed",
             "0",
             "--control",
@@ -309,6 +310,10 @@ class CopperlineProcess:
         ]
         if self.rom:
             command.append(str(Path(self.rom).resolve()))
+        if self.audio_wav is not None:
+            command.extend(['--audio-wav',str(Path(self.audio_wav).resolve())])
+        if self.audio_stems is not None:
+            command.extend(['--audio-stems',str(Path(self.audio_stems).resolve()),'--audio-stems-mode','master,source'])
         try:
             self.process = subprocess.Popen(
                 command,

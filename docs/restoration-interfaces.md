@@ -32,7 +32,12 @@ Pandora runtime adapter in `amiga_reversing.tools.pandora_layout_walkthrough`
 consumes these typed placements, checks original input/canonical-metadata and
 package identities, and assembles the package with C and vasm. It does not
 recompute placements or run the legacy source-patching builder. Runtime results
-remain separate from source-export/assembly status. Local raw captures, legal ROM
+remain separate from source-export/assembly status. The only observer is
+`pandora_layout_runtime`: legacy experiment config admission, string repairs and
+the alternate build CLI are removed. Shared Copperline launch offers explicit
+`a500ocs_512k` (default) and `a500ecs_1m` diagnostic profiles plus bounded WAV/stem
+capture paths; CLI/MCP scenarios cannot supply arbitrary process options or phase
+callbacks. Local raw captures, legal ROM
 and the qualified compiled controller route stay private prerequisites.
 
 A region may declare an explicit `loader_seed` with file `source_offset`,
@@ -766,3 +771,31 @@ percentage is computed.
 
 The Pandora baseline is in [pandora-completeness-baseline.json](targets/pandora-completeness-baseline.json)
 and [pandora-completeness-baseline.txt](targets/pandora-completeness-baseline.txt).
+
+### Reproducing canonical Pandora layout captures
+
+With the resident restoration server running, export each configured profile's
+full response through `restoration export --layout-id <id> --binary-assets` to
+private JSON files. The standalone source-export CLI's `--json` prints metadata
+without package contents and is not that full-response fixture. Pass the same
+three `--family-export-json` files (original, image, cursor) to each control:
+
+```sh
+python -m amiga_reversing.tools.pandora_layout_walkthrough \
+  --layout pandora_cursor_e0000_ecs1m --export-json /private/cursor.json \
+  --family-export-json /private/original.json \
+  --family-export-json /private/image.json \
+  --family-export-json /private/cursor.json \
+  --output /private/fresh-run --run --scenario /private/compiled-route.json \
+  --rom /private/kick13.rom --copperline /path/to/copperline \
+  --phase-locked-boot --capture-pcm
+```
+
+Omit `--phase-locked-boot` for an unheld cold run. A bounded settled title uses
+`--stop-after title_menu_loop --title-frames 180`. Independent cursor comparison
+uses `pandora_rebase_output_compare --control canonical_image_cursor` with the
+image-only control and cursor candidate plus their settled-title captures. That
+mode requires an unchanged image/bootstrap and every non-cursor region; it does
+not qualify the original-to-image transformation. The default original-control
+comparison retains its strict HAND-clock refusal. Proprietary prerequisites and
+raw captures stay private; published receipts contain identities and limits.

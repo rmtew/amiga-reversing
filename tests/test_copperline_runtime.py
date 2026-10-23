@@ -452,6 +452,24 @@ def test_phase_input_and_cleanup(tmp_path):
     assert joys[-2:] == [{"port": 1}, {"port": 2}]
 
 
+@pytest.mark.parametrize('fail_observer',[False,True])
+def test_explicit_phase_observer_preserves_input_cleanup_and_propagates_failure(tmp_path,fail_observer):
+    p=payload(tmp_path);client=Client(p.read_bytes());seen=[]
+    def observer(*args,**kwargs):
+        name=args[1]['name'];seen.append(name)
+        if fail_observer and name=='second':raise ValueError('observation failed')
+        return runtime._run_scenario_phase(*args,**kwargs)
+    if fail_observer:
+        with pytest.raises(ValueError,match='observation failed'):
+            runtime.run_scenario(client,scenario(),p,phase_runner=observer)
+    else:
+        result=runtime.run_scenario(client,scenario(),p,phase_runner=observer)
+        assert all(phase['status']=='hit' for phase in result['phases'])
+    assert seen==['first','second']
+    assert ('joy',{'port':2,'red':True}) in client.calls
+    assert client.calls[-1]==('joy',{'port':2})
+
+
 def test_function_entry_requires_exact_accepted_entry(tmp_path):
     p = payload(tmp_path)
     c = Client(p.read_bytes())

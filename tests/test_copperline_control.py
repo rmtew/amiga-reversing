@@ -188,6 +188,34 @@ def test_failed_launch_cleans_temporary_directory(tmp_path):
     process.close()
 
 
+@pytest.mark.parametrize('profile,model,chipset,chip',[('a500ocs_512k','A500OCS','OCS','512K'),('a500ecs_1m','A500','ECS','1M')])
+@pytest.mark.parametrize('audio',[None,'wav','stems'])
+def test_shared_launcher_keeps_qualified_profile_and_audio_flags(tmp_path,monkeypatch,profile,model,chipset,chip,audio):
+    from amiga_reversing.tools import copperline_control as control
+    commands=[]
+    def launch(command,**options):
+        commands.append(command)
+        raise RuntimeError('captured launch')
+    monkeypatch.setattr(control.subprocess,'Popen',launch)
+    process=CopperlineProcess(tmp_path/'copperline',rom=tmp_path/'kick.rom',machine_profile=profile,
+        audio_wav=tmp_path/'capture.wav' if audio=='wav' else None,
+        audio_stems=tmp_path/'stems' if audio=='stems' else None)
+    with pytest.raises(RuntimeError,match='captured launch'):process.start()
+    command=commands[0]
+    for flag,value in [('--model',model),('--cpu','68000'),('--chipset',chipset),('--video','PAL'),('--chip',chip),('--slow','512K'),('--fast','0')]:
+        assert command[command.index(flag)+1]==value
+    assert ('--noaudio' in command)==(audio is None)
+    if audio=='wav':assert command[-2:]==['--audio-wav',str(tmp_path/'capture.wav')]
+    if audio=='stems':assert command[-4:]==['--audio-stems',str(tmp_path/'stems'),'--audio-stems-mode','master,source']
+    assert '--control-gui' not in command and '--gdb' not in command
+    assert process._temporary is None
+
+
+def test_shared_launcher_refuses_unknown_profiles_or_conflicting_capture_modes(tmp_path):
+    with pytest.raises(ValueError,match='Unsupported'):CopperlineProcess(tmp_path/'copperline',machine_profile='guess')
+    with pytest.raises(ValueError,match='one bounded'):CopperlineProcess(tmp_path/'copperline',audio_wav='a',audio_stems='b')
+
+
 @pytest.mark.skipif(
     not os.environ.get("COPPERLINE_BINARY"),
     reason="Set COPPERLINE_BINARY for real emulator verification",

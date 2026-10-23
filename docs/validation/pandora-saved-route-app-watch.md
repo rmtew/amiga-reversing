@@ -279,9 +279,15 @@ silently substituted for the requested experiment.
 
 ## Minimal alternate-execution experiment (2026-10-23)
 
+**Historical experiment.** The source-string builder has since been retired.
+Current reproduction uses the [normal layout runner](../../amiga_reversing/tools/pandora_layout_walkthrough.py)
+and [canonical workspace receipt](../../runtime/observations/pandora-canonical-workspace-qualification.json).
+The command below requires the historical script from commit `9aa43b21`; it is
+not a current-master entry point.
+
 **Moved execution confirmed; stopped at the first stale original-image pointer.**
 Following explicit authorization to use a separate assembly/startup experiment,
-[the small runner](../../amiga_reversing/tools/pandora_minimal_rebase_experiment.py)
+[the historical small runner](https://github.com/rmtew/amiga-reversing/blob/9aa43b21c9c576373281480a81d1f8a174e6b4ee/amiga_reversing/tools/pandora_minimal_rebase_experiment.py)
 changes only `ORG $10000` to `ORG $80000` and replaces the bootstrap's first
 copy-helper LEA with `bra.w initialize_runtime_workspace`. Hardware interrupt/DMA
 clearing and the workspace/supervisor initialization remain. The original source,

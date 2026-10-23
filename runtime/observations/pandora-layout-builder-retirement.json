@@ -1,0 +1,49 @@
+{
+  "schema": "pandora-layout-builder-retirement/v1",
+  "status": "target_source_patch_builder_retired",
+  "removed": [
+    "pandora_minimal_rebase_experiment.symbolic_repairs",
+    "pandora_minimal_rebase_experiment.build",
+    "experimental ORG/CMPA/source string replacements and alternate build CLI",
+    "target Popen and phase monkeypatches"
+  ],
+  "replacement": "Normal source_export and pandora_layout_walkthrough; sole native-plan observer pandora_layout_runtime.",
+  "tests": {
+    "passed": 181,
+    "deselected": 2,
+    "scope": "Focused launcher/runtime/normal context/ending; two optional synthetic live probes explicitly excluded."
+  },
+  "failure_retained": {
+    "report_sha256": "3e31bc5cbacc8df8036818fd5449980f5ac6e09728399a7bd59504801979003c",
+    "status": "experiment_error",
+    "error": {
+      "type": "NameError",
+      "message": "name 'patch' is not defined"
+    },
+    "recovery": "Replaced residual phase monkeypatch with explicit runner callback; positive and callback-failure/input-cleanup tests pass."
+  },
+  "smoke": {
+    "report_sha256": "261e49b894ec4888f6118558d2ededae689bba1fa7f5c45a0fc80aecaee8c325",
+    "status": "bounded_output_prefix_complete",
+    "moved_PC": [
+      131072,
+      525418,
+      525452
+    ],
+    "title_frame": 772,
+    "same_ADF_HAND_registers_clock_and_title_pixels": true,
+    "reference_report_sha256": "7cf5f09517b99779fa274fc3f2b089dbfe72c8f3c25a6c1410a29cb78f752f28"
+  },
+  "existing_DMA_redecoded_frames": 24,
+  "full_walkthrough_repeated": false,
+  "source_or_payload_changed": false,
+  "remaining": [
+    "Legacy single-region data planning/build service consolidation remains separate.",
+    "Frozen-plan reuse/invalidation and measured performance remain open.",
+    "Strict original-to-image HAND-cycle identity still refuses; no changed assertion."
+  ],
+  "limits": [
+    "Finite title smoke does not constitute a second full walkthrough after host-adapter refactoring.",
+    "Original/image/cursor full capture identities remain in the prior workspace qualification receipt."
+  ]
+}

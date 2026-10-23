@@ -744,7 +744,10 @@ def phase_stop_event(item):
     return item.get("stop_event")
 
 
-def run_scenario(client, scenario, payload_path, release=None, *, trace_directory=None):
+def run_scenario(client, scenario, payload_path, release=None, *, trace_directory=None, phase_runner=None):
+    # Internal observation seam; declarative input, guards and cleanup still
+    # belong to this runner. CLI/MCP scenarios cannot supply executable hooks.
+    phase_runner = _run_scenario_phase if phase_runner is None else phase_runner
     phases, events = scenario.get("phases"), scenario.get("input_events", [])
     if (
         not isinstance(phases, list)
@@ -814,7 +817,7 @@ def run_scenario(client, scenario, payload_path, release=None, *, trace_director
             depart_current = (
                 previous is not None and previous.get("address") == f"0x{address:08x}"
             )
-            item = _run_scenario_phase(
+            item = phase_runner(
                 client,
                 phase,
                 payload_path,
