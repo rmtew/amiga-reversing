@@ -531,13 +531,16 @@ def listing_artifact_source_package_with_c_backend(
     binary_source: BinarySource, *, minimum_asset_size: int = 256,
     metadata_path: Path | None = None, project_root: Path = PROJECT_ROOT,
     structure_macros: bool = False,
+    artifact=None,
 ) -> dict[str, object]:
-    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
-        artifact = CListingArtifact.create(
-            source_file, metadata_text=_metadata_path_text(metadata_path),
-            include_dir=str(_platform_include_dir_for_listing(source_file.platform_name, project_root)),
-            project_root=project_root,
-        )
+    owned = artifact is None
+    if owned:
+        with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+            artifact = CListingArtifact.create(
+                source_file, metadata_text=_metadata_path_text(metadata_path),
+                include_dir=str(_platform_include_dir_for_listing(source_file.platform_name, project_root)),
+                project_root=project_root,
+            )
     try:
         payload = artifact.source_package_payload(minimum_asset_size)
         payload["canonical_source_text"] = artifact.inline_source_text_with_profile()[0]
@@ -553,7 +556,8 @@ def listing_artifact_source_package_with_c_backend(
             payload["structure_macros"] = report
         return payload
     finally:
-        artifact.close()
+        if owned:
+            artifact.close()
 
 
 def assemble_platform_source_path_with_c_backend(

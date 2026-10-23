@@ -497,8 +497,15 @@ service in CLI/MCP/UI. Child placements inherit parent translation and expose
 their original offsets; cycles, missing/out-of-range parents, unrelated overlaps,
 unsupported independent child placement and illegal destinations refuse.
 `placement_valid` is deliberately paired with **`export_ready: false`**: reference,
-bootstrap, encoding and runtime obligations are not discharged. No selected-layout
-source export is implemented by this placement batch. The legacy single-region
+bootstrap, encoding and runtime obligations are not discharged. Selected source
+previews now use the normal exporter with `layout_id` (CLI `--layout`), vasm only.
+They bind the selected native placement-plan hash and explicitly report
+`layout_status: source_only_unqualified`, `layout_runtime_qualified: false` and
+`non_verification: true`. This does not admit a derived executable or prove its
+bootstrap/reference closure. Typed runtime references and runtime ORGs use region
+base/offset expressions; source coordinates and scalar constants are not rebased.
+The normal package path shares one owned native artifact between inline and asset
+projections rather than analysing twice. The legacy single-region
 artifact builder refuses hierarchical/non-storage definitions rather than
 silently losing their contracts.
 

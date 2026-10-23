@@ -18,6 +18,15 @@ one skip for the missing optional MCP SDK. Native `placement_valid` results reta
 `export_ready: false`. Normal source export, bootstrap migration, real transport
 qualification with that SDK and independent workspace movement remain open.
 
+The source-preview batch adds canonical layout selection to the normal exporter,
+with native base/offset planning and typed runtime-symbol/ORG projection. Synthetic
+original/moved vasm fixtures and related regression suites pass (335 focused
+tests). Native import now rejects scalar/mixed layout entries and fractional or
+exponent numeric tokens. Package source/assets share one analysis artifact.
+Exports remain explicitly runtime-unqualified; real Pandora bootstrap/reference
+adoption, original/alternate build checks and independent-block gameplay/output
+acceptance are still pending.
+
 ## Canonical layout design (2026-10-23)
 
 [Proposal 046](../proposals/046-canonical-memory-layouts.md) audits the existing

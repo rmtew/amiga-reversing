@@ -8975,15 +8975,31 @@ static int append_metadata_memory_region_local(const char *start, const char *en
   return 1;
 }
 
+static int layout_required_u32_local(const char *start,const char *end,const char *key,uint32_t *out) {
+  const char *p=json_find_key_local(start,end,key);uint64_t value=0;
+  if(!p) return 0;
+  p=json_skip_ws_local(p,end);
+  if(p==end || *p<'0' || *p>'9') return 0;
+  if(*p=='0' && p+1<end && p[1]>='0' && p[1]<='9') return 0;
+  do {
+    value=value*10+(unsigned)(*p-'0');
+    if(value>UINT32_MAX) return 0;
+    p++;
+  } while(p<end && *p>='0' && *p<='9');
+  p=json_skip_ws_local(p,end);
+  if(p<end && *p!=',' && *p!='}') return 0;
+  *out=(uint32_t)value;return 1;
+}
+
 static int append_metadata_memory_layout_local(const char *start,const char *end,M68kAnalysisPolicy *policy) {
   static const char *const keys[]={"schema_version","layout_id","chip_bytes","placements"};
   static const char *const placement_keys[]={"region_id","runtime_address"};
-  M68kMemoryLayoutIR layout={0};uint32_t version=0;int present=0;
+  M68kMemoryLayoutIR layout={0};uint32_t version=0;
   if(policy->memory_layout_count>=M68K_MEMORY_LAYOUT_LIMIT ||
       !json_object_has_only_keys_local(start,end,keys,4) ||
-      !json_number_field_local(start,end,"schema_version",&version,&present) || !present || version!=1 ||
+      !layout_required_u32_local(start,end,"schema_version",&version) || version!=1 ||
       !json_optional_string_field_local(start,end,"layout_id",layout.layout_id,sizeof(layout.layout_id)) || !layout.layout_id[0] ||
-      !json_number_field_local(start,end,"chip_bytes",&layout.chip_bytes,&present) || !present ||
+      !layout_required_u32_local(start,end,"chip_bytes",&layout.chip_bytes) ||
       (layout.chip_bytes!=0x80000 && layout.chip_bytes!=0x100000)) return 0;
   for(size_t i=0;i<policy->memory_layout_count;i++) if(!strcmp(layout.layout_id,policy->memory_layouts[i].layout_id)) return 0;
   /* Bounded object text: never let a nested array search consume the next
@@ -9001,7 +9017,7 @@ static int append_metadata_memory_layout_local(const char *start,const char *end
     M68kMemoryPlacementIR *p=&layout.placements[layout.placement_count];
     if(!json_object_has_only_keys_local(entry,entry_end,placement_keys,2) ||
         !json_optional_string_field_local(entry,entry_end,"region_id",p->region_id,sizeof(p->region_id)) || !p->region_id[0] ||
-        !json_number_field_local(entry,entry_end,"runtime_address",&p->runtime_address,&present) || !present || p->runtime_address>=0x1000000) {
+        !layout_required_u32_local(entry,entry_end,"runtime_address",&p->runtime_address) || p->runtime_address>=0x1000000) {
       free(text);return 0;
     }
     for(size_t i=0;i<layout.placement_count;i++) if(!strcmp(layout.placements[i].region_id,p->region_id)) {free(text);return 0;}
@@ -9024,6 +9040,11 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
   uint8_t target_type_id;
   if (text == NULL || policy == NULL) return -1;
   text_end = text + strlen(text);
+  if(!json_optional_string_field_local(text,text_end,"selected_memory_layout_id",
+      policy->selected_memory_layout_id,sizeof(policy->selected_memory_layout_id))) {
+    platform_file_add_policy_parse_error_local(policy,diagnostics.list,"invalid selected memory layout identity");
+    return -1;
+  }
   target_type[0] = '\0';
   if (!json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type))) {
     platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata target_type");
@@ -9071,14 +9092,25 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     cursor=object_end;
   }
   cursor=json_find_array_local(text,"memory_layouts",&array_end);
+  if(!cursor && json_find_key_local(text,text_end,"memory_layouts")) {
+    platform_file_add_policy_parse_error_local(policy,diagnostics.list,"memory layouts must be an object array");
+    return -1;
+  }
+  if(cursor) cursor=json_skip_ws_local(cursor,array_end);
   while(cursor && cursor<array_end) {
     const char *object_end=NULL,*object_start=json_next_object_local(cursor,array_end,&object_end);
-    if(!object_start) break;
-    if(!append_metadata_memory_layout_local(object_start,object_end,policy)) {
+    if(!object_start || object_start!=cursor || !append_metadata_memory_layout_local(object_start,object_end,policy)) {
       platform_file_add_policy_parse_error_local(policy,diagnostics.list,"failed parsing target metadata memory layout");
       return -1;
     }
-    cursor=object_end;
+    cursor=json_skip_ws_local(object_end,array_end);
+    if(cursor<array_end) {
+      if(*cursor!=',' || json_skip_ws_local(cursor+1,array_end)==array_end) {
+        platform_file_add_policy_parse_error_local(policy,diagnostics.list,"invalid memory layout array separator");
+        return -1;
+      }
+      cursor=json_skip_ws_local(cursor+1,array_end);
+    }
   }
   cursor = json_find_array_local(text, "abstract_regions", &array_end);
   while (cursor != NULL && cursor < array_end) {

@@ -3,12 +3,14 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable
+from contextlib import closing
 from pathlib import Path
 from typing import Any, TypedDict
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.c_backend import (
+    build_listing_artifact_profile_from_binary_source,
     listing_artifact_source_package_with_c_backend,
     source_quality_explain_project_source_with_c_backend,
 )
@@ -56,6 +58,7 @@ def source_export_payload(
     binary_assets: bool = False,
     minimum_asset_size: int = 256,
     structure_macros: bool = False,
+    layout_id: str | None = None,
 ) -> dict[str, object]:
     try:
         return render_source_export(
@@ -65,6 +68,7 @@ def source_export_payload(
             binary_assets=binary_assets,
             minimum_asset_size=minimum_asset_size,
             structure_macros=structure_macros,
+            layout_id=layout_id,
         )
     except SourceExportRefused as exc:
         return exc.payload
@@ -78,6 +82,7 @@ def render_source_export(
     binary_assets: bool = False,
     minimum_asset_size: int = 256,
     structure_macros: bool = False,
+    layout_id: str | None = None,
 ) -> dict[str, object]:
     if type(binary_assets) is not bool:
         raise ValueError("binary_assets must be boolean")
@@ -86,6 +91,8 @@ def render_source_export(
     if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:
         raise ValueError("minimum_asset_size must be 1..4294967295")
     profile = _require_source_export_profile(assembler_profile)
+    if layout_id is not None and profile != "vasm":
+        raise ValueError("Selected memory layouts currently require vasm")
     if structure_macros and profile != "vasm":
         raise ValueError("Structure macro exports currently require the verified vasm profile")
     if binary_assets and profile != "vasm":
@@ -96,18 +103,19 @@ def render_source_export(
         project_root=project_root,
     )
     if artifact_payload is not None:
-        if binary_assets or structure_macros:
+        if binary_assets or structure_macros or layout_id is not None:
             raise ValueError("Optional binary-asset or structure-macro projections require a native analysis render plan")
         return artifact_payload
     paths = resolve_project_paths(target_name, project_root=project_root)
     renderer = SOURCE_BINARY_RENDERERS.get(paths.binary_source.kind)
     if renderer is None:
         raise ValueError(f"source export does not support binary source kind: {paths.binary_source.kind}")
-    if binary_assets or structure_macros:
+    if binary_assets or structure_macros or layout_id is not None:
         if renderer is not _c_backend_binary_source_export:
             raise ValueError("Optional binary-asset or structure-macro projections require the native renderer")
         return _c_backend_binary_source_export(target_name, paths, profile, project_root,
-            minimum_asset_size=minimum_asset_size if binary_assets else None, structure_macros=structure_macros)
+            minimum_asset_size=minimum_asset_size if binary_assets else None, structure_macros=structure_macros,
+            layout_id=layout_id)
     return renderer(target_name, paths, profile, project_root)
 
 
@@ -118,36 +126,45 @@ def _c_backend_binary_source_export(
     project_root: Path,
     *, minimum_asset_size: int | None = None,
     structure_macros: bool = False,
+    layout_id: str | None = None,
 ) -> dict[str, object]:
     binary_source = paths.binary_source
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        rendering = render_source_from_binary_source(
-            target_id=target_name,
-            binary_source=binary_source,
-            target_dir=paths.target_dir,
-            metadata_path=metadata_path,
-            project_root=project_root,
-            workflow_id="source_export",
-            use_persisted_policy=False,
-        )
-        native_package = None
-        if (minimum_asset_size is not None or structure_macros) and not rendering.refused:
-            native_package = listing_artifact_source_package_with_c_backend(
-                binary_source, minimum_asset_size=minimum_asset_size if minimum_asset_size is not None else 0xFFFFFFFF,
-                metadata_path=metadata_path, project_root=project_root,
-                structure_macros=structure_macros,
+    with effective_metadata_file(paths.target_dir, **({"layout_id": layout_id} if layout_id is not None else {})) as metadata_path:
+        _, _, artifact = build_listing_artifact_profile_from_binary_source(
+            binary_source, metadata_path=metadata_path, project_root=project_root)
+        with closing(artifact):
+            selected_plan = None
+            if layout_id is not None:
+                selected_plan = next((p for p in artifact.memory_layouts_payload()["items"]
+                                      if p["layout_id"] == layout_id), None)
+                if selected_plan is None or selected_plan["status"] != "placement_valid":
+                    raise ValueError("Selected native memory layout has unresolved placement constraints")
+            rendering = render_source_from_binary_source(
+                target_id=target_name,
+                binary_source=binary_source,
+                target_dir=paths.target_dir,
+                metadata_path=metadata_path,
+                project_root=project_root,
+                workflow_id="source_export",
+                use_persisted_policy=False,
+                artifact=artifact,
             )
-            if native_package.pop("canonical_source_text") != rendering.source_text:
-                raise ValueError("Source changed during package export; retry from current state")
+            native_package = None
+            if (minimum_asset_size is not None or structure_macros) and not rendering.refused:
+                native_package = listing_artifact_source_package_with_c_backend(
+                    binary_source, minimum_asset_size=minimum_asset_size if minimum_asset_size is not None else 0xFFFFFFFF,
+                    metadata_path=metadata_path, project_root=project_root,
+                    structure_macros=structure_macros, artifact=artifact,
+                )
+                if native_package.pop("canonical_source_text") != rendering.source_text:
+                    raise ValueError("Source changed during package export; retry from current state")
+        if rendering.refused:
+            source_quality_explanation = source_quality_explain_project_source_with_c_backend(
+                binary_source, metadata_path=metadata_path, project_root=project_root)
     filename = f"{_safe_filename(target_name)}-{assembler_profile}.s"
     if minimum_asset_size is not None:
         filename = f"{_safe_filename(target_name.encode("ascii", "ignore").decode())}-{assembler_profile}.s"
     if rendering.refused:
-        source_quality_explanation = source_quality_explain_project_source_with_c_backend(
-            binary_source,
-            metadata_path=metadata_path,
-            project_root=project_root,
-        )
         raise SourceExportRefused(
             {
                 "status": "refused",
@@ -168,6 +185,11 @@ def _c_backend_binary_source_export(
         metadata_hash=rendering.metadata_hash,
         target_identity_sha256=rendering.target_identity_sha256,
     )
+    layout_plan_sha256 = None
+    if selected_plan is not None:
+        layout_plan_sha256 = hashlib.sha256(json.dumps(selected_plan, sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        header += f"; Layout: {layout_id} (source only; runtime unqualified)\n; Layout plan SHA256: {layout_plan_sha256}\n"
     payload: dict[str, object] = {
         "status": "ok",
         "target": target_name,
@@ -181,6 +203,11 @@ def _c_backend_binary_source_export(
         "workflow_profile": rendering.workflow_profile,
         "non_verification": True,
     }
+    if layout_id is not None:
+        payload["layout_id"] = layout_id
+        payload["layout_plan_sha256"] = layout_plan_sha256
+        payload["layout_status"] = "source_only_unqualified"
+        payload["layout_runtime_qualified"] = False
 
     if native_package is not None:
         from amiga_reversing.disasm.source_package import (

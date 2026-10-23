@@ -2827,8 +2827,17 @@ def effective_metadata_hash(target_dir: Path) -> str:
 
 
 @contextmanager
-def effective_metadata_file(target_dir: Path, *, include_decision_journal: bool = True) -> Iterator[Path | None]:
+def effective_metadata_file(target_dir: Path, *, include_decision_journal: bool = True,
+                            layout_id: str | None = None) -> Iterator[Path | None]:
     text = effective_metadata_text(target_dir, include_decision_journal=include_decision_journal)
+    if layout_id is not None:
+        if not isinstance(layout_id, str) or not layout_id:
+            raise ValueError("Layout selection requires a canonical layout identity")
+        payload = json.loads(text) if text else {}
+        if not any(x.get("layout_id") == layout_id for x in payload.get("memory_layouts", [])):
+            raise ValueError("Selected memory layout is not defined by current canonical facts")
+        payload["selected_memory_layout_id"] = layout_id
+        text = json.dumps(payload, sort_keys=True, indent=2) + "\n"
     if not text:
         yield None
         return

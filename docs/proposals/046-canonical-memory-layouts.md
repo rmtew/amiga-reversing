@@ -31,8 +31,22 @@ extended hierarchical definitions until the normal layout export owns them.
 225 focused native/schema/history/catalog/service tests pass. With socket access,
 the existing transport suite reports seven passes and one optional-MCP-SDK skip.
 The interface tests require socket access; optional MCP SDK absence remains an
-explicit transport-validation gap, not a passing skip. Source export and M2–M4
-are still pending.
+explicit transport-validation gap, not a passing skip. Pandora adoption and
+M2–M4 acceptance are still pending.
+
+The subsequent source-preview batch selects canonical layouts through the normal
+native exporter. Runtime equates, DMA symbols and runtime ORGs use base/offset
+expressions; scalar values and source coordinates retain their domains. Synthetic
+original/moved fixtures assemble independently with vasm to the expected full
+bytes, including an independently moved workspace. This is mechanism evidence,
+not Pandora gameplay acceptance. Exports bind the native placement-plan hash and
+remain explicitly `source_only_unqualified`. Package export now constructs one
+owned native artifact for source and assets, replacing duplicate analysis rather
+than adding a cache. Two reviewed importer omissions (mixed/scalar layout entries
+and truncated numeric tokens) are fixed with native malformed-input regressions.
+335 focused tests pass across layout/region/history, source/export/package and
+service operations. No new Pandora payload or emulator result is claimed by this
+batch; bootstrap/reference adoption and M2–M4 acceptance remain open.
 
 ## Decision and scope
 

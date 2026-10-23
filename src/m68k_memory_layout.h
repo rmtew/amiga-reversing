@@ -11,4 +11,8 @@ typedef struct M68kResolvedMemoryLayout {
 /* Placement validation only: no reference closure, initialization, encoding or
  * execution claim. These are canonical region facts, never inferred extents. */
 int m68k_memory_layout_resolve(const M68kAnalysisPolicy *,const M68kMemoryLayoutIR *,M68kResolvedMemoryLayout *);
+/* Resolve only an already typed runtime reference; callers must never pass
+ * arbitrary scalar values here. Returns 1 mapped, 0 outside known regions. */
+int m68k_memory_layout_reference(const M68kAnalysisPolicy *,const M68kResolvedMemoryLayout *,
+    uint32_t address,uint32_t width,char *expression,size_t capacity,uint32_t *placed_address);
 #endif

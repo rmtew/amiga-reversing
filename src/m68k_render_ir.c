@@ -884,10 +884,59 @@ static void format_binary_value_expr(uint32_t value, char *out, size_t out_size)
   *cursor = '\0';
 }
 
-static int format_target_equate_value_expr(const M68kAnalysisTargetEquate *equate, char *out, size_t out_size) {
+static int layout_runtime_expression(M68kRenderIRPreview *preview,uint32_t address,uint32_t width,
+    char *out,size_t capacity,uint32_t *placed) {
+  if(!preview->memory_layout_enabled) return 0;
+  return m68k_memory_layout_reference(preview->analysis_policy,&preview->memory_layout,
+    address,width,out,capacity,placed);
+}
+
+static int declare_layout_runtime_symbol(M68kRenderIRPreview *preview,const char *name,uint32_t address) {
+  char expression[128];
+  int rc=layout_runtime_expression(preview,address,1,expression,sizeof(expression),NULL);
+  if(rc<0) return 0;
+  return rc ? render_asm_declare_symbol_expr_once(preview,name,expression) :
+    render_asm_declare_symbol_hex_once(preview,name,address);
+}
+
+static void render_asm_runtime_org(M68kRenderIRPreview *preview,uint32_t address) {
+  char expression[128],line[160];
+  int rc=layout_runtime_expression(preview,address,1,expression,sizeof(expression),NULL);
+  if(rc<0) {
+    ++preview->asm_source_instruction_render_failures;
+    record_source_export_failure(preview,M68K_SOURCE_EXPORT_FAILURE_RENDER,0,0,0);return;
+  }
+  if(!rc) {render_asm_org(preview,address);return;}
+  snprintf(line,sizeof(line),"    ORG %s\n",expression);
+  if(preview->asm_source_row_builder.active)
+    m68k_render_plan_row_builder_mark_current_line_directive(&preview->asm_source_row_builder);
+  hash_asm_text(preview,line);++preview->asm_source_lines;
+}
+
+static int declare_layout_region(M68kRenderIRPreview *preview,size_t i,uint8_t *done) {
+  const M68kAnalysisPolicy *p=preview->analysis_policy;
+  const M68kMemoryRegionIR *r=&p->memory_regions[i];char expression[128];
+  if(done[i]) return 1;
+  if(!asm_symbol_name_is_safe_local(r->name)) return 0;
+  int parent=preview->memory_layout.parents[i];
+  if(parent>=0) {
+    if(!declare_layout_region(preview,(size_t)parent,done)) return 0;
+    snprintf(expression,sizeof(expression),"%s+$%X",p->memory_regions[parent].name,
+      r->runtime_address-p->memory_regions[parent].runtime_address);
+  } else snprintf(expression,sizeof(expression),"$%X",preview->memory_layout.addresses[i]);
+  if(!render_asm_declare_symbol_expr_once(preview,r->name,expression)) return 0;
+  done[i]=1;return 1;
+}
+
+static int format_target_equate_value_expr(M68kRenderIRPreview *preview,
+    const M68kAnalysisTargetEquate *equate, char *out, size_t out_size) {
   uint32_t value;
   if (equate == NULL || out == NULL || out_size == 0U) return 0;
   out[0] = '\0';
+  if(equate->address_domain && preview->memory_layout_enabled) {
+    int rc=layout_runtime_expression(preview,(uint32_t)equate->value,equate->extent_bytes,out,out_size,NULL);
+    if(rc) return rc>0;
+  }
   value = (uint32_t)equate->value;
   if (equate->address_domain) {
     snprintf(out, out_size, "$%X", (unsigned)value);
@@ -969,9 +1018,22 @@ static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const
     const M68kAnalysisPolicy *policy) {
   uint16_t index;
   if (preview == NULL || policy == NULL) return 1;
+  if(preview->memory_layout_enabled) {
+    uint8_t done[M68K_ANALYSIS_MEMORY_REGION_LIMIT]={0};
+    for(size_t i=0;i<policy->memory_region_count;i++) if(!declare_layout_region(preview,i,done)) return 0;
+  }
   for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
     const M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
     if (equate->name[0] == '\0') continue;
+    if(preview->memory_layout_enabled && equate->address_domain) {
+      int same=0;
+      for(size_t i=0;i<policy->memory_region_count;i++) {
+        const M68kMemoryRegionIR *r=&policy->memory_regions[i];
+        if(!strcmp(equate->name,r->name) && (uint32_t)equate->value==r->runtime_address &&
+            equate->extent_bytes<=r->size) same=1;
+      }
+      if(same) continue;
+    }
     /* A different label at the same address does not define this EQU's name.
      * Manual symbol representations can still refer to that exact name. */
     if (equate->value >= 0 && render_plan_has_source_label_definition(plan, equate->name,
@@ -980,7 +1042,7 @@ static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const
     }
     if (equate->address_domain || equate->value_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) {
       char expr[128];
-      if (!format_target_equate_value_expr(equate, expr, sizeof(expr)) ||
+      if (!format_target_equate_value_expr(preview,equate, expr, sizeof(expr)) ||
           !render_asm_declare_symbol_expr_once(preview, equate->name, expr)) {
         return 0;
       }
@@ -1319,7 +1381,7 @@ static int render_planned_runtime_alias_labels(M68kRenderIRPreview *preview, siz
     char line[160];
     if (runtime_alias->source_section_index != (uint32_t)section_index ||
         runtime_alias->source_offset != offset) continue;
-    render_asm_org(preview, runtime_alias->runtime_address);
+    render_asm_runtime_org(preview, runtime_alias->runtime_address);
     snprintf(line, sizeof(line), "%s:\n", runtime_alias->name);
     if (preview->asm_source_row_builder.active)
       m68k_render_plan_row_builder_mark_current_line_label(&preview->asm_source_row_builder, offset, 1U,
@@ -1379,13 +1441,13 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
     if (record_planned_label_statement_access(preview, section_index, planned_label, 1) != 0) {
       preview->asm_source_allocation_failed = 1U;
     }
-    render_asm_org(preview, runtime_address);
+    render_asm_runtime_org(preview, runtime_address);
     *io_logical_pc = runtime_address;
   } else if (io_logical_pc != NULL) {
     render_asm_sync_logical_pc(preview, lookup, section_index, offset, io_logical_pc);
   }
   if (render_planned_runtime_alias_labels(preview, section_index, offset) && has_runtime_address) {
-    render_asm_org(preview, runtime_address);
+    render_asm_runtime_org(preview, runtime_address);
     if (io_logical_pc != NULL) *io_logical_pc = runtime_address;
   }
   snprintf(name, sizeof(name), "%s", planned_label->name);
@@ -2273,7 +2335,12 @@ void render_asm_sync_logical_pc(M68kRenderIRPreview *preview, const M68kRenderLo
   uint32_t desired = source_offset;
   if (preview == NULL || io_logical_pc == NULL) return;
   (void)lookup_source_logical_address(lookup, section_index, source_offset, &desired);
-  if (*io_logical_pc != desired) render_asm_org(preview, desired);
+  if (*io_logical_pc != desired) {
+    uint32_t runtime=0;
+    if(lookup_source_should_render_runtime_label(lookup,section_index,source_offset,&runtime))
+      render_asm_runtime_org(preview,desired);
+    else render_asm_org(preview,desired);
+  }
   *io_logical_pc = desired;
 }
 
@@ -3935,7 +4002,7 @@ static int render_asm_define_runtime_address_word_symbols_once(M68kRenderIRPrevi
   if (high_symbol == NULL || high_symbol[0] == '\0' || low_symbol == NULL || low_symbol[0] == '\0') return 0;
   snprintf(high_expr, sizeof(high_expr), "%s/$10000", base_symbol);
   snprintf(low_expr, sizeof(low_expr), "%s-(%s*$10000)", base_symbol, high_symbol);
-  return render_asm_declare_symbol_hex_once(preview, base_symbol, address) &&
+  return declare_layout_runtime_symbol(preview, base_symbol, address) &&
     render_asm_declare_symbol_expr_once(preview, high_symbol, high_expr) &&
     render_asm_declare_symbol_expr_once(preview, low_symbol, low_expr);
 }
@@ -3946,7 +4013,7 @@ static int render_asm_define_runtime_address_symbol_once(M68kRenderIRPreview *pr
   if (preview == NULL || symbol == NULL || symbol_size == 0U || address == 0U) return 0;
   platform_format_runtime_address_symbol_name(role, address, "", symbol, symbol_size);
   if (symbol[0] == '\0') return 0;
-  return render_asm_declare_symbol_hex_once(preview, symbol, address);
+  return declare_layout_runtime_symbol(preview, symbol, address);
 }
 
 static int format_copper_semantic_operand_expr_for_render(M68kRenderIRPreview *preview,
@@ -8035,7 +8102,7 @@ static int attach_platform_semantic_operand_expr_for_render(M68kRenderIRPreview 
     }
     if (instruction->operands[use->operand_index].symbol_ref.has_name != 0U) continue;
     if (use->has_runtime_address) {
-      if (!render_asm_declare_symbol_hex_once(preview, use->operand_expr, use->runtime_address)) {
+      if (!declare_layout_runtime_symbol(preview, use->operand_expr, use->runtime_address)) {
         ++preview->asm_source_instruction_render_failures;
         record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, (uint32_t)section_index, offset, 0U);
         return -1;
@@ -10507,7 +10574,7 @@ static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview,
       continue;
     }
     if (observation->symbol_name == NULL || observation->symbol_name[0] == '\0') continue;
-    if (!render_asm_declare_symbol_hex_once(preview, observation->symbol_name, address)) return 0;
+    if (!declare_layout_runtime_symbol(preview, observation->symbol_name, address)) return 0;
     attach_generic_symbol(operand, observation->symbol_name);
     operand->symbol_ref.name_is_generated = (uint8_t)(declared_slot == NULL &&
       observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY);
@@ -10540,7 +10607,7 @@ static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *previ
       candidate->offset, operand_index, address, metadata->operand_access_kinds[operand_index]);
     if (observation == NULL) continue;
     if (observation->symbol_name == NULL || observation->symbol_name[0] == '\0') continue;
-    if (!render_asm_declare_symbol_hex_once(preview, observation->symbol_name, address)) return 0;
+    if (!declare_layout_runtime_symbol(preview, observation->symbol_name, address)) return 0;
     attach_generic_symbol(operand, observation->symbol_name);
     operand->symbol_ref.name_is_generated = (uint8_t)(
       observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY &&
@@ -11609,6 +11676,13 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   if (render_asm_source && out_preview->render_evidence == NULL) return -1;
   out_preview->platform_backend_kind = object->platform_backend_kind;
   out_preview->analysis_policy = policy;
+  if(policy && policy->selected_memory_layout_id[0]) {
+    const M68kMemoryLayoutIR *layout=NULL;
+    for(size_t i=0;i<policy->memory_layout_count;i++)
+      if(!strcmp(policy->memory_layouts[i].layout_id,policy->selected_memory_layout_id)) layout=&policy->memory_layouts[i];
+    if(!layout || m68k_memory_layout_resolve(policy,layout,&out_preview->memory_layout)) return -1;
+    out_preview->memory_layout_enabled=1;
+  }
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();

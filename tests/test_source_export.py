@@ -16,7 +16,24 @@ from amiga_reversing.disasm.source_rendering import SourceRenderingResult
 from amiga_reversing.tools import source_export as source_export_cli
 
 
+def test_layout_export_requires_native_vasm():
+    with pytest.raises(ValueError, match='require vasm'):
+        source_export.source_export_payload('unused', assembler_profile='devpac', layout_id='alternate')
+
+
+def test_layout_selection_cli_reaches_normal_export(monkeypatch, tmp_path):
+    calls = []
+    def export(target, **options):
+        calls.append((target, options))
+        return {'status': 'ok', 'filename': 'fixture.s', 'source_text': 'rts\n'}
+    monkeypatch.setattr(source_export_cli, 'source_export_payload', export)
+    assert source_export_cli.main(['fixture', '--layout', 'alternate', '--output', str(tmp_path/'out.s')]) == 0
+    assert calls[0][1]['layout_id'] == 'alternate'
+
+
 def test_source_export_payload_includes_header_and_source(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(source_export, "build_listing_artifact_profile_from_binary_source",
+        lambda *args, **kwargs: (0, {}, SimpleNamespace(close=lambda: None)))
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_source = SimpleNamespace(kind=BinarySourceKind.HUNK_FILE, read_bytes=lambda: b"\x01\x02")
@@ -66,6 +83,8 @@ def test_source_export_rejects_invalid_profile() -> None:
 
 
 def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(source_export, "build_listing_artifact_profile_from_binary_source",
+        lambda *args, **kwargs: (0, {}, SimpleNamespace(close=lambda: None)))
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_source = SimpleNamespace(kind=BinarySourceKind.HUNK_FILE, read_bytes=lambda: b"\x01\x02")

@@ -1,5 +1,7 @@
 """Canonical fixed layout definitions: placement is not export admission."""
 import json
+import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -131,3 +133,82 @@ def test_malformed_native_placement_array_refused(tmp_path):
     with pytest.raises(RuntimeError, match='parsing target metadata memory layout'):
         build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e75'),
             display_path='invalid-layout', metadata_path=path)
+
+
+@pytest.mark.parametrize('value', [[1], [1, layout()], [layout(), 1], [None], 'not-an-array', {}])
+def test_native_layout_import_refuses_scalar_and_mixed_entries(tmp_path, value):
+    path = tmp_path/'bad.json'
+    path.write_text(json.dumps({'memory_layouts': value}))
+    with pytest.raises(RuntimeError, match='memory layout'):
+        build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e75'),
+            display_path='invalid-layout-array', metadata_path=path)
+
+
+@pytest.mark.parametrize(('field', 'value'), [('schema_version', 1.5), ('schema_version', 1.0),
+    ('schema_version', True), ('chip_bytes', 1048576.5), ('runtime_address', 16384.5),
+    ('runtime_address', 1e10), ('runtime_address', -1), ('runtime_address', 0x100000000)])
+def test_native_layout_numeric_fields_match_authored_integer_rules(tmp_path, field, value):
+    config = layout([('a', 0x4000)])
+    if field == 'runtime_address':
+        config['placements'][0][field] = value
+    else:
+        config[field] = value
+    path = tmp_path/'fraction.json'
+    path.write_text(json.dumps({'memory_layouts': [config]}))
+    with pytest.raises(RuntimeError, match='memory layout'):
+        build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e75'),
+            display_path='invalid-layout-number', metadata_path=path)
+
+
+@pytest.mark.parametrize('token', ['1e0', '1E+0', '01', '+1', '1junk'])
+def test_layout_boundary_rejects_non_integer_tokens(tmp_path, token):
+    path = tmp_path/'token.json'
+    # Valid JSON exponents reach native validation; malformed JSON may be
+    # refused earlier by the transport's JSON reader.
+    text = json.dumps({'memory_layouts': [layout()]})
+    path.write_text(text.replace('"schema_version": 1', '"schema_version": '+token))
+    with pytest.raises((RuntimeError, json.JSONDecodeError)):
+        build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e75'),
+            display_path='invalid-number-token', metadata_path=path)
+
+
+@pytest.mark.parametrize('moved', [False, True])
+def test_native_layout_render_and_independent_assembly(tmp_path, moved):
+    config = layout([('image', 0x80000), ('cursor', 0xe0000)] if moved else [])
+    meta = dict(memory_regions=[region('image', 0x10000, 8, kind='image'),
+        region('cursor', 0x65370, 136), region('cursor1', 0x653b4, 68, parent='cursor'),
+        region('display', 0x70000, 32000, kind='display')], memory_layouts=[config],
+        selected_memory_layout_id='diagnostic',
+        execution_views=[dict(source_start=0, source_end=8, base_addr=0x10000)],
+        target_equates=[dict(name='CURSOR', value=0x65370, value_representation='hex',
+            address_domain='runtime', extent_bytes=68, group='cursor'),
+            dict(name='SCALAR', value=0x65370, value_representation='hex')])
+    path = tmp_path/'meta.json'
+    path.write_text(json.dumps(meta))
+    original = bytes.fromhex('41f9000653704e75')
+    _, _, artifact = build_flat_m68k_bytes_listing_artifact_profile(original,
+        display_path='layout-render-fixture', metadata_path=path)
+    try:
+        text = artifact.inline_source_text_with_profile()[0]
+        assert 'cursor1_base\tEQU\tcursor_base+$44' in text
+        assert 'CURSOR\tEQU\tcursor_base' in text
+        assert 'absolute_slot_00065370\tEQU\tcursor_base' in text
+        assert 'SCALAR\tEQU\t$65370' in text
+        assert 'display_base\tEQU\t$70000' in text
+        assert 'ORG image_base' in text
+        source, output = tmp_path/'layout.s', tmp_path/'layout.bin'
+        source.write_text(text)
+        vasm = Path(__file__).resolve().parents[1]/'tools/vasmm68k_mot.exe'
+        subprocess.run([str(vasm), '-Fbin', '-m68000', '-no-opt', '-o', str(output), str(source)],
+                       check=True, capture_output=True)
+        assert output.read_bytes() == (bytes.fromhex('41f9000e00004e75') if moved else original)
+    finally:
+        artifact.close()
+
+
+def test_unknown_selected_layout_refused(tmp_path):
+    path = tmp_path/'meta.json'
+    path.write_text(json.dumps(dict(selected_memory_layout_id='missing')))
+    with pytest.raises(RuntimeError):
+        build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e75'),
+            display_path='missing-selection', metadata_path=path)

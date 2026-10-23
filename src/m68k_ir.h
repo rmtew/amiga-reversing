@@ -885,6 +885,8 @@ typedef struct M68kAnalysisPolicy {
   M68kMemoryRegionIR memory_regions[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
   uint16_t memory_layout_count;
   M68kMemoryLayoutIR memory_layouts[M68K_MEMORY_LAYOUT_LIMIT];
+  /* Export selection is a request, not a mutation of original facts. */
+  char selected_memory_layout_id[96];
   M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
 

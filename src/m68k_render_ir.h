@@ -6,6 +6,7 @@
 #include "m68k_fact_ir.h"
 #include "m68k_render_plan.h"
 #include "m68k_source_export.h"
+#include "m68k_memory_layout.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -64,6 +65,8 @@ struct M68kRenderIRPreview {
   uint32_t asm_source_body_start_byte;
   uint8_t platform_backend_kind;
   const M68kAnalysisPolicy *analysis_policy;
+  uint8_t memory_layout_enabled;
+  M68kResolvedMemoryLayout memory_layout;
   M68kRenderTransientRowSink transient_row_sink;
   void *transient_row_sink_user;
   M68kRenderIRPreparedSink prepared_sink;

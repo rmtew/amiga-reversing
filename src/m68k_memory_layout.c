@@ -1,5 +1,7 @@
 #include "m68k_memory_layout.h"
 #include <string.h>
+#include <stdio.h>
+static int ancestor(const M68kResolvedMemoryLayout *,int,int);
 
 static int region_index(const M68kAnalysisPolicy *p,const char *id) {
   for(size_t i=0;i<p->memory_region_count;i++) if(!strcmp(p->memory_regions[i].region_id,id)) return (int)i;
@@ -40,6 +42,26 @@ static int resolve_region(const M68kAnalysisPolicy *p,const M68kMemoryLayoutIR *
 static int ancestor(const M68kResolvedMemoryLayout *r,int a,int b) {
   for(int i=r->parents[b];i>=0;i=r->parents[i]) if(i==a) return 1;
   return 0;
+}
+
+int m68k_memory_layout_reference(const M68kAnalysisPolicy *p,const M68kResolvedMemoryLayout *resolved,
+    uint32_t address,uint32_t width,char *expression,size_t capacity,uint32_t *placed_address) {
+  int selected=-1;
+  if(!p || !resolved || resolved->reason || !expression || !capacity) return -1;
+  expression[0]='\0';
+  for(size_t i=0;i<p->memory_region_count;i++) {
+    const M68kMemoryRegionIR *r=&p->memory_regions[i];
+    if(address<r->runtime_address || (uint64_t)address+(width ? width : 1)>(uint64_t)r->runtime_address+r->size) continue;
+    if(selected<0 || ancestor(resolved,selected,(int)i)) selected=(int)i;
+    else if(!ancestor(resolved,(int)i,selected)) return -1;
+  }
+  if(selected<0) return 0;
+  const M68kMemoryRegionIR *r=&p->memory_regions[selected];
+  uint32_t offset=address-r->runtime_address;
+  int length=offset ? snprintf(expression,capacity,"%s+$%X",r->name,offset) : snprintf(expression,capacity,"%s",r->name);
+  if(length<0 || (size_t)length>=capacity) return -1;
+  if(placed_address) *placed_address=resolved->addresses[selected]+offset;
+  return 1;
 }
 int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayoutIR *layout,
     M68kResolvedMemoryLayout *out) {

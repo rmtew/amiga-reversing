@@ -101,6 +101,21 @@ unknown:
     return original, paths
 
 
+def test_package_export_uses_one_owned_analysis_artifact(native_target, monkeypatch):
+    build = source_export.build_listing_artifact_profile_from_binary_source
+    created = []
+
+    def track(*args, **kwargs):
+        result = build(*args, **kwargs)
+        created.append(result[2])
+        return result
+
+    monkeypatch.setattr(source_export, "build_listing_artifact_profile_from_binary_source", track)
+    result = source_export.source_export_payload('asset-fixture', project_root=PROJECT_ROOT, binary_assets=True)
+    assert result['status'] == 'ok' and len(created) == 1
+    assert result['package']['manifest']['files']
+
+
 def test_native_binary_asset_export_complete_file_exact_both_assemblers(native_target, tmp_path: Path):
     original, _paths = native_target
     plain = source_export.source_export_payload("asset-fixture", project_root=PROJECT_ROOT)

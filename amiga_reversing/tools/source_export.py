@@ -20,6 +20,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--binary-assets", action="store_true", help="Export a deterministic vasm ZIP package with evidenced opaque assets.")
     parser.add_argument("--structure-macros", action="store_true", help="Generate eligible structure macros from the canonical type definitions; expanded fallbacks remain explicit.")
     parser.add_argument("--minimum-asset-size", type=int, default=256)
+    parser.add_argument("--layout", help="Select a canonical fixed memory layout; export is not runtime qualification.")
     parser.add_argument("--verify-package", action="store_true", help="Check the package with the C assembler and vasm, comparing complete originals.")
     parser.add_argument("--json", action="store_true", help="Print export metadata as JSON.")
     args = parser.parse_args(argv)
@@ -27,8 +28,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.verify_package and not args.binary_assets:
         parser.error("--verify-package requires --binary-assets")
     options = {}
+    if args.layout:
+        options["layout_id"] = args.layout
     if args.binary_assets:
-        options = {"binary_assets": True, "minimum_asset_size": args.minimum_asset_size}
+        options.update({"binary_assets": True, "minimum_asset_size": args.minimum_asset_size})
     if args.structure_macros:
         options["structure_macros"] = True
     try:
