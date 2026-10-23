@@ -1,5 +1,11 @@
 # Pandora full source restoration
 
+> Canonical memory-region/layout export is designed in
+> [Proposal 046](../proposals/046-canonical-memory-layouts.md).
+> It proposes replacing the successful experimental fixed-layout source patches
+> through the normal exporter before considering workspace/display moves or
+> OS-hosted output. This is a design roadmap, not implemented layout support.
+
 > Behavioural validation is tracked in [Proposal 045](../proposals/045-behavioural-validation.md).
 > Its B01–B10 commitments distinguish framework capability from target coverage;
 > its CPU and DMA results have bounded scopes. B07 and generic capability work
@@ -11,8 +17,11 @@ Status: **original-layout reviewed closeout with explicit unknowns**.
 [Final source-bound review](../validation/pandora-original-layout-closeout.json)
 dispositions all 32 old unknown intervals and records the unchanged exact source,
 remaining opaque/producer/continuation exceptions and stale-accounting limitation.
-Full semantic restoration, alternate-layout execution and native C remain
-unclaimed. Initial baseline: merged `22e55bb5`.
+Full semantic restoration and native C remain unclaimed. Alternate-layout
+execution now has the separately scoped
+[experimental completion/output evidence](../../runtime/observations/pandora-relocated-output-validation.json);
+normal canonical alternate-layout export is still proposed, not implemented.
+Initial baseline: merged `22e55bb5`.
 This is a work plan and derived evidence index, not another semantic fact store.
 Canonical native facts, Manual Action Log and Decision Journal remain authoritative.
 The full-game objective is not satisfied by this plan or a few runtime checkpoints.

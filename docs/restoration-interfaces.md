@@ -473,6 +473,12 @@ stdio lifecycle: [SDK documentation](https://py.sdk.modelcontextprotocol.io/) an
 
 ## Runtime memory regions and derived artifacts
 
+[Proposal 046](proposals/046-canonical-memory-layouts.md) describes the proposed
+canonical multi-region/layout and normal-export successor, including migration
+and deletion gates. The operations below remain the implemented narrow contract;
+the separate successful Pandora source-patched experiment does not extend their
+admission capabilities.
+
 `target.memory_region.add` records a stable region identity, original
 address, size/alignment, CPU placement, persistent lifetime and DMA requirement
 through ordinary revision-checked interpretation/history. `query` with

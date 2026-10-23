@@ -1,5 +1,12 @@
 # Runtime memory relocation proof
 
+Architecture follow-up: [Proposal 046](046-canonical-memory-layouts.md) proposes
+consolidating region/address resolution and adding canonical fixed-layout export.
+It preserves the bounded proofs/refusals below without requiring this deferred
+keyboard proof to close before reproducing the demonstrated Pandora layout.
+The successful source-patched relocation experiment is separate from admission
+through this single-region proof/build path.
+
 The first connected target is Pandora's 128-byte keyboard state. Region identity,
 native references, same-extent rewrites, whole-payload identity, checked allocation
 and bounded original-layout runtime evidence exist. The target relocation remains

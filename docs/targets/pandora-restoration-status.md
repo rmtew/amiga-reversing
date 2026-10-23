@@ -1,5 +1,15 @@
 # Pandora restoration inventory and status
 
+## Canonical layout design (2026-10-23)
+
+[Proposal 046](../proposals/046-canonical-memory-layouts.md) audits the existing
+region/address-domain/export implementation and the successful relocation
+experiment. It proposes a normal-export original/`$80000` vertical slice with
+explicit bootstrap contracts, indexed resolution and deletion gates for the
+experimental source patches. No architecture implementation or new runtime
+qualification is included in this documentation milestone. Workspace/display
+movement, runtime allocation and OS-hosted lifecycle remain separate gates.
+
 ## Relocated completion and scoped output comparison (2026-10-23)
 
 [Final evidence](../../runtime/observations/pandora-relocated-output-validation.json)
