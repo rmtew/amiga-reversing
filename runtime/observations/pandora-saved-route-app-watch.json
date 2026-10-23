@@ -1,0 +1,783 @@
+{
+  "schema_version": 1,
+  "profile": "Copperline1.0.0 A500OCS PAL68000 512Kchip+512Kslow original direct payload",
+  "validation": {
+    "adapter_tests_passed": 9,
+    "adapter_tests_skipped": 0,
+    "controlled_reported_loss_variants_refused": [
+      "dropped_notifications",
+      "dropped_events"
+    ],
+    "target_source_changes": 0
+  },
+  "qualified_route_commit": "666b373ca9b612e0f4ad8eb92bd0a797d9389a89",
+  "master_publication_base": "53ac88369520343a193a7aba76e7683edfe8599b",
+  "status": "ending_preserved_cpu_access_stream_complete_within_declared_limits",
+  "summary": {
+    "canonical_phases": 576,
+    "input_events": 375,
+    "start_frame": 463,
+    "end_frame": 14332,
+    "cpu_access_events": 197,
+    "read_events": 29,
+    "write_events": 168,
+    "distinct_access_signatures": 3,
+    "distinct_source_instruction_sites": 2,
+    "new_instruction_sites": 0,
+    "newly_classified_bytes": 0,
+    "gap_bytes_without_received_access": 748,
+    "full_gap_regions_without_received_access": 13,
+    "server_dropped_notifications": 0,
+    "server_dropped_mmio_events": 0,
+    "local_signature_overflow": false,
+    "all_phase_frame_and_cck_stops_equal_baseline": true,
+    "input_trace_equal_baseline": true,
+    "saved_earth_message_pointer": "0x5cae5",
+    "earth_deadline_word": "8258",
+    "self_destruct_state": 255,
+    "event_flags": 92,
+    "final_health": 49
+  },
+  "input_identities": {
+    "original_payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_rendered_source_sha256": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    "accepted_instruction_facts_sha256": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+    "legal_rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "copperline_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "direct_payload_media_sha256": "ad8aadc452b5fc83563eb90322e8ad9bf0686da6f3203e540dea8a7aa85c750a"
+  },
+  "evidence_sha256": {
+    "docs/validation/pandora-app-access-audit.json": "3ea8921e59c3405a2cf1c87869d57e640080c75999a887297c15bbde056b567d",
+    "docs/validation/pandora-app-access-audit-sites.jsonl": "576468446ac1d1124f59c4337014902c4cbdfae2607bc820a9b3a7e36a667051",
+    "docs/validation/pandora-app-usage-closure.json": "84987836e82a34d5e45404b2326a67d65585241c73233914db7f01c4d9ff46a1",
+    ".runtime-state/pandora-app-access-audit/instructions.json": "95124792e35f33a5b88bc4fcc3debfd06f807a4646ea14979f016dfa1b83af0c",
+    "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/pandora_3e1ee0f1_bk_00_000000e8.s": "2219a24b4c0d6346a08bc962cbe0b1d7efe16c02b07118f5a915374f1351045e",
+    ".runtime-state/pandora-player/ending-app-watch-c/authored.json": "968d837857626859b525d057b317a55315f3ea9a0f19c99ea9f74f41b18e51d2",
+    ".runtime-state/pandora-player/ending-app-watch-c/compiled.json": "cabf4d9049afd7f24ff2aed53f42a3253ebb53c6b13f223dea49f3aaf633f0f7",
+    ".runtime-state/pandora-player/ending-app-watch-c/report.json": "1798dd9a3afced53ec6d36b7435fdc42daf384784891859286cd6e832b168274",
+    ".runtime-state/pandora-player/ending-app-watch-c/summary.json": "1d12968813d3daba37b66a593e46ab3b92fada771b124638348cfe484081144f",
+    ".runtime-state/pandora-player/ending-app-watch-c/watch.json": "32f5a75451588bdc2af0ebb40422c8b960b101db4915e1a3219558966ac22eaa",
+    ".runtime-state/pandora-player/ending-app-watch-c/execution-identities.json": "12ec952289c43e2c85b4026b352f4173b760f9b48cfb6896a9442a8636c7f3b4",
+    ".runtime-state/pandora-player/finale-cold-b/report.json": "763d9ec96740209b2fce66f5aaea412bafd551661b4398e458f80489895e009a",
+    "amiga_reversing/tools/pandora_route_app_watch.py": "d1eac077547db3471e38a1e720f6459df217e2666831193f54b302806bff8aaf"
+  },
+  "executed_code_sha256": {
+    ".runtime-state/pandora-player/run-watched.py": "26ee39b353d7d82181526f3d6f2457c5433401c56603860394d4977ce1bef5bd",
+    "amiga_reversing/tools/pandora_route_app_watch.py": "d1eac077547db3471e38a1e720f6459df217e2666831193f54b302806bff8aaf",
+    "amiga_reversing/tools/pandora_finale.py": "9f3675e8059a657885c42cda4b729d866919afc3816fe3462ed789419f9ef53a",
+    "amiga_reversing/tools/pandora_revised.py": "18950e1ad4f41a7ccf0bb34f2f3336712561fbe18d457acdb68b733d7ef376f6",
+    "amiga_reversing/tools/pandora_escape.py": "ff1bd7e4c88e3d98dfd7c4a930ac7ed646c8194e42cbff1da9b0968d2d0bf8ec",
+    "amiga_reversing/tools/pandora_console.py": "4ef0d842c7ec61fa42f44632ebfc4d67d466b122df5736721a00701849e2a946",
+    "amiga_reversing/tools/pandora_awol.py": "a2f5d228920958b31b141d495a9b4b631f0286188958f1aff1eef5299e7c15de",
+    "amiga_reversing/tools/pandora_ochre.py": "36c482b00b31e1cc3b750544ce91efdd2864878f239eeffb64b0077bf80c8d92",
+    "amiga_reversing/tools/pandora_completion.py": "76cd9fe951884ab6a52d17457882db6e024062b004c5606e87411339a21b1540",
+    "amiga_reversing/tools/pandora_icelord.py": "d436e72200bbf327f2b4eda71466a0888f80a8701342676238d2036ce781a2e5",
+    "amiga_reversing/tools/pandora_player.py": "346634a7667fa6a82eeefe2f35a52e52199a30e1d916c7568a4dd369f8eb9a4e",
+    "amiga_reversing/tools/copperline_runtime.py": "dc572c6b07c1c56d189a662f410e69d351e71415b48d18d463efecd6f5d24cf3",
+    "amiga_reversing/tools/copperline_session.py": "b7d6b0eae04101a4f0cb944541907ebec07481652fa48bc5baca9717e15db012",
+    "amiga_reversing/tools/copperline_control.py": "f8a588db7af112aea9eae087749f0a7b59fec9b0bf0a37a8755a740157068b5d",
+    "amiga_reversing/tools/copperline_checkpoint.py": "6a0074c3c799bf3322872cba9283633a3493d667cbed1128ac775bcc541a036d"
+  },
+  "reporter_profile_sha256": "580fb9382ea2f3318ab919d80a8719f569cdf25fedbeeaa31983fd2cc71b0a71",
+  "range_inventory": [
+    {
+      "start": 400,
+      "end": 405,
+      "physical_start": 15244,
+      "physical_end": 15249,
+      "read_events": 29,
+      "write_events": 0,
+      "disposition": "observed_known_site"
+    },
+    {
+      "start": 422,
+      "end": 426,
+      "physical_start": 15266,
+      "physical_end": 15270,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 430,
+      "end": 434,
+      "physical_start": 15274,
+      "physical_end": 15278,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 436,
+      "end": 438,
+      "physical_start": 15280,
+      "physical_end": 15282,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 462,
+      "end": 468,
+      "physical_start": 15306,
+      "physical_end": 15312,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 504,
+      "end": 522,
+      "physical_start": 15348,
+      "physical_end": 15366,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 540,
+      "end": 546,
+      "physical_start": 15384,
+      "physical_end": 15390,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 547,
+      "end": 548,
+      "physical_start": 15391,
+      "physical_end": 15392,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 650,
+      "end": 654,
+      "physical_start": 15494,
+      "physical_end": 15498,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 702,
+      "end": 706,
+      "physical_start": 15546,
+      "physical_end": 15550,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 707,
+      "end": 712,
+      "physical_start": 15551,
+      "physical_end": 15556,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 831,
+      "end": 854,
+      "physical_start": 15675,
+      "physical_end": 15698,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 860,
+      "end": 864,
+      "physical_start": 15704,
+      "physical_end": 15708,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 876,
+      "end": 1540,
+      "physical_start": 15720,
+      "physical_end": 16384,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    },
+    {
+      "start": 724,
+      "end": 728,
+      "physical_start": 15568,
+      "physical_end": 15572,
+      "read_events": 0,
+      "write_events": 168,
+      "disposition": "observed_known_site"
+    },
+    {
+      "start": 872,
+      "end": 876,
+      "physical_start": 15716,
+      "physical_end": 15720,
+      "read_events": 0,
+      "write_events": 0,
+      "disposition": "not_observed_in_completed_route_window"
+    }
+  ],
+  "watch_start": {
+    "cck": 32958400,
+    "detail": "Breakpoint at $0183AE",
+    "frame": 463,
+    "hpos": 43,
+    "pc": 99246,
+    "reason": "breakpoint",
+    "retired_instructions": 5305928,
+    "seconds": 9.292183726893523,
+    "vpos": 272
+  },
+  "watch_end": {
+    "cck": 1018325692,
+    "detail": "Breakpoint at $05C99C",
+    "frame": 14332,
+    "hpos": 60,
+    "pc": 379292,
+    "reason": "breakpoint",
+    "retired_instructions": 121891280,
+    "seconds": 287.1034220071358,
+    "vpos": 100
+  },
+  "subscription_registration": {
+    "active": [
+      "mmio"
+    ],
+    "dropped_notifications": 0,
+    "frame_digest": false,
+    "frame_interval": 1,
+    "limits": {
+      "bus_events": 4096,
+      "cd_events": 1024,
+      "debug_events": 256,
+      "debug_resources": 256,
+      "mmio_events": 4096,
+      "serial_records": 4096,
+      "windowed_outbound_notifications": 256
+    },
+    "mmio": [
+      {
+        "access": "access",
+        "addr": 15244,
+        "len": 5
+      },
+      {
+        "access": "access",
+        "addr": 15266,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15274,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15280,
+        "len": 2
+      },
+      {
+        "access": "access",
+        "addr": 15306,
+        "len": 6
+      },
+      {
+        "access": "access",
+        "addr": 15348,
+        "len": 18
+      },
+      {
+        "access": "access",
+        "addr": 15384,
+        "len": 6
+      },
+      {
+        "access": "access",
+        "addr": 15391,
+        "len": 1
+      },
+      {
+        "access": "access",
+        "addr": 15494,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15546,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15551,
+        "len": 5
+      },
+      {
+        "access": "access",
+        "addr": 15675,
+        "len": 23
+      },
+      {
+        "access": "access",
+        "addr": 15704,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15720,
+        "len": 664
+      },
+      {
+        "access": "access",
+        "addr": 15568,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15716,
+        "len": 4
+      }
+    ],
+    "supported": [
+      "frame",
+      "serial",
+      "interrupt",
+      "media",
+      "debug",
+      "bus",
+      "mmio",
+      "cd"
+    ]
+  },
+  "subscription_readback": {
+    "active": [
+      "mmio"
+    ],
+    "dropped_notifications": 0,
+    "frame_digest": false,
+    "frame_interval": 1,
+    "limits": {
+      "bus_events": 4096,
+      "cd_events": 1024,
+      "debug_events": 256,
+      "debug_resources": 256,
+      "mmio_events": 4096,
+      "serial_records": 4096,
+      "windowed_outbound_notifications": 256
+    },
+    "mmio": [
+      {
+        "access": "access",
+        "addr": 15244,
+        "len": 5
+      },
+      {
+        "access": "access",
+        "addr": 15266,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15274,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15280,
+        "len": 2
+      },
+      {
+        "access": "access",
+        "addr": 15306,
+        "len": 6
+      },
+      {
+        "access": "access",
+        "addr": 15348,
+        "len": 18
+      },
+      {
+        "access": "access",
+        "addr": 15384,
+        "len": 6
+      },
+      {
+        "access": "access",
+        "addr": 15391,
+        "len": 1
+      },
+      {
+        "access": "access",
+        "addr": 15494,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15546,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15551,
+        "len": 5
+      },
+      {
+        "access": "access",
+        "addr": 15675,
+        "len": 23
+      },
+      {
+        "access": "access",
+        "addr": 15704,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15720,
+        "len": 664
+      },
+      {
+        "access": "access",
+        "addr": 15568,
+        "len": 4
+      },
+      {
+        "access": "access",
+        "addr": 15716,
+        "len": 4
+      }
+    ],
+    "supported": [
+      "frame",
+      "serial",
+      "interrupt",
+      "media",
+      "debug",
+      "bus",
+      "mmio",
+      "cd"
+    ]
+  },
+  "signatures": [
+    {
+      "pc": 99174,
+      "address": 15568,
+      "app_offset": 724,
+      "width": 2,
+      "access": "write",
+      "count": 84,
+      "first_value": 5,
+      "first_position": {
+        "cck": 38641950,
+        "frame": 543,
+        "hpos": 194,
+        "seconds": 10.894585264012608,
+        "vpos": 269
+      },
+      "first_phase": "entry_officer_card_transferred",
+      "last_value": 5,
+      "last_position": {
+        "cck": 1009768404,
+        "frame": 14211,
+        "hpos": 218,
+        "seconds": 284.6908081575575,
+        "vpos": 275
+      },
+      "last_phase": "ur_escape_approach_4",
+      "source_offset": 33638,
+      "instruction": "move.l a5,app_02D4(a6)",
+      "static_interpretation": "Changed proximity candidate A5 is copied to nearest-object pointer and then its shadow at app+$2D4; this is semantic gameplay production, not bulk clearing. Consumer purpose remains unresolved.",
+      "first_phase_by_cck": "entry_officer_card_transferred",
+      "last_phase_by_cck": "ur_escape_approach_4",
+      "later_boundary_context": {
+        "phase": "entry_officer_card_transferred",
+        "frame": 652,
+        "a6": 14844,
+        "stack_code_address_candidates": [
+          70112,
+          70694,
+          75096,
+          67046
+        ],
+        "caveat": "Later canonical boundary, NOT access-time registers or a validated access-time call stack."
+      }
+    },
+    {
+      "pc": 99174,
+      "address": 15570,
+      "app_offset": 726,
+      "width": 2,
+      "access": "write",
+      "count": 84,
+      "first_value": 41994,
+      "first_position": {
+        "cck": 38641952,
+        "frame": 543,
+        "hpos": 196,
+        "seconds": 10.89458582788608,
+        "vpos": 269
+      },
+      "first_phase": "entry_officer_card_transferred",
+      "last_value": 41994,
+      "last_position": {
+        "cck": 1009768406,
+        "frame": 14211,
+        "hpos": 220,
+        "seconds": 284.690808721431,
+        "vpos": 275
+      },
+      "last_phase": "ur_escape_approach_4",
+      "source_offset": 33638,
+      "instruction": "move.l a5,app_02D4(a6)",
+      "static_interpretation": "Changed proximity candidate A5 is copied to nearest-object pointer and then its shadow at app+$2D4; this is semantic gameplay production, not bulk clearing. Consumer purpose remains unresolved.",
+      "first_phase_by_cck": "entry_officer_card_transferred",
+      "last_phase_by_cck": "ur_escape_approach_4",
+      "later_boundary_context": {
+        "phase": "entry_officer_card_transferred",
+        "frame": 652,
+        "a6": 14844,
+        "stack_code_address_candidates": [
+          70112,
+          70694,
+          75096,
+          67046
+        ],
+        "caveat": "Later canonical boundary, NOT access-time registers or a validated access-time call stack."
+      }
+    },
+    {
+      "pc": 90416,
+      "address": 15244,
+      "app_offset": 400,
+      "width": 2,
+      "access": "read",
+      "count": 29,
+      "first_value": 1,
+      "first_position": {
+        "cck": 86585196,
+        "frame": 1218,
+        "hpos": 132,
+        "seconds": 24.411547564841925,
+        "vpos": 198
+      },
+      "first_phase": "inventory_closed",
+      "last_value": 1,
+      "last_position": {
+        "cck": 1013366706,
+        "frame": 14262,
+        "hpos": 116,
+        "seconds": 285.7053016793562,
+        "vpos": 164
+      },
+      "last_phase": "ur_inventory_closed_2",
+      "source_offset": 24880,
+      "instruction": "move.w APP_RASTER_ROW_OFFSETS_OFFSET(a6,d1.w),d1",
+      "static_interpretation": "Indexed raster-row lookup aliases the pointer high WORD; observed earlier during startup. Not callback consumption.",
+      "first_phase_by_cck": "inventory_closed",
+      "last_phase_by_cck": "ur_inventory_closed_2",
+      "later_boundary_context": {
+        "phase": "inventory_closed",
+        "frame": 1219,
+        "a6": 14844,
+        "stack_code_address_candidates": [
+          70112,
+          70694,
+          75096,
+          67046
+        ],
+        "caveat": "Later canonical boundary, NOT access-time registers or a validated access-time call stack."
+      }
+    }
+  ],
+  "remaining_conditional_A6_sites": [
+    {
+      "source_offset": 28090,
+      "operand_index": 0,
+      "displacement": 0,
+      "indexed": true,
+      "width_bytes": 2,
+      "hardware": false,
+      "native_app_attribution": false,
+      "original_entry_link": false
+    },
+    {
+      "source_offset": 28094,
+      "operand_index": 0,
+      "displacement": 472,
+      "indexed": false,
+      "width_bytes": 4,
+      "hardware": false,
+      "native_app_attribution": false,
+      "original_entry_link": false
+    },
+    {
+      "source_offset": 28118,
+      "operand_index": 0,
+      "displacement": 0,
+      "indexed": true,
+      "width_bytes": 2,
+      "hardware": false,
+      "native_app_attribution": false,
+      "original_entry_link": false
+    },
+    {
+      "source_offset": 28450,
+      "operand_index": 0,
+      "displacement": 450,
+      "indexed": false,
+      "width_bytes": 2,
+      "hardware": false,
+      "native_app_attribution": false,
+      "original_entry_link": false
+    }
+  ],
+  "before": {
+    "declaration_gap_regions": 14,
+    "declaration_gap_bytes": 750,
+    "unexplained_declared_slots": 2,
+    "unresolved_conditional_A6_sites": 4,
+    "unresolved_register_alias_sites_dated_inventory": 662
+  },
+  "after": {
+    "declaration_gap_regions": 14,
+    "declaration_gap_bytes": 750,
+    "unexplained_declared_slots": 2,
+    "unresolved_conditional_A6_sites": 4,
+    "unresolved_register_alias_sites_dated_inventory": 662
+  },
+  "accounting_notes": [
+    "Gap extents rechecked against current generated RS block and unchanged original source identity. No fresh whole native analysis or generation.",
+    "The662 unresolved register-alias sites are the dated inventory denominator, not all claimed examined or closed by this physical-range trace.",
+    "The four unestablished conditional-A6 sites remain unresolved; watching these gaps is not whole-program execution coverage.",
+    "168 WORD bus writes at one LONG MOVE site are84 writes to each half. No ordered per-store value-pair proof is claimed."
+  ],
+  "static_callers": {
+    "update_nearby_object_detection": [
+      {
+        "source_offset": 1416,
+        "instruction": "bsr.w update_nearby_object_detection"
+      },
+      {
+        "source_offset": 1510,
+        "instruction": "bsr.w update_nearby_object_detection"
+      }
+    ],
+    "set_text_cursor_in_overlay_plane": [
+      {
+        "source_offset": 11706,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25402,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25506,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25632,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25676,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25784,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25810,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25836,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25868,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25890,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25934,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 25972,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 26020,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 26064,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 26108,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 26194,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 33214,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 34128,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      },
+      {
+        "source_offset": 39584,
+        "instruction": "bsr.w set_text_cursor_in_overlay_plane"
+      }
+    ]
+  },
+  "provisional_stream_run": {
+    "name": "ending-app-watch-b",
+    "status": "positive_observations_only_queue_loss_unretained",
+    "events_received": 197,
+    "raw_watch_sha256": "910bae63e76f8ca4da9cf6cb6fea8a18c0023f6a3cf2914a68211fb7d37b4b29",
+    "reason": "The initial observer retained dropped_notifications but not the separate dropped_events queue counter. No complete absence coverage qualified from this run."
+  },
+  "loss_schema_control": {
+    "name": "watch-schema-a",
+    "frames": [
+      2572,
+      2574
+    ],
+    "purpose": "Known frame-counter positive control; established separate dropped_events and dropped_notifications fields. No ending or unknown-region coverage claimed.",
+    "raw_event_sha256": "fe83cbf629612c8b928d81cfc7c6cbb5b7c824450a0db9dc14798b44ebd3451a"
+  },
+  "failed_probe": {
+    "name": "ending-app-watch-a",
+    "status": "registration_failed_before_gameplay",
+    "error": "RPC -32602 during32 stopping-trap registration; cleanup also errored; owned process exited. No coverage claimed.",
+    "log_sha256": "d66c794f31d628b92adb20840c1f9766a3ca35ce375ec4d4031bf16e88034352"
+  },
+  "limits": [
+    "CPU data access only; instruction fetch and DMA are excluded.",
+    "Starting-address filters do not close cross-boundary accesses beginning outside ranges.",
+    "Registers and stack are from the next canonical phase boundary, not the access instant.",
+    "No-hit is not unused-memory proof. Server loss or signature overflow makes coverage incomplete.",
+    "Start at original source$83AE, frame463; initial clearing/copying and the prior frame462 alias read are outside this window.",
+    "No semantic owner/consumer, unused-memory, all-caller A6 provenance, full lifetime, native-C or relocation claim is added.",
+    "Source/binary and successful normal-input route are unchanged. No target byte-exact test rerun was needed.",
+    "Proprietary media/ROMs, raw stack/register captures and checkpoints stay private."
+  ]
+}
