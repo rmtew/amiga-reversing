@@ -1,9 +1,28 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **First delivery in progress: M0/M1 partial; M2–M4 not yet delivered.**
+Status: **First delivery in progress: M0–M2 partial; M3–M4 not yet delivered.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-23)
+
+[Canonical adoption evidence](../../runtime/observations/pandora-canonical-layout-adoption.json)
+records 25 API-applied and reviewed facts: copied image, cursor workspace and
+children, display roles, and twelve exact receptacle pointer fields. Explicit
+runtime reference points retain their address domain without inferring pointee
+extents. All 376,832 original bytes match through C and independent vasm
+(receipt `c799cb96d22106b9cb3f47c5759c59c13fcce885c056b7696a1599994a7f2ff9`).
+All 126 asset identities and 3,772 existing labels are preserved. Seven missing
+SDK companions were restored from the identical tracked include set so the
+owned package is reproducible; its ownership guard remains enabled.
+
+The reviewed exporter boundary cases now refuse split materialized views and
+typed extents partially intersecting a moved region, rather than silently
+emitting a stale ORG/address. The focused final layout/domain suite passes 72
+tests (four deselected); the adoption suite passed 125 (four deselected).
+Canonical bootstrap variants, target layout profiles and independent-block
+qualification remain open. Cursor control initialization/DMA continuation and
+the existing snapshot/palette containment must be resolved for that admission.
+These facts do not classify previously unknown bytes or qualify an alternate run.
 
 [Baseline/index evidence](../../runtime/observations/pandora-memory-layout-baseline.json)
 records cold native artifact/package measurements and selection of the paired
@@ -364,7 +383,8 @@ index operation counts. No latency acceptance claim is yet established.
 ## Milestones and deletion gates
 
 The table defines acceptance, not a claim that every mechanism exists. M0 and M1
-have the partial implementation/evidence above; M2–M6 are not started. M1–M4
+have the partial implementation/evidence above; M2 has begun with target reference
+adoption and exact original regeneration; M3–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are distinct later decisions. Each batch

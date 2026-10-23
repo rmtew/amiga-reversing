@@ -1,0 +1,56 @@
+{
+  "schema": "pandora-canonical-layout-adoption/v1",
+  "status": "original_exact_alternate_unqualified",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "original_bytes": 376832,
+  "source_sha256": "66e6add4a531f25dee3daab70c8f1bebbf685b0241ef7dddbd62f31dbad4157f",
+  "package_sha256": "e46b27e82bd571811daa714207ea8ed9a35c3815819fe0666481ba1116134636",
+  "verification_id": "c799cb96d22106b9cb3f47c5759c59c13fcce885c056b7696a1599994a7f2ff9",
+  "subject_revision": "1792726709b7b2619387fe9489a3caaa6b74c6bb79213e55007e0bd3e7527a9c",
+  "accepted_action_count": 25,
+  "accepted_decision_count": 25,
+  "original_c_exact": true,
+  "original_independent_vasm_exact": true,
+  "unchanged_asset_count": 126,
+  "existing_labels_preserved": true,
+  "missing_sdk_companions_restored": [
+    "devices/inputevent.i",
+    "devices/timer.i",
+    "exec/io.i",
+    "exec/libraries.i",
+    "exec/lists.i",
+    "exec/nodes.i",
+    "exec/ports.i"
+  ],
+  "tests": {
+    "adoption_focused": "125 passed, 4 deselected",
+    "final_layout_and_pointer_domains": "72 passed, 4 deselected"
+  },
+  "reference_families": {
+    "restart_pointer_fields": 6,
+    "primary_interaction_pointer_fields": 6,
+    "restart_consumers": [
+      "0x9F66",
+      "0x9F6E",
+      "0x9F70"
+    ],
+    "cursor_absolute_producers": [
+      "0x988",
+      "0x94E6",
+      "0x9EFA",
+      "0x9F00"
+    ]
+  },
+  "mechanisms": {
+    "partial_moved_reference": "refused, wholly unaffected and fixed references retained",
+    "split_materialized_view": "refused until scatter-view planning is supported"
+  },
+  "remaining": [
+    "Canonical bootstrap variant and real layout profiles not yet implemented",
+    "No independent workspace move or new runtime qualification",
+    "Cursor header initialization and DMA continuation require bounded qualification",
+    "Existing snapshot/palette overlap needs canonical alias containment before placement admission"
+  ],
+  "preserved_paused_b07_files": 9,
+  "newly_classified_unknown_bytes": 0
+}

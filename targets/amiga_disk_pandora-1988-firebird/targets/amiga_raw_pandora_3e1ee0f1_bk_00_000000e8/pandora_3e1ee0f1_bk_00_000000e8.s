@@ -38,11 +38,17 @@
 ;     absolute[$00058576-$0005857A] refs=1 access=a
 ;     absolute[$000585A6-$000585AA] refs=1 access=a
 ;     absolute[$000588C2-$000588C6] refs=1 access=a
+;     absolute[$000588FE-$00058902] refs=1 access=a
 ;     absolute[$00058904-$00058908] refs=1 access=a
+;     absolute[$00058940-$00058944] refs=1 access=a
 ;     absolute[$00058946-$0005894A] refs=1 access=a
+;     absolute[$00058982-$00058986] refs=1 access=a
 ;     absolute[$00058988-$0005898C] refs=1 access=a
+;     absolute[$000589C4-$000589C8] refs=1 access=a
 ;     absolute[$000589CA-$000589CE] refs=1 access=a
+;     absolute[$00058A06-$00058A0A] refs=1 access=a
 ;     absolute[$00058A2A-$00058A2E] refs=1 access=a
+;     absolute[$00058A66-$00058A6A] refs=1 access=a
 ;     absolute[$0005B0CE-$0005B0D2] refs=1 access=a
 ;     absolute[$0005B10A-$0005B10E] refs=1 access=a
 ;     absolute[$0005B112-$0005B116] refs=1 access=a
@@ -3114,11 +3120,17 @@ dblk_ref_h0_00048576_runtime_00058576	EQU	$58576
 dblk_ref_h0_0004859A_runtime_0005859A	EQU	$5859A
 dblk_ref_h0_000485A6_runtime_000585A6	EQU	$585A6
 dblk_ref_h0_000488C2_runtime_000588C2	EQU	$588C2
+dblk_ref_h0_000488FE_runtime_000588FE	EQU	$588FE
 dblk_ref_h0_00048904_runtime_00058904	EQU	$58904
+dblk_ref_h0_00048940_runtime_00058940	EQU	$58940
 dblk_ref_h0_00048946_runtime_00058946	EQU	$58946
+dblk_ref_h0_00048982_runtime_00058982	EQU	$58982
 dblk_ref_h0_00048988_runtime_00058988	EQU	$58988
+dblk_ref_h0_000489C4_runtime_000589C4	EQU	$589C4
 dblk_ref_h0_000489CA_runtime_000589CA	EQU	$589CA
+dblk_ref_h0_00048A06_runtime_00058A06	EQU	$58A06
 dblk_ref_h0_00048A2A_runtime_00058A2A	EQU	$58A2A
+dblk_ref_h0_00048A66_runtime_00058A66	EQU	$58A66
 dblk_ref_h0_00048CD0_runtime_00058CD0	EQU	$58CD0
 dblk_ref_h0_00048CDC_runtime_00058CDC	EQU	$58CDC
 dblk_ref_h0_00048CE8_runtime_00058CE8	EQU	$58CE8
@@ -22395,12 +22407,12 @@ item_receptacle_position_descriptors_position_state_ptr_5:
 	dc.w $04DC	; previous_world_x
 	dc.w $0363	; previous_world_y
 scene_restart_receptacle_state_ptrs:
-	dc.l $000588C2	; scene_restart_receptacle_state_ptrs
-	dc.l dblk_ref_h0_00048904_runtime_00058904
-	dc.l dblk_ref_h0_00048946_runtime_00058946
-	dc.l dblk_ref_h0_00048988_runtime_00058988
-	dc.l dblk_ref_h0_000489CA_runtime_000589CA
-	dc.l dblk_ref_h0_00048A2A_runtime_00058A2A
+	dc.l dblk_ref_h0_000488C2_runtime_000588C2	; scene_restart_receptacle_state_ptrs
+	dc.l dblk_ref_h0_00048904_runtime_00058904	; scene_restart_receptacle_state_ptrs
+	dc.l dblk_ref_h0_00048946_runtime_00058946	; scene_restart_receptacle_state_ptrs
+	dc.l dblk_ref_h0_00048988_runtime_00058988	; scene_restart_receptacle_state_ptrs
+	dc.l dblk_ref_h0_000489CA_runtime_000589CA	; scene_restart_receptacle_state_ptrs
+	dc.l dblk_ref_h0_00048A2A_runtime_00058A2A	; scene_restart_receptacle_state_ptrs
 item_receptacle_lifecycle_records:
 	dc.l item_receptacle_geometry_headers	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers	; previous_geometry_ptr
@@ -22412,7 +22424,7 @@ item_receptacle_lifecycle_records:
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_0_primary_interaction_data_ptr:
-	dc.l $000588FE	; item_receptacle_state_attachment_interaction_records
+	dc.l dblk_ref_h0_000488FE_runtime_000588FE	; item_receptacle_state_attachment_interaction_records
 item_receptacle_0_attachment_state:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_1	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_1	; previous_geometry_ptr
@@ -22440,7 +22452,7 @@ item_receptacle_1_primary_state:
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_1_primary_interaction_data_ptr:
-	dc.l $00058940	; item_receptacle_state_attachment_interaction_records
+	dc.l dblk_ref_h0_00048940_runtime_00058940	; item_receptacle_state_attachment_interaction_records
 item_receptacle_1_attachment_state:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_2	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_2	; previous_geometry_ptr
@@ -22468,7 +22480,7 @@ item_receptacle_2_primary_state:
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_2_primary_interaction_data_ptr:
-	dc.l $00058982	; item_receptacle_state_attachment_interaction_records
+	dc.l dblk_ref_h0_00048982_runtime_00058982	; item_receptacle_state_attachment_interaction_records
 item_receptacle_2_attachment_state:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_3	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_3	; previous_geometry_ptr
@@ -22496,7 +22508,7 @@ item_receptacle_3_primary_state:
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_3_primary_interaction_data_ptr:
-	dc.l $000589C4	; item_receptacle_state_attachment_interaction_records
+	dc.l dblk_ref_h0_000489C4_runtime_000589C4	; item_receptacle_state_attachment_interaction_records
 item_receptacle_3_attachment_state:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_6	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_6	; previous_geometry_ptr
@@ -22524,7 +22536,7 @@ item_receptacle_4_primary_state:
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_4_primary_interaction_data_ptr:
-	dc.l $00058A06	; item_receptacle_state_attachment_interaction_records
+	dc.l dblk_ref_h0_00048A06_runtime_00058A06	; item_receptacle_state_attachment_interaction_records
 item_receptacle_4_attachment_state:
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; current_geometry_ptr
 	dc.l item_receptacle_geometry_headers_bitplane_data_ptr_4	; previous_geometry_ptr
@@ -22567,7 +22579,7 @@ item_receptacle_5_primary_state:
 	dc.b $00	; interaction_flags
 	dc.b $04	; world_object_flags
 item_receptacle_5_primary_interaction_data_ptr:
-	dc.l $00058A66	; item_receptacle_state_attachment_interaction_records
+	dc.l dblk_ref_h0_00048A66_runtime_00058A66	; item_receptacle_state_attachment_interaction_records
 item_receptacle_5_attachment_state:
 	dc.l item_receptacle_5_attached_geometry	; current_geometry_ptr
 	dc.l item_receptacle_5_attached_geometry	; previous_geometry_ptr

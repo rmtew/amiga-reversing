@@ -1630,6 +1630,13 @@ def _data_block_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquat
     source_value = _manual_seed_int(ref, "source_value")
     if symbol is None or source_value is None:
         return None
+    # Preserve the explicit encoding domain carried by the canonical reference.
+    # One byte binds only the known target point; it infers neither a pointee
+    # structure extent nor allocation/lifetime. Source-coordinate constants keep
+    # their original domain when no runtime address was established.
+    runtime_point = ({"address_domain": "runtime", "extent_bytes": 1,
+                      "group": "data_block_runtime_reference_points"}
+                     if _manual_seed_int(ref, "runtime_address") is not None else {})
     return TargetEquateMetadata(
         name=symbol,
         value=source_value,
@@ -1637,6 +1644,7 @@ def _data_block_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquat
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(ref, "data_block_ref_id"),
         comment="data-block interpreted absolute reference",
+        **runtime_point,
     )
 
 

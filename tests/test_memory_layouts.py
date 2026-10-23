@@ -212,3 +212,48 @@ def test_unknown_selected_layout_refused(tmp_path):
     with pytest.raises(RuntimeError):
         build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e75'),
             display_path='missing-selection', metadata_path=path)
+
+
+def test_selected_layout_refuses_split_materialized_view(tmp_path):
+    path = tmp_path/'meta.json'
+    path.write_text(json.dumps(dict(
+        memory_regions=[region('first', 0x10000, 4), region('second', 0x10004, 4)],
+        memory_layouts=[layout([('second', 0x80000)])],
+        selected_memory_layout_id='diagnostic',
+        execution_views=[dict(source_start=0, source_end=8, base_addr=0x10000)])))
+    with pytest.raises(RuntimeError, match='split_materialized_view_unsupported'):
+        build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e714e714e714e75'),
+            display_path='split-view', metadata_path=path)
+
+
+@pytest.mark.parametrize('address,width,moved,refused', [
+    (0x10000, 16, True, True),   # Starts inside, ends beyond moved region.
+    (0xfffc, 8, True, True),     # Starts outside, intersects moved region.
+    (0xfff0, 8, True, False),    # Wholly unaffected address.
+    (0x10000, 16, False, False), # Fixed extent does not acquire a stale base.
+    (0x10000, 8, True, False),   # Fully contained typed extent.
+])
+def test_runtime_equate_partial_moved_coverage(tmp_path, address, width, moved, refused):
+    path = tmp_path/'meta.json'
+    path.write_text(json.dumps(dict(
+        memory_regions=[region('image', 0x10000, 8)],
+        memory_layouts=[layout([('image', 0x80000)] if moved else [])],
+        selected_memory_layout_id='diagnostic',
+        target_equates=[dict(name='TYPED', value=address, address_domain='runtime',
+                            extent_bytes=width, value_representation='hex', group='fixture')],
+        execution_views=[dict(source_start=0, source_end=8, base_addr=0x10000)])))
+    def build():
+        return build_flat_m68k_bytes_listing_artifact_profile(bytes.fromhex('4e714e714e714e75'),
+            display_path='partial-extent', metadata_path=path)[2]
+    if refused:
+        with pytest.raises(RuntimeError, match='partial_or_ambiguous_runtime_reference') as error:
+            build()
+        assert 'failed parsing' not in str(error.value)
+    else:
+        artifact = build()
+        try:
+            text = artifact.inline_source_text_with_profile()[0]
+            assert ('TYPED\tEQU\timage_base' if moved and address == 0x10000
+                    else f'TYPED\tEQU\t${address:X}') in text
+        finally:
+            artifact.close()

@@ -2,6 +2,17 @@
 
 ## Canonical layout implementation checkpoint (2026-10-23)
 
+[Latest canonical adoption](../../runtime/observations/pandora-canonical-layout-adoption.json):
+25 accepted API facts model the copied image, paired cursor workspace, display
+roles and twelve receptacle pointers. Original C and independent vasm output
+match all 376,832 bytes; 126 asset identities and 3,772 labels are preserved.
+The focused layout/domain suite passes 72 tests (four deselected), including
+refusal of split materialized views and partially covered moved references.
+Seven missing include companions are restored without relaxing package guards.
+M0–M2 remain partial: bootstrap contracts, real profiles and independently moved
+block/output qualification are still pending. No new runtime result or unknown
+byte classification is claimed. The nine paused B07 files are unchanged.
+
 [M0/M1 partial evidence](../../runtime/observations/pandora-memory-layout-baseline.json):
 89 focused tests pass; native materialization indexing replaces view scans and
 byte-by-byte span checks. The full original native source package and nine-region

@@ -162,6 +162,11 @@ def test_distinct_runtime_views_of_same_source_have_distinct_symbols() -> None:
     second = _data_block_interpreted_ref_equate(_ref(0x8006, 6))
     assert first and second and first.name != second.name
     assert first.value == 0x4006 and second.value == 0x8006
+    assert first.address_domain == second.address_domain == "runtime"
+    assert first.extent_bytes == second.extent_bytes == 1
+    assert first.group == second.group == "data_block_runtime_reference_points"
+    local = _data_block_interpreted_ref_equate(_ref(6, 6))
+    assert local and local.address_domain is None and local.extent_bytes is None
 
 
 @pytest.mark.parametrize("target", [0, 6])

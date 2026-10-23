@@ -55,7 +55,17 @@ int m68k_memory_layout_reference(const M68kAnalysisPolicy *p,const M68kResolvedM
     if(selected<0 || ancestor(resolved,selected,(int)i)) selected=(int)i;
     else if(!ancestor(resolved,(int)i,selected)) return -1;
   }
-  if(selected<0) return 0;
+  if(selected<0) {
+    /* Unaffected fixed addresses may stay numeric. A reference straddling a
+     * moved region cannot: falling back would silently retain its old base. */
+    uint64_t end=(uint64_t)address+(width ? width : 1);
+    for(size_t i=0;i<p->memory_region_count;i++) {
+      const M68kMemoryRegionIR *r=&p->memory_regions[i];
+      if(resolved->addresses[i]!=r->runtime_address &&
+          address<(uint64_t)r->runtime_address+r->size && end>r->runtime_address) return -1;
+    }
+    return 0;
+  }
   const M68kMemoryRegionIR *r=&p->memory_regions[selected];
   uint32_t offset=address-r->runtime_address;
   int length=offset ? snprintf(expression,capacity,"%s+$%X",r->name,offset) : snprintf(expression,capacity,"%s",r->name);

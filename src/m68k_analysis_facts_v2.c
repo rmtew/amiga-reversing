@@ -11039,7 +11039,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (m68k_render_ir_preview_emit_prepared(object, &decode, &render_lookup, policy, accepted_start, accepted_bytes,
       render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, render_preview,
       source_analysis) != 0) {
-    if (render_preview->asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) {
+    if (render_preview->memory_layout.reason != NULL) {
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 memory layout source refused: %s", render_preview->memory_layout.reason);
+    } else if (render_preview->asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) {
       out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
       out_profile->asm_source_refused = 1U;
       out_profile->asm_source_first_failure_kind = render_preview->asm_source_first_failure_kind;
