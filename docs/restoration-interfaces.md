@@ -35,6 +35,28 @@ recompute placements or run the legacy source-patching builder. Runtime results
 remain separate from source-export/assembly status. Local raw captures, legal ROM
 and the qualified compiled controller route stay private prerequisites.
 
+A region may declare an explicit `loader_seed` with file `source_offset`,
+`region_offset` and `size`. Native planning requires an identity-bound bootstrap,
+a source within the staged file and an original-address alias matching that
+loader. The projected plan names both staging and placed destinations. This is
+an initialization dependency, not an inferred pointer or a classification of
+surrounding bytes. The bounded runtime adapter refuses rewritten seed source
+bytes and unsupported seed phases.
+
+The direct loader reserves backing before disk I/O and executes the seed copy in
+the guest shim before HAND and payload entry. Handoff verification only reads it
+back; it does not inject the seed from the host. An explicitly declared comparison
+family reserves the same union of seed destinations in both runs so allocator
+changes do not silently become timing differences. Exec's eight-byte ownership
+rounding does not establish a purpose for the rounded padding. This contract does
+not replace the game's retained initializer or establish historical loader intent.
+
+Selected-layout export is currently exposed by the native source-export service
+and its layout CLI/runtime adapter. The general restoration HTTP/MCP/UI export
+adapters do not yet forward layout selection; shared delivery of that option is
+an open first-delivery integration obligation, not implied by the general
+restoration-operation parity below.
+
 The UI, CLI and MCP adapter use the same resident project server and restoration
 operations. Native facts, Manual Action Log and Decision Journal remain the
 owners of state. The adapters neither parse rendered assembly nor maintain a

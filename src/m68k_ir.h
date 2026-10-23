@@ -809,6 +809,10 @@ typedef struct M68kMemoryRegionIR {
    * containment; it does not itself certify relocation or phase alias safety. */
   uint8_t region_kind;
   char parent_region_id[96];
+  /* An evidenced alias of bytes supplied by the original whole-file loader.
+   * Placement changes preserve this bounded seed before entering game code. */
+  uint8_t has_loader_seed;
+  uint32_t loader_seed_source_offset, loader_seed_region_offset, loader_seed_size;
 } M68kMemoryRegionIR;
 
 #define M68K_MEMORY_LAYOUT_LIMIT 8U

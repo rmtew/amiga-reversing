@@ -1556,6 +1556,9 @@ class _M68kAnalysisManualDataReference(ctypes.Structure):
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),
         ("raw_value", ctypes.c_uint32),
+        ("value_scale", ctypes.c_uint32),
+        ("is_range", ctypes.c_uint8),
+        ("raw_value_signed", ctypes.c_uint8),
         ("base_section_index", ctypes.c_uint32),
         ("base_offset", ctypes.c_uint32),
         ("target_section_index", ctypes.c_uint32),
@@ -1587,7 +1590,30 @@ class _M68kMemoryRegionIR(ctypes.Structure):
         ("dma_access", ctypes.c_uint8),
         ("persistent", ctypes.c_uint8),
         ("source_mapped", ctypes.c_uint8),
+        ("region_kind", ctypes.c_uint8),
+        ("parent_region_id", ctypes.c_char * 96),
+        ("has_loader_seed", ctypes.c_uint8),
+        ("loader_seed_source_offset", ctypes.c_uint32),
+        ("loader_seed_region_offset", ctypes.c_uint32),
+        ("loader_seed_size", ctypes.c_uint32),
     ]
+
+
+class _M68kMemoryPlacementIR(ctypes.Structure):
+    _fields_ = [("region_id", ctypes.c_char * 96), ("runtime_address", ctypes.c_uint32)]
+
+
+class _M68kMemoryLayoutIR(ctypes.Structure):
+    _fields_ = [("layout_id", ctypes.c_char * 96), ("chip_bytes", ctypes.c_uint32),
+        ("placement_count", ctypes.c_uint16), ("placements", _M68kMemoryPlacementIR * 16),
+        ("bootstrap_contract_id", ctypes.c_char * 96), ("bootstrap_forward_disjoint", ctypes.c_uint8)]
+
+
+class _M68kBootstrapContractIR(ctypes.Structure):
+    _fields_ = [("contract_id", ctypes.c_char * 96), ("image_region_id", ctypes.c_char * 96),
+        ("input_sha256", ctypes.c_char * 65), *[(name, ctypes.c_uint32) for name in (
+            "load_address", "file_size", "copied_source_end", "helper_source_start", "helper_source_end",
+            "helper_runtime_address", "continuation_source_offset", "comparison_source_offset")]]
 
 
 class _M68kAnalysisPolicy(ctypes.Structure):
@@ -1648,6 +1674,11 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("manual_data_references", _M68kAnalysisManualDataReference * 512),
         ("abstract_regions", _M68kAnalysisAbstractRegion * 128),
         ("memory_regions", _M68kMemoryRegionIR * 16),
+        ("memory_layout_count", ctypes.c_uint16),
+        ("memory_layouts", _M68kMemoryLayoutIR * 8),
+        ("bootstrap_contract_count", ctypes.c_uint16),
+        ("bootstrap_contracts", _M68kBootstrapContractIR * 8),
+        ("selected_memory_layout_id", ctypes.c_char * 96),
         ("custom_structs", ctypes.POINTER(_M68kAnalysisCustomStruct)),
     ]
 

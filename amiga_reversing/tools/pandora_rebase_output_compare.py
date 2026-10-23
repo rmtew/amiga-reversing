@@ -27,6 +27,26 @@ def digest(path):
     return result.hexdigest()
 
 
+def cursor_range(report):
+    config=report['config']
+    if config.get('normal_layout_export'):
+        region=next((r for r in config['layout_plan']['regions'] if r['region_id']=='pandora_cursor_sprites'),None)
+        require(region is not None,'Native cursor region is missing')
+        return region['runtime_address'],region['runtime_address']+region['size']
+    # Historical qualified captures predate canonical plans. Their cursor was
+    # fixed; this is archive interpretation, never a placement authority.
+    return 0x65370,0x653F8
+
+
+def normalize_dma_address(report,address):
+    base=report['config']['assembly_base']
+    prefix=report['config'].get('copied_prefix_bytes',0x55370)
+    if base<=address<base+prefix:return ('image',address-base)
+    start,end=cursor_range(report)
+    if start<=address<end:return ('cursor',address-start)
+    return ('fixed',address)
+
+
 def wav_info(path):
     """Accept the emulator's PCM float WAV, including extensible float format."""
     with path.open('rb') as stream:
@@ -136,7 +156,8 @@ def asset_and_dma_checks(original, candidate, reports, target):
         streams = {}
         for capture in report['output_observations']['dma']:
             phase = capture['phase']
-            folder = directory/('dma-ending' if phase == 'post_ending' else 'dma-'+phase)
+            folder = directory/capture.get('directory', 'dma-ending' if phase == 'post_ending' else 'dma-'+phase)
+            require(folder.resolve().is_relative_to(directory.resolve()),'DMA directory escapes owned evidence')
             metadata = [json.loads(line) for line in (folder/'profile.jsonl').read_text().splitlines()]
             wanted = {f['frame']:f for f in capture['frames']}
             counts = {name:0 for name in devices.values()}
@@ -146,7 +167,7 @@ def asset_and_dma_checks(original, candidate, reports, target):
                 'copper':[(base,base+0x55370)],
                 'blitter':[(0,0x100000)],  # Physical Chip RAM only; not per-object bounds.
                 'audio':[(base+a,base+b) for a,b in audio],
-                'sprite':[(base+0x4D5DE,base+0x4D7DE),(0x65370,0x653F8)],
+                'sprite':[(base+0x4D5DE,base+0x4D7DE),cursor_range(report)],
                 'bitplane':[(0x70000,0x77D00),(0x78000,0x7D000)],
             }
             for ordinal, frame in enumerate(f for f in metadata if f['frame'] in wanted):
@@ -163,12 +184,13 @@ def asset_and_dma_checks(original, candidate, reports, target):
                         violations.append(dict(engine=engine,address=address,width=size,frame=frame['frame'],
                                                subtype=subtype,reg=reg,data=data,row=i//frame['line_cck'],hpos=i%frame['line_cck']))
                     if engine in ('audio','sprite','bitplane'):
-                        normalized = ('image',address-base) if base <= address < base+0x55370 else ('fixed',address)
+                        normalized = normalize_dma_address(report,address)
                         stream.append((ordinal,i//frame['line_cck'],i%frame['line_cck'],engine,subtype,size,normalized,data))
             streams[phase] = stream
             observations.append(dict(layout='original' if base == 0x10000 else 'relocated',phase=phase,
                                      frames=sorted(wanted),counts=counts,violations=violations))
         event_streams.append(streams)
+    require(set(event_streams[0])==set(event_streams[1]),'DMA capture phase sets differ')
     comparisons = {name:event_streams[0][name] == event_streams[1][name] for name in event_streams[0]}
     findings_a = [v for o in observations if o['layout']=='original' for v in o['violations']]
     findings_b = [v for o in observations if o['layout']=='relocated' for v in o['violations']]
@@ -189,8 +211,75 @@ def asset_and_dma_checks(original, candidate, reports, target):
                 silence_and_secondary_bytes=0x552CA-0x5500A, blank_sprite_bytes=512,
                 observations=observations, exact_audio_sprite_bitplane_streams=comparisons,
                 limits=['DMA bounds/streams are six complete sampled frames per layout, not whole-route DMA coverage.',
-                        'Raw asset checks exclude pointer tables and instruction operands; actual source-edit groups are enumerated in the build config.',
+                        'Raw asset checks exclude pointer tables and instruction operands. Normal exports bind the native layout plan and source package; reference facts remain in canonical target history, not an inferred byte-edit ledger.',
                         'Opaque file suffix remains loader-only under original prefix-copy semantics; all known graphics/audio assets lie in the verified moved prefix.'])
+
+
+def compare_resource_prefix(original,candidate,target):
+    """Compare matched inventory snapshots and ordered physical DMA captures.
+
+    This does not turn a stopped snapshot into a CPU access trace, or certify
+    an unobserved tail beyond the native cursor region.
+    """
+    import copy
+    reports=[json.loads((p/'report.json').read_text()) for p in (original,candidate)]
+    a,b=reports
+    require(a['status']==b['status']=='bounded_output_prefix_complete','Incomplete resource prefix')
+    require(a['prefix_end']==b['prefix_end']=='take_sonicdriver','Different resource prefix end')
+    require(a['config']['original_control'] and b['config']['normal_layout_export'],'Wrong resource comparison inputs')
+    for key in ('emulator_sha256','rom_sha256'):
+        require(a[key]==b[key],'Different resource capture '+key)
+    require(a['config']['profile']==b['config']['profile'],'Resource machine profiles differ')
+    require(a['config'].get('loader_shared_reservations',[])==b['config'].get('loader_shared_reservations',[]),
+            'Resource comparison loader ownership profiles differ')
+    require(a['config'].get('loader_family',[])==b['config'].get('loader_family',[]),'Different loader comparison families')
+    require(a['input_scenario']['sha256']==b['input_scenario']['sha256'],'Different controller recipes')
+    require(a['boot_phase_fixture']['stop']['cck']==b['boot_phase_fixture']['stop']['cck'] and
+            a['boot_phase_fixture']['registers']==b['boot_phase_fixture']['registers'],'Different natural startup fixture')
+    for directory,report in zip((original,candidate),reports):
+        require(digest(directory/'experiment.bin')==report['payload_sha256']==report['config']['payload_sha256'],'Resource payload identity changed')
+        require(report['loss_monitor']['counters']['dropped_notifications']==report['loss_monitor']['counters']['dropped_events']==0,
+                'Resource capture lost events')
+    pa,pb=a['scenario']['phases'],b['scenario']['phases']
+    require(len(pa)==len(pb),'Resource phase count differs')
+    delta=b['config']['assembly_base']-a['config']['assembly_base']
+    for x,y in zip(pa,pb):
+        require(x['name']==y['name'] and x['status']==y['status']=='hit' and
+                x['stop_event']['cck']==y['stop_event']['cck'] and int(y['pc'],0)-int(x['pc'],0)==delta,
+                'Resource phase/clock mismatch: '+x['name'])
+    def input_clock(report):
+        return [(x['method'],x['arguments'],x['cleanup'],x['outcome'],x['anchor']['phase'],x['anchor']['stop']['cck'])
+                for x in report['scenario']['input_trace']]
+    require(input_clock(a)==input_clock(b),'Resource controller input clocks differ')
+    snapshots=[]
+    wanted={'inventory_open','take_engineer_card_ready','take_sonicdriver_ready'}
+    sa={x['phase']:x for x in a['resource_observations']['snapshots']}
+    sb={x['phase']:x for x in b['resource_observations']['snapshots']}
+    require(set(sa)==set(sb)==wanted,'Incomplete resource snapshots')
+    for name in sorted(wanted):
+        x,y=sa[name],sb[name]
+        require(x['cck']==y['cck'] and int(y['pc'],0)-int(x['pc'],0)==delta,'Resource snapshot context differs')
+        for snapshot,report in ((x,a),(y,b)):
+            start,end=cursor_range(report)
+            require(snapshot['buffer_address']==start and snapshot['buffer_size']==end-start and
+                    len(bytes.fromhex(snapshot['buffer_hex']))==end-start and
+                    hashlib.sha256(bytes.fromhex(snapshot['buffer_hex'])).hexdigest()==snapshot['buffer_sha256'],
+                    'Resource snapshot extent or identity differs')
+        snapshots.append(dict(phase=name,source_pc=int(x['pc'],0)-a['config']['assembly_base'],
+            original_address=x['buffer_address'],candidate_address=y['buffer_address'],
+            buffer_equal=x['buffer_hex']==y['buffer_hex'],
+            typed_app_pointers_equal=[normalize_dma_address(a,p) for p in x['app_pointer_values']]==
+                                    [normalize_dma_address(b,p) for p in y['app_pointer_values']]))
+    scoped=copy.deepcopy(reports)
+    for report in scoped:
+        captures=report['resource_observations']['dma']
+        require(len(captures)==1 and captures[0]['phase']=='inventory_open' and len(captures[0]['frames'])==2,
+                'Expected two complete inventory DMA frames')
+        report['output_observations']['dma']=captures
+    dma=asset_and_dma_checks(original,candidate,scoped,target)
+    passed=dma['status']=='pass' and all(x['buffer_equal'] and x['typed_app_pointers_equal'] for x in snapshots)
+    return dict(status='pass' if passed else 'mismatch',phase_count=len(pa),snapshots=snapshots,DMA=dma,
+                scope='Matched bounded inventory prefix, three stopped snapshots and two complete DMA frames per layout; not full gameplay or CPU access-event coverage.')
 
 
 def compare(original, candidate, title_original, title_candidate, target):

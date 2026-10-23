@@ -159,7 +159,9 @@ def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=
     runtime_base=config['assembly_base'];load_base=config['load_address']
     old_start,old_end=config.get('old_materialized_interval',[ORIGINAL,0x65370])
     prefix_size=config.get('copied_prefix_bytes',old_end-old_start)
-    contract=DirectPayloadContract('pandora-explicit-rebase','pandora-experimental',sha(payload),load_base,config['entrypoint'],{'a1':load_base},0x7FFF8,0x48414E44)
+    contract=DirectPayloadContract('pandora-explicit-rebase','pandora-experimental',sha(payload),load_base,config['entrypoint'],{'a1':load_base},0x7FFF8,0x48414E44,
+        reservations=tuple(tuple(span) for span in config.get('loader_shared_reservations',[])),
+        seed_copies=tuple((seed['source_offset'],seed['runtime_address'],seed['size']) for seed in config.get('loader_seed_copies',[])))
     adf=out/'experiment.adf';write(out/'boot-build.json',build_boot_adf(contract,payload,adf))
     old_popen=subprocess.Popen
     def launch(command,*args,**kwargs):
@@ -180,7 +182,7 @@ def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=
                 if phase_locked_boot:
                     stop=client.run_until({'cck':500*71051},timeout=30)
                     require(stop.get('reason')=='target' and client.read_memory(0x7FFF8,4)==b'HAND','Boot phase fixture did not remain in handoff')
-                    report['boot_phase_fixture']={'target_cck':500*71051,'stop':stop,'registers':client.registers(),'method':'Natural execution of unchanged HAND wait loop before GO; no game state changed.'}
+                    report['boot_phase_fixture']={'target_cck':500*71051,'stop':stop,'registers':client.registers(),'method':'Natural execution of generated HAND wait loop before host GO marker release; no gameplay state changed.'}
                 release_handoff(client,contract)
                 for offset in [0,0x46A,0x48C]:
                     address=load_base if offset==0 else runtime_base+offset
@@ -263,11 +265,16 @@ def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=
                 report['loss_monitor']={'filter':heartbeat,'readback':client.request('events.list'),'counters':loss}
                 import amiga_reversing.tools.copperline_runtime as runtime
                 phase_runner=runtime._run_scenario_phase
-                media=[];active=None;dma=[]
+                media=[];active=None;dma=[];resource_dma=[];resource_snapshots=[]
                 def finish_profile():
                     nonlocal active
                     if active is not None:
-                        client.request('profile.stop');dma.append({'phase':active['name'],**summarize_dma(active['path'])});active=None
+                        client.request('profile.stop')
+                        record={'phase':active['name'],**summarize_dma(active['path'])}
+                        if active.get('resource'):
+                            record['directory']=active['path'].name;resource_dma.append(record)
+                        else:dma.append(record)
+                        active=None
                 def progress(*args,**kwargs):
                     nonlocal active
                     result=phase_runner(*args,**kwargs);event=result.get('stop_event') or {}
@@ -293,11 +300,26 @@ def observe(root,out,payload,config,rom,binary,inspect_output=False,capture_pcm=
                             directory=out/('dma-'+result['name'])
                             client.request('profile.start',{'path':str(directory),'frames':3,'slots':True,'memory':False,'screenshots':'none','pc_samples':True})
                             active={'name':result['name'],'path':directory,'frame':event['frame']}
+                        if config.get('normal_layout_export') and result['name'] in ('inventory_open','take_engineer_card_ready','take_sonicdriver_ready'):
+                            cursor=next(r for r in config['layout_plan']['regions'] if r['region_id']=='pandora_cursor_sprites')
+                            buffer=client.read_memory(cursor['runtime_address'],cursor['size'])
+                            pointers=client.read_memory(0x3C08,8)
+                            resource_snapshots.append({'phase':result['name'],'frame':event['frame'],'cck':event['cck'],
+                                'pc':result['pc'],'registers':client.registers(),'buffer_address':cursor['runtime_address'],
+                                'buffer_size':cursor['size'],'buffer_sha256':hashlib.sha256(buffer).hexdigest(),'buffer_hex':buffer.hex(),
+                                'app_pointer_slot_address':0x3C08,'app_pointer_values':[int.from_bytes(pointers[i:i+4],'big') for i in (0,4)],
+                                'scope':'Stopped phase snapshot, not a CPU memory-access event.'})
+                            if result['name']=='inventory_open':
+                                require(active is None,'Overlapping resource/output DMA profiles')
+                                directory=out/'resource-dma-inventory_open'
+                                client.request('profile.start',{'path':str(directory),'frames':3,'slots':True,'memory':False,'screenshots':'none','pc_samples':True})
+                                active={'name':result['name'],'path':directory,'frame':event['frame'],'resource':True}
                     return result
                 with patch('amiga_reversing.tools.copperline_runtime._run_scenario_phase',progress):
                     report['scenario']=run_scenario(client,scenario,payload,trace_directory=out)
                 client.request('events.unsubscribe',{'events':['mmio']});client.events=queue
                 report['output_observations']={'screenshots':media,'dma':dma}
+                report['resource_observations']={'snapshots':resource_snapshots,'dma':resource_dma}
                 report['registers_at_stop']=client.registers();pc=report['registers_at_stop']['pc'];report['pc_bytes_at_stop']=client.read_memory(pc,32).hex()
                 report['stack_at_stop']=client.read_memory(report['registers_at_stop']['a7'],32).hex()
                 report['status']='first_failure'

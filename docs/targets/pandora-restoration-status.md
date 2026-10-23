@@ -2,6 +2,20 @@
 
 ## Canonical layout implementation checkpoint (2026-10-23)
 
+The independent cursor move exposed a four-byte loader dependency, not a proven
+original-game bug. In a matched 28-phase inventory prefix, all three 136-byte
+snapshots agreed, but two complete DMA frames fetched original `$A000/$4000`
+after that footprint where the moved buffer held zero. The
+[retained mismatch](../../runtime/observations/pandora-cursor-inventory-boundary.json)
+records the exact fetches. The correction models a 140-byte parent and a distinct
+four-byte seed copied by the guest loader before HAND. The corrected 28-phase pair has matching phase/controller clocks and inventory
+DMA streams with no sampled bounds findings. Strict comparison still refuses an
+eight-CCK natural HAND-boundary difference; full cursor/output equivalence remains
+open. The [seed receipt](../../runtime/observations/pandora-cursor-loader-seed.json)
+records 298 passing focused tests and current exact verification.
+Original intent and any unobserved continuation remain unknown.
+
+
 [Three real source builds](../../runtime/observations/pandora-canonical-layout-builds.json)
 now pass C/vasm agreement through normal export: original, image at `$80000`, and
 that image plus the paired cursor workspace at `$E0000`. The original is fully

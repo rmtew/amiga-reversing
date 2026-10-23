@@ -80,6 +80,7 @@ int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayou
   memset(out,0,sizeof(*out));out->failed_region=-1;
   for(size_t i=0;i<M68K_ANALYSIS_MEMORY_REGION_LIMIT;i++) out->parents[i]=-1;
   if(!p || !layout || p->memory_region_count>M68K_ANALYSIS_MEMORY_REGION_LIMIT ||
+      p->bootstrap_contract_count>M68K_MEMORY_LAYOUT_LIMIT ||
       layout->placement_count>M68K_ANALYSIS_MEMORY_REGION_LIMIT ||
       (layout->chip_bytes!=0x80000 && layout->chip_bytes!=0x100000))
     return fail(out,-1,"unsupported_layout_profile");
@@ -99,6 +100,19 @@ int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayou
     for(size_t j=0;j<i;j++) if(!strcmp(p->memory_regions[i].region_id,p->memory_regions[j].region_id))
       return fail(out,(int)i,"duplicate_region_identity");
     if(resolve_region(p,layout,out,state,(int)i)) return -1;
+    const M68kMemoryRegionIR *r=&p->memory_regions[i];
+    if(r->has_loader_seed) {
+      if(!r->loader_seed_size || r->loader_seed_size>0x10000 ||
+          (uint64_t)r->loader_seed_region_offset+r->loader_seed_size>r->size)
+        return fail(out,(int)i,"invalid_loader_seed_extent");
+      const M68kBootstrapContractIR *c=NULL;
+      for(size_t bi=0;bi<p->bootstrap_contract_count;bi++)
+        if(!strcmp(layout->bootstrap_contract_id,p->bootstrap_contracts[bi].contract_id)) c=&p->bootstrap_contracts[bi];
+      if(!c) return fail(out,(int)i,"loader_seed_requires_bootstrap_contract");
+      if((uint64_t)r->loader_seed_source_offset+r->loader_seed_size>c->file_size ||
+          (uint64_t)r->runtime_address+r->loader_seed_region_offset!=(uint64_t)c->load_address+r->loader_seed_source_offset)
+        return fail(out,(int)i,"loader_seed_original_staging_mismatch");
+    }
   }
   for(size_t i=0;i<p->memory_region_count;i++) for(size_t j=0;j<i;j++) {
     if(ancestor(out,(int)i,(int)j) || ancestor(out,(int)j,(int)i)) continue;

@@ -5,13 +5,13 @@ import json
 
 import pytest
 
-from amiga_reversing.tools.pandora_layout_walkthrough import TARGET, export_context
+from amiga_reversing.tools.pandora_layout_walkthrough import TARGET, export_context, seed_copies
 
 
 def fixture():
     original = bytes.fromhex('4e75')
     plan = dict(layout_id='original', status='placement_valid', export_ready=False, chip_bytes=0x100000,
-        bootstrap=dict(kind='retained_prefix_copy', variant='native', input_sha256=hashlib.sha256(original).hexdigest(),
+        bootstrap=dict(kind='retained_prefix_copy', variant='native', load_address=0x20000,input_sha256=hashlib.sha256(original).hexdigest(),
                        file_size=2, copied_source_end=2, image_region_id='image'),
         regions=[dict(region_id='image', region_kind='image', size=2, runtime_address=0x10000,
                       original_address=0x10000)])
@@ -72,3 +72,15 @@ def test_file_and_prefix_extent_are_distinct():
     bind(changed)
     with pytest.raises(ValueError, match='complete staging size'):
         export_context(changed, original, 'current')
+
+
+def test_native_seed_consumer_refuses_rewritten_or_unknown_source_bytes():
+    payload,original=fixture();plan=payload['layout_plan']
+    plan['regions'].append(dict(loader_seed=dict(source_offset=0,size=2,runtime_address=0xe0088,
+                                               phase='before_payload_entry')))
+    assert seed_copies(plan,original,original)==((0,0xe0088,2),)
+    with pytest.raises(ValueError,match='rewritten'):
+        seed_copies(plan,original,bytes(2))
+    plan['regions'][-1]['loader_seed']['source_offset']=2
+    with pytest.raises(ValueError,match='outside original'):
+        seed_copies(plan,original,original)

@@ -22,6 +22,8 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
     if(json_builder_append(b,",\"region_kind\":") || json_builder_append_json_string(b,kinds[r->region_kind]) ||
         json_builder_append(b,",\"parent_region_id\":") || json_builder_append_json_string(b,r->parent_region_id)) return -1;
   }
+  if(r->has_loader_seed && json_builder_appendf(b,",\"loader_seed\":{\"source_offset\":%u,\"region_offset\":%u,\"size\":%u}",
+      r->loader_seed_source_offset,r->loader_seed_region_offset,r->loader_seed_size)) return -1;
   if(json_builder_append(b,",\"overlapping_regions\":[")) return -1;
   size_t overlaps=0;
   for(i=0;i<a->policy.memory_region_count;i++) {
@@ -149,9 +151,14 @@ int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
           json_builder_append_json_string(&b,r->name) || json_builder_append(&b,",\"region_kind\":") ||
           json_builder_append_json_string(&b,r->region_kind<=3 ? kinds[r->region_kind] : "unknown") ||
           json_builder_append(&b,",\"parent_region_id\":") || json_builder_append_json_string(&b,r->parent_region_id) ||
-          json_builder_appendf(&b,",\"original_address\":%u,\"runtime_address\":%u,\"size\":%u,\"parent_offset\":%u}",
+          json_builder_appendf(&b,",\"original_address\":%u,\"runtime_address\":%u,\"size\":%u,\"parent_offset\":%u",
             r->runtime_address,resolved.addresses[i],r->size,resolved.parents[i]>=0 ?
             r->runtime_address-a->policy.memory_regions[resolved.parents[i]].runtime_address : 0)) goto failed;
+      if(r->has_loader_seed && json_builder_appendf(&b,",\"loader_seed\":{\"source_offset\":%u,\"region_offset\":%u,\"size\":%u,"
+          "\"runtime_address\":%u,\"staging_address\":%u,\"phase\":\"before_payload_entry\"}",
+          r->loader_seed_source_offset,r->loader_seed_region_offset,r->loader_seed_size,
+          resolved.addresses[i]+r->loader_seed_region_offset,r->runtime_address+r->loader_seed_region_offset)) goto failed;
+      if(json_builder_append(&b,"}")) goto failed;
     }
     if(json_builder_append(&b,"],\"bootstrap\":")) goto failed;
     const M68kBootstrapContractIR *c=NULL;

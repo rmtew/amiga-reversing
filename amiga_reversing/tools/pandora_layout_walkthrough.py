@@ -52,12 +52,30 @@ def export_context(payload, original, metadata_hash):
     return plan, bootstrap, image
 
 
-def build_from_export(root, out, payload):
+def seed_copies(plan, original, assembled=None):
+    """Consume native initializer coordinates; never guess seed or pointer bytes."""
+    from amiga_reversing.tools.direct_payload_adapter import normalize_seed_copies
+    copies=[]
+    for region in plan['regions']:
+        seed=region.get('loader_seed')
+        if seed is None:continue
+        require(seed.get('phase')=='before_payload_entry','Unsupported seed phase')
+        source,size=seed['source_offset'],seed['size']
+        require(len(original[source:source+size])==size,'Seed source is outside original input')
+        if assembled is not None:
+            require(assembled[source:source+size]==original[source:source+size],
+                    'Seed source was rewritten; original-byte companion initialization is unsupported')
+        copies.append((source,seed['runtime_address'],size))
+    return normalize_seed_copies(tuple(copies),payload_size=len(original),load_address=plan['bootstrap']['load_address'])
+
+
+def build_from_export(root, out, payload, *, family=()):
     from amiga_reversing.disasm.binary_source import read_binary_source_bytes
     from amiga_reversing.disasm.c_backend import assemble_platform_source_path_with_c_backend
     from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
     from amiga_reversing.disasm.project_paths import resolve_project_paths
     from amiga_reversing.disasm.source_package import materialize_source_package
+    from amiga_reversing.tools.direct_payload_adapter import seed_reservation_spans
     paths = resolve_project_paths(TARGET, project_root=root)
     original = read_binary_source_bytes(paths.binary_source)
     plan, bootstrap, image = export_context(payload, original, effective_metadata_hash(paths.target_dir))
@@ -86,6 +104,18 @@ def build_from_export(root, out, payload):
         assets[item['path']] = item['sha256']
     original_control = all(r['runtime_address'] == r['original_address'] for r in plan['regions'])
     require(not original_control or data == original, 'Original layout is not byte exact')
+    own_seeds=seed_copies(plan,original,data)
+    family_plans={plan['layout_id']:(payload['layout_plan_sha256'],plan)}
+    for member in family:
+        member_plan,_,_=export_context(member,original,payload['metadata_hash'])
+        existing=family_plans.get(member_plan['layout_id'])
+        require(existing is None or existing[0]==member['layout_plan_sha256'],'Conflicting loader-family layout identities')
+        family_plans[member_plan['layout_id']]=(member['layout_plan_sha256'],member_plan)
+    # A paired comparison explicitly owns the union of seed destinations before
+    # I/O in both controls. This is loader backing, not a placement solver or
+    # a claim about purposes of the allocator's rounded padding bytes.
+    all_seeds=tuple(copy for _,member in family_plans.values() for copy in seed_copies(member,original))
+    shared_reservations=tuple(sorted(set(seed_reservation_spans(all_seeds))))
     config = dict(normal_layout_export=True, layout_id=plan['layout_id'], layout_plan=plan,
         layout_plan_sha256=payload['layout_plan_sha256'], source_package_sha256=payload['package']['sha256'],
         original_binary_sha256=digest(original), original_source_sha256=digest(source.read_bytes()),
@@ -97,6 +127,10 @@ def build_from_export(root, out, payload):
         full_image_interval=[bootstrap['load_address'], bootstrap['load_address']+bootstrap['file_size']],
         old_materialized_interval=[image['original_address'], image['original_address']+image['size']],
         copied_prefix_bytes=bootstrap['copied_source_end'], assets_sha256=assets,
+        loader_seed_copies=[dict(source_offset=s,runtime_address=a,size=n) for s,a,n in own_seeds],
+        loader_shared_reservations=shared_reservations,
+        loader_family=[dict(layout_id=k,layout_plan_sha256=v[0]) for k,v in sorted(family_plans.items())],
+        seed_initialization_scope='Guest boot-shim copies from original staged bytes before HAND; no host seed/gameplay-memory writes. Existing host GO marker release is retained.',
         profile=dict(model='A500', chipset='ECS', video='PAL', cpu='68000', chip='1M', slow='512K', fast='0'),
         runtime_qualified=False)
     (out/'experiment-config.json').write_text(json.dumps(config, indent=2)+'\n')
@@ -110,6 +144,8 @@ def main():
     parser.add_argument('--layout', required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--export-json', type=Path, help='Reuse an identity-checked normal export, not a patched payload')
+    parser.add_argument('--family-export-json',type=Path,action='append',default=[],
+        help='Explicit paired-loader family; both runs reserve the union of native seed destinations before I/O')
     parser.add_argument('--run', action='store_true')
     parser.add_argument('--scenario', type=Path, help='Explicit existing qualified compiled normal-input route')
     parser.add_argument('--rom', type=Path)
@@ -123,7 +159,8 @@ def main():
     payload = (json.loads(args.export_json.read_text()) if args.export_json else
                source_export_payload(TARGET, project_root=PROJECT_ROOT, binary_assets=True, layout_id=args.layout))
     require(payload.get('layout_id') == args.layout, 'Requested layout differs from export')
-    binary, config = build_from_export(PROJECT_ROOT, args.output.resolve(), payload)
+    binary, config = build_from_export(PROJECT_ROOT, args.output.resolve(), payload,
+        family=[json.loads(path.read_text()) for path in args.family_export_json])
     if args.run:
         # Temporary observation seam only. The old source-patching builder is
         # never called; it is retired after the normal runtime gates qualify.

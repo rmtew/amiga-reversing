@@ -32,6 +32,9 @@ read_payload:
     bra.b   failed
 
 handoff:
+    ; Preserve only declared original-loader byte seeds, before native game
+    ; code and before HAND. Destinations were acquired before CMD_READ.
+    INCLUDE "direct_payload_seed_copies.i"
     INCLUDE "direct_payload_entry_context.i"
     move.l  #HANDOFF_VALUE,HANDOFF_MARKER
 ; The control client attaches after the boot code may otherwise have handed

@@ -40,6 +40,9 @@ class DirectPayloadContract:
     reservations: tuple[tuple[int, int], ...] = ()
     materialization: dict[str, int | bool] | None = None
     initialization: tuple[int, bytes] | None = None
+    # Original staged-file bytes copied by the guest shim before HAND/entry.
+    # Each tuple is (file offset, destination, size), not a host memory patch.
+    seed_copies: tuple[tuple[int, int, int], ...] = ()
 
 
 def _integer(record: dict[str, object], name: str) -> int:
@@ -82,6 +85,17 @@ def entry_context_source(registers: dict[str, int]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _seed_copies(record):
+    raw=record.get('seed_copies',[])
+    if not isinstance(raw,list):raise DirectPayloadContractError('seed_copies must be an array')
+    copies=[]
+    for item in raw:
+        if not isinstance(item,dict) or set(item)!={'source_offset','runtime_address','size'}:
+            raise DirectPayloadContractError('Seed copies require explicit source/destination/size')
+        copies.append(tuple(_integer(item,key) for key in ('source_offset','runtime_address','size')))
+    return normalize_seed_copies(tuple(copies))
+
+
 def load_contract(identifier: str, *, directory: Path = CONTRACT_DIRECTORY) -> DirectPayloadContract:
     if not identifier or Path(identifier).name != identifier:
         raise DirectPayloadContractError("Contract identifier must be a bare name.")
@@ -107,6 +121,7 @@ def load_contract(identifier: str, *, directory: Path = CONTRACT_DIRECTORY) -> D
         handoff_marker_address=_integer(raw, "handoff_marker_address"),
         handoff_marker_value=_integer(raw, "handoff_marker_value"),
         materialization=raw.get("materialization"),
+        seed_copies=_seed_copies(raw),
     )
     if contract.identifier != identifier:
         raise DirectPayloadContractError("Contract identifier does not match its filename.")
@@ -121,6 +136,7 @@ def load_contract(identifier: str, *, directory: Path = CONTRACT_DIRECTORY) -> D
 
 
 def validate_materialization(contract: DirectPayloadContract, payload_size: int | None = None) -> None:
+    normalize_seed_copies(contract.seed_copies, payload_size=payload_size, load_address=contract.load_address)
     m = contract.materialization
     if m is None:
         if contract.initialization is not None:
@@ -136,6 +152,42 @@ def validate_materialization(contract: DirectPayloadContract, payload_size: int 
             or m["runtime_address"] + m["size"] > 0x1000000
             or (payload_size is not None and m["source_offset"] + m["size"] > payload_size)):
         raise DirectPayloadContractError("Invalid materialization/consumption contract")
+
+
+def normalize_seed_copies(copies, *, payload_size=None, load_address=None):
+    """Coalesce identical byte aliases; reject conflicting or live-input writes."""
+    if not isinstance(copies, tuple) or len(copies)>16:
+        raise DirectPayloadContractError('Seed copies require at most sixteen explicit intervals')
+    ordered=[]
+    for copy in copies:
+        if (not isinstance(copy,tuple) or len(copy)!=3 or any(type(v) is not int for v in copy)):
+            raise DirectPayloadContractError('Seed copy fields must be integers')
+        source,address,size=copy
+        if (source<0 or address<0x1000 or not 0<size<=0x10000 or address+size>0x1000000
+                or (payload_size is not None and source+size>payload_size)):
+            raise DirectPayloadContractError('Seed copy has invalid source/destination bounds')
+        if payload_size is not None and load_address is not None:
+            if address<load_address+payload_size and load_address<address+size and address!=load_address+source:
+                raise DirectPayloadContractError('Seed copy would overwrite live input bytes')
+        ordered.append((source,address,size))
+    merged=[]
+    for source,address,size in sorted(ordered,key=lambda c:c[1]):
+        if merged and address<merged[-1][1]+merged[-1][2]:
+            old_source,old_address,old_size=merged[-1]
+            if source-address!=old_source-old_address:
+                raise DirectPayloadContractError('Conflicting overlapping seed byte aliases')
+            length=max(old_address+old_size,address+size)-old_address
+            if length>0x10000:raise DirectPayloadContractError('Coalesced seed exceeds bounded copy loop')
+            merged[-1]=(old_source,old_address,length)
+        else:merged.append((source,address,size))
+    if len(merged)>8:raise DirectPayloadContractError('Boot shim supports at most eight disjoint seed copies')
+    return tuple(merged)
+
+
+def seed_reservation_spans(copies):
+    """Exec ownership rounding is not an assertion about extra byte purposes."""
+    return tuple(((address & ~7), ((address+size+7)&~7)-(address&~7))
+                 for _,address,size in normalize_seed_copies(copies))
 
 
 def boot_checksum(block: bytes) -> int:
@@ -162,7 +214,7 @@ def reservation_plan(contract: DirectPayloadContract, payload_size: int) -> tupl
     if type(marker) is not int or marker < 0x1008 or marker > 0xFFFFFC or marker % 4:
         raise DirectPayloadContractError("Invalid handoff marker reservation")
     spans = []
-    for address, size in contract.reservations:
+    for address, size in (*contract.reservations, *seed_reservation_spans(contract.seed_copies)):
         if (type(address) is not int or type(size) is not int or address % 8
                 or size <= 0 or size % 8 or address < 0x1000
                 or address + size > 0x1000000):
@@ -191,6 +243,16 @@ def reservation_plan(contract: DirectPayloadContract, payload_size: int) -> tupl
     return ((marker_span[0], marker_span[1]-marker_span[0]),) + tuple((start, end - start) for start, end in merged)
 
 
+def seed_copy_source(contract, payload_size):
+    lines=[]
+    for index,(source,address,size) in enumerate(normalize_seed_copies(contract.seed_copies,
+            payload_size=payload_size,load_address=contract.load_address)):
+        lines.extend((f"    movea.l #${contract.load_address+source:X},a0",f"    movea.l #${address:X},a1",
+            f"    move.l #${size-1:X},d0",f"loader_seed_copy_{index}:","    move.b (a0)+,(a1)+",
+            f"    dbra.w d0,loader_seed_copy_{index}"))
+    return '\n'.join(lines)+'\n'
+
+
 def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, output_path: Path) -> bytes:
     definitions = {
         "PAYLOAD_SIZE": payload_size,
@@ -203,6 +265,7 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
     }
     context_path = output_path.parent / "direct_payload_entry_context.i"
     reservation_path = output_path.parent / "direct_payload_reservations.i"
+    seed_path = output_path.parent / "direct_payload_seed_copies.i"
     reservation_lines=[]
     for index,(address,size) in enumerate(reservation_plan(contract, payload_size)):
         reservation_lines.extend((f"    move.l #${size:X},d0", f"    movea.l #${address:X},a1",
@@ -213,6 +276,7 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
     try:
         context_path.write_text(entry_context_source(contract.entry_registers), encoding="ascii")
         reservation_path.write_text("\n".join(reservation_lines)+"\n", encoding="ascii")
+        seed_path.write_text(seed_copy_source(contract,payload_size), encoding="ascii")
         completed = subprocess.run(command, capture_output=True, text=True, check=False)
         if completed.returncode != 0:
             raise DirectPayloadContractError(completed.stderr.strip() or completed.stdout.strip() or "vasm failed")
@@ -220,6 +284,7 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
     finally:
         context_path.unlink(missing_ok=True)
         reservation_path.unlink(missing_ok=True)
+        seed_path.unlink(missing_ok=True)
 
 
 def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_path: Path) -> dict[str, object]:
@@ -248,7 +313,7 @@ def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_p
     image[:BOOT_BLOCK_SIZE] = block
     image[PAYLOAD_DISK_OFFSET : PAYLOAD_DISK_OFFSET + len(payload)] = payload
     output_path.write_bytes(image)
-    return {
+    report = {
         "status": "ok",
         "contract": contract.identifier,
         "target_id": contract.target_id,
@@ -260,6 +325,12 @@ def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_p
         "handoff_marker_address": f"0x{contract.handoff_marker_address:08x}",
         "handoff_marker_value": f"{contract.handoff_marker_value:08x}",
     }
+    if contract.seed_copies:
+        report['seed_copies']=[dict(source_offset=s,runtime_address=a,size=n,
+            staging_address=contract.load_address+s,source_sha256=hashlib.sha256(payload[s:s+n]).hexdigest(),
+            phase='guest_shim_before_handoff') for s,a,n in normalize_seed_copies(contract.seed_copies,
+                payload_size=len(payload),load_address=contract.load_address)]
+    return report
 
 
 def bind_derived_contract(contract: DirectPayloadContract, manifest_path: Path) -> tuple[DirectPayloadContract, Path, dict]:

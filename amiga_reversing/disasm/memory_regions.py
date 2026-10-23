@@ -17,7 +17,7 @@ def validate_region(region: dict) -> dict:
         "lifetime",
         "dma_access",
     }
-    optional = {"region_kind", "parent_region_id"}
+    optional = {"region_kind", "parent_region_id", "loader_seed"}
     if not fields <= set(region) or set(region) - fields - optional:
         raise ValueError(
             "memory_region requires exactly the supported definition fields"
@@ -60,7 +60,16 @@ def validate_region(region: dict) -> dict:
         or parent == region["region_id"]
     )):
         raise ValueError("memory_region requires a distinct bounded parent identity")
-    return dict(region)
+    result = dict(region)
+    if "loader_seed" in region:
+        seed = region["loader_seed"]
+        if (not isinstance(seed, dict) or set(seed) != {"source_offset", "region_offset", "size"}
+                or any(type(seed[k]) is not int or not 0 <= seed[k] < 0x1000000 for k in seed)
+                or not 0 < seed["size"] <= 0x10000
+                or seed["region_offset"] + seed["size"] > size):
+            raise ValueError("memory_region loader_seed requires a bounded original-file byte interval")
+        result["loader_seed"] = dict(seed)
+    return result
 
 
 def validate_layout(layout: dict) -> dict:
@@ -156,7 +165,7 @@ def build_derived_artifact(
         end = offset + len(after)
     regions = artifact.memory_regions_payload()["items"]
     region = next(r for r in regions if r["region_id"] == plan["region_id"])
-    if region.get("region_kind", "storage") != "storage" or region.get("parent_region_id"):
+    if region.get("region_kind", "storage") != "storage" or region.get("parent_region_id") or region.get("loader_seed"):
         raise ValueError("Legacy single-region artifacts do not admit hierarchical layout definitions")
     region = {
         k: region[k]

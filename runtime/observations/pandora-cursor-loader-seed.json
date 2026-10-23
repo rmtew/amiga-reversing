@@ -1,0 +1,201 @@
+{
+  "schema": "pandora-cursor-loader-seed/v1",
+  "status": "bounded_dependency_corrected_strict_comparison_refused",
+  "canonical_actions": [
+    "manual-80c9d090f6b845f48e1d84a3bf38a503",
+    "manual-0e3f73932eab4c8fab225227acf35bb0"
+  ],
+  "original_exact_receipt": "da3c4265dd77a0989465fad610be0502712ead84905cfc707b1b9188eeddb096",
+  "reviewed_subject_revision": "93074a28a8682cc9c7dc08a98f2fa2b034e7ed1010e7a521afb17ae54b5bac35",
+  "builds": [
+    {
+      "status": "assembled_runtime_unqualified",
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "seconds": 252.29441723199852,
+      "bytes": 376832,
+      "sha256": "36c1a03579fcc6a9f9f200313d488fed280e3e8848c8216d66a8ce32448488b0",
+      "package_sha256": "e474ec5dbe4291d12079db22a2bb3290ed4895a0d722ebe818855b500a2e29f4",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f",
+      "C_equals_vasm": true,
+      "original_exact": false,
+      "source_sha256": "972e2dfd759d7be6aeebec8009bf5815d287b27f122327c41c453fff14956330",
+      "assembler_profile": {
+        "assemble_c_api": true,
+        "parse_layout_seconds": 0.238765,
+        "emit_object_seconds": 0.007474,
+        "platform_finalize_seconds": 0.0,
+        "write_buffer_seconds": 5.1e-05,
+        "write_file_seconds": 0.0,
+        "read_output_seconds": 0.0,
+        "total_seconds": 0.246606,
+        "source_bytes": 1630416,
+        "rebuilt_bytes": 376832
+      }
+    },
+    {
+      "status": "assembled_runtime_unqualified",
+      "layout_id": "pandora_image_80000_ecs1m",
+      "seconds": 177.99571423400266,
+      "bytes": 376832,
+      "sha256": "5a6f969515baea1806627ddfcae75d2fd35ff002f738ddaae1c2c0b28af4bf62",
+      "package_sha256": "141140158f00f2e18a81cd5409deae8fafea961a264e6d12f72bc627d6ef44c0",
+      "layout_plan_sha256": "cde9eb66a25d06d409791fd97f78b21f17996be8387fed2d867be2f62269ee10",
+      "C_equals_vasm": true,
+      "original_exact": false,
+      "source_sha256": "3f0e64384b8262aa5426b2d32117fa81d0ce710f77b54386e5d6eece8fda6f94",
+      "assembler_profile": {
+        "assemble_c_api": true,
+        "parse_layout_seconds": 0.207791,
+        "emit_object_seconds": 0.008325,
+        "platform_finalize_seconds": 0.0,
+        "write_buffer_seconds": 6.2e-05,
+        "write_file_seconds": 0.0,
+        "read_output_seconds": 0.0,
+        "total_seconds": 0.216518,
+        "source_bytes": 1630415,
+        "rebuilt_bytes": 376832
+      }
+    },
+    {
+      "status": "assembled_runtime_unqualified",
+      "layout_id": "pandora_original_ecs1m",
+      "seconds": 254.41010371299853,
+      "bytes": 376832,
+      "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "package_sha256": "63c97a84eb3eac766dd4e93d0c2c7c67f8126a92e710a078177201a67025ce8b",
+      "layout_plan_sha256": "89e0a1245009cc432ea39cc6a2ee5f0a8a7020afd71b878b8e33299e4080dd40",
+      "C_equals_vasm": true,
+      "original_exact": true,
+      "source_sha256": "b6634b29edf5ac4fa4ca5be548898de64c85b17bc556005f2cd0a1260ee81643",
+      "assembler_profile": {
+        "assemble_c_api": true,
+        "parse_layout_seconds": 0.492696,
+        "emit_object_seconds": 0.01376,
+        "platform_finalize_seconds": 0.0,
+        "write_buffer_seconds": 9.1e-05,
+        "write_file_seconds": 0.0,
+        "read_output_seconds": 0.0,
+        "total_seconds": 0.507081,
+        "source_bytes": 1630412,
+        "rebuilt_bytes": 376832
+      }
+    }
+  ],
+  "phases_per_layout": 28,
+  "final_frame": 1349,
+  "matched_phase_and_controller_clocks": true,
+  "current_cursor_bytes": 140,
+  "seed_file_offset": 283640,
+  "seed_size": 4,
+  "seed_bytes": "a0004000",
+  "original_seed_address": 414712,
+  "moved_seed_address": 917640,
+  "loader_family": [
+    {
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f"
+    },
+    {
+      "layout_id": "pandora_image_80000_ecs1m",
+      "layout_plan_sha256": "cde9eb66a25d06d409791fd97f78b21f17996be8387fed2d867be2f62269ee10"
+    },
+    {
+      "layout_id": "pandora_original_ecs1m",
+      "layout_plan_sha256": "89e0a1245009cc432ea39cc6a2ee5f0a8a7020afd71b878b8e33299e4080dd40"
+    }
+  ],
+  "shared_reservations": [
+    [
+      414712,
+      8
+    ],
+    [
+      917640,
+      8
+    ]
+  ],
+  "seed_readbacks": [
+    [
+      {
+        "source_offset": 283640,
+        "runtime_address": 414712,
+        "size": 4,
+        "sha256": "b3d63454188055d679f763f009d1bb8dab7f535e9fc54410bfbd6bf73fe12171",
+        "phase": "guest_shim_before_handoff",
+        "readback_verified": true
+      }
+    ],
+    [
+      {
+        "source_offset": 283640,
+        "runtime_address": 917640,
+        "size": 4,
+        "sha256": "b3d63454188055d679f763f009d1bb8dab7f535e9fc54410bfbd6bf73fe12171",
+        "phase": "guest_shim_before_handoff",
+        "readback_verified": true
+      }
+    ]
+  ],
+  "report_sha256": [
+    "14795007ef5899ae7db379996f22ab75fe83d2e2205e5f21cbcbfc0fb4d298db",
+    "ea66a8da0a7e1296ae463ca0e861f9097d49d84b25f5d6844a5e16faf0b92267"
+  ],
+  "diagnostic_DMA": {
+    "status": "pass",
+    "complete_frames_per_layout": 2,
+    "normalized_ordered_streams": {
+      "inventory_open": true
+    },
+    "original_bounds_findings": [],
+    "candidate_bounds_findings": []
+  },
+  "strict_comparison": {
+    "status": "refused",
+    "reason": "Different natural startup fixture",
+    "original_cck": 35525509,
+    "candidate_cck": 35525517,
+    "registers_equal": true,
+    "relaxed": false
+  },
+  "tests": [
+    {
+      "files": [
+        "test_loader_seeds",
+        "test_c_backend_policy_abi",
+        "test_pandora_layout_walkthrough",
+        "test_copperline_runtime",
+        "test_direct_payload_adapter"
+      ],
+      "passed": 183
+    },
+    {
+      "files": [
+        "test_pandora_output_comparison",
+        "test_pandora_relocated_ending"
+      ],
+      "passed": 17
+    },
+    {
+      "files": [
+        "test_memory_layouts",
+        "test_bootstrap_layouts",
+        "test_layout_resize"
+      ],
+      "passed": 98
+    }
+  ],
+  "startup": "Guest shim reserves declared seed backing before CMD_READ and copies staged-file bytes before HAND. Original self-copy and moved copy have the same byte count but different destinations. Host reads verify; existing host GO marker release remains. No gameplay-memory injection or checkpoint restore.",
+  "original_intent": "Unknown: deliberate reliance versus accidental/lucky control bytes is not established.",
+  "remaining": [
+    "Resolve common HAND-boundary timing without weakening comparison assertions.",
+    "Full independent-cursor cold completion and matched graphics/PCM remain unqualified.",
+    "Frozen-plan reuse, shared layout selection adapters and legacy-patcher retirement remain first-delivery obligations."
+  ],
+  "limits": [
+    "Diagnostic ECS/1MiB Chip direct-loader profile only.",
+    "Three stopped cursor snapshots are not CPU access events.",
+    "Two inventory DMA frames do not prove an unobserved continuation safe.",
+    "No surrounding source/font/bank45 classification or unknown-byte reduction.",
+    "Build wall times overlap other jobs and are not performance speedup evidence."
+  ]
+}

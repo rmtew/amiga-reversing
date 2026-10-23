@@ -451,12 +451,24 @@ def verify_handoff(client, contract, payload_path):
         raise CopperlineError(
             "Handoff memory does not match the entire contracted payload"
         )
-    return {
+    seeds=[]
+    if getattr(contract,'seed_copies',()):
+        from .direct_payload_adapter import normalize_seed_copies
+        for source,address,size in normalize_seed_copies(contract.seed_copies,
+                payload_size=len(payload),load_address=contract.load_address):
+            data=client.read_memory(address,size)
+            if data!=payload[source:source+size]:
+                raise CopperlineError('Guest loader seed does not match declared staged input bytes')
+            seeds.append(dict(source_offset=source,runtime_address=address,size=size,
+                sha256=hashlib.sha256(data).hexdigest(),phase='guest_shim_before_handoff',readback_verified=True))
+    report = {
         "payload_sha256": expected,
         "size": len(payload),
         "load_address": contract.load_address,
         "status": "verified",
     }
+    if seeds:report['loader_seeds']=seeds
+    return report
 
 
 def release_handoff(client, contract):

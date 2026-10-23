@@ -8934,10 +8934,12 @@ static int append_metadata_abstract_region_local(const char *object_start, const
   return 1;
 }
 
+static int layout_required_u32_local(const char *,const char *,const char *,uint32_t *);
+
 static int append_metadata_memory_region_local(const char *start, const char *end,
     M68kAnalysisPolicy *policy) {
   static const char *const keys[] = {"region_id", "name", "runtime_address", "size", "alignment",
-    "source_domain", "memory_class", "lifetime", "dma_access", "region_kind", "parent_region_id"};
+    "source_domain", "memory_class", "lifetime", "dma_access", "region_kind", "parent_region_id", "loader_seed"};
   M68kMemoryRegionIR r = {0};
   char source[32] = {0}, memory[32] = {0}, lifetime[32] = {0}, dma[32] = {0};
   int present; uint16_t i;
@@ -8956,6 +8958,20 @@ static int append_metadata_memory_region_local(const char *start, const char *en
       !json_optional_string_field_local(start,end,"dma_access",dma,sizeof(dma)) || (strcmp(dma,"none") && strcmp(dma,"chip")) ||
       policy->memory_region_count >= M68K_ANALYSIS_MEMORY_REGION_LIMIT) return 0;
   r.persistent = 1U; r.dma_access = !strcmp(dma,"chip");r.source_mapped=!strcmp(source,"mapped_source");
+  const char *seed=json_find_key_local(start,end,"loader_seed");
+  if(seed) {
+    static const char *const seed_keys[]={"source_offset","region_offset","size"};
+    const char *seed_end=NULL;
+    seed=json_skip_ws_local(seed,end);
+    const char *object=json_next_object_local(seed,end,&seed_end);
+    if(!object || object!=seed || !json_object_has_only_keys_local(object,seed_end,seed_keys,3) ||
+        !layout_required_u32_local(object,seed_end,"source_offset",&r.loader_seed_source_offset) ||
+        !layout_required_u32_local(object,seed_end,"region_offset",&r.loader_seed_region_offset) ||
+        !layout_required_u32_local(object,seed_end,"size",&r.loader_seed_size) ||
+        !r.loader_seed_size || r.loader_seed_size>0x10000 || r.loader_seed_source_offset>=0x1000000 ||
+        (uint64_t)r.loader_seed_region_offset+r.loader_seed_size>r.size) return 0;
+    r.has_loader_seed=1;
+  }
   char kind[32]={0};
   if(!json_optional_string_field_local(start,end,"region_kind",kind,sizeof(kind)) ||
       !json_optional_string_field_local(start,end,"parent_region_id",r.parent_region_id,sizeof(r.parent_region_id)) ||

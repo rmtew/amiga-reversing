@@ -5,6 +5,23 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-23)
 
+The independent-cursor inventory probe found a concrete initialization omission:
+the sprite consumer fetched two more WORDs after the modeled 136 bytes. Across
+two complete inventory frames, original `$653F8/$653FA` supplied `$A000/$4000`,
+while moved `$E0088/$E008A` supplied zero. Three equal stopped buffer snapshots
+had not covered that consumer footprint. The retained
+[negative receipt](../../runtime/observations/pandora-cursor-inventory-boundary.json)
+records this failure. The bounded correction models a 140-byte parent and a
+separate four-byte loader-file seed from `$453F8`; guest startup copying is implemented. The corrected 28-phase pair completes
+with matching phase/controller clocks and ordered inventory DMA, but strict
+comparison refuses an eight-CCK natural HAND-boundary difference. The
+[seed receipt](../../runtime/observations/pandora-cursor-loader-seed.json) records
+298 focused passing tests and current exact verification; full runtime/output
+qualification remains open. Deliberate original reliance versus
+accidental control bytes is unknown. No surrounding data, font layout or other
+initial cursor bytes are classified by this observation.
+
+
 [Real profile build evidence](../../runtime/observations/pandora-canonical-layout-builds.json)
 records five accepted API definitions and normal-export C/vasm agreement for
 `pandora_original_ecs1m`, `pandora_image_80000_ecs1m` and
@@ -39,6 +56,11 @@ independent cursor execution/DMA observation, legacy-builder retirement and
 frozen-plan reuse are still open. Existing original output captures may be reused
 only with their exact binary/emulator/ROM/profile/input and clock identities;
 the corrected normal image is a different executable and is tested afresh.
+
+### Earlier mechanism batches (historical)
+
+The following results retain their per-batch limits; their then-pending steps
+are superseded by the current checkpoint above.
 
 [Canonical adoption evidence](../../runtime/observations/pandora-canonical-layout-adoption.json)
 records 25 API-applied and reviewed facts: copied image, cursor workspace and

@@ -1,0 +1,159 @@
+{
+  "schema": "pandora-cursor-inventory-boundary/v1",
+  "status": "mismatch_retained",
+  "original_report_sha256": "05b734fb323c511d581e1d399e26bb9ea70b999afa1d605c90ea488f414278ba",
+  "candidate_report_sha256": "5a2583b0829f91e58c070288a20b881815b65f44f10157574c3d1ccfe02a09dd",
+  "complete_prefix_phases": 28,
+  "matched_phase_and_controller_clocks": true,
+  "snapshots": [
+    {
+      "phase": "inventory_open",
+      "source_pc": 10452,
+      "original_address": 414576,
+      "candidate_address": 917504,
+      "buffer_equal": true,
+      "typed_app_pointers_equal": true
+    },
+    {
+      "phase": "take_engineer_card_ready",
+      "source_pc": 10452,
+      "original_address": 414576,
+      "candidate_address": 917504,
+      "buffer_equal": true,
+      "typed_app_pointers_equal": true
+    },
+    {
+      "phase": "take_sonicdriver_ready",
+      "source_pc": 10452,
+      "original_address": 414576,
+      "candidate_address": 917504,
+      "buffer_equal": true,
+      "typed_app_pointers_equal": true
+    }
+  ],
+  "complete_DMA_frames_per_layout": 2,
+  "original_boundary_reads": [
+    {
+      "engine": "sprite",
+      "address": 414712,
+      "width": 2,
+      "frame": 1288,
+      "subtype": 1,
+      "reg": 328,
+      "data": 40960,
+      "row": 199,
+      "hpos": 25
+    },
+    {
+      "engine": "sprite",
+      "address": 414714,
+      "width": 2,
+      "frame": 1288,
+      "subtype": 1,
+      "reg": 330,
+      "data": 16384,
+      "row": 199,
+      "hpos": 27
+    },
+    {
+      "engine": "sprite",
+      "address": 414712,
+      "width": 2,
+      "frame": 1289,
+      "subtype": 1,
+      "reg": 328,
+      "data": 40960,
+      "row": 199,
+      "hpos": 25
+    },
+    {
+      "engine": "sprite",
+      "address": 414714,
+      "width": 2,
+      "frame": 1289,
+      "subtype": 1,
+      "reg": 330,
+      "data": 16384,
+      "row": 199,
+      "hpos": 27
+    }
+  ],
+  "candidate_boundary_reads": [
+    {
+      "engine": "sprite",
+      "address": 917640,
+      "width": 2,
+      "frame": 1288,
+      "subtype": 1,
+      "reg": 328,
+      "data": 0,
+      "row": 199,
+      "hpos": 25
+    },
+    {
+      "engine": "sprite",
+      "address": 917642,
+      "width": 2,
+      "frame": 1288,
+      "subtype": 1,
+      "reg": 330,
+      "data": 0,
+      "row": 199,
+      "hpos": 27
+    },
+    {
+      "engine": "sprite",
+      "address": 917640,
+      "width": 2,
+      "frame": 1289,
+      "subtype": 1,
+      "reg": 328,
+      "data": 0,
+      "row": 199,
+      "hpos": 25
+    },
+    {
+      "engine": "sprite",
+      "address": 917642,
+      "width": 2,
+      "frame": 1289,
+      "subtype": 1,
+      "reg": 330,
+      "data": 0,
+      "row": 199,
+      "hpos": 27
+    }
+  ],
+  "original_modeled_cursor_bytes": 136,
+  "observed_required_additional_bytes": 4,
+  "source_file_interval": [
+    "0x453F8",
+    "0x453FC"
+  ],
+  "original_staging_base": "0x20000",
+  "original_tail_interval": [
+    "0x653F8",
+    "0x653FC"
+  ],
+  "moved_tail_interval": [
+    "0xE0088",
+    "0xE008C"
+  ],
+  "original_control_words": [
+    "0xA000",
+    "0x4000"
+  ],
+  "candidate_control_words": [
+    "0x0000",
+    "0x0000"
+  ],
+  "original_seed_sha256": "b3d63454188055d679f763f009d1bb8dab7f535e9fc54410bfbd6bf73fe12171",
+  "conclusion": "Three equal 136-byte snapshots and normalized typed app pointers did not prove the complete DMA consumer footprint. Do not mask differing tail fetches.",
+  "proposed_correction": "A separate four-byte loader-file seed before native entry and a 140-byte cursor parent; preserve only this observed dependency. No host gameplay memory writes.",
+  "limits": [
+    "Diagnostic ECS/1MiB Chip direct loader at 0x20000, not historical packed-ADF semantics.",
+    "Two complete inventory frames, not all cursor positions/paths or proof against further DMA reads.",
+    "No classification of surrounding source bytes, font/bank45 layout change, or promotion of all original cursor seeds."
+  ],
+  "original_intent": "Deliberate reliance versus accidental/lucky control bytes is not established; the demonstrated defect was the incomplete relocation model."
+}

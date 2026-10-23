@@ -367,6 +367,21 @@ def test_entire_handoff_hash_and_reverse_boundary(tmp_path):
     assert c.calls[-1][0] == "reverse_anchor"
 
 
+def test_handoff_observes_guest_seed_and_never_patches_it(tmp_path):
+    p=payload(tmp_path);c=Client(p.read_bytes());expected=p.read_bytes()[4:8]
+    c.memory[0x18000:0x18004]=expected
+    contract=SimpleNamespace(payload_sha256=hashlib.sha256(p.read_bytes()).hexdigest(),load_address=0x1000,
+                             seed_copies=((4,0x18000,4),))
+    report=runtime.verify_handoff(c,contract,p)
+    assert report['loader_seeds'][0]['phase']=='guest_shim_before_handoff'
+    assert report['loader_seeds'][0]['readback_verified'] is True
+    assert not any(call[0]=='mem.write' for call in c.calls)
+    c.memory[0x18000]^=1
+    with pytest.raises(CopperlineError,match='loader seed'):
+        runtime.verify_handoff(c,contract,p)
+    assert not any(call[0]=='mem.write' for call in c.calls)
+
+
 def test_capture_register_relative_and_bounds():
     c = Client(b"0123456789abcdef")
     result = runtime.capture_scenario_state(

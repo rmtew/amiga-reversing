@@ -6814,7 +6814,9 @@ def _target_memory_region_action(update: bool = False) -> dict[str, object]:
             "lifetime": {"type": "string", "enum": ["persistent"]},
             "dma_access": {"type": "string", "enum": ["none", "chip"]},
             "region_kind": {"type": "string", "enum": ["storage", "image", "workspace", "display"]},
-            "parent_region_id": {"type": "string"}}})
+            "parent_region_id": {"type": "string"},
+            "loader_seed": {"type": "object", "required": ["source_offset", "region_offset", "size"],
+                "properties": {key: {"type": "integer"} for key in ("source_offset", "region_offset", "size")}}}})
 
 
 def _target_memory_layout_action() -> dict[str, object]:
