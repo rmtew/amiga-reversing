@@ -560,3 +560,16 @@ def test_runtime_allocation_plan_requires_current_revision_and_keeps_refusal(tar
     assert calls==[('body','layout',0x59e8)]*2
     with pytest.raises(ValueError,match='revision'):
         invoke('allocation_plan',expected_revision='old',region_id='body',layout_id='layout')
+
+
+def test_expression_query_preserves_native_field_and_shared_source_identity(target,monkeypatch):
+    artifact=target.backend._LISTING_PROJECTION_SERVICE.valid_artifact()
+    def query(**options):
+        assert options['kind']=='expressions'
+        return dict(items=[dict(source_section_index=0,source_offset=0,kind=1,
+            instruction_field=dict(extension_offset=2,extension_bytes=4))],offset=0,limit=25,total=1,has_more=False,unknowns=[])
+    monkeypatch.setattr(artifact,'query_payload',query)
+    result=invoke('query',kind='expressions')
+    assert result['items'][0]['section_index']==0
+    assert result['items'][0]['source_section_index']==0
+    assert result['items'][0]['instruction_field']['extension_bytes']==4

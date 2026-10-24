@@ -851,3 +851,13 @@ The native project's Python environment remains required for collection/native
 planning and the existing bus parser. Missing prerequisites never imply a pass.
 See the [bounded output qualification](../runtime/observations/pandora-hosted-output-qualification.json)
 and [remaining fixed-memory gates](proposals/046-canonical-memory-layouts.md#minimal-continuation-remove-the-four-fixed-dependencies).
+
+`query --kind expressions` pages the native frozen reference decisions. It retains
+source/target/base coordinates, effective pointer domain and width, symbolic
+outcome/reason, and generated encoder extension coordinates for instruction
+operands. It is a diagnostic inventory, not runtime fixup admission; standalone
+immediate prefixes can require the emitter's field-span query rather than the
+older EA-only extension-count helper. Source and target coordinate filters and
+literal reason/target-symbol text are supported. Pages are revision-bound through
+the same service used by CLI/MCP/UI; the UI calls these “typed source references”.
+Do not bulk-export the entire source plan merely to enumerate its references.

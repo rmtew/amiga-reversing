@@ -71,12 +71,13 @@ def operation_server():
         thread.join()
 
 
-def test_cli_http_equivalence_and_stale_refusal(operation_server):
+@pytest.mark.parametrize("kind", ["references", "expressions"])
+def test_cli_http_equivalence_and_stale_refusal(operation_server,kind):
     url, requests = operation_server
     expected = RestorationClient(url).call(
         "demo",
         "query",
-        kind="references",
+        kind=kind,
         symbol="label",
         expected_revision="current",
         limit=2,
@@ -92,7 +93,7 @@ def test_cli_http_equivalence_and_stale_refusal(operation_server):
             "demo",
             "query",
             "--kind",
-            "references",
+            kind,
             "--symbol",
             "label",
             "--expected-revision",
@@ -152,7 +153,8 @@ def test_layout_export_cli_http_repeated_and_refused(operation_server):
     assert refused['status']=='refused'
 
 
-def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
+@pytest.mark.parametrize("kind", ["references", "expressions"])
+def test_mcp_stdio_initialize_list_and_operation_parity(operation_server,kind):
     pytest.importorskip("mcp")
     from mcp import ClientSession
     from mcp.client.stdio import StdioServerParameters, stdio_client
@@ -190,7 +192,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
                 "restoration_query",
                 {
                     "project": "demo",
-                    "kind": "references",
+                    "kind": kind,
                     "expected_revision": "current",
                     "symbol": "label",
                     "limit": 2,
@@ -199,7 +201,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             expected = RestorationClient(url).call(
                 "demo",
                 "query",
-                kind="references",
+                kind=kind,
                 expected_revision="current",
                 symbol="label",
                 limit=2,

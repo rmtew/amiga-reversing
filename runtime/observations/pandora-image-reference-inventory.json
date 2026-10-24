@@ -1,0 +1,99 @@
+{
+  "schema": "pandora-image-reference-inventory/v1",
+  "status": "measured_frozen_reference_inventory_not_runtime_allocation_admission",
+  "identity": {
+    "metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "649445bb152b77e71f29c5a3d426a56b8e29e93a62651540118a9049b3c79337"
+    },
+    "wall_seconds": 167.45613325500744
+  },
+  "all_expressions": 14481,
+  "image_target_expressions": 8807,
+  "by_kind": {
+    "LONG_table_pointers": 2192,
+    "relative_data_same_image": 4610,
+    "instruction_references": 2005
+  },
+  "instruction_forms": {
+    "absolute_LONG": 349,
+    "immediate_LONG_with_EA_span": 28,
+    "immediate_LONG_prefix_span_missing": 2,
+    "PC_displacement": 224,
+    "PC_index": 16,
+    "non_EA_non_immediate_label_forms": 1386
+  },
+  "pointer_domains": {
+    "mapped_source": 901,
+    "legacy_with_exact_absolute_original_runtime_target": 1291
+  },
+  "pointer_fields_unique": 2192,
+  "relative_data_invariant_candidate": "All4610 have both target and base source coordinates inside this image; native admission still must preserve that invariant.",
+  "declared_issues": [
+    {
+      "source_offsets": [
+        37634,
+        38774
+      ],
+      "instruction": "SUBI.L #world_tile_pixels_000_through_011,D0",
+      "issue": "Existing EA extension-count helper returns0 for the standalone immediate prefix, although original instruction has4 immediate bytes. Generated extension emitter already models this; use its actual emitted extension spans, not opcode fixes or size changes."
+    },
+    {
+      "source_offsets": [
+        24,
+        36
+      ],
+      "issue": "Original-byte re-encode differs because the already declared source-helper bootstrap variant converts these low-helper references to local PC-relative forms. They are not absolute image fixup fields."
+    },
+    {
+      "source_offsets": [
+        313370
+      ],
+      "issue": "Frozen pointer expression says unmapped_runtime_symbol in scene_generated_masks, but the canonical per-element data-block interpretation explicitly binds source45C90/runtime55C90. Normal native rendering already emits the source-backed alias at80000+45C90. Image projection must consume that authoritative interpreted-reference identity; it must not guess from numeric containment."
+    }
+  ],
+  "prospective_image_fields": {
+    "resolved_expressions_with_absolute_or_immediate_fields": 2569,
+    "add_standalone_immediate_prefix_fields": 2,
+    "exclude_existing_typed_host_import": 1,
+    "add_explicit_interpreted_source_alias": 1,
+    "total_if_all_guards_pass": 2573,
+    "add_typed_runtime_aliases_owned_by_image": 2
+  },
+  "current_admitted_image_fields": 0,
+  "current_native_image_owner_status": "refused_unsupported_runtime_allocation_owner",
+  "collection": {
+    "pages": 145,
+    "maximum_page_items": 100,
+    "maximum_serialized_page_bytes": 56094,
+    "failed_bulk_attempt": "Exit137; killed after native context ready239s while RSS exceeded16GiB; no target facts/output file changed. Paged query completed all14481 records; no unbounded source-plan/row dump is used.",
+    "native_context_seconds": 167.16847608500393,
+    "collection_and_local_output_seconds": 0.2876571700035129
+  },
+  "fixed_address_bytes_remaining": 791080,
+  "game_lease_bytes_retained": 852616,
+  "limits": [
+    "Counts describe accepted typed/frozen references plus the explicit interpreted alias, not unclassified-address discovery or all-path closure.",
+    "No allocator-selected image execution has yet been performed; no fixed claims removed by this diagnostic batch.",
+    "Native original/fixed source rendering and guest templates are unchanged. B07 work remains separate."
+  ],
+  "additional_typed_runtime_aliases": [
+    {
+      "source_offset": 296332,
+      "symbol": "blank_graphics_mask_data",
+      "original_runtime_address": 382430
+    },
+    {
+      "source_offset": 312744,
+      "symbol": "blank_graphics_mask_data",
+      "original_runtime_address": 382430
+    }
+  ],
+  "tests": {
+    "passed": 72,
+    "skipped": 2,
+    "skip_reason": "Optional MCP SDK not installed; stdio cases not delivered by skip",
+    "web_check": "node --check restoration.js"
+  }
+}

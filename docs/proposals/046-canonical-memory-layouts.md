@@ -1212,3 +1212,29 @@ the emulator or invent a general linker. The number and supported encoding mix
 of image runtime fixups are **not yet measured**; A1 begins with that bounded
 projection/refusal inventory. Original-layout unknowns, generic B07 work and
 native-C conversion remain outside this continuation.
+
+#### A1 finite reference inventory
+
+The [measured inventory](../../runtime/observations/pandora-image-reference-inventory.json)
+records 14,481 frozen expressions, including 8,807 image-target expressions:
+2,192 LONG table pointers, 4,610 relative entries whose two endpoints are in the
+image, and 2,005 instruction references. The prospective encoded patch set is
+2,573 after the two standalone SUBI immediate prefixes, exclusion of the existing
+host import, two typed blank-mask runtime aliases owned by the image, and the
+explicit per-element source alias are handled. This is not
+an admitted allocation or a reduction of fixed bytes. The page limit is100;
+145 pages completed, largest56,094 bytes. A prior unbounded source-plan export
+was killed with exit137 after exceeding16GiB; no target fact or inventory file
+was written. The bounded native query avoids that bulk export.
+
+The two immediate-prefix coordinates must come from the existing generated
+extension emitter, without a SUBI-specific opcode fix. Source `$4C81A` also has
+a canonical interpreted reference to source `$45C90`; native rendering already
+moves that alias, despite the earlier frozen pointer resolver's group mismatch.
+Projection must preserve that explicit identity instead of numeric containment.
+The owned-helper transformations at `$18/$24` are existing bootstrap exceptions,
+not absolute runtime image fields. 72 focused tests pass; two optional real-MCP
+stdio cases are skipped because its SDK is absent, so transport parity for the
+new query is not claimed from those skips. Native/service/CLI paths and UI syntax
+are checked. Next is supported descriptor admission and actual image placement;
+791,080 fixed-address bytes and 852,616 owned game-lease bytes remain unchanged.

@@ -14071,6 +14071,8 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
+#include "m68k_source_reference_inventory.inc"
+
 int platform_file_facts_v2_listing_artifact_source_plan_json_alloc(PlatformFileListingArtifact *artifact,
     char **out_text) {
   JsonBuilder builder = {0}; size_t index;
@@ -14417,7 +14419,7 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       limit < 1 || limit > 100 || (has_end && (!has_start || end <= start)) ||
       (strcmp(direction, "incoming") && strcmp(direction, "outgoing") && strcmp(direction, "both")) ||
       (strcmp(kind, "symbols") && strcmp(kind, "references") && strcmp(kind, "fields") &&
-       strcmp(kind, "instructions") && strcmp(kind, "edges"))) return -1;
+       strcmp(kind, "instructions") && strcmp(kind, "edges") && strcmp(kind, "expressions"))) return -1;
   incoming = strcmp(direction, "outgoing") != 0;
   outgoing = strcmp(direction, "incoming") != 0;
   plan = &artifact->source_plan;
@@ -14431,7 +14433,17 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
   else Q(json_builder_append(&b, ",\"target_section_index\":null,\"target_offset\":null")); } while (0)
   Q(json_builder_create(&b));
   Q(json_builder_append(&b, "{\"items\":["));
-  if (!strcmp(kind, "symbols")) {
+  if (!strcmp(kind, "expressions")) {
+    for(i=0;i<plan->expression_count;i++) {
+      const M68kRenderPlannedExpression *e=&plan->expressions[i];
+      if((*symbol && strcmp(symbol,e->target_symbol)) ||
+          (*query && !strstr(e->reason,query) && !strstr(e->target_symbol,query)) ||
+          !(!(has_section || has_start) || (outgoing && COORD(e->source_section_index,e->source_offset)) ||
+            (incoming && e->has_target && COORD(e->target_section_index,e->target_offset)))) continue;
+      PAGE();
+      Q(append_source_reference_expression(&b,artifact,e));
+    }
+  } else if (!strcmp(kind, "symbols")) {
     for (i = 0; i < plan->declaration_count; ++i) {
       const M68kRenderPlannedDeclaration *d = &plan->declarations[i];
       if (!strstr(d->name, query) || (*symbol && strcmp(symbol, d->name)) ||
