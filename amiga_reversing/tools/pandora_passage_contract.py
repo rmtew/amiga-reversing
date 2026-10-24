@@ -12,6 +12,39 @@ from pathlib import Path
 from collections import defaultdict,deque
 from amiga_reversing.disasm.app_access_audit import explicit_register_writes
 
+def validate_retained_inputs(original,rows,facts_bytes,edges_bytes,receipt):
+    """Bind decoded semantics and graph to the already published review input.
+
+    A newly printed digest is not admission. Coordinate and byte checks also
+    prevent silent dict overwrite or pairing facts with a different listing.
+    """
+    digest=lambda data:hashlib.sha256(data).hexdigest()
+    proof=receipt['caller_contract']['proof']
+    if digest(original)!=receipt['input_sha256']:
+        raise ValueError('Reviewed original input identity differs')
+    if digest(facts_bytes)!=proof['facts_sha256']:
+        raise ValueError('Retained decoded facts identity differs from review receipt')
+    if digest(edges_bytes)!=proof['edges_sha256']:
+        raise ValueError('Retained graph identity differs from review receipt')
+    facts=json.loads(facts_bytes);edges=json.loads(edges_bytes)
+    def index(items):
+        result={}
+        for item in items:
+            key=(item.get('section_index'),item.get('source_offset'))
+            if (key[0]!=0 or type(key[1]) is not int or key[1]<0 or key in result
+                    or type(item.get('size')) is not int or item['size']<=0):
+                raise ValueError('Retained instruction coordinates must be unique and bounded')
+            result[key]=item
+        return result
+    listed,decoded=index(rows),index(facts)
+    if listed.keys()!=decoded.keys():raise ValueError('Retained instruction coordinate sets differ')
+    for key,row in listed.items():
+        raw=bytes.fromhex(row['bytes']);offset=key[1]
+        if (len(raw)!=row['size'] or decoded[key]['size']!=row['size']
+                or original[offset:offset+row['size']]!=raw):
+            raise ValueError('Retained instruction sizes or original bytes differ')
+    return facts,edges
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence-directory',type=Path,required=True)
@@ -23,14 +56,19 @@ def main():
     a=args.evidence_directory
     original=(resolve_project_paths(TARGET).target_dir/'binary.bin').read_bytes()
     assert hashlib.sha256(original).hexdigest()=='70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f'
-    rows=json.loads((a/'instructions.json').read_text());facts=json.loads((r/'decoded-registers.json').read_text())
+    rows=json.loads((a/'instructions.json').read_text())
+    receipt=json.loads((PROJECT_ROOT/'runtime/observations/pandora-passage-address-frame-contract.json').read_text())
+    facts,native_edges=validate_retained_inputs(original,rows,(r/'decoded-registers.json').read_bytes(),
+        (r/'edges.json').read_bytes(),receipt)
     assert len(rows)==len(facts)==7059
     for x in rows:assert original[x['source_offset']:x['source_offset']+x['size']]==bytes.fromhex(x['bytes'])
     ins={x['source_offset']:dict(x,register_writes=explicit_register_writes(x)) for x in facts}
     closure=json.loads((PROJECT_ROOT/'docs/validation/pandora-app-usage-closure.json').read_text())
     restores={x['restore']:x['save'] for x in closure['restore_save_pairs']};saves=sorted(set(restores.values()));slots={p:i for i,p in enumerate(saves)}
     assert {p for p,x in ins.items() if 'A6' in x['register_writes']}==set(restores)|{0x48c,0x8e8,0x4d978,0x4d98e}
-    edges=json.loads((r/'edges.json').read_text())+closure['reviewed_data_edges']
+    if hashlib.sha256(json.dumps(native_edges,sort_keys=True).encode()).hexdigest()!=closure['input_graph_sha256']:
+        raise ValueError('Native graph differs from canonical prior closure receipt')
+    edges=native_edges+closure['reviewed_data_edges']
     by=defaultdict(list)
     for e in edges:by[e['source_offset']].append(e)
     # Explicit original audio callers are immediately enclosed by an A6 save and

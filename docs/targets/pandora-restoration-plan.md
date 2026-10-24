@@ -44,7 +44,11 @@ existing route/output pass does not close it. Their canonical runtime domains
 are now corrected and an unrepresentable absolute-W placement refuses; see the
 [encoding boundary](../../runtime/observations/pandora-passage-relocation-boundary.json).
 At app `$6080`, the actual cell `$8B44` also exceeds positive absolute-W reach.
-Resolve the address/encoding contract before admitting CPU AllocMem gameplay.
+The [explicit address-frame adoption](../../runtime/observations/pandora-passage-address-frame-adoption.json)
+now supplies the conditional same-size form for the four stores. Full restored
+C/vasm export and original exactness pass; the native CPU candidate has seven
+fields and four frame guards. Next is guest CPU lease/patch application and
+normal-input passage/allocator-selected route qualification.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

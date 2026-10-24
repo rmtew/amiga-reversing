@@ -135,7 +135,19 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
       if(kind==2) {
         if(address>=r->runtime_address && address-r->runtime_address<r->size) {
           if(cpu_scope && mr_allocation_operand_symbol(a,ins,j,address)) {
-            reason="immediate_pointer_reference_unsupported";refusal_instruction=ins;refusal_operand=j;goto result;
+            if(j!=0 || ins->instruction.size_suffix!='l' || !m || m->flow_kind!=M68K_SIM_FLOW_SEQUENTIAL ||
+                (ins->instruction.mnemonic_id!=M68K_ASM_MNEMONIC_MOVE &&
+                 ins->instruction.mnemonic_id!=M68K_ASM_MNEMONIC_MOVEA)) {
+              reason="immediate_pointer_reference_unsupported";refusal_instruction=ins;refusal_operand=j;goto result;
+            }
+            if(fixups>=32) {reason="fixup_capacity_exceeded";goto result;}
+            reason=mr_allocation_absolute_fixup(a,r,boot,ins,j,address,
+                initial.addresses[ri]+address-r->runtime_address,&sites[fixups]);
+            if(reason || sites[fixups].width!=4) {
+              if(!reason) reason="immediate_pointer_encoding_unsupported";
+              refusal_instruction=ins;refusal_operand=j;goto result;
+            }
+            sites[fixups++].instruction_field=2;continue;
           }
           numeric++;
         }
@@ -279,7 +291,8 @@ result:
           r->size,r->alignment,r->runtime_address,initial.addresses[ri],numeric)) goto failed;
     for(size_t fi=0;fi<fixups;fi++) {
       const MRAllocationFixup *f=&sites[fi];
-      const char *encoding=f->instruction_field ? (f->width==2 ? "absolute_word_operand" : "absolute_long_operand") : "absolute_long_data";
+      const char *encoding=f->instruction_field==2 ? "absolute_long_immediate" :
+        f->instruction_field ? (f->width==2 ? "absolute_word_operand" : "absolute_long_operand") : "absolute_long_data";
       if((fi && json_builder_append(&b,",")) || json_builder_appendf(&b,
           "{\"source_section_index\":0,\"source_offset\":%u,\"width\":%u,\"encoding\":",
           f->source_offset,f->width) || json_builder_append_json_string(&b,encoding) ||

@@ -1,0 +1,548 @@
+{
+  "schema_version": 1,
+  "status": "target_frame_export_C_vasm_equal_original_exact_native_CPU_candidate_admitted_runtime_pending",
+  "contract_sha256": "9238d99de5777ff9f875646e42b724f56885eb42352d3a6acd63bbc3bbc2d43e",
+  "retained_input_validation": {
+    "status": "published_review_inputs_verified_same_conditional_APP_result",
+    "proof": {
+      "status": "conditional_original_paths_APP_invariant",
+      "points": {
+        "0x78c4": 1,
+        "0x79f2": 1,
+        "0x9f38": 1,
+        "0x7a00": 1,
+        "0x93f4": 1,
+        "0x4b0ce": 1
+      },
+      "states": 6191,
+      "normal_returns": 218,
+      "audio_scope": 400,
+      "save_pairs": {
+        "2314": 2276,
+        "2338": 2276,
+        "2362": 2276,
+        "2376": 2276,
+        "2518": 2508,
+        "4072": 4062,
+        "4148": 4138,
+        "38856": 38846,
+        "316224": 316214,
+        "316256": 316244,
+        "316280": 316270,
+        "348920": 348902,
+        "348996": 348978,
+        "349022": 349010
+      },
+      "excluded_relative_command": "0x11f2",
+      "unknown_BLIT_return": "0x932",
+      "assumptions": [
+        "Normal call returns and intact matched stack frames; no hostile stack mutation.",
+        "Only reviewed original stored callback/command targets; no arbitrary or replacement entry.",
+        "Original IRQ entry saves caller A6 and establishes its own APP frame; no reentry that overwrites a live saved-frame slot."
+      ],
+      "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "auditor_sha256": "0422c345334da94c834e9b3c8962e80819ba365f7c931ca79121e1e850087f4b",
+      "facts_sha256": "4461e297a7cef19338c28b2a76406a33dd975ce9d76e1adc1b169adf494aa6ac",
+      "edges_sha256": "790b66f21e5f83e9ff100a8dc3c9af5a9f8a5452551e1ecaa6c539c404a27cd0"
+    },
+    "checker_tests_passed": 7,
+    "changed_proof_scope": false,
+    "note": "Original contract artifact is retained byte-for-byte. The corrected checker validates its facts/graph digests and unique identical instruction coordinates/sizes before analysis; the output digest alone is no longer admission."
+  },
+  "source": {
+    "original_binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "tracked_original_source_unchanged": true,
+    "source_sha256": "161b4f1f33efd98a46d64f9789f813a111a17fc7d73bf7affce722426ad9619d",
+    "original_roundtrip": {
+      "schema_version": 1,
+      "summary": {
+        "failures": 0,
+        "rendered_source_content_exact_only": 0,
+        "rendered_source_full_file_exact": 1,
+        "targets": 1,
+        "unsupported": 0
+      },
+      "targets": [
+        {
+          "diff_range_count": 0,
+          "failure_kinds": [],
+          "message": null,
+          "rendered_source_content_exact": true,
+          "rendered_source_full_file_exact": true,
+          "status": "exact",
+          "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+          "tool_error": null
+        }
+      ]
+    },
+    "restored_payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+    "restored_bytes": 376832,
+    "assembly_backend_file_sha256": "e2b8a0e26c9591fee63d18eac18164352e11ac3fa09d35869800703c981540de",
+    "native_context_backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "4c8fc8d767e5236c1930cc8c140eb129e1bcde77b5178563a51dc5ab37a8bee1"
+    },
+    "original_vasm_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+  },
+  "candidate": {
+    "plan": {
+      "status": "bounded_allocation_candidate",
+      "reason": null,
+      "region_id": "pandora_cpu_workspace",
+      "size": 48051,
+      "alignment": 4,
+      "memory_requirement": "chip",
+      "original_address": 14844,
+      "staged_address": 24704,
+      "numeric_immediate_candidates_not_fixups": 23,
+      "fixups": [
+        {
+          "source_section_index": 0,
+          "source_offset": 1132,
+          "width": 4,
+          "encoding": "absolute_long_operand",
+          "address_domain": "runtime_only",
+          "region_offset": 0,
+          "staged_value": 24704,
+          "instruction_source_offset": 1130,
+          "operand_index": 0,
+          "opcode": 16889,
+          "symbol": "APP_STATE_BASE"
+        },
+        {
+          "source_section_index": 0,
+          "source_offset": 1166,
+          "width": 4,
+          "encoding": "absolute_long_operand",
+          "address_domain": "runtime_only",
+          "region_offset": 0,
+          "staged_value": 24704,
+          "instruction_source_offset": 1164,
+          "operand_index": 0,
+          "opcode": 19961,
+          "symbol": "APP_STATE_BASE"
+        },
+        {
+          "source_section_index": 0,
+          "source_offset": 2282,
+          "width": 4,
+          "encoding": "absolute_long_operand",
+          "address_domain": "runtime_only",
+          "region_offset": 0,
+          "staged_value": 24704,
+          "instruction_source_offset": 2280,
+          "operand_index": 0,
+          "opcode": 19961,
+          "symbol": "APP_STATE_BASE"
+        },
+        {
+          "source_section_index": 0,
+          "source_offset": 37034,
+          "width": 4,
+          "encoding": "absolute_long_immediate",
+          "address_domain": "runtime_only",
+          "region_offset": 1540,
+          "staged_value": 26244,
+          "instruction_source_offset": 37032,
+          "operand_index": 0,
+          "opcode": 11644,
+          "symbol": "WORLD_TILE_POINTER_GRID_BASE"
+        },
+        {
+          "source_section_index": 0,
+          "source_offset": 40118,
+          "width": 4,
+          "encoding": "absolute_long_immediate",
+          "address_domain": "runtime_only",
+          "region_offset": 1540,
+          "staged_value": 26244,
+          "instruction_source_offset": 40116,
+          "operand_index": 0,
+          "opcode": 11644,
+          "symbol": "WORLD_TILE_POINTER_GRID_BASE"
+        },
+        {
+          "source_section_index": 0,
+          "source_offset": 40674,
+          "width": 4,
+          "encoding": "absolute_long_immediate",
+          "address_domain": "runtime_only",
+          "region_offset": 1540,
+          "staged_value": 26244,
+          "instruction_source_offset": 40672,
+          "operand_index": 0,
+          "opcode": 11644,
+          "symbol": "WORLD_TILE_POINTER_GRID_BASE"
+        },
+        {
+          "source_section_index": 0,
+          "source_offset": 41374,
+          "width": 4,
+          "encoding": "absolute_long_operand",
+          "address_domain": "runtime_only",
+          "region_offset": 1540,
+          "staged_value": 26244,
+          "instruction_source_offset": 41372,
+          "operand_index": 0,
+          "opcode": 18937,
+          "symbol": "WORLD_TILE_POINTER_GRID_BASE"
+        }
+      ],
+      "address_frame_contract_sha256": "9238d99de5777ff9f875646e42b724f56885eb42352d3a6acd63bbc3bbc2d43e",
+      "address_frame_guards": [
+        {
+          "instruction_source_offset": 30916,
+          "opcode": 11644,
+          "displacement_source_offset": 30922,
+          "displacement": 10948,
+          "base_register": 6,
+          "instruction_size": 8
+        },
+        {
+          "instruction_source_offset": 31218,
+          "opcode": 11644,
+          "displacement_source_offset": 31224,
+          "displacement": 10948,
+          "base_register": 6,
+          "instruction_size": 8
+        },
+        {
+          "instruction_source_offset": 40760,
+          "opcode": 11644,
+          "displacement_source_offset": 40766,
+          "displacement": 10948,
+          "base_register": 6,
+          "instruction_size": 8
+        },
+        {
+          "instruction_source_offset": 307406,
+          "opcode": 11644,
+          "displacement_source_offset": 307412,
+          "displacement": 10948,
+          "base_register": 6,
+          "instruction_size": 8
+        }
+      ],
+      "protected_ranges": [
+        {
+          "address": 1024,
+          "size": 1000
+        },
+        {
+          "address": 2032,
+          "size": 12336
+        },
+        {
+          "address": 24576,
+          "size": 128
+        },
+        {
+          "address": 414576,
+          "size": 140
+        },
+        {
+          "address": 415104,
+          "size": 21176
+        },
+        {
+          "address": 512000,
+          "size": 11952
+        },
+        {
+          "address": 524288,
+          "size": 349040
+        },
+        {
+          "address": 917504,
+          "size": 53248
+        }
+      ],
+      "layout": {
+        "items": [
+          {
+            "layout_id": "pandora_cpu6000_display_e0000_ecs1m",
+            "chip_bytes": 1048576,
+            "status": "placement_valid",
+            "export_ready": false,
+            "reason": null,
+            "failed_region_index": -1,
+            "regions": [
+              {
+                "region_id": "keyboard_state",
+                "base_symbol": "keyboard_state",
+                "region_kind": "storage",
+                "parent_region_id": "",
+                "original_address": 14716,
+                "runtime_address": 24576,
+                "size": 128,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "audio_master_volume",
+                "base_symbol": "audio_master_volume",
+                "region_kind": "workspace",
+                "parent_region_id": "pandora_image",
+                "original_address": 384256,
+                "runtime_address": 843008,
+                "size": 2,
+                "parent_offset": 318720
+              },
+              {
+                "region_id": "world_tilemap_pointer_grid",
+                "base_symbol": "world_tilemap_pointer_grid",
+                "region_kind": "storage",
+                "parent_region_id": "pandora_cpu_workspace",
+                "original_address": 16384,
+                "runtime_address": 26244,
+                "size": 46440,
+                "parent_offset": 1540
+              },
+              {
+                "region_id": "pandora_raster_row_offsets",
+                "base_symbol": "raster_row_offsets",
+                "region_kind": "storage",
+                "parent_region_id": "pandora_cpu_workspace",
+                "original_address": 14844,
+                "runtime_address": 24704,
+                "size": 400,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_framebuffer_bank0",
+                "base_symbol": "framebuffer_bank0",
+                "region_kind": "display",
+                "parent_region_id": "pandora_display_storage",
+                "original_address": 458752,
+                "runtime_address": 917504,
+                "size": 32000,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_framebuffer_bank1_world",
+                "base_symbol": "framebuffer_bank1_world",
+                "region_kind": "display",
+                "parent_region_id": "pandora_display_storage",
+                "original_address": 491520,
+                "runtime_address": 950272,
+                "size": 20480,
+                "parent_offset": 32768
+              },
+              {
+                "region_id": "pandora_ui_snapshot_hit",
+                "base_symbol": "ui_snapshot_hit",
+                "region_kind": "storage",
+                "parent_region_id": "pandora_display_storage",
+                "original_address": 490752,
+                "runtime_address": 949504,
+                "size": 768,
+                "parent_offset": 32000,
+                "loader_seed": {
+                  "source_offset": 359680,
+                  "region_offset": 0,
+                  "size": 2,
+                  "runtime_address": 949504,
+                  "staging_address": 490752,
+                  "phase": "before_payload_entry"
+                }
+              },
+              {
+                "region_id": "pandora_ui_snapshot_body",
+                "base_symbol": "ui_snapshot_body",
+                "region_kind": "storage",
+                "parent_region_id": "",
+                "original_address": 2032,
+                "runtime_address": 2032,
+                "size": 2304,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_work_buffer_palette_input",
+                "base_symbol": "work_buffer_palette_input_alias",
+                "region_kind": "workspace",
+                "parent_region_id": "pandora_ui_snapshot_hit",
+                "original_address": 491488,
+                "runtime_address": 950240,
+                "size": 32,
+                "parent_offset": 736
+              },
+              {
+                "region_id": "pandora_image",
+                "base_symbol": "PANDORA_IMAGE_BASE",
+                "region_kind": "image",
+                "parent_region_id": "",
+                "original_address": 65536,
+                "runtime_address": 524288,
+                "size": 349040,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_cursor_sprites",
+                "base_symbol": "CURSOR_SPRITE_WORKSPACE_BASE",
+                "region_kind": "workspace",
+                "parent_region_id": "",
+                "original_address": 414576,
+                "runtime_address": 414576,
+                "size": 140,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_cursor_sprite0",
+                "base_symbol": "CURSOR_SPRITE0_BASE",
+                "region_kind": "workspace",
+                "parent_region_id": "pandora_cursor_sprites",
+                "original_address": 414576,
+                "runtime_address": 414576,
+                "size": 68,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_cursor_sprite1",
+                "base_symbol": "CURSOR_SPRITE1_BASE",
+                "region_kind": "workspace",
+                "parent_region_id": "pandora_cursor_sprites",
+                "original_address": 414644,
+                "runtime_address": 414644,
+                "size": 68,
+                "parent_offset": 68
+              },
+              {
+                "region_id": "pandora_cursor_sprite_lookahead",
+                "base_symbol": "CURSOR_SPRITE_LOOKAHEAD_BASE",
+                "region_kind": "workspace",
+                "parent_region_id": "pandora_cursor_sprites",
+                "original_address": 414712,
+                "runtime_address": 414712,
+                "size": 4,
+                "parent_offset": 136,
+                "loader_seed": {
+                  "source_offset": 283640,
+                  "region_offset": 0,
+                  "size": 4,
+                  "runtime_address": 414712,
+                  "staging_address": 414712,
+                  "phase": "before_payload_entry"
+                }
+              },
+              {
+                "region_id": "pandora_display_storage",
+                "base_symbol": "PANDORA_DISPLAY_STORAGE_BASE",
+                "region_kind": "display",
+                "parent_region_id": "",
+                "original_address": 458752,
+                "runtime_address": 917504,
+                "size": 53248,
+                "parent_offset": 0
+              },
+              {
+                "region_id": "pandora_cpu_workspace",
+                "base_symbol": "cpu_workspace_base",
+                "region_kind": "workspace",
+                "parent_region_id": "",
+                "original_address": 14844,
+                "runtime_address": 24704,
+                "size": 48051,
+                "parent_offset": 0,
+                "address_frame": {
+                  "kind": "same_size_move_long_immediate_store",
+                  "register": "a6",
+                  "active": true,
+                  "contract_sha256": "9238d99de5777ff9f875646e42b724f56885eb42352d3a6acd63bbc3bbc2d43e",
+                  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+                  "sites": [
+                    {
+                      "section_index": 0,
+                      "source_offset": 30916,
+                      "operand_index": 1,
+                      "expected_hex": "21fc0001e92864c0"
+                    },
+                    {
+                      "section_index": 0,
+                      "source_offset": 31218,
+                      "operand_index": 1,
+                      "expected_hex": "21fc00024c2864c0"
+                    },
+                    {
+                      "section_index": 0,
+                      "source_offset": 40760,
+                      "operand_index": 1,
+                      "expected_hex": "21fc00024c2864c0"
+                    },
+                    {
+                      "section_index": 0,
+                      "source_offset": 307406,
+                      "operand_index": 1,
+                      "expected_hex": "21fc0001e92864c0"
+                    }
+                  ]
+                }
+              }
+            ],
+            "bootstrap": {
+              "contract_id": "pandora_native_prefix_copy",
+              "image_region_id": "pandora_image",
+              "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+              "kind": "retained_prefix_copy",
+              "variant": "forward_disjoint",
+              "load_address": 131072,
+              "file_size": 376832,
+              "copied_source_end": 349040,
+              "helper_source_start": 40,
+              "helper_source_end": 82,
+              "helper_runtime_address": 768,
+              "continuation_source_offset": 1130,
+              "comparison_source_offset": 58
+            }
+          }
+        ],
+        "total": 1,
+        "scope": "canonical_fixed_layout_placement_only"
+      },
+      "maximum_actual_base": 16777215,
+      "scope": "reviewed_symbolic_absolute_operands_and_LONG_data_not_all_path_alias_proof",
+      "lifetime": "retain_until_DMA_quiescent_exit",
+      "unresolved": [
+        "Numeric immediates, unclassified bytes and synthesized aliases are not certified by this candidate.",
+        "Normal-input execution, initialization, DMA lifetime and output qualification remain required.",
+        "Fixed game RAM outside explicit leases is not certified as OS-owned."
+      ]
+    },
+    "subject": {
+      "subject_revision": "0563e8f84925188a2e14b7e6fc89dad682b61c3947854418a7772bfdd03a9b80",
+      "revision": "270b62016ff58a7d589047b128f2d3d31dd0753cd08654157be8ef3fcfd8244d"
+    },
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "4c8fc8d767e5236c1930cc8c140eb129e1bcde77b5178563a51dc5ab37a8bee1"
+    },
+    "wall_seconds": 176.1923851179963
+  },
+  "actual_placement_checks": {
+    "0x0": "refused",
+    "0x59e8": "refused",
+    "0x6080": "actual_placement_valid",
+    "0x7080": "actual_placement_valid",
+    "0x8080": "actual_placement_valid"
+  },
+  "newly_supported_consumer": {
+    "source_sites": [
+      "0x90A8",
+      "0x9CB4",
+      "0x9EE0"
+    ],
+    "role": "MOVE.L #WORLD_TILE_POINTER_GRID_BASE,app_tilemap_base(A6)",
+    "original_value": 16384,
+    "owner_offset": 1540,
+    "admission": "Explicit runtime-symbol identity plus generated LONG-immediate extension coordinate, original and changed-instruction encoding checks. Numeric immediates and non-LONG/other operations are not promoted."
+  },
+  "limits": [
+    "No allocator-selected CPU gameplay or CPU guest patch/lease application yet.",
+    "The four-site A6 contract retains normal-return/matched-stack/reviewed-original-target limitations and partial diagnostic timing scope.",
+    "Previously qualified fixed CPU payload remains historical; this corrected restored payload is newly built, not yet route/output qualified.",
+    "Original-to-image eight-CCK HAND-cycle equality, successful OS return and DMA-safe cleanup remain open."
+  ],
+  "tests": {
+    "passed": 172,
+    "skipped": 0,
+    "command": "python -m pytest -q tests/test_address_frame_layout.py tests/test_pandora_passage_contract_inputs.py tests/test_runtime_CPU_allocation_plan.py tests/test_runtime_allocation_plan.py tests/test_layout_absolute_word_reach.py tests/test_layout_projection.py tests/test_pandora_passage_address_frame.py tests/test_memory_layouts.py tests/test_bootstrap_layouts.py tests/test_layout_reference_index.py tests/test_immediate_pointer_equate.py tests/test_immediate_runtime_layout.py tests/test_layout_export_cache.py"
+  }
+}

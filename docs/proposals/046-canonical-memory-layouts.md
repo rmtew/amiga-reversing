@@ -5,7 +5,26 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
-### Explicit address-frame implementation; target adoption pending
+### Four-site target adoption; CPU candidate admitted, gameplay pending
+
+[Adoption and corrected input validation](../../runtime/observations/pandora-passage-address-frame-adoption.json)
+record full restored export C/vasm agreement and unchanged, byte-exact original
+source. Native allocation now admits seven fields plus four frame guards:
+four absolute-L operands and three typed MOVE.L grid-base immediates at
+`$90A8/$9CB4/$9EE0`. The immediate family surfaced at the first allocation
+check; it is admitted using generated extension coordinates and explicit runtime
+symbols, not numeric guessing. Native probes admit `$6080/$7080/$8080`, refuse
+NULL and colliding `$59E8`. These are placement checks, not allocation/gameplay.
+
+Review found the initial A6 auditor only length-checked decoded facts. Its
+corrected checker now validates retained fact/graph hashes against the published
+review inputs and requires unique identical coordinates/sizes plus original
+bytes. Seven input-validation tests pass and reproduce the same conditional APP
+result. The original contract artifact/hash is retained; this supplements its
+evidence without silently rewriting it. CPU guest lease/patch implementation,
+normal-input passage coverage and new route/output qualification remain pending.
+
+### Explicit address-frame implementation (earlier fixture checkpoint)
 
 [Four-site review and scoped timing evidence](../../runtime/observations/pandora-passage-address-frame-contract.json)
 now support a conditional A6-relative candidate covering both original priest
@@ -21,9 +40,9 @@ Independent C/vasm/Musashi checks match eight bytes,24cycles and scoped state
 semantics for all four sites across four modeled app bases and32CCRs. The
 isolated Chip-bus pair matches recorded slot phases and9782cellWORDwrites;
 only expected code fetch values differ. The profile is marked partial, so no
-full-frame/all-contention or natural gameplay timing claim is made. Full target
-adoption, normal-input passage coverage and CPU allocator-selected gameplay are
-still pending; these diagnostics do not substitute for them.
+full-frame/all-contention or natural gameplay timing claim is made. This fixture checkpoint preceded full target adoption above; normal-input
+passage coverage and CPU allocator-selected gameplay remain pending. These
+diagnostics do not substitute for them.
 
 ### Priest-passage reference correction and CPU encoding boundary
 

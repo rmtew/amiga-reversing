@@ -81,3 +81,22 @@ def test_frame_admission_refuses_malformed_or_unbound_sites(tmp_path,change):
         with pytest.raises(ValueError,match='address_frame'):validate_region(owner)
     with pytest.raises(RuntimeError,match='memory region|address_frame'):
         a=build(tmp_path,m,data);a.close()
+
+
+def test_typed_grid_pointer_MOVE_immediate_is_an_encoder_bound_field(tmp_path):
+    m,data=model()
+    data=data[:22]+bytes.fromhex('2d7c0000400001be4e75')+data[32:]
+    m['bootstrap_contracts'][0]['input_sha256']=m['memory_regions'][1]['address_frame']['input_sha256']=hashlib.sha256(data).hexdigest()
+    m['target_equates'].append(dict(name='GRID',value=0x4000,group='cpu',address_domain='runtime',extent_bytes=4))
+    m['manual_representations'].append(dict(hunk=0,addr=22,end=30,element_kind='immediate',operand_index=0,style='symbol',symbol='GRID',value=0x4000,width_bytes=4))
+    a=build(tmp_path,m,data)
+    try:
+        p=a.runtime_allocation_plan('cpu','diagnostic',0x7080)
+        assert p['status']=='actual_placement_valid',p
+        assert p['fixups'][1]==dict(source_section_index=0,source_offset=24,width=4,
+            encoding='absolute_long_immediate',address_domain='runtime_only',region_offset=0x604,staged_value=0x6684,
+            instruction_source_offset=22,operand_index=0,opcode=0x2d7c,symbol='GRID')
+        text=a.inline_source_text_with_profile()[0]
+        code,_=assemble_platform_source_text_with_c_backend('amiga-raw',text)
+        assert code[24:28]==bytes.fromhex('00006684')
+    finally:a.close()
