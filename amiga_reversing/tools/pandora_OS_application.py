@@ -25,6 +25,7 @@ OWNERS=('pandora_prng_state','keyboard_state','pandora_ui_snapshot_body',
 
 
 IMAGE_OWNER='pandora_image'
+HIGH_MASK_OWNER='pandora_high_generated_masks'
 
 
 def application_owners(contract):
@@ -32,6 +33,7 @@ def application_owners(contract):
     names=set(contract['candidates'])
     if names==set(OWNERS):return OWNERS
     if names==set((*OWNERS,IMAGE_OWNER)):return (*OWNERS,IMAGE_OWNER)
+    if names==set((*OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER)):return (*OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER)
     raise ValueError('Unsupported native hosted owner set')
 
 
@@ -390,7 +392,7 @@ def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=No
 
 
 @contextmanager
-def native_hosted_context(*,allocate_image=False,contract_evidence_path=None):
+def native_hosted_context(*,allocate_image=False,allocate_high_masks=False,contract_evidence_path=None):
     from amiga_reversing.disasm.c_backend import build_listing_artifact_profile_from_binary_source
     from amiga_reversing.disasm.project_paths import resolve_project_paths
     from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -398,6 +400,9 @@ def native_hosted_context(*,allocate_image=False,contract_evidence_path=None):
     from amiga_reversing.tools.pandora_layout_walkthrough import TARGET
     paths=resolve_project_paths(TARGET);layout_id='pandora_OS_hosted_ecs1m';before=revisions(TARGET)
     owners=(*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS
+    if allocate_high_masks:
+        if not allocate_image:raise ValueError('High-mask profile requires the admitted image owner')
+        owners=(*owners,HIGH_MASK_OWNER)
     print('Building one native hosted context for template and actual returns',flush=True)
     with effective_metadata_file(paths.target_dir,layout_id=layout_id) as metadata:
         artifact=build_listing_artifact_profile_from_binary_source(paths.binary_source,metadata_path=metadata,project_root=PROJECT_ROOT)[2]
@@ -430,6 +435,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--xdftool',type=Path,required=True)
     p.add_argument('--payload',type=Path,required=True);p.add_argument('--native-contract',type=Path)
     p.add_argument('--allocate-image',action='store_true',help='Request the natively admitted image through Exec in addition to the six runtime owners')
+    p.add_argument('--allocate-high-masks',action='store_true',help='Also request the canonical high-mask owner; requires --allocate-image')
     p.add_argument('--game',action='store_true');p.add_argument('--run',action='store_true');p.add_argument('--rom',type=Path);p.add_argument('--copperline',type=Path)
     p.add_argument('--route-scenario',type=Path,help='Existing compiled 576-phase completion route; otherwise short fire/F7 observation')
     p.add_argument('--title-capture',action='store_true',help='Bounded original-helper settled title capture; emulator stop is not an OS-return test')
@@ -439,8 +445,9 @@ def main():
     if (a.route_scenario or a.title_capture or a.audio_stems) and not (a.game and a.run):p.error('Route/title/audio capture requires --game --run')
     if a.route_scenario and a.title_capture:p.error('Choose the completion route or title prefix')
     if a.allocate_image and not (a.game and a.run):p.error('--allocate-image requires --game --run; build-only uses an explicit native contract')
+    if a.allocate_high_masks and not a.allocate_image:p.error('--allocate-high-masks requires --allocate-image')
     if a.game and a.run:
-        with native_hosted_context(allocate_image=a.allocate_image,
+        with native_hosted_context(allocate_image=a.allocate_image,allocate_high_masks=a.allocate_high_masks,
                 contract_evidence_path=out.with_name(out.name+'-native-contract.json')) as (contract,validate):
             r=build(out,a.xdftool.resolve(),a.payload.resolve(),contract,game=True)
             (out/'native-contract.json').write_text(json.dumps(contract,indent=2)+'\n')

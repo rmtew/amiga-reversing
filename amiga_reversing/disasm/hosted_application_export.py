@@ -11,7 +11,7 @@ import tempfile
 from .behaviour_validation import LoadedSource
 from .source_package import collect_package_includes,extend_source_package,materialize_source_package
 from .c_backend import assemble_platform_source_path_with_c_backend
-from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER,application_owners,application_sources,LOADED_SOURCE as APP_SOURCE
+from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER,application_owners,application_sources,LOADED_SOURCE as APP_SOURCE
 
 LOADED_SOURCE=LoadedSource(__file__)
 TARGET='amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8'
@@ -25,10 +25,13 @@ def required(metadata_path,layout_id):
     return 'exit_dispatch_call_source_offset' in boot
 
 
-def native_contract(artifact,target,layout_id,*,allocate_image=True):
+def native_contract(artifact,target,layout_id,*,allocate_image=True,allocate_high_masks=False):
     LOADED_SOURCE.require_current();APP_SOURCE.require_current()
     if target!=TARGET:raise ValueError('No hosted application template is registered for this target')
     owners=(*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS
+    if allocate_high_masks:
+        if not allocate_image:raise ValueError('High-mask profile requires the admitted image owner')
+        owners=(*owners,HIGH_MASK_OWNER)
     plans={n:artifact.runtime_allocation_plan(n,layout_id) for n in owners}
     if any(p.get('status')!='bounded_allocation_candidate' for p in plans.values()):
         raise ValueError('Hosted application has a refused native owner')

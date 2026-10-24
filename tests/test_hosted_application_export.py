@@ -30,6 +30,12 @@ def test_reference_contract_requests_the_same_guest_owner_family(allocate_image)
     assert tuple(contract['candidates'])==((*OWNERS,IMAGE_OWNER) if allocate_image is not False else OWNERS)
 
 
+def test_high_mask_contract_does_not_bypass_image_profile_precondition():
+    from amiga_reversing.disasm.hosted_application_export import native_contract,TARGET
+    with pytest.raises(ValueError,match='requires the admitted image'):
+        native_contract(None,TARGET,'hosted',allocate_image=False,allocate_high_masks=True)
+
+
 def record(name,data,kind='application_source'):
     return dict(path=name,size=len(data),data_hex=data.hex(),kind=kind,provenance='fixture')
 

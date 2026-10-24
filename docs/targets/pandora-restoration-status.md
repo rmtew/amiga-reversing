@@ -3,6 +3,22 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
+### A3 high masks: actual eight-owner admission
+
+[High-mask admission](../../runtime/observations/pandora-high-mask-allocation-admission.json)
+reuses the unchanged native planner for 98 typed LONG data references and 14
+LONG LEA fields. Eight-owner atomic geometry passes. Exec returned image
+`$7C000..$D1370` and high-mask lease `$D1370..$D4228`; adjacent placement does
+not merge their ownership/lifetimes. All 2,851 applied fields and complete input
+bytes pass verification. The route is progressing through combat; completion,
+new-layout output comparison and cleanup are still pending.
+
+Only the input carrier and display remain fixed (430,080 bytes); total game
+leases remain 852,616 bytes. There is no memory-peak reduction claim.188 focused
+tests pass, including every allocation-prefix/library failure for the eight-owner
+loader. The default source package remains the already cold-qualified
+seven-owner version until this new route is qualified.
+
 ### A1 package and strict output boundary
 
 [The normal source package](../../runtime/observations/pandora-allocated-image-source-package.json)

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "status": "eight_owner_native_guest_admission_pass_cold_completion_and_outputs_pending",
+  "metadata_sha256": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "647bbdf848cf9a76f2f716b8d0fd6fc0fbc8b77f6496e626f2c67261bfafd62e"
+  },
+  "template_contract_sha256": "d68898e20257ce78827aa79a7613acef074dd1173ca4a9c52bd1da5f00ddd2aa",
+  "high_mask": {
+    "region_id": "pandora_high_generated_masks",
+    "original_base": 512000,
+    "semantic_and_following_WORD_extent": 11954,
+    "rounded_lease_bytes": 11960,
+    "fixup_encodings": {
+      "absolute_long_data": 98,
+      "absolute_long_operand": 14
+    },
+    "numeric_candidates_promoted": 0,
+    "numeric_candidates_not_fixups": 0,
+    "actual_base": 856944
+  },
+  "actual_owners": {
+    "pandora_prng_state": 6552,
+    "keyboard_state": 65904,
+    "pandora_ui_snapshot_body": 66032,
+    "pandora_title_stars": 68336,
+    "pandora_cpu_workspace": 69336,
+    "pandora_low_generated_masks": 117392,
+    "pandora_image": 507904,
+    "pandora_high_generated_masks": 856944
+  },
+  "field_application": {
+    "bytes": 376832,
+    "fields": 2851,
+    "sha256": "ad7a061ef573cb85649372d6708c74bc4d23dedf43883d293f4cc554f15ef05b",
+    "whole_input_verified": true
+  },
+  "live_fixed_claims": [
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    }
+  ],
+  "fixed_address_bytes_remaining": 430080,
+  "game_lease_bytes": 852616,
+  "tests": {
+    "passed": 188,
+    "skipped": 0,
+    "eight_owner_allocation_prefix_failures": 11,
+    "old_six_owner_failure_tests_retained": true
+  },
+  "limits": [
+    "The native projection was reused unchanged: 98 existing typed LONG data references and 14 generated LONG LEA fields. No wider alias/encoding admission or source patching.",
+    "Actual bases came from Exec, not selected by host. Coincidental adjacency of separate image/high-mask leases does not require shared relocation.",
+    "Cold saved-Earth completion, output comparison and final cleanup for this new configuration remain pending.",
+    "CPU guards exclude explicitly live leases; the old high-mask range now lies inside the actual image and is not an unused-memory proof.",
+    "Image/input duplication remains; source carrier and display are still fixed.",
+    "The earlier strict native-ASM/runtime clock/PCM mismatch remains recorded, not converted into an equivalence pass."
+  ]
+}

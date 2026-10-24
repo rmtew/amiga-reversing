@@ -20,7 +20,7 @@ from amiga_reversing.disasm.c_backend import (
 from amiga_reversing.disasm.source_rendering import render_source_from_binary_source
 from amiga_reversing.disasm.hosted_application_export import native_contract
 from amiga_reversing.tools.pandora_layout_walkthrough import TARGET
-from amiga_reversing.tools.pandora_OS_application import application_sources,OWNERS,IMAGE_OWNER
+from amiga_reversing.tools.pandora_OS_application import application_sources,OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.behaviour_validation import LoadedSource
 
@@ -197,7 +197,7 @@ def build(output, runtime_payload, owners_receipt):
     layout = "pandora_OS_hosted_ecs1m"
     receipt = owners_receipt
     owners = json.loads(receipt.read_text())["actual_owners"]
-    require(set(owners) in (set(OWNERS),set((*OWNERS,IMAGE_OWNER))),
+    require(set(owners) in (set(OWNERS),set((*OWNERS,IMAGE_OWNER)),set((*OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER))),
         "Unsupported hosted reference owner set")
     canonical = effective_metadata_hash(paths.target_dir)
     with effective_metadata_file(paths.target_dir, layout_id=layout) as original:
@@ -220,7 +220,7 @@ def build(output, runtime_payload, owners_receipt):
         )[2]
         try:
             contract = native_contract(artifact, TARGET, layout,
-                allocate_image=IMAGE_OWNER in owners)
+                allocate_image=IMAGE_OWNER in owners,allocate_high_masks=HIGH_MASK_OWNER in owners)
             rendering = render_source_from_binary_source(
                 target_id=TARGET,
                 binary_source=paths.binary_source,

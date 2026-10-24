@@ -27,9 +27,12 @@ def test_native_field_value_refuses_bad_width_kind_or_overflow(field,base):
     with pytest.raises(ValueError):runtime_field_value(field,base)
 
 @pytest.fixture
-def executable(tmp_path):
+def executable(tmp_path,request):
     (tmp_path/'pandora_OS_plan.i').write_text('OWNER_COUNT EQU 6\nFIXED_COUNT EQU 4\nINPUT_ADDRESS EQU $20000\nPAYLOAD_SIZE EQU 16\nPAYLOAD_CRC32 EQU 0\n')
     (tmp_path/'pandora_OS_tables.i').write_text('fixed_table: dc.l $20000,$5C000,$7D000,$2EB8,$80000,$55370,$E0000,$D000\nowner_sizes: dc.l 8,128,2304,1000,48056,10040\ncrc_table: dcb.l 256,0\n')
+    if getattr(request,'param',None)=='eight':
+        plan=tmp_path/'pandora_OS_plan.i';plan.write_text(plan.read_text().replace('OWNER_COUNT EQU 6','OWNER_COUNT EQU 8').replace('FIXED_COUNT EQU 4','FIXED_COUNT EQU 2'))
+        (tmp_path/'pandora_OS_tables.i').write_text('fixed_table: dc.l $20000,$5C000,$E0000,$D000\nowner_sizes: dc.l 8,128,2304,1000,48056,10040,349040,11960\ncrc_table: dcb.l 256,0\n')
     target=tmp_path/'app';listing=tmp_path/'app.list'
     p=subprocess.run([str(VASM),'-Fhunkexe','-m68000','-no-opt','-I'+str(NDK_INCLUDE),'-I'+str(tmp_path),'-L',str(listing),'-o',str(target),str(ROOT/'tools/amiga_pandora_OS.s')],capture_output=True,text=True)
     assert p.returncode==0,p.stderr
@@ -39,6 +42,7 @@ def executable(tmp_path):
     assert labels['state_leases_end']<=len(code)
     return code,labels
 
+@pytest.mark.parametrize('executable',[None,'eight'],indirect=True)
 @pytest.mark.parametrize('fail_index',range(11))
 def test_every_allocation_prefix_or_library_failure_frees_only_exact_owned_pairs(executable,fail_index):
     code,labels=executable;m=machine68k.Machine(machine68k.CPUType.M68000,1024)
@@ -57,7 +61,7 @@ def test_every_allocation_prefix_or_library_failure_frees_only_exact_owned_pairs
             n=m.cpu.r_reg(machine68k.Register.D0)
             if pc==execbase-204:address=m.cpu.r_reg(machine68k.Register.A1)
             else:
-                address=(0x2000,0x10170,0x101f0,0x10af0,0x10ed8,0x1ca90)[dynamic]
+                address=(0x2000,0x10170,0x101f0,0x10af0,0x10ed8,0x1ca90,0x7c000,0xd1370)[dynamic]
                 dynamic+=1
             if calls==fail_index:m.cpu.w_reg(machine68k.Register.D0,0)
             else:
@@ -76,6 +80,18 @@ def test_every_allocation_prefix_or_library_failure_frees_only_exact_owned_pairs
     assert not owned and freed==list(reversed(acquired))
     assert len(acquired)==min(fail_index,10)
     assert m.mem.r32(base+labels['state_count'])==0
+
+
+@pytest.mark.parametrize('mode',['fixed_image','allocated_image','high_masks','invalid'])
+def test_registered_owner_families_have_stable_guest_table_order(mode):
+    from amiga_reversing.tools.pandora_OS_application import application_owners,OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER
+    names=OWNERS
+    if mode in ('allocated_image','high_masks'):names=(*names,IMAGE_OWNER)
+    if mode in ('high_masks','invalid'):names=(*names,HIGH_MASK_OWNER)
+    contract=dict(candidates={n:{} for n in reversed(names)})
+    if mode=='invalid':
+        with pytest.raises(ValueError,match='owner set'):application_owners(contract)
+    else:assert application_owners(contract)==names
 
 @pytest.mark.parametrize('failure',['open','read_error','short_read','extra_byte','CRC_mismatch'])
 def test_file_admission_failures_close_file_once_and_unwind_all_ten(executable,failure):
