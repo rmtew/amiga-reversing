@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "status": "status_ticker_alias_facts_corrected_original_exact_candidate_pending",
+  "retained_failure": {
+    "report_sha256": "6af742086fa6125b701bd20a2329e8b9fbca6eb9b83fe6bdd0ccba9bd91bc92e",
+    "payload_sha256": "c0b6eb20b036fdb808b4079e37ce26e1df64b7db7a3016b2d279b43eebe78e36",
+    "phase": "east",
+    "frame": 944,
+    "access": {
+      "access": "write",
+      "addr": 489472,
+      "pc": 563902,
+      "position": {
+        "cck": 67122491,
+        "frame": 944,
+        "hpos": 180,
+        "seconds": 18.92429603921176,
+        "vpos": 221
+      },
+      "size": 2,
+      "value": 0
+    },
+    "stopped_A2": "0x00077804",
+    "instruction": "source9ABE MOVE.L D0,(A2)+; trap records a16bit CPU bus write and the completed instruction advances A2 by4",
+    "producer": "source9AB2 MOVEA.L #STATUS_BAND_BASE,A2",
+    "scope": "After the immediate overlay-base fix, the abandoned-display CPU watch exposed the next connected absolute address. No full-route or output-equality claim."
+  },
+  "canonical_actions": [
+    {
+      "action_id": "manual-8951c2e848a141c7bae9c25eaab52085",
+      "kind": "create_manual_target_equate"
+    },
+    {
+      "action_id": "manual-9472c6d512d54a2c9745f0f181107bab",
+      "kind": "create_manual_target_equate"
+    }
+  ],
+  "aliases": [
+    {
+      "name": "STATUS_BAND_BASE",
+      "original_value": 489472,
+      "value_expression": "FRAMEBUFFER_BANK0_BASE+$7800",
+      "value_representation": "symbol"
+    },
+    {
+      "name": "STATUS_TICKER_ROW0_BASE",
+      "original_value": 489632,
+      "value_expression": "STATUS_BAND_BASE+FRAMEBUFFER_RASTER_ROW_BYTES",
+      "value_representation": "symbol"
+    }
+  ],
+  "meaning": "Preserve the already-authored framebuffer-relative expressions by selecting symbolic rendering for these two address facts. No changes to general EQU emission, scalar-offset policy, opcode semantics or comparator thresholds.",
+  "source_producers": {
+    "status_band_clear": "64 groups of5LONG writes =1280 contiguous bytes, original77800..77D00",
+    "ticker": "Seven40byte rows, stride160, from778A0; bounding end77C88. Sparse row coverage is not exclusive allocation.",
+    "relative_insert_offsets": "TICKER_ROW0_INSERT_OFFSET and other scalar differences remain numeric and unchanged."
+  },
+  "original_verification": {
+    "receipt_id": "7f2a2ce0285e1d237ff83b863c7bc742e2187eb81a3d5d21b2526b2db876d5e2",
+    "subject_revision": "0f3b53b935b83fed59e33541aa98d7289a7002b9d4df9402797552038a989e27",
+    "source_sha256": "161b4f1f33efd98a46d64f9789f813a111a17fc7d73bf7affce722426ad9619d",
+    "source_package_sha256": "4f36894a879a5ab185b8c112c187fd63c7b9dc01e2203a467a015a0c184cb4d1",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "exact": true
+  },
+  "framework_changed": false,
+  "additional_synthetic_tests": "None: only two catalog facts changed. Existing177test mechanism suite is retained; fresh full original C/vasm verification and candidate watched-prefix rerun are the relevant checks.",
+  "remaining": "Regenerate selected image/display exports and qualify repaired prefix, full normal-input route, sampled DMA, graphics and PCM. No weaker completion assertion.",
+  "scope_exclusions": [
+    "Original-to-image8CCK finding unchanged and not reopened.",
+    "No new unknown-byte classification or all-path semantic claim.",
+    "Fonts/bank45 and nine unfinished B07 files remain untouched.",
+    "Raw media/ROM/captures remain private."
+  ]
+}

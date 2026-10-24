@@ -2,6 +2,12 @@
 
 ## Canonical layout implementation checkpoint (2026-10-24)
 
+The [status/ticker alias follow-up](../../runtime/observations/pandora-display-status-aliases.json)
+retains a second real watch failure at frame944/source `$9ABE`/old `$77800`.
+Two existing address expressions now render symbolically; original full C/vasm
+remains exact (`7f2a2ce0…`). The repaired candidate rebuild/qualification is
+pending; neither negative is erased or treated as a pass.
+
 Active continuation: [display contract / retained failure](../../runtime/observations/pandora-display-initialization-contract.json).
 The new 53,248-byte display-group candidate retains cross-bank clear and
 snapshot/palette offsets, plus the two-byte priming seed. Initial title pixels

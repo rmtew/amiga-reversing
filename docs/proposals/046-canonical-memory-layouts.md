@@ -7,6 +7,15 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ### Active display continuation
 
+[Status/ticker follow-up](../../runtime/observations/pandora-display-status-aliases.json):
+the repaired overlay prefix passes frame595, then the same guard catches source
+`$9ABE` clearing abandoned `$77800` at frame944. The existing `STATUS_BAND_BASE`
+and `STATUS_TICKER_ROW0_BASE` facts already contain framebuffer-relative
+expressions but were rendered as hex. Two revision-checked catalog edits now
+select those expressions; scalar insertion offsets remain unchanged. Original
+C/vasm remains exact, receipt `7f2a2ce0…`; selected exports and qualification are
+in progress. No general EQU policy or completion assertion changed.
+
 [Display contract and retained failure](../../runtime/observations/pandora-display-initialization-contract.json):
 five API actions preserve bank/snapshot/palette identities under a 53,248-byte
 parent required by the retained cross-bank clear. The explicit candidate moves
