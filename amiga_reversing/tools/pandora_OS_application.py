@@ -376,7 +376,7 @@ def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=No
 
 
 @contextmanager
-def native_hosted_context(*,allocate_image=False):
+def native_hosted_context(*,allocate_image=False,contract_evidence_path=None):
     from amiga_reversing.disasm.c_backend import build_listing_artifact_profile_from_binary_source
     from amiga_reversing.disasm.project_paths import resolve_project_paths
     from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -399,7 +399,14 @@ def native_hosted_context(*,allocate_image=False):
                 return artifact.runtime_allocation_batch_plan(layout_id,dict(schema_version=1,layout_id=layout_id,
                     chip_bytes=0x100000,placements=[dict(region_id=n,runtime_address=owners[n]) for n in owners]))
             batch=validate({n:v['staged_address'] for n,v in plans.items()})
-            yield dict(backend=artifact.loaded_backend_identity(),candidates=plans,template_geometry=batch),validate
+            contract=dict(backend=artifact.loaded_backend_identity(),candidates=plans,template_geometry=batch)
+            if contract_evidence_path is not None:
+                contract_evidence_path.write_text(json.dumps(contract,indent=2)+'\n')
+            if batch.get('status')!='actual_placements_valid' or batch.get('uncovered_runtime_extents')!=[]:
+                raise ValueError('Native hosted template refused: '+str(batch.get('reason'))+
+                    '; uncovered='+str(batch.get('uncovered_runtime_extents')))
+            print('Native hosted template ready: owners='+str(len(plans))+' fields='+str(batch['fixup_count']),flush=True)
+            yield contract,validate
             stable()
         finally:artifact.close()
 
@@ -419,7 +426,8 @@ def main():
     if a.route_scenario and a.title_capture:p.error('Choose the completion route or title prefix')
     if a.allocate_image and not (a.game and a.run):p.error('--allocate-image requires --game --run; build-only uses an explicit native contract')
     if a.game and a.run:
-        with native_hosted_context(allocate_image=a.allocate_image) as (contract,validate):
+        with native_hosted_context(allocate_image=a.allocate_image,
+                contract_evidence_path=out.with_name(out.name+'-native-contract.json')) as (contract,validate):
             r=build(out,a.xdftool.resolve(),a.payload.resolve(),contract,game=True)
             (out/'native-contract.json').write_text(json.dumps(contract,indent=2)+'\n')
             (out/'build.json').write_text(json.dumps(r,indent=2)+'\n')

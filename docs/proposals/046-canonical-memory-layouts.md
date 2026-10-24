@@ -1323,3 +1323,29 @@ existing uninterrupted completion route are now testing the repair, with PCM
 kept private for subsequent output comparison. The failed run supplies no
 completion, output-equivalence or cleanup pass. Its exception trace is retained
 privately; the published receipt contains addresses, identities and limits.
+
+
+#### A1 composition with the existing passage frame contract
+
+The newly included runtime-alias family also contains the four existing
+`PRIEST_PASSAGE_OPEN_PIXELS` / `PRIEST_PASSAGE_CLOSED_PIXELS` source operands.
+Their destination stores already use the reviewed same-size A6 frame contract
+`9238d99de5777ff9f875646e42b724f56885eb42352d3a6acd63bbc3bbc2d43e`.
+The former blanket batch-overlap guard rejected this combination; a focused
+native fixture reproduces `batch_fixup_overlaps_frame_contract`.
+
+Composition is now admitted only for an image LONG immediate at bytes 2–5 of
+that exact reviewed eight-byte instruction. Original and restored generated
+encodings must retain the identical source span, with the destination extension
+at bytes 6–7 and opcode at bytes 0–1 excluded. Whole original bytes, original
+opcode, active frame owner and generated spans are checked. Non-image fields
+remain refused. A positive native test compares the patched staged bytes with
+independently rendered/native-C/vasm output at both new bases; a non-image-owner
+negative preserves the refusal. No instruction growth, branch relaxation,
+comparator tolerance or entry-register assumption changes.
+
+145 focused checks pass without skips. The next cold run includes both image
+alias binding and this composition. Native template receipts are now retained
+before building, and a refused template reports its native reason directly;
+this avoids losing the evidence behind a generic builder refusal. Runtime
+completion and scoped output acceptance are still pending.

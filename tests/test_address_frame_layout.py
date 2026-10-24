@@ -1,7 +1,6 @@
 """Canonical, identity-bound same-size address-frame variants through native export."""
 import copy
 import hashlib
-import json
 import subprocess
 
 import pytest
@@ -99,4 +98,55 @@ def test_typed_grid_pointer_MOVE_immediate_is_an_encoder_bound_field(tmp_path):
         text=a.inline_source_text_with_profile()[0]
         code,_=assemble_platform_source_text_with_c_backend('amiga-raw',text)
         assert code[24:28]==bytes.fromhex('00006684')
+    finally:a.close()
+
+
+def image_source_frame_model(*,foreign=False):
+    from tests.test_memory_layouts import region
+    m,data=model();value=0x2000 if foreign else 0x10040
+    data=data[:14]+bytes.fromhex('21fc')+value.to_bytes(4,'big')+bytes.fromhex('64c0')+data[22:]
+    digest=hashlib.sha256(data).hexdigest();m['bootstrap_contracts'][0]['input_sha256']=digest
+    frame=m['memory_regions'][1]['address_frame'];frame['input_sha256']=digest;frame['sites'][0]['expected_hex']=data[14:22].hex()
+    m['target_equates'].append(dict(name='PIXEL',value=value,group='assets',address_domain='runtime',extent_bytes=4))
+    m['manual_representations'].append(dict(hunk=0,addr=14,end=22,element_kind='immediate',operand_index=0,
+        style='symbol',symbol='PIXEL',value=value,width_bytes=4))
+    if foreign:
+        m['memory_regions'].append(region('foreign',0x2000,128)|dict(dma_access='none'))
+        m['memory_layouts'][0]['placements'].append(dict(region_id='foreign',runtime_address=0x3000))
+    return m,data
+
+
+def test_image_LONG_source_and_reviewed_frame_destination_compose_byte_exactly(tmp_path):
+    from tests.test_memory_layouts import layout
+    m,data=image_source_frame_model();a=build(tmp_path,m,data)
+    try:
+        batch=a.runtime_allocation_batch_plan('diagnostic',layout([('image',0x90000),('cpu',0x7080)]))
+        assert batch['status']=='actual_placements_valid',batch
+        staged,_=assemble_platform_source_text_with_c_backend('amiga-raw',a.inline_source_text_with_profile()[0])
+        patched=bytearray(staged);actual={'image':0x90000,'cpu':0x7080}
+        for member in batch['members']:
+            for f in member['fixups']:
+                value=actual[member['region_id']]+f['region_offset']
+                patched[f['source_offset']:f['source_offset']+f['width']]=value.to_bytes(f['width'],'big')
+        assert staged[14:16]==patched[14:16] and staged[20:22]==patched[20:22]
+        assert int.from_bytes(patched[16:20],'big')==0x90040
+        reference=copy.deepcopy(m)
+        reference['memory_layouts'][0]['placements']=[dict(region_id=n,runtime_address=v) for n,v in actual.items()]
+        directory=tmp_path/'reference';directory.mkdir();b=build(directory,reference,data)
+        try:
+            source=b.inline_source_text_with_profile()[0]
+            expected,_=assemble_platform_source_text_with_c_backend('amiga-raw',source)
+            asm=directory/'reference.s';binary=directory/'reference.bin';asm.write_text(source)
+            subprocess.run([str(VASM),'-quiet','-Fbin','-m68000','-no-opt','-o',str(binary),str(asm)],check=True,capture_output=True)
+            assert bytes(patched)==expected==binary.read_bytes()
+        finally:b.close()
+    finally:a.close()
+
+
+def test_other_owner_field_does_not_silently_widen_frame_composition(tmp_path):
+    from tests.test_memory_layouts import layout
+    m,data=image_source_frame_model(foreign=True);a=build(tmp_path,m,data)
+    try:
+        batch=a.runtime_allocation_batch_plan('diagnostic',layout([('foreign',0x3000),('cpu',0x7080)]))
+        assert batch['status']=='refused' and batch['reason']=='batch_fixup_overlaps_frame_contract',batch
     finally:a.close()

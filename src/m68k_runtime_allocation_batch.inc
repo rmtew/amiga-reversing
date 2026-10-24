@@ -1,5 +1,31 @@
 /* Explicit allocator returns over one canonical layout. No placement search,
  * policy mutation, intermediate mixed-layout admission or numeric fixups. */
+/* The reviewed frame changes only opcode/destination words. An independently
+ * admitted source-image LONG immediate may compose with it iff both generated
+ * encodings retain exactly the same disjoint four-byte source field. */
+static int mr_allocation_frame_source_disjoint(const PlatformFileListingArtifact *a,size_t owner,
+    const M68kAddressFrameSiteIR *site,const MRAllocationFixup *f) {
+  if(site->section_index || !f->has_source_target || f->instruction_field!=2 || f->width!=4 ||
+      f->operand_index || f->instruction_offset!=site->source_offset || f->source_offset!=site->source_offset+2)
+    return 0;
+  const M68kRenderPlannedInstruction *ins=m68k_render_plan_find_instruction(&a->source_plan,0,site->source_offset);
+  if(!ins || !ins->address_frame_active || ins->address_frame_region_index_plus_one!=owner+1 ||
+      ins->address_frame_operand_index!=1 || ins->instruction.byte_count!=8) return 0;
+  InstructionSpec original,rendered;uint8_t before[8],after[8];size_t off=0,width=0,dest=0,dest_width=0;
+  m68k_instruction_ir_to_spec(&ins->instruction,&original);
+  m68k_instruction_ir_to_spec(&ins->render_instruction,&rendered);
+  if(m68k_instruction_spec_assemble_bytes(&original,before,8)!=8 ||
+      m68k_instruction_spec_assemble_bytes(&rendered,after,8)!=8 ||
+      memcmp(before,site->expected_bytes,8) || f->opcode!=m68k_read_u16be(before) ||
+      memcmp(before+2,after+2,4)) return 0;
+  if(m68k_asm_operand_extension_span(original.asm_form_index,original.operands,original.operand_count,
+      original.size_suffix,0,&off,&width) || off!=2 || width!=4 ||
+      m68k_asm_operand_extension_span(rendered.asm_form_index,rendered.operands,rendered.operand_count,
+      rendered.size_suffix,0,&off,&width) || off!=2 || width!=4 ||
+      m68k_asm_operand_extension_span(rendered.asm_form_index,rendered.operands,rendered.operand_count,
+      rendered.size_suffix,1,&dest,&dest_width) || dest!=6 || dest_width!=2) return 0;
+  return 1;
+}
 int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
     PlatformFileListingArtifact *a,const char *layout_id,const char *bindings_json,char **out_text) {
   JsonBuilder b={0};PlatformFileListingArtifact *view=NULL;
@@ -83,13 +109,16 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
   for(size_t i=1;i<site_count;i++) if(sites[i].source_offset<sites[i-1].source_offset+sites[i-1].width) {
     reason="cross_owner_fixup_fields_overlap";goto result;
   }
-  /* No owner may patch any part of another admitted frame transformation.
-   * These exact eight-byte sites were checked by the existing member planner. */
+  /* Exact disjoint source-image immediates may compose with the reviewed
+   * frame. All other overlap remains a refusal. */
   for(size_t i=0;i<count;i++) {
     const M68kMemoryRegionIR *r=&a->policy.memory_regions[owners[i]];
     for(size_t gi=0;gi<r->address_frame_site_count;gi++) for(size_t fi=0;fi<site_count;fi++)
       if(m68k_memory_layout_overlaps(sites[fi].source_offset,sites[fi].width,
-          r->address_frame_sites[gi].source_offset,8)) {reason="batch_fixup_overlaps_frame_contract";goto result;}
+          r->address_frame_sites[gi].source_offset,8) &&
+          !mr_allocation_frame_source_disjoint(a,(size_t)owners[i],&r->address_frame_sites[gi],&sites[fi])) {
+        reason="batch_fixup_overlaps_frame_contract";goto result;
+      }
   }
   const M68kBootstrapContractIR *boot=NULL;
   for(size_t i=0;i<a->policy.bootstrap_contract_count;i++)
