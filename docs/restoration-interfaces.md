@@ -828,3 +828,26 @@ mode requires an unchanged image/bootstrap and every non-cursor region; it does
 not qualify the original-to-image transformation. The default original-control
 comparison retains its strict HAND-clock refusal. Proprietary prerequisites and
 raw captures stay private; published receipts contain identities and limits.
+
+The hosted runtime observer reuses the existing completion scenario through
+`pandora_OS_application --game --run --route-scenario <compiled.json>`; omit the
+route option for the short fire/F7 lifecycle probe. `--audio-stems <private-dir>`
+records separate master/Paula/drive WAVs. `--title-capture` instead observes the
+original foreground title-loop instruction after 180 natural frames, with no
+inputs; termination of that prefix is explicitly not an OS-return qualification.
+ROM/Copperline paths and the installed `xdftool` remain explicit local prerequisites.
+Generate the existing route with `pandora_finale --stage complete --output ...`
+and compile it through `copperline_session.compile_scenario`; observers consume
+that compiled scenario rather than inventing a different walkthrough.
+
+`pandora_OS_output_reference` builds a temporary native ASM control from observed
+owner bases and compares every byte with a private post-fixup input snapshot,
+normalizing only the explicit typed external import. It does not create a ninth
+saved layout, patch rendered strings or certify the shared OS wrapper. The offline
+`pandora_hosted_output_compare` uses installed Python/Pillow and the existing
+strict PCM comparison, with `--reference`, `--candidate`, optional paired
+`--title-reference`/`--title-candidate` directories and `--output` for a receipt.
+The native project's Python environment remains required for collection/native
+planning and the existing bus parser. Missing prerequisites never imply a pass.
+See the [bounded output qualification](../runtime/observations/pandora-hosted-output-qualification.json)
+and [remaining fixed-memory gates](proposals/046-canonical-memory-layouts.md#minimal-continuation-remove-the-four-fixed-dependencies).

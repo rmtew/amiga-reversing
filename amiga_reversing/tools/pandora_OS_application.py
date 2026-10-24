@@ -201,13 +201,13 @@ def observe_pre_entry(out,rom,copperline):
     return result
 
 
-def observe_game(out,rom,copperline,actual_validator):
+def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=None):
     """Cold DOS launch and ordinary fire/F7 exit with typed/native admission.
 
     No host guest-state writes; all controller operations are explicitly released.
-    This is a short lifecycle route, not the saved-Earth walkthrough or output
-    equivalence. Breakpoint observations are synchronous CPU evidence, not DMA
-    tracing or event-stream coverage.
+    By default this is a short lifecycle route. A route adapter can instead
+    supply normal inputs and a natural exit boundary; cleanup is shared.
+    Breakpoint observations are synchronous CPU evidence, not DMA tracing.
     """
     from amiga_reversing.tools.copperline_control import CopperlineProcess
     labels={m[2]:int(m[1],16) for m in re.finditer(r'^([0-9A-F]{8}) (\w+)$',(out/'Pandora.list').read_text(),re.M)}
@@ -215,7 +215,7 @@ def observe_game(out,rom,copperline,actual_validator):
     def record(name,**data):
         report[name]=data;(out/'live.json').write_text(json.dumps(report,indent=2)+'\n')
         print(name,json.dumps(data),flush=True)
-    with CopperlineProcess(copperline,rom=rom,floppy=out/'host.adf',machine_profile='a500ecs_1m') as process:
+    with CopperlineProcess(copperline,rom=rom,floppy=out/'host.adf',machine_profile='a500ecs_1m',audio_stems=audio_stems) as process:
         c=process.client;base=None
         for frame in range(50,551,25):
             stop=c.run_until({'frame':frame},timeout=15)
@@ -264,23 +264,31 @@ def observe_game(out,rom,copperline,actual_validator):
         if after['pc']!=imported['staged_value'] or {k:v for k,v in before.items() if k!='pc'}!={k:v for k,v in after.items() if k!='pc'}:
             raise ValueError('Original initializer state/stack/CCR differs across first import')
         record('first_dispatch',before_stop=stop,before=before,after_stop=original_stop,after=after)
+        record('initial_state',PRNG_bytes=c.read_memory(owners['pandora_prng_state'],8).hex())
         c.remove_breakpoint(original)
-        stop=c.run_until({'frame':2700},timeout=45)
-        if stop.get('reason')!='target':raise ValueError('Incomplete title window')
-        c.request('capture.screenshot',{'path':str(out/'title.png'),'native':True})
-        try:
-            c.joystick(port=2,red=True);c.run_until({'frame':2710},timeout=5)
-        finally:c.joystick(port=2,red=False)
-        stop=c.run_until({'frame':2900},timeout=15)
-        if stop.get('reason')!='target':raise ValueError('Incomplete gameplay window')
-        c.request('capture.screenshot',{'path':str(out/'gameplay.png'),'native':True})
-        record('gameplay_window',stop=stop,registers=c.registers())
-        quiescent=c.add_breakpoint(base+labels['game_DMA_quiescent'])
-        try:
-            c.key(0x56,pressed=True);stop=c.run_until({'frame':2950},timeout=10)
-        finally:c.key(0x56,pressed=False)
-        if c.registers()['pc']!=base+labels['game_DMA_quiescent']:
-            stop=c.run_until({'frame':3200},timeout=15)
+        if route is None:
+            deadline=3400
+            stop=c.run_until({'frame':2700},timeout=45)
+            if stop.get('reason')!='target':raise ValueError('Incomplete title window')
+            c.request('capture.screenshot',{'path':str(out/'title.png'),'native':True})
+            record('settled_title',stop=stop,registers=c.registers(),
+                PRNG_bytes=c.read_memory(owners['pandora_prng_state'],8).hex(),
+                title_stars_sha256=hashlib.sha256(c.read_memory(owners['pandora_title_stars'],1000)).hexdigest())
+            try:
+                c.joystick(port=2,red=True);c.run_until({'frame':2710},timeout=5)
+            finally:c.joystick(port=2,red=False)
+            stop=c.run_until({'frame':2900},timeout=15)
+            if stop.get('reason')!='target':raise ValueError('Incomplete gameplay window')
+            c.request('capture.screenshot',{'path':str(out/'gameplay.png'),'native':True})
+            record('gameplay_window',stop=stop,registers=c.registers())
+            quiescent=c.add_breakpoint(base+labels['game_DMA_quiescent'])
+            try:
+                c.key(0x56,pressed=True);stop=c.run_until({'frame':2950},timeout=10)
+            finally:c.key(0x56,pressed=False)
+            if c.registers()['pc']!=base+labels['game_DMA_quiescent']:
+                stop=c.run_until({'frame':deadline},timeout=15)
+        else:
+            stop,deadline=route(c,base,labels,native,out,record)
         custom=c.request('custom.read',{'reg':2})
         record('quiescence_raw_observation',stop=stop,registers=c.registers(),custom_read=custom)
         dma=custom['value']
@@ -289,31 +297,32 @@ def observe_game(out,rom,copperline,actual_validator):
             raise ValueError('Game blitter/DMA quiescence not observed')
         record('game_DMA_quiescent',stop=stop,DMACONR=dma,all_game_leases_still_owned=int.from_bytes(c.read_memory(base+labels['state_count'],4),'big'))
         if report['game_DMA_quiescent']['all_game_leases_still_owned']!=10:raise ValueError('Lease freed before DMA stopped')
-        c.remove_breakpoint(quiescent)
+        if route is None:c.remove_breakpoint(quiescent)
         user_return=c.add_breakpoint(base+labels['host_user_return'])
-        stop=c.run_until({'frame':3200},timeout=15)
+        stop=c.run_until({'frame':deadline},timeout=15)
         if c.registers()['pc']!=base+labels['host_user_return']:raise ValueError('Supervisor return not observed')
         record('host_user_return',stop=stop,registers=c.registers())
         c.remove_breakpoint(user_return)
         free=c.add_breakpoint(base+labels['free_owned_lease_call']);freed=[]
         for expected_lease in reversed(leases):
-            stop=c.run_until({'frame':3400},timeout=20);registers=c.registers()
+            stop=c.run_until({'frame':deadline},timeout=20);registers=c.registers()
             value=dict(address=registers['a1'],size=registers['d0'])
             if registers['pc']!=base+labels['free_owned_lease_call'] or value!=expected_lease:
                 raise ValueError('Unexpected owned FreeMem argument or exit boundary')
             freed.append(value);c.remove_breakpoint(free)
             returned=c.add_breakpoint(base+labels['free_owned_lease_return'])
-            stop=c.run_until({'frame':3400},timeout=20)
+            stop=c.run_until({'frame':deadline},timeout=20)
             if c.registers()['pc']!=base+labels['free_owned_lease_return']:raise ValueError('Owned FreeMem did not return')
             c.remove_breakpoint(returned);free=c.add_breakpoint(base+labels['free_owned_lease_call'])
         c.remove_breakpoint(free)
-        stop=c.run_until({'frame':3400},timeout=20)
+        finish_frame=3400 if route is None else stop['frame']+300
+        stop=c.run_until({'frame':finish_frame},timeout=20)
         if stop.get('reason')!='target':raise ValueError('Incomplete DOS return window')
         c.request('capture.screenshot',{'path':str(out/'returned.png'),'native':True})
         try:
-            c.key(0x44,pressed=True);c.run_until({'frame':3403},timeout=5)
+            c.key(0x44,pressed=True);c.run_until({'frame':finish_frame+3},timeout=5)
         finally:c.key(0x44,pressed=False)
-        c.run_until({'frame':3430},timeout=5)
+        c.run_until({'frame':finish_frame+30},timeout=5)
         c.request('capture.screenshot',{'path':str(out/'after-key.png'),'native':True})
         record('owned_exit',freed=freed,retained_count=int.from_bytes(c.read_memory(base+labels['state_count'],4),'big'),
             audio_open=int.from_bytes(c.read_memory(base+labels['state_audio_open'],4),'big'),
@@ -322,10 +331,10 @@ def observe_game(out,rom,copperline,actual_validator):
         state=report['owned_exit']
         if (state['retained_count'],state['audio_open'],state['audio_lock'],state['signal'])!=(0,0,0,0xffffffff):
             raise ValueError('Exit ownership state is incomplete')
-    report.update(status='short_OS_game_entry_exit_capture_complete_console_review_required',
+    report.update(status=('short_OS_game_entry_exit_capture_complete_console_review_required' if route is None else 'hosted_saved_earth_natural_exit_cold_route_complete'),
         rom_sha256=sha(rom),emulator_sha256=sha(copperline),HUNK_sha256=sha(out/'Pandora'),ADF_sha256=sha(out/'host.adf'),
-        screenshots={n:sha(out/n) for n in ('title.png','gameplay.png','returned.png','after-key.png')},
-        limits=['Normal fire/F7 route, not saved-Earth completion or pixel/PCM equivalence.',
+        screenshots={n:sha(out/n) for n in (('title.png','gameplay.png','returned.png','after-key.png') if route is None else ('returned.png','after-key.png'))},
+        limits=['Short fire/F7 route unless the explicit completion adapter is supplied; captures alone are not pixel/PCM equivalence.',
             'Synchronous CPU/DMACONR observations only; no bus-wide DMA or all-path coverage.',
             'Caller-owned HUNK remains owned by DOS LoadSeg; game leases are retained through hardware return and then freed exactly once.',
             'Declared exclusive 68000/ECS profile; not universal multitasking, RTG or original pre-entry timing identity.'])
@@ -366,14 +375,29 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--xdftool',type=Path,required=True)
     p.add_argument('--payload',type=Path,required=True);p.add_argument('--native-contract',type=Path)
     p.add_argument('--game',action='store_true');p.add_argument('--run',action='store_true');p.add_argument('--rom',type=Path);p.add_argument('--copperline',type=Path)
+    p.add_argument('--route-scenario',type=Path,help='Existing compiled 576-phase completion route; otherwise short fire/F7 observation')
+    p.add_argument('--title-capture',action='store_true',help='Bounded original-helper settled title capture; emulator stop is not an OS-return test')
+    p.add_argument('--audio-stems',type=Path,help='Private master/Paula/drive WAV capture directory')
     a=p.parse_args();out=a.output.resolve()
     if a.run and (a.rom is None or a.copperline is None):p.error('--run requires explicit ROM and Copperline')
+    if (a.route_scenario or a.title_capture or a.audio_stems) and not (a.game and a.run):p.error('Route/title/audio capture requires --game --run')
+    if a.route_scenario and a.title_capture:p.error('Choose the completion route or title prefix')
     if a.game and a.run:
         with native_hosted_context() as (contract,validate):
             r=build(out,a.xdftool.resolve(),a.payload.resolve(),contract,game=True)
             (out/'native-contract.json').write_text(json.dumps(contract,indent=2)+'\n')
             (out/'build.json').write_text(json.dumps(r,indent=2)+'\n')
-            r=observe_game(out,a.rom.resolve(),a.copperline.resolve(),validate)
+            route=None
+            if a.route_scenario:
+                from amiga_reversing.tools.pandora_hosted_route import HostedRoute
+                route=HostedRoute(json.loads(a.route_scenario.read_text()))
+            observer=observe_game
+            options=dict(route=route)
+            if a.title_capture:
+                from amiga_reversing.tools.pandora_hosted_title import observe_title
+                observer=observe_title;options={}
+            r=observer(out,a.rom.resolve(),a.copperline.resolve(),validate,**options,
+                audio_stems=a.audio_stems.resolve() if a.audio_stems else None)
         print(r['status'],flush=True)
         return
     if a.native_contract is None:p.error('Build-only/pre-entry mode requires --native-contract')

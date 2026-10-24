@@ -6,7 +6,7 @@
 > base-plus-offset modelling, normal-export original and known `$80000` layouts,
 > and at least one independently moved workspace or display block. Image-only
 > qualification is an internal step, not completed delivery. Runtime allocation
-> and OS-hosted output remain separate later gates. Current normal exports and
+> and OS-hosted output are separate continuation gates with scoped evidence below. Current normal exports and
 > the independent cursor move are implemented and runtime-qualified within the
 > [milestone ledger](../../runtime/observations/pandora-layout-delivery-acceptance.json).
 > Strict original-to-image HAND-cycle equality still refuses; no unconditional
@@ -34,8 +34,8 @@ now qualifies independent keyboard `$6000`, app/raster `$6080` and grid `$6684`
 through controlled and unheld completion plus exact scoped graphics/PCM. Its
 conditional grid-end byte is backing only, not new semantic data. That footprint
 supersedes independent placement assumptions for the two historical body bases;
-their observed outputs remain recorded. Allocator-selected CPU bases and native operand fixups are subsequently qualified below. A separately scoped normal-HUNK launch/F7 return now has DMA-safe release evidence; hosted output comparison and broader allocation-selected loading remain open; hosted full ending is now qualified below.
-Other low scratch and hardware/vector ownership remain open.
+their observed outputs remain recorded. Allocator-selected CPU bases and native operand fixups are subsequently qualified below. A separately scoped normal-HUNK launch/F7 return now has DMA-safe release evidence; bounded hosted output comparison and full ending are now qualified below; broader allocation-selected loading remains open.
+Broader low-scratch alias and all-platform hardware/vector ownership claims remain unproved; the declared OS lifecycle is qualified below.
 The [CPU fixup projection](../../runtime/observations/pandora-CPU-fixup-projection.json)
 now has 20 passing focused tests but refuses the real target at `$78C4`. Four
 fixed priest-passage cell writes exposed a known alternate-layout gap; the
@@ -64,13 +64,21 @@ authorized after its concrete owner/fixup/lifecycle prerequisites are establishe
 Current OS-hosted checkpoint: the [cold hosted completion](../../runtime/observations/pandora-hosted-saved-earth-cold.json)
 qualifies all 576 normal-input phases, saved Earth plus escape, natural post-ending
 AmigaDOS return and exact ten-lease cleanup. Four gameplay images match the
-previous qualified source-helper run; title/UI and PCM comparisons remain open.
+previous qualified source-helper run. The [same-OS native-reference comparison](../../runtime/observations/pandora-hosted-output-qualification.json)
+now matches eight image checkpoints and 13,158,932 stereo PCM frames exactly.
+It validates runtime fixups under the shared OS wrapper; shared wrapper/startup
+equivalence to the original remains outside that comparison.
 The [complete source package](../../runtime/observations/pandora-hosted-source-package.json)
 now includes canonical game source, authored OS allocation/startup/cleanup source,
 native-generated bindings and a standalone build. Its external build reproduces
 the qualified payload and HUNK exactly. Original byte-exact export remains
 separate. Four required fixed input/image/high-mask/display OS claims, broader
 platform/path coverage and the eight-CCK limitation remain explicit restrictions.
+Those four claims total 791,080 bytes (75.44% of 1 MiB Chip RAM), so this is
+not the dynamically placed endpoint. The [A1–A5 continuation](../proposals/046-canonical-memory-layouts.md#minimal-continuation-remove-the-four-fixed-dependencies)
+starts with source-backed image fixups and explicit retained-input/seed/user
+lifetime; high masks and aligned display follow through the canonical planner.
+Do not equate six dynamic owners with most memory being dynamically placed.
 
 Status: **original-layout reviewed closeout with explicit unknowns**.
 [Final source-bound review](../validation/pandora-original-layout-closeout.json)

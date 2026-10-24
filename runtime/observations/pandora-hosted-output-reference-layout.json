@@ -1,0 +1,35 @@
+{
+  "schema": "pandora-hosted-output-reference-layout/v1",
+  "status": "qualified_temporary_native_reference_configuration_not_a_saved_ninth_layout",
+  "selected_canonical_profile": "pandora_OS_hosted_ecs1m",
+  "canonical_metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "observed_owners_receipt_sha256": "2e1586907292cdb3f82700b5abb2cd5b959cbe7c6a02a72f0b4075521f857ebc",
+  "observed_bases": {
+    "pandora_prng_state": 6552,
+    "keyboard_state": 65904,
+    "pandora_ui_snapshot_body": 66032,
+    "pandora_title_stars": 68336,
+    "pandora_cpu_workspace": 69336,
+    "pandora_low_generated_masks": 117392
+  },
+  "derivation": "Snapshot the same canonical metadata; change only the selected existing profile placements to the observed six actual owner bases; validate/render/assemble using the existing native APIs. All20 regions/eight saved layouts remain intact. No target mutation or rendered-text/address-word replacement.",
+  "failed_initial_attempt": "Adding a ninth saved layout was refused by existing eight-layout capacity before target mutation. No capacity or admission guard was bypassed; temporary diagnostic configuration uses the existing eight-entry model.",
+  "native_build": {
+    "status": "native_ASM_reference_matches_all_runtime_fixed_bytes_except_typed_HUNK_import",
+    "metadata_sha256": "2810c1dd18f7a7b5614fb46655033c08950be6eafab4468fbe5f32900d5c1a16",
+    "observed_receipt_sha256": "2e1586907292cdb3f82700b5abb2cd5b959cbe7c6a02a72f0b4075521f857ebc",
+    "payload_sha256": "7810d7e2fcb93b7997460428594a00e652fb65e89580f67af9edea4716fbf0e7",
+    "bytes": 376832,
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "34f0710cdfd88a9214211817fcafdcb396418dc6fe87efeb53b710bd26bfffad"
+    },
+    "wall_seconds": 227.99858727100946,
+    "temporary_configuration_only": true
+  },
+  "native_contract_sha256": "534b434c8b2f040dfcf5fe5b53a62b7463a651eb9a8cdd1fb5d33899a8f44ed7",
+  "independent_assembly": "Native C and vasm produce identical376832-byte reference; all bytes equal the runtime-fixed input after normalizing only the native typed four-byte host-service import at source4D8 to staged89F26. The import itself is separately checked by first original initializer entry/state.",
+  "whole_reference_payload_sha256": "7810d7e2fcb93b7997460428594a00e652fb65e89580f67af9edea4716fbf0e7",
+  "runtime_fixed_input_sha256": "4c31b5fed284eaa649d1f0d8460d21540032e323d5db285d7ee0721da1306d61",
+  "proof_boundary": "Tests runtime fixups against independent assembly-time native address bindings under the SAME OS wrapper. This is not original-versus-restored equivalence for shared wrapper behaviour, not allocator-placement coverage beyond observed returns and not all-path semantic proof."
+}

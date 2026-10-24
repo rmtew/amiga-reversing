@@ -830,7 +830,7 @@ have the partial implementation/evidence above; M2 has target profile builds and
 M3/M4 now have the scoped runtime/output evidence above; frozen-plan reuse and
 its measured performance are evidenced. Placement calculations are shared while
 the proof/manifest semantic adapter remains supported. Exact original HAND-cycle
-equality is still refused. M5 has bounded allocation evidence; M6 now has the short normal-HUNK entry/exit evidence below, not full hosted ending/output qualification or arbitrary placement. M1–M4
+equality is still refused. M5 has bounded allocation evidence; M6 now has hosted completion, scoped same-wrapper output and complete-source build evidence below. Arbitrary/allocation-selected placement of the four large fixed claims remains unfinished. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are separately authorized continuation gates. Each batch
@@ -1153,3 +1153,62 @@ Shared package verification checks against the current canonical export before
 building. It separates build success from original byte equality and runtime
 qualification. A complete external build does not settle the pending title/UI
 and PCM comparisons, shared-wrapper semantics or unobserved execution paths.
+
+### Hosted output qualification and the remaining allocation endpoint
+
+The [bounded hosted output receipt](../../runtime/observations/pandora-hosted-output-qualification.json)
+closes the current comparison batch: two cold normal-HUNK completions with natural
+DOS return, all 576 phase clocks and 509 acknowledged controller calls matched,
+seven route images plus a separately anchored settled-title image exact, and
+13,158,932 stereo float32/44,100Hz frames exact for Paula, master and drive audio.
+There is no sample shift, resampling, pixel mask or relaxed threshold. A failed
+frame-2700 snapshot was retained: identical initial game state did not make two
+mid-update raster stops identical. The replacement observes the same original
+foreground instruction after 180 natural title frames. Two complete sampled
+bus frames are identical; audio/bitplane/Copper bounds pass. Sprite/blitter
+transfers were not observed in those samples.
+
+The control is [native assembly-time binding at the observed OS owner bases](../../runtime/observations/pandora-hosted-output-reference-layout.json).
+It checks runtime fixups against independently assembled bindings **under the same
+OS wrapper**, not original-versus-restored equivalence for shared startup,
+ownership or audio effects. The historical original/rebased output chain and
+four original-to-hosted gameplay-image matches remain separate. Neither the old
+title/UI crop mismatch nor the eight-CCK HAND failure becomes a pass.
+
+**The requested dynamically placed endpoint is not complete.** Six AllocMem
+owners do not describe most of the footprint. Four AllocAbs claims still total
+791,080 bytes (772.54 KiB; 75.44% of 1 MiB Chip RAM):
+
+| Claim | Current lease | Why it is still retained; required class versus address |
+|---|---:|---|
+| Loaded input | `$20000`, 376,832 bytes | Whole file, source-owned helper, seed sources, cursor and middle generated-mask storage currently share this backing. Current carrier is Chip because some of those users require DMA. That does not prove the entire file inherently requires Chip or a fixed base. |
+| Copied image | `$80000`, 349,040 bytes | Executed prefix plus embedded Copper/audio/graphics assets. Current combined block needs Chip; the number `$80000` is a layout choice, not itself a hardware requirement. |
+| High generated masks | `$7D000`, 11,960 bytes | Semantic extent `$2EB2`, rounded backing includes the following WORD guard. Needs Chip for its consumers, not this numerical base. |
+| Display parent | `$E0000`, 53,248 bytes | Needs Chip, inherited bank offsets and the evidenced **parent** 64-KiB alignment/low-word invariant. Child bank1 remains at parent plus `$8000`; children do not independently need 64-KiB alignment. |
+
+These are safe ownership restrictions, not the final allocation-driven result.
+Address flexibility and peak/retained footprint are separate acceptance measures.
+Moving a claim does not save its bytes, and retaining a full input carrier does
+not justify freeing its opaque suffix.
+
+#### Minimal continuation: remove the four fixed dependencies
+
+Use the existing native region/reference/encoder and atomic actual-base planner,
+plus the authored DOS lifecycle. No second Python placement model, guessed
+address-word rewriting, general linker or branch relaxation is authorized by this
+sequence. Preserve original exact and existing fixed modes throughout.
+
+| Gate and dependency | Smallest substantive implementation / actual blocker | Acceptance and stop boundary |
+|---|---|---|
+| **A1 — actual-base image prefix**, next main slice | `src/m68k_runtime_allocation.inc` explicitly rejects source-mapped owners, owners larger than `$10000`, seeded/child materialization and larger alignment. Its fixup projection currently admits runtime-only LONG data and reviewed instruction fields, not the source-backed image. Extend that projection for this one native image owner using frozen target section/offset/domain and encoder-derived extension coordinates. Emit only proved absolute/split-DMA fields; source-backed LONGs, unsigned high/low data words and signed absolute-W instruction reach stay distinct. Preserve inherited image children/aliases. Internal PC-relative distances remain unchanged. Derive the actual descriptor count/capacity rather than guessing or truncating at the present 128-site limit. Bind the explicit bootstrap destination/continuation and host import to the returned image base. | Real Exec-selected Chip placement; native atomic validation of complete backing and all current live/fixed owners; original/C/vasm source unchanged where required; whole staged fields verified before one-time application; normal-input completion and bounded output controls. Report exact unsupported reference sites/encodings. A required instruction-size change or unproved pointer domain stops that part; do not add a general relaxation engine. Acquiring the remaining fixed claims before selecting the image prevents an allocation from consuming their backing. |
+| **A2 — retained-input ownership/lifetime**, alongside A1's carrier contract, before claiming it transient | Separate the bootstrap file carrier from its live users. Current evidence names source helper `$28..$52`, cursor parent `$65370..$653FC`, and middle-mask equates across the envelope `$65580..$6A838`. This envelope is **not** a proved contiguous owner or proof about its gaps. Preserve connected constructor/alias extents and unresolved bank-30 restrictions. Explicit seed sources include source `$453F8` (4-byte cursor lookahead) and `$57D00` (2-byte UI hit seed), the latter in the uncopied suffix. That proves the suffix must be loaded through the explicit seed read, **not** that it remains live after the copy. Other suffix uses remain unresolved. Prefix-copy completion alone does not establish the complete last-use boundary. | Either retain an allocator-selected carrier with explicit lifetime/domain restrictions, or evacuate proved users into owned Chip blocks and establish a last-use boundary before releasing/demoting the carrier. No absence-of-hit equals unused argument. Do not invent initial bytes or make the whole carrier Slow/CPU-only while a possible DMA user is unresolved. Retaining duplication temporarily is acceptable; retaining a **fixed base** is not the endpoint. Record carrier/image overlap and copy-direction constraints explicitly, rather than bypassing existing overlap guards. |
+| **A3 — high-mask owner**, can proceed independently through existing runtime-only seam | Admit the existing named high-mask constructor/pointer family with its aliases and exact following-WORD backing. Convert that one fixed claim to AllocMem and include it in the same validated owner/fixup transaction and reverse lease ledger. This is the closest existing seam, not a substitute for A1/A2. | Actual returned base, constructor/read/DMA bounds and meaningful route/output use; failure unwind before takeover and release after quiescence. This removes an 11,960-byte **fixed-address obligation**; it does not reduce peak memory or establish a completion percentage. Refuse unbound aliases/guard truncation. |
+| **A4 — aligned display allocation**, depends on seeded child handling in A2 | Extend native admission for the one display parent with inherited bank/hit/palette children and the already evidenced 64-KiB parent constraint. Use an explicit OS-owned aligned lease; do not call an arbitrary fixed base an allocator result. Bounded over-allocation must retain/free its exact original lease and expose padding cost, unless a separately reviewed platform-safe trim contract is implemented. Budget the transient footprint before admitting this policy. Preserve seed initialization and the hybrid-fetch zero-prefix invariant. | Returned aligned parent and child addresses validated against all leases; complete DMA lifetime and exact failure/exit release; output/normal-input completion. Keep allocation base/size versus usable aligned base/extent distinct. Never relax the low-word invariant or treat alignment padding as semantic data. If required contiguous backing is unavailable, fail cleanly and report the allocator result. |
+| **A5 — no fixed game-RAM dependency**, requires A1–A4 | Remove the now-superseded fixed claim entries and bootstrap address patches through normal export. Retire duplicate staging/copying **only** where the A2 lifetime/replacement contract proves it safe. Keep loader-only suffix and unknown continuations explicit; allocation-selected placement need not first imply every byte has a semantic name. | Exported game plus authored loader builds reproducibly; all game-RAM leases selected/acquired from OS availability within declared class/alignment/reach constraints, no hidden fixed-address fallback; meaningful differing legal returns where available; cold completion, scoped pixels/PCM, old-range observations, sampled DMA and safe normal/failure cleanup. Publish peak/retained bytes as well as remaining restrictions. No universal hardware/all-path or original startup-clock claim. |
+
+The immediate architectural gap is finite source-backed image fixup/bootstrap
+projection and seeded-child/carrier ownership, not a demonstrated need to rewrite
+the emulator or invent a general linker. The number and supported encoding mix
+of image runtime fixups are **not yet measured**; A1 begins with that bounded
+projection/refusal inventory. Original-layout unknowns, generic B07 work and
+native-C conversion remain outside this continuation.

@@ -1,0 +1,678 @@
+{
+  "schema": "pandora-hosted-output-qualification/v1",
+  "status": "bounded_OS_native_reference_output_and_natural_return_qualified_dynamic_loading_programme_INCOMPLETE",
+  "prior_published_package_commit": "0e45adcb7d5f8d3d5bcebdc1b455cc0167226521",
+  "normal_input_provenance": "Independent cold ROM/DOS boots; own normal CODE HUNK and preserved target payload; existing576-phase normal-controller recipe. No restored machine checkpoints, host register/memory writes, artificial original-routine calls or calibrated delay.509 RPC controller calls include releases/cleanup, not509 distinct human actions.",
+  "reference_configuration": {
+    "path": "runtime/observations/pandora-hosted-output-reference-layout.json",
+    "sha256": "04c04de505080953b1394bce8552467079e3aa66acec185346b42e58f440a001"
+  },
+  "machine_profile": "a500ecs_1m; 68000/PAL/ECS; 1MiB Chip plus 512KiB Slow; Kickstart1.3",
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "comparison": {
+    "schema": "pandora-hosted-output-comparison/v1",
+    "status": "pass",
+    "scope": "Native assembly-time address bindings versus runtime fixups under the same OS wrapper, not original-vs-restored wrapper equivalence.",
+    "matched_phases": 576,
+    "matched_controller_calls": 509,
+    "images": [
+      {
+        "name": "title_menu_loop.png",
+        "width": 320,
+        "height": 65,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      {
+        "name": "ui_overlay_initialization.png",
+        "width": 358,
+        "height": 285,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      {
+        "name": "initial_proximity_context.png",
+        "width": 358,
+        "height": 285,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      {
+        "name": "entry_officer_card_transferred.png",
+        "width": 320,
+        "height": 200,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      {
+        "name": "ei_sonicdriver_hit_1.png",
+        "width": 320,
+        "height": 200,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      {
+        "name": "ac_console_ready.png",
+        "width": 320,
+        "height": 200,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      {
+        "name": "saved_earth_escape.png",
+        "width": 320,
+        "height": 200,
+        "differing_pixels": 0,
+        "status": "pass"
+      }
+    ],
+    "audio": {
+      "paula": {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 115870848,
+          "frames": 14483856
+        },
+        "start_cck": 82926650,
+        "end_cck": 1141279377,
+        "start_sample": 1031062,
+        "end_sample": 14189994,
+        "compared_stereo_frames": 13158932,
+        "compared_float_samples": 26317864,
+        "first_different_sample": null,
+        "original_interval_sha256": "2848178926a75e2fff6e58e3f887a34617f221b2ec8b8a9385d9bdf300b6d4dd",
+        "candidate_interval_sha256": "2848178926a75e2fff6e58e3f887a34617f221b2ec8b8a9385d9bdf300b6d4dd",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      },
+      "master": {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 115870848,
+          "frames": 14483856
+        },
+        "start_cck": 82926650,
+        "end_cck": 1141279377,
+        "start_sample": 1031062,
+        "end_sample": 14189994,
+        "compared_stereo_frames": 13158932,
+        "compared_float_samples": 26317864,
+        "first_different_sample": null,
+        "original_interval_sha256": "2848178926a75e2fff6e58e3f887a34617f221b2ec8b8a9385d9bdf300b6d4dd",
+        "candidate_interval_sha256": "2848178926a75e2fff6e58e3f887a34617f221b2ec8b8a9385d9bdf300b6d4dd",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      },
+      "drivesounds": {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 115870848,
+          "frames": 14483856
+        },
+        "start_cck": 82926650,
+        "end_cck": 1141279377,
+        "start_sample": 1031062,
+        "end_sample": 14189994,
+        "compared_stereo_frames": 13158932,
+        "compared_float_samples": 26317864,
+        "first_different_sample": null,
+        "original_interval_sha256": "734ce5c203de85bf09cd5bb5b25dab7b0273160becbd85887d6f73ae76ab7345",
+        "candidate_interval_sha256": "734ce5c203de85bf09cd5bb5b25dab7b0273160becbd85887d6f73ae76ab7345",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      }
+    },
+    "initializer_cck": 89078006,
+    "initial_PRNG_bytes": "67fd6700754dddfb",
+    "limits": [
+      "Representative images and this normal-input route only; not all graphics/optional paths.",
+      "No shifted samples, resampling, tolerance or crop normalization.",
+      "Shared startup/audio ownership effects require separate evidence; original eight-CCK discrepancy remains open.",
+      "CPU old-address observations are not DMA/all-fetch coverage."
+    ],
+    "settled_title": {
+      "status": "pass",
+      "image": {
+        "name": "settled-title.png",
+        "width": 320,
+        "height": 200,
+        "differing_pixels": 0,
+        "status": "pass"
+      },
+      "audio": {
+        "paula": {
+          "status": "pass",
+          "format": {
+            "rate": 44100,
+            "channels": 2,
+            "block": 8,
+            "bits": 32,
+            "offset": 68,
+            "data_bytes": 10193248,
+            "frames": 1274156
+          },
+          "start_cck": 82871595,
+          "end_cck": 102155884,
+          "start_sample": 1030377,
+          "end_sample": 1270145,
+          "compared_stereo_frames": 239768,
+          "compared_float_samples": 479536,
+          "first_different_sample": null,
+          "original_interval_sha256": "5a4d378750d4232445117d5b2e8f08b85a12560b5eaff93e52ea31e44f7443cc",
+          "candidate_interval_sha256": "5a4d378750d4232445117d5b2e8f08b85a12560b5eaff93e52ea31e44f7443cc",
+          "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+        },
+        "master": {
+          "status": "pass",
+          "format": {
+            "rate": 44100,
+            "channels": 2,
+            "block": 8,
+            "bits": 32,
+            "offset": 68,
+            "data_bytes": 10193248,
+            "frames": 1274156
+          },
+          "start_cck": 82871595,
+          "end_cck": 102155884,
+          "start_sample": 1030377,
+          "end_sample": 1270145,
+          "compared_stereo_frames": 239768,
+          "compared_float_samples": 479536,
+          "first_different_sample": null,
+          "original_interval_sha256": "5a4d378750d4232445117d5b2e8f08b85a12560b5eaff93e52ea31e44f7443cc",
+          "candidate_interval_sha256": "5a4d378750d4232445117d5b2e8f08b85a12560b5eaff93e52ea31e44f7443cc",
+          "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+        },
+        "drivesounds": {
+          "status": "pass",
+          "format": {
+            "rate": 44100,
+            "channels": 2,
+            "block": 8,
+            "bits": 32,
+            "offset": 68,
+            "data_bytes": 10193248,
+            "frames": 1274156
+          },
+          "start_cck": 82871595,
+          "end_cck": 102155884,
+          "start_sample": 1030377,
+          "end_sample": 1270145,
+          "compared_stereo_frames": 239768,
+          "compared_float_samples": 479536,
+          "first_different_sample": null,
+          "original_interval_sha256": "8f36a1d40b581252628c9fc9802366d476067fb28fe530f180c3a4c4741f1907",
+          "candidate_interval_sha256": "8f36a1d40b581252628c9fc9802366d476067fb28fe530f180c3a4c4741f1907",
+          "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+        }
+      },
+      "anchor_cck": 102155884,
+      "source_offset": 4050,
+      "visits": 187,
+      "complete_sampled_bus_frames": [
+        [
+          1439,
+          "b499243ca4e7f4b56405dc62d7fe53fda3a261a43ce1c36ee7eb091af24e3a09"
+        ],
+        [
+          1440,
+          "867c71ff808e9103d2f916fbdb5fd9ce132771bb68579e10476668b317357a15"
+        ]
+      ],
+      "scope": "Settled title prefix on the same OS wrapper; emulator termination after capture is not an OS-return qualification."
+    }
+  },
+  "runs": [
+    {
+      "role": "candidate",
+      "HUNK_sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c",
+      "payload_before_runtime_fields_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+      "report_private_sha256": "fb07982f30a6a223e2a4d1cbe05748d4392383248c3fb7a0355cc77e1bb79251",
+      "scenario_private_sha256": "7e3f47af7ea15c53d9c7e0d2a52eaf413c758a2135aee818b8b654effd2ac6b3",
+      "after_guest_fields_and_import_sha256": "fc432dbd4331b96930d46991a70a9008b27547ea1f5e2c09ddbd7bb193708749",
+      "initializer_cck": 89078006,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 15132
+      },
+      "natural_exit_cck": 1141279377,
+      "DMACONR": 8192,
+      "retained_leases_at_DMA_stop": 10,
+      "freed": [
+        {
+          "address": 117392,
+          "size": 10040
+        },
+        {
+          "address": 69336,
+          "size": 48056
+        },
+        {
+          "address": 68336,
+          "size": 1000
+        },
+        {
+          "address": 66032,
+          "size": 2304
+        },
+        {
+          "address": 65904,
+          "size": 128
+        },
+        {
+          "address": 917504,
+          "size": 53248
+        },
+        {
+          "address": 524288,
+          "size": 349040
+        },
+        {
+          "address": 512000,
+          "size": 11960
+        },
+        {
+          "address": 131072,
+          "size": 376832
+        },
+        {
+          "address": 6552,
+          "size": 8
+        }
+      ],
+      "ownership": {
+        "retained_count": 0,
+        "audio_open": 0,
+        "audio_lock": 0,
+        "signal": 4294967295
+      },
+      "loss": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      }
+    },
+    {
+      "role": "reference",
+      "HUNK_sha256": "b6623d5c4694423fa8b8090da5b61097b4348828f639c3dbc409a3f910969871",
+      "payload_before_runtime_fields_sha256": "7810d7e2fcb93b7997460428594a00e652fb65e89580f67af9edea4716fbf0e7",
+      "report_private_sha256": "38e334f349d29ffef27168aa1f078af9f0d142f835c905e3bb61efb97e507a7f",
+      "scenario_private_sha256": "c2b19d4c752f0553defb67d348eb1f1536f830748dfdedc440410dff2ba05035",
+      "after_guest_fields_and_import_sha256": "fc432dbd4331b96930d46991a70a9008b27547ea1f5e2c09ddbd7bb193708749",
+      "initializer_cck": 89078006,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 15132
+      },
+      "natural_exit_cck": 1141279377,
+      "DMACONR": 8192,
+      "retained_leases_at_DMA_stop": 10,
+      "freed": [
+        {
+          "address": 117392,
+          "size": 10040
+        },
+        {
+          "address": 69336,
+          "size": 48056
+        },
+        {
+          "address": 68336,
+          "size": 1000
+        },
+        {
+          "address": 66032,
+          "size": 2304
+        },
+        {
+          "address": 65904,
+          "size": 128
+        },
+        {
+          "address": 917504,
+          "size": 53248
+        },
+        {
+          "address": 524288,
+          "size": 349040
+        },
+        {
+          "address": 512000,
+          "size": 11960
+        },
+        {
+          "address": 131072,
+          "size": 376832
+        },
+        {
+          "address": 6552,
+          "size": 8
+        }
+      ],
+      "ownership": {
+        "retained_count": 0,
+        "audio_open": 0,
+        "audio_lock": 0,
+        "signal": 4294967295
+      },
+      "loss": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      }
+    }
+  ],
+  "asset_and_sampled_DMA": {
+    "status": "pass_scoped_asset_integrity_and_sampled_DMA_bounds",
+    "unchanged_asset_spans": 126,
+    "unchanged_asset_bytes": 295492,
+    "eleven_primary_audio_records": true,
+    "bounds": {
+      "audio": [
+        [
+          846558,
+          851660
+        ],
+        [
+          851666,
+          854814
+        ],
+        [
+          854820,
+          859454
+        ],
+        [
+          859460,
+          864960
+        ],
+        [
+          864966,
+          870266
+        ],
+        [
+          870272,
+          872272
+        ],
+        [
+          872278,
+          872342
+        ],
+        [
+          872348,
+          872412
+        ],
+        [
+          872418,
+          872434
+        ],
+        [
+          872440,
+          872448
+        ],
+        [
+          872454,
+          872458
+        ],
+        [
+          872458,
+          872522
+        ],
+        [
+          872522,
+          873162
+        ]
+      ],
+      "copper": [
+        [
+          524288,
+          873328
+        ]
+      ],
+      "bitplane": [
+        [
+          917504,
+          949504
+        ],
+        [
+          950272,
+          970752
+        ]
+      ],
+      "sprite": [
+        [
+          841182,
+          841694
+        ],
+        [
+          414576,
+          414716
+        ]
+      ]
+    },
+    "observations": [
+      {
+        "complete_frames": [
+          1439,
+          1440
+        ],
+        "transfers": {
+          "copper": 124,
+          "audio": 909,
+          "bitplane": 32000
+        },
+        "explicit_null_sprite_exceptions": [],
+        "unobserved_engines": [
+          "sprite",
+          "blitter"
+        ],
+        "slots_sha256": [
+          "b499243ca4e7f4b56405dc62d7fe53fda3a261a43ce1c36ee7eb091af24e3a09",
+          "867c71ff808e9103d2f916fbdb5fd9ce132771bb68579e10476668b317357a15"
+        ]
+      },
+      {
+        "complete_frames": [
+          1439,
+          1440
+        ],
+        "transfers": {
+          "copper": 124,
+          "audio": 909,
+          "bitplane": 32000
+        },
+        "explicit_null_sprite_exceptions": [],
+        "unobserved_engines": [
+          "sprite",
+          "blitter"
+        ],
+        "slots_sha256": [
+          "b499243ca4e7f4b56405dc62d7fe53fda3a261a43ce1c36ee7eb091af24e3a09",
+          "867c71ff808e9103d2f916fbdb5fd9ce132771bb68579e10476668b317357a15"
+        ]
+      }
+    ],
+    "limits": [
+      "Canonical asset spans only, not semantic identification of every remaining byte.",
+      "Two complete title frames per capture; not whole-route DMA coverage.",
+      "Copper bounds are the moved image, not a separate per-list execution proof.",
+      "Blitter object/alias bounds and unobserved sprites are not qualified here.",
+      "Historical null sprite0/2 behaviour remains an explicit exception, not a moved asset claim."
+    ]
+  },
+  "additional_title_audio_prefix": {
+    "status": "bounded_title_audio_comparison_only_not_frame_capture_pass",
+    "window_reason": "Common absolute clocks from payload entry to start of frame2700, before either ordinary fire input. No input/no timing shifts.",
+    "audio": {
+      "paula": {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 24242408,
+          "frames": 3030301
+        },
+        "start_cck": 82871595,
+        "end_cck": 191837700,
+        "start_sample": 1030377,
+        "end_sample": 2385196,
+        "compared_stereo_frames": 1354819,
+        "compared_float_samples": 2709638,
+        "first_different_sample": null,
+        "original_interval_sha256": "002782f2019f5374d1372868e0a0030bb24840b27ac3e577881bcac190d186b8",
+        "candidate_interval_sha256": "002782f2019f5374d1372868e0a0030bb24840b27ac3e577881bcac190d186b8",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      },
+      "master": {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 24242408,
+          "frames": 3030301
+        },
+        "start_cck": 82871595,
+        "end_cck": 191837700,
+        "start_sample": 1030377,
+        "end_sample": 2385196,
+        "compared_stereo_frames": 1354819,
+        "compared_float_samples": 2709638,
+        "first_different_sample": null,
+        "original_interval_sha256": "002782f2019f5374d1372868e0a0030bb24840b27ac3e577881bcac190d186b8",
+        "candidate_interval_sha256": "002782f2019f5374d1372868e0a0030bb24840b27ac3e577881bcac190d186b8",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      },
+      "drivesounds": {
+        "status": "pass",
+        "format": {
+          "rate": 44100,
+          "channels": 2,
+          "block": 8,
+          "bits": 32,
+          "offset": 68,
+          "data_bytes": 24242408,
+          "frames": 3030301
+        },
+        "start_cck": 82871595,
+        "end_cck": 191837700,
+        "start_sample": 1030377,
+        "end_sample": 2385196,
+        "compared_stereo_frames": 1354819,
+        "compared_float_samples": 2709638,
+        "first_different_sample": null,
+        "original_interval_sha256": "8911b61e833d44f0a64d442220a8177129da4868c3204f7dcce22d7ec5eb9d5d",
+        "candidate_interval_sha256": "8911b61e833d44f0a64d442220a8177129da4868c3204f7dcce22d7ec5eb9d5d",
+        "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+      }
+    }
+  },
+  "retained_failed_probe": {
+    "action": "Frame2700 native settled-title snapshot comparison",
+    "outcome": "refused_not_equal_clock_boundary",
+    "candidate_cck": 191882270,
+    "reference_cck": 191883300,
+    "difference_cck": 1030,
+    "cause_boundary": "Same original initializer clocks/registers/retained PRNG bytes; run-until-frame stops at different raster/instruction points mid-star update. No source defect or equivalent frame inferred. Replaced by original foreground helper sourceFD2 after180 natural frames:187 visits, identical clock/state/image.",
+    "window": "Long no-input title PCM before either fire input separately compares at identical absolute clocks and passes. Image refusal was not normalized or hidden."
+  },
+  "evidence_chain": [
+    {
+      "path": "runtime/observations/pandora-relocated-output-validation.json",
+      "sha256": "917d1b899f01e6255ef57379e78108f4113bb12b976fa702dedbce1649be3020"
+    },
+    {
+      "path": "runtime/observations/pandora-source-helper-cold-qualification.json",
+      "sha256": "2624116c444c71ec3f5858eb8c7b82425fa052e570e8287c129a9bf3f6b95f03"
+    },
+    {
+      "path": "runtime/observations/pandora-hosted-saved-earth-cold.json",
+      "sha256": "87e31523c41f81304b5afc76df76a325779f7d1b0ffb4d9eb3ee04490913af1c"
+    },
+    {
+      "path": "runtime/observations/pandora-hosted-source-package.json",
+      "sha256": "f672352690db249692823ca66bd1fbfe23414bfe96cbc82d2a43be54bf73ded7"
+    }
+  ],
+  "code_and_build_preservation": {
+    "current_generated_runtime_files_identical_to_qualified_source_package": true,
+    "observer_function_source_sha256": "e9f094ba6f9d39ec9db63b761a21be5a10c859b000b3d8c340b20697a55bbcaf",
+    "capture_helpers_sha256": {
+      "amiga_reversing/tools/pandora_hosted_route.py": "a5b7521f31950618ce118ab621436e16c215863b5fb57c8d8d5d242bf23d44ec",
+      "amiga_reversing/tools/pandora_hosted_title.py": "4c5e0194e6d248f5901381e8dd5710b202ac2837c2c507c9bcae4be0e8c33dff"
+    }
+  },
+  "tests": {
+    "passed": 100,
+    "skipped": 0,
+    "scope": "Source package/shared interfaces/native-baseline cache/OS failure and field guards/title capture/strict output negatives; see documented pytest command. Initial missing-Pillow fixture was rerun through the installed system-Python offline comparator, not skipped."
+  },
+  "fixed_ownership": {
+    "ranges": [
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 524288,
+        "size": 349040
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "bytes": 791080,
+    "KiB": 772.5390625,
+    "percent_of_1MiB_Chip": 75.44326782226562,
+    "status": "OS-owned but still fixed, not the requested fully dynamically placed endpoint"
+  },
+  "limits": [
+    "Eight sampled images, not full-video or all-asset/optional-path semantic certification.",
+    "Continuous matched-clock float32stereo44100Hz PCM for the stated windows; no shift, resampling or tolerance. This is same-OS-wrapper native-binding versus runtime-fixup equivalence.",
+    "Original-versus-OS shared startup/ownership/audio effects remain outside this comparison. Historical four gameplay-image matches and original/rebased evidence remain separate; earlier original-to-OS title/UI crop mismatch is not retroactively a pass.",
+    "Original-to-image eight-CCK HAND discrepancy remains unresolved, no timing-equivalence pass.",
+    "Two complete title DMA frames per build only. No sprite/blitter transfers observed in those frames; no new sprite/blitter or all-route DMA qualification. Historical null-sprite0/2 exception remains explicit.",
+    "CPU old-address guards exclude live owners, begin after early setup and are not all-fetch/DMA coverage. Zero counters apply to the subscribed monitored events.",
+    "Authored DOS wrapper has scoped classic68000/PAL/ECS takeover/return tests, not arbitrary fault/kill, multitasking/RTG/universal lifecycle proof.",
+    "Four fixed claims consume791080bytes; full allocation-selected loading/movement and retained-input duplication/lifetime remain NEXT implementation work. No programme-complete claim.",
+    "Raw target/media/ROM/source assets, WAV/PNG/profile sidecars and full metadata remain private. Receipts publish identities/measurements only."
+  ],
+  "published_helper_source_sha256": {
+    "amiga_reversing/tools/pandora_hosted_route.py": "e3509ef7dfc00dcfd61eb0a0f2bc56f15ea9510c1e152efee6187dceac925eec",
+    "amiga_reversing/tools/pandora_hosted_title.py": "657e6671e42166f3063fa17d1c87054afbb07e8206f589fcd008a9d4eace9e5c",
+    "amiga_reversing/tools/pandora_hosted_output_compare.py": "45c2994eb641e3587670a54dbf1f7b35a2d42b44afc7888ac95fdaa607c6c0a3",
+    "amiga_reversing/tools/pandora_OS_output_reference.py": "cb7a9aeb7e9c3de352ae6dad468e815bac1908ef60a6f4e0eb7656b4bf71a790"
+  },
+  "capture_source_preservation_note": "Recorded capture helper hashes identify the actual collected source bodies, retained privately. Post-capture cleanup removed one unused Path import and split one inline conditional; no guest code, inputs or observation logic changed. Offline checks and100 focused tests were rerun. The observer-function body is unchanged; later CLI title selection does not change that body."
+}
