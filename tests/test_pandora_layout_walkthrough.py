@@ -161,3 +161,18 @@ def test_source_helper_bootstrap_requires_input_and_site_binding(change):
     if change is None:assert export_context(payload,original,'current')[1] is boot
     else:
         with pytest.raises(ValueError,match='Source helper'):export_context(payload,original,'current')
+
+
+def test_baremetal_runner_refuses_hosted_import_before_emulator_or_file_access(tmp_path):
+    from amiga_reversing.tools.pandora_layout_runtime import observe
+    with pytest.raises(ValueError,match='Hosted exit imports require the OS loader'):
+        observe(tmp_path,tmp_path/'missing.bin',{'layout_plan':{'bootstrap':{'exit_dispatch_import':{}}}},
+            tmp_path/'missing.rom',tmp_path/'missing-emulator',scenario_path=tmp_path/'missing.json')
+
+
+def test_runtime_import_consumption_checks_native_coordinates():
+    from amiga_reversing.tools.pandora_layout_walkthrough import runtime_service_imports
+    boot={'copied_source_end':32,'exit_dispatch_import':dict(status='requires_runtime_code_binding',role='host_mission_restart_dispatch',instruction_source_offset=8,source_offset=10,width=4,opcode=0x4eb9,instruction_size=6,original_target_source_offset=16,staged_value=0x80010)}
+    assert len(runtime_service_imports(boot,{'runtime_address':0x80000}))==1
+    boot['exit_dispatch_import']['source_offset']=12
+    with pytest.raises(ValueError,match='coordinates/width/target'):runtime_service_imports(boot,{'runtime_address':0x80000})

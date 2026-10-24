@@ -1,3 +1,4 @@
+#define MR_ALLOCATION_FIXUP_LIMIT 128U
 typedef struct MRAllocationFixup {
   uint32_t source_offset,region_offset,staged_value,instruction_offset;
   uint16_t opcode;
@@ -98,7 +99,7 @@ static int mr_runtime_allocation_context_json_alloc(
   const char *reason=NULL;int ri=-1;size_t li=0,fixups=0,numeric=0;
   MRAllocationRange *ranges=NULL;size_t range_count=0,range_capacity=0;
   M68kResolvedMemoryLayout initial,resolved;
-  MRAllocationFixup sites[32];int cpu_scope=0,dma_address_fixups=0;uint32_t maximum_base=0xffffffU;
+  MRAllocationFixup sites[MR_ALLOCATION_FIXUP_LIMIT];int cpu_scope=0,dma_address_fixups=0;uint32_t maximum_base=0xffffffU;
   const M68kRenderPlannedInstruction *frame_guards[M68K_ADDRESS_FRAME_SITE_LIMIT];size_t frame_guard_count=0;
   const M68kRenderPlannedInstruction *refusal_instruction=NULL;size_t refusal_operand=0;
   const M68kMemoryRegionIR *r=NULL;const M68kBootstrapContractIR *boot=NULL;
@@ -142,7 +143,7 @@ static int mr_runtime_allocation_context_json_alloc(
                  ins->instruction.mnemonic_id!=M68K_ASM_MNEMONIC_MOVEA)) {
               reason="immediate_pointer_reference_unsupported";refusal_instruction=ins;refusal_operand=j;goto result;
             }
-            if(fixups>=32) {reason="fixup_capacity_exceeded";goto result;}
+            if(fixups>=MR_ALLOCATION_FIXUP_LIMIT) {reason="fixup_capacity_exceeded";goto result;}
             reason=mr_allocation_absolute_fixup(a,r,boot,ins,j,address,
                 initial.addresses[ri]+address-r->runtime_address,&sites[fixups]);
             if(reason || sites[fixups].width!=4) {
@@ -187,7 +188,7 @@ static int mr_runtime_allocation_context_json_alloc(
       if(address<r->runtime_address || !width || width>r->size-(address-r->runtime_address)) {
         reason="partial_absolute_operand_access";refusal_instruction=ins;refusal_operand=j;goto result;
       }
-      if(fixups>=32) {reason="fixup_capacity_exceeded";goto result;}
+      if(fixups>=MR_ALLOCATION_FIXUP_LIMIT) {reason="fixup_capacity_exceeded";goto result;}
       reason=mr_allocation_absolute_fixup(a,r,boot,ins,j,address,
           initial.addresses[ri]+address-r->runtime_address,&sites[fixups]);
       if(reason) {refusal_instruction=ins;refusal_operand=j;goto result;}
@@ -220,7 +221,7 @@ static int mr_runtime_allocation_context_json_alloc(
         m68k_read_u32be(a->object.sections[0].data+e->source_offset)!=e->logical_address) {
       reason="unsupported_or_stale_typed_pointer_encoding";goto result;
     }
-    if(fixups>=32) {reason="fixup_capacity_exceeded";goto result;}
+    if(fixups>=MR_ALLOCATION_FIXUP_LIMIT) {reason="fixup_capacity_exceeded";goto result;}
     sites[fixups++]=(MRAllocationFixup){.source_offset=e->source_offset,
       .region_offset=address-r->runtime_address,.staged_value=initial.addresses[ri]+address-r->runtime_address,
       .width=4,.symbol=e->target_symbol};
@@ -248,6 +249,13 @@ static int mr_runtime_allocation_context_json_alloc(
         address-r->runtime_address<r->size && q->extent_bytes<=r->size-(address-r->runtime_address)) owned=1;
     if(address==r->runtime_address && q->extent_bytes==r->size)
       for(size_t fi=0;fi<fixups;fi++) if(sites[fi].symbol && !strcmp(sites[fi].symbol,q->name)) {owned=1;break;}
+    /* DMA aggregate aliases require a typed constructor to the exact named
+     * bank base, not just numeric containment or another data-pointer alias.
+     * The canonical equate supplies the reviewed write extent. */
+    if(!cpu_scope && dma_address_fixups && address>=r->runtime_address &&
+        address-r->runtime_address<r->size && q->extent_bytes<=r->size-(address-r->runtime_address))
+      for(size_t fi=0;fi<fixups;fi++) if(sites[fi].instruction_field==1 && sites[fi].symbol &&
+          !strcmp(sites[fi].symbol,q->name) && sites[fi].region_offset==address-r->runtime_address) {owned=1;break;}
     if(owned) continue;
     if(m68k_memory_layout_reference(&a->policy,actual_context ? actual_context : &initial,address,q->extent_bytes,
         expression,sizeof(expression),&address)<0) {reason="ambiguous_protected_runtime_extent";goto result;}
@@ -336,6 +344,24 @@ result:
             "\"displacement\":%u,\"base_register\":%u,\"instruction_size\":8}",ins->source_offset,
             m68k_read_u16be(bytes),ins->source_offset+(uint32_t)offset,
             ins->address_frame_displacement,r->address_frame_register)) goto failed;
+      }
+      if(json_builder_append(&b,"]")) goto failed;
+    }
+    if(!cpu_scope && dma_address_fixups) {
+      if(json_builder_append(&b,",\"constructor_owned_aliases\":[")) goto failed;
+      size_t aliases=0;
+      for(size_t qi=0;qi<a->policy.target_equate_count;qi++) {
+        const M68kAnalysisTargetEquate *q=&a->policy.target_equates[qi];uint32_t address=(uint32_t)q->value;
+        if(!q->address_domain || !q->extent_bytes || address<r->runtime_address ||
+            address-r->runtime_address>=r->size || q->extent_bytes>r->size-(address-r->runtime_address)) continue;
+        for(size_t fi=0;fi<fixups;fi++) if(sites[fi].instruction_field==1 && sites[fi].symbol &&
+            !strcmp(sites[fi].symbol,q->name) && sites[fi].region_offset==address-r->runtime_address) {
+          if((aliases++ && json_builder_append(&b,",")) || json_builder_append(&b,"{\"symbol\":") ||
+              json_builder_append_json_string(&b,q->name) || json_builder_appendf(&b,
+                ",\"region_offset\":%u,\"extent_bytes\":%u,\"constructor_source_offset\":%u,\"operand_index\":%u}",
+                sites[fi].region_offset,q->extent_bytes,sites[fi].instruction_offset,sites[fi].operand_index)) goto failed;
+          break;
+        }
       }
       if(json_builder_append(&b,"]")) goto failed;
     }

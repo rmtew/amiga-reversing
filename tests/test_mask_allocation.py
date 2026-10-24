@@ -10,7 +10,8 @@ from amiga_reversing.disasm.c_backend import assemble_platform_source_text_with_
 from amiga_reversing.tools.runtime_allocation import capsule,DMA_ADDRESS_SCOPE
 
 
-def mask(tmp_path,code='lea.l $4000.l,a1',*,named=True):
+def mask(tmp_path,code='lea.l $4000.l,a1',*,named=True,bank_alias=False,alias_constructor=False):
+    if alias_constructor:code+='\n lea.l $4080.l,a0'
     s=tmp_path/'mask.s';b=tmp_path/'mask.bin'
     s.write_text(' nop\n cmpa.l a2,a1\n bra.s entry\n rts\nentry:\n '+code+'\n rts\n dc.l $4008\n')
     subprocess.run([str(VASM),'-quiet','-Fbin','-m68000','-no-opt','-o',str(b),str(s)],check=True,capture_output=True)
@@ -22,7 +23,11 @@ def mask(tmp_path,code='lea.l $4000.l,a1',*,named=True):
     m['execution_views'][0]['source_end']=512
     if named:
         m['target_equates']=[dict(name='MASKS',value=0x4000,extent_bytes=256,group='masks',address_domain='runtime')]
-        m['manual_representations']=[dict(hunk=0,addr=8,end=table-2,element_kind='immediate' if code.startswith('movea') else 'absolute_address',operand_index=0,style='symbol',symbol='MASKS',value=0x4000,width_bytes=2 if '.w,' in code else 4)]
+        m['manual_representations']=[dict(hunk=0,addr=8,end=table-2-(6 if alias_constructor else 0),element_kind='immediate' if code.startswith('movea') else 'absolute_address',operand_index=0,style='symbol',symbol='MASKS',value=0x4000,width_bytes=2 if '.w,' in code else 4)]
+    if bank_alias:
+        m['target_equates'].append(dict(name='BANK_B',value=0x4080,extent_bytes=128,group='masks',address_domain='runtime'))
+    if alias_constructor:
+        m['manual_representations'].append(dict(hunk=0,addr=14,end=20,element_kind='absolute_address',operand_index=0,style='symbol',symbol='BANK_B',value=0x4080,width_bytes=4))
     m['seeded_entities']=[dict(addr=table,end=table+4,hunk=0,unit='long',struct_name='Frame',field_name='mask',field_type='long',value_kind='target_pointer',pointer_address_domain='runtime_only',pointer_symbol_group='masks')]
     return build(tmp_path,m,data)
 
@@ -53,4 +58,23 @@ def test_numeric_constructor_is_not_promoted_by_range_coincidence(tmp_path):
     a=mask(tmp_path,named=False)
     try:
         p=a.runtime_allocation_plan('masks','diagnostic');assert p['status']=='refused' and p['reason']=='numeric_or_unbound_absolute_operand',p
+    finally:a.close()
+
+
+def test_each_interior_bank_requires_its_own_typed_exact_base_constructor(tmp_path):
+    a=mask(tmp_path,bank_alias=True,alias_constructor=True)
+    try:
+        p=a.runtime_allocation_plan('masks','diagnostic')
+        assert p['status']=='bounded_allocation_candidate',p
+        aliases={x['symbol']:x for x in p['constructor_owned_aliases']}
+        assert aliases['BANK_B']==dict(symbol='BANK_B',region_offset=128,extent_bytes=128,constructor_source_offset=14,operand_index=0)
+        assert a.runtime_allocation_plan('masks','diagnostic',0xa000)['status']=='actual_placement_valid'
+    finally:a.close()
+
+
+def test_contained_but_unbound_bank_alias_is_not_silently_owned(tmp_path):
+    a=mask(tmp_path,bank_alias=True)
+    try:
+        p=a.runtime_allocation_plan('masks','diagnostic')
+        assert p==dict(status='refused',reason='unbound_runtime_alias_of_allocation_owner'),p
     finally:a.close()

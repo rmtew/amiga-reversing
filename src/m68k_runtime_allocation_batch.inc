@@ -7,6 +7,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
   const char *reason=NULL;char *members[M68K_ANALYSIS_MEMORY_REGION_LIMIT]={0},*layouts=NULL;
   int owners[M68K_ANALYSIS_MEMORY_REGION_LIMIT];size_t count=0,li=0,site_count=0;
   MRAllocationFixup *sites=NULL;char status[64]={0};
+  MRAllocationRange fixed[M68K_ANALYSIS_MEMORY_REGION_LIMIT+2];size_t fixed_count=0;
   if(!a || !layout_id || !bindings_json || !out_text) return -1;
   *out_text=NULL;
   for(;li<a->policy.memory_layout_count;li++) if(!strcmp(layout_id,a->policy.memory_layouts[li].layout_id)) break;
@@ -62,7 +63,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
       }
     }
   }
-  sites=calloc(count*32,sizeof(*sites));if(!sites) goto failed;
+  sites=calloc(count*MR_ALLOCATION_FIXUP_LIMIT,sizeof(*sites));if(!sites) goto failed;
   for(size_t i=0;i<count;i++) {
     size_t admitted=0;int ri=owners[i];
     if(mr_runtime_allocation_context_json_alloc(a,a->policy.memory_regions[ri].region_id,layout_id,
@@ -83,6 +84,45 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
       if(m68k_memory_layout_overlaps(sites[fi].source_offset,sites[fi].width,
           r->address_frame_sites[gi].source_offset,8)) {reason="batch_fixup_overlaps_frame_contract";goto result;}
   }
+  const M68kBootstrapContractIR *boot=NULL;
+  for(size_t i=0;i<a->policy.bootstrap_contract_count;i++)
+    if(!strcmp(final.bootstrap_contract_id,a->policy.bootstrap_contracts[i].contract_id)) boot=&a->policy.bootstrap_contracts[i];
+  if(boot && boot->has_exit_dispatch) {
+    size_t image=0;for(;image<a->policy.memory_region_count;image++) if(!strcmp(boot->image_region_id,a->policy.memory_regions[image].region_id)) break;
+    M68kBootstrapExitImport import;
+    if(image==a->policy.memory_region_count || !m68k_render_plan_exit_dispatch_import(&a->source_plan,boot,
+        a->policy.memory_regions[image].runtime_address,resolved.addresses[image],&import)) {reason="exit_dispatch_import_not_admitted";goto result;}
+    for(size_t fi=0;fi<site_count;fi++) if(m68k_memory_layout_overlaps(sites[fi].source_offset,sites[fi].width,import.field_source_offset,import.width)) {
+      reason="allocation_fixup_overlaps_exit_dispatch_import";goto result;
+    }
+  }
+  /* Fixed acquisition intent comes from the same roots and retained input,
+   * not a second host-side placement model. It is not an AllocAbs success. */
+  if(boot) {
+    fixed[fixed_count++]=(MRAllocationRange){boot->load_address,boot->file_size};
+    fixed[fixed_count++]=(MRAllocationRange){final.bootstrap_source_helper ?
+      boot->load_address+boot->helper_source_start : boot->helper_runtime_address,
+      boot->helper_source_end-boot->helper_source_start};
+  }
+  for(size_t ri=0;ri<a->policy.memory_region_count;ri++) {
+    const M68kMemoryRegionIR *r=&a->policy.memory_regions[ri];int dynamic=0;
+    if(r->parent_region_id[0]) continue;
+    for(size_t i=0;i<count;i++) if((size_t)owners[i]==ri) dynamic=1;
+    if(!dynamic) fixed[fixed_count++]=(MRAllocationRange){resolved.addresses[ri],r->size};
+  }
+  for(size_t i=0;i<fixed_count;i++) {
+    uint32_t end=(fixed[i].start+fixed[i].size+7U)&~7U;
+    fixed[i].start&=~7U;fixed[i].size=end-fixed[i].start;
+  }
+  qsort(fixed,fixed_count,sizeof(*fixed),mr_allocation_range_order);
+  size_t merged=0;
+  for(size_t i=0;i<fixed_count;i++) {
+    if(merged && fixed[i].start<=fixed[merged-1].start+fixed[merged-1].size) {
+      uint32_t end=fixed[i].start+fixed[i].size;
+      if(end>fixed[merged-1].start+fixed[merged-1].size) fixed[merged-1].size=end-fixed[merged-1].start;
+    } else fixed[merged++]=fixed[i];
+  }
+  fixed_count=merged;
   *view=*a;view->policy.memory_layout_count=1;view->policy.memory_layouts[0]=final;
   if(platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(view,&layouts)) goto failed;
 result:
@@ -105,6 +145,26 @@ result:
           json_builder_append_json_string(&b,r->region_id) || json_builder_appendf(&b,
             ",\"address\":%u,\"size\":%u,\"semantic_size\":%u,\"alignment\":8}",
             resolved.addresses[owners[i]],(r->size+7U)&~7U,r->size)) goto failed;
+    }
+    if(json_builder_append(&b,"],\"fixed_leases_requiring_OS_acquisition\":[")) goto failed;
+    for(size_t i=0;i<fixed_count;i++) if((i && json_builder_append(&b,",")) ||
+        json_builder_appendf(&b,"{\"address\":%u,\"size\":%u}",fixed[i].start,fixed[i].size)) goto failed;
+    if(json_builder_append(&b,"],\"uncovered_runtime_extents\":[")) goto failed;
+    size_t uncovered=0;
+    for(size_t qi=0;qi<a->policy.target_equate_count;qi++) {
+      const M68kAnalysisTargetEquate *q=&a->policy.target_equates[qi];uint32_t address=(uint32_t)q->value;char expression[128];int covered=0;
+      if(!q->address_domain || !q->extent_bytes) continue;
+      int rc=m68k_memory_layout_reference(&a->policy,&resolved,address,q->extent_bytes,expression,sizeof(expression),&address);
+      if(rc<0) goto failed;
+      for(size_t i=0;i<fixed_count;i++) if(address>=fixed[i].start && (uint64_t)address+q->extent_bytes<=(uint64_t)fixed[i].start+fixed[i].size) covered=1;
+      for(size_t i=0;i<count;i++) {
+        size_t ri=(size_t)owners[i];uint32_t base=resolved.addresses[ri],size=(a->policy.memory_regions[ri].size+7U)&~7U;
+        if(address>=base && (uint64_t)address+q->extent_bytes<=(uint64_t)base+size) covered=1;
+      }
+      if(!covered) {
+        if((uncovered++ && json_builder_append(&b,",")) || json_builder_append(&b,"{\"symbol\":") ||
+            json_builder_append_json_string(&b,q->name) || json_builder_appendf(&b,",\"address\":%u,\"size\":%u}",address,q->extent_bytes)) goto failed;
+      }
     }
     if(json_builder_append(&b,"]")) goto failed;
   }

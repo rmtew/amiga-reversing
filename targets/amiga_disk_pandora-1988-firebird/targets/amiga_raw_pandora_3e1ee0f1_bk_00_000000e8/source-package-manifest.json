@@ -2011,7 +2011,7 @@
         "size": 1530482
       }
     ],
-    "metadata_hash": "f5746f2f5ebfd2c7e9f9d562e70e6ea3fc99c2078d778fe55798cd16175f1110",
+    "metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
     "policy": {
       "id": "native-evidenced-opaque-v1",
       "minimum_asset_size": 128
@@ -2021,5 +2021,5 @@
     "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
     "target_identity_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
   },
-  "sha256": "4aee5ef2785477ac79637fd7615c2f0840df16147140a325f11eccc68b681dca"
+  "sha256": "3043dd858073ae27a12d30d1a58efbf0afc72c045edbc0ca6e840b5cfffd1296"
 }

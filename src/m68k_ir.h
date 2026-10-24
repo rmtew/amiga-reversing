@@ -840,6 +840,8 @@ typedef struct M68kBootstrapContractIR {
   uint32_t continuation_source_offset, comparison_source_offset;
   uint32_t helper_destination_source_offset,helper_jump_source_offset;
   uint8_t has_source_helper_sites;
+  uint32_t exit_dispatch_call_source_offset,exit_dispatch_target_source_offset;
+  uint8_t has_exit_dispatch;
 } M68kBootstrapContractIR;
 typedef struct M68kMemoryPlacementIR {
   char region_id[96];

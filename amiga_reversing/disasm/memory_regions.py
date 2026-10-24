@@ -135,7 +135,9 @@ def validate_bootstrap(contract: dict) -> dict:
                "comparison_source_offset"}
     required = numeric | {"schema_version", "contract_id", "image_region_id", "input_sha256", "kind"}
     helper_sites = {"helper_destination_source_offset", "helper_jump_source_offset"}
-    if (not required <= set(contract) or set(contract)-required-helper_sites or
+    exit_sites = {"exit_dispatch_call_source_offset", "exit_dispatch_target_source_offset"}
+    if (not required <= set(contract) or set(contract)-required-helper_sites-exit_sites or
+            bool(set(contract)&exit_sites) and not exit_sites<=set(contract) or
             bool(set(contract)&helper_sites) and not helper_sites<=set(contract) or type(contract["schema_version"]) is not int
             or contract["schema_version"] != 1 or contract["kind"] != "retained_prefix_copy"):
         raise ValueError("bootstrap requires the versioned retained prefix-copy contract")
@@ -156,6 +158,12 @@ def validate_bootstrap(contract: dict) -> dict:
                 contract[k]+4>contract['helper_source_start'] for k in helper_sites)
                 or abs(contract['helper_destination_source_offset']-contract['helper_jump_source_offset'])<4):
             raise ValueError('bootstrap source-helper entry requires two disjoint four-byte source sites')
+    if exit_sites <= set(contract):
+        if (any(type(contract[k]) is not int or contract[k]<0 or contract[k]%2 for k in exit_sites)
+                or contract['exit_dispatch_call_source_offset']<contract['helper_source_end']
+                or contract['exit_dispatch_call_source_offset']+6>contract['copied_source_end']
+                or contract['exit_dispatch_target_source_offset']>=contract['copied_source_end']):
+            raise ValueError('bootstrap exit dispatch requires a bounded six-byte call and original target')
     return dict(contract)
 
 

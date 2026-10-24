@@ -107,3 +107,12 @@ def test_actual_profile_cannot_replace_template_assumptions(tmp_path,change):
     a=owners(tmp_path)
     try:assert a.runtime_allocation_batch_plan('diagnostic',actual()|change)['status']=='refused'
     finally:a.close()
+
+
+def test_fixed_acquisition_intent_is_native_and_not_an_OS_success(tmp_path):
+    a=owners(tmp_path)
+    try:
+        p=a.runtime_allocation_batch_plan('diagnostic',actual())
+        assert p['fixed_leases_requiring_OS_acquisition']==[dict(address=0x300,size=8),dict(address=0x20000,size=512),dict(address=0x80000,size=512)]
+        assert p['uncovered_runtime_extents']==[]
+    finally:a.close()

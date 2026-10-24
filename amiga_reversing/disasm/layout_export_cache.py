@@ -41,13 +41,15 @@ def digest(value):
 
 
 class _Owner:
-    def __init__(self,artifact,profile):self.artifact,self.profile=artifact,profile
+    def __init__(self,artifact,profile,layout_identity=None):
+        self.artifact,self.profile,self.layout_identity=artifact,profile,layout_identity
     def close(self):self.artifact.close()
 
 
 class _Projection:
-    def __init__(self,payload,owner,identities,backend):
+    def __init__(self,payload,owner,identities,backend,*,native_matches=False):
         self.payload=payload
+        self._native=owner.artifact if native_matches else None
         self.profile=dict(backend=owner.profile.get('backend'),facts_v2={'asm_source_refused':False},
             layout_projection=payload['projection'],baseline_analysis_profile=owner.profile,
             implementation_identities=identities,loaded_backend_identity=backend)
@@ -56,6 +58,16 @@ class _Projection:
     def inline_source_text_with_profile(self):return self.payload['canonical_source_text'],self.profile
     def source_package_payload(self,minimum_asset_size):return dict(self.payload['package'])
     def memory_layouts_payload(self):return self.payload['memory_layouts']
+    def _matching_native(self):
+        if self._native is None:
+            raise LayoutExportRefused('allocation_planning_requires_matching_baseline',
+                'Projected layouts cannot borrow allocation plans from a different native baseline')
+        self._native.loaded_backend_identity()
+        return self._native
+    def loaded_backend_identity(self):return self._matching_native().loaded_backend_identity()
+    def runtime_allocation_plan(self,*args):return self._matching_native().runtime_allocation_plan(*args)
+    def runtime_allocation_batch_plan(self,*args):return self._matching_native().runtime_allocation_batch_plan(*args)
+
 
 
 @contextmanager
@@ -71,6 +83,7 @@ def acquire(paths,project_root,metadata_path,builder,owner_source,minimum_asset_
             if effective_metadata.effective_metadata_hash(paths.target_dir)!=full_hash:
                 raise LayoutExportRefused('stale','Canonical metadata changed before export')
             input_hash=hashlib.sha256(read_binary_source_bytes(paths.binary_source)).hexdigest()
+            layout_identity=digest(dict(memory_layouts=metadata['memory_layouts'],selected_memory_layout_id=metadata['selected_memory_layout_id']))
             core=dict(full);core.pop('memory_layouts',None)
             backend=c_backend.native_backend_identity(project_root)
             key=digest(dict(core_metadata=core,input=input_hash,source=repr(paths.binary_source),
@@ -85,14 +98,14 @@ def acquire(paths,project_root,metadata_path,builder,owner_source,minimum_asset_
                     raise LayoutExportRefused(payload['reason'],'Native layout projection refused: '+payload['reason'])
                 if payload['status']=='rebuild_required':
                     _CACHE.clear_project(project);owner=None
-                else:projected=_Projection(payload,owner,identities,backend)
+                else:projected=_Projection(payload,owner,identities,backend,native_matches=getattr(owner,'layout_identity',None)==layout_identity)
             if owner is None:
                 artifact=builder()
                 try:
                     _,profile=artifact.inline_source_text_with_profile()
                     if artifact.loaded_backend_identity()!=backend:
                         raise LayoutExportRefused('stale','Native backend changed during analysis',restart_required=True)
-                    owner=_Owner(artifact,profile)
+                    owner=_Owner(artifact,profile,layout_identity)
                     if facts_v2_source_refused(profile):
                         with closing(artifact):yield artifact
                         return

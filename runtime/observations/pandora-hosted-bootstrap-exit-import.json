@@ -1,0 +1,21 @@
+{
+  "schema": "pandora-hosted-bootstrap-exit-import/v1",
+  "status": "reviewed_one_call_binding_contract_guest_wrapper_and_OS_game_pending",
+  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "call_source_offset": 1238,
+  "original_hex": "4eb900019f26",
+  "target_source_offset": 40742,
+  "role": "host_mission_restart_dispatch",
+  "ABI": [
+    "The original same-width JSR provides its ordinary game stack return.",
+    "First dispatch preserves registers and CCR, then tail-jumps to the original initialize_world_state; it does not force or manually call a gameplay objective.",
+    "Later mission restart exits through the host supervisor context only after blitter completion, DMA/IRQ quiescence and restored host state; all leases survive until complete.",
+    "This is a one-session hosted-profile lifecycle change. F7/restart after first initialization returns to the OS rather than beginning another session.",
+    "Normal target export leaves the JSR operand bound to its original function; the hosted loader alone must bind the typed import to its verified HUNK thunk."
+  ],
+  "limits": [
+    "No instruction-size growth, generic branch relaxation or raw string patching.",
+    "No completed OS game entry/exit or audio/CIA restoration claim yet.",
+    "Original/fixed profiles retain their original call and behaviour; the eight-CCK limitation is unchanged."
+  ]
+}

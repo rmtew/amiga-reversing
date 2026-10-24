@@ -9118,10 +9118,11 @@ static int append_metadata_bootstrap_local(const char *start,const char *end,M68
   static const char *const keys[]={"schema_version","contract_id","image_region_id","input_sha256","kind",
     "load_address","file_size","copied_source_end","helper_source_start","helper_source_end",
     "helper_runtime_address","continuation_source_offset","comparison_source_offset",
-    "helper_destination_source_offset","helper_jump_source_offset"};
+    "helper_destination_source_offset","helper_jump_source_offset",
+    "exit_dispatch_call_source_offset","exit_dispatch_target_source_offset"};
   M68kBootstrapContractIR c={0};uint32_t version=0;char kind[32]={0};
   if(policy->bootstrap_contract_count>=M68K_MEMORY_LAYOUT_LIMIT ||
-      !json_object_has_only_keys_local(start,end,keys,15) ||
+      !json_object_has_only_keys_local(start,end,keys,17) ||
       !layout_required_u32_local(start,end,"schema_version",&version) || version!=1 ||
       !json_optional_string_field_local(start,end,"kind",kind,sizeof(kind)) || strcmp(kind,"retained_prefix_copy") ||
       !json_optional_string_field_local(start,end,"contract_id",c.contract_id,sizeof(c.contract_id)) || !c.contract_id[0] ||
@@ -9143,6 +9144,15 @@ static int append_metadata_bootstrap_local(const char *start,const char *end,M68
         (uint64_t)c.helper_destination_source_offset+4>c.helper_source_start ||
         (uint64_t)c.helper_jump_source_offset+4>c.helper_source_start ||
         m68k_memory_layout_overlaps(c.helper_destination_source_offset,4,c.helper_jump_source_offset,4)) return 0;
+  }
+  if(json_find_key_local(start,end,"exit_dispatch_call_source_offset") ||
+      json_find_key_local(start,end,"exit_dispatch_target_source_offset")) {
+    BOOT_U32(exit_dispatch_call_source_offset);BOOT_U32(exit_dispatch_target_source_offset);
+    c.has_exit_dispatch=1;
+    if(c.exit_dispatch_call_source_offset%2 || c.exit_dispatch_target_source_offset%2 ||
+        c.exit_dispatch_call_source_offset<c.helper_source_end ||
+        (uint64_t)c.exit_dispatch_call_source_offset+6>c.copied_source_end ||
+        c.exit_dispatch_target_source_offset>=c.copied_source_end) return 0;
   }
 #undef BOOT_U32
   if(!c.copied_source_end || c.copied_source_end>c.file_size ||

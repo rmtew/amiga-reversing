@@ -99,3 +99,28 @@ def test_grid_end_probe_byte_must_not_alias_an_independent_body_lease(tmp_path,b
         assert result['status']==expected
         if expected=='refused':assert result['reason']=='allocator_result_overlaps_protected_runtime_extent'
     finally:artifact.close()
+
+
+@pytest.mark.parametrize('count,status',[(128,'bounded_allocation_candidate'),(129,'refused')])
+def test_measured_mask_reference_family_has_bounded_native_capacity(tmp_path,count,status):
+    data=bytes.fromhex('4e71b3ca4e754e75')+bytes.fromhex('000007f0')*count
+    data+=bytes(1024-len(data));m=metadata();m['memory_regions'][0]['size']=len(data)
+    m['memory_regions'].append(region('body',0x7f0,0x900))
+    m['bootstrap_contracts'][0].update(file_size=len(data),copied_source_end=len(data),input_sha256=hashlib.sha256(data).hexdigest())
+    m['execution_views'][0]['source_end']=len(data)
+    m['target_equates']=[dict(name='BODY_STORAGE',value=0x7f0,extent_bytes=0x900,group='buffers',address_domain='runtime')]
+    m['seeded_entities']=[dict(addr=8+i*4,end=12+i*4,hunk=0,unit='long',struct_name='Frame',field_name='bitmap',field_type='long',value_kind='target_pointer',pointer_address_domain='runtime_only',pointer_symbol_group='buffers') for i in range(count)]
+    a=build(tmp_path,m,data)
+    try:
+        p=a.runtime_allocation_plan('body','diagnostic');assert p['status']==status,p
+        if status=='refused':assert p['reason']=='fixup_capacity_exceeded'
+        else:
+            assert len(p['fixups'])==128
+            from amiga_reversing.tools.runtime_allocation import capsule,allocation_source
+            from types import SimpleNamespace
+            includes,_=allocation_source(capsule(p),SimpleNamespace(handoff_marker_address=0x7fff8,load_address=0x20000),len(data),[(0x7ff00,0xf0)])
+            # Guest code generation emits every field; this is not a claim
+            # that 128 unrolled fields fit the separate 1-KiB bootblock.
+            assert includes['direct_payload_allocation_fixups.i'].count('    cmpi.l ')==128
+            assert 'move.l d0,$20204' in includes['direct_payload_allocation_fixups.i']
+    finally:a.close()

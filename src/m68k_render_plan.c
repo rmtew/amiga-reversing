@@ -1,6 +1,9 @@
 #include "m68k_render_plan.h"
 
 #include "m68k_source_ir_render.h"
+#include "m68k_instruction_spec.h"
+#include "m68k_assembler.h"
+#include "m68k_simulator.h"
 #include "m68k_source_text_util.h"
 #include "util_arena.h"
 
@@ -1238,4 +1241,26 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
     return -1;
   }
   return 0;
+}
+
+int m68k_render_plan_exit_dispatch_import(const M68kRenderPlan *plan,
+    const M68kBootstrapContractIR *c,uint32_t original_base,uint32_t actual_base,
+    M68kBootstrapExitImport *out) {
+  if(!plan || !c || !c->has_exit_dispatch || !out) return 0;
+  const M68kRenderPlannedInstruction *site=m68k_render_plan_find_instruction(plan,0,c->exit_dispatch_call_source_offset);
+  const M68kRenderPlannedInstruction *target=m68k_render_plan_find_instruction(plan,0,c->exit_dispatch_target_source_offset);
+  if(!site || !target || site->instruction.mnemonic_id!=M68K_ASM_MNEMONIC_JSR ||
+      site->instruction.operand_count!=1 || site->instruction.byte_count!=6 ||
+      m68k_instruction_operand_decoded_ea_shape(&site->instruction.operands[0])!=M68K_SIM_EA_SHAPE_ABSOLUTE_LONG ||
+      (uint32_t)site->instruction.operands[0].value.value!=original_base+c->exit_dispatch_target_source_offset) return 0;
+  InstructionSpec spec;unsigned char bytes[8];m68k_instruction_ir_to_spec(&site->instruction,&spec);
+  size_t offset=m68k_asm_operand_relative_base_offset(spec.asm_form_index,spec.operands,spec.operand_count,spec.size_suffix,0,0);
+  if(m68k_asm_operand_extension_word_count(spec.asm_form_index,&spec.operands[0],spec.size_suffix)*2!=4 ||
+      offset+4!=6 || m68k_instruction_spec_assemble_bytes(&spec,bytes,sizeof(bytes))!=6) return 0;
+  *out=(M68kBootstrapExitImport){.instruction_source_offset=c->exit_dispatch_call_source_offset,
+    .field_source_offset=c->exit_dispatch_call_source_offset+(uint32_t)offset,
+    .original_target_source_offset=c->exit_dispatch_target_source_offset,
+    .staged_value=actual_base+c->exit_dispatch_target_source_offset,
+    .opcode=(uint16_t)((bytes[0]<<8)|bytes[1]),.width=4,.instruction_size=6};
+  return 1;
 }

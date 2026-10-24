@@ -77,6 +77,8 @@ def summarize_dma(directory,context,expected_frames=3):
 
 
 def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False,stop_after=None,title_visits=0,pcm_stems=False,phase_locked_boot=False,*,scenario_path,allocation_validator=None):
+    require(not config.get('requires_OS_hosted_loader') and 'exit_dispatch_import' not in config.get('layout_plan',{}).get('bootstrap',{}),
+        'Hosted exit imports require the OS loader; baremetal observation cannot bind them')
     from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract,build_boot_adf
     from amiga_reversing.tools.copperline_control import CopperlineProcess,MACHINE_PROFILES
     from amiga_reversing.tools.copperline_runtime import wait_for_marker,verify_handoff,release_handoff,wait_for_pc,run_scenario

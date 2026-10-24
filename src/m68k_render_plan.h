@@ -258,6 +258,15 @@ int m68k_render_plan_append_declaration(M68kRenderPlan *plan,
   const M68kRenderPlannedDeclaration *declaration);
 int m68k_render_plan_append_instruction(M68kRenderPlan *plan,
   const M68kRenderPlannedInstruction *instruction);
+/* One reviewed same-width call operand bound by an OS loader after allocation. */
+typedef struct M68kBootstrapExitImport {
+  uint32_t instruction_source_offset,field_source_offset,original_target_source_offset,staged_value;
+  uint16_t opcode;uint8_t width,instruction_size;
+} M68kBootstrapExitImport;
+int m68k_render_plan_exit_dispatch_import(const M68kRenderPlan *plan,
+    const M68kBootstrapContractIR *contract,uint32_t original_base,uint32_t actual_base,
+    M68kBootstrapExitImport *out);
+
 const M68kRenderPlannedInstruction *m68k_render_plan_find_instruction(const M68kRenderPlan *plan,
   uint32_t source_section_index, uint32_t source_offset);
 int m68k_render_plan_append_label(M68kRenderPlan *plan, const M68kRenderPlannedLabel *label);

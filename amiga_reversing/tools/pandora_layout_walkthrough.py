@@ -23,6 +23,26 @@ def require(value, message):
         raise ValueError(message)
 
 
+def runtime_service_imports(bootstrap,image):
+    value=bootstrap.get('exit_dispatch_import')
+    if value is None:return []
+    fields={'status','role','instruction_source_offset','source_offset','width','opcode','instruction_size','original_target_source_offset','staged_value'}
+    require(isinstance(value,dict) and set(value)==fields
+        and value['status']=='requires_runtime_code_binding' and value['role']=='host_mission_restart_dispatch',
+        'Exit dispatch is not an admitted native runtime import')
+    numeric=fields-{'status','role'}
+    require(all(type(value[k]) is int and value[k]>=0 for k in numeric)
+        and value['width']==4 and value['instruction_size']==6 and value['opcode']<=0xffff
+        and value['instruction_source_offset']%2==0 and value['original_target_source_offset']%2==0
+        and value['source_offset']>=value['instruction_source_offset']+2
+        and value['source_offset']+4==value['instruction_source_offset']+6
+        and value['instruction_source_offset']+6<=bootstrap['copied_source_end']
+        and value['original_target_source_offset']<bootstrap['copied_source_end']
+        and value['staged_value']==image['runtime_address']+value['original_target_source_offset'],
+        'Exit dispatch coordinates/width/target differ from native bootstrap')
+    return [dict(value)]
+
+
 def export_context(payload, original, metadata_hash):
     """Check consumed identities; native services remain the layout authority."""
     require(payload.get('status') == 'ok' and payload.get('layout_status') == 'source_only_unqualified'
@@ -53,6 +73,7 @@ def export_context(payload, original, metadata_hash):
     image = next((r for r in plan.get('regions', []) if r.get('region_id') == bootstrap.get('image_region_id')), None)
     require(image and image.get('region_kind') == 'image' and image.get('size') == bootstrap.get('copied_source_end'),
             'Native copied image contract differs')
+    runtime_service_imports(bootstrap,image)
     # Deliberately consume the placement result rather than recomputing a
     # competing Python placement/alias/alignment model.
     return plan, bootstrap, image
@@ -123,6 +144,12 @@ def build_from_export(root, out, payload, *, family=()):
     (out/'assemble.log').write_text(completed.stdout+completed.stderr)
     require(completed.returncode == 0 and binary.read_bytes() == data, 'C and vasm assembly failed or disagreed')
     require(len(data) == bootstrap['file_size'], 'Complete file extent changed')
+    imports=runtime_service_imports(bootstrap,image)
+    require(not imports or not family,'Hosted imports require their own OS loader, not a shared baremetal family')
+    for item in imports:
+        require(data[item['instruction_source_offset']:item['instruction_source_offset']+2]==item['opcode'].to_bytes(2,'big')
+            and data[item['source_offset']:item['source_offset']+4]==item['staged_value'].to_bytes(4,'big'),
+            'Assembled exit dispatch differs from native import')
     assets = {}
     for item in payload['package']['manifest']['files']:
         if item.get('kind') != 'asset':
@@ -154,6 +181,7 @@ def build_from_export(root, out, payload, *, family=()):
         seed_initialization_scope='Guest boot-shim copies from original staged bytes before HAND; no host seed/gameplay-memory writes. Existing host GO marker release is retained.',
         profile=dict(model='A500', chipset='ECS', video='PAL', cpu='68000', chip='1M', slow='512K', fast='0'),
         runtime_qualified=False)
+    if imports:config.update(requires_OS_hosted_loader=True,runtime_service_imports=imports)
     (out/'experiment-config.json').write_text(json.dumps(config, indent=2)+'\n')
     return binary, config
 

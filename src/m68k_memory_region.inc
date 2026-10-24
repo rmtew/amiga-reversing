@@ -259,6 +259,22 @@ int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
     if(c && layout->bootstrap_source_helper && json_builder_appendf(&b,
         ",\"original_helper_runtime_address\":%u,\"helper_destination_source_offset\":%u,\"helper_jump_source_offset\":%u",
         c->helper_runtime_address,c->helper_destination_source_offset,c->helper_jump_source_offset)) goto failed;
+    if(c && c->has_exit_dispatch) {
+      size_t image=0;for(;image<a->policy.memory_region_count;image++)
+        if(!strcmp(c->image_region_id,a->policy.memory_regions[image].region_id)) break;
+      M68kBootstrapExitImport import;
+      int admitted=!rc && image<a->policy.memory_region_count &&
+        m68k_render_plan_exit_dispatch_import(&a->source_plan,c,a->policy.memory_regions[image].runtime_address,
+          resolved.addresses[image],&import);
+      if(json_builder_append(&b,",\"exit_dispatch_import\":{\"status\":") ||
+          json_builder_append_json_string(&b,admitted ? "requires_runtime_code_binding" : "not_admitted")) goto failed;
+      if(admitted && json_builder_appendf(&b,
+          ",\"role\":\"host_mission_restart_dispatch\",\"instruction_source_offset\":%u,\"source_offset\":%u,"
+          "\"width\":%u,\"opcode\":%u,\"instruction_size\":%u,\"original_target_source_offset\":%u,\"staged_value\":%u",
+          import.instruction_source_offset,import.field_source_offset,import.width,import.opcode,import.instruction_size,
+          import.original_target_source_offset,import.staged_value)) goto failed;
+      if(json_builder_append(&b,"}")) goto failed;
+    }
     if(c && json_builder_append(&b,"}")) goto failed;
     if(json_builder_append(&b,"}")) goto failed;
   }

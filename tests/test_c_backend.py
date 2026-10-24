@@ -1623,7 +1623,9 @@ class _M68kBootstrapContractIR(ctypes.Structure):
         ("input_sha256", ctypes.c_char * 65), *[(name, ctypes.c_uint32) for name in (
             "load_address", "file_size", "copied_source_end", "helper_source_start", "helper_source_end",
             "helper_runtime_address", "continuation_source_offset", "comparison_source_offset",
-            "helper_destination_source_offset", "helper_jump_source_offset")], ("has_source_helper_sites", ctypes.c_uint8)]
+            "helper_destination_source_offset", "helper_jump_source_offset")], ("has_source_helper_sites", ctypes.c_uint8),
+        ("exit_dispatch_call_source_offset",ctypes.c_uint32), ("exit_dispatch_target_source_offset",ctypes.c_uint32),
+        ("has_exit_dispatch",ctypes.c_uint8)]
 
 
 class _M68kAnalysisPolicy(ctypes.Structure):

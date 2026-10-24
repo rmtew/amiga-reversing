@@ -1,0 +1,110 @@
+{
+  "schema": "pandora-hosted-template-admission/v1",
+  "status": "six_owner_template_admitted_not_actual_DOS_placement_or_game_entry",
+  "layout_id": "pandora_OS_hosted_ecs1m",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "unbound_payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+  "native_contract_sha256": "acada63481e186d6a591b79b6820e9e98248de47dfeaa4fbaeb675be30eaac3b",
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "34f0710cdfd88a9214211817fcafdcb396418dc6fe87efeb53b710bd26bfffad"
+  },
+  "owners": [
+    {
+      "region_id": "pandora_prng_state",
+      "size": 8,
+      "staged_address": 2024,
+      "fixup_count": 3
+    },
+    {
+      "region_id": "keyboard_state",
+      "size": 128,
+      "staged_address": 24576,
+      "fixup_count": 7
+    },
+    {
+      "region_id": "pandora_ui_snapshot_body",
+      "size": 2304,
+      "staged_address": 2032,
+      "fixup_count": 1
+    },
+    {
+      "region_id": "pandora_title_stars",
+      "size": 1000,
+      "staged_address": 1024,
+      "fixup_count": 2
+    },
+    {
+      "region_id": "pandora_cpu_workspace",
+      "size": 48051,
+      "staged_address": 24704,
+      "fixup_count": 7
+    },
+    {
+      "region_id": "pandora_low_generated_masks",
+      "size": 10034,
+      "staged_address": 4336,
+      "fixup_count": 91
+    }
+  ],
+  "fixup_count": 111,
+  "fixed_lease_intents": [
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 524288,
+      "size": 349040
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    }
+  ],
+  "uncovered_declared_runtime_extents": [],
+  "low_mask_constructor_aliases": [
+    {
+      "symbol": "scene_mask_bank_18",
+      "region_offset": 0,
+      "extent_bytes": 4372,
+      "constructor_source_offset": 29632,
+      "operand_index": 0
+    },
+    {
+      "symbol": "scene_mask_bank_21",
+      "region_offset": 4372,
+      "extent_bytes": 4344,
+      "constructor_source_offset": 29696,
+      "operand_index": 0
+    },
+    {
+      "symbol": "scene_mask_bank_30",
+      "region_offset": 8716,
+      "extent_bytes": 1316,
+      "constructor_source_offset": 29888,
+      "operand_index": 0
+    }
+  ],
+  "focused_tests": {
+    "command": "python -m pytest -q tests/test_runtime_allocation_plan.py tests/test_bootstrap_exit_import.py tests/test_runtime_allocation_batch.py tests/test_mask_allocation.py tests/test_layout_allocation_lease.py tests/test_pandora_layout_walkthrough.py tests/test_runtime_allocation_boot.py tests/test_bootstrap_layouts.py tests/test_bootstrap_source_helper.py tests/test_runtime_CPU_allocation_plan.py tests/test_keyboard_allocation.py",
+    "passed": 145
+  },
+  "limits": [
+    "Actual allocator returns must be admitted together, not individually substituted into a mixed layout.",
+    "No uncovered declared extent is not proof of all dynamic accesses or all storage ownership.",
+    "Exit import is unbound in this exported template; guest takeover/audio/CIA restoration and real game exit remain pending.",
+    "128 fields is a native/Python/generated-source bound, not a 1-KiB bootblock fit claim."
+  ],
+  "original_export_verification": {
+    "C_and_independent_vasm_full_file_exact": true,
+    "bytes": 376832,
+    "sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "canonical_region_count": 20,
+    "layout_count": 8
+  }
+}

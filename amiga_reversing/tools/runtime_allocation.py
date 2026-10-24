@@ -46,7 +46,7 @@ def validate(value):
     if len(layout)!=1 or layout[0].get('status')!='placement_valid':
         raise ValueError('Native fixed context is refused')
     fixes=p.get('fixups')
-    if not isinstance(fixes,list) or not fixes or len(fixes)>32:
+    if not isinstance(fixes,list) or not fixes or len(fixes)>128:
         raise ValueError('Bounded typed fixup list required')
     previous=-4
     for f in sorted(fixes,key=lambda f:f.get('source_offset',-1)):

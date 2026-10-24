@@ -11847,6 +11847,15 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
         out_preview->memory_layout.reason="bootstrap_source_helper_sites_not_admitted";goto cleanup;
       }
     }
+    if(out_preview->bootstrap_contract && out_preview->bootstrap_contract->has_exit_dispatch) {
+      const M68kBootstrapContractIR *c=out_preview->bootstrap_contract;size_t image=0;
+      for(;image<policy->memory_region_count;image++) if(!strcmp(c->image_region_id,policy->memory_regions[image].region_id)) break;
+      M68kBootstrapExitImport import;
+      if(image==policy->memory_region_count || !m68k_render_plan_exit_dispatch_import(&out_preview->asm_source_plan,c,
+          policy->memory_regions[image].runtime_address,out_preview->memory_layout.addresses[image],&import)) {
+        out_preview->memory_layout.reason="bootstrap_exit_dispatch_call_not_admitted";goto cleanup;
+      }
+    }
     if (derive_rendered_pointer_declarations(out_preview, lookup) != 0) goto cleanup;
     if (plan_rendered_label_statements(out_preview, lookup, decode, accepted_start,
           &out_preview->asm_source_plan) != 0) goto cleanup;

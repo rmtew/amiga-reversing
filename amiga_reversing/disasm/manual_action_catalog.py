@@ -6866,7 +6866,7 @@ def _target_bootstrap_contract_action() -> dict[str, object]:
                       kind={"type": "string", "enum": ["retained_prefix_copy"]})
     required = list(properties)
     properties.update({k: {"type": "integer"} for k in
-        ("helper_destination_source_offset", "helper_jump_source_offset")})
+        ("helper_destination_source_offset", "helper_jump_source_offset", "exit_dispatch_call_source_offset", "exit_dispatch_target_source_offset")})
     return _context_log_action("target.bootstrap.add", "Retain native prefix-copy initialization",
         "create_manual_bootstrap_contract", {"kind": "target"}, {},
         {"type": "object", "required": required, "properties": properties})

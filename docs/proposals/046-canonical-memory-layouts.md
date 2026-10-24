@@ -1034,3 +1034,43 @@ no bank45 layout speculation is introduced. PRNG's two retained bytes remain
 unknown rather than invented zero seeds. These identified owners, the existing
 input/image/display/cursor claims and actual takeover/exit restoration define the
 next DOS launch gate; this checkpoint is not an OS-game or all-memory pass.
+
+### M6 hosted-template admission checkpoint (2026-10-24)
+
+The explicit `pandora_OS_hosted_ecs1m` profile retains the source-owned bootstrap
+helper and original first world initialization. Its one typed JSR import is
+reported by the native frozen plan; normal export does not bind or execute a
+host thunk. The bare-metal runner refuses this profile rather than silently
+ignoring the required hosted lifecycle. See the
+[exit import contract](../../runtime/observations/pandora-hosted-bootstrap-exit-import.json).
+
+Title stars, low generated masks and high generated masks now have canonical
+owners. Low/high mask write extents retain the independently justified following
+WORD read guard; no zero value is inferred for it. Interior bank equates are
+owned only when an exact typed constructor LEA names that bank, not through
+numeric containment alone. The actual low-mask family requires more than32
+fields; the bounded native and Python admission capacity is128, with128/129
+positive/refusal and complete guest-source emission checks. This is not a claim
+that128 unrolled fields fit the separate diagnostic bootblock.
+
+The native atomic plan also reports coalesced fixed acquisition intents and any
+runtime extents not covered by dynamic or fixed backing. These are requirements
+for the guest, never evidence that Exec acquired them. Matching frozen-export
+leases can supply allocation queries without duplicate analysis; a different
+projected layout refuses borrowing the baseline's allocation context.
+
+The normal HUNK view/SSP probe is still an idle callback, not a launched Pandora
+session. Next acceptance is the actual DOS application: acquire the six dynamic
+owners and required fixed leases, validate all returns together, verify the
+complete staged payload and disjoint fields before applying them once, bind the
+import, enter the real game, then quiesce DMA and restore/release ownership on
+normal exit and failures. No all-memory, audio/CIA restoration or DOS-game pass
+is claimed by this template checkpoint.
+
+The [qualified template inventory](../../runtime/observations/pandora-hosted-template-admission.json)
+now admits all six owners:111 native fields, including91 low-mask fields and its
+three exact constructor-owned bank aliases. Its four fixed acquisition intents
+cover every declared runtime extent. The actual20-owner/eight-layout original
+export was regenerated and remains full-file C/vasm exact (`70480017…`); the
+unbound hosted payload remains `9b0bf6e9…`. 145 focused tests pass. Actual DOS
+allocation, field application and game entry remain separate live gates.
