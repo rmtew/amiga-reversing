@@ -959,3 +959,24 @@ strict original HAND equality remains unfulfilled. Richard has authorized M5–M
 continuation without per-milestone approval. Establish a concrete owner/fixup and
 lifecycle contract for each bounded slice; fixed placement is not runtime
 allocation, and AllocMem alone is not an OS-hosted game.
+
+### M6 concrete bootstrap/ownership checkpoint (2026-10-24)
+
+The source-owned helper is implemented and adopted by the normal exporter
+([adoption receipt](../../runtime/observations/pandora-source-helper-adoption.json)).
+It changes only the two declared startup entry operands, retains the 42-byte
+helper and prefix initialization, and leaves the original C/vasm rebuild exact.
+Cold gameplay qualification is pending in that receipt; it is not a DOS-game claim.
+The fixed `$20000` input remains live.
+
+A normal DOS resource probe acquired the current full input `$20000..$7C000`,
+full relocated image `$80000..$DC000` and display `$E0000..$ED000` together,
+but could not acquire keyboard `$6000..$6080`. It released successful claims,
+printed `OOOF`, and returned through a second normal executable to the CLI
+([reviewed evidence](../../runtime/observations/pandora-DOS-lease-feasibility.json)).
+These are four explicit claims, not the complete ownership set or a stable
+OS placement guarantee. The next launch prerequisite is a canonical movable
+keyboard owner or refusal on an unavailable fixed claim. Low PRNG/body storage,
+remaining producer/backing ownership and hardware/stack/vector restoration
+remain separate obligations before genuine Pandora HUNK entry/exit. No demand
+for identical pre-entry clocks is added to the OS-hosted acceptance gate.

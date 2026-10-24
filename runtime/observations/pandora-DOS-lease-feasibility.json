@@ -1,0 +1,60 @@
+{
+  "status": "reviewed_OOOF_normal_DOS_return",
+  "source_sha256": "584a54e89f6d07c990279f07edadaa0e2126f3ff86c042412063c7f5e5344b79",
+  "ADF_sha256": "ccb6eb1dff7b222a8045ceebada211c14beb525f0c8598c30f60a5e69f86efc1",
+  "filesystem_tool": "amitools xdftool 0.8.1; external build dependency",
+  "scope": "Four explicit claims only, no game launch, no takeover or inferred all-storage coverage.",
+  "claims": [
+    [
+      "input",
+      131072,
+      376832
+    ],
+    [
+      "image",
+      524288,
+      376832
+    ],
+    [
+      "pandora_display_storage",
+      917504,
+      53248
+    ],
+    [
+      "keyboard_state",
+      24576,
+      128
+    ]
+  ],
+  "config_sha256": "e47e3c09c6980977dcadd7d83ecf4202bbb950893673d760ecadc37f6807d930",
+  "lease_source_sha256": "1a0f6b35096b5daa8be646f0b2202cbf20c4a34dffa122e94e172566fbbf7e2b",
+  "claims_include_sha256": "1414bee8cd3b50482f7a554164198c4061d597cfb9218b5a04c185e76e3cb631",
+  "lease_HUNK_sha256": "6fe0ff5e4fe2e1641fdea8c4b92dbb91ab3fd03db89bf8eb35d8a1a832fecfee",
+  "stop": {
+    "cck": 106613058,
+    "detail": "frame 1500",
+    "frame": 1500,
+    "hpos": 11,
+    "pc": 16519060,
+    "reason": "target",
+    "retired_instructions": 3772340,
+    "seconds": 30.05813761050158,
+    "vpos": 161
+  },
+  "screenshot_sha256": "a794fb4b7aba308d3c267628b1a8cb17d2af00cf17e920f0970071700d296975",
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "schema": "pandora-DOS-layout-lease-feasibility/v1",
+  "review": {
+    "console": "OOOF; second normal HUNK line and CLI1> visible at frame1500",
+    "claim_results": [
+      "acquired",
+      "acquired",
+      "acquired",
+      "unavailable"
+    ],
+    "release_scope": "Source frees every successful exact AllocAbs claim before DOS output. Second executable/CLI returns observed; no exhaustive Exec free-list invariant proof."
+  },
+  "next_required": "Keyboard storage must be movable or unavailable fixed claims must refuse before takeover. Remaining low PRNG/body and all other lifecycle owners still need explicit contracts; this four-claim probe does not certify them.",
+  "reproduce": "PYTHONPATH=. python -m amiga_reversing.tools.pandora_os_lease_probe --config <normal-export experiment-config.json> --output <new private output> --xdftool <amitools0.8.1 xdftool> --rom <private kick13.rom> --copperline <Copperline binary>"
+}
