@@ -1074,3 +1074,13 @@ cover every declared runtime extent. The actual20-owner/eight-layout original
 export was regenerated and remains full-file C/vasm exact (`70480017…`); the
 unbound hosted payload remains `9b0bf6e9…`. 145 focused tests pass. Actual DOS
 allocation, field application and game entry remain separate live gates.
+
+The [normal-HUNK pre-entry application](../../runtime/observations/pandora-normal-HUNK-resource-pre-entry.json)
+now acquires all ten leases in real DOS, loads/verifies the whole input, and
+returns through exact owned unwind to the second normal HUNK and CLI. Native
+atomic validation accepts the actual six returned bases,111 fields and no
+uncovered declared extent. Eleven executable allocation-prefix/library-failure
+tests pass. The initial undersized ledger failure is retained and superseded by
+an eight-byte-per-entry extent guard and corrected live run. This is deliberately
+pre-entry: typed field application, audio ownership, active hardware takeover and
+the mission-restart exit/restore path remain the immediate implementation gate.

@@ -1,0 +1,92 @@
+{
+  "schema": "pandora-normal-HUNK-resource-pre-entry/v1",
+  "status": "actual_DOS_resources_and_full_payload_qualified_game_takeover_pending",
+  "HUNK_execution_address": 12613768,
+  "HUNK_memory": "allocator/LoadSeg selected Slow RAM; code_f",
+  "ready_frame": 1155,
+  "actual_owners": {
+    "pandora_prng_state": 6552,
+    "keyboard_state": 65904,
+    "pandora_ui_snapshot_body": 66032,
+    "pandora_title_stars": 68336,
+    "pandora_cpu_workspace": 69336,
+    "pandora_low_generated_masks": 117392
+  },
+  "owned_leases": [
+    {
+      "address": 6552,
+      "size": 8
+    },
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 524288,
+      "size": 349040
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    },
+    {
+      "address": 65904,
+      "size": 128
+    },
+    {
+      "address": 66032,
+      "size": 2304
+    },
+    {
+      "address": 68336,
+      "size": 1000
+    },
+    {
+      "address": 69336,
+      "size": 48056
+    },
+    {
+      "address": 117392,
+      "size": 10040
+    }
+  ],
+  "whole_input_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+  "atomic_native_actual_admission": {
+    "status": "actual_placements_valid",
+    "owners": 6,
+    "fields": 111,
+    "uncovered_declared_extents": [],
+    "private_receipt_sha256": "686fd127ba2e5fc73709ba619829b29b64759dc000adbdfe2fd47ab3206d5e7a"
+  },
+  "return_evidence": [
+    "Owned state_count was zero after unwind. This alone is not a free-list proof.",
+    "Reviewed returned.png shows pre-entry readiness, second normal HUNK output and CLI.",
+    "An ordinary Return key was supplied and released after return."
+  ],
+  "failure_tests": {
+    "passed": 11,
+    "scope": "Every acquisition prefix and subsequent OpenLibrary failure executes real assembled guest code against bounded Exec stubs; exact owned reverse-order FreeMem arguments."
+  },
+  "retained_failure": {
+    "run": "OS-pre-entry-b",
+    "problem": "Lease ledger reserved one LONG instead of two per address/size pair; cannot qualify safe unwind.",
+    "fix": "Reserve exactly eight bytes per entry; assembly extent check and executable every-prefix unwind regression.",
+    "private_log_sha256": "cf18f562d7c46b62ae09d4e840fcf17d9e560a147f2ba31e164478b47bf6699f"
+  },
+  "limits": [
+    "No game launch, field application, audio ownership, hardware takeover or game exit is claimed.",
+    "No host guest-memory or register writes. Fixed claims use actual AllocAbs and all six dynamic owner bases use actual AllocMem.",
+    "Normal HUNK/CLI return of this pre-entry stage does not establish restoration after active game hardware use.",
+    "No new walkthrough or graphics/PCM equality claim."
+  ],
+  "reusable_observer_repeat": {
+    "ready_frame": 1155,
+    "same_actual_owner_bases": true,
+    "whole_input_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+    "private_receipt_sha256": "4c95515198910c04150dff035c7af655c7ad11034ff06761d50fea7a09b86c0f"
+  }
+}

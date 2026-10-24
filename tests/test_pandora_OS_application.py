@@ -1,0 +1,60 @@
+"""Execute the DOS application's acquisition/unwind, not a game or Exec model."""
+import re
+import subprocess
+from pathlib import Path
+import machine68k
+import pytest
+from amiga_reversing.tools.direct_payload_adapter import VASM,NDK_INCLUDE
+from amiga_reversing.tools.pandora_OS_application import own_code
+
+ROOT=Path(__file__).resolve().parents[1]
+
+@pytest.fixture
+def executable(tmp_path):
+    (tmp_path/'pandora_OS_plan.i').write_text('OWNER_COUNT EQU 6\nFIXED_COUNT EQU 4\nINPUT_ADDRESS EQU $20000\nPAYLOAD_SIZE EQU 16\nPAYLOAD_CRC32 EQU 0\n')
+    (tmp_path/'pandora_OS_tables.i').write_text('fixed_table: dc.l $20000,$5C000,$7D000,$2EB8,$80000,$55370,$E0000,$D000\nowner_sizes: dc.l 8,128,2304,1000,48056,10040\ncrc_table: dcb.l 256,0\n')
+    target=tmp_path/'app';listing=tmp_path/'app.list'
+    p=subprocess.run([str(VASM),'-Fhunkexe','-m68000','-no-opt','-I'+str(NDK_INCLUDE),'-I'+str(tmp_path),'-L',str(listing),'-o',str(target),str(ROOT/'tools/amiga_pandora_OS.s')],capture_output=True,text=True)
+    assert p.returncode==0,p.stderr
+    labels={m[2]:int(m[1],16) for m in re.finditer(r'^([0-9A-F]{8}) (\w+)$',listing.read_text(),re.M)}
+    assert labels['state_leases_end']-labels['state_leases']==80
+    code=own_code(target.read_bytes())
+    assert labels['state_leases_end']<=len(code)
+    return code,labels
+
+@pytest.mark.parametrize('fail_index',range(11))
+def test_every_allocation_prefix_or_library_failure_frees_only_exact_owned_pairs(executable,fail_index):
+    code,labels=executable;m=machine68k.Machine(machine68k.CPUType.M68000,1024)
+    base=0x1000;execbase=0xf0000;stop=0xfe000
+    m.mem.w_block(base,code);m.mem.w32(4,execbase)
+    for n in (198,204,210,552):m.mem.w_block(execbase-n,b'\x4e\x75')
+    m.cpu.w_reg(machine68k.Register.A7,0xf8000);m.mem.w32(0xf8000,stop)
+    m.cpu.w_sr(0x2000);m.cpu.w_pc(base)
+    acquired=[];freed=[];owned={};calls=0;dynamic=0;steps=0
+    class Done(Exception):pass
+    def hook(pc):
+        nonlocal calls,dynamic,steps
+        steps+=1;assert steps<1500
+        if pc==stop:raise Done
+        if pc in (execbase-198,execbase-204):
+            n=m.cpu.r_reg(machine68k.Register.D0)
+            if pc==execbase-204:address=m.cpu.r_reg(machine68k.Register.A1)
+            else:
+                address=(0x2000,0x10170,0x101f0,0x10af0,0x10ed8,0x1ca90)[dynamic]
+                dynamic+=1
+            if calls==fail_index:m.cpu.w_reg(machine68k.Register.D0,0)
+            else:
+                assert address not in owned;owned[address]=n;acquired.append((address,n));m.cpu.w_reg(machine68k.Register.D0,address)
+            calls+=1
+        elif pc==execbase-552:m.cpu.w_reg(machine68k.Register.D0,0)
+        elif pc==execbase-210:
+            address=m.cpu.r_reg(machine68k.Register.A1);n=m.cpu.r_reg(machine68k.Register.D0)
+            assert owned.pop(address)==n
+            freed.append((address,n))
+    m.cpu.set_instr_hook_callback(hook)
+    try:m.cpu.execute(200000)
+    except Done:pass
+    else:raise AssertionError('Owned application did not return within bounds')
+    assert not owned and freed==list(reversed(acquired))
+    assert len(acquired)==min(fail_index,10)
+    assert m.mem.r32(base+labels['state_count'])==0
