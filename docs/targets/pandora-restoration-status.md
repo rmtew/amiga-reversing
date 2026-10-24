@@ -5,11 +5,13 @@
 
 ### CPU workspace plus display: qualified fixed placement
 
-**Keyboard lease correction:** the first captures below acquired app/grid
-backing but omitted the independently moved keyboard storage root. The adapter
-now requests both; 121 tests and unchanged C/vasm game binaries pass. Fresh
-changed-boot route/output qualification is in progress. Earlier functional/output
-observations remain valid, but are not evidence of the previously absent lease.
+**Keyboard lease correction qualified:** the first captures acquired app/grid
+backing but omitted the independent keyboard storage root. The corrected adapter
+requests both, coalescing only Exec backing through `$11C38`. Fresh control and
+candidate runs both complete all576 phases at HP49/frame14465; the unheld run
+finishes at HP49/frame14353. All phase/input clocks, eight frames and post-GO PCM
+match, with zero loss counters. 121 tests pass; game bytes remain unchanged. The
+old captures remain historical and are not evidence of the previously absent lease.
 
 [Current qualification](../../runtime/observations/pandora-canonical-cpu-workspace-qualification.json)
 combines image `$80000`, display `$E0000..$ED000`, independent keyboard `$6000`
