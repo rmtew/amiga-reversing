@@ -569,6 +569,35 @@ static int m68k_asm_emit_one_extension(uint16_t asm_form_index, const M68kAsmExt
   }
 }
 
+int m68k_asm_operand_extension_span(uint16_t asm_form_index, const M68kAsmOperandValue *operands,
+    size_t operand_count, char size_suffix, size_t operand_index, size_t *offset, size_t *extent) {
+  uint16_t fields[64], words[64];
+  size_t count = 0, first = 0, length = 0;
+  if (offset == NULL || extent == NULL) return -1;
+  *offset = *extent = 0;
+  if (asm_form_index == M68K_ASM_FORM_NONE || operands == NULL || operand_index >= operand_count) return -1;
+  const M68kAsmFormDef *form = &g_m68k_asm_forms[asm_form_index];
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE || operand_count != form->operand_count ||
+      form->patch_count > sizeof(fields)/sizeof(fields[0]) ||
+      m68k_asm_build_patch_values(asm_form_index,size_suffix,operands,operand_count,fields,
+        sizeof(fields)/sizeof(fields[0])) != 0) return -1;
+  for (uint8_t i = 1; i <= form->bound_word_count; ++i)
+    if (m68k_asm_emit_bound_extension_word(form,i,fields,words,sizeof(words)/sizeof(words[0]),&count)) return -1;
+  for (size_t i = 0; i < form->extension_count; ++i) {
+    const M68kAsmExtensionDef *extension = &g_m68k_asm_extensions[form->extension_start+i];
+    size_t before = count;
+    if (extension->operand_index >= operand_count ||
+        m68k_asm_emit_one_extension(asm_form_index,extension,fields,form->patch_count,
+          operands,operand_count,words,sizeof(words)/sizeof(words[0]),&count)) return -1;
+    if (extension->operand_index != operand_index || before == count) continue;
+    if (length && first + length != before) return -1;
+    if (!length) first = before;
+    length += count - before;
+  }
+  if (length) { *offset = 2 + first*2; *extent = length*2; }
+  return 0;
+}
+
 int m68k_asm_emit_extensions(uint16_t asm_form_index, const uint16_t *field_values, size_t field_value_count,
     const M68kAsmOperandValue *operands, size_t operand_count, uint16_t *out_words, size_t max_words,
     size_t *out_word_count) {

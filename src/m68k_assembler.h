@@ -15,5 +15,10 @@ size_t m68k_asm_operand_extension_word_count(uint16_t asm_form_index, const M68k
   char size_suffix);
 size_t m68k_asm_operand_relative_base_offset(uint16_t asm_form_index, const M68kAsmOperandValue *operands,
   size_t operand_count, char size_suffix, size_t operand_index, int include_current_operand);
+/* Actual generated emitter coordinates. Returns -1 for invalid/noncontiguous
+ * encodings; a zero extent denotes an operand without extension words. This
+ * does not assert that the extent is an independently patchable address. */
+int m68k_asm_operand_extension_span(uint16_t asm_form_index, const M68kAsmOperandValue *operands,
+  size_t operand_count, char size_suffix, size_t operand_index, size_t *offset, size_t *extent);
 
 #endif

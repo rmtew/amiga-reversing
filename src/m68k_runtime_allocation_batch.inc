@@ -6,6 +6,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
   M68kMemoryLayoutIR bindings={0},final={0};M68kResolvedMemoryLayout resolved;
   const char *reason=NULL;char *members[M68K_ANALYSIS_MEMORY_REGION_LIMIT]={0},*layouts=NULL;
   int owners[M68K_ANALYSIS_MEMORY_REGION_LIMIT];size_t count=0,li=0,site_count=0;
+  size_t site_capacity=0;
   MRAllocationFixup *sites=NULL;char status[64]={0};
   MRAllocationRange fixed[M68K_ANALYSIS_MEMORY_REGION_LIMIT+2];size_t fixed_count=0;
   if(!a || !layout_id || !bindings_json || !out_text) return -1;
@@ -33,8 +34,12 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
       M68kMemoryPlacementIR *p=&bindings.placements[bi];
       if(strcmp(p->region_id,a->policy.memory_regions[ri].region_id)) continue;
       const M68kMemoryRegionIR *r=&a->policy.memory_regions[ri];
-      if(r->source_mapped || r->parent_region_id[0] || r->has_loader_seed || r->region_kind>2 ||
-          r->alignment>8 || r->size>0x10000 || !p->runtime_address) {
+      const M68kBootstrapContractIR *owner_boot=NULL;
+      for(size_t b=0;b<a->policy.bootstrap_contract_count;b++)
+        if(!strcmp(final.bootstrap_contract_id,a->policy.bootstrap_contracts[b].contract_id)) owner_boot=&a->policy.bootstrap_contracts[b];
+      if((!mr_allocation_source_image(a,r,owner_boot) &&
+          (r->source_mapped || r->parent_region_id[0] || r->has_loader_seed || r->region_kind>2 ||
+           r->alignment>8 || r->size>0x10000)) || !p->runtime_address) {
         reason="unsupported_or_NULL_actual_allocation_owner";goto result;
       }
       size_t pi=0;for(;pi<final.placement_count;pi++) if(!strcmp(final.placements[pi].region_id,p->region_id)) break;
@@ -63,11 +68,13 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc(
       }
     }
   }
-  sites=calloc(count*MR_ALLOCATION_FIXUP_LIMIT,sizeof(*sites));if(!sites) goto failed;
+  site_capacity=mr_allocation_site_capacity(a);
+  if(!site_capacity) goto failed;
+  sites=calloc(site_capacity,sizeof(*sites));if(!sites) goto failed;
   for(size_t i=0;i<count;i++) {
     size_t admitted=0;int ri=owners[i];
     if(mr_runtime_allocation_context_json_alloc(a,a->policy.memory_regions[ri].region_id,layout_id,
-        1,resolved.addresses[ri],&resolved,&final,sites+site_count,&admitted,&members[i])) goto failed;
+        1,resolved.addresses[ri],&resolved,&final,sites+site_count,site_capacity-site_count,&admitted,&members[i])) goto failed;
     if(!json_optional_string_field_local(members[i],members[i]+strlen(members[i]),"status",status,sizeof(status)) ||
         strcmp(status,"actual_placement_valid")) {reason="member_actual_placement_refused";goto result;}
     site_count+=admitted;

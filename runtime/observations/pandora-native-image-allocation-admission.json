@@ -1,0 +1,160 @@
+{
+  "schema": "pandora-native-image-allocation-admission/v1",
+  "status": "native_candidate_and_atomic_template_not_live_Exec_qualification",
+  "identity": {
+    "metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "7316a28c75311827d5a93bbf1ce7b07f8ae88bf629ebe5e6665e8817f3bf6581"
+    },
+    "wall_seconds": 152.32838768199144
+  },
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "image_plan_sha256": "92c51fc9d00166f03fbf9220e5dee43802376b2e71f0ccbacfbee80ff808d4ae",
+  "contract_sha256": "74695a50a6dd2c950ce6345e1e31b8038adbe7ed0981d97668558654971d474d",
+  "image_fixups": 2573,
+  "image_encoding_counts": {
+    "absolute_long_operand": 348,
+    "absolute_long_data": 2195,
+    "absolute_long_immediate": 30
+  },
+  "data_pointer_domains": {
+    "legacy": 1291,
+    "mapped_source": 901,
+    "runtime_only": 3
+  },
+  "total_owners": 7,
+  "total_fixups": 2684,
+  "fixed_lease_intents": [
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    }
+  ],
+  "planned_fixed_bytes": 442040,
+  "current_qualified_fixed_bytes": 791080,
+  "current_qualified_game_lease_bytes": 852616,
+  "example_fields": [
+    {
+      "source_section_index": 0,
+      "source_offset": 42,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "mapped_source",
+      "region_offset": 0,
+      "staged_value": 524288,
+      "target_section_index": 0,
+      "target_offset": 0,
+      "instruction_source_offset": 40,
+      "operand_index": 0,
+      "opcode": 17913,
+      "symbol": "abs_0_00010000"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 48,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "mapped_source",
+      "region_offset": 1130,
+      "staged_value": 525418,
+      "target_section_index": 0,
+      "target_offset": 1130,
+      "instruction_source_offset": 46,
+      "operand_index": 0,
+      "opcode": 18425,
+      "symbol": "initialize_runtime_workspace"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 37636,
+      "width": 4,
+      "encoding": "absolute_long_immediate",
+      "address_domain": "mapped_source",
+      "region_offset": 53416,
+      "staged_value": 577704,
+      "target_section_index": 0,
+      "target_offset": 53416,
+      "instruction_source_offset": 37634,
+      "operand_index": 0,
+      "opcode": 1152,
+      "symbol": "world_tile_pixels_000_through_011"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 38776,
+      "width": 4,
+      "encoding": "absolute_long_immediate",
+      "address_domain": "mapped_source",
+      "region_offset": 53416,
+      "staged_value": 577704,
+      "target_section_index": 0,
+      "target_offset": 53416,
+      "instruction_source_offset": 38774,
+      "operand_index": 0,
+      "opcode": 1152,
+      "symbol": "world_tile_pixels_000_through_011"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 296332,
+      "width": 4,
+      "encoding": "absolute_long_data",
+      "address_domain": "mapped_source",
+      "region_offset": 316894,
+      "staged_value": 841182,
+      "target_section_index": 0,
+      "target_offset": 316894,
+      "encoded_pointer_address_domain": "runtime_only"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 312744,
+      "width": 4,
+      "encoding": "absolute_long_data",
+      "address_domain": "mapped_source",
+      "region_offset": 316894,
+      "staged_value": 841182,
+      "target_section_index": 0,
+      "target_offset": 316894,
+      "encoded_pointer_address_domain": "runtime_only"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 313370,
+      "width": 4,
+      "encoding": "absolute_long_data",
+      "address_domain": "mapped_source",
+      "region_offset": 285840,
+      "staged_value": 810128,
+      "target_section_index": 0,
+      "target_offset": 285840,
+      "encoded_pointer_address_domain": "runtime_only"
+    }
+  ],
+  "host_import_excluded": {
+    "source_offset": 1240,
+    "role": "host_mission_restart_dispatch"
+  },
+  "tests": {
+    "command": "pytest -q tests/test_source_image_allocation.py tests/test_operand_extension_span.py tests/test_source_reference_inventory.py tests/test_runtime_allocation_plan.py tests/test_runtime_allocation_batch.py tests/test_bootstrap_layouts.py",
+    "passed": 74,
+    "skipped": 0
+  },
+  "limits": [
+    "Template bindings are existing staging bases, not actual allocator returns. No live game was run for this admission.",
+    "Original/fixed export and existing runtime-owner limits remain supported; the image capacity is derived from canonical reference counts.",
+    "The retained input, display and high-mask owners remain fixed. Duplication and retained bytes have not been reduced.",
+    "PC-relative entries preserve same-owner endpoints; numeric constants and unknown or synthesized aliases are not certified.",
+    "The explicit interpreted pointer source 4C81A is admitted from its canonical per-element source/runtime identity, not guessed numeric containment.",
+    "Live allocation, bootstrap/import binding, full staged-byte verification, route/output and cleanup qualification remain pending."
+  ]
+}

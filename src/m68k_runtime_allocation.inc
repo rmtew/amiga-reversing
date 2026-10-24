@@ -1,10 +1,22 @@
-#define MR_ALLOCATION_FIXUP_LIMIT 128U
+/* One field per typed expression, instruction operand or explicit interpreted
+ * reference is an upper bound, not an arbitrary target-specific truncation. */
 typedef struct MRAllocationFixup {
   uint32_t source_offset,region_offset,staged_value,instruction_offset;
   uint16_t opcode;
-  uint8_t width,operand_index,instruction_field;
+  uint8_t width,operand_index,instruction_field,has_source_target,pointer_domain_plus_one;
+  uint32_t target_offset;
   const char *symbol;
 } MRAllocationFixup;
+static size_t mr_allocation_site_capacity(const PlatformFileListingArtifact *a) {
+  if(!a) return 0;
+  size_t n=a->source_plan.expression_count;
+  if(a->source_plan.instruction_count>(SIZE_MAX-n-1)/M68K_INSTRUCTION_SPEC_MAX_OPERANDS) return 0;
+  n+=a->source_plan.instruction_count*M68K_INSTRUCTION_SPEC_MAX_OPERANDS+1;
+  if(a->policy.manual_runtime_address_ref_count>SIZE_MAX-n) return 0;
+  n+=a->policy.manual_runtime_address_ref_count;
+  return n<=SIZE_MAX/sizeof(MRAllocationFixup) ? n : 0;
+}
+
 static int mr_allocation_fixup_order(const void *aa,const void *bb) {
   const MRAllocationFixup *a=aa,*b=bb;
   return a->source_offset<b->source_offset ? -1 : a->source_offset>b->source_offset ? 1 : 0;
@@ -80,6 +92,8 @@ static const char *mr_allocation_absolute_fixup(const PlatformFileListingArtifac
   return NULL;
 }
 
+#include "m68k_source_image_allocation.inc"
+
 typedef struct MRAllocationRange {uint32_t start,size;} MRAllocationRange;
 static int mr_allocation_range_order(const void *aa,const void *bb) {
   const MRAllocationRange *a=aa,*b=bb;
@@ -93,43 +107,66 @@ static int mr_allocation_range_order(const void *aa,const void *bb) {
 static int mr_runtime_allocation_context_json_alloc(
     PlatformFileListingArtifact *a,const char *region_id,const char *layout_id,
     int has_actual,uint32_t actual,const M68kResolvedMemoryLayout *actual_context,
-    const M68kMemoryLayoutIR *actual_layout,MRAllocationFixup *admitted_sites,
+    const M68kMemoryLayoutIR *actual_layout,MRAllocationFixup *admitted_sites,size_t admitted_capacity,
     size_t *admitted_count,char **out_text) {
   JsonBuilder b={0};PlatformFileListingArtifact *view=NULL;char *layouts=NULL;
   const char *reason=NULL;int ri=-1;size_t li=0,fixups=0,numeric=0;
   MRAllocationRange *ranges=NULL;size_t range_count=0,range_capacity=0;
   M68kResolvedMemoryLayout initial,resolved;
-  MRAllocationFixup sites[MR_ALLOCATION_FIXUP_LIMIT];int cpu_scope=0,dma_address_fixups=0;uint32_t maximum_base=0xffffffU;
+  size_t site_capacity=mr_allocation_site_capacity(a);
+  MRAllocationFixup *sites=NULL;int cpu_scope=0,image_scope=0,dma_address_fixups=0;uint32_t maximum_base=0xffffffU;
   const M68kRenderPlannedInstruction *frame_guards[M68K_ADDRESS_FRAME_SITE_LIMIT];size_t frame_guard_count=0;
   const M68kRenderPlannedInstruction *refusal_instruction=NULL;size_t refusal_operand=0;
+  const M68kRenderPlannedExpression *refusal_expression=NULL;
   const M68kMemoryRegionIR *r=NULL;const M68kBootstrapContractIR *boot=NULL;
   if(!a || !region_id || !layout_id || !out_text) return -1;
   *out_text=NULL;if(admitted_count) *admitted_count=0;
+  if(!site_capacity) goto failed;
+  sites=calloc(site_capacity,sizeof(*sites));if(!sites) goto failed;
   for(size_t i=0;i<a->policy.memory_region_count;i++)
     if(!strcmp(region_id,a->policy.memory_regions[i].region_id)) ri=(int)i;
   for(;li<a->policy.memory_layout_count;li++)
     if(!strcmp(layout_id,a->policy.memory_layouts[li].layout_id)) break;
   if(ri<0 || li==a->policy.memory_layout_count) {reason="unknown_region_or_layout";goto result;}
   r=&a->policy.memory_regions[ri];cpu_scope=!r->dma_access;
-  if(r->source_mapped || r->parent_region_id[0] || r->has_loader_seed ||
-      r->region_kind>2 || r->alignment>8 || r->size>0x10000) {
+  for(size_t i=0;i<a->policy.bootstrap_contract_count;i++)
+    if(!strcmp(a->policy.bootstrap_contracts[i].contract_id,a->policy.memory_layouts[li].bootstrap_contract_id))
+      boot=&a->policy.bootstrap_contracts[i];
+  if(!boot) {reason="retained_input_contract_required";goto result;}
+  image_scope=mr_allocation_source_image(a,r,boot);
+  /* Preserve the existing bounded runtime-owner adapter contract. Source
+   * images use the measured frozen-reference bound instead. */
+  if(!image_scope && site_capacity>128U) site_capacity=128U;
+  if(!image_scope && (r->source_mapped || r->parent_region_id[0] || r->has_loader_seed ||
+      r->region_kind>2 || r->alignment>8 || r->size>0x10000)) {
     reason="unsupported_runtime_allocation_owner";goto result;
   }
   for(size_t i=0;i<a->policy.memory_region_count;i++) {
     if(i==(size_t)ri || !mr_allocation_descends_from(&a->policy,i,(size_t)ri)) continue;
     const M68kMemoryRegionIR *child=&a->policy.memory_regions[i];
+    if(image_scope) {
+      uint32_t section=0,offset=0;
+      if(!child->source_mapped || child->has_loader_seed || child->address_frame_site_count ||
+          child->runtime_address<r->runtime_address || child->size>r->size ||
+          child->runtime_address-r->runtime_address>r->size-child->size ||
+          mr_mapped_span(a,child,&section,&offset)!=1 || section ||
+          offset!=child->runtime_address-r->runtime_address) {
+        reason="image_child_source_mapping_not_inherited";goto result;
+      }
+      continue;
+    }
     if(!cpu_scope) {reason="allocation_subregions_unsupported";goto result;}
     if(child->source_mapped || child->has_loader_seed || child->dma_access) {
       reason="allocation_subregion_materialization_unsupported";goto result;
     }
   }
-  for(size_t i=0;i<a->policy.bootstrap_contract_count;i++)
-    if(!strcmp(a->policy.bootstrap_contracts[i].contract_id,a->policy.memory_layouts[li].bootstrap_contract_id))
-      boot=&a->policy.bootstrap_contracts[i];
-  if(!boot) {reason="retained_input_contract_required";goto result;}
   if(m68k_memory_layout_resolve(&a->policy,&a->policy.memory_layouts[li],&initial)) {
     reason=initial.reason;goto result;
   }
+  if(image_scope) {
+    reason=mr_allocation_image_fixups(a,r,boot,initial.addresses[ri],sites,site_capacity,&fixups,&refusal_expression);
+    if(reason) goto result;
+  } else {
   for(size_t i=0;i<a->source_plan.instruction_count;i++) {
     const M68kRenderPlannedInstruction *ins=&a->source_plan.instructions[i];
     const M68kSimFormMetadata *m=m68k_sim_metadata_for_instruction(&ins->instruction);
@@ -143,7 +180,7 @@ static int mr_runtime_allocation_context_json_alloc(
                  ins->instruction.mnemonic_id!=M68K_ASM_MNEMONIC_MOVEA)) {
               reason="immediate_pointer_reference_unsupported";refusal_instruction=ins;refusal_operand=j;goto result;
             }
-            if(fixups>=MR_ALLOCATION_FIXUP_LIMIT) {reason="fixup_capacity_exceeded";goto result;}
+            if(fixups>=site_capacity) {reason="fixup_capacity_exceeded";goto result;}
             reason=mr_allocation_absolute_fixup(a,r,boot,ins,j,address,
                 initial.addresses[ri]+address-r->runtime_address,&sites[fixups]);
             if(reason || sites[fixups].width!=4) {
@@ -188,7 +225,7 @@ static int mr_runtime_allocation_context_json_alloc(
       if(address<r->runtime_address || !width || width>r->size-(address-r->runtime_address)) {
         reason="partial_absolute_operand_access";refusal_instruction=ins;refusal_operand=j;goto result;
       }
-      if(fixups>=MR_ALLOCATION_FIXUP_LIMIT) {reason="fixup_capacity_exceeded";goto result;}
+      if(fixups>=site_capacity) {reason="fixup_capacity_exceeded";goto result;}
       reason=mr_allocation_absolute_fixup(a,r,boot,ins,j,address,
           initial.addresses[ri]+address-r->runtime_address,&sites[fixups]);
       if(reason) {refusal_instruction=ins;refusal_operand=j;goto result;}
@@ -221,11 +258,12 @@ static int mr_runtime_allocation_context_json_alloc(
         m68k_read_u32be(a->object.sections[0].data+e->source_offset)!=e->logical_address) {
       reason="unsupported_or_stale_typed_pointer_encoding";goto result;
     }
-    if(fixups>=MR_ALLOCATION_FIXUP_LIMIT) {reason="fixup_capacity_exceeded";goto result;}
+    if(fixups>=site_capacity) {reason="fixup_capacity_exceeded";goto result;}
     sites[fixups++]=(MRAllocationFixup){.source_offset=e->source_offset,
       .region_offset=address-r->runtime_address,.staged_value=initial.addresses[ri]+address-r->runtime_address,
       .width=4,.symbol=e->target_symbol};
   }
+  } /* runtime-only owner projection */
   if(!fixups) {reason=cpu_scope ? "no_admitted_CPU_fixups" : "no_explicit_runtime_LONG_data_fixups";goto result;}
   qsort(sites,fixups,sizeof(*sites),mr_allocation_fixup_order);
   for(size_t i=1;i<fixups;i++) if(sites[i].source_offset<sites[i-1].source_offset+sites[i-1].width) {
@@ -245,7 +283,7 @@ static int mr_runtime_allocation_context_json_alloc(
     const M68kAnalysisTargetEquate *q=&a->policy.target_equates[qi];
     uint32_t address=(uint32_t)q->value;char expression[128];int owned=0;
     if(!q->address_domain || !q->extent_bytes) continue;
-    if(cpu_scope && address>=r->runtime_address &&
+    if((cpu_scope || image_scope) && address>=r->runtime_address &&
         address-r->runtime_address<r->size && q->extent_bytes<=r->size-(address-r->runtime_address)) owned=1;
     if(address==r->runtime_address && q->extent_bytes==r->size)
       for(size_t fi=0;fi<fixups;fi++) if(sites[fi].symbol && !strcmp(sites[fi].symbol,q->name)) {owned=1;break;}
@@ -308,8 +346,14 @@ result:
   if(refusal_instruction && json_builder_appendf(&b,
       ",\"refusal_site\":{\"source_section_index\":%u,\"source_offset\":%u,\"operand_index\":%zu}",
       refusal_instruction->source_section_index,refusal_instruction->source_offset,refusal_operand)) goto failed;
+  if(refusal_expression && json_builder_appendf(&b,
+      ",\"refusal_reference\":{\"source_section_index\":%u,\"source_offset\":%u,\"kind\":%u,\"operand_index\":%u}",
+      refusal_expression->source_section_index,refusal_expression->source_offset,refusal_expression->kind,
+      refusal_expression->operand_index)) goto failed;
   if(!reason) {
-    if(admitted_sites && admitted_count) {memcpy(admitted_sites,sites,fixups*sizeof(*sites));*admitted_count=fixups;}
+    if(admitted_sites && admitted_count) {
+      if(fixups>admitted_capacity) goto failed;
+      memcpy(admitted_sites,sites,fixups*sizeof(*sites));*admitted_count=fixups;}
     if(json_builder_append(&b,",\"region_id\":") || json_builder_append_json_string(&b,region_id) ||
         json_builder_appendf(&b,",\"size\":%u,\"alignment\":%u,\"memory_requirement\":\"chip\","
           "\"original_address\":%u,\"staged_address\":%u,\"numeric_immediate_candidates_not_fixups\":%zu,\"fixups\":[",
@@ -321,8 +365,15 @@ result:
       if((fi && json_builder_append(&b,",")) || json_builder_appendf(&b,
           "{\"source_section_index\":0,\"source_offset\":%u,\"width\":%u,\"encoding\":",
           f->source_offset,f->width) || json_builder_append_json_string(&b,encoding) ||
-          json_builder_appendf(&b,",\"address_domain\":\"runtime_only\",\"region_offset\":%u,\"staged_value\":%u",
-          f->region_offset,f->staged_value)) goto failed;
+          json_builder_appendf(&b,",\"address_domain\":\"%s\",\"region_offset\":%u,\"staged_value\":%u",
+          f->has_source_target ? "mapped_source":"runtime_only",f->region_offset,f->staged_value)) goto failed;
+      if(f->has_source_target && json_builder_appendf(&b,
+          ",\"target_section_index\":0,\"target_offset\":%u",f->target_offset)) goto failed;
+      if(f->pointer_domain_plus_one) {
+        static const char *domains[]={"legacy","mapped_source","runtime_only"};
+        if(f->pointer_domain_plus_one>3 || json_builder_append(&b,",\"encoded_pointer_address_domain\":") ||
+            json_builder_append_json_string(&b,domains[f->pointer_domain_plus_one-1])) goto failed;
+      }
       if(f->instruction_field && (json_builder_appendf(&b,
           ",\"instruction_source_offset\":%u,\"operand_index\":%u,\"opcode\":%u,\"symbol\":",
           f->instruction_offset,f->operand_index,f->opcode) || json_builder_append_json_string(&b,f->symbol))) goto failed;
@@ -372,6 +423,7 @@ result:
     if(json_builder_append(&b,"],\"layout\":") || json_builder_append(&b,layouts) ||
         (cpu_scope && json_builder_appendf(&b,",\"maximum_actual_base\":%u",maximum_base)) ||
         json_builder_append(&b,",\"scope\":") || json_builder_append_json_string(&b,
+          image_scope ? "typed_source_backed_image_fields_not_all_path_semantic_proof" :
           cpu_scope ? "reviewed_symbolic_absolute_operands_and_LONG_data_not_all_path_alias_proof" :
           dma_address_fixups ? "reviewed_symbolic_LONG_LEA_and_data_Chip_only_not_all_path_alias_proof" :
           "reviewed_typed_LONG_data_only_not_all_path_alias_proof") ||
@@ -381,16 +433,16 @@ result:
           "\"Fixed game RAM outside explicit leases is not certified as OS-owned.\"]")) goto failed;
   }
   if(json_builder_append(&b,"}")) goto failed;
-  *out_text=json_builder_build(&b);json_builder_destroy(&b);free(view);free(ranges);platform_file_free_text(layouts);
+  *out_text=json_builder_build(&b);json_builder_destroy(&b);free(view);free(ranges);free(sites);platform_file_free_text(layouts);
   return *out_text ? 0 : -1;
 failed:
-  json_builder_destroy(&b);free(view);free(ranges);platform_file_free_text(layouts);return -1;
+  json_builder_destroy(&b);free(view);free(ranges);free(sites);platform_file_free_text(layouts);return -1;
 }
 
 int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
     PlatformFileListingArtifact *a,const char *region_id,const char *layout_id,
     int has_actual,uint32_t actual,char **out_text) {
   return mr_runtime_allocation_context_json_alloc(a,region_id,layout_id,has_actual,actual,
-      NULL,NULL,NULL,NULL,out_text);
+      NULL,NULL,NULL,0,NULL,out_text);
 }
 #include "m68k_runtime_allocation_batch.inc"

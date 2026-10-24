@@ -22,18 +22,18 @@ static int append_source_reference_expression(JsonBuilder *b,const PlatformFileL
         M68kOperandIR normalized=*o;
         m68k_instruction_operand_to_asm_value(o,&normalized.value);normalized.kind=normalized.value.kind;
         m68k_instruction_ir_to_spec(&ins->instruction,&spec);
-        size_t width=2*m68k_asm_operand_extension_word_count(spec.asm_form_index,&spec.operands[e->operand_index],spec.size_suffix);
-        size_t offset=m68k_asm_operand_relative_base_offset(spec.asm_form_index,spec.operands,
-            spec.operand_count,spec.size_suffix,e->operand_index,0);
+        size_t width=0,offset=0;
+        int span_valid=!m68k_asm_operand_extension_span(spec.asm_form_index,spec.operands,
+            spec.operand_count,spec.size_suffix,e->operand_index,&offset,&width);
         size_t n=m68k_instruction_spec_assemble_bytes(&spec,encoded,sizeof(encoded));
         int matches=n && n==ins->instruction.byte_count && e->source_section_index<a->object.section_count &&
             e->source_offset<=a->object.sections[e->source_section_index].data_size &&
             n<=a->object.sections[e->source_section_index].data_size-e->source_offset &&
             !memcmp(encoded,a->object.sections[e->source_section_index].data+e->source_offset,n);
         if(json_builder_appendf(b,",\"instruction_field\":{\"instruction_bytes\":%u,\"extension_offset\":%zu,"
-            "\"extension_bytes\":%zu,\"ea_shape\":%u,\"absolute\":%s,\"immediate\":%s,"
+            "\"extension_bytes\":%zu,\"extension_span_valid\":%s,\"ea_shape\":%u,\"absolute\":%s,\"immediate\":%s,"
             "\"original_encoder_matches\":%s}",ins->instruction.byte_count,offset,width,
-            m68k_instruction_operand_decoded_ea_shape(&normalized),
+            span_valid ? "true":"false",m68k_instruction_operand_decoded_ea_shape(&normalized),
             m68k_asm_operand_absolute_value(o->kind,&o->value,&absolute) ? "true":"false",
             m68k_ir_operand_immediate_value(o,&immediate) ? "true":"false",matches ? "true":"false")) return -1;
       }

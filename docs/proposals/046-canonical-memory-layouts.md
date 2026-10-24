@@ -1208,9 +1208,8 @@ sequence. Preserve original exact and existing fixed modes throughout.
 
 The immediate architectural gap is finite source-backed image fixup/bootstrap
 projection and seeded-child/carrier ownership, not a demonstrated need to rewrite
-the emulator or invent a general linker. The number and supported encoding mix
-of image runtime fixups are **not yet measured**; A1 begins with that bounded
-projection/refusal inventory. Original-layout unknowns, generic B07 work and
+the emulator or invent a general linker. The finite image reference inventory and native admission are now measured
+below; actual allocator-selected image execution remains the next acceptance gate. Original-layout unknowns, generic B07 work and
 native-C conversion remain outside this continuation.
 
 #### A1 finite reference inventory
@@ -1238,3 +1237,33 @@ stdio cases are skipped because its SDK is absent, so transport parity for the
 new query is not claimed from those skips. Native/service/CLI paths and UI syntax
 are checked. Next is supported descriptor admission and actual image placement;
 791,080 fixed-address bytes and 852,616 owned game-lease bytes remain unchanged.
+
+
+#### A1 native image admission (live allocation pending)
+
+[Native admission evidence](../../runtime/observations/pandora-native-image-allocation-admission.json)
+now records exactly 2,573 image fields: 348 absolute LONG operands, 30 LONG
+immediates and 2,195 typed LONG data fields. The data fields retain their encoded
+pointer domains (1,291 legacy, 901 mapped source and three explicit runtime
+aliases) alongside resolved source coordinates. Generated extension emission
+provides field spans, including the two standalone immediate prefixes; independent
+vasm fixtures check full encodings and destination coordinates. The existing
+host import at source `$4D8` remains separate.
+
+The image's mapped `audio_master_volume` child retains its exact inherited source
+offset. Non-mapped or inconsistent children refuse. The image uses a capacity
+bound derived from frozen references/operands/accepted interpreted references;
+the existing runtime-owner adapter keeps its 128-field contract. Typed field,
+encoding, bounds, relative-endpoint, overlap and actual-layout checks share the
+existing native planner. The atomic seven-owner **template** admits 2,684 fields
+and three fixed lease intents totalling 442,040 bytes. These bindings use staging
+addresses, not measured Exec returns: the qualified live configuration still
+requires 791,080 fixed bytes and 852,616 game-lease bytes. No peak or retained
+memory reduction is claimed.
+
+74 focused native/encoder/bootstrap checks pass, without skips. The full native
+context took 152.21 seconds. No target facts, original binary or generated game
+source changed. Next: bind the DOS loader's image request, bootstrap references
+and first-init import to a genuine returned base, retain the carrier, then check
+staged bytes, real execution, route/output and cleanup. This admission alone does
+not complete A1 or A2.
