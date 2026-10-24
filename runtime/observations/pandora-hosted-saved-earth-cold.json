@@ -1,0 +1,350 @@
+{
+  "schema": "pandora-hosted-saved-earth-cold/v1",
+  "status": "hosted_full_ending_and_natural_OS_return_qualified_output_comparison_pending",
+  "implementation_commit": "5f568c5f4979282a3dc5637b9d035649b19a10cf",
+  "HUNK_sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c",
+  "ADF_private_sha256": "6da5800f60b3242c0da813940c1017bd218c87644ebfb5e5112a968db3c0f1da",
+  "input_template_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+  "route_source": "amiga_reversing.tools.pandora_finale.complete(cold=True), compiled through copperline_session",
+  "compiled_route_sha256": "cabf4d9049afd7f24ff2aed53f42a3253ebb53c6b13f223dea49f3aaf633f0f7",
+  "mapped_route_sha256": "978e83733471a3f09174f7ebeef46c6ae5b0019cb7b40f4fd52700ef9d8fc510",
+  "phases": 576,
+  "all_phase_outcomes": "hit",
+  "controller_call_count": 509,
+  "all_controller_calls_acknowledged": true,
+  "ending": {
+    "saved_earth": true,
+    "escaped": true,
+    "health": 49,
+    "message_pointer": 838373,
+    "selection_pc": 838108,
+    "final_frame": 15132
+  },
+  "natural_exit": {
+    "quiescent_frame": 16062,
+    "DMACONR_via_custom_read": 8192,
+    "all_ten_leases_still_owned_at_quiescence": true,
+    "host_user_return_frame": 16062,
+    "post_ending_F7_supplied": false
+  },
+  "exact_observed_FreeMem_calls": [
+    {
+      "address": 117392,
+      "size": 10040
+    },
+    {
+      "address": 69336,
+      "size": 48056
+    },
+    {
+      "address": 68336,
+      "size": 1000
+    },
+    {
+      "address": 66032,
+      "size": 2304
+    },
+    {
+      "address": 65904,
+      "size": 128
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    },
+    {
+      "address": 524288,
+      "size": 349040
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 6552,
+      "size": 8
+    }
+  ],
+  "ownership_after_exit": {
+    "state_count": 0,
+    "state_exit_result": 0,
+    "state_audio_open": 0,
+    "state_audio_lock": 0,
+    "state_signal": 4294967295
+  },
+  "loss": {
+    "events": 262,
+    "dropped_notifications": 0,
+    "dropped_events": 0
+  },
+  "CPU_guards": {
+    "ranges": [
+      [
+        768,
+        810
+      ],
+      [
+        1024,
+        6552
+      ],
+      [
+        6560,
+        14370
+      ],
+      [
+        14716,
+        62895
+      ],
+      [
+        65536,
+        65904
+      ],
+      [
+        127432,
+        131072
+      ],
+      [
+        507904,
+        512000
+      ]
+    ],
+    "breaks": {
+      "breaks": [
+        {
+          "addr": 65536,
+          "hits": 0,
+          "id": 14,
+          "ignore": 0,
+          "kind": "pc"
+        },
+        {
+          "addr": 66666,
+          "hits": 0,
+          "id": 15,
+          "ignore": 0,
+          "kind": "pc"
+        },
+        {
+          "addr": 768,
+          "hits": 0,
+          "id": 16,
+          "ignore": 0,
+          "kind": "pc"
+        },
+        {
+          "access": "access",
+          "addr": 768,
+          "id": 7,
+          "kind": "mmio",
+          "len": 42
+        },
+        {
+          "access": "access",
+          "addr": 1024,
+          "id": 8,
+          "kind": "mmio",
+          "len": 5528
+        },
+        {
+          "access": "access",
+          "addr": 6560,
+          "id": 9,
+          "kind": "mmio",
+          "len": 7810
+        },
+        {
+          "access": "access",
+          "addr": 14716,
+          "id": 10,
+          "kind": "mmio",
+          "len": 48179
+        },
+        {
+          "access": "access",
+          "addr": 65536,
+          "id": 11,
+          "kind": "mmio",
+          "len": 368
+        },
+        {
+          "access": "access",
+          "addr": 127432,
+          "id": 12,
+          "kind": "mmio",
+          "len": 3640
+        },
+        {
+          "access": "access",
+          "addr": 507904,
+          "id": 13,
+          "kind": "mmio",
+          "len": 4096
+        }
+      ]
+    },
+    "excluded_live_leases": [
+      {
+        "region_id": "keyboard_state",
+        "address": 65904,
+        "size": 128,
+        "semantic_size": 128,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_ui_snapshot_body",
+        "address": 66032,
+        "size": 2304,
+        "semantic_size": 2304,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_cpu_workspace",
+        "address": 69336,
+        "size": 48056,
+        "semantic_size": 48051,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_prng_state",
+        "address": 6552,
+        "size": 8,
+        "semantic_size": 8,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_title_stars",
+        "address": 68336,
+        "size": 1000,
+        "semantic_size": 1000,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_low_generated_masks",
+        "address": 117392,
+        "size": 10040,
+        "semantic_size": 10034,
+        "alignment": 8
+      },
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 524288,
+        "size": 349040
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "CPU_only": true,
+    "all_fetches": false
+  },
+  "PCM_capture": {
+    "format": "IEEE float32 stereo 44100Hz",
+    "sources": [
+      "master",
+      "paula",
+      "drivesounds"
+    ],
+    "files_private_sha256": {
+      "drivesounds.wav": "7d7cb95910deb861d060606bbff28e246decac099b53356b6ff52023560f48e9",
+      "paula.wav": "043f7562fdc9990465cffa4bb3a217e2ee1329f055ed5e22602edbbdb09cfa30",
+      "master.wav": "bda6368f68ae43fd6c11ef629629a206be606a31d7fcf9af7d671aebaf335818"
+    },
+    "comparison_status": "not_yet_qualified"
+  },
+  "first_graphics_cross_check": [
+    {
+      "phase": "title_menu_loop",
+      "old_size": [
+        358,
+        285
+      ],
+      "hosted_size": [
+        320,
+        65
+      ],
+      "differing_pixels": null
+    },
+    {
+      "phase": "ui_overlay_initialization",
+      "old_size": [
+        320,
+        52
+      ],
+      "hosted_size": [
+        358,
+        285
+      ],
+      "differing_pixels": null
+    },
+    {
+      "phase": "initial_proximity_context",
+      "old_size": [
+        358,
+        285
+      ],
+      "hosted_size": [
+        358,
+        285
+      ],
+      "differing_pixels": 0
+    },
+    {
+      "phase": "entry_officer_card_transferred",
+      "old_size": [
+        320,
+        200
+      ],
+      "hosted_size": [
+        320,
+        200
+      ],
+      "differing_pixels": 0
+    },
+    {
+      "phase": "ei_sonicdriver_hit_1",
+      "old_size": [
+        320,
+        200
+      ],
+      "hosted_size": [
+        320,
+        200
+      ],
+      "differing_pixels": 0
+    },
+    {
+      "phase": "ac_console_ready",
+      "old_size": [
+        320,
+        200
+      ],
+      "hosted_size": [
+        320,
+        200
+      ],
+      "differing_pixels": 0
+    }
+  ],
+  "private_report_sha256": "ac9e5dec467e6412d0d03576b4ce3b6fa2f186ece69dd04043b72cdcac7a820d",
+  "private_recipe_driver_sha256": "59910659358ff38bcad876cddec37705421175ed1cd8cab4bcfc63b6edf58b6b",
+  "limits": [
+    "Original byte-exact export remains unchanged; the OS loader is a separate authored native template with native-generated bindings.",
+    "No host memory/register writes or checkpoint restores. Fresh DOS boot and ordinary existing input recipe.",
+    "Synchronous CPU-data guards and selected PC sentinels are not all-fetch or DMA coverage. Live native leases/input backing are explicitly excluded. Guards start before original world initialization, after early workspace/tilemap setup, and end at host DMA-quiescent handoff before legitimate OS memory use resumes.",
+    "Four corresponding proximity/gameplay/combat/console images exactly match the previously qualified canonical source-helper run; first title/UI captures have different native crop extents and are not equality passes. No masking or tolerance applied.",
+    "Whole-frame/audio output qualification, complete source-package integration and four fixed input/image/high-mask/display constraints remain open.",
+    "Strict original eight-CCK startup identity and unobserved paths remain unfulfilled."
+  ]
+}

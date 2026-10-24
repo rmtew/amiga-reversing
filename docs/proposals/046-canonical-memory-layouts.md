@@ -1115,3 +1115,24 @@ explicit placement/fixup gate, not implied by six movable workspaces. No
 universal OS/RTG support, exact CIA timer phase, active CPU-fault recovery or
 original pre-entry clock identity is claimed. Retained failed observations and
 all raw media/captures remain private and non-passing.
+
+### M6 hosted saved-Earth and natural return (2026-10-24 UTC)
+
+[Cold completion receipt](../../runtime/observations/pandora-hosted-saved-earth-cold.json):
+all576 existing phases and509 controller calls passed unchanged; Earth saved and
+escaped with HP49 at frame15132. The original post-ending countdown reached the
+host hook naturally at frame16062, without F7. DMA was disabled while all ten
+leases remained owned, then exact reverse frees, audio/signal cleanup, second
+normal HUNK and CLI keyboard recovery completed. Both notification/event-loss
+counters were zero. Synchronous old-address CPU guards have explicit startup,
+DMA and live-lease exclusions; they do not prove unused storage or all paths.
+
+Four corresponding gameplay/proximity/combat/console images exactly match the
+previous qualified source-helper run. Early title/UI captures have different
+native crop extents and do not pass pixel equality. Complete stereo float32
+44100Hz Paula/master/drive captures exist privately; their output comparison is
+pending. The complete source-package export must include canonical game source,
+authored OS templates, native-generated bindings and standalone executable build.
+This package integration and output qualification are the immediate next gates;
+fixed image/input/display/high-mask placement and the eight-CCK limitation remain
+explicit. No claim of fully allocation-selected loading or universal OS support.
