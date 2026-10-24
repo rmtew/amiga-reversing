@@ -59,9 +59,12 @@
     },
     {
       "id": "M5-M6",
-      "status": "not_implemented_not_authorized_in_this_delivery",
+      "status": "authorized_continuation_M5_preparation_only_lifecycle_not_implemented",
       "delivered": null,
-      "limits": "Runtime allocation and OS-hosted hardware lifecycle are separate decisions."
+      "limits": "Typed pointer discovery and guest allocation/free probes are not admitted runtime fixups, legal game placements, normal-input allocated completion or OS cleanup. Measured returns overlap the fixed world grid.",
+      "evidence": [
+        "pandora-allocation-preparation.json"
+      ]
     }
   ],
   "shared_geometry": {
@@ -115,7 +118,7 @@
     "wall_seconds": 201.8518994320002,
     "meaning": "Fresh final-source export and current C assembly equal retained original package and its independent vasm output; no redundant vasm invocation or gameplay rerun."
   },
-  "next_implementation_candidate": "M5 bounded body-background allocation candidate: inspect canonical typed pointer, initialization and blitter lifetime before implementing actual allocator-selected bases and unwind. M6 cleanup remains a separate contract.",
+  "next_implementation_candidate": "M5 explicit lease/actual-base fixup contract for body-background owner: avoid or acquire live fixed ranges, native placement admission, source-coordinate binding, initialized materialization and DMA-safe failure/unwind. Native typed LONG at source3402 is now exposed; the plain allocator returns59E8/5A28 are refused for gameplay because they overlap world grid4000..F568. M6 remains separate.",
   "independent_display": {
     "evidence": "pandora-canonical-display-qualification.json",
     "profile": "pandora_display_e0000_ecs1m",
