@@ -130,3 +130,20 @@ def test_moved_cpu_backing_is_owned_without_inventing_seed_bytes():
     assert selected==program==()
     assert reservations==((0x6000,0xbbf0),)
     assert loader_family_context(original,data,data,[moved])[2]==reservations
+
+
+def test_independently_moved_keyboard_storage_gets_backing_too():
+    original,data=fixture()
+    original['layout_plan']['regions'].extend([
+        dict(region_id='keyboard',region_kind='storage',original_address=0x397c,runtime_address=0x397c,size=128),
+        dict(region_id='app_grid',region_kind='workspace',original_address=0x39fc,runtime_address=0x39fc,size=0xbbb3)])
+    bind(original)
+    moved=copy.deepcopy(original);moved['layout_id']=moved['layout_plan']['layout_id']='cpu_moved'
+    moved['layout_plan']['regions'][-2]['runtime_address']=0x6000
+    moved['layout_plan']['regions'][-1]['runtime_address']=0x6080;bind(moved)
+    selected,program,reservations,_=loader_family_context(moved,data,data,[original])
+    assert selected==program==()
+    assert reservations==((0x6000,128),(0x6080,0xbbb8))
+    from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract,reservation_plan
+    contract=DirectPayloadContract('fixture','fixture',hashlib.sha256(data).hexdigest(),0x20000,0x20000,{},0x7fff8,0x48414e44,reservations=reservations)
+    assert (0x6000,0xbc38) in reservation_plan(contract,len(data))

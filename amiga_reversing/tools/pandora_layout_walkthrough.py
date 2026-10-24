@@ -87,7 +87,7 @@ def loader_family_context(payload, original, assembled, family):
     # native extents; this does not choose placements or initialize unknown RAM.
     workspace_spans={rounded_reservation_span(r['runtime_address'],r['size'])
         for _,member in plans.values() for r in member['regions']
-        if not r.get('parent_region_id') and r.get('region_kind')=='workspace'
+        if not r.get('parent_region_id') and r.get('region_kind') in ('storage','workspace')
         and r['runtime_address']!=r['original_address']}
     reservations=tuple(sorted(set(seed_reservation_spans(program))|workspace_spans))
     identities=[dict(layout_id=k,layout_plan_sha256=v[0]) for k,v in sorted(plans.items())]

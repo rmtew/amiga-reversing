@@ -7,6 +7,12 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ### CPU workspace plus display: qualified fixed placement
 
+**Keyboard lease correction:** the first captures below acquired app/grid
+backing but omitted the independently moved keyboard storage root. The adapter
+now requests both; 121 tests and unchanged C/vasm game binaries pass. Fresh
+changed-boot route/output qualification is in progress. Earlier functional/output
+observations remain valid, but are not evidence of the previously absent lease.
+
 [Current qualification](../../runtime/observations/pandora-canonical-cpu-workspace-qualification.json)
 combines image `$80000`, display `$E0000..$ED000`, independent keyboard `$6000`
 and app/raster base `$6080` with grid `$6684`. The app/grid parent preserves the

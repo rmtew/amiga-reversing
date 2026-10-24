@@ -2185,5 +2185,71 @@
     "No original-file unknown bytes are newly classified. Parent gaps and the conditional probe remain semantically qualified.",
     "Eight selected RGBA frames and sampled DMA are not every frame, optional path or all-caller alias/lifetime proof.",
     "Null sprite0/2 findings remain explicit; the original-to-image eight-CCK startup criterion remains unfulfilled."
-  ]
+  ],
+  "keyboard_lease_correction": {
+    "status": "corrected_adapter_tested_full_changed_boot_qualification_in_progress",
+    "prior_omission": "Moved keyboard is a storage root; the prior adapter selected only workspace roots. App/grid was leased, keyboard was not. Prior route/output observations are retained under that narrower ownership scope.",
+    "correction": "Select independently moved storage roots as well as workspace roots; preserve their separate canonical identities and coalesce only Exec backing.",
+    "regression": "test_independently_moved_keyboard_storage_gets_backing_too",
+    "tests": {
+      "passed": 121,
+      "skipped": 0,
+      "log_sha256": "a6582718d965c986a193a53640992f8031ab7dc000ccef9557a94662a496ff53"
+    },
+    "requests": [
+      {
+        "layout_id": "pandora_display_e0000_ecs1m",
+        "status": "C_vasm_equal_same_game_bytes_keyboard_backing_added",
+        "payload_sha256": "28b127d0dba1a18302ac8be0c2b414bb4afc59949fee610c1e70141c6ad3a2d3",
+        "wall_seconds": 3.5245708570000716,
+        "loader_shared_reservations": [
+          [
+            24576,
+            128
+          ],
+          [
+            24704,
+            48056
+          ],
+          [
+            414712,
+            8
+          ],
+          [
+            949504,
+            8
+          ]
+        ]
+      },
+      {
+        "layout_id": "pandora_cpu6000_display_e0000_ecs1m",
+        "status": "C_vasm_equal_same_game_bytes_keyboard_backing_added",
+        "payload_sha256": "8b861edcca8b99fe1f5aee8e596b1ad323b7da9d6f65ab69b89a61c8b03eac68",
+        "wall_seconds": 3.3119338159958716,
+        "loader_shared_reservations": [
+          [
+            24576,
+            128
+          ],
+          [
+            24704,
+            48056
+          ],
+          [
+            414712,
+            8
+          ],
+          [
+            949504,
+            8
+          ]
+        ]
+      }
+    ],
+    "merged_CPU_lease": {
+      "address": 24576,
+      "size": 48184
+    },
+    "game_binary_bytes_changed": 0
+  }
 }
