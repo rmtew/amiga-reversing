@@ -28,6 +28,11 @@ from amiga_reversing.disasm.project_paths import (
     resolve_project_paths,
 )
 from amiga_reversing.disasm.source_rendering import render_source_from_binary_source
+from amiga_reversing.disasm.behaviour_validation import LoadedSource, BehaviourError
+from amiga_reversing.disasm import layout_export_cache
+from amiga_reversing.disasm.target_history import target_lock
+
+LOADED_SOURCE=LoadedSource(__file__)
 
 SOURCE_EXPORT_ASSEMBLER_PROFILES = ("vasm", "devpac")
 
@@ -61,7 +66,9 @@ def source_export_payload(
     layout_id: str | None = None,
 ) -> dict[str, object]:
     try:
-        return render_source_export(
+        if layout_id is not None:
+            layout_export_cache.implementation_identities(LOADED_SOURCE)
+        result = render_source_export(
             target_name,
             assembler_profile=assembler_profile,
             project_root=project_root,
@@ -70,8 +77,15 @@ def source_export_payload(
             structure_macros=structure_macros,
             layout_id=layout_id,
         )
+        if layout_id is not None:
+            layout_export_cache.implementation_identities(LOADED_SOURCE)
+        return result
     except SourceExportRefused as exc:
         return exc.payload
+    except layout_export_cache.LayoutExportRefused as exc:
+        return exc.payload
+    except BehaviourError as exc:
+        return dict(status='refused',reason='stale',message=str(exc),restart_required=True)
 
 
 def render_source_export(
@@ -128,11 +142,22 @@ def _c_backend_binary_source_export(
     structure_macros: bool = False,
     layout_id: str | None = None,
 ) -> dict[str, object]:
+    with target_lock(paths.target_dir):
+        return _native_source_export(target_name,paths,assembler_profile,project_root,
+            minimum_asset_size=minimum_asset_size,structure_macros=structure_macros,layout_id=layout_id)
+
+
+def _native_source_export(target_name,paths,assembler_profile,project_root,*,minimum_asset_size=None,
+                          structure_macros=False,layout_id=None):
     binary_source = paths.binary_source
     with effective_metadata_file(paths.target_dir, **({"layout_id": layout_id} if layout_id is not None else {})) as metadata_path:
-        _, _, artifact = build_listing_artifact_profile_from_binary_source(
-            binary_source, metadata_path=metadata_path, project_root=project_root)
-        with closing(artifact):
+        def build():
+            return build_listing_artifact_profile_from_binary_source(
+                binary_source, metadata_path=metadata_path, project_root=project_root)[2]
+        lease=(layout_export_cache.acquire(paths,project_root,metadata_path,build,LOADED_SOURCE,
+                   minimum_asset_size if minimum_asset_size is not None else 0xFFFFFFFF)
+               if layout_id is not None and metadata_path is not None and not structure_macros else closing(build()))
+        with lease as artifact:
             selected_plan = None
             if layout_id is not None:
                 selected_plan = next((p for p in artifact.memory_layouts_payload()["items"]

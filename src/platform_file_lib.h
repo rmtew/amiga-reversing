@@ -206,6 +206,11 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_regions_jso
     PlatformFileListingArtifact *artifact, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
     PlatformFileListingArtifact *artifact, char **out_text);
+/* Scoped layout-only projection over a frozen plan; JSON contains explicit
+ * ok/rebuild_required/refused status. Overlay admits only layout definitions. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_layout_projection_json_alloc(
+    PlatformFileListingArtifact *artifact,const char *layout_overlay_json,
+    uint32_t minimum_asset_size,char **out_text);
 PLATFORM_FILE_API void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact *artifact);
 PLATFORM_FILE_API PlatformCorpusProjectionReducer *platform_corpus_projection_reducer_create(void);
 PLATFORM_FILE_API void platform_corpus_projection_reducer_destroy(PlatformCorpusProjectionReducer *reducer);

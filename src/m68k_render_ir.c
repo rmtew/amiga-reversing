@@ -486,6 +486,7 @@ static int append_planned_equate(M68kRenderPlan *dest, const M68kRenderPlan *sou
   const M68kRenderPlannedDeclaration *item = &source->declarations[index];
   const char *cursor = item->expression;
   char line[224];
+  M68kRenderPlanRow *emitted_row = NULL;
   int length;
   if (states[index] == 2U) return 1;
   if (states[index] == 1U) return 0;
@@ -517,7 +518,8 @@ static int append_planned_equate(M68kRenderPlan *dest, const M68kRenderPlan *sou
   }
   length = snprintf(line, sizeof(line), "%s\tEQU\t%s\n", item->name, item->expression);
   if (length <= 0 || (size_t)length >= sizeof(line) ||
-      m68k_render_plan_append_text_row(dest, row_kind, 0U, line, NULL) != 0) return 0;
+      m68k_render_plan_append_text_row(dest, row_kind, 0U, line, &emitted_row) != 0) return 0;
+  emitted_row->layout_region_index_plus_one = item->layout_region_index_plus_one;
   states[index] = 2U;
   ++*count;
   return 1;
@@ -925,6 +927,12 @@ static int declare_layout_region(M68kRenderIRPreview *preview,size_t i,uint8_t *
       r->runtime_address-p->memory_regions[parent].runtime_address);
   } else snprintf(expression,sizeof(expression),"$%X",preview->memory_layout.addresses[i]);
   if(!render_asm_declare_symbol_expr_once(preview,r->name,expression)) return 0;
+  for(size_t d=0;d<preview->asm_source_plan.declaration_count;d++) {
+    M68kRenderPlannedDeclaration *decl=&preview->asm_source_plan.declarations[d];
+    if(strcmp(decl->name,r->name)) continue;
+    if(decl->layout_region_index_plus_one && decl->layout_region_index_plus_one!=i+1) return 0;
+    decl->layout_region_index_plus_one=(uint16_t)(i+1);
+  }
   done[i]=1;return 1;
 }
 
@@ -11754,37 +11762,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     if(!layout || m68k_memory_layout_resolve(policy,layout,&out_preview->memory_layout)) return -1;
     out_preview->memory_layout_enabled=1;
     if(prepare_layout_bootstrap(out_preview,decode,source_analysis,layout)) return -1;
-    /* First delivery relocates whole materialized views, not scatter-loaded
-     * pieces. Refuse a split before the row walker can mistake original
-     * adjacency for contiguous placed PCs and omit a required ORG. */
-    if(source_analysis) for(size_t s=0;s<source_analysis->section_count;s++) {
-      const M68kSectionAnalysisIR *section=&source_analysis->sections[s];
-      for(size_t v=0;v<section->runtime_view_count;v++) {
-        const M68kRuntimeViewIR *view=&section->runtime_views[v];
-        if(!view->materialized) continue;
-        for(size_t r=0;r<policy->memory_region_count;r++) {
-          const M68kMemoryRegionIR *region=&policy->memory_regions[r];
-          uint64_t end=(uint64_t)region->runtime_address+region->size;
-          uint64_t view_end=(uint64_t)view->runtime_address+view->size;
-          if(out_preview->memory_layout.parents[r]>=0 ||
-              out_preview->memory_layout.addresses[r]==region->runtime_address) continue;
-          if(region->runtime_address<view_end && end>view->runtime_address &&
-              (region->runtime_address>view->runtime_address || end<view_end)) {
-            out_preview->memory_layout.reason="split_materialized_view_unsupported";
-            return -1;
-          }
-        }
-      }
-    }
-    for(size_t e=0;e<policy->target_equate_count;e++) {
-      const M68kAnalysisTargetEquate *equate=&policy->target_equates[e];
-      char expression[128];
-      if(equate->address_domain && layout_runtime_expression(out_preview,
-          (uint32_t)equate->value,equate->extent_bytes,expression,sizeof(expression),NULL)<0) {
-        out_preview->memory_layout.reason="partial_or_ambiguous_runtime_reference";
-        return -1;
-      }
-    }
+    if(m68k_memory_layout_validate_source(policy,&out_preview->memory_layout,source_analysis)) return -1;
   }
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;

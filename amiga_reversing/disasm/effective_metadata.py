@@ -64,6 +64,10 @@ from amiga_reversing.disasm.target_metadata import (
     validate_base_displacement_reference,
 )
 
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE = LoadedSource(__file__)
+
 
 def effective_target_metadata(
     target_dir: Path, *, include_decision_journal: bool = True,

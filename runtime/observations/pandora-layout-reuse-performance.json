@@ -1,0 +1,184 @@
+{
+  "status": "pass",
+  "rows": [
+    {
+      "name": "cold-image",
+      "layout_id": "pandora_image_80000_ecs1m",
+      "export_wall_seconds": 203.69700091900086,
+      "export_CPU_seconds": 203.66942507000002,
+      "native_analysis_invocations": 1,
+      "max_RSS_KiB": 1101032,
+      "source_sha256": "3f0e64384b8262aa5426b2d32117fa81d0ce710f77b54386e5d6eece8fda6f94",
+      "package_sha256": "141140158f00f2e18a81cd5409deae8fafea961a264e6d12f72bc627d6ef44c0",
+      "layout_plan_sha256": "cde9eb66a25d06d409791fd97f78b21f17996be8387fed2d867be2f62269ee10",
+      "projection": null,
+      "retained_clean_source_and_package_exact": true,
+      "C_equals_vasm": true,
+      "payload_sha256": "5a6f969515baea1806627ddfcae75d2fd35ff002f738ddaae1c2c0b28af4bf62",
+      "bytes": 376832
+    },
+    {
+      "name": "warm-cursor-1",
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "export_wall_seconds": 21.6546153470008,
+      "export_CPU_seconds": 21.649070799000015,
+      "native_analysis_invocations": 0,
+      "max_RSS_KiB": 1101032,
+      "source_sha256": "972e2dfd759d7be6aeebec8009bf5815d287b27f122327c41c453fff14956330",
+      "package_sha256": "e474ec5dbe4291d12079db22a2bb3290ed4895a0d722ebe818855b500a2e29f4",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f",
+      "projection": {
+        "rows_visited": 49650,
+        "declarations_visited": 6425,
+        "rewritten_roots": 1,
+        "owned_bytes": 123331784,
+        "seconds": 9.444789,
+        "semantic_analysis_runs": 0
+      },
+      "retained_clean_source_and_package_exact": true,
+      "C_equals_vasm": true,
+      "payload_sha256": "36c1a03579fcc6a9f9f200313d488fed280e3e8848c8216d66a8ce32448488b0",
+      "bytes": 376832
+    },
+    {
+      "name": "warm-cursor-2",
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "export_wall_seconds": 20.99713182400228,
+      "export_CPU_seconds": 20.99223976099998,
+      "native_analysis_invocations": 0,
+      "max_RSS_KiB": 1101032,
+      "source_sha256": "972e2dfd759d7be6aeebec8009bf5815d287b27f122327c41c453fff14956330",
+      "package_sha256": "e474ec5dbe4291d12079db22a2bb3290ed4895a0d722ebe818855b500a2e29f4",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f",
+      "projection": {
+        "rows_visited": 49650,
+        "declarations_visited": 6425,
+        "rewritten_roots": 1,
+        "owned_bytes": 123331784,
+        "seconds": 8.904971,
+        "semantic_analysis_runs": 0
+      },
+      "retained_clean_source_and_package_exact": true
+    },
+    {
+      "name": "warm-image-return",
+      "layout_id": "pandora_image_80000_ecs1m",
+      "export_wall_seconds": 22.289595168000233,
+      "export_CPU_seconds": 22.28482409199998,
+      "native_analysis_invocations": 0,
+      "max_RSS_KiB": 1101032,
+      "source_sha256": "3f0e64384b8262aa5426b2d32117fa81d0ce710f77b54386e5d6eece8fda6f94",
+      "package_sha256": "141140158f00f2e18a81cd5409deae8fafea961a264e6d12f72bc627d6ef44c0",
+      "layout_plan_sha256": "cde9eb66a25d06d409791fd97f78b21f17996be8387fed2d867be2f62269ee10",
+      "projection": {
+        "rows_visited": 49650,
+        "declarations_visited": 6425,
+        "rewritten_roots": 0,
+        "owned_bytes": 123331784,
+        "seconds": 9.078674,
+        "semantic_analysis_runs": 0
+      },
+      "retained_clean_source_and_package_exact": true
+    },
+    {
+      "name": "clean-cursor",
+      "layout_id": "pandora_cursor_e0000_ecs1m",
+      "export_wall_seconds": 290.25333328600027,
+      "export_CPU_seconds": 289.15293178300004,
+      "native_analysis_invocations": 1,
+      "max_RSS_KiB": 1219200,
+      "source_sha256": "972e2dfd759d7be6aeebec8009bf5815d287b27f122327c41c453fff14956330",
+      "package_sha256": "e474ec5dbe4291d12079db22a2bb3290ed4895a0d722ebe818855b500a2e29f4",
+      "layout_plan_sha256": "6854c5eeaab362dcbf25c7a7b96f5c48c0aeb5755b77f304efd787f490fa211f",
+      "projection": null,
+      "retained_clean_source_and_package_exact": true,
+      "C_equals_vasm": true,
+      "payload_sha256": "36c1a03579fcc6a9f9f200313d488fed280e3e8848c8216d66a8ce32448488b0",
+      "bytes": 376832
+    },
+    {
+      "name": "cold-original",
+      "layout_id": "pandora_original_ecs1m",
+      "export_wall_seconds": 191.8709974830017,
+      "export_CPU_seconds": 191.66538523600002,
+      "native_analysis_invocations": 1,
+      "max_RSS_KiB": 1264384,
+      "source_sha256": "b6634b29edf5ac4fa4ca5be548898de64c85b17bc556005f2cd0a1260ee81643",
+      "package_sha256": "63c97a84eb3eac766dd4e93d0c2c7c67f8126a92e710a078177201a67025ce8b",
+      "layout_plan_sha256": "89e0a1245009cc432ea39cc6a2ee5f0a8a7020afd71b878b8e33299e4080dd40",
+      "projection": null,
+      "retained_clean_source_and_package_exact": true,
+      "C_equals_vasm": true,
+      "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "bytes": 376832
+    }
+  ],
+  "script_sha256": "9fb75a3804c9388027eea32432eeb8698e08e37a635af7de3cee147a59845438",
+  "native_analysis_invocations": 3,
+  "normal_profiles": 3,
+  "existing_capture_payloads_unchanged": true,
+  "limits": [
+    "Sequential same-process cold/warm cases, not a universal speedup claim.",
+    "CPU timings cover the calling process; vasm verification time is outside export timing.",
+    "max_RSS is cumulative high-water; projection owned_bytes excludes package/JSON buffers and baseline ownership.",
+    "Code/bootstrap or source-mapped placement changes conservatively rebuild. Structure-macro exports retain the clean path.",
+    "Existing controller/pixel/PCM captures are reused only because executable bytes, native plans and machine/input identities are unchanged."
+  ],
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "scope": "Native fixed-layout frozen-plan reuse; no target facts or executable bytes changed.",
+  "parent_commit": "17bbd36a",
+  "reproduction": "PYTHONPATH=. python -m amiga_reversing.tools.pandora_layout_reuse_benchmark",
+  "prerequisites": [
+    "Current canonical Pandora target and private original binary",
+    "Local clean export responses at .runtime-state/layout-m0/seeded-exports/<layout_id>/export.json",
+    "Fresh .runtime-state/layout-m0/reuse-benchmark output directory",
+    "Built native backend and tools/vasmm68k_mot.exe"
+  ],
+  "tests": {
+    "passed": 280,
+    "deselected": 240,
+    "log_scope": "Layout index/projection/cache, memory layouts/regions, bootstrap, derived artifact, source export/package and native ABI/backend tests."
+  },
+  "index": {
+    "region_counts": [
+      4,
+      8,
+      16
+    ],
+    "point_lookup_steps": [
+      4,
+      5,
+      6
+    ],
+    "large_span_lookup_steps": [
+      7,
+      9,
+      11
+    ],
+    "algorithm": "Sorted 2R interval endpoints with containment and ancestor bitmaps plus prefix maximum moved end; build O(R log R), lookup O(log R + K), storage O(R).",
+    "limits": "Current native region limit is 16; these are deterministic operation counts, not an unbounded placement solver or deletion of legacy instruction proof scans."
+  },
+  "host": {
+    "machine": "x86_64",
+    "system": "Linux",
+    "python": "3.12.14"
+  },
+  "implementation_sha256": {
+    "src/m68k_layout_projection.c": "431cab43442dfe739c020a4fc9d09d77a5139f4c5b7872632495a568a888d4e3",
+    "src/m68k_memory_layout.c": "45f1bdc3ba162bf7b3dbe613813f06d1e39545a8f07a57c25fa27c03cf4deb4f",
+    "amiga_reversing/disasm/layout_export_cache.py": "4bd0a40f0a5e227ffdbf978b77732c8c0bfa58866b6e625434d9164bcfc12840",
+    "amiga_reversing/disasm/source_export.py": "25859c5d4e4117d1e074bb545910c58772b6ad40f769b212b54700648bedf1d5"
+  },
+  "native_backend_sha256": "8c9574a8726e5345ce706c182449f7466fe617bc0462c36a0d66bdb0c730f0cf",
+  "remaining_deletion_gate": {
+    "status": "blocked_by_missing_compatibility_contract",
+    "paths": [
+      "src/m68k_memory_region.inc",
+      "amiga_reversing/disasm/memory_regions.py",
+      "amiga_reversing/disasm/derived_artifact.py"
+    ],
+    "reason": "Legacy native data-relocation lane admits Slow RAM/Exec ownership leases, fixed-width byte ledgers and initialization manifests. New fixed-layout source exports admit Chip RAM placements and retained bootstrap. Deletion would remove supported capabilities; no proof checks were weakened or runtime-allocation implementation added.",
+    "next_decision": "Choose a narrowly specified compatibility migration covering those existing contracts, or explicitly revise their retirement boundary. Optional M5 allocation remains unimplemented."
+  }
+}

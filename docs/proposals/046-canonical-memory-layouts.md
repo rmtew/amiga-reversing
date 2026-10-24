@@ -1,9 +1,9 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **First delivery in progress: independent cursor cold/output evidence passed; retirement, reuse/performance and strict original HAND-cycle disposition remain open.**
+Status: **First delivery remains open at the legacy compatibility/deletion boundary. Original/image/cursor exports and scoped runtime/output evidence pass; native frozen-plan reuse is measured. Strict original HAND-cycle equality remains refused.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
-## Implementation checkpoint (2026-10-23)
+## Implementation checkpoint (2026-10-24)
 
 [Workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json)
 records normal-export saved-Earth completion with image `$80000` and an
@@ -68,13 +68,52 @@ retain their identities/transfer totals. Historical source/receipts remain pinne
 The older single-region data relocation planner/build service has not yet been
 consolidated; removing the target string builder does not claim that gate done.
 
-First delivery remains open: deliver
-and measure layout-only frozen-plan reuse/invalidation, consolidate the older
-single-region planning path where supported, and disposition the
-strict original-to-image HAND-cycle difference honestly. Full exports still
-rebuild analysis. The latest 178–254-second observations overlap other jobs and
-are not a controlled performance comparison. Independent block evidence is now
-available; this is no longer an image-only delivery.
+[Frozen-plan reuse and performance](../../runtime/observations/pandora-layout-reuse-performance.json)
+now records real sequential exports: cold image 203.70 s, two warm cursor exports
+21.65/21.00 s, warm image return 22.29 s, clean cursor 290.25 s and cold original
+191.87 s. Analysis invocation counts are `[1,0,0,0,1,1]`. Warm source and entire
+packages equal clean exports, with all three C/vasm payload identities unchanged.
+280 relevant tests pass (240 deselected). No new gameplay replay was necessary:
+the executable bytes and native plans remain those already qualified above.
+
+Reuse belongs to the existing disposable projection service under the target
+lock. Native projection validates layout-only overlays and borrows the immutable
+frozen semantic plan, owning row/declaration copies and changed typed root text.
+It visits 49,650 rows and 6,425 declarations; the view owns 123,331,784 bytes,
+excluding the baseline and JSON/package buffers. Native projection/package work
+alone takes 8.90–9.44 s; this is not a constant-time or low-memory claim. Reported
+RSS is the process's cumulative high-water (maximum 1,264,384 KiB), not a measured
+independent warm peak. Changing source-mapped placement, materialized code,
+bootstrap or machine profile rebuilds; invalid layouts refuse. Core facts/input
+changes evict. Loaded Python/backend changes require restart rather than binding
+old execution to new file hashes. Structure-macro exports retain the clean path.
+
+Typed reference lookup now uses sorted interval endpoints, membership/ancestor
+bitmaps and a prefix maximum moved end: build O(R log R), lookup O(log R + K),
+O(R) space at the current explicit 16-region bound. Deterministic 4/8/16-region
+fixtures take 4/5/6 point steps and 7/9/11 large-span steps, independent of span
+byte length. This does not remove every package containment or legacy proof scan.
+The exact executed diagnostic is published as
+`amiga_reversing/tools/pandora_layout_reuse_benchmark.py`; its local clean-export
+prerequisites and fresh output-directory requirement are in the receipt.
+
+[Boot-only localization](../../runtime/observations/pandora-layout-preentry-clock-probe.json)
+finds an 18-CCK difference already at BOOT before CMD_READ, and a -25,193-CCK
+image-minus-original difference at natural HAND in those two probes. Both stop
+before GO. This bounds the discrepancy to pre-entry execution, but does not
+explain the controlled eight-CCK stop difference or prove disk/ROM causality.
+Strict equality remains refused; no fitted delay or comparator allowance was added.
+
+**Remaining deletion boundary:** `src/m68k_memory_region.inc` and
+`memory_regions.py`/`derived_artifact.py` still serve a native data-relocation lane
+with Slow RAM/Exec ownership leases, fixed-width byte ledgers and initialization
+manifests. The new normal fixed-layout source path is Chip-only; it has not
+replaced those contracts. Deleting that lane now would discard supported positive
+and refusal cases, while implementing general allocation would cross into M5.
+First delivery therefore remains open at this concrete gate. The next decision
+is a bounded compatibility migration specification or explicit revision of that
+retirement requirement; do not silently remove capabilities or call M0–M4 complete.
+M5–M6 remain unimplemented. The target string builder is already deleted.
 
 ### Earlier mechanism batches (historical)
 
@@ -466,14 +505,15 @@ when scan counts no longer grow as regions times instructions. Warm edits must
 equal clean output and avoid unaffected discovery; report actual savings rather
 than a target percentage. The initial design-only revision ran no performance
 measurements; the implementation checkpoint above now supplies baseline and
-index operation counts. No latency acceptance claim is yet established.
+index operation counts. The current checkpoint supplies scoped warm/clean latency and exact-output evidence; no universal latency guarantee is claimed.
 
 ## Milestones and deletion gates
 
 The table defines acceptance, not a claim that every mechanism exists. M0 and M1
 have the partial implementation/evidence above; M2 has target profile builds and
-M3/M4 now have the scoped runtime/output evidence above; retirement and
-reuse/performance acceptance remain open. M5–M6 are not started. M1–M4
+M3/M4 now have the scoped runtime/output evidence above; frozen-plan reuse and
+its measured performance are evidenced. The legacy compatibility/deletion gate
+remains open and exact original HAND-cycle equality is refused. M5–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are distinct later decisions. Each batch

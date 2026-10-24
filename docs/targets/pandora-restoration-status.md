@@ -1,6 +1,6 @@
 # Pandora restoration inventory and status
 
-## Canonical layout implementation checkpoint (2026-10-23)
+## Canonical layout implementation checkpoint (2026-10-24)
 
 [Independent workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json):
 the normal image at `$80000` plus 140-byte cursor workspace at `$E0000` completes
@@ -36,11 +36,26 @@ The target string-patching builder and alternate build CLI are retired; the
 normal observer now consumes native bounds and shared launcher/callback options.
 181 focused tests and a matching settled-title smoke pass; 24 retained DMA
 frames replay unchanged. The older single-region planner/build service remains
-a separate consolidation obligation. First delivery is still open for that work,
-frozen-plan reuse/invalidation, measured performance and strict original
-HAND-cycle disposition. Layout selection now reaches the common exporter through HTTP,
+a separate consolidation obligation: its Slow RAM/Exec leases, fixed-width byte
+ledger and initialization contracts are not replaced by the new Chip-only source
+layout path. Deleting it would remove supported capabilities. First delivery
+remains open at that compatibility/deletion gate; optional M5 allocation has not
+been implemented. Strict original HAND-cycle equality remains refused. Layout selection now reaches the common exporter through HTTP,
 CLI, real MCP stdio and the palette; 48 interface tests and four server-route
-tests pass. Browser E2E has not run. Full layout export still rebuilds analysis.
+tests pass. Browser E2E has not run.
+
+[Native frozen-plan reuse](../../runtime/observations/pandora-layout-reuse-performance.json)
+now takes 21.65/21.00 s for two warm cursor exports versus 290.25 s for the
+fresh clean cursor export, with identical source/packages and no analysis calls
+on the warm requests. All original/image/cursor C/vasm payload hashes are
+unchanged. 280 relevant tests pass (240 deselected), including stale loaded-code,
+input/fact invalidation, concurrent ownership and invalid-placement refusal.
+Warm projection still copies 123.33 MB of row/declaration state and traverses
+49,650 rows; this is scoped reuse, not universal incremental analysis. Image,
+bootstrap/profile and structure-macro changes retain conservative rebuilds.
+[Boot-only probes](../../runtime/observations/pandora-layout-preentry-clock-probe.json)
+locate a difference before CMD_READ, without establishing the cause of the
+controlled eight-CCK HAND stop. No full-route rerun or fitted delay was added.
 
 ### Earlier mechanism batches (historical)
 

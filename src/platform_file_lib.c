@@ -1,6 +1,7 @@
 #include "m68k_source_package.h"
 #include "m68k_runtime_map.h"
 #include "m68k_memory_layout.h"
+#include "m68k_layout_projection.h"
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -9082,6 +9083,33 @@ static int append_metadata_bootstrap_local(const char *start,const char *end,M68
   policy->bootstrap_contracts[policy->bootstrap_contract_count++]=c;return 1;
 }
 
+static int append_metadata_memory_layout_registry_local(const char *text,M68kAnalysisPolicy *policy,
+    M68kDiagSink diagnostics) {
+  const char *cursor,*array_end,*text_end=text+strlen(text);
+  cursor=json_find_array_local(text,"memory_layouts",&array_end);
+  if(!cursor && json_find_key_local(text,text_end,"memory_layouts")) {
+    platform_file_add_policy_parse_error_local(policy,diagnostics.list,"memory layouts must be an object array");
+    return -1;
+  }
+  if(cursor) cursor=json_skip_ws_local(cursor,array_end);
+  while(cursor && cursor<array_end) {
+    const char *object_end=NULL,*object_start=json_next_object_local(cursor,array_end,&object_end);
+    if(!object_start || object_start!=cursor || !append_metadata_memory_layout_local(object_start,object_end,policy)) {
+      platform_file_add_policy_parse_error_local(policy,diagnostics.list,"failed parsing target metadata memory layout");
+      return -1;
+    }
+    cursor=json_skip_ws_local(object_end,array_end);
+    if(cursor<array_end) {
+      if(*cursor!=',' || json_skip_ws_local(cursor+1,array_end)==array_end) {
+        platform_file_add_policy_parse_error_local(policy,diagnostics.list,"invalid memory layout array separator");
+        return -1;
+      }
+      cursor=json_skip_ws_local(cursor+1,array_end);
+    }
+  }
+  return 0;
+}
+
 static int append_metadata_generic_policy_text_local(const char *text, M68kAnalysisPolicy *policy,
     M68kDiagSink diagnostics) {
   const char *array_end;
@@ -9142,27 +9170,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor=object_end;
   }
-  cursor=json_find_array_local(text,"memory_layouts",&array_end);
-  if(!cursor && json_find_key_local(text,text_end,"memory_layouts")) {
-    platform_file_add_policy_parse_error_local(policy,diagnostics.list,"memory layouts must be an object array");
-    return -1;
-  }
-  if(cursor) cursor=json_skip_ws_local(cursor,array_end);
-  while(cursor && cursor<array_end) {
-    const char *object_end=NULL,*object_start=json_next_object_local(cursor,array_end,&object_end);
-    if(!object_start || object_start!=cursor || !append_metadata_memory_layout_local(object_start,object_end,policy)) {
-      platform_file_add_policy_parse_error_local(policy,diagnostics.list,"failed parsing target metadata memory layout");
-      return -1;
-    }
-    cursor=json_skip_ws_local(object_end,array_end);
-    if(cursor<array_end) {
-      if(*cursor!=',' || json_skip_ws_local(cursor+1,array_end)==array_end) {
-        platform_file_add_policy_parse_error_local(policy,diagnostics.list,"invalid memory layout array separator");
-        return -1;
-      }
-      cursor=json_skip_ws_local(cursor+1,array_end);
-    }
-  }
+  if(append_metadata_memory_layout_registry_local(text,policy,diagnostics)) return -1;
   cursor=json_find_array_local(text,"bootstrap_contracts",&array_end);
   if(!cursor && json_find_key_local(text,text_end,"bootstrap_contracts")) {
     platform_file_add_policy_parse_error_local(policy,diagnostics.list,"bootstrap contracts must be an object array");
@@ -14043,6 +14051,64 @@ int platform_file_facts_v2_listing_artifact_source_package_json_alloc(PlatformFi
   if (artifact == NULL) return -1;
   return m68k_source_package_json_alloc(&artifact->object, &artifact->source_plan,
     minimum_asset_size, out_text);
+}
+
+int platform_file_facts_v2_listing_artifact_layout_projection_json_alloc(PlatformFileListingArtifact *artifact,
+    const char *overlay,uint32_t minimum_asset_size,char **out_text) {
+  PlatformFileListingArtifact *view=NULL;
+  M68kLayoutProjection projection={0};M68kDiagList diagnostics={0};
+  const M68kMemoryLayoutIR *baseline=NULL,*selected=NULL;
+  const char *reason="invalid_layout_overlay";int status=-1,rc=-1;
+  char *package=NULL,*layouts=NULL,*canonical=NULL;JsonBuilder json={0};
+  clock_t started=clock();
+  if(!out_text) return -1;
+  *out_text=NULL;
+  if(!artifact || !overlay || !minimum_asset_size) return -1;
+  static const char *const keys[]={"memory_layouts","selected_memory_layout_id"};
+  const char *end=overlay+strlen(overlay),*begin=json_skip_ws_local(overlay,end),*object_end=NULL;
+  const char *object=json_next_object_local(begin,end,&object_end);
+  if(!object || object!=begin || json_skip_ws_local(object_end,end)!=end ||
+      !json_object_has_only_keys_local(object,object_end,keys,2)) goto result;
+  view=malloc(sizeof(*view));
+  if(!view) {reason="projection_allocation_failed";goto result;}
+  *view=*artifact;
+  view->policy.memory_layout_count=0;view->policy.selected_memory_layout_id[0]=0;
+  if(!json_optional_string_field_local(object,object_end,"selected_memory_layout_id",
+      view->policy.selected_memory_layout_id,sizeof(view->policy.selected_memory_layout_id)) ||
+      !view->policy.selected_memory_layout_id[0] ||
+      append_metadata_memory_layout_registry_local(overlay,&view->policy,m68k_diag_sink(&diagnostics))) goto result;
+  for(size_t i=0;i<artifact->policy.memory_layout_count;i++)
+    if(!strcmp(artifact->policy.memory_layouts[i].layout_id,artifact->policy.selected_memory_layout_id)) baseline=&artifact->policy.memory_layouts[i];
+  for(size_t i=0;i<view->policy.memory_layout_count;i++)
+    if(!strcmp(view->policy.memory_layouts[i].layout_id,view->policy.selected_memory_layout_id)) selected=&view->policy.memory_layouts[i];
+  if(!selected) {reason="selected_layout_not_found";goto result;}
+  if(artifact->profile.asm_source_refused) {reason="frozen_source_plan_refused";goto result;}
+  status=m68k_layout_projection_build(&projection,&artifact->source_plan,&view->policy,baseline,selected,&artifact->source_analysis);
+  reason=projection.reason;
+  if(status) goto result;
+  view->source_plan=projection.plan;
+  if(m68k_source_package_json_alloc(&view->object,&view->source_plan,minimum_asset_size,&package) ||
+      m68k_render_plan_emit_all_alloc(&view->source_plan,&canonical) ||
+      platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(view,&layouts)) {
+    status=-1;reason="layout_projection_emission_failed";goto result;
+  }
+result:
+  if(json_builder_create(&json) || json_builder_append(&json,"{\"status\":") ||
+      json_builder_append_json_string(&json,status==0 ? "ok" : status==1 ? "rebuild_required" : "refused") ||
+      json_builder_append(&json,",\"reason\":") || json_builder_append_json_string(&json,reason ? reason : "")) goto cleanup;
+  if(status==0) {
+    if(json_builder_append(&json,",\"package\":") || json_builder_append(&json,package) ||
+        json_builder_append(&json,",\"canonical_source_text\":") || json_builder_append_json_string(&json,canonical) ||
+        json_builder_append(&json,",\"memory_layouts\":") || json_builder_append(&json,layouts) ||
+        json_builder_appendf(&json,",\"projection\":{\"rows_visited\":%zu,\"declarations_visited\":%zu,\"rewritten_roots\":%zu,\"owned_bytes\":%zu,\"seconds\":%.9f,\"semantic_analysis_runs\":0}",
+          projection.rows_visited,projection.declarations_visited,projection.rewritten_roots,projection.owned_bytes,
+          elapsed_seconds(started,clock()))) goto cleanup;
+  }
+  if(json_builder_append(&json,"}")) goto cleanup;
+  *out_text=json_builder_build(&json);rc=*out_text ? 0 : -1;
+cleanup:
+  json_builder_destroy(&json);free(package);free(layouts);free(canonical);
+  m68k_layout_projection_destroy(&projection);free(view);return rc;
 }
 
 int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(PlatformFileListingArtifact *artifact,

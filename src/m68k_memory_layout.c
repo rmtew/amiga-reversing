@@ -1,6 +1,8 @@
 #include "m68k_memory_layout.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+_Static_assert(M68K_ANALYSIS_MEMORY_REGION_LIMIT<=32,"layout membership index uses a bounded bitmap");
 static int ancestor(const M68kResolvedMemoryLayout *,int,int);
 
 static int region_index(const M68kAnalysisPolicy *p,const char *id) {
@@ -37,33 +39,73 @@ static int resolve_region(const M68kAnalysisPolicy *p,const M68kMemoryLayoutIR *
     return fail(out,i,"invalid_extent_or_alignment");
   if(address+r->size>layout->chip_bytes) return fail(out,i,"outside_declared_chip_ram");
   if(address!=r->runtime_address && address<0x1000) return fail(out,i,"reserved_low_memory");
-  out->addresses[i]=(uint32_t)address;state[i]=2;return 0;
+  out->addresses[i]=(uint32_t)address;
+  out->ancestor_bits[i]=(UINT32_C(1)<<i) | (out->parents[i]>=0 ? out->ancestor_bits[out->parents[i]] : 0);
+  state[i]=2;return 0;
 }
 static int ancestor(const M68kResolvedMemoryLayout *r,int a,int b) {
-  for(int i=r->parents[b];i>=0;i=r->parents[i]) if(i==a) return 1;
-  return 0;
+  return a!=b && (r->ancestor_bits[b] & (UINT32_C(1)<<a))!=0;
 }
 
-int m68k_memory_layout_reference(const M68kAnalysisPolicy *p,const M68kResolvedMemoryLayout *resolved,
-    uint32_t address,uint32_t width,char *expression,size_t capacity,uint32_t *placed_address) {
-  int selected=-1;
-  if(!p || !resolved || resolved->reason || !expression || !capacity) return -1;
-  expression[0]='\0';
+typedef struct LayoutEvent { uint64_t address,moved_end;uint32_t add,remove; } LayoutEvent;
+static int event_compare(const void *ap,const void *bp) {
+  const LayoutEvent *a=ap,*b=bp;return (a->address>b->address)-(a->address<b->address);
+}
+static void build_reference_index(const M68kAnalysisPolicy *p,M68kResolvedMemoryLayout *out) {
+  LayoutEvent events[2*M68K_ANALYSIS_MEMORY_REGION_LIMIT];uint32_t active=0;uint64_t maximum=0;
   for(size_t i=0;i<p->memory_region_count;i++) {
-    const M68kMemoryRegionIR *r=&p->memory_regions[i];
-    if(address<r->runtime_address || (uint64_t)address+(width ? width : 1)>(uint64_t)r->runtime_address+r->size) continue;
+    uint64_t start=p->memory_regions[i].runtime_address,end=start+p->memory_regions[i].size;
+    events[2*i]=(LayoutEvent){start,out->addresses[i]!=start ? end : 0,UINT32_C(1)<<i,0};
+    events[2*i+1]=(LayoutEvent){end,0,0,UINT32_C(1)<<i};
+  }
+  qsort(events,2*p->memory_region_count,sizeof(*events),event_compare);
+  for(size_t i=0,j;i<2*p->memory_region_count;i=j) {
+    uint32_t add=0,remove=0;
+    for(j=i;j<2*p->memory_region_count && events[j].address==events[i].address;j++) {
+      add|=events[j].add;remove|=events[j].remove;
+      if(events[j].moved_end>maximum) maximum=events[j].moved_end;
+    }
+    active=(active & ~remove)|add;
+    out->points[out->point_count++]=(M68kLayoutPoint){events[i].address,maximum,active};
+  }
+}
+static const M68kLayoutPoint *reference_point(const M68kResolvedMemoryLayout *r,uint64_t address,size_t *steps) {
+  size_t lo=0,hi=r->point_count;
+  while(lo<hi) {
+    size_t mid=lo+(hi-lo)/2;if(steps) ++*steps;
+    if(r->points[mid].address<=address) lo=mid+1;else hi=mid;
+  }
+  return lo ? &r->points[lo-1] : NULL;
+}
+static unsigned first_bit(uint32_t mask) {
+  unsigned i=0;
+  if(!(mask & 0xFFFFU)) {i+=16;mask>>=16;}
+  if(!(mask & 0xFFU)) {i+=8;mask>>=8;}
+  if(!(mask & 0xFU)) {i+=4;mask>>=4;}
+  if(!(mask & 3U)) {i+=2;mask>>=2;}
+  return i+(!(mask & 1U));
+}
+int m68k_memory_layout_reference_profiled(const M68kAnalysisPolicy *p,const M68kResolvedMemoryLayout *resolved,
+    uint32_t address,uint32_t width,char *expression,size_t capacity,uint32_t *placed_address,size_t *steps) {
+  int selected=-1;
+  if(steps) *steps=0;
+  if(!p || !resolved || resolved->reason || !expression || !capacity ||
+      resolved->region_count!=p->memory_region_count) return -1;
+  expression[0]='\0';
+  uint64_t end=(uint64_t)address+(width ? width : 1);
+  const M68kLayoutPoint *start=reference_point(resolved,address,steps);
+  const M68kLayoutPoint *last=end-1==address ? start : reference_point(resolved,end-1,steps);
+  uint32_t candidates=start && last ? start->containing_regions & last->containing_regions : 0;
+  while(candidates) {
+    unsigned i=first_bit(candidates);candidates&=candidates-1;
+    if(steps) ++*steps;
     if(selected<0 || ancestor(resolved,selected,(int)i)) selected=(int)i;
     else if(!ancestor(resolved,(int)i,selected)) return -1;
   }
   if(selected<0) {
     /* Unaffected fixed addresses may stay numeric. A reference straddling a
      * moved region cannot: falling back would silently retain its old base. */
-    uint64_t end=(uint64_t)address+(width ? width : 1);
-    for(size_t i=0;i<p->memory_region_count;i++) {
-      const M68kMemoryRegionIR *r=&p->memory_regions[i];
-      if(resolved->addresses[i]!=r->runtime_address &&
-          address<(uint64_t)r->runtime_address+r->size && end>r->runtime_address) return -1;
-    }
+    if(last && last->prefix_max_moved_end>address) return -1;
     return 0;
   }
   const M68kMemoryRegionIR *r=&p->memory_regions[selected];
@@ -72,6 +114,10 @@ int m68k_memory_layout_reference(const M68kAnalysisPolicy *p,const M68kResolvedM
   if(length<0 || (size_t)length>=capacity) return -1;
   if(placed_address) *placed_address=resolved->addresses[selected]+offset;
   return 1;
+}
+int m68k_memory_layout_reference(const M68kAnalysisPolicy *p,const M68kResolvedMemoryLayout *resolved,
+    uint32_t address,uint32_t width,char *expression,size_t capacity,uint32_t *placed_address) {
+  return m68k_memory_layout_reference_profiled(p,resolved,address,width,expression,capacity,placed_address,NULL);
 }
 int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayoutIR *layout,
     M68kResolvedMemoryLayout *out) {
@@ -120,5 +166,43 @@ int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayou
         (uint64_t)out->addresses[j]+p->memory_regions[j].size>out->addresses[i])
       return fail(out,(int)i,"unrelated_region_overlap");
   }
+  build_reference_index(p,out);
+  return 0;
+}
+
+int m68k_memory_layout_validate_source(const M68kAnalysisPolicy *policy,
+    M68kResolvedMemoryLayout *resolved,const M68kSourceAnalysisIR *analysis) {
+  if(!policy || !resolved || resolved->reason) return -1;
+    /* First delivery relocates whole materialized views, not scatter-loaded
+     * pieces. Refuse a split before the row walker can mistake original
+     * adjacency for contiguous placed PCs and omit a required ORG. */
+    if(analysis) for(size_t s=0;s<analysis->section_count;s++) {
+      const M68kSectionAnalysisIR *section=&analysis->sections[s];
+      for(size_t v=0;v<section->runtime_view_count;v++) {
+        const M68kRuntimeViewIR *view=&section->runtime_views[v];
+        if(!view->materialized) continue;
+        for(size_t r=0;r<policy->memory_region_count;r++) {
+          const M68kMemoryRegionIR *region=&policy->memory_regions[r];
+          uint64_t end=(uint64_t)region->runtime_address+region->size;
+          uint64_t view_end=(uint64_t)view->runtime_address+view->size;
+          if(resolved->parents[r]>=0 ||
+              resolved->addresses[r]==region->runtime_address) continue;
+          if(region->runtime_address<view_end && end>view->runtime_address &&
+              (region->runtime_address>view->runtime_address || end<view_end)) {
+            resolved->reason="split_materialized_view_unsupported";
+            return -1;
+          }
+        }
+      }
+    }
+    for(size_t e=0;e<policy->target_equate_count;e++) {
+      const M68kAnalysisTargetEquate *equate=&policy->target_equates[e];
+      char expression[128];
+      if(equate->address_domain && m68k_memory_layout_reference(policy,resolved,
+          (uint32_t)equate->value,equate->extent_bytes,expression,sizeof(expression),NULL)<0) {
+        resolved->reason="partial_or_ambiguous_runtime_reference";
+        return -1;
+      }
+    }
   return 0;
 }

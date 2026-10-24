@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "status": "bounded_diagnosis_cause_unresolved",
+  "scope": "Two cold boot-only observations of unchanged qualified ADFs; guest BOOT marker before CMD_READ, HAND after read/seed. Both stop before GO, with no payload/gameplay execution or host memory writes.",
+  "probes": [
+    {
+      "name": "common-original-full",
+      "ADF_sha256": "2f3e30d4a7fc8950592c1bf35031e9ae5b3424a558d593716c9aa3b7e6203e15",
+      "status": "complete_before_GO",
+      "payload_entry_released": false,
+      "points": [
+        {
+          "label": "BOOT",
+          "marker": {
+            "address": "0x0007fff0",
+            "bytes": "424f4f54",
+            "matched": true,
+            "elapsed_seconds": 3.564,
+            "stop_reason": "watchpoint"
+          },
+          "cck": 15178186,
+          "frame": 213,
+          "hpos": 58,
+          "vpos": 195,
+          "retired_instructions": 2655199,
+          "registers": {
+            "d0": 917640,
+            "d1": 2147549183,
+            "d2": 1,
+            "d3": 0,
+            "d4": 0,
+            "d5": 0,
+            "d6": 4294967295,
+            "d7": 0,
+            "a0": 917648,
+            "a1": 524288,
+            "a2": 4294967295,
+            "a3": 16680686,
+            "a4": 5464,
+            "a5": 12588258,
+            "a6": 12583542,
+            "a7": 12588210,
+            "pc": 5558,
+            "sr": 16,
+            "sp": 12588210
+          }
+        },
+        {
+          "label": "HAND",
+          "marker": {
+            "address": "0x0007fff8",
+            "bytes": "48414e44",
+            "matched": true,
+            "elapsed_seconds": 2.869,
+            "stop_reason": "watchpoint"
+          },
+          "cck": 27541229,
+          "frame": 387,
+          "hpos": 0,
+          "vpos": 196,
+          "retired_instructions": 4216758,
+          "registers": {
+            "d0": 65535,
+            "d1": 2147483648,
+            "d2": 1,
+            "d3": 0,
+            "d4": 0,
+            "d5": 0,
+            "d6": 4294967295,
+            "d7": 50,
+            "a0": 414716,
+            "a1": 131072,
+            "a2": 4294967295,
+            "a3": 16680686,
+            "a4": 5464,
+            "a5": 12588258,
+            "a6": 12583542,
+            "a7": 12588210,
+            "pc": 5662,
+            "sr": 16,
+            "sp": 12588210
+          }
+        }
+      ]
+    },
+    {
+      "name": "common-image-full",
+      "ADF_sha256": "bd9b276df942959b0a912d64c5d60fdc9165638aa39cc78397f2bb1519dd2cf5",
+      "status": "complete_before_GO",
+      "payload_entry_released": false,
+      "points": [
+        {
+          "label": "BOOT",
+          "marker": {
+            "address": "0x0007fff0",
+            "bytes": "424f4f54",
+            "matched": true,
+            "elapsed_seconds": 3.538,
+            "stop_reason": "watchpoint"
+          },
+          "cck": 15178204,
+          "frame": 213,
+          "hpos": 76,
+          "vpos": 195,
+          "retired_instructions": 2655201,
+          "registers": {
+            "d0": 917640,
+            "d1": 2147549183,
+            "d2": 1,
+            "d3": 0,
+            "d4": 0,
+            "d5": 0,
+            "d6": 4294967295,
+            "d7": 0,
+            "a0": 917648,
+            "a1": 524288,
+            "a2": 4294967295,
+            "a3": 16680686,
+            "a4": 5464,
+            "a5": 12588258,
+            "a6": 12583542,
+            "a7": 12588210,
+            "pc": 5558,
+            "sr": 16,
+            "sp": 12588210
+          }
+        },
+        {
+          "label": "HAND",
+          "marker": {
+            "address": "0x0007fff8",
+            "bytes": "48414e44",
+            "matched": true,
+            "elapsed_seconds": 3.329,
+            "stop_reason": "watchpoint"
+          },
+          "cck": 27516036,
+          "frame": 387,
+          "hpos": 4,
+          "vpos": 85,
+          "retired_instructions": 4221104,
+          "registers": {
+            "d0": 65535,
+            "d1": 2147483648,
+            "d2": 1,
+            "d3": 0,
+            "d4": 0,
+            "d5": 0,
+            "d6": 4294967295,
+            "d7": 50,
+            "a0": 414716,
+            "a1": 131072,
+            "a2": 4294967295,
+            "a3": 16680686,
+            "a4": 5464,
+            "a5": 12588258,
+            "a6": 12583542,
+            "a7": 12588210,
+            "pc": 5662,
+            "sr": 16,
+            "sp": 12588210
+          }
+        }
+      ]
+    }
+  ],
+  "BOOT_image_minus_original_CCK": 18,
+  "HAND_image_minus_original_CCK": -25193,
+  "conclusion": "A clock difference already exists before CMD_READ and game entry. Natural boot-marker clocks also differ. This does not establish why the qualified controlled HAND stops differ by eight CCK; neither exact bootstrap timing nor disk/ROM/drive causality is claimed.",
+  "acceptance": "Original-to-image strict HAND comparison remains refused. Existing independent cursor comparison passes at the same image base. No fitted delay, comparator relaxation or additional full route was used.",
+  "limits": [
+    "Marker watchpoints add stops: this bounded localization is not a replacement full-route timing receipt.",
+    "Retired instruction differences and content-dependent pre-entry execution are observations, not a proven causal model."
+  ]
+}

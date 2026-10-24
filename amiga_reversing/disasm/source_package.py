@@ -18,6 +18,10 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE = LoadedSource(__file__)
+
 SCHEMA = "amiga-reversing-source-package-v1"
 MANIFEST = "manifest.json"
 

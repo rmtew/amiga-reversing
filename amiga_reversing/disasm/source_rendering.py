@@ -18,6 +18,10 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
 )
 from amiga_reversing.disasm.workflow_profile import WorkflowProfile
 
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE = LoadedSource(__file__)
+
 
 @dataclass(frozen=True, slots=True)
 class SourceRenderingResult:

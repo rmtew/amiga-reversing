@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import hashlib
 import json
 import os
 import tempfile
@@ -44,6 +45,28 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
 from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.target_metadata import SourceOutputPolicyMetadata
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
+
+LOADED_SOURCE = LoadedSource(__file__)
+_LOADED_NATIVE_FILES: dict[str, str] = {}
+
+
+class NativeBackendStale(RuntimeError):
+    """A cached native implementation requires an owning-process restart."""
+
+
+def _require_loaded_native_identity(dll):
+    path,identity,project_root,name=dll._amiga_loaded_identity
+    current_root=Path(os.environ.get('AMIGA_C_BACKEND_DLL_ROOT',project_root)).resolve()
+    if ((current_root/'src/build'/name).resolve()!=Path(path) or
+            hashlib.sha256(Path(path).read_bytes()).hexdigest()!=identity):
+        raise NativeBackendStale('Native backend changed; restart the owning process')
+    return {'path':path,'sha256':identity}
+
+
+def native_backend_identity(project_root: Path = PROJECT_ROOT) -> dict[str, str]:
+    """Identity captured at native load; a changed file requires restart."""
+    return _require_loaded_native_identity(_platform_file_dll(project_root))
 
 type ApiCallRowKey = tuple[int, int]
 
@@ -1779,6 +1802,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.argtypes = [c_void_p, POINTER(c_void_p)]
     dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc.argtypes = [c_void_p, c_char_p, c_uint32, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.argtypes = [
         c_void_p, c_uint32, POINTER(c_void_p),
     ]
@@ -2005,7 +2030,14 @@ def _load_dll(project_root: Path, name: str) -> CDLL:
         raise FileNotFoundError(f"Missing C backend DLL: {dll_path}")
     if hasattr(os, "add_dll_directory"):
         _dll_directory_handles.append(os.add_dll_directory(str(build_dir)))
-    return CDLL(str(dll_path))
+    resolved=str(dll_path.resolve())
+    identity=hashlib.sha256(dll_path.read_bytes()).hexdigest()
+    if _LOADED_NATIVE_FILES.setdefault(resolved,identity)!=identity:
+        raise NativeBackendStale('Native backend changed after load; restart the owning process')
+    dll=CDLL(str(dll_path))
+    dll._amiga_loaded_identity=(resolved,identity,str(project_root.resolve()),name)
+    _require_loaded_native_identity(dll)
+    return dll
 
 
 def _configure_text_function(dll: CDLL, function_name: str, input_arg_count: int) -> None:
@@ -2288,6 +2320,17 @@ class CListingArtifact:
         return json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc,
         ))
+
+    def layout_projection_payload(self, overlay: dict[str, object], minimum_asset_size: int = 256) -> dict[str, object]:
+        """Native scoped projection; callers must handle refused/rebuild_required."""
+        if type(minimum_asset_size) is not int or not 1 <= minimum_asset_size <= 0xFFFFFFFF:
+            raise ValueError('minimum_asset_size must be 1..4294967295')
+        return json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc,
+            json.dumps(overlay,sort_keys=True),minimum_asset_size))
+
+    def loaded_backend_identity(self) -> dict[str, str]:
+        return _require_loaded_native_identity(self._dll)
 
     def query_payload(
         self, kind: str, *, query: str = "", section_index: int | None = None,

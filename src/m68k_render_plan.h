@@ -90,6 +90,8 @@ typedef struct M68kRenderPlannedDeclaration {
   uint8_t has_source_target;
   uint8_t has_runtime_target;
   uint8_t emits_header_text;
+  /* Canonical layout declaration ownership, zero when unrelated. */
+  uint16_t layout_region_index_plus_one;
   char name[96];
   char expression[96];
 } M68kRenderPlannedDeclaration;
@@ -170,6 +172,7 @@ typedef struct M68kRenderPlanRow {
   uint8_t has_statement_metadata;
   uint8_t has_runtime_range;
   uint8_t reserved[3];
+  uint16_t layout_region_index_plus_one;
   uint32_t data_class_flags;
   char data_class[32];
   char generated_field_comment[64];

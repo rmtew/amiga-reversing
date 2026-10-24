@@ -68,7 +68,17 @@ does not persist an alternate layout as the default. Refused exports remain
 refused and produce no download. Layout exports remain runtime-unqualified.
 The real MCP stdio suite passed nine tests in an isolated SDK 2.3.0 environment;
 the UI forwarding/refusal handler was executed with Node.js, not a browser E2E
-run. Layout-only export still rebuilds analysis; frozen-plan reuse is open.
+run. Layout-only workspace/display placement exports can now reuse the same
+native frozen semantic plan in a resident process. Native typed declaration tags
+rebind bases; Python does not parse source or solve placements. The disposable
+owner is serialized by the target lock and invalidated by core facts/input changes.
+Image/materialized-code, bootstrap/profile changes conservatively rebuild;
+structure-macro exports use the clean path. Loaded implementation or backend file
+changes refuse with restart required. Invalid layouts refuse without a misleading
+successful rebuild. Profiles separate the current `layout_projection` counters
+from the historical `baseline_analysis_profile`. See the
+[measured Pandora receipt](../runtime/observations/pandora-layout-reuse-performance.json)
+for exact outputs, latency, memory cost and remaining limits.
 
 The UI, CLI and MCP adapter use the same resident project server and restoration
 operations. Native facts, Manual Action Log and Decision Journal remain the
