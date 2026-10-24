@@ -19,6 +19,15 @@
 > unknowns; no automatic capability continuation is selected. No B commitment
 > closes on documentation alone.
 
+Current alternate-layout management: the
+[bounded HAND diagnosis](../../runtime/observations/pandora-HAND-causal-boundary.json)
+keeps strict cycle equality unfulfilled. The next implementation candidate is the
+cold display-clear/alias contract, before another independent display placement.
+[Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
+state the evidence and acceptance for that slice, broader CPU workspace movement,
+then separately decided runtime allocation and OS entry/cleanup. This does not
+reopen the completed original-layout review or authorize M5/M6 implementation.
+
 Status: **original-layout reviewed closeout with explicit unknowns**.
 [Final source-bound review](../validation/pandora-original-layout-closeout.json)
 dispositions all 32 old unknown intervals and records the unchanged exact source,

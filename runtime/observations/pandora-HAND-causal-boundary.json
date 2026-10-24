@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "status": "localized_preentry_phase_boundary_root_cause_unresolved",
+  "parent_commit": "01f120835d7ac7d6fba1fed7d78c8891ab3410c9",
+  "source_template": "tools/amiga_direct_payload_bootblock.s: await_session_release",
+  "probe": "amiga_reversing.tools.pandora_hand_clock_probe",
+  "reproduction": "PYTHONPATH=. python -m amiga_reversing.tools.pandora_hand_clock_probe --run-directory <qualified-original-or-image-run> --output-directory <fresh-private-directory> --rom <legal-rom> --copperline <pinned-binary>",
+  "same_1024_byte_guest_bootblock": true,
+  "same_wait_loop_bytes": true,
+  "requested_CCK": 35525500,
+  "original_stop_CCK": 35525509,
+  "image_stop_CCK": 35525517,
+  "same_stopped_registers_and_PC_at_all_17_boundaries": true,
+  "PC_at_initial_stop": 5672,
+  "clock_difference_at_all_17_boundaries": 8,
+  "first_three_boundary_offsets_CCK": [
+    0,
+    6,
+    20
+  ],
+  "subsequent_interrupt_entry_PC": 16518424,
+  "guest_GO_released": false,
+  "gameplay_executed": false,
+  "guest_memory_or_register_writes": false,
+  "probes": [
+    {
+      "layout": "common-original-full",
+      "ADF_sha256": "2f3e30d4a7fc8950592c1bf35031e9ae5b3424a558d593716c9aa3b7e6203e15",
+      "natural_HAND_CCK": 27541229,
+      "report_sha256": "2886f7401da910a4328d3087f77111be258c19eb52f0f3e481ec35fc314cd563",
+      "boundaries": [
+        {
+          "requested_CCK": 35525500,
+          "actual_CCK": 35525509,
+          "PC": 5672,
+          "retired_instructions": 5064495
+        },
+        {
+          "requested_CCK": 35525510,
+          "actual_CCK": 35525515,
+          "PC": 5662,
+          "retired_instructions": 5064496
+        },
+        {
+          "requested_CCK": 35525516,
+          "actual_CCK": 35525529,
+          "PC": 5672,
+          "retired_instructions": 5064497
+        },
+        {
+          "requested_CCK": 35525530,
+          "actual_CCK": 35525581,
+          "PC": 16518424,
+          "retired_instructions": 5064498
+        },
+        {
+          "requested_CCK": 35525582,
+          "actual_CCK": 35525587,
+          "PC": 16518430,
+          "retired_instructions": 5064499
+        },
+        {
+          "requested_CCK": 35525588,
+          "actual_CCK": 35525595,
+          "PC": 16518434,
+          "retired_instructions": 5064500
+        },
+        {
+          "requested_CCK": 35525596,
+          "actual_CCK": 35525601,
+          "PC": 16518438,
+          "retired_instructions": 5064501
+        },
+        {
+          "requested_CCK": 35525602,
+          "actual_CCK": 35525606,
+          "PC": 16518442,
+          "retired_instructions": 5064502
+        },
+        {
+          "requested_CCK": 35525607,
+          "actual_CCK": 35525612,
+          "PC": 16518446,
+          "retired_instructions": 5064503
+        },
+        {
+          "requested_CCK": 35525613,
+          "actual_CCK": 35525618,
+          "PC": 16518450,
+          "retired_instructions": 5064504
+        },
+        {
+          "requested_CCK": 35525619,
+          "actual_CCK": 35525623,
+          "PC": 16518454,
+          "retired_instructions": 5064505
+        },
+        {
+          "requested_CCK": 35525624,
+          "actual_CCK": 35525628,
+          "PC": 16518468,
+          "retired_instructions": 5064506
+        },
+        {
+          "requested_CCK": 35525629,
+          "actual_CCK": 35525633,
+          "PC": 16518472,
+          "retired_instructions": 5064507
+        },
+        {
+          "requested_CCK": 35525634,
+          "actual_CCK": 35525637,
+          "PC": 16518474,
+          "retired_instructions": 5064508
+        },
+        {
+          "requested_CCK": 35525638,
+          "actual_CCK": 35525653,
+          "PC": 16518480,
+          "retired_instructions": 5064509
+        },
+        {
+          "requested_CCK": 35525654,
+          "actual_CCK": 35525661,
+          "PC": 16518484,
+          "retired_instructions": 5064510
+        },
+        {
+          "requested_CCK": 35525662,
+          "actual_CCK": 35525665,
+          "PC": 16519992,
+          "retired_instructions": 5064511
+        }
+      ]
+    },
+    {
+      "layout": "common-image-full",
+      "ADF_sha256": "bd9b276df942959b0a912d64c5d60fdc9165638aa39cc78397f2bb1519dd2cf5",
+      "natural_HAND_CCK": 27516036,
+      "report_sha256": "709841700b889a01a627000311a8ba6367f562373cf485d2e962ea7310b9418f",
+      "boundaries": [
+        {
+          "requested_CCK": 35525500,
+          "actual_CCK": 35525517,
+          "PC": 5672,
+          "retired_instructions": 5071483
+        },
+        {
+          "requested_CCK": 35525518,
+          "actual_CCK": 35525523,
+          "PC": 5662,
+          "retired_instructions": 5071484
+        },
+        {
+          "requested_CCK": 35525524,
+          "actual_CCK": 35525537,
+          "PC": 5672,
+          "retired_instructions": 5071485
+        },
+        {
+          "requested_CCK": 35525538,
+          "actual_CCK": 35525589,
+          "PC": 16518424,
+          "retired_instructions": 5071486
+        },
+        {
+          "requested_CCK": 35525590,
+          "actual_CCK": 35525595,
+          "PC": 16518430,
+          "retired_instructions": 5071487
+        },
+        {
+          "requested_CCK": 35525596,
+          "actual_CCK": 35525603,
+          "PC": 16518434,
+          "retired_instructions": 5071488
+        },
+        {
+          "requested_CCK": 35525604,
+          "actual_CCK": 35525609,
+          "PC": 16518438,
+          "retired_instructions": 5071489
+        },
+        {
+          "requested_CCK": 35525610,
+          "actual_CCK": 35525614,
+          "PC": 16518442,
+          "retired_instructions": 5071490
+        },
+        {
+          "requested_CCK": 35525615,
+          "actual_CCK": 35525620,
+          "PC": 16518446,
+          "retired_instructions": 5071491
+        },
+        {
+          "requested_CCK": 35525621,
+          "actual_CCK": 35525626,
+          "PC": 16518450,
+          "retired_instructions": 5071492
+        },
+        {
+          "requested_CCK": 35525627,
+          "actual_CCK": 35525631,
+          "PC": 16518454,
+          "retired_instructions": 5071493
+        },
+        {
+          "requested_CCK": 35525632,
+          "actual_CCK": 35525636,
+          "PC": 16518468,
+          "retired_instructions": 5071494
+        },
+        {
+          "requested_CCK": 35525637,
+          "actual_CCK": 35525641,
+          "PC": 16518472,
+          "retired_instructions": 5071495
+        },
+        {
+          "requested_CCK": 35525642,
+          "actual_CCK": 35525645,
+          "PC": 16518474,
+          "retired_instructions": 5071496
+        },
+        {
+          "requested_CCK": 35525646,
+          "actual_CCK": 35525661,
+          "PC": 16518480,
+          "retired_instructions": 5071497
+        },
+        {
+          "requested_CCK": 35525662,
+          "actual_CCK": 35525669,
+          "PC": 16518484,
+          "retired_instructions": 5071498
+        },
+        {
+          "requested_CCK": 35525670,
+          "actual_CCK": 35525673,
+          "PC": 16519992,
+          "retired_instructions": 5071499
+        }
+      ]
+    }
+  ],
+  "demonstrated": "The identical unreleased guest CMP/BNE wait loop reaches the requested target at different instruction phases: target requests return after the requested CCK. The observed eight-CCK displacement survives the next16 matching instruction boundaries including ROM interrupt entry. It occurs before any relocated game instruction.",
+  "not_demonstrated": "Why the earlier boot/read/interrupt schedule acquired this phase difference. Existing BOOT-before-CMD_READ probes already differ; there is no continuous causal trace linking their18CCK delta, naturalHAND delta and final8CCK offset. No ROM/disk/MFM bug or game relocation defect is established.",
+  "consequence": "Strict original-to-image bootstrap-clock comparison remains refused. Cold gameplay completion and bounded phase/frame/actual-HAND-to-EOF PCM evidence remain distinct, unchanged claims.",
+  "decision": "Accept this explicit pre-entry deviation for the fixed-layout output claim, or scope a separate pre-BOOT/trackdisk/interrupt timing investigation. No target source fix is justified by current evidence; do not add calibrated delay, change comparator thresholds or rewrite the emulator/boot protocol.",
+  "validation": "Two new bounded cold boot-only probes; programmatic equality of17 full register sets/PCs and exact8CCK offsets; guest bootblock and wait-loop byte equality. No full walkthrough or target regeneration.",
+  "limits": [
+    "run_until target observations are not exact-clock stopping evidence.",
+    "The new CLI is a path/identity wrapper around the executed private probe; help/compilation checked without duplicating the same boot runs.",
+    "Raw reports, WAV, media and ROM remain private."
+  ],
+  "executed_private_probe_sha256": "948973906c3e5c457a7526e25b45744fd842273abde43c4b7e0f18353cbdaa81",
+  "published_identity_checked_wrapper_sha256": "3dc728e1611836bcfc27fddcc14ea305e81b3f35bc8b8565a3e1e4d493ffdfea",
+  "shared_guest_bootblock_sha256": "dea8b1bc1c2078b14c5d6b3c76230dc95f6c07e99743c459753f813d3722caad"
+}

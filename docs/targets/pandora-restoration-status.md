@@ -61,6 +61,26 @@ bootstrap/profile and structure-macro changes retain conservative rebuilds.
 locate a difference before CMD_READ, without establishing the cause of the
 controlled eight-CCK HAND stop. No full-route rerun or fitted delay was added.
 
+### Current startup diagnosis and next implementation slice (2026-10-24)
+
+[The bounded HAND investigation](../../runtime/observations/pandora-HAND-causal-boundary.json)
+reproduces the exact eight-CCK difference before GO. Identical guest wait code and
+all 17 observed register/PC boundaries match, including ROM interrupt entry;
+`run_until` returns after the requested CCK at different instruction phases.
+Earlier boot/read/interrupt scheduling remains the causal boundary: no evidence
+identifies a target relocation defect or justifies a game patch. Strict comparison
+remains refused. No fitted delay, comparator change, full route or regeneration.
+
+The next proposed implementation slice is the display initialization/alias
+contract: the cold seeded clear crosses `$70000..$7CD28`, both framebuffer roles
+and reused storage. Resolve that producer together with bank swap, lower-screen
+Copper, snapshot/palette containment and loader-tail initialization before
+admitting another bank move. The
+[managed continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
+also define a separate broader CPU-workspace gate, a bounded genuine runtime
+allocation/loading gate, and OS entry/cleanup acceptance. Those later stages
+remain proposals, not implementation or all-path equivalence claims.
+
 ### Earlier mechanism batches (historical)
 
 These earlier receipts retain their original scope; pending steps are superseded

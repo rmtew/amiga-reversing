@@ -548,6 +548,48 @@ remain untouched.
 | **M5: optional runtime allocation/relocation**; completed first delivery M4 and a separate decision | Format fixups from typed refs, loader/allocator failure/unwind and initialized materialization, Chip leases and actual-base observation. Positive and refusal fixtures plus relevant existing route/output qualification. | No claim of OS friendliness from AllocMem/AllocAbs alone. Retire fixed-address allocation assumptions in the shared path only after all admitted old cases have explicit policies; keep fixed-layout profiles as supported outputs, not duplicate engines. |
 | **M6: optional OS-hosted profile**; M5 and reviewed lifecycle contracts | Explicit resource takeover/release, vectors/IRQ/DMA/Copper/audio/blitter, CPU mode/stack and restoration on exit/error; reviewed bootstrap replacement; real host integration evidence on a declared platform. | Not authorized implementation now; not universal portability. Never strip bootstrap until each responsibility has a verified replacement. Remove superseded takeover shim only after normal exporter/runner owns the complete contract. |
 
+### Managed continuation gates (2026-10-24)
+
+The current batch is a bounded startup investigation, not an expansion into M5/M6.
+[HAND causal-boundary evidence](../../runtime/observations/pandora-HAND-causal-boundary.json)
+reproduces the qualified stops at 35,525,509/35,525,517 for requested CCK
+35,525,500. Both are the same boot-shim BNE at `$1628`; all 17 subsequent
+observations have equal complete register sets/PCs and exactly eight CCK offset,
+including entry into a ROM interrupt path. The guest bootblock and wait-loop
+bytes are equal. The next branch/CMP boundaries are six/fourteen CCK apart, so
+these target requests are not evidence of exact-clock stops. Neither run releases
+GO or executes the game. Earlier BOOT-before-CMD_READ probes already differed,
+but there is no continuous trace proving which earlier instruction or device
+schedule caused the final offset. No game-source repair is justified by this
+observation. No threshold change, calibrated padding, ROM/emulator rewrite or
+new full walkthrough was performed.
+
+The **strict startup gate stays unfulfilled**. Decide whether to accept the
+explicit pre-entry deviation for the fixed-layout output claim, or scope a
+separate pre-BOOT/trackdisk/interrupt timing investigation. Neither choice can
+retroactively turn the strict failed receipt into a pass. Functional cold
+completion, eight selected frames, bounded DMA and actual-HAND-to-EOF PCM remain
+separate evidence; they are not all-path semantic or cycle-level equivalence.
+
+The next substantive implementation candidate is the display initialization and
+alias contract below. It can be investigated statically without resolving every
+boot/OS timing question; no new placement or broad allocator work is launched by
+this roadmap update.
+
+| Next acceptance gate / dependency | Concrete evidence and implementation slice | Acceptance / stop boundary |
+| --- | --- | --- |
+| **M4 display initialization/alias contract**; existing canonical profiles | Follow `run_title_starfield_until_fire` and `start_seeded_zero_copy_blit`, the gameplay call to that clear, `select_initial_gameplay_bank1/bank0`, front/back/display app pointers, lower-screen Copper split and bitmap pointer words. The cold seeded clear spans `$70000..$7CD28`; bank0 is `$70000..$77D00`, bank1's demonstrated world prefix `$78000..$7D000`. Hit snapshot `$77D00..$78000` contains palette-input `$77FE0..$78000`; adjacency alone does not imply a relocation group. | Canonical facts must express proven containment/reuse, full clear/read/write extents and producer/consumer phases. Enumerate typed CPU and split DMA references and distinguish initialized loader-tail dependence. Review all edits before one generation. If a proposed bank move needs an unsupported split clear or an unproved seed/alias, report that exact prerequisite; do not move the prefix and leave initialization at its old address. |
+| **M4 additional independent display placement**; preceding contract | Choose a legal Chip RAM placement from the actual whole-image, workspace, fixed-memory and DMA map; no address is preselected here. Change the evidenced block/group only through the normal exporter and typed references. Keep original and qualified cursor profiles reproducible. | Positive/refusal placement cases, actual new CPU/DMA targets, abandoned-range observations, zero event-loss counters, cold normal-input completion and same-state graphics/PCM comparisons. Inspect title, gameplay bank swaps, lower UI and snapshot/modal paths affected by the change. Keep current null-sprite exception explicit. Eight frames/sample DMA remain bounded coverage, not certification of every frame/path. |
+| **M4 broader CPU workspace placement**; per-owner closure | Prefer an owner with proven consumers rather than moving the whole app envelope. Raster table `$39FC..$3B8C` is a candidate, not yet admitted: its 200 WORD producer and masked text Y indexing can reach beyond it for Y>=25. Keyboard state `$397C..$39FC` has a separate interrupt-facing lifetime; do not merge owners by adjacency. | Every affected indexed/cursor/absolute alias, interrupt consumer and initialization extent is accounted for, or explicitly restrict/refuse the move. Preserve unchecked-domain caveats instead of claiming arbitrary-input safety. A new move must add an independent placement obligation, not repeat the existing cursor route as new progress. |
+| **M5 bounded allocation/loading slice**; first-delivery disposition plus separate implementation decision | Start with one already-qualified owner and explicit CPU/Chip requirement, not a whole-game allocator. Separate fixed assembly-time placement from runtime base selection. Reuse native typed references to define actual-base fixups/materialization, including split DMA fields only when required. The existing fixed AllocAbs boot backing is not AllocMem portability. | Demonstrate at least two genuine legal allocator-selected bases, actual-base observations, identity-bound input/suffix/seed handling and complete owner lifetime. Inject allocator failure only as a declared loader failure test, never gameplay progression; verify failure return/unwind and no use-before-initialization. Preserve fixed-layout output and refuse unsupported reference forms. Do not implement this while its contract is still a proposal. |
+| **M6 OS-friendly entry and exit**; M5 plus reviewed responsibility inventory | Map retained bootstrap responsibilities to replacements: CPU mode/stack, app globals, vectors/IRQ, DMA/Copper/audio/blitter, allocated resources, device/file ownership, exit/error paths. Name which remain game-owned and which return to Exec; do not strip startup based on its address range alone. | On a declared host/profile, loading and normal exit restore required hardware/OS ownership, stop DMA before releasing Chip buffers, restore vectors/interrupt state and free only owned resources. Qualify failure and cancellation paths and actual return to the host. A successful game in a boot shim or an AllocAbs reservation is not evidence of this gate. |
+
+No percentage or ETA is assigned. Each implementation batch records the concrete
+owner/reference family changed, exact output identity, observations gained,
+remaining restrictions and next evidence question in this plan and its existing
+receipts. Keep the nine unfinished B07 files unchanged; native-C conversion and
+generic verification machinery remain outside these gates.
+
 ### Integration acceptance and limits
 
 Reuse the existing evidence-producing route; do not count tests or extra fixtures
