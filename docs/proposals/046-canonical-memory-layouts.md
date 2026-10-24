@@ -980,3 +980,13 @@ keyboard owner or refusal on an unavailable fixed claim. Low PRNG/body storage,
 remaining producer/backing ownership and hardware/stack/vector restoration
 remain separate obligations before genuine Pandora HUNK entry/exit. No demand
 for identical pre-entry clocks is added to the OS-hosted acceptance gate.
+
+The source-helper cold run subsequently completed all 576 phases, saved Earth
+and escaped with HP49 at frame14351. Both event-loss counters were zero.
+Actual helper PC `$20028`, then relocated PCs `$8046A`/`$8048C`, were verified;
+the armed old-helper CPU data watch/entry sentinel did not stop this route.
+All 509 controller-call records, phase names/statuses/frames and seven captured
+PNG hashes equal the previous unheld run. This run captured no PCM; it adds no
+audio equivalence or all-frame/DMA claim
+([cold qualification](../../runtime/observations/pandora-source-helper-cold-qualification.json)).
+It closes this bootstrap-helper slice, not the fixed-input or DOS exit obligations.
