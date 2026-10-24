@@ -124,7 +124,7 @@ def validate_layout(layout: dict) -> dict:
     if "bootstrap_contract_id" in layout or "bootstrap_variant" in layout:
         if (not isinstance(layout.get("bootstrap_contract_id"), str)
                 or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.-]{0,94}", layout["bootstrap_contract_id"])
-                or layout.get("bootstrap_variant") not in {"native", "forward_disjoint"}):
+                or layout.get("bootstrap_variant") not in {"native", "forward_disjoint", "forward_disjoint_source_helper"}):
             raise ValueError("memory_layout requires an explicit bootstrap identity and variant")
     return {**layout, "placements": [dict(p) for p in placements]}
 
@@ -134,7 +134,9 @@ def validate_bootstrap(contract: dict) -> dict:
                "helper_source_end", "helper_runtime_address", "continuation_source_offset",
                "comparison_source_offset"}
     required = numeric | {"schema_version", "contract_id", "image_region_id", "input_sha256", "kind"}
-    if (set(contract) != required or type(contract["schema_version"]) is not int
+    helper_sites = {"helper_destination_source_offset", "helper_jump_source_offset"}
+    if (not required <= set(contract) or set(contract)-required-helper_sites or
+            bool(set(contract)&helper_sites) and not helper_sites<=set(contract) or type(contract["schema_version"]) is not int
             or contract["schema_version"] != 1 or contract["kind"] != "retained_prefix_copy"):
         raise ValueError("bootstrap requires the versioned retained prefix-copy contract")
     for key in ("contract_id", "image_region_id"):
@@ -149,6 +151,11 @@ def validate_bootstrap(contract: dict) -> dict:
             and contract["comparison_source_offset"] + 2 <= contract["helper_source_end"] <= contract["copied_source_end"]
             and contract["continuation_source_offset"] < contract["copied_source_end"]):
         raise ValueError("bootstrap requires bounded prefix, helper and comparison extents")
+    if helper_sites <= set(contract):
+        if (any(type(contract[k]) is not int or contract[k]<0 or contract[k]%2 or
+                contract[k]+4>contract['helper_source_start'] for k in helper_sites)
+                or abs(contract['helper_destination_source_offset']-contract['helper_jump_source_offset'])<4):
+            raise ValueError('bootstrap source-helper entry requires two disjoint four-byte source sites')
     return dict(contract)
 
 

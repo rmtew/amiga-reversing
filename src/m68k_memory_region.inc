@@ -250,10 +250,16 @@ int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
         json_builder_appendf(&b,",\"kind\":\"retained_prefix_copy\",\"variant\":\"%s\","
           "\"load_address\":%u,\"file_size\":%u,\"copied_source_end\":%u,"
           "\"helper_source_start\":%u,\"helper_source_end\":%u,\"helper_runtime_address\":%u,"
-          "\"continuation_source_offset\":%u,\"comparison_source_offset\":%u}",
-          layout->bootstrap_forward_disjoint ? "forward_disjoint" : "native",
+          "\"continuation_source_offset\":%u,\"comparison_source_offset\":%u",
+          layout->bootstrap_source_helper ? "forward_disjoint_source_helper" :
+            layout->bootstrap_forward_disjoint ? "forward_disjoint" : "native",
           c->load_address,c->file_size,c->copied_source_end,c->helper_source_start,c->helper_source_end,
-          c->helper_runtime_address,c->continuation_source_offset,c->comparison_source_offset)) goto failed;
+          layout->bootstrap_source_helper ? c->load_address+c->helper_source_start : c->helper_runtime_address,
+          c->continuation_source_offset,c->comparison_source_offset)) goto failed;
+    if(c && layout->bootstrap_source_helper && json_builder_appendf(&b,
+        ",\"original_helper_runtime_address\":%u,\"helper_destination_source_offset\":%u,\"helper_jump_source_offset\":%u",
+        c->helper_runtime_address,c->helper_destination_source_offset,c->helper_jump_source_offset)) goto failed;
+    if(c && json_builder_append(&b,"}")) goto failed;
     if(json_builder_append(&b,"}")) goto failed;
   }
   if(json_builder_appendf(&b,"],\"total\":%u,\"scope\":\"canonical_fixed_layout_placement_only\"}",a->policy.memory_layout_count)) goto failed;

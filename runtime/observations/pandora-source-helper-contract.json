@@ -1,0 +1,58 @@
+{
+  "schema": "pandora-source-helper-contract/v1",
+  "status": "native_fixture_mechanism_tested_target_adoption_and_runtime_pending",
+  "date": "2026-10-24",
+  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "entry_sites": [
+    {
+      "source_offset": 24,
+      "original_hex": "45f80300",
+      "role": "LEA fixed helper address to A2"
+    },
+    {
+      "source_offset": 36,
+      "original_hex": "4ef80300",
+      "role": "JMP fixed helper"
+    }
+  ],
+  "helper": {
+    "source_start": 40,
+    "source_end": 82,
+    "original_runtime": 768,
+    "owned_input_runtime": 131112,
+    "input_extent": [
+      131072,
+      507904
+    ]
+  },
+  "replacement": "Two four-byte PC-relative operand forms name the same helper bytes inside the acquired input. The original42-byte byte-copy loop becomes a self-copy; the helper retains the full prefix initialization and image continuation.",
+  "original_entry_evidence": [
+    "Source10 LEA establishes helper source A0; source14 LEA recovers input base A1.",
+    "Source18 selects A2; source1C reload41 plus source1E/20 MOVE.B/DBF copies42bytes; source24 enters that helper.",
+    "The exact original input and materialized source views bind the transformation. Only LEA abs.W to A2 and JMP abs.W at declared sites are admitted."
+  ],
+  "constraints": [
+    "Only forward_disjoint_source_helper is currently implemented: destination image must be entirely above the whole declared Chip input.",
+    "Input remains owned and unchanged through helper execution/copy/seeds; no early release is admitted.",
+    "Renderer suppresses the old helper materialization for this profile only; original facts and old modes remain intact.",
+    "Bootstrap entry refs use generated PC-relative forms, C/vasm byte identity and unchanged4-byte extents.",
+    "Actual DOS-loaded input placement/lifetime, all low-memory owners and OS return are separate pending contracts."
+  ],
+  "tests": {
+    "passed": 105,
+    "skipped": 0,
+    "files": [
+      "tests/test_bootstrap_source_helper.py",
+      "tests/test_bootstrap_layouts.py",
+      "tests/test_layout_projection.py",
+      "tests/test_memory_layouts.py"
+    ],
+    "instruction_scope": "Original and PC-relative LEA/JMP preserve CCR and other registers across32CCRs; A2/PC name the respective helper. Musashi8/10cycles for both forms, not a Chip-bus/whole-startup timing proof.",
+    "refusals": [
+      "Malformed/fractional/overlapping/missing entry sites",
+      "Wrong register or helper address despite a refreshed input hash",
+      "Activation requires a fresh frozen plan"
+    ]
+  },
+  "publication": "No proprietary media/captures. This is a mechanism/review receipt, not completed target qualification."
+}

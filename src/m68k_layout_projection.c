@@ -71,7 +71,8 @@ int m68k_layout_projection_build(M68kLayoutProjection *out,const M68kRenderPlan 
   if(width_reason) return stop(out,-1,width_reason);
   if(!baseline->bootstrap_contract_id[0] || baseline->chip_bytes!=selected->chip_bytes ||
       strcmp(baseline->bootstrap_contract_id,selected->bootstrap_contract_id) ||
-      baseline->bootstrap_forward_disjoint!=selected->bootstrap_forward_disjoint)
+      baseline->bootstrap_forward_disjoint!=selected->bootstrap_forward_disjoint ||
+      baseline->bootstrap_source_helper!=selected->bootstrap_source_helper)
     return stop(out,1,"bootstrap_or_profile_change_requires_new_plan");
   for(size_t i=0;i<policy->memory_region_count;i++)
     if(policy->memory_regions[i].source_mapped && before.addresses[i]!=out->resolved.addresses[i])

@@ -119,7 +119,7 @@ typedef struct M68kRenderPlannedInstruction {
   uint8_t symbol_access_count;
   uint8_t reserved;
   uint8_t has_bootstrap_variant;
-  uint8_t bootstrap_variant_bytes[2];
+  uint8_t bootstrap_variant_bytes[4];
   uint16_t address_frame_region_index_plus_one;
   uint8_t address_frame_operand_index,address_frame_active;
   uint32_t address_frame_displacement;

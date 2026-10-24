@@ -838,6 +838,8 @@ typedef struct M68kBootstrapContractIR {
   uint32_t load_address, file_size, copied_source_end;
   uint32_t helper_source_start, helper_source_end, helper_runtime_address;
   uint32_t continuation_source_offset, comparison_source_offset;
+  uint32_t helper_destination_source_offset,helper_jump_source_offset;
+  uint8_t has_source_helper_sites;
 } M68kBootstrapContractIR;
 typedef struct M68kMemoryPlacementIR {
   char region_id[96];
@@ -850,6 +852,7 @@ typedef struct M68kMemoryLayoutIR {
   M68kMemoryPlacementIR placements[M68K_ANALYSIS_MEMORY_REGION_LIMIT];
   char bootstrap_contract_id[96];
   uint8_t bootstrap_forward_disjoint;
+  uint8_t bootstrap_source_helper;
 } M68kMemoryLayoutIR;
 
 typedef struct M68kAnalysisPolicy {

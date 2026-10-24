@@ -140,9 +140,22 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 stop=client.run_until({'cck':500*71051},timeout=30)
                 require(stop.get('reason')=='target' and client.read_memory(0x7FFF8,4)==b'HAND','Boot phase fixture did not remain in handoff')
                 report['boot_phase_fixture']={'target_cck':500*71051,'stop':stop,'registers':client.registers(),'method':'Natural execution of generated HAND wait loop before host GO marker release; no gameplay state changed.'}
+            stages=[(0,load_base),(continuation,runtime_base+continuation),(0x48C,runtime_base+0x48C)]
+            if bootstrap['variant']=='forward_disjoint_source_helper':
+                helper=bootstrap['helper_runtime_address'];old_helper=bootstrap['original_helper_runtime_address']
+                size=bootstrap['helper_source_end']-bootstrap['helper_source_start']
+                require(helper==load_base+bootstrap['helper_source_start'] and helper+size<=load_base+bootstrap['file_size'],
+                        'Source helper is not contained in the owned input')
+                watch=dict(kind='mmio',addr=old_helper,len=size,access='access')
+                ident=client.request('break.add',watch)['id'];client.add_breakpoint(old_helper)
+                readback=client.request('break.list')
+                require(any(r.get('id')==ident and all(r.get(k)==v for k,v in watch.items()) for r in readback['breaks']),
+                        'Superseded helper CPU guard readback differs')
+                report['superseded_helper_guard']=dict(CPU_data=watch,readback=readback,PC_entry_sentinel=old_helper,
+                    DMA_covered=False,all_instruction_fetches_covered=False,scope='From before GO through this bounded run; no unused/all-path claim.')
+                stages.insert(1,(bootstrap['helper_source_start'],helper))
             release_handoff(client,contract)
-            for offset in [0,continuation,0x48C]:
-                address=load_base if offset==0 else runtime_base+offset
+            for offset,address in stages:
                 stop=wait_for_pc(client,address,30);require(stop['status']=='hit','Runtime entry was not observed')
                 require(client.read_memory(address,16)==expected_payload[offset:offset+16],'Canonical payload PC bytes differ')
                 report['moved_pcs'].append({'source_offset':offset,'runtime_pc':client.registers()['pc'],'frame':stop['stop_event']['frame'],'stop_event':stop['stop_event']})

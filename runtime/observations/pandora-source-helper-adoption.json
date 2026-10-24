@@ -1,0 +1,35 @@
+{
+  "schema": "pandora-source-helper-adoption/v1",
+  "status": "target_C_vasm_exact_original_preserved_live_launch_pending",
+  "contract_receipt_sha256": "cfc43f49124e31dd8ecddfca729339c690586fe5f80c6f6f6d3f87ac5c8738e0",
+  "layout_id": "pandora_source_helper_cpu_display_ecs1m",
+  "target_build": {
+    "status": "target_C_vasm_agree_old_profile_diff_only_two_entry_sites",
+    "subject": {
+      "subject_revision": "0798e81597124ec7f4749e95ce93e3c25f37704e83266dd8703f98bfec6fd4c0",
+      "revision": "713427591bff673d2dedfbe4e8bc65dd2008bff5867c35767f1389b9cb08d592"
+    },
+    "payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+    "changed_offsets": [
+      25,
+      26,
+      27,
+      37,
+      38,
+      39
+    ]
+  },
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "checks": {
+    "passed": 269,
+    "skipped": 0,
+    "source": ".runtime-state/source-helper/regressions.log",
+    "original_C_and_independent_vasm": "byte_exact",
+    "candidate_C_and_independent_vasm": "equal_376832_bytes"
+  },
+  "limits": [
+    "Live helper execution/old-helper CPU guards pending.",
+    "Fixed owned input at $20000 remains; this is not normal DOS Pandora launch or resource restoration.",
+    "No whole-startup timing equality claim; instruction CCR/size/cycle checks are bounded."
+  ]
+}

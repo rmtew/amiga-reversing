@@ -6850,7 +6850,7 @@ def _target_memory_layout_action() -> dict[str, object]:
          "properties": {"schema_version": {"type": "integer", "enum": [1]},
             "layout_id": {"type": "string"}, "chip_bytes": {"type": "integer", "enum": [524288, 1048576]},
             "bootstrap_contract_id": {"type": "string"},
-            "bootstrap_variant": {"type": "string", "enum": ["native", "forward_disjoint"]},
+            "bootstrap_variant": {"type": "string", "enum": ["native", "forward_disjoint", "forward_disjoint_source_helper"]},
             "placements": {"type": "array", "maxItems": 16, "items": {"type": "object",
                 "required": ["region_id", "runtime_address"], "properties": {
                     "region_id": {"type": "string"}, "runtime_address": {"type": "integer"}}}}}})
@@ -6864,9 +6864,12 @@ def _target_bootstrap_contract_action() -> dict[str, object]:
     properties.update({k: {"type": "string"} for k in ("contract_id", "image_region_id", "input_sha256")})
     properties.update(schema_version={"type": "integer", "enum": [1]},
                       kind={"type": "string", "enum": ["retained_prefix_copy"]})
+    required = list(properties)
+    properties.update({k: {"type": "integer"} for k in
+        ("helper_destination_source_offset", "helper_jump_source_offset")})
     return _context_log_action("target.bootstrap.add", "Retain native prefix-copy initialization",
         "create_manual_bootstrap_contract", {"kind": "target"}, {},
-        {"type": "object", "required": list(properties), "properties": properties})
+        {"type": "object", "required": required, "properties": properties})
 
 
 def _target_purpose_assessment_action() -> dict[str, object]:

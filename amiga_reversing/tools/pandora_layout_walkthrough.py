@@ -41,7 +41,13 @@ def export_context(payload, original, metadata_hash):
     bootstrap = plan.get('bootstrap')
     require(isinstance(bootstrap, dict) and bootstrap.get('kind') == 'retained_prefix_copy',
             'Retained native initialization contract is required')
-    require(bootstrap.get('variant') in ('native', 'forward_disjoint'), 'Unsupported bootstrap runtime variant')
+    require(bootstrap.get('variant') in ('native', 'forward_disjoint', 'forward_disjoint_source_helper'), 'Unsupported bootstrap runtime variant')
+    if bootstrap['variant']=='forward_disjoint_source_helper':
+        require(bootstrap.get('helper_runtime_address')==bootstrap['load_address']+bootstrap['helper_source_start']
+                and type(bootstrap.get('original_helper_runtime_address')) is int
+                and all(type(bootstrap.get(k)) is int for k in
+                    ('helper_destination_source_offset','helper_jump_source_offset')),
+                'Source helper must be bound to the owned input and reviewed entry sites')
     require(bootstrap.get('input_sha256') == digest(original) and bootstrap.get('file_size') == len(original),
             'Bootstrap input identity or complete staging size differs')
     image = next((r for r in plan.get('regions', []) if r.get('region_id') == bootstrap.get('image_region_id')), None)

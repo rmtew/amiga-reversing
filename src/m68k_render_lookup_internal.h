@@ -719,6 +719,9 @@ typedef enum M68kRenderBoundaryFlag {
 
 struct M68kRenderLookup {
   Arena *arena;
+  /* Rendering-only bootstrap replacement. Original analysis views stay intact;
+   * helper bytes are emitted in their containing image/storage view. */
+  const M68kBootstrapContractIR *render_in_place_helper_contract;
   uint8_t **labels;
   uint8_t **label_target_refs;
   uint8_t **label_statement_refs;

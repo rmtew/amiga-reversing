@@ -7701,6 +7701,10 @@ int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M
 }
 
 static int runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
+  const M68kBootstrapContractIR *c=lookup ? lookup->render_in_place_helper_contract : NULL;
+  if(c && range && range->section_index==0 && range->offset==c->helper_source_start &&
+      range->size==c->helper_source_end-c->helper_source_start && range->has_runtime_address &&
+      range->runtime_address==c->helper_runtime_address) return 0;
   uint8_t materialized = 0U;
   (void)lookup_runtime_range_materialization(lookup, range, &materialized, NULL, NULL);
   return materialized != 0U;
@@ -10873,6 +10877,7 @@ static void attach_source_analysis_indexed_table_expression_symbols(const M68kRe
  * follows the accepted-candidate walk, including platform-state transitions,
  * rather than deriving source obligations from analysis-wide fact arrays. */
 #include "m68k_address_frame.inc"
+#include "m68k_bootstrap_helper.inc"
 
 static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start_all,
@@ -10968,7 +10973,7 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
             candidate->byte_count)) {
         mark_cross_org_pc_relative_displacement_exprs(lookup, section->section_index, candidate, &instruction);
         render_instruction = instruction;
-        uint8_t variant_bytes[2]={0};int has_variant=0;
+        uint8_t variant_bytes[4]={0};int has_variant=0;
         if(preview->bootstrap_forward_disjoint && section->section_index==0 &&
             candidate->offset==preview->bootstrap_contract->comparison_source_offset) {
           uint8_t is_address0=0,is_address1=0,reg0=0,reg1=0;
@@ -10990,6 +10995,9 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
           }
           render_instruction=instruction;has_variant=1;
         }
+        int helper_variant=bootstrap_source_helper_variant(preview,lookup,section,candidate,&instruction,variant_bytes);
+        if(helper_variant<0) return -1;
+        if(helper_variant) {render_instruction=instruction;has_variant=1;}
         if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
             !m68k_instruction_make_fpu_id_render_instruction(&instruction, &render_instruction)) return -1;
         memset(&planned_instruction, 0, sizeof(planned_instruction));
@@ -11004,7 +11012,7 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
         planned_instruction.source_section_index = (uint32_t)section->section_index;
         planned_instruction.source_offset = candidate->offset;
         planned_instruction.has_bootstrap_variant=(uint8_t)has_variant;
-        memcpy(planned_instruction.bootstrap_variant_bytes,variant_bytes,2);
+        memcpy(planned_instruction.bootstrap_variant_bytes,variant_bytes,sizeof(variant_bytes));
         planned_instruction.rendered_operand_symbol_mask = rendered.rendered_operand_symbol_mask;
         planned_instruction.instruction = instruction;
         planned_instruction.render_instruction = render_instruction;
@@ -11012,6 +11020,8 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
           lookup_instruction_comment(lookup, section->section_index, candidate->offset));
         (void)append_comment_part_local(planned_instruction.comment, sizeof(planned_instruction.comment),
           platform_comment);
+        if(helper_variant) (void)append_comment_part_local(planned_instruction.comment,sizeof(planned_instruction.comment),
+          "restored bootstrap: PC-relative entry to the owned input helper; fixed low helper is not used");
         if(planned_instruction.address_frame_active) {
           const M68kMemoryRegionIR *owner=&policy->memory_regions[planned_instruction.address_frame_region_index_plus_one-1];
           char frame_note[192];snprintf(frame_note,sizeof(frame_note),
@@ -11718,7 +11728,7 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   memset(preview, 0, sizeof(*preview));
 }
 
-static int prepare_layout_bootstrap(M68kRenderIRPreview *preview,const M68kDecodeIR *decode,
+static int prepare_layout_bootstrap(M68kRenderIRPreview *preview,M68kRenderLookup *lookup,const M68kDecodeIR *decode,
     const M68kSourceAnalysisIR *analysis,const M68kMemoryLayoutIR *layout) {
   if(!layout->bootstrap_contract_id[0]) return 0;
   const M68kAnalysisPolicy *policy=preview->analysis_policy;
@@ -11756,8 +11766,12 @@ static int prepare_layout_bootstrap(M68kRenderIRPreview *preview,const M68kDecod
   if(moved && !layout->bootstrap_forward_disjoint) BOOT_REFUSE("bootstrap_move_requires_reviewed_direction_variant");
   if(layout->bootstrap_forward_disjoint && (!moved || placed<(uint64_t)c->load_address+c->file_size))
     BOOT_REFUSE("bootstrap_forward_variant_requires_disjoint_high_destination");
+  if(layout->bootstrap_source_helper && !c->has_source_helper_sites)
+    BOOT_REFUSE("bootstrap_source_helper_requires_reviewed_entry_sites");
   preview->bootstrap_contract=c;
   preview->bootstrap_forward_disjoint=layout->bootstrap_forward_disjoint;
+  preview->bootstrap_source_helper=layout->bootstrap_source_helper;
+  if(layout->bootstrap_source_helper) lookup->render_in_place_helper_contract=c;
 #undef BOOT_REFUSE
   return 0;
 }
@@ -11775,6 +11789,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     return -1;
   if (render_asm_source && source_analysis == NULL) return -1;
   if (render_asm_source && out_preview->render_evidence == NULL) return -1;
+  lookup->render_in_place_helper_contract=NULL;
   out_preview->platform_backend_kind = object->platform_backend_kind;
   out_preview->analysis_policy = policy;
   if(policy && policy->selected_memory_layout_id[0]) {
@@ -11783,7 +11798,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
       if(!strcmp(policy->memory_layouts[i].layout_id,policy->selected_memory_layout_id)) layout=&policy->memory_layouts[i];
     if(!layout || m68k_memory_layout_resolve(policy,layout,&out_preview->memory_layout)) return -1;
     out_preview->memory_layout_enabled=1;
-    if(prepare_layout_bootstrap(out_preview,decode,source_analysis,layout)) return -1;
+    if(prepare_layout_bootstrap(out_preview,lookup,decode,source_analysis,layout)) return -1;
     if(m68k_memory_layout_validate_source(policy,&out_preview->memory_layout,source_analysis)) return -1;
   }
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
@@ -11822,6 +11837,14 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
         &out_preview->asm_source_plan,0,out_preview->bootstrap_contract->comparison_source_offset);
       if(!comparison || !comparison->has_bootstrap_variant) {
         out_preview->memory_layout.reason="bootstrap_comparison_not_an_admitted_instruction";goto cleanup;
+      }
+    }
+    if(out_preview->bootstrap_source_helper) {
+      const M68kBootstrapContractIR *c=out_preview->bootstrap_contract;
+      const M68kRenderPlannedInstruction *lea=m68k_render_plan_find_instruction(&out_preview->asm_source_plan,0,c->helper_destination_source_offset);
+      const M68kRenderPlannedInstruction *jump=m68k_render_plan_find_instruction(&out_preview->asm_source_plan,0,c->helper_jump_source_offset);
+      if(!lea || !jump || !lea->has_bootstrap_variant || !jump->has_bootstrap_variant) {
+        out_preview->memory_layout.reason="bootstrap_source_helper_sites_not_admitted";goto cleanup;
       }
     }
     if (derive_rendered_pointer_declarations(out_preview, lookup) != 0) goto cleanup;

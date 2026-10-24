@@ -9079,8 +9079,10 @@ static int append_metadata_memory_layout_local(const char *start,const char *end
   if(!json_optional_string_field_local(start,end,"bootstrap_contract_id",layout.bootstrap_contract_id,sizeof(layout.bootstrap_contract_id)) ||
       !json_optional_string_field_local(start,end,"bootstrap_variant",variant,sizeof(variant))) return 0;
   if(layout.bootstrap_contract_id[0] || variant[0]) {
-    if(!layout.bootstrap_contract_id[0] || (strcmp(variant,"native") && strcmp(variant,"forward_disjoint"))) return 0;
-    layout.bootstrap_forward_disjoint=!strcmp(variant,"forward_disjoint");
+    if(!layout.bootstrap_contract_id[0] || (strcmp(variant,"native") && strcmp(variant,"forward_disjoint") &&
+        strcmp(variant,"forward_disjoint_source_helper"))) return 0;
+    layout.bootstrap_source_helper=!strcmp(variant,"forward_disjoint_source_helper");
+    layout.bootstrap_forward_disjoint=!strcmp(variant,"forward_disjoint") || layout.bootstrap_source_helper;
   }
   for(size_t i=0;i<policy->memory_layout_count;i++) if(!strcmp(layout.layout_id,policy->memory_layouts[i].layout_id)) return 0;
   /* Bounded object text: never let a nested array search consume the next
@@ -9115,10 +9117,11 @@ static int append_metadata_memory_layout_local(const char *start,const char *end
 static int append_metadata_bootstrap_local(const char *start,const char *end,M68kAnalysisPolicy *policy) {
   static const char *const keys[]={"schema_version","contract_id","image_region_id","input_sha256","kind",
     "load_address","file_size","copied_source_end","helper_source_start","helper_source_end",
-    "helper_runtime_address","continuation_source_offset","comparison_source_offset"};
+    "helper_runtime_address","continuation_source_offset","comparison_source_offset",
+    "helper_destination_source_offset","helper_jump_source_offset"};
   M68kBootstrapContractIR c={0};uint32_t version=0;char kind[32]={0};
   if(policy->bootstrap_contract_count>=M68K_MEMORY_LAYOUT_LIMIT ||
-      !json_object_has_only_keys_local(start,end,keys,13) ||
+      !json_object_has_only_keys_local(start,end,keys,15) ||
       !layout_required_u32_local(start,end,"schema_version",&version) || version!=1 ||
       !json_optional_string_field_local(start,end,"kind",kind,sizeof(kind)) || strcmp(kind,"retained_prefix_copy") ||
       !json_optional_string_field_local(start,end,"contract_id",c.contract_id,sizeof(c.contract_id)) || !c.contract_id[0] ||
@@ -9132,6 +9135,15 @@ static int append_metadata_bootstrap_local(const char *start,const char *end,M68
   BOOT_U32(load_address);BOOT_U32(file_size);BOOT_U32(copied_source_end);
   BOOT_U32(helper_source_start);BOOT_U32(helper_source_end);BOOT_U32(helper_runtime_address);
   BOOT_U32(continuation_source_offset);BOOT_U32(comparison_source_offset);
+  if(json_find_key_local(start,end,"helper_destination_source_offset") ||
+      json_find_key_local(start,end,"helper_jump_source_offset")) {
+    BOOT_U32(helper_destination_source_offset);BOOT_U32(helper_jump_source_offset);
+    c.has_source_helper_sites=1;
+    if(c.helper_destination_source_offset%2 || c.helper_jump_source_offset%2 ||
+        (uint64_t)c.helper_destination_source_offset+4>c.helper_source_start ||
+        (uint64_t)c.helper_jump_source_offset+4>c.helper_source_start ||
+        m68k_memory_layout_overlaps(c.helper_destination_source_offset,4,c.helper_jump_source_offset,4)) return 0;
+  }
 #undef BOOT_U32
   if(!c.copied_source_end || c.copied_source_end>c.file_size ||
       c.helper_source_start>c.comparison_source_offset ||

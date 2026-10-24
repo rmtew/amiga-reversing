@@ -147,3 +147,17 @@ def test_independently_moved_keyboard_storage_gets_backing_too():
     from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract,reservation_plan
     contract=DirectPayloadContract('fixture','fixture',hashlib.sha256(data).hexdigest(),0x20000,0x20000,{},0x7fff8,0x48414e44,reservations=reservations)
     assert (0x6000,0xbc38) in reservation_plan(contract,len(data))
+
+
+@pytest.mark.parametrize('change',[None,'address','site'])
+def test_source_helper_bootstrap_requires_input_and_site_binding(change):
+    payload,original=fixture();boot=payload['layout_plan']['bootstrap']
+    boot.update(variant='forward_disjoint_source_helper',helper_source_start=0,
+                helper_runtime_address=0x20000,original_helper_runtime_address=0x300,
+                helper_destination_source_offset=0,helper_jump_source_offset=4)
+    if change=='address':boot['helper_runtime_address']=0x300
+    elif change=='site':del boot['helper_jump_source_offset']
+    bind(payload)
+    if change is None:assert export_context(payload,original,'current')[1] is boot
+    else:
+        with pytest.raises(ValueError,match='Source helper'):export_context(payload,original,'current')
