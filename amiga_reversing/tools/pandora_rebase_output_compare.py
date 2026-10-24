@@ -38,12 +38,28 @@ def cursor_range(report):
     return 0x65370,0x653F8
 
 
+def display_ranges(report):
+    """Consume the two evidenced native display extents, not all Chip RAM."""
+    if not report['config'].get('normal_layout_export'):
+        return [('pandora_framebuffer_bank0',0x70000,0x77D00),
+                ('pandora_framebuffer_bank1_world',0x78000,0x7D000)]
+    regions={r['region_id']:r for r in report['config']['layout_plan']['regions']}
+    result=[]
+    for rid in ('pandora_framebuffer_bank0','pandora_framebuffer_bank1_world'):
+        require(rid in regions,'Native display region is missing: '+rid)
+        r=regions[rid]
+        result.append((rid,r['runtime_address'],r['runtime_address']+r['size']))
+    return result
+
+
 def normalize_dma_address(report,address):
     base=report['config']['assembly_base']
     prefix=report['config'].get('copied_prefix_bytes',0x55370)
     if base<=address<base+prefix:return ('image',address-base)
     start,end=cursor_range(report)
     if start<=address<end:return ('cursor',address-start)
+    for rid,start,end in display_ranges(report):
+        if start<=address<end:return ('display',rid,address-start)
     return ('fixed',address)
 
 
@@ -178,7 +194,7 @@ def asset_and_dma_checks(original, candidate, reports, target):
                 'blitter':[(0,0x100000)],  # Physical Chip RAM only; not per-object bounds.
                 'audio':[(base+a,base+b) for a,b in audio],
                 'sprite':[(base+0x4D5DE,base+0x4D7DE),cursor_range(report)],
-                'bitplane':[(0x70000,0x77D00),(0x78000,0x7D000)],
+                'bitplane':[(start,end) for _,start,end in display_ranges(report)],
             }
             for ordinal, frame in enumerate(f for f in metadata if f['frame'] in wanted):
                 require(not frame.get('partial'), 'Partial DMA frame')
@@ -216,7 +232,7 @@ def asset_and_dma_checks(original, candidate, reports, target):
                 target_bounds_status='original_null_sprite_controls_outside_asset_bounds' if legacy else 'pass' if no_findings else 'mismatch',
                 original_bounds_findings=findings_a, candidate_bounds_findings=findings_b,
                 new_bounds_findings=[] if findings_a==findings_b else findings_b,
-                bounds_scope='Audio: eleven payloads/silence/secondary bank; sprite: blank/cursor buffers; bitplane: fixed display banks; Copper: copied image; blitter: physical Chip RAM only.',
+                bounds_scope='Audio: eleven payloads/silence/secondary bank; sprite: blank/cursor buffers; bitplane: two explicit native display extents; Copper: copied image; blitter: physical Chip RAM only.',
                 raw_assets=raw, raw_asset_bytes=sum(x['size'] for x in raw), primary_audio_payloads=primary,
                 silence_and_secondary_bytes=0x552CA-0x5500A, blank_sprite_bytes=512,
                 observations=observations, exact_audio_sprite_bitplane_streams=comparisons,
@@ -290,8 +306,8 @@ def compare_resource_prefix(original,candidate,target):
                 scope='Matched bounded inventory prefix, three stopped snapshots and two complete DMA frames per layout; not full gameplay or CPU access-event coverage.')
 
 
-def admit_cursor_control(a,b):
-    """Admit only an independent cursor move at an unchanged canonical image."""
+def _admit_region_control(a,b,root):
+    """Admit one translated owner family; preserve all other contracts."""
     import copy
     ca,cb=a['config'],b['config']
     require(ca.get('normal_layout_export') and cb.get('normal_layout_export') and
@@ -301,11 +317,11 @@ def admit_cursor_control(a,b):
     pa,pb=ca['layout_plan'],cb['layout_plan']
     require(pa['bootstrap']==pb['bootstrap'] and pa['chip_bytes']==pb['chip_bytes'],'Cursor control changed bootstrap/profile')
     ra={r['region_id']:r for r in pa['regions']};rb={r['region_id']:r for r in pb['regions']}
-    require(set(ra)==set(rb) and 'pandora_cursor_sprites' in ra,'Cursor control region inventory differs')
-    family={'pandora_cursor_sprites'}
+    require(set(ra)==set(rb) and root in ra,'Cursor control region inventory differs')
+    family={root}
     for _ in ra:
         family.update(rid for rid,r in ra.items() if r.get('parent_region_id') in family)
-    delta=rb['pandora_cursor_sprites']['runtime_address']-ra['pandora_cursor_sprites']['runtime_address']
+    delta=rb[root]['runtime_address']-ra[root]['runtime_address']
     require(delta!=0,'No independent cursor movement')
     for rid in ra:
         x,y=copy.deepcopy(ra[rid]),copy.deepcopy(rb[rid])
@@ -315,13 +331,22 @@ def admit_cursor_control(a,b):
         require(x==y,'Cursor control changed another region or contract: '+rid)
 
 
+
+def admit_cursor_control(a,b):
+    return _admit_region_control(a,b,'pandora_cursor_sprites')
+
+
+def admit_display_control(a,b):
+    return _admit_region_control(a,b,'pandora_display_storage')
+
+
 def compare(original, candidate, title_original, title_candidate, target, *, control='original'):
     from PIL import Image  # Explicit local prerequisite; never silently skipped.
 
     paths = [original, candidate, title_original, title_candidate]
     reports = [json.loads((p/'report.json').read_text()) for p in paths]
     a, b, ta, tb = reports
-    require(control in ('original','canonical_image_cursor'),'Unsupported comparison control')
+    require(control in ('original','canonical_image_cursor','canonical_image_display'),'Unsupported comparison control')
     expected_a=('saved_earth_and_escaped_original_control' if control=='original' else 'saved_earth_and_escaped_relocated_cold_boot')
     require(a['status'] == expected_a and
             b['status'] == 'saved_earth_and_escaped_relocated_cold_boot', 'Incomplete cold route')
@@ -331,7 +356,7 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
         require(a['config']['original_control'] and b['config']['matched_startup'], 'Wrong build modes')
         require(a['payload_sha256'] == a['config']['original_binary_sha256'], 'Original was modified')
     else:
-        admit_cursor_control(a,b)
+        (admit_cursor_control if control=='canonical_image_cursor' else admit_display_control)(a,b)
         require(a['native_materialization']['full_prefix_verified'],'Control moved prefix not verified')
     for directory,report in zip((original,candidate),(a,b)):
         require(digest(directory/'experiment.bin')==report['payload_sha256']==report['config']['payload_sha256'],
@@ -403,15 +428,17 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
                         'Pre-game ROM/disk audio before common handoff is excluded explicitly.',
                         'Custom direct-payload cold boot/ECS profile, not original packed-disk/OCS parity.'] +
                        (['Independent cursor move only; does not qualify the original-to-image transformation.']
-                        if control=='canonical_image_cursor' else []))
+                        if control=='canonical_image_cursor' else
+                        ['Independent display-family move only; not original-to-image or all-path qualification.']
+                        if control=='canonical_image_display' else []))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('original', 'candidate', 'title-original', 'title-candidate', 'target', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
-    parser.add_argument('--control',choices=('original','canonical_image_cursor'),default='original',
-        help='Original reference by default; cursor-only control requires identical canonical image/bootstrap and other regions')
+    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display'),default='original',
+        help='Original reference by default; independent resource controls require identical canonical image/bootstrap and other regions')
     args = parser.parse_args()
     tool_sha=digest(Path(__file__))
     result = compare(args.original, args.candidate, args.title_original, args.title_candidate, args.target,control=args.control)

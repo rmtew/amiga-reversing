@@ -88,3 +88,41 @@ def test_cursor_control_does_not_admit_unrelated_changes(mutation):
     elif mutation=='bootstrap':b['config']['layout_plan']['bootstrap']['contract_id']='replacement'
     else:b=copy.deepcopy(a)
     with pytest.raises(ValueError):admit_cursor_control(a,b)
+
+
+def display_controls():
+    import copy
+    a,_=cursor_controls()
+    regions=a['config']['layout_plan']['regions']
+    regions[1]=dict(region_id='pandora_display_storage',runtime_address=0x70000,size=0xd000)
+    regions.extend([dict(region_id='pandora_framebuffer_bank0',parent_region_id='pandora_display_storage',runtime_address=0x70000,size=32000),
+        dict(region_id='pandora_framebuffer_bank1_world',parent_region_id='pandora_display_storage',runtime_address=0x78000,size=20480),
+        dict(region_id='hit',parent_region_id='pandora_display_storage',runtime_address=0x77d00,size=768,
+            loader_seed=dict(source_offset=0x57d00,runtime_address=0x77d00,size=2))])
+    b=copy.deepcopy(a)
+    for region in b['config']['layout_plan']['regions']:
+        if region['region_id']=='pandora_display_storage' or region.get('parent_region_id')=='pandora_display_storage':
+            region['runtime_address']+=0x68000
+            if 'loader_seed' in region:region['loader_seed']['runtime_address']+=0x68000
+    return a,b
+
+
+def test_display_family_control_and_native_dma_coordinates():
+    from amiga_reversing.tools.pandora_rebase_output_compare import admit_display_control,display_ranges,normalize_dma_address
+    a,b=display_controls();admit_display_control(a,b)
+    assert display_ranges(b)==[('pandora_framebuffer_bank0',0xd8000,0xdfd00),
+        ('pandora_framebuffer_bank1_world',0xe0000,0xe5000)]
+    assert normalize_dma_address(a,0x75028)==normalize_dma_address(b,0xdd028)
+    assert normalize_dma_address(b,0x75028)==('fixed',0x75028)
+
+
+@pytest.mark.parametrize('mutation',['cursor','seed_source','bank_delta','image','bootstrap'])
+def test_display_control_refuses_unrelated_or_incoherent_changes(mutation):
+    from amiga_reversing.tools.pandora_rebase_output_compare import admit_display_control
+    a,b=display_controls();regions=b['config']['layout_plan']['regions']
+    if mutation=='cursor':regions[2]['runtime_address']+=2
+    elif mutation=='seed_source':regions[-1]['loader_seed']['source_offset']+=2
+    elif mutation=='bank_delta':regions[-2]['runtime_address']+=2
+    elif mutation=='image':b['config']['assembly_base']+=0x10000
+    else:b['config']['layout_plan']['bootstrap']['contract_id']='replacement'
+    with pytest.raises(ValueError):admit_display_control(a,b)

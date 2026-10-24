@@ -1807,6 +1807,13 @@ def _immediate_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquate
     value = _manual_seed_int(ref, "source_value")
     if symbol is None or value is None:
         return None
+    # The accepted reference already identifies an encoded runtime point.
+    # Preserve that domain just as data-block interpreted references do; a
+    # source-offset constant must not silently become a runtime pointer.
+    runtime = _manual_seed_int(ref, "runtime_address")
+    runtime_point = ({"address_domain": "runtime", "extent_bytes": 1,
+                      "group": "immediate_runtime_reference_points"}
+                     if runtime is not None and runtime == value else {})
     return TargetEquateMetadata(
         name=symbol,
         value=value,
@@ -1814,6 +1821,7 @@ def _immediate_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquate
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(ref, "immediate_ref_id"),
         comment="immediate interpreted absolute reference",
+        **runtime_point,
     )
 
 

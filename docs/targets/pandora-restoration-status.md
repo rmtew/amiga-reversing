@@ -2,6 +2,16 @@
 
 ## Canonical layout implementation checkpoint (2026-10-24)
 
+Active continuation: [display contract / retained failure](../../runtime/observations/pandora-display-initialization-contract.json).
+The new 53,248-byte display-group candidate retains cross-bank clear and
+snapshot/palette offsets, plus the two-byte priming seed. Initial title pixels
+match, but its first full route stopped at frame595 on a proven stale overlay
+base. Immediate-reference runtime-domain preservation is fixed and 177 focused
+tests pass; original full C/vasm remains exact (`32a3c5a6…`). Repaired candidate
+qualification is pending, not a display-completion claim. Broader movement,
+allocator-selected loading and OS cleanup are authorized staged work; B07 stays
+paused and the eight-CCK finding stays recorded without blocking that work.
+
 [Independent workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json):
 the normal image at `$80000` plus 140-byte cursor workspace at `$E0000` completes
 saved Earth and escape through 576 normal-input phases. The unheld cold run ends

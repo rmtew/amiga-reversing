@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "status": "canonical_contract_and_immediate_domain_fix_original_exact_display_requalification_pending",
+  "canonical_actions": [
+    {
+      "action_id": "manual-0de36302bbb34cad90c41facf602bfbf",
+      "kind": "create_manual_memory_region",
+      "sequence": 10883
+    },
+    {
+      "action_id": "manual-0e0d7f874dde4294a21fb74e26f74f04",
+      "kind": "update_manual_memory_region",
+      "sequence": 10884
+    },
+    {
+      "action_id": "manual-839a6bb6dedb4e42b5e183e4addee934",
+      "kind": "update_manual_memory_region",
+      "sequence": 10885
+    },
+    {
+      "action_id": "manual-8b290630c1fa4159a9b8769cfb236a28",
+      "kind": "update_manual_memory_region",
+      "sequence": 10886
+    },
+    {
+      "action_id": "manual-65b5b0c6ceaa4468818c035929e800d3",
+      "kind": "create_manual_memory_layout",
+      "sequence": 10887
+    }
+  ],
+  "original_verification": {
+    "receipt_id": "32a3c5a65c174d660253b695348cbf2c5f7e148ada7169d45d023e5db4e351ce",
+    "subject_revision": "937799e48082fbbb6e35ef95ccae17dca56a81ab30c1693ec40ca3ced6fc8d11",
+    "source_sha256": "66e6add4a531f25dee3daab70c8f1bebbf685b0241ef7dddbd62f31dbad4157f",
+    "source_package_sha256": "0f2ae8751fece1f3f67f9c427a4593da5de1e204b3a31b1478c25d48939fbf47",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "exact": true
+  },
+  "display": {
+    "parent_region_id": "pandora_display_storage",
+    "original": [
+      458752,
+      512000
+    ],
+    "candidate": [
+      884736,
+      937984
+    ],
+    "reason": "Retain offsets required by one seeded ascending blit spanning both banks and hit storage, not adjacency alone.",
+    "bank0": [
+      884736,
+      916736
+    ],
+    "bank1_world": [
+      917504,
+      937984
+    ],
+    "hit_snapshot": [
+      916736,
+      917504
+    ],
+    "palette_alias": [
+      917472,
+      917504
+    ],
+    "retained_image": [
+      524288,
+      873328
+    ],
+    "fixed_body_snapshot": [
+      2032,
+      4336
+    ],
+    "region_count": 15
+  },
+  "initialization": {
+    "seed_source_offset": 359680,
+    "size": 2,
+    "consumer_source_offset": 1996,
+    "read_before_clear": "one-WORD A-to-D self copy at old77D00/newDFD00",
+    "seed_readback": [
+      {
+        "source_offset": 283640,
+        "runtime_address": 414712,
+        "size": 4,
+        "sha256": "b3d63454188055d679f763f009d1bb8dab7f535e9fc54410bfbd6bf73fe12171",
+        "phase": "guest_shim_before_handoff",
+        "readback_verified": true
+      },
+      {
+        "source_offset": 359680,
+        "runtime_address": 490752,
+        "size": 2,
+        "sha256": "30094e0bec0046da8f925ebda9575f3d8377a75692436516260782fafd709a6f",
+        "phase": "guest_shim_before_handoff",
+        "readback_verified": true
+      },
+      {
+        "source_offset": 359680,
+        "runtime_address": 916736,
+        "size": 2,
+        "sha256": "30094e0bec0046da8f925ebda9575f3d8377a75692436516260782fafd709a6f",
+        "phase": "guest_shim_before_handoff",
+        "readback_verified": true
+      }
+    ],
+    "guest_only": true,
+    "scope": "Configured full-file loader alias, not historical loader intent or surrounding suffix purpose."
+  },
+  "initial_title": {
+    "control_report_sha256": "6d7c459e1a477f341cf545bf43bc822bcbe5899a4e4aff5134598348290d2845",
+    "candidate_report_sha256": "8366d46a5752e4afaed3304ee34d22566e762b0c5d165c55a4dd41e7d4caa253",
+    "frame": 772,
+    "RGBA_equal": true,
+    "HAND_CCK": [
+      35525517,
+      35525517
+    ],
+    "CPU_abandoned_range_guard": {
+      "kind": "mmio",
+      "addr": 458752,
+      "len": 53248,
+      "access": "access"
+    },
+    "dropped_events": 0,
+    "dropped_notifications": 0,
+    "limits": "Title-only equality did not detect the subsequent gameplay UI failure."
+  },
+  "retained_negative": {
+    "report_sha256": "9f66bae82cc0188dd56ed5fd9b949ce7ce8f58d0e10ac60749becf672f6d4d9c",
+    "payload_sha256": "37bc3a9969e9b59d01b1fbb0275b3f9ca3bc6603b2e87ba52da3b880e035108d",
+    "phase": "initial_proximity_context",
+    "frame": 595,
+    "PC": 549400,
+    "source_PC": 25112,
+    "effective_address": 480524,
+    "width": 1,
+    "access": "write",
+    "A1": 480524,
+    "initial_pointer_source_offset": 24888,
+    "diagnosis": "Accepted immediate reference retained value70000 but lost its runtime domain during effective metadata projection; selected source therefore emitted a scalar EQU.",
+    "no_assertion_or_watch_weakened": true
+  },
+  "fix": {
+    "owner": "amiga_reversing/disasm/effective_metadata.py:_immediate_interpreted_ref_equate",
+    "description": "Retain explicit matching encoded runtime_address as one-byte point in immediate_runtime_reference_points, analogous to data-block references. Source-coordinate/scalar references retain their prior domain.",
+    "canonical_runtime_immediate_sites": [
+      {
+        "source_offset": 24888,
+        "value": 458752,
+        "role": "overlay origin display base"
+      },
+      {
+        "source_offset": 41124,
+        "value": 77978,
+        "role": "active world object data table; existing source label already resolves its moved value"
+      }
+    ],
+    "tests_passed": 177,
+    "tests_deselected": 4,
+    "known_scalar_negative": true,
+    "independent_vasm_original_and_moved_fixture": true
+  },
+  "baseline_control": {
+    "report_sha256": "ed525609703d7918d27504e4f129720cfc48e51d1817039b96a365edd1efea67",
+    "payload_sha256": "5a6f969515baea1806627ddfcae75d2fd35ff002f738ddaae1c2c0b28af4bf62",
+    "status": "saved_earth_and_escaped_relocated_cold_boot",
+    "phases": 576,
+    "ending": {
+      "saved_earth": true,
+      "escaped": true,
+      "health": 49,
+      "message_pointer": 838373,
+      "selection_pc": 838108,
+      "final_frame": 14465
+    },
+    "counters": {
+      "events": 262,
+      "dropped_notifications": 0,
+      "dropped_events": 0
+    },
+    "scope": "Before domain-fix rebuild; reusable only if subsequent executable/profile/plan/input identities are proven unchanged."
+  },
+  "scope_limits": [
+    "Repaired display route/DMA/PCM acceptance is pending; no full-display success claimed.",
+    "No new unknown-byte classification or semantic all-path completeness claim.",
+    "CPU guards exclude DMA and complete instruction-fetch coverage.",
+    "Eight-CCK original/image startup finding is retained, not reopened or treated as a pass.",
+    "Raw media, ROMs, WAV and screenshots remain private."
+  ]
+}

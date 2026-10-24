@@ -26,7 +26,8 @@ cold display-clear/alias contract, before another independent display placement.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately decided runtime allocation and OS entry/cleanup. This does not
-reopen the completed original-layout review or authorize M5/M6 implementation.
+reopen the completed original-layout review. Staged M5/M6 implementation is now
+authorized after its concrete owner/fixup/lifecycle prerequisites are established.
 
 Status: **original-layout reviewed closeout with explicit unknowns**.
 [Final source-bound review](../validation/pandora-original-layout-closeout.json)
