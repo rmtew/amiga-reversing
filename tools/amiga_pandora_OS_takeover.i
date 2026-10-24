@@ -61,15 +61,28 @@ save_host_vectors:
 unexpected_payload_return:
     bra.w restore_host_supervisor
 mission_restart_dispatch:
+    IFD IMAGE_ALLOCATED
+    ; Reserve a tail-return target without changing CCR. The first dispatch
+    ; restores the incoming registers/SR and consumes exactly this slot.
+    pea 0.w
+    ENDC
     move.w sr,-(sp)
     movem.l d0/a0,-(sp)
     lea state_dispatch_count(pc),a0
     tst.l (a0)
     bne.b mission_session_finished
     addq.l #1,(a0)
+    IFD IMAGE_ALLOCATED
+    move.l state_image_initializer(pc),d0
+    move.l d0,10(sp)
+    ENDC
     movem.l (sp)+,d0/a0
     move.w (sp)+,sr
+    IFD IMAGE_ALLOCATED
+    rts
+    ELSE
     jmp ORIGINAL_WORLD_INITIALIZER.l
+    ENDC
 mission_session_finished:
     ; The old game stack is abandoned only at the explicit lifecycle import.
     ; The original first world initializer was never skipped or host-called.

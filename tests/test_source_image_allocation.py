@@ -110,3 +110,4 @@ def test_image_child_retains_exact_inherited_source_mapping(tmp_path,mapped):
             fields=p['layout']['items'][0]['regions']
             assert next(f for f in fields if f['region_id']=='field')['runtime_address']==0x90016
     finally:a.close()
+

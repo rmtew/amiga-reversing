@@ -24,15 +24,27 @@ OWNERS=('pandora_prng_state','keyboard_state','pandora_ui_snapshot_body',
         'pandora_title_stars','pandora_cpu_workspace','pandora_low_generated_masks')
 
 
+IMAGE_OWNER='pandora_image'
+
+
+def application_owners(contract):
+    """Select the registered loader contract, never discover addresses in Python."""
+    names=set(contract['candidates'])
+    if names==set(OWNERS):return OWNERS
+    if names==set((*OWNERS,IMAGE_OWNER)):return (*OWNERS,IMAGE_OWNER)
+    raise ValueError('Unsupported native hosted owner set')
+
+
 def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,layout_id='pandora_OS_hosted_ecs1m',expected_payload_sha256='9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b'):
     """Generate owned sources from native bindings; no assembly, disk or emulator."""
     LOADED_SOURCE.require_current()
     files={};plans=contract['candidates'];batch=contract['template_geometry']
+    owners=application_owners(contract);image_allocated=IMAGE_OWNER in owners
     if (len(data)!=376832 or hashlib.sha256(data).hexdigest()!=expected_payload_sha256
-            or set(plans)!=set(OWNERS) or batch.get('status')!='actual_placements_valid'
-            or batch.get('owner_count')!=6 or batch.get('uncovered_runtime_extents')!=[]):
+            or set(plans)!=set(owners) or batch.get('status')!='actual_placements_valid'
+            or batch.get('owner_count')!=len(owners) or batch.get('uncovered_runtime_extents')!=[]):
         raise ValueError('Complete native hosted template and exact preserved payload required')
-    if any(plans[n].get('status')!='bounded_allocation_candidate' for n in OWNERS):
+    if any(plans[n].get('status')!='bounded_allocation_candidate' for n in owners):
         raise ValueError('Refused owner cannot become an Exec request')
     layouts=batch.get('layout',{}).get('items',[])
     if (len(layouts)!=1 or layouts[0].get('status')!='placement_valid'
@@ -47,8 +59,14 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
     fixed=batch['fixed_leases_requiring_OS_acquisition']
     if any(r['address']<0x10000 or r['address']%8 or r['size']%8 for r in fixed):
         raise ValueError('Hosted source-helper profile with aligned fixed leases required')
-    constants={'OWNER_COUNT':len(OWNERS),'FIXED_COUNT':len(fixed),'INPUT_ADDRESS':0x20000,
+    constants={'OWNER_COUNT':len(owners),'FIXED_COUNT':len(fixed),'INPUT_ADDRESS':0x20000,
                'PAYLOAD_SIZE':len(data),'PAYLOAD_CRC32':zlib.crc32(data)}
+    if image_allocated:
+        if not game:raise ValueError('Image allocation requires the declared game/import contract')
+        if plans[IMAGE_OWNER].get('scope')!='typed_source_backed_image_fields_not_all_path_semantic_proof':
+            raise ValueError('Source-backed native image contract required')
+        constants['IMAGE_ALLOCATED']=1
+        constants['IMAGE_OWNER_OFFSET']=4*owners.index(IMAGE_OWNER)
     if game:
         constants['HOSTED_GAME']=1
         imported=batch['layout']['items'][0]['bootstrap']['exit_dispatch_import']
@@ -58,13 +76,14 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
             raise ValueError('Explicit native service import required')
         constants['EXIT_IMPORT_OFFSET']=imported['source_offset']
         constants['ORIGINAL_WORLD_INITIALIZER']=imported['staged_value']
+        if image_allocated:constants['WORLD_INITIALIZER_SOURCE']=imported['original_target_source_offset']
         fixes=[]
-        for index,name in enumerate(OWNERS):
+        for index,name in enumerate(owners):
             for f in plans[name]['fixups']:
                 if (any(type(f[k]) is not int for k in ('source_section_index','source_offset','width','region_offset','staged_value'))
                         or f['source_offset']<0 or not 0<=f['region_offset']<plans[name]['size']
                         or f['staged_value']!=plans[name]['staged_address']+f['region_offset']
-                        or f['source_section_index']!=0 or f['address_domain']!='runtime_only'
+                        or f['source_section_index']!=0 or f['address_domain']!=('mapped_source' if name==IMAGE_OWNER else 'runtime_only')
                         or f['width'] not in (2,4) or f['source_offset']%2
                         or f['source_offset']+f['width']>len(data)
                         or int.from_bytes(data[f['source_offset']:f['source_offset']+f['width']],'big')!=f['staged_value']):
@@ -74,6 +93,7 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
         for (a,_),(b,_) in zip(fixes,fixes[1:]):
             if a['source_offset']+a['width']>b['source_offset']:raise ValueError('Duplicate typed field')
         if len(fixes)!=batch['fixup_count']:raise ValueError('Incomplete native field family')
+        if not 0<len(fixes)<=65536:raise ValueError('Guest WORD counter cannot represent native fixup count')
         constants['FIXUP_COUNT']=len(fixes)
         for f,_ in fixes:
             if f['source_offset']<imported['source_offset']+4 and imported['source_offset']<f['source_offset']+f['width']:
@@ -82,11 +102,11 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
             raise ValueError('Stale original import')
     files['pandora_OS_plan.i']=('\n'.join(f'{n} EQU ${v:X}' for n,v in constants.items())+'\n').encode()
     table=['fixed_table:']+[f"    dc.l ${r['address']:X},${r['size']:X}" for r in fixed]
-    table+=['owner_sizes:']+[f"    dc.l ${(plans[n]['size']+7)&~7:X}" for n in OWNERS]
+    table+=['owner_sizes:']+[f"    dc.l ${(plans[n]['size']+7)&~7:X}" for n in owners]
     if game:
-        table+=['runtime_fields:']
+        field_table=['runtime_fields:']
         for f,index in fixes:
-            table.extend((f"    dc.l ${f['source_offset']:X},${f['staged_value']:X}",
+            field_table.extend((f"    dc.l ${f['source_offset']:X},${f['staged_value']:X}",
                           f"    dc.w {index*4},{f['width']}",f"    dc.l ${f['region_offset']:X}"))
         seeds=[r['loader_seed'] for r in batch['layout']['items'][0]['regions'] if 'loader_seed' in r]
         # Seed initialization is represented by the same frozen native layout,
@@ -101,11 +121,13 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
                 if offset<f['source_offset']+f['width'] and f['source_offset']<offset+size:raise ValueError('Seed source overlaps fixup')
             seed_source.append(f"    move.{'w' if size==2 else 'l'} INPUT_ADDRESS+${offset:X},${address:X}")
         files['pandora_OS_seeds.i']=('\n'.join(seed_source)+'\n').encode()
+    if game and not image_allocated:table+=field_table
     table+=['crc_table:']
     for i in range(256):
         crc=i
         for _ in range(8):crc=(crc>>1)^(0xedb88320 if crc&1 else 0)
         table.append(f'    dc.l ${crc:08X}')
+    if game and image_allocated:table+=field_table
     files['pandora_OS_tables.i']=('\n'.join(table)+'\n').encode()
     for name in ('amiga_pandora_OS.s','amiga_pandora_OS_fields.i','amiga_pandora_OS_audio.i','amiga_pandora_OS_takeover.i'):
         files[name]=(project_root/'tools'/name).read_bytes()
@@ -114,6 +136,7 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
 
 
 def build(out,xdftool,payload,contract,*,game=False):
+    owners=application_owners(contract)
     data=payload.read_bytes();files,fixed=application_sources(data,contract,game=game)
     build_host(out,xdftool)
     for name,content in files.items():(out/name).write_bytes(content)
@@ -124,14 +147,15 @@ def build(out,xdftool,payload,contract,*,game=False):
     (out/'assemble.log').write_text(assembled.stdout+assembled.stderr)
     assembled.check_returncode()
     labels={m[2]:int(m[1],16) for m in re.finditer(r'^([0-9A-F]{8}) (\w+)$',(out/'Pandora.list').read_text(),re.M)}
-    if labels['state_leases_end']-labels['state_leases']!=8*(len(OWNERS)+len(fixed)):
+    if labels['state_leases_end']-labels['state_leases']!=8*(len(owners)+len(fixed)):
         raise ValueError('Owned lease ledger must hold every exact address/size pair')
+    (out/'native-contract.json').write_text(json.dumps(contract,indent=2)+'\n')
     (out/'Pandora.payload').write_bytes(data)
     startup=out/'startup-sequence';startup.write_text('Pandora\nprobe2\n')
     subprocess.run([str(xdftool),str(out/'host.adf'),'delete','S/Startup-Sequence','+',
         'write',str(startup),'S/Startup-Sequence','+','write',str(out/'Pandora'),'Pandora','+',
         'write',str(out/'Pandora.payload'),'Pandora.payload'],check=True,capture_output=True)
-    return dict(status='normal_HUNK_game_application_built_runtime_pending' if game else 'normal_HUNK_pre_entry_application_built_not_game_launch',owners=list(OWNERS),
+    return dict(status='normal_HUNK_game_application_built_runtime_pending' if game else 'normal_HUNK_pre_entry_application_built_not_game_launch',owners=list(owners),
         contract_sha256=hashlib.sha256(json.dumps(contract,sort_keys=True).encode()).hexdigest(),
         payload_sha256=sha(payload),source_sha256=sha(source),HUNK_sha256=sha(out/'Pandora'),
         loader_sources_sha256={n:sha(out/n) for n in ('amiga_pandora_OS.s','amiga_pandora_OS_fields.i','amiga_pandora_OS_audio.i','amiga_pandora_OS_takeover.i')},
@@ -147,26 +171,46 @@ def own_code(hunk):
     return hunk[32:32+count]
 
 
+def observe_owned_hunk_entry(client,code,labels):
+    """Choose an owned CODE copy by execution, not identical file-cache bytes.
+
+    CPU breakpoints are read-only observations. Eight candidates is this
+    observer's explicit diagnostic budget, not a claim about backend limits.
+    """
+    candidates={};entry=labels['pre_entry_ready']
+    for frame in range(50,2001,25):
+        stop=client.run_until({'frame':frame},timeout=15)
+        pc=client.registers()['pc']
+        selected=next((base for base in candidates if pc==base+entry),None)
+        if selected is not None:
+            for base,bp in candidates.items():
+                if base!=selected:client.remove_breakpoint(bp)
+            if client.read_memory(selected,labels['immutable_code_end'])!=code[:labels['immutable_code_end']]:
+                raise ValueError('Executed HUNK immutable code differs')
+            if 'immutable_tables_start' in labels:
+                offset=labels['immutable_tables_start']
+                if client.read_memory(selected+offset,len(code)-offset)!=code[offset:]:
+                    raise ValueError('Executed HUNK field/CRC tables differ')
+            return selected,candidates[selected],stop
+        if stop.get('reason')!='target':raise ValueError('Unexpected stop before owned HUNK entry')
+        ram=client.read_memory(0xc00000,0x80000);offset=ram.find(code[:32])
+        while offset>=0:
+            base=0xc00000+offset
+            if base not in candidates:
+                if len(candidates)>=8:raise ValueError('Owned HUNK candidate budget exceeded')
+                candidates[base]=client.add_breakpoint(base+entry)
+            offset=ram.find(code[:32],offset+1)
+    raise ValueError('Owned HUNK pre-entry not executed within 2000 frames')
+
+
 def observe_pre_entry(out,rom,copperline):
     """Observe the owned HUNK without changing guest registers or memory."""
     from amiga_reversing.tools.copperline_control import CopperlineProcess
     labels={m[2]:int(m[1],16) for m in re.finditer(r'^([0-9A-F]{8}) (\w+)$',(out/'Pandora.list').read_text(),re.M)}
     code=own_code((out/'Pandora').read_bytes());result={}
     with CopperlineProcess(copperline,rom=rom,floppy=out/'host.adf',machine_profile='a500ecs_1m') as process:
-        c=process.client;base=None
-        for frame in range(50,551,25):
-            stop=c.run_until({'frame':frame},timeout=15)
-            if stop.get('reason')!='target':raise ValueError('Incomplete finite DOS boot window')
-            ram=c.read_memory(0xc00000,0x80000);offset=ram.find(code[:32])
-            if offset>=0:
-                if ram.find(code[:32],offset+1)>=0:raise ValueError('Ambiguous owned HUNK prefix')
-                base=0xc00000+offset;break
-        if base is None:raise ValueError('Owned HUNK not observed in bounded Slow RAM window')
-        if c.read_memory(base,labels['immutable_code_end'])!=code[:labels['immutable_code_end']]:
-            raise ValueError('Loaded HUNK immutable bytes differ')
-        breakpoint=c.add_breakpoint(base+labels['pre_entry_ready'])
-        stop=c.run_until({'frame':2000},timeout=45);registers=c.registers()
-        if registers['pc']!=base+labels['pre_entry_ready']:raise ValueError('Pre-entry not observed within bounds: '+str(stop))
+        c=process.client
+        base,breakpoint,stop=observe_owned_hunk_entry(c,code,labels);registers=c.registers()
         raw=c.read_memory(base+labels['host_state'],labels['eof_byte']-labels['host_state'])
         if int.from_bytes(raw[4:8],'big')!=2:raise ValueError('Payload identity stage not complete')
         count=int.from_bytes(raw[8:12],'big')
@@ -209,6 +253,7 @@ def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=No
     supply normal inputs and a natural exit boundary; cleanup is shared.
     Breakpoint observations are synchronous CPU evidence, not DMA tracing.
     """
+    owners_names=application_owners(json.loads((out/'native-contract.json').read_text()))
     from amiga_reversing.tools.copperline_control import CopperlineProcess
     labels={m[2]:int(m[1],16) for m in re.finditer(r'^([0-9A-F]{8}) (\w+)$',(out/'Pandora.list').read_text(),re.M)}
     code=own_code((out/'Pandora').read_bytes());report={'status':'incomplete'}
@@ -216,21 +261,9 @@ def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=No
         report[name]=data;(out/'live.json').write_text(json.dumps(report,indent=2)+'\n')
         print(name,json.dumps(data),flush=True)
     with CopperlineProcess(copperline,rom=rom,floppy=out/'host.adf',machine_profile='a500ecs_1m',audio_stems=audio_stems) as process:
-        c=process.client;base=None
-        for frame in range(50,551,25):
-            stop=c.run_until({'frame':frame},timeout=15)
-            if stop.get('reason')!='target':raise ValueError('Incomplete finite host boot window')
-            ram=c.read_memory(0xc00000,0x80000);offset=ram.find(code[:32])
-            if offset>=0:
-                if ram.find(code[:32],offset+1)>=0:raise ValueError('Ambiguous owned HUNK prefix')
-                base=0xc00000+offset;break
-        if base is None:raise ValueError('Owned HUNK absent in bounded Slow RAM window')
-        if c.read_memory(base,labels['immutable_code_end'])!=code[:labels['immutable_code_end']]:
-            raise ValueError('Loaded HUNK immutable code differs')
-        ready=c.add_breakpoint(base+labels['pre_entry_ready'])
-        stop=c.run_until({'frame':2000},timeout=45)
-        if c.registers()['pc']!=base+labels['pre_entry_ready']:raise ValueError('Pre-entry not observed within bounds')
-        owners={n:int.from_bytes(c.read_memory(base+labels['state_owners']+4*i,4),'big') for i,n in enumerate(OWNERS)}
+        c=process.client
+        base,ready,stop=observe_owned_hunk_entry(c,code,labels)
+        owners={n:int.from_bytes(c.read_memory(base+labels['state_owners']+4*i,4),'big') for i,n in enumerate(owners_names)}
         native=actual_validator(owners)
         record('actual_admission',HUNK_base=base,stop=stop,owners=owners,native=native)
         if native.get('status')!='actual_placements_valid' or native.get('uncovered_runtime_extents')!=[]:
@@ -343,13 +376,14 @@ def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=No
 
 
 @contextmanager
-def native_hosted_context():
+def native_hosted_context(*,allocate_image=False):
     from amiga_reversing.disasm.c_backend import build_listing_artifact_profile_from_binary_source
     from amiga_reversing.disasm.project_paths import resolve_project_paths
     from amiga_reversing.disasm.effective_metadata import effective_metadata_file
     from amiga_reversing.disasm.restoration import revisions
     from amiga_reversing.tools.pandora_layout_walkthrough import TARGET
     paths=resolve_project_paths(TARGET);layout_id='pandora_OS_hosted_ecs1m';before=revisions(TARGET)
+    owners=(*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS
     print('Building one native hosted context for template and actual returns',flush=True)
     with effective_metadata_file(paths.target_dir,layout_id=layout_id) as metadata:
         artifact=build_listing_artifact_profile_from_binary_source(paths.binary_source,metadata_path=metadata,project_root=PROJECT_ROOT)[2]
@@ -357,13 +391,13 @@ def native_hosted_context():
             def stable():
                 if revisions(TARGET)!=before:raise ValueError('Canonical target changed; hosted admission is stale')
                 artifact.loaded_backend_identity()
-            stable();plans={n:artifact.runtime_allocation_plan(n,layout_id) for n in OWNERS}
+            stable();plans={n:artifact.runtime_allocation_plan(n,layout_id) for n in owners}
             if any(v.get('status')!='bounded_allocation_candidate' for v in plans.values()):
                 raise ValueError('Native owner template refuses')
             def validate(owners):
                 stable()
                 return artifact.runtime_allocation_batch_plan(layout_id,dict(schema_version=1,layout_id=layout_id,
-                    chip_bytes=0x100000,placements=[dict(region_id=n,runtime_address=owners[n]) for n in OWNERS]))
+                    chip_bytes=0x100000,placements=[dict(region_id=n,runtime_address=owners[n]) for n in owners]))
             batch=validate({n:v['staged_address'] for n,v in plans.items()})
             yield dict(backend=artifact.loaded_backend_identity(),candidates=plans,template_geometry=batch),validate
             stable()
@@ -374,6 +408,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--xdftool',type=Path,required=True)
     p.add_argument('--payload',type=Path,required=True);p.add_argument('--native-contract',type=Path)
+    p.add_argument('--allocate-image',action='store_true',help='Request the natively admitted image through Exec in addition to the six runtime owners')
     p.add_argument('--game',action='store_true');p.add_argument('--run',action='store_true');p.add_argument('--rom',type=Path);p.add_argument('--copperline',type=Path)
     p.add_argument('--route-scenario',type=Path,help='Existing compiled 576-phase completion route; otherwise short fire/F7 observation')
     p.add_argument('--title-capture',action='store_true',help='Bounded original-helper settled title capture; emulator stop is not an OS-return test')
@@ -382,8 +417,9 @@ def main():
     if a.run and (a.rom is None or a.copperline is None):p.error('--run requires explicit ROM and Copperline')
     if (a.route_scenario or a.title_capture or a.audio_stems) and not (a.game and a.run):p.error('Route/title/audio capture requires --game --run')
     if a.route_scenario and a.title_capture:p.error('Choose the completion route or title prefix')
+    if a.allocate_image and not (a.game and a.run):p.error('--allocate-image requires --game --run; build-only uses an explicit native contract')
     if a.game and a.run:
-        with native_hosted_context() as (contract,validate):
+        with native_hosted_context(allocate_image=a.allocate_image) as (contract,validate):
             r=build(out,a.xdftool.resolve(),a.payload.resolve(),contract,game=True)
             (out/'native-contract.json').write_text(json.dumps(contract,indent=2)+'\n')
             (out/'build.json').write_text(json.dumps(r,indent=2)+'\n')

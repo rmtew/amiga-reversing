@@ -9,10 +9,12 @@ from amiga_reversing.tools.pandora_OS_application import own_code
 ROOT=Path(__file__).resolve().parents[1]
 
 @pytest.fixture
-def executable(tmp_path):
+def executable(tmp_path,request):
     (tmp_path/'pandora_OS_plan.i').write_text('HOSTED_GAME EQU 1\nOWNER_COUNT EQU 6\nFIXED_COUNT EQU 4\nFIXUP_COUNT EQU 2\nINPUT_ADDRESS EQU $20000\nPAYLOAD_SIZE EQU 16\nPAYLOAD_CRC32 EQU 0\nEXIT_IMPORT_OFFSET EQU 8\nORIGINAL_WORLD_INITIALIZER EQU $80000\n')
     (tmp_path/'pandora_OS_tables.i').write_text('fixed_table: dc.l $20000,$5C000,$7D000,$2EB8,$80000,$55370,$E0000,$D000\nowner_sizes: dc.l 8,128,2304,1000,48056,10040\nruntime_fields: dc.l 0,$7F0\n dc.w 0,2\n dc.l 2\n dc.l 4,$6000\n dc.w 4,4\n dc.l $40\ncrc_table: dcb.l 256,0\n')
     (tmp_path/'pandora_OS_seeds.i').write_text(' move.w INPUT_ADDRESS+12,$40000\n')
+    if getattr(request,'param',False):
+        with (tmp_path/'pandora_OS_plan.i').open('a') as f:f.write('IMAGE_ALLOCATED EQU 1\nIMAGE_OWNER_OFFSET EQU 0\nWORLD_INITIALIZER_SOURCE EQU $20\n')
     target=tmp_path/'app';listing=tmp_path/'app.list'
     p=subprocess.run([str(VASM),'-Fhunkexe','-m68000','-no-opt','-I'+str(NDK_INCLUDE),'-I'+str(ROOT/'tools'),'-I'+str(tmp_path),'-L',str(listing),'-o',str(target),str(ROOT/'tools/amiga_pandora_OS.s')],capture_output=True,text=True)
     assert p.returncode==0,p.stderr
@@ -113,3 +115,35 @@ def test_audio_cleanup_completes_lock_before_close_and_frees_signal(executable,o
     assert m.mem.r32(base+l['state_audio_open'])==0
     assert m.mem.r32(base+l['state_audio_lock'])==0
     assert m.mem.r32(base+l['state_signal'])==0xffffffff
+
+
+@pytest.mark.parametrize('executable',[True],indirect=True)
+@pytest.mark.parametrize('sr',[0x2700,0x270a,0x271b,0x271f])
+def test_allocated_image_dispatch_preserves_state_and_tail_returns_to_actual_target(executable,sr):
+    m,l,_=machine(executable);base=0x1000;target=0x82346
+    for i in range(16):m.cpu.w_reg(machine68k.Register(i),0x10000+i*0x100)
+    m.cpu.w_reg(machine68k.Register.A7,0xf8000);m.mem.w32(0xf8000,0x89fdc)
+    m.mem.w32(base+l['state_image_initializer'],target)
+    m.cpu.w_sr(sr);before=[m.cpu.r_reg(machine68k.Register(i)) for i in range(16)]
+    m.cpu.w_pc(base+l['mission_restart_dispatch']);observed={}
+    class Done(Exception):pass
+    def hook(pc):
+        if pc==target:
+            observed['sr']=m.cpu.r_sr()
+            raise Done
+    m.cpu.set_instr_hook_callback(hook)
+    try:m.cpu.execute(3000)
+    except Done:pass
+    else:raise AssertionError('Actual initializer target was not reached')
+    assert [m.cpu.r_reg(machine68k.Register(i)) for i in range(16)]==before
+    assert observed['sr']==sr and m.mem.r32(0xf8000)==0x89fdc
+    assert m.mem.r32(base+l['state_dispatch_count'])==1
+
+
+@pytest.mark.parametrize('executable',[True],indirect=True)
+def test_image_initializer_binding_comes_from_returned_owner(executable):
+    m,l,_=machine(executable);base=0x1000
+    call(m,base+l['validate_runtime_fields'])
+    assert m.cpu.r_reg(machine68k.Register.D0)==1
+    call(m,base+l['apply_runtime_fields'])
+    assert m.mem.r32(base+l['state_image_initializer'])==0x1998+0x20

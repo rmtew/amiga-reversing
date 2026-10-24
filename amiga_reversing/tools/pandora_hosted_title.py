@@ -21,7 +21,8 @@ class TitleCapture:
     SOURCE_OFFSET = 0xfd2
 
     def __call__(self, client, base, labels, native, out, record):
-        pc = 0x80000+self.SOURCE_OFFSET
+        [image_region]=[r for r in native['layout']['items'][0]['regions'] if r.get('region_kind')=='image' and not r.get('parent_region_id')]
+        pc = image_region['runtime_address']+self.SOURCE_OFFSET
         breakpoint = client.add_breakpoint(pc)
         first = None
         for visit in range(4096):

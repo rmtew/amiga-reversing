@@ -22,8 +22,10 @@ class HostedRoute:
         def moved(address, size=1):
             return observed_address(plan, address, size)
         scenario = copy.deepcopy(self.scenario)
-        view = dict(base_addr=0x80000, source_start=0, source_end=0x55370,
-            runtime_base=0x80000, execution_view_id='native-hosted-actual-six-owner')
+        [image]=[r for r in plan['regions'] if r.get('region_kind')=='image' and not r.get('parent_region_id')]
+        image_base=image['runtime_address'];image_size=image['size']
+        view = dict(base_addr=image_base, source_start=0, source_end=image_size,
+            runtime_base=image_base, execution_view_id='native-hosted-actual-owners')
         def update(read):
             address = read.get('address')
             if address is not None:
@@ -34,15 +36,15 @@ class HostedRoute:
                     data[:4] = moved(int.from_bytes(data[:4], 'big')).to_bytes(4, 'big')
                 read['expect_hex'] = data.hex()
         for phase in scenario['phases']:
-            phase.update(breakpoint_address=0x80000+phase['source_offset'], runtime_view=view)
+            phase.update(breakpoint_address=image_base+phase['source_offset'], runtime_view=view)
             for read in phase.get('capture', {}).get('memory_reads', []):
                 update(read)
             if 'until_memory' in phase:
                 update(phase['until_memory'])
         scenario.setdefault('symbols', {})['runtime_view'] = view
         for function in scenario['symbols'].get('functions', []):
-            function.update(runtime_start=0x80000+function['source_start'],
-                runtime_end=0x80000+function['source_end'])
+            function.update(runtime_start=image_base+function['source_start'],
+                runtime_end=image_base+function['source_end'])
         (out/'runtime-scenario.json').write_text(json.dumps(scenario, indent=2)+'\n')
         live = native['leases'] + native['fixed_leases_requiring_OS_acquisition']
         candidates = [(r['original_address'], r['size']) for r in plan['regions']
@@ -119,7 +121,7 @@ class HostedRoute:
         (out/'scenario-result.json').write_text(json.dumps(result, indent=2)+'\n')
         if len(result['phases']) != 576 or not all(p['status'] == 'hit' for p in result['phases']):
             raise ValueError('Incomplete original completion route; retain failure evidence')
-        ending = ending_outcome(result, 0x80000, 0x55370, address_mapper=moved)
+        ending = ending_outcome(result, image_base, image_size, address_mapper=moved)
         capture('saved_earth_escape', ending['final_frame'])
         record('ending', **ending)
         deadline = ending['final_frame']+4000

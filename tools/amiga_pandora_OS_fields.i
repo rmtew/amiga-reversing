@@ -55,6 +55,11 @@ field_applied:
     ; input and original operand were checked before the apply pass.
     lea mission_restart_dispatch(pc),a0
     move.l a0,INPUT_ADDRESS+EXIT_IMPORT_OFFSET
+    IFD IMAGE_ALLOCATED
+    move.l state_owners+IMAGE_OWNER_OFFSET-host_state(a5),d0
+    addi.l #WORLD_INITIALIZER_SOURCE,d0
+    move.l d0,state_image_initializer-host_state(a5)
+    ENDC
     INCLUDE "pandora_OS_seeds.i"
     rts
 decode_runtime_field:

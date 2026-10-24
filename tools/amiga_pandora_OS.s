@@ -205,7 +205,9 @@ remember_lease:
     INCLUDE "amiga_pandora_OS_takeover.i"
     ENDC
     even
+    IFND IMAGE_ALLOCATED
     INCLUDE "pandora_OS_tables.i"
+    ENDC
 dos_name: dc.b "dos.library",0
 payload_name: dc.b "Pandora.payload",0
 success_message: dc.b "PANDORA OS: SIX OWNERS AND PAYLOAD READY, PRE-ENTRY ONLY",10,0
@@ -228,6 +230,9 @@ state_gfx: dc.l 0
 state_old_view: dc.l 0
 state_saved_ssp: dc.l 0
 state_dispatch_count: dc.l 0
+    IFD IMAGE_ALLOCATED
+state_image_initializer: dc.l 0
+    ENDC
 state_saved_dma: dc.w 0
 state_saved_irq: dc.w 0
 state_saved_adk: dc.w 0
@@ -247,3 +252,7 @@ state_vector_snapshot: dcb.b 1024,0
     even
 eof_byte: dc.b 0
     even
+    IFD IMAGE_ALLOCATED
+immutable_tables_start:
+    INCLUDE "pandora_OS_tables.i"
+    ENDC

@@ -88,13 +88,26 @@ static const char *mr_image_instruction_fixup(const PlatformFileListingArtifact 
     .target_offset=e->target_offset};
   *emitted=1;return NULL;
 }
-static const char *mr_allocation_image_fixups(const PlatformFileListingArtifact *a,
+#include "m68k_source_image_relations.inc"
+
+static const char *mr_allocation_image_fixups_checked(const PlatformFileListingArtifact *a,
     const M68kMemoryRegionIR *r,const M68kBootstrapContractIR *boot,uint32_t staged,
-    MRAllocationFixup *sites,size_t capacity,size_t *count,const M68kRenderPlannedExpression **refused) {
+    MRAllocationFixup *sites,size_t capacity,size_t *count,const M68kRenderPlannedExpression **refused,
+    const unsigned char *checked_relative) {
   for(size_t i=0;i<a->source_plan.expression_count;i++) {
     const M68kRenderPlannedExpression *e=&a->source_plan.expressions[i];
     *refused=e;
     uint32_t target=0;int found=0;
+    if(e->kind==M68K_RENDER_PLANNED_EXPRESSION_RELATIVE) {
+      int storage=!e->source_section_index && e->source_offset<r->size;
+      int base=e->has_base_target && !e->base_section_index && e->base_offset<r->size;
+      int target_inside=e->has_target && !e->target_section_index && e->target_offset<r->size;
+      if(e->has_target || e->has_base_target) {
+        if((storage || base || target_inside) && !(storage && base && target_inside))
+          return "cross_owner_relative_image_reference";
+      } else if(storage && !checked_relative[e->source_offset]) return "unresolved_relative_image_reference";
+      continue;
+    }
     int pointer=e->kind==M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER || e->kind==M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY;
     if(e->has_target) {
       if(e->target_section_index || e->target_offset>=r->size) {
@@ -123,11 +136,6 @@ static const char *mr_allocation_image_fixups(const PlatformFileListingArtifact 
         return "unresolved_runtime_image_pointer";
     }
     if(!found) continue;
-    if(e->kind==M68K_RENDER_PLANNED_EXPRESSION_RELATIVE) {
-      if(!e->has_base_target || e->base_section_index || e->base_offset>=r->size ||
-          e->source_section_index || e->source_offset>=r->size) return "cross_owner_relative_image_reference";
-      continue;
-    }
     if(*count>=capacity) return "fixup_capacity_exceeded";
     if(e->kind==M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND) {
       if(e->outcome!=M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC) return "unresolved_image_instruction_reference";
@@ -144,4 +152,14 @@ static const char *mr_allocation_image_fixups(const PlatformFileListingArtifact 
       .pointer_domain_plus_one=(uint8_t)(e->pointer_address_domain+1)};
   }
   *refused=NULL;return NULL;
+}
+
+static const char *mr_allocation_image_fixups(const PlatformFileListingArtifact *a,
+    const M68kMemoryRegionIR *r,const M68kBootstrapContractIR *boot,uint32_t staged,
+    MRAllocationFixup *sites,size_t capacity,size_t *count,const M68kRenderPlannedExpression **refused) {
+  unsigned char *checked=calloc(r->size ? r->size:1,1);
+  if(!checked) return "relative_image_guard_allocation_failed";
+  const char *reason=mr_image_relative_data_guard(&a->source_analysis,&a->object,&a->source_plan,r,checked,refused);
+  if(!reason) reason=mr_allocation_image_fixups_checked(a,r,boot,staged,sites,capacity,count,refused,checked);
+  free(checked);return reason;
 }

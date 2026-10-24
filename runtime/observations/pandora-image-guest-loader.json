@@ -1,0 +1,64 @@
+{
+  "schema": "pandora-image-guest-loader/v1",
+  "status": "built_and_fixture_tested_cold_qualification_pending",
+  "payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+  "HUNK_sha256": "9cff0c5717dc5aa4cb2429836436033ca41394fa0fed9eda76e9349c7d47177f",
+  "HUNK_file_bytes": 49352,
+  "owned_CODE_bytes": 47144,
+  "runtime_fixups": 2684,
+  "dynamic_owners": [
+    "pandora_prng_state",
+    "keyboard_state",
+    "pandora_ui_snapshot_body",
+    "pandora_title_stars",
+    "pandora_cpu_workspace",
+    "pandora_low_generated_masks",
+    "pandora_image"
+  ],
+  "fixed_lease_intents": [
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    }
+  ],
+  "observed_fixed_bytes": 791080,
+  "planned_fixed_bytes": 442040,
+  "qualified_game_lease_bytes": 852616,
+  "fixed_image_compatibility_HUNK_sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c",
+  "changes": [
+    "The existing Exec acquisition order reserves remaining fixed ranges before image AllocMem; all fields validate before applying.",
+    "Bootstrap destination and continuation are ordinary typed image fields; the sole host exit import remains separate.",
+    "First initializer uses the actual image owner plus native target source offset, preserving the incoming registers/SR/original stack link.",
+    "Large native field tables follow mutable host state; CRC/owner tables precede fields to preserve authored PC-relative reach. Read-only observation checks the immutable table tail.",
+    "Route/title observation coordinates derive from the native image placement, without guest-state writes."
+  ],
+  "review_hardening": {
+    "issue": "Outbound RELATIVE data entries could be skipped when target was outside image.",
+    "correction": "Native data-reference and frozen-expression guards require storage/base/target to share the moved image. Numeric record indices are checked from canonical facts, not treated as absent edges.",
+    "tests": "Bidirectional source-edge and numeric packed-index canonical-IR regressions, plus existing native admission fixtures."
+  },
+  "first_cold_attempt": {
+    "status": "observer_refused_before_game_entry_qualification",
+    "reason": "Ambiguous owned HUNK prefix in Slow RAM.",
+    "consequence": "No live allocation, gameplay, output or cleanup pass is inferred.",
+    "correction": "Observe pre-entry execution among at most eight candidates, then verify owned immutable code/tables; budget is an observer limit, not an emulator capability claim."
+  },
+  "checks": {
+    "passed": 126,
+    "skipped": 0,
+    "log_sha256": "c1ddbb0a511785038b6001d418ff174a5ed7d4adc8e69fb1876c2dc12ffa950d"
+  },
+  "remaining": [
+    "Actual allocator return, full staged bytes, moved initialization, natural gameplay/exit and exact cleanup are currently being tested.",
+    "Full completion, scoped graphics/PCM comparison and promoting the new allocation mode into the normal complete source package remain pending.",
+    "Fixed carrier, high masks and display still need subsequent A2\u2013A4 work. No duplicate-input lifetime, all-path or startup-clock equivalence is claimed."
+  ]
+}
