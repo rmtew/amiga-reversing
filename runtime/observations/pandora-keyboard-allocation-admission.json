@@ -1,0 +1,121 @@
+{
+  "schema": "pandora-keyboard-allocation-admission/v1",
+  "status": "native_seven_fields_and_executable_leaf_fixture_tested_live_DOS_game_pending",
+  "subject": {
+    "subject_revision": "0798e81597124ec7f4749e95ce93e3c25f37704e83266dd8703f98bfec6fd4c0",
+    "revision": "713427591bff673d2dedfbe4e8bc65dd2008bff5867c35767f1389b9cb08d592"
+  },
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "2d684c4d0233985fc752886c988e5357de6f962a18f4713330ec1cd5f3ed3f38"
+  },
+  "native_plan_sha256": "41cc8fe14410e816f66b955f11240fa071d3f8765fb140fa9f59f430381c9ed8",
+  "private_native_result_sha256": "1df77342211984119a43beec6b5166d765851d5983b93ce0ef3b45b08b16967e",
+  "region_id": "keyboard_state",
+  "size": 128,
+  "fixups": [
+    {
+      "source_section_index": 0,
+      "source_offset": 1682,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 24576,
+      "instruction_source_offset": 1680,
+      "operand_index": 0,
+      "opcode": 16889,
+      "symbol": "KEYBOARD_STATE_BASE"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 2156,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 24576,
+      "instruction_source_offset": 2154,
+      "operand_index": 0,
+      "opcode": 17401,
+      "symbol": "KEYBOARD_STATE_BASE"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 9990,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 64,
+      "staged_value": 24640,
+      "instruction_source_offset": 9988,
+      "operand_index": 0,
+      "opcode": 19001,
+      "symbol": "KEYBOARD_INVENTORY_KEY_STATE"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 11564,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 80,
+      "staged_value": 24656,
+      "instruction_source_offset": 11562,
+      "operand_index": 0,
+      "opcode": 16889,
+      "symbol": "KEYBOARD_PAUSE_KEY_STATE"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 36964,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 24576,
+      "instruction_source_offset": 36962,
+      "operand_index": 0,
+      "opcode": 16889,
+      "symbol": "KEYBOARD_STATE_BASE"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 40056,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 24576,
+      "instruction_source_offset": 40054,
+      "operand_index": 0,
+      "opcode": 16889,
+      "symbol": "KEYBOARD_STATE_BASE"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 40794,
+      "width": 4,
+      "encoding": "absolute_long_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 24576,
+      "instruction_source_offset": 40792,
+      "operand_index": 0,
+      "opcode": 16889,
+      "symbol": "KEYBOARD_STATE_BASE"
+    }
+  ],
+  "checks": {
+    "passed": 56,
+    "skipped": 0,
+    "scope": "Native-projected leaf operands, interior aliases +64/+80, real guest boot fixture patching, acquisition/failure unwind, stale opcode/operand and frame/numeric/child/data refusal; existing CPU/body regressions."
+  },
+  "limits": [
+    "No target source or opcode changes; existing original byte-exact build remains unchanged.",
+    "No Pandora DOS launch, actual target keyboard AllocMem patch run, or successful game OS-return claim.",
+    "All existing frame-relative contracts still require guards. This leaf path admits no children, frame metadata, numeric candidates, data pointers, immediates or WORD fields.",
+    "Native metadata/reference scope only; synthesized/unclassified aliases are not proved absent."
+  ],
+  "next": "Compose OS-owned storage before takeover, including keyboard interior aliases and low PRNG/UI owners; preserve strict allocation reach and restoration gates."
+}

@@ -71,6 +71,18 @@ def validate(value):
         owner=next((r for r in layout[0]['regions'] if r['region_id']==p['region_id']),None)
         frame=owner.get('address_frame',{}) if owner else {}
         guards=p.get('address_frame_guards')
+        # A leaf such as the keyboard table has no lowered frame-relative
+        # instructions. Admit only native-projected symbolic LONG operands;
+        # never waive an existing frame contract or promote numeric candidates.
+        if owner and 'address_frame' not in owner:
+            if (owner.get('parent_region_id') or owner.get('region_kind')!='storage'
+                    or owner['size']!=p['size'] or owner['runtime_address']!=p['staged_address']
+                    or any(r.get('parent_region_id')==p['region_id'] for r in layout[0]['regions'])
+                    or 'address_frame_guards' in p or 'address_frame_contract_sha256' in p
+                    or p.get('numeric_immediate_candidates_not_fixups')!=0
+                    or any(f['encoding']!='absolute_long_operand' for f in fixes)):
+                raise ValueError('CPU leaf allocation requires only native symbolic LONG operands')
+            return p,layout[0]
         if (not owner or owner.get('parent_region_id') or owner['size']!=p['size']
                 or owner['runtime_address']!=p['staged_address'] or not frame.get('active')
                 or frame.get('contract_sha256')!=p.get('address_frame_contract_sha256')

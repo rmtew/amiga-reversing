@@ -990,3 +990,14 @@ PNG hashes equal the previous unheld run. This run captured no PCM; it adds no
 audio equivalence or all-frame/DMA claim
 ([cold qualification](../../runtime/observations/pandora-source-helper-cold-qualification.json)).
 It closes this bootstrap-helper slice, not the fixed-input or DOS exit obligations.
+
+The next ownership prerequisite has a bounded implementation:
+[seven-field keyboard admission](../../runtime/observations/pandora-keyboard-allocation-admission.json).
+Native analysis enumerates five table-base operands plus inventory `+$40` and
+pause `+$50`; all seven retain exact opcode/extension identities. The guest
+consumer now admits a storage leaf with only these symbolic LONG fields and no
+frame contract, children, numeric candidates or other encoding classes. Existing
+frame-relative CPU owners still require their immutable guards. Executable
+fixtures include both interior aliases, staged-byte refusal and exact failure
+unwind; 56 relevant checks pass. This is preparation for normal DOS ownership,
+not a claim that the keyboard has already moved in a DOS-launched game.
