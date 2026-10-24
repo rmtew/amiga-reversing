@@ -1,0 +1,179 @@
+{
+  "schema": "pandora-M5-allocation-preparation/v1",
+  "date": "2026-10-24",
+  "status": "typed_pointer_discovery_and_guest_allocator_probe_only",
+  "native_inspection": {
+    "report_sha256": "0d433526c7cc1cbac6c05d2a08b58db52a2032ac2b9c886fd85ce32675c44f9b",
+    "subject": {
+      "subject_revision": "7f55d2f0f8225cebf01a500ab5688da36df33159c2a1899ecf6803f37b7b0f82",
+      "revision": "4a00a6270bfbb240f934aec75546ba31eacf7b55c72136eea9fe8de58800b09f"
+    },
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "cd73c505e5b7795bf223fc12a5fc51b9f7649f10805c0b86e6c2f67449057964"
+    },
+    "wall_seconds": 161.7528074580041,
+    "region": {
+      "region_id": "pandora_ui_snapshot_body",
+      "runtime_address": 2032,
+      "size": 2304,
+      "source_domain": "runtime_only",
+      "dma_access": "chip",
+      "lifetime": "persistent",
+      "proof_status": "obligations_open",
+      "unresolved_obligations": 131
+    },
+    "instruction_numeric_candidates": 28,
+    "typed_data_pointer_sites": [
+      {
+        "source_section_index": 0,
+        "source_offset": 13314,
+        "width": 4,
+        "address": 2032,
+        "region_offset": 0,
+        "kind": "table_entry",
+        "symbolic": true,
+        "reason": "resolved_runtime_symbol",
+        "target_symbol": "UI_BODY_BACKGROUND_STORAGE"
+      }
+    ],
+    "pointer_resolution": {
+      "address_domain": "runtime_only",
+      "symbol_group": "ui_overlay_background_storage",
+      "outcome": "symbolic",
+      "reason": "resolved_runtime_symbol",
+      "encoded_value": 2032,
+      "addend": 0,
+      "symbol": "UI_BODY_BACKGROUND_STORAGE"
+    },
+    "row_key": "s0:00003402:data"
+  },
+  "probe": {
+    "report_sha256": "0a24065a7bda8535d931566bf69ac53c1e075dba6fe3d356146a37f7d89d0205",
+    "schema": "pandora-allocmem-probe/v1",
+    "status": "diagnostic_only_not_gameplay",
+    "owner": {
+      "region_id": "pandora_ui_snapshot_body",
+      "base_symbol": "ui_snapshot_body",
+      "region_kind": "storage",
+      "parent_region_id": "",
+      "original_address": 2032,
+      "runtime_address": 2032,
+      "size": 2304,
+      "parent_offset": 0
+    },
+    "input_backing": [
+      [
+        131072,
+        376832
+      ]
+    ],
+    "results": [
+      {
+        "prior_scratch_bytes": 0,
+        "owner_base": 23016,
+        "scratch_base": 0,
+        "owner_free_completed": true,
+        "adf_sha256": "9e21b73a93e04139380f272c617a921a306dafe0237e43e91353601d160f1773",
+        "registers": {
+          "d0": 0,
+          "d1": 1040,
+          "d2": 1,
+          "d3": 0,
+          "d4": 0,
+          "d5": 0,
+          "d6": 4294967295,
+          "d7": 50,
+          "a0": 1024,
+          "a1": 23016,
+          "a2": 4294967295,
+          "a3": 16680686,
+          "a4": 5464,
+          "a5": 12588258,
+          "a6": 12583542,
+          "a7": 12588210,
+          "pc": 131172,
+          "sr": 16,
+          "sp": 12588210
+        }
+      },
+      {
+        "prior_scratch_bytes": 64,
+        "owner_base": 23080,
+        "scratch_base": 23016,
+        "owner_free_completed": true,
+        "adf_sha256": "a42cbe9dc7eaa022db28974bf84d78f565ac0abf64e7f7e0645cbb348256b073",
+        "registers": {
+          "d0": 64,
+          "d1": 1040,
+          "d2": 1,
+          "d3": 0,
+          "d4": 0,
+          "d5": 64,
+          "d6": 4294967295,
+          "d7": 50,
+          "a0": 1024,
+          "a1": 23016,
+          "a2": 4294967295,
+          "a3": 16680686,
+          "a4": 5464,
+          "a5": 12588258,
+          "a6": 12583542,
+          "a7": 12588210,
+          "pc": 131172,
+          "sr": 16,
+          "sp": 12588210
+        }
+      }
+    ],
+    "source_sha256": "f9cadfa63f3b35a2231f848f069a9f62832ae85170c78dfa717f3e78be17e315",
+    "payload_sha256": "e3c005202214a35ca5d42619002f8aac91976cff9ea2a80859adf20307af406d",
+    "export_sha256": "4f4e98a49d40258f906b4f8b8bc495cdd2466a331a969e26c54685aa0c22812e",
+    "layout_plan_sha256": "bf353e2c455938227d996a241551dca85223b3ed623440b9c5a987e015b89446",
+    "metadata_sha256": "9575b27dad537c1e774f6754399a7bb80010fca112855a9c23cf2bacd1d5cb5c",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "limits": [
+      "Only allocation/free capability and actual return values; not a game execution.",
+      "No game-pointer fixups, hardware takeover or OS cleanup are implemented.",
+      "Only staged-input and marker backing are reserved here; other fixed game ranges are not leased.",
+      "A successful AllocMem return is not admission of a legal Pandora placement."
+    ]
+  },
+  "interpretation": [
+    "The old region reference list enumerated instruction candidates but did not expose the actual typed LONG descriptor pointer. It is now projected from the frozen native expressions, without asset scans or rendered-text parsing.",
+    "The 28 instruction candidates remain separate and unresolved in the legacy proof adapter; their numeric overlap is not evidence of another body pointer. No proof/manifest admission guard was relaxed.",
+    "Original body descriptor width 12 and height 6 give 192 packed rows times 12 bytes =2304. Capture writes its bitmap pointer; restore reads it through blitter DMA. Both routines return before the newly launched DMA completes.",
+    "Both measured owner returns lie inside the fixed world_tilemap_pointer_grid [$4000,$F568). A successful Exec allocation is not a usable game placement. No pointer was patched and Pandora was not started by this probe."
+  ],
+  "tests": {
+    "passed": 162,
+    "scope": [
+      "test_memory_region_data_pointer_sites.py",
+      "test_memory_regions.py",
+      "test_memory_layouts.py",
+      "test_pandora_display_constraints.py",
+      "test_typed_pointer_domains.py"
+    ],
+    "negatives": [
+      "Scalar lookalike omitted from typed pointer sites",
+      "End-exclusive target omitted",
+      "Unresolved pointer namespace retained as non-symbolic, not promoted to a fixup"
+    ]
+  },
+  "remaining": [
+    "Define runtime allocation and a native-validated actual-base fixup admission separately from these discovery sites. Do not consume arbitrary numeric candidates as relocations.",
+    "Acquire/avoid live fixed ranges before actual-base admission; current direct shim reserves the input and explicit seed backing, not all game RAM.",
+    "Preserve full staged input and loader-only suffix, initialize before reads, retain the body lease through completed DMA, and unwind every acquired lease on failure.",
+    "Qualify at least two legal actual allocator-selected layouts with normal-input completion and relevant output checks, then implement reviewed OS lifecycle."
+  ],
+  "preservation": {
+    "target_source_or_history_changed": false,
+    "original_exact_receipt_retained": "743e95a4cd7da9d8691c84b4cd585285404f8b5940d4e1452d384869bdcf0535",
+    "whole_target_regeneration_repeated": false,
+    "meaning": "New native change is read-only reference projection. Existing source/facts and last whole-file exact evidence are preserved, not a fresh rebuild under the changed backend.",
+    "gameplay_state_injected": false,
+    "raw_media_published": false
+  },
+  "reproduction": "python -m amiga_reversing.tools.pandora_allocmem_probe --export-json <normal-complete-export.json> --output <fresh-private-directory> --rom <legal-rom> --copperline <pinned-binary>"
+}

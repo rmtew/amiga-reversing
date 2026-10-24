@@ -107,10 +107,38 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
       uint32_t v=a->source_analysis.sections[i].data_references[j].raw_value;
       if(v>=r->runtime_address && v<r->runtime_address+r->size) open++;
     }
-  return json_builder_appendf(b,"],\"reference_count\":%zu,\"unresolved_obligations\":%zu,\"proof_status\":\"%s\","
+  if(json_builder_append(b,"],\"typed_data_pointer_sites\":[")) return -1;
+  size_t pointer_count=0;
+  /* The instruction inventory above is not a data-pointer inventory. Consume
+   * the same frozen typed expressions as the exporter, never numeric scans of
+   * assets or rendered text. This is discovery evidence, not fixup admission:
+   * DATA_POINTER/TABLE_ENTRY here are the LONG pointer renderers; relative and
+   * split expressions deliberately are not admitted by this projection.
+   * Instruction/split references, aliases and lifetime still need their own
+   * contracts before a runtime allocator may consume these coordinates. */
+  for(i=0;i<p->expression_count;i++) {
+    const M68kRenderPlannedExpression *e=&p->expressions[i];
+    if((e->kind!=M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER &&
+        e->kind!=M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY) ||
+        e->logical_address<r->runtime_address ||
+        e->logical_address-r->runtime_address>=r->size) continue;
+    if((pointer_count++ && json_builder_append(b,",")) || json_builder_appendf(b,
+        "{\"source_section_index\":%u,\"source_offset\":%u,\"width\":4,"
+        "\"address\":%u,\"region_offset\":%u,\"kind\":\"%s\",\"symbolic\":%s,\"reason\":",
+        e->source_section_index,e->source_offset,e->logical_address,
+        e->logical_address-r->runtime_address,
+        e->kind==M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER ? "data_pointer" : "table_entry",
+        e->outcome==M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ? "true" : "false") ||
+        json_builder_append_json_string(b,e->reason) ||
+        json_builder_append(b,",\"target_symbol\":") ||
+        json_builder_append_json_string(b,e->target_symbol) || json_builder_append(b,"}")) return -1;
+  }
+  return json_builder_appendf(b,"],\"typed_data_pointer_site_count\":%zu,"
+    "\"typed_data_pointer_scope\":\"frozen_typed_expressions_only_not_all_alias_or_runtime_fixup_proof\","
+    "\"reference_count\":%zu,\"unresolved_obligations\":%zu,\"proof_status\":\"%s\","
     "\"unknowns\":[\"Closure covers accepted native references and bounded pointer paths only.\","
     "\"Unclassified bytes, synthesized addresses and future callback changes remain outside this proof.\","
-    "\"Absent references do not establish free memory; runtime allocation is required.\"]}",count,open,
+    "\"Absent references do not establish free memory; runtime allocation is required.\"]}",pointer_count,count,open,
     count && !open ? "accepted_references_closed" : "obligations_open");
 }
 

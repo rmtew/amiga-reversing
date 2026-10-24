@@ -9,27 +9,27 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 [Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
 now records the normal-export E0000..ED000 display group, independently of image
-80000, with cursor still at65370. Fresh common-loader control/candidate runs both
-complete all576 phases at HP49/frame14465. The unheld cold candidate completes
-at HP49/frame14353, with both loss counters zero. All576 phase clocks,509 controller
-calls, eight selected RGBA frames and24,726,568 float PCM samples through EOF
+80000, with cursor still at 65370. Fresh common-loader control/candidate runs both
+complete all 576 phases at HP49 / frame14465. The unheld cold candidate completes
+at HP49 / frame14353, with both loss counters zero. All576 phase clocks, 509 controller
+calls, eight selected RGBA frames and 24,726,568 float PCM samples through EOF
 match exactly. Six sampled core DMA frames match; the same eight NULL-sprite
-reads at0/2 remain outside asset bounds. Raw unchanged asset bytes total295,492.
+reads at 0/2 remain outside asset bounds. Raw unchanged asset bytes total 295,492.
 
-Four additional committed startup profile frames contain54,744 bitplane WORDs
+Four additional committed startup profile frames contain 54,744 bitplane WORDs
 per role with zero normalized address/data mismatches. The two hybrid witnesses
-now read zero atE0002/E0006 inside the first40 CPU-zeroed bytes. HAND/init/title
+now read zero at E0002/E0006 inside the first 40 CPU-zeroed bytes. HAND/init/title
 PCs and clocks match the retained diagnostic control exactly. The new invariant
 test asserts low16 preservation for every child, both witness offsets and their
-complete WORD containment; three cases pass. Children retain2-byte alignment;
-the64-KiB restriction belongs only to the parent and retained live Copper sequence.
+complete WORD containment; three cases pass. Children retain 2-byte alignment;
+the 64-KiB restriction belongs only to the parent and retained live Copper sequence.
 
-The historical D8000 comparator remains a14-pixel mismatch and that placement
+The historical D8000 comparator remains a 14-pixel mismatch and that placement
 now refuses. No timing padding, cropping, tolerance or extra seed was used.
 Original full C/vasm remains exact (`743e95a4…`). This does not resolve the separate
 original-to-image eight-CCK pre-GO finding, certify all paths, qualify simultaneous
 cursorE0000/display movement, or implement allocation/OS cleanup. The next
-allocation candidate under inspection is the2,304-byte body-background owner and
+allocation candidate under inspection is the 2,304-byte body-background owner and
 its typed bitmap pointer, with blitter completion/lifetime explicitly required.
 
 Historical causal failures and their canonical repairs remain in
@@ -38,13 +38,42 @@ Historical causal failures and their canonical repairs remain in
 [initialization contract](../../runtime/observations/pandora-display-initialization-contract.json).
 The current pass supersedes their pending-qualification statements, preserving
 the failed runs and exact original receipts. M5/M6 continuation is authorized;
-neither is implemented yet. Do not reopen the eight-CCK probe without new evidence.
+M5 has only the preparation below; neither allocation nor OS lifecycle is implemented yet. Do not reopen the eight-CCK probe without new evidence.
+
+### M5 preparation: typed sites and allocator collision
+
+[Native evidence and allocator probe](../../runtime/observations/pandora-allocation-preparation.json)
+identify the body descriptor's one typed LONG at source `$3402`, pointing to
+`UI_BODY_BACKGROUND_STORAGE` (`$7F0`, 2,304 bytes). The region API now exposes
+frozen typed data-pointer sites separately from instruction candidates; it does
+not turn them into admitted runtime fixups. The existing 28 numeric instruction
+candidates and legacy proof refusal are retained. Scalar lookalikes, end-exclusive
+addresses and unresolved pointer namespaces have focused negative coverage;
+162 relevant tests pass. Native inspection took 161.75 seconds; no whole-target
+source generation or new walkthrough was performed for this read-only projection.
+
+A small reproducible guest diagnostic uses real Exec `AllocMem(MEMF_CHIP)` and
+`FreeMem`, via the existing verified direct-payload boot path. With full native
+staged-input backing reserved, requests return `$59E8` and `$5A28` (the latter
+with a prior 64-byte scratch lease). Both free calls complete. Neither result is
+admitted for the game: both overlap the fixed world-pointer grid `$4000..$F568`.
+The diagnostic never starts Pandora or patches its pointer. This is capability
+and collision evidence, not two successful M5 layouts or OS-friendly loading.
+
+The next implementation slice is an explicit allocation/lease and typed-fixup
+contract: acquire or avoid live fixed ranges, validate the actual returned base
+with the canonical planner, apply only reviewed typed source-coordinate fixups,
+verify initialized materialization, and unwind owned resources on failure.
+The body's capture and restore routines return before the new blit completes;
+its lease must survive the final DMA read. No immediate `FreeMem` at routine or
+modal return is justified. Two legal allocated layouts and relevant normal-input
+completion/output evidence remain required. OS takeover/return remains M6.
 
 [Workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json)
 records normal-export saved-Earth completion with image `$80000` and an
 independently moved 140-byte cursor workspace at `$E0000`. The unheld cold run
-completes all 576 phases at HP49/frame14353, with both loss counters zero. The
-controlled original, image-only and cursor runs each complete at HP49/frame14465;
+completes all 576 phases at HP49 / frame14353, with both loss counters zero. The
+controlled original, image-only and cursor runs each complete at HP49 / frame14465;
 these are fresh runs with an explicit common guest loader program, not a reuse
 of the earlier image-only frame14351 receipt.
 
@@ -161,9 +190,10 @@ HAND-cycle condition. Both cold completions and bounded output comparisons are
 available, but exact bootstrap-cycle identity is refused and its cause is not
 established. Do not claim unconditional M0–M4 completion. The target string builder
 is deleted; shared placement geometry now replaces the overlapping calculations.
-Optional allocation/OS lifecycle remains M5–M6 and is not implemented. A decision
-to accept the explicit pre-entry deviation or a new, narrowly scoped startup
-investigation is still needed before claiming that strict criterion fulfilled.
+Allocation/OS lifecycle remains M5–M6 and is not implemented. Its staged
+continuation is authorized. The strict pre-entry criterion remains unfulfilled;
+Richard directs independent functional progress. Do not reopen that timing probe
+without new relevant evidence.
 
 ### Earlier mechanism batches (historical)
 
@@ -565,7 +595,7 @@ have the partial implementation/evidence above; M2 has target profile builds and
 M3/M4 now have the scoped runtime/output evidence above; frozen-plan reuse and
 its measured performance are evidenced. Placement calculations are shared while
 the proof/manifest semantic adapter remains supported. Exact original HAND-cycle
-equality is still refused. M5–M6 are not started. M1–M4
+equality is still refused. M5 has preparation evidence only; M6 is not implemented. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are separately authorized continuation gates. Each batch
@@ -684,8 +714,8 @@ with the selected block's typed reference ledger and explicit remaining limits.
    validate its move through M4. Unknowns must identify the affected block and
    missing evidence; they cannot blanket-defer both region kinds or turn
    image-only qualification into completed first delivery.
-5. Runtime allocation and OS-hosted work require an explicit follow-up decision
-   and concrete host/lifecycle evidence. Neither is needed to remove today's
+5. Runtime allocation and OS-hosted work are authorized continuation, requiring
+   concrete owner/fixup and host/lifecycle evidence. Neither is needed to remove today's
    source-patching debt or to deliver the required original, known-image and
    independently moved-block layouts.
 

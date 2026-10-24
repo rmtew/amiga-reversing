@@ -5,37 +5,46 @@
 
 [Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
 now records the normal-export E0000..ED000 display group, independently of image
-80000, with cursor still at65370. Fresh common-loader control/candidate runs both
-complete all576 phases at HP49/frame14465. The unheld cold candidate completes
-at HP49/frame14353, with both loss counters zero. All576 phase clocks,509 controller
-calls, eight selected RGBA frames and24,726,568 float PCM samples through EOF
+80000, with cursor still at 65370. Fresh common-loader control/candidate runs both
+complete all 576 phases at HP49 / frame14465. The unheld cold candidate completes
+at HP49 / frame14353, with both loss counters zero. All576 phase clocks, 509 controller
+calls, eight selected RGBA frames and 24,726,568 float PCM samples through EOF
 match exactly. Six sampled core DMA frames match; the same eight NULL-sprite
-reads at0/2 remain outside asset bounds. Raw unchanged asset bytes total295,492.
+reads at 0/2 remain outside asset bounds. Raw unchanged asset bytes total 295,492.
 
-Four additional committed startup profile frames contain54,744 bitplane WORDs
+Four additional committed startup profile frames contain 54,744 bitplane WORDs
 per role with zero normalized address/data mismatches. The two hybrid witnesses
-now read zero atE0002/E0006 inside the first40 CPU-zeroed bytes. HAND/init/title
+now read zero at E0002/E0006 inside the first 40 CPU-zeroed bytes. HAND/init/title
 PCs and clocks match the retained diagnostic control exactly. The new invariant
 test asserts low16 preservation for every child, both witness offsets and their
-complete WORD containment; three cases pass. Children retain2-byte alignment;
-the64-KiB restriction belongs only to the parent and retained live Copper sequence.
+complete WORD containment; three cases pass. Children retain 2-byte alignment;
+the 64-KiB restriction belongs only to the parent and retained live Copper sequence.
 
-The historical D8000 comparator remains a14-pixel mismatch and that placement
+The historical D8000 comparator remains a 14-pixel mismatch and that placement
 now refuses. No timing padding, cropping, tolerance or extra seed was used.
 Original full C/vasm remains exact (`743e95a4…`). This does not resolve the separate
 original-to-image eight-CCK pre-GO finding, certify all paths, qualify simultaneous
 cursorE0000/display movement, or implement allocation/OS cleanup. The next
-allocation candidate under inspection is the2,304-byte body-background owner and
+allocation candidate under inspection is the 2,304-byte body-background owner and
 its typed bitmap pointer, with blitter completion/lifetime explicitly required.
 
 Earlier display failures remain in their linked causal receipts; this positive
 qualification supersedes pending status prose, not the failed evidence.
 
+[M5 preparation](../../runtime/observations/pandora-allocation-preparation.json):
+the native API now exposes the body descriptor's typed LONG at source `$3402`
+separately from 28 numeric instruction candidates. 162 focused tests pass; no
+legacy proof guard is relaxed. Actual guest AllocMem returns `$59E8`/`$5A28`
+with zero/64 prior scratch bytes; both free calls complete, but both results
+overlap the fixed world grid `$4000..$F568`. No gameplay pointer is patched and
+neither is a qualified layout. Next: the allocation/lease, actual-base fixup,
+initialization and DMA-safe unwind contract. M5/M6 are not claimed complete.
+
 [Independent workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json):
 the normal image at `$80000` plus 140-byte cursor workspace at `$E0000` completes
 saved Earth and escape through 576 normal-input phases. The unheld cold run ends
-at HP49/frame14353 with both loss counters zero. Controlled original, image and
-cursor runs each end at HP49/frame14465. These fresh runs use the same explicit
+at HP49 / frame14353 with both loss counters zero. Controlled original, image and
+cursor runs each end at HP49 / frame14465. These fresh runs use the same explicit
 guest seed program; they are distinct from the earlier image-only frame14351 run.
 
 Against the canonical image-only control, the independent cursor move passes
@@ -172,10 +181,10 @@ and performs no new runtime qualification.
 [Final evidence](../../runtime/observations/pandora-relocated-output-validation.json)
 records matched original/relocated cold runs on the same ECS/1MiB Chip profile:
 576 phase clocks and509 controller calls agree; eight captured frames are pixel
-identical and24,726,568 recorded post-GO float audio samples are byte-identical.
+identical and 24,726,568 recorded post-GO float audio samples are byte-identical.
 A separate cold final-payload run without the clock hold completes at HP49.
 126 exported assets and all11 primary audio payloads are unchanged. Six sampled
-DMA frames per layout preserve eight original NULL sprite-control reads at0/2
+DMA frames per layout preserve eight original NULL sprite-control reads at 0/2
 as an explicit bounds finding, not certified asset safety. Original byte-exact
 source is retained; this is not every-frame/optional-path, original OCS/packed
 boot or universal DMA equivalence. See the validation report for the explicit
@@ -184,7 +193,7 @@ pre-game HAND/GO fixture and loader-only opaque tail.
 ### Earlier gameplay-only milestone (superseded)
 
 [Two cold relocated completions](../../runtime/observations/pandora-relocated-completion.json)
-pass all576 phases at `$80000` on the separate ECS/1MiB Chip profile, HP49,
+pass all 576 phases at `$80000` on the separate ECS/1MiB Chip profile, HP49,
 with the visible saved-Earth ending. Original byte-exact source is preserved.
 126 exported asset files are unchanged; six complete sampled DMA frames have
 no old-image transfers. Same-profile differential graphics/PCM validation is
