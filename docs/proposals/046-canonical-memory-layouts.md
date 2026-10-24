@@ -5,6 +5,27 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
+### CPU allocation projection: implementation tested, target refused
+
+[Native projection evidence](../../runtime/observations/pandora-CPU-fixup-projection.json)
+records 20 passing focused tests. Generated encoder metadata supplies exact
+absolute-W/L extension coordinates; plans retain source instruction, operand,
+opcode, width and symbol identity, validate original bytes, preserve CPU child
+aliases and enforce positive Chip absolute-W reach. Numeric/unbound operands,
+unsupported forms and DMA children refuse. The existing guest descriptor still
+rejects CPU scope; no CPU allocator-selected gameplay has run.
+
+The real target refuses at source `$78C4`, operand 1. Four known writers
+(`$78C4`, `$79F2`, `$9F38`, `$4B0CE`) use fixed priest-passage cell `$64C0`,
+app offset `$2AC4`. At app base `$6080` the actual cell is `$8B44`, beyond
+positive absolute-W reach. The slot and open/closed pixel EQUs (`$1E928`,
+`$24C28`) remain scalar in the existing alternate export. This is a concrete
+reference gap despite the passing route/output sample below: reset's old-cell
+write falls inside reused backing excluded by the guard; optional/warm-restart
+passage behaviour is not certified. No prior observation is relabelled as a pass
+for these references. Next: canonical address-domain correction and a legal
+encoding/placement contract, then CPU guest fixups and real allocation.
+
 ### CPU workspace plus display: qualified fixed placement
 
 **Keyboard lease correction qualified:** the first captures acquired app/grid

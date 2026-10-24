@@ -37,6 +37,12 @@ supersedes independent placement assumptions for the two historical body bases;
 their observed outputs remain recorded. Next: allocator-selected CPU bases and
 native generated operand fixups, then successful DMA-safe cleanup and OS return.
 Other low scratch and hardware/vector ownership remain open.
+The [CPU fixup projection](../../runtime/observations/pandora-CPU-fixup-projection.json)
+now has 20 passing focused tests but refuses the real target at `$78C4`. Four
+fixed priest-passage cell writes and their scalar pixel-address EQUs remain a
+known alternate-layout gap; the existing route/output pass does not close it.
+At app `$6080`, the actual cell `$8B44` also exceeds positive absolute-W reach.
+Resolve the address/encoding contract before admitting CPU AllocMem gameplay.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

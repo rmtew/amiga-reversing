@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "native_projection_tested_target_refused_no_CPU_allocation",
+  "subject": {
+    "subject_revision": "99abe25b5b0403c64ddcc04f99bb3048562044f2abf9c9b25f8de95ee127f111",
+    "revision": "f82bb8da6dac99e3a244a49b3699f548cfb54355521da1417bc4b4e30fce0124"
+  },
+  "backend_sha256": "3e2a0a9650c96b8e378c1fc9eb9e725bd96a69346381842244183e28c0d7799f",
+  "projection_wall_seconds": 159.39910284799407,
+  "target_plan": {
+    "status": "refused",
+    "reason": "numeric_or_unbound_absolute_operand",
+    "refusal_site": {
+      "source_section_index": 0,
+      "source_offset": 30916,
+      "operand_index": 1
+    }
+  },
+  "original_source_sha256": "161b4f1f33efd98a46d64f9789f813a111a17fc7d73bf7affce722426ad9619d",
+  "tests": {
+    "command": "python -m pytest -q tests/test_runtime_CPU_allocation_plan.py tests/test_runtime_allocation_plan.py",
+    "passed": 20,
+    "skipped": 0
+  },
+  "implemented": [
+    "Encoder-derived absolute-W/L extension coordinates with full original and changed-instruction encoding checks.",
+    "Reviewed runtime symbol identity, operand index, instruction source/opcode and field width retained.",
+    "CPU-only child aliases, access extent checks, native actual-base validation and per-field positive Chip absolute-W ceiling."
+  ],
+  "not_implemented": [
+    "CPU guest descriptor validation/application or actual CPU AllocMem gameplay.",
+    "Arbitrary instruction rewriting, all-path provenance, successful OS return."
+  ],
+  "finding": {
+    "source_offsets": [
+      "0x78C4",
+      "0x79F2",
+      "0x9F38",
+      "0x4B0CE"
+    ],
+    "slot": "0x64c0",
+    "grid_base": "0x4000",
+    "app_base": "0x39fc",
+    "app_offset": "0x2ac4",
+    "template_app_base": "0x6080",
+    "required_cell_address": "0x8b44",
+    "maximum_positive_absolute_W_app_base": "0x553b",
+    "existing_open_pixels": "0x1e928",
+    "existing_closed_pixels": "0x24c28",
+    "qualification_limit": "Existing source EQUs for all three are scalar. Current fixed alternate export leaves their original numeric values. Prior route/output equality is scoped evidence, not closure of these known reference families. Startup reset writes an old cell inside reused owner backing; watch exclusion cannot diagnose that alias.",
+    "next": "Normalize the canonical cell/pixel address domains and establish a legal encoding/placement contract. Do not admit CPU allocation by skipping these sites."
+  },
+  "limits": [
+    "The target refusal identifies the first unsupported site, not an exhaustive list of target fixups.",
+    "A synthetic legal $5000 base does not demonstrate that Exec can allocate that real target span.",
+    "No new emulator run or asset/raw checkpoint publication in this batch."
+  ]
+}
