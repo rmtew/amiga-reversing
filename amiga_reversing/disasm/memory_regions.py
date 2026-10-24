@@ -109,8 +109,8 @@ def validate_layout(layout: dict) -> dict:
     if type(layout["chip_bytes"]) is not int or layout["chip_bytes"] not in {0x80000, 0x100000}:
         raise ValueError("memory_layout requires an explicit supported Chip RAM extent")
     placements = layout["placements"]
-    if not isinstance(placements, list) or len(placements) > 16:
-        raise ValueError("memory_layout requires at most sixteen placements")
+    if not isinstance(placements, list) or len(placements) > 32:
+        raise ValueError("memory_layout requires at most thirty-two placements")
     seen = set()
     for item in placements:
         if not isinstance(item, dict) or set(item) != {"region_id", "runtime_address"}:

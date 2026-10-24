@@ -1001,3 +1001,36 @@ frame-relative CPU owners still require their immutable guards. Executable
 fixtures include both interior aliases, staged-byte refusal and exact failure
 unwind; 56 relevant checks pass. This is preparation for normal DOS ownership,
 not a claim that the keyboard has already moved in a DOS-launched game.
+
+### M6 bounded owner composition (2026-10-24)
+
+[Native planning checkpoint](../../runtime/observations/pandora-atomic-OS-owner-planning.json):
+PRNG is a separate seventeenth owner; native/API/MAL capacity is now bounded at32
+instead of conflating unrelated storage to fit16. C/ctypes sizes agree. Original
+source was regenerated and C plus independent vasm remain exactly `70480017…`.
+The numeric runtime-address contract replaces the old hand-authored PRNG seed
+address expression; its symbol and encoded WORD field remain intact. Active
+layout exports derive its region-relative address from canonical ownership.
+
+The atomic planner composes explicit allocator returns in one canonical layout,
+inherits children, checks rounded eight-byte backing, input/helper/fixed extents,
+every signed field reach and cross-owner fixup/guard disjointness. No placement
+search or guest mutation occurs. 130 relevant checks pass; separate capacity/
+bootstrap checks overlap and are not an additive total. Guest lease acquisition,
+full staged-input identity, apply-once patching and complete failure/exit unwind
+remain required before DOS game entry.
+
+The first prospective DOS combination was correctly refused: PRNG `$1998`
+intersects existing mask bank18. The finite next storage set is:
+
+| Owner | Existing original extent / evidence | Small next action |
+| --- | --- | --- |
+| Title stars | `$400..$7E8`; two MOVEA.L immediate bases at source `$D56/$D8E` | Separate owner and retain LONG fields; no instruction growth needed. |
+| Low masks18/21/30 | `$10F0..$3820`; existing generated-mask write extents | Model the supported group and its constructor/table references, then move it with the other returned owners. Do not remove protection to admit PRNG. |
+| High generated masks | `$7D000..$7FEB0`; existing constructor write extents | Acquire its fixed backing before takeover. Write bounds do not alone close DMA lifetime/reads. |
+
+Middle generated masks remain inside the retained `$20000..$7C000` input backing;
+no bank45 layout speculation is introduced. PRNG's two retained bytes remain
+unknown rather than invented zero seeds. These identified owners, the existing
+input/image/display/cursor claims and actual takeover/exit restoration define the
+next DOS launch gate; this checkpoint is not an OS-game or all-memory pass.

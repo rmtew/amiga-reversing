@@ -89,9 +89,11 @@ static int mr_allocation_range_order(const void *aa,const void *bb) {
  * This is not the legacy relocation
  * proof adapter and never promotes its numeric immediate candidates to fixups.
  * Returned bases are admitted by the same canonical fixed-layout geometry. */
-int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
+static int mr_runtime_allocation_context_json_alloc(
     PlatformFileListingArtifact *a,const char *region_id,const char *layout_id,
-    int has_actual,uint32_t actual,char **out_text) {
+    int has_actual,uint32_t actual,const M68kResolvedMemoryLayout *actual_context,
+    const M68kMemoryLayoutIR *actual_layout,MRAllocationFixup *admitted_sites,
+    size_t *admitted_count,char **out_text) {
   JsonBuilder b={0};PlatformFileListingArtifact *view=NULL;char *layouts=NULL;
   const char *reason=NULL;int ri=-1;size_t li=0,fixups=0,numeric=0;
   MRAllocationRange *ranges=NULL;size_t range_count=0,range_capacity=0;
@@ -101,7 +103,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
   const M68kRenderPlannedInstruction *refusal_instruction=NULL;size_t refusal_operand=0;
   const M68kMemoryRegionIR *r=NULL;const M68kBootstrapContractIR *boot=NULL;
   if(!a || !region_id || !layout_id || !out_text) return -1;
-  *out_text=NULL;
+  *out_text=NULL;if(admitted_count) *admitted_count=0;
   for(size_t i=0;i<a->policy.memory_region_count;i++)
     if(!strcmp(region_id,a->policy.memory_regions[i].region_id)) ri=(int)i;
   for(;li<a->policy.memory_layout_count;li++)
@@ -218,12 +220,15 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
   for(size_t i=1;i<fixups;i++) if(sites[i].source_offset<sites[i-1].source_offset+sites[i-1].width) {
     reason="overlapping_runtime_fixups";goto result;
   }
-  range_capacity=a->policy.memory_region_count+a->policy.target_equate_count;
+  range_capacity=a->policy.memory_region_count+a->policy.target_equate_count+1;
   ranges=calloc(range_capacity ? range_capacity : 1,sizeof(*ranges));if(!ranges) goto failed;
+  uint32_t helper_address=a->policy.memory_layouts[li].bootstrap_source_helper ?
+    boot->load_address+boot->helper_source_start : boot->helper_runtime_address;
+  ranges[range_count++]=(MRAllocationRange){helper_address,boot->helper_source_end-boot->helper_source_start};
   for(size_t i=0;i<a->policy.memory_region_count;i++) {
     const M68kMemoryRegionIR *other=&a->policy.memory_regions[i];
     if((int)i==ri || other->parent_region_id[0]) continue;
-    ranges[range_count++]=(MRAllocationRange){initial.addresses[i],other->size};
+    ranges[range_count++]=(MRAllocationRange){(actual_context ? actual_context : &initial)->addresses[i],other->size};
   }
   for(size_t qi=0;qi<a->policy.target_equate_count;qi++) {
     const M68kAnalysisTargetEquate *q=&a->policy.target_equates[qi];
@@ -234,7 +239,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
     if(address==r->runtime_address && q->extent_bytes==r->size)
       for(size_t fi=0;fi<fixups;fi++) if(sites[fi].symbol && !strcmp(sites[fi].symbol,q->name)) {owned=1;break;}
     if(owned) continue;
-    if(m68k_memory_layout_reference(&a->policy,&initial,address,q->extent_bytes,
+    if(m68k_memory_layout_reference(&a->policy,actual_context ? actual_context : &initial,address,q->extent_bytes,
         expression,sizeof(expression),&address)<0) {reason="ambiguous_protected_runtime_extent";goto result;}
     if(m68k_memory_layout_overlaps((uint32_t)q->value,q->extent_bytes,r->runtime_address,r->size)) {
       reason="unbound_runtime_alias_of_allocation_owner";goto result;
@@ -253,12 +258,13 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
   }
   range_count=merged;
   if(has_actual && !actual) {reason="allocator_returned_NULL";goto result;}
-  if(has_actual && m68k_memory_layout_overlaps(actual,r->size,boot->load_address,boot->file_size)) {
+  uint32_t actual_extent=actual_layout ? (r->size+7U)&~7U : r->size;
+  if(has_actual && m68k_memory_layout_overlaps(actual,actual_extent,boot->load_address,boot->file_size)) {
     reason="allocator_result_overlaps_live_input";goto result;
   }
   view=malloc(sizeof(*view));if(!view) goto failed;
   *view=*a;view->policy.memory_layout_count=1;
-  view->policy.memory_layouts[0]=a->policy.memory_layouts[li];
+  view->policy.memory_layouts[0]=actual_layout ? *actual_layout : a->policy.memory_layouts[li];
   M68kMemoryLayoutIR *layout=&view->policy.memory_layouts[0];
   if(has_actual) {
     size_t pi=0;for(;pi<layout->placement_count;pi++) if(!strcmp(layout->placements[pi].region_id,region_id)) break;
@@ -271,7 +277,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
   }
   if(m68k_memory_layout_resolve(&view->policy,layout,&resolved)) {reason=resolved.reason;goto result;}
   if(has_actual) for(size_t i=0;i<range_count;i++)
-    if(m68k_memory_layout_overlaps(actual,r->size,ranges[i].start,ranges[i].size)) {
+    if(m68k_memory_layout_overlaps(actual,actual_extent,ranges[i].start,ranges[i].size)) {
       reason="allocator_result_overlaps_protected_runtime_extent";goto result;
     }
   if(cpu_scope && has_actual && actual>maximum_base) {reason="absolute_word_encoding_overflow";goto result;}
@@ -285,6 +291,7 @@ result:
       ",\"refusal_site\":{\"source_section_index\":%u,\"source_offset\":%u,\"operand_index\":%zu}",
       refusal_instruction->source_section_index,refusal_instruction->source_offset,refusal_operand)) goto failed;
   if(!reason) {
+    if(admitted_sites && admitted_count) {memcpy(admitted_sites,sites,fixups*sizeof(*sites));*admitted_count=fixups;}
     if(json_builder_append(&b,",\"region_id\":") || json_builder_append_json_string(&b,region_id) ||
         json_builder_appendf(&b,",\"size\":%u,\"alignment\":%u,\"memory_requirement\":\"chip\","
           "\"original_address\":%u,\"staged_address\":%u,\"numeric_immediate_candidates_not_fixups\":%zu,\"fixups\":[",
@@ -342,3 +349,11 @@ result:
 failed:
   json_builder_destroy(&b);free(view);free(ranges);platform_file_free_text(layouts);return -1;
 }
+
+int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
+    PlatformFileListingArtifact *a,const char *region_id,const char *layout_id,
+    int has_actual,uint32_t actual,char **out_text) {
+  return mr_runtime_allocation_context_json_alloc(a,region_id,layout_id,has_actual,actual,
+      NULL,NULL,NULL,NULL,out_text);
+}
+#include "m68k_runtime_allocation_batch.inc"

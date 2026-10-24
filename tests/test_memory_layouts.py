@@ -257,3 +257,44 @@ def test_runtime_equate_partial_moved_coverage(tmp_path, address, width, moved, 
                     else f'TYPED\tEQU\t${address:X}') in text
         finally:
             artifact.close()
+
+
+def test_seventeenth_owner_and_explicit_bounded_capacity(tmp_path):
+    # Pandora needs a separate PRNG owner beyond its sixteen existing regions;
+    # do not coalesce unrelated storage just to fit an implementation limit.
+    regions=[region(f'owner{i}',0x10000+i*32,8,kind='storage') for i in range(17)]
+    config=layout([(r['region_id'],0x80000+i*32) for i,r in enumerate(regions)])
+    assert len(validate_layout(config)['placements'])==17
+    result=project(tmp_path,regions,config)
+    assert result['status']=='placement_valid' and len(result['regions'])==17
+    too_many=layout([(f'owner{i}',0x80000+i*32) for i in range(33)])
+    with pytest.raises(ValueError):validate_layout(too_many)
+
+
+def test_changed_policy_capacity_matches_ctypes_ABI(tmp_path):
+    import ctypes
+    from tests.test_c_backend import (_M68kMemoryRegionIR,_M68kMemoryLayoutIR,
+        _M68kBootstrapContractIR,_M68kAnalysisPolicy)
+    from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+    source=tmp_path/'sizes.c';executable=tmp_path/'sizes'
+    source.write_text('#include "m68k_ir.h"\n#include <stdio.h>\nint main(void){printf("%zu %zu %zu %zu",sizeof(M68kMemoryRegionIR),sizeof(M68kMemoryLayoutIR),sizeof(M68kBootstrapContractIR),sizeof(M68kAnalysisPolicy));}\n')
+    subprocess.run(['cc','-I'+str(PROJECT_ROOT/'src'),str(source),'-o',str(executable)],check=True,capture_output=True)
+    native=[int(x) for x in subprocess.check_output([str(executable)]).split()]
+    assert native==[ctypes.sizeof(t) for t in (_M68kMemoryRegionIR,_M68kMemoryLayoutIR,_M68kBootstrapContractIR,_M68kAnalysisPolicy)]
+
+
+def test_manual_region_capacity_matches_native_bound_and_refuses_atomically(tmp_path):
+    from amiga_reversing.disasm.binary_source import BinarySourceKind,RawAddressModel,RawBinarySource
+    from amiga_reversing.disasm.target_metadata import TargetMetadata,write_target_metadata
+    binary=tmp_path/'fixture.bin';binary.write_bytes(bytes.fromhex('4e75'))
+    source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=binary,address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0,entrypoint=0,code_start_offset=0,display_path=str(binary),analysis_cache_path=tmp_path/'analysis')
+    write_target_metadata(tmp_path,TargetMetadata(target_type='program',entry_register_seeds=()))
+    actions=[(ManualActionKind.CREATE_MANUAL_MEMORY_REGION,{'memory_region':region(f'owner{i}',0x10000+i*32,8)}) for i in range(32)]
+    append_manual_actions(tmp_path,actions=actions,binary_source=source)
+    assert len(load_manual_projection(tmp_path).memory_regions)==32
+    before=(tmp_path/'manual_actions.jsonl').read_bytes()
+    with pytest.raises(ValueError,match='native capacity'):
+        append_manual_actions(tmp_path,actions=[(ManualActionKind.CREATE_MANUAL_MEMORY_REGION,
+            {'memory_region':region('excess',0x20000,8)})],binary_source=source)
+    assert (tmp_path/'manual_actions.jsonl').read_bytes()==before

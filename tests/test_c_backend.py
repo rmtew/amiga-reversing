@@ -1580,6 +1580,11 @@ class _M68kAnalysisAbstractRegion(ctypes.Structure):
     ]
 
 
+class _M68kAddressFrameSiteIR(ctypes.Structure):
+    _fields_ = [("section_index", ctypes.c_uint32), ("source_offset", ctypes.c_uint32),
+        ("operand_index", ctypes.c_uint8), ("expected_bytes", ctypes.c_uint8 * 8)]
+
+
 class _M68kMemoryRegionIR(ctypes.Structure):
     _fields_ = [
         ("region_id", ctypes.c_char * 96),
@@ -1596,6 +1601,10 @@ class _M68kMemoryRegionIR(ctypes.Structure):
         ("loader_seed_source_offset", ctypes.c_uint32),
         ("loader_seed_region_offset", ctypes.c_uint32),
         ("loader_seed_size", ctypes.c_uint32),
+        ("address_frame_register", ctypes.c_uint8), ("address_frame_site_count", ctypes.c_uint8),
+        ("address_frame_contract_sha256", ctypes.c_char * 65),
+        ("address_frame_input_sha256", ctypes.c_char * 65),
+        ("address_frame_sites", _M68kAddressFrameSiteIR * 8),
     ]
 
 
@@ -1605,15 +1614,16 @@ class _M68kMemoryPlacementIR(ctypes.Structure):
 
 class _M68kMemoryLayoutIR(ctypes.Structure):
     _fields_ = [("layout_id", ctypes.c_char * 96), ("chip_bytes", ctypes.c_uint32),
-        ("placement_count", ctypes.c_uint16), ("placements", _M68kMemoryPlacementIR * 16),
-        ("bootstrap_contract_id", ctypes.c_char * 96), ("bootstrap_forward_disjoint", ctypes.c_uint8)]
+        ("placement_count", ctypes.c_uint16), ("placements", _M68kMemoryPlacementIR * 32),
+        ("bootstrap_contract_id", ctypes.c_char * 96), ("bootstrap_forward_disjoint", ctypes.c_uint8), ("bootstrap_source_helper", ctypes.c_uint8)]
 
 
 class _M68kBootstrapContractIR(ctypes.Structure):
     _fields_ = [("contract_id", ctypes.c_char * 96), ("image_region_id", ctypes.c_char * 96),
         ("input_sha256", ctypes.c_char * 65), *[(name, ctypes.c_uint32) for name in (
             "load_address", "file_size", "copied_source_end", "helper_source_start", "helper_source_end",
-            "helper_runtime_address", "continuation_source_offset", "comparison_source_offset")]]
+            "helper_runtime_address", "continuation_source_offset", "comparison_source_offset",
+            "helper_destination_source_offset", "helper_jump_source_offset")], ("has_source_helper_sites", ctypes.c_uint8)]
 
 
 class _M68kAnalysisPolicy(ctypes.Structure):
@@ -1673,7 +1683,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
         ("manual_data_references", _M68kAnalysisManualDataReference * 512),
         ("abstract_regions", _M68kAnalysisAbstractRegion * 128),
-        ("memory_regions", _M68kMemoryRegionIR * 16),
+        ("memory_regions", _M68kMemoryRegionIR * 32),
         ("memory_layout_count", ctypes.c_uint16),
         ("memory_layouts", _M68kMemoryLayoutIR * 8),
         ("bootstrap_contract_count", ctypes.c_uint16),

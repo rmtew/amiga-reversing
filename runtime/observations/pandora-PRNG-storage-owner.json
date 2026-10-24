@@ -1,0 +1,148 @@
+{
+  "schema": "pandora-PRNG-storage-owner/v1",
+  "status": "static_eight_byte_owner_no_initialization_or_runtime_qualification_claim",
+  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "original_extent": [
+    2024,
+    2032
+  ],
+  "absolute_operand_fields": [
+    {
+      "source_offset": 12236,
+      "operand_index": 1,
+      "width": 2,
+      "original_hex": "21fb00e407ea"
+    },
+    {
+      "source_offset": 12242,
+      "operand_index": 1,
+      "width": 2,
+      "original_hex": "31fb00de07e8"
+    },
+    {
+      "source_offset": 12252,
+      "operand_index": 0,
+      "width": 2,
+      "original_hex": "41f807e8"
+    }
+  ],
+  "producers_consumers": [
+    {
+      "source_offset": 12226,
+      "original_hex": "303900dff006",
+      "text": "move.w _custom+vhposr.l,d0"
+    },
+    {
+      "source_offset": 12232,
+      "original_hex": "0240000c",
+      "text": "andi.w #PRNG_SEED_CHOICE_MASK,d0"
+    },
+    {
+      "source_offset": 12236,
+      "original_hex": "21fb00e407ea",
+      "text": "move.l pseudorandom_seed_values(pc,d0.w),PRNG_SEED_LONGWORD_ADDRESS.w"
+    },
+    {
+      "source_offset": 12242,
+      "original_hex": "31fb00de07e8",
+      "text": "move.w pseudorandom_seed_values(pc,d0.w),absolute_slot_000007E8.w"
+    },
+    {
+      "source_offset": 12248,
+      "original_hex": "48e73000",
+      "text": "movem.l d2-d3,-(a7)"
+    },
+    {
+      "source_offset": 12252,
+      "original_hex": "41f807e8",
+      "text": "lea.l PRNG_STATE_BASE.w,a0"
+    },
+    {
+      "source_offset": 12256,
+      "original_hex": "22280004",
+      "text": "move.l PRNG_SHIFT_STATE_DISPLACEMENT(a0),d1"
+    },
+    {
+      "source_offset": 12260,
+      "original_hex": "2010",
+      "text": "move.l (a0),d0"
+    },
+    {
+      "source_offset": 12262,
+      "original_hex": "741f",
+      "text": "moveq.l #PRNG_ADVANCE_LAST_BIT,d2"
+    },
+    {
+      "source_offset": 12264,
+      "original_hex": "1601",
+      "text": "move.b d1,d3"
+    },
+    {
+      "source_offset": 12266,
+      "original_hex": "e60b",
+      "text": "lsr.b #PRNG_FEEDBACK_TAP_SHIFT,d3"
+    },
+    {
+      "source_offset": 12268,
+      "original_hex": "b103",
+      "text": "eor.b d0,d3"
+    },
+    {
+      "source_offset": 12270,
+      "original_hex": "02030001",
+      "text": "andi.b #PRNG_FEEDBACK_BIT_MASK,d3"
+    },
+    {
+      "source_offset": 12274,
+      "original_hex": "d281",
+      "text": "add.l d1,d1"
+    },
+    {
+      "source_offset": 12276,
+      "original_hex": "55c0",
+      "text": "scs.b d0"
+    },
+    {
+      "source_offset": 12278,
+      "original_hex": "d203",
+      "text": "add.b d3,d1"
+    },
+    {
+      "source_offset": 12280,
+      "original_hex": "51caffee",
+      "text": "dbf.w d2,advance_next_pseudorandom_feedback_bit"
+    },
+    {
+      "source_offset": 12284,
+      "original_hex": "2080",
+      "text": "move.l d0,(a0)"
+    },
+    {
+      "source_offset": 12286,
+      "original_hex": "21410004",
+      "text": "move.l d1,PRNG_SHIFT_STATE_DISPLACEMENT(a0)"
+    },
+    {
+      "source_offset": 12290,
+      "original_hex": "2001",
+      "text": "move.l d1,d0"
+    },
+    {
+      "source_offset": 12292,
+      "original_hex": "4cdf000c",
+      "text": "movem.l (a7)+,d2-d3"
+    },
+    {
+      "source_offset": 12296,
+      "original_hex": "4e75",
+      "text": "rts"
+    }
+  ],
+  "constraints": [
+    "Seed stores initialize six bytes only; $7EE..$7EF retain previous contents and are read by the first update. No zero/seed policy is inferred.",
+    "The eight-byte owner ends at the separate UI-body start $7F0; adjacency does not impose shared relocation.",
+    "All three encoded absolute operands retain signed absolute-W reach; no instruction growth or numeric word scanning.",
+    "Other synthesized aliases are not certified absent by this local producer/consumer review."
+  ],
+  "next": "Native complete reference projection and legal actual-base validation, then explicit original-profile versus OS-profile initialization contract before gameplay."
+}

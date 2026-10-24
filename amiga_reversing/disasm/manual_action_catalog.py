@@ -6851,7 +6851,7 @@ def _target_memory_layout_action() -> dict[str, object]:
             "layout_id": {"type": "string"}, "chip_bytes": {"type": "integer", "enum": [524288, 1048576]},
             "bootstrap_contract_id": {"type": "string"},
             "bootstrap_variant": {"type": "string", "enum": ["native", "forward_disjoint", "forward_disjoint_source_helper"]},
-            "placements": {"type": "array", "maxItems": 16, "items": {"type": "object",
+            "placements": {"type": "array", "maxItems": 32, "items": {"type": "object",
                 "required": ["region_id", "runtime_address"], "properties": {
                     "region_id": {"type": "string"}, "runtime_address": {"type": "integer"}}}}}})
 

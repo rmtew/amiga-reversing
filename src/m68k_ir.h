@@ -795,7 +795,7 @@ typedef struct M68kAnalysisAbstractRegion {
 /* Runtime-only regions have no implied source-image owner or initializer.
  * Persistent CPU storage is the deliberately narrow first relocation contract;
  * phase overlays and DMA lifetimes remain explicit unsupported obligations. */
-#define M68K_ANALYSIS_MEMORY_REGION_LIMIT 16U
+#define M68K_ANALYSIS_MEMORY_REGION_LIMIT 32U
 #define M68K_ADDRESS_FRAME_SITE_LIMIT 8U
 typedef struct M68kAddressFrameSiteIR {
   uint32_t section_index,source_offset;

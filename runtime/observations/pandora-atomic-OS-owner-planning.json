@@ -1,0 +1,151 @@
+{
+  "schema": "pandora-atomic-OS-owner-planning/v1",
+  "status": "original_exact_individual_candidates_and_atomic_refusal_evidenced_guest_application_pending",
+  "subject": {
+    "subject_revision": "930353ce3ce8e7d6164ff34fe6ca44b273389024f9e1513d5bbb03417850db73",
+    "revision": "b465ce75a8f5d25d2e15f643b3d1fd8859a3ab90430071a6a44f91682c83971f"
+  },
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "811ef23dbf44a613fa62714ec1f417fcb06160e0443aad224266de22cd52a3ca"
+  },
+  "private_native_result_sha256": "bc1fef4847ddfc0abc730732207538efe08bf818982af5d66e3b4e7a073d9811",
+  "checks": {
+    "passed": 130,
+    "skipped": 0,
+    "scope": "Atomic swaps/inherited children, staged identities, fixed/root rounded backing, input/helper protection, signed-W reach, malformed native input, CPU/keyboard/body allocation and unwind regressions. Capacity/bootstrap set separately passed91; counts overlap, not additive."
+  },
+  "original_C_and_independent_vasm_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "individual_fixup_counts": {
+    "pandora_prng_state": 3,
+    "keyboard_state": 7,
+    "pandora_ui_snapshot_body": 1,
+    "pandora_cpu_workspace": 7
+  },
+  "PRNG_fields": [
+    {
+      "source_section_index": 0,
+      "source_offset": 12240,
+      "width": 2,
+      "encoding": "absolute_word_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 2,
+      "staged_value": 2026,
+      "instruction_source_offset": 12236,
+      "operand_index": 1,
+      "opcode": 8699,
+      "symbol": "PRNG_SEED_LONGWORD_ADDRESS"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 12246,
+      "width": 2,
+      "encoding": "absolute_word_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 2024,
+      "instruction_source_offset": 12242,
+      "operand_index": 1,
+      "opcode": 12795,
+      "symbol": "absolute_slot_000007E8"
+    },
+    {
+      "source_section_index": 0,
+      "source_offset": 12254,
+      "width": 2,
+      "encoding": "absolute_word_operand",
+      "address_domain": "runtime_only",
+      "region_offset": 0,
+      "staged_value": 2024,
+      "instruction_source_offset": 12252,
+      "operand_index": 0,
+      "opcode": 16888,
+      "symbol": "PRNG_STATE_BASE"
+    }
+  ],
+  "PRNG_maximum_actual_base": 32765,
+  "prospective_DOS_bindings": {
+    "schema_version": 1,
+    "layout_id": "pandora_source_helper_cpu_display_ecs1m",
+    "chip_bytes": 1048576,
+    "placements": [
+      {
+        "region_id": "pandora_prng_state",
+        "runtime_address": 6552
+      },
+      {
+        "region_id": "keyboard_state",
+        "runtime_address": 65904
+      },
+      {
+        "region_id": "pandora_ui_snapshot_body",
+        "runtime_address": 66032
+      },
+      {
+        "region_id": "pandora_cpu_workspace",
+        "runtime_address": 68336
+      }
+    ]
+  },
+  "atomic_status": "refused",
+  "atomic_reason": "member_actual_placement_refused",
+  "member_checks": [
+    {
+      "region_id": "keyboard_state",
+      "status": "actual_placement_valid",
+      "reason": null
+    },
+    {
+      "region_id": "pandora_ui_snapshot_body",
+      "status": "actual_placement_valid",
+      "reason": null
+    },
+    {
+      "region_id": "pandora_cpu_workspace",
+      "status": "actual_placement_valid",
+      "reason": null
+    },
+    {
+      "region_id": "pandora_prng_state",
+      "status": "refused",
+      "reason": "allocator_result_overlaps_protected_runtime_extent"
+    }
+  ],
+  "precise_refusal": "Observed PRNG return $1998 intersects fixed scene_mask_bank_18 [$10F0,$2204). The atomic result is refused; no member was applied to game input. These DOS addresses were only prospective native inputs, not a target allocation/execution claim.",
+  "finite_next_owners": [
+    {
+      "name": "title_star_records",
+      "original_extent": [
+        1024,
+        2024
+      ],
+      "evidence": "TITLE_STAR_RECORD_BASE; source $D56/$D8E MOVEA.L immediate (LONG fields, not absolute-W).",
+      "next": "Separate runtime owner and retain two encoded LONG identities."
+    },
+    {
+      "name": "low_generated_masks",
+      "original_extent": [
+        4336,
+        14368
+      ],
+      "evidence": "Existing runtime equates scene_mask_bank_18/21/30; adjacent write extents $1114/$10F8/$524.",
+      "next": "Move a declared group; inspect supported constructor LEAs and existing typed table consumers. No shrunk exclusions."
+    },
+    {
+      "name": "high_generated_masks",
+      "original_extent": [
+        512000,
+        523952
+      ],
+      "evidence": "Existing generated-mask equates, exact constructor extents; already one protected span in native candidates.",
+      "next": "Explicit fixed Chip backing claim before takeover; retain write bounds versus DMA/lifetime limits."
+    }
+  ],
+  "limits": [
+    "Native planner only; no multi-owner guest patching, DOS game entry or OS-return qualification.",
+    "Original PRNG seeds six of eight bytes; no zero or file seed invented for the retained two bytes.",
+    "Atomic positive behaviour is demonstrated by executable-independent native fixtures, not this refused Pandora placement.",
+    "No whole-path alias/DMA correctness claim; nine B07 files untouched."
+  ],
+  "next_game_entry_gate": "Own title and low masks as well as the four current candidates, acquire fixed input/image/display/cursor/high-mask backing safely, validate all returned owners atomically, then apply disjoint fields once to one verified staged input. Implement and qualify takeover/exit restoration; no borrowed OS low-memory writes."
+}

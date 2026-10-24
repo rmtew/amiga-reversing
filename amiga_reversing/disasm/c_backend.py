@@ -1804,6 +1804,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc.argtypes = [c_void_p, c_char_p, c_char_p, c_int, c_uint32, POINTER(c_void_p)]
     dll.platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc.argtypes = [c_void_p,c_char_p,c_char_p,POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc.argtypes = [c_void_p, c_char_p, c_uint32, POINTER(c_void_p)]
     dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.argtypes = [
@@ -2332,6 +2334,22 @@ class CListingArtifact:
         return json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc,
             region_id,layout_id,int(actual_base is not None),actual_base or 0))
+
+    def runtime_allocation_batch_plan(self, layout_id: str, actual_layout: dict) -> dict:
+        """Admit explicit returned owners together through the canonical planner.
+
+        Placements name allocated roots only; other owners retain their profile
+        placements. This does not allocate, patch input, or certify unknown refs.
+        """
+        from .memory_regions import validate_layout
+        if not isinstance(layout_id,str) or not layout_id or len(layout_id)>95 or '\0' in layout_id:
+            raise ValueError('Invalid allocation layout identity')
+        overlay=validate_layout(actual_layout)
+        if set(overlay)!={'schema_version','layout_id','chip_bytes','placements'}:
+            raise ValueError('Actual bindings may not replace bootstrap/profile assumptions')
+        return json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_runtime_allocation_batch_json_alloc,
+            layout_id,json.dumps(overlay,sort_keys=True)))
 
     def layout_projection_payload(self, overlay: dict[str, object], minimum_asset_size: int = 256) -> dict[str, object]:
         """Native scoped projection; callers must handle refused/rebuild_required."""

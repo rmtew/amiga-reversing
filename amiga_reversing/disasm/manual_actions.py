@@ -2351,7 +2351,7 @@ def _project_actions(
                 raise ValueError("memory_region identity already exists; remove before replacement")
             # Shared storage identities remain distinct. Native facts expose
             # their overlap and refuse independent single-region relocation.
-            if not updating and len(memory_regions) >= 16:
+            if not updating and len(memory_regions) >= 32:
                 raise ValueError("memory_region native capacity exceeded")
             memory_regions[region["region_id"]] = region
         elif action.kind is ManualActionKind.REMOVE_MANUAL_MEMORY_REGION:
