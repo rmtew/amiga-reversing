@@ -35,12 +35,16 @@ claimed. The nine paused B07 files match their saved hashes and remain untouched
 The target string-patching builder and alternate build CLI are retired; the
 normal observer now consumes native bounds and shared launcher/callback options.
 181 focused tests and a matching settled-title smoke pass; 24 retained DMA
-frames replay unchanged. The older single-region planner/build service remains
-a separate consolidation obligation: its Slow RAM/Exec leases, fixed-width byte
-ledger and initialization contracts are not replaced by the new Chip-only source
-layout path. Deleting it would remove supported capabilities. First delivery
-remains open at that compatibility/deletion gate; optional M5 allocation has not
-been implemented. Strict original HAND-cycle equality remains refused. Layout selection now reaches the common exporter through HTTP,
+frames replay unchanged. The older single-region service now delegates extent,
+overlap and base-plus-offset calculations to the canonical layout module. It
+retains Slow RAM/Exec lease, fixed-width ledger, initialization and proof semantics
+as an adapter; those supported capabilities were not deleted or expanded into M5.
+289 relevant regression tests pass. The final fresh original export retains
+source/package equality and current C assembly matches the retained independent
+vasm output for all 376,832 bytes. See the
+[milestone acceptance ledger](../../runtime/observations/pandora-layout-delivery-acceptance.json).
+Strict original HAND-cycle equality remains unfulfilled; unconditional first-delivery
+closure is not claimed. Layout selection now reaches the common exporter through HTTP,
 CLI, real MCP stdio and the palette; 48 interface tests and four server-route
 tests pass. Browser E2E has not run.
 

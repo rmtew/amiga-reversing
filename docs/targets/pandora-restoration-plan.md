@@ -6,8 +6,11 @@
 > base-plus-offset modelling, normal-export original and known `$80000` layouts,
 > and at least one independently moved workspace or display block. Image-only
 > qualification is an internal step, not completed delivery. Runtime allocation
-> and OS-hosted output remain separate later gates. This is a design roadmap,
-> not implemented layout support.
+> and OS-hosted output remain separate later gates. Current normal exports and
+> the independent cursor move are implemented and runtime-qualified within the
+> [milestone ledger](../../runtime/observations/pandora-layout-delivery-acceptance.json).
+> Strict original-to-image HAND-cycle equality still refuses; no unconditional
+> first-delivery or universal portability claim is made.
 
 > Behavioural validation is tracked in [Proposal 045](../proposals/045-behavioural-validation.md).
 > Its B01–B10 commitments distinguish framework capability from target coverage;

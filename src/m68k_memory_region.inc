@@ -196,11 +196,13 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
   if(destination % r->alignment || destination % 8U) refusal="reservation_alignment";
   else if(destination==r->runtime_address) refusal="unchanged_placement";
   else if(r->dma_access && memory_class!=1U) refusal="chip_dma_required";
-  else if(!((memory_class==1U && reservation_size<=0x7f000U && destination>=0x1000U && destination<=0x80000U-reservation_size) ||
-      (memory_class==2U && reservation_size<=0x80000U && destination>=0xc00000U && destination<=0xc80000U-reservation_size))) refusal="outside_supported_a500_memory";
+  /* Semantic adapter: A500 classes/Exec rounding remain this lane's contract;
+   * finite placement geometry is shared with canonical multi-region export. */
+  else if(!((memory_class==1U && m68k_memory_layout_extent_fits(destination,reservation_size,r->alignment,0x1000U,0x80000U)) ||
+      (memory_class==2U && m68k_memory_layout_extent_fits(destination,reservation_size,r->alignment,0xc00000U,0xc80000U)))) refusal="outside_supported_a500_memory";
   for(i=0;i<a->policy.memory_region_count;i++) {
     const M68kMemoryRegionIR *other=&a->policy.memory_regions[i];
-    if(destination < other->runtime_address+other->size && other->runtime_address < destination+reservation_size) refusal="persistent_region_overlap";
+    if(m68k_memory_layout_overlaps(destination,reservation_size,other->runtime_address,other->size)) refusal="persistent_region_overlap";
     /* The single-region builder cannot preserve a shared source identity by
      * moving just one owner, even when all its direct references are closed. */
     if(other!=r && mr_overlaps(r->runtime_address,r->size,other->runtime_address,other->size)) open++;
@@ -215,7 +217,7 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
     const M68kSectionAnalysisIR *section=&a->source_analysis.sections[i];
     for(j=0;j<section->runtime_view_count;j++) {
       const M68kRuntimeViewIR *view=&section->runtime_views[j];
-      if(view->materialized && destination < (uint64_t)view->runtime_address+view->size && view->runtime_address < (uint64_t)destination+reservation_size)
+      if(view->materialized && m68k_memory_layout_overlaps(destination,reservation_size,view->runtime_address,view->size))
         refusal="runtime_materialization_overlap";
     }
     for(j=0;j<section->data_reference_count;j++) {
@@ -249,7 +251,9 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
       if(m->operand_access_kinds[j]!=M68K_SIM_ACCESS_COMPUTE_ADDRESS && m->operand_access_kinds[j]!=M68K_SIM_ACCESS_MEMORY_READ && m->operand_access_kinds[j]!=M68K_SIM_ACCESS_MEMORY_WRITE) { ++open;continue; }
       if(mr_access_width(&ins->instruction,m,(uint8_t)j)==0 ||
           mr_access_width(&ins->instruction,m,(uint8_t)j)>r->size-region_offset) { ++open;continue; }
-      if(o->value.ea_mode==7U && o->value.ea_reg==0U && destination+region_offset>0x7fffU && destination+region_offset<0xffff8000U) { refusal="absolute_word_encoding_overflow";continue; }
+      uint32_t placed;
+      if(m68k_memory_layout_translate_reference(r->runtime_address,destination,r->size,v,width,&placed)) { ++open;continue; }
+      if(o->value.ea_mode==7U && o->value.ea_reg==0U && placed>0x7fffU && placed<0xffff8000U) { refusal="absolute_word_encoding_overflow";continue; }
       if(kind==3) {
         uint32_t pc;
         if(mr_source_address(a,ins->source_section_index,ins->source_offset,&pc)!=1) { refusal="unresolved_instruction_mapping";continue; }
@@ -257,10 +261,10 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
         size_t bias=m68k_asm_operand_relative_base_offset(original_spec.asm_form_index,original_spec.operands,
             original_spec.operand_count,original_spec.size_suffix,j,0);
         if((int64_t)pc+bias+(int32_t)m68k_sign_extend32(o->value.value,16U)!=v) { refusal="pc_reference_identity_mismatch";continue; }
-        int64_t delta=(int64_t)destination+region_offset-pc-bias;
+        int64_t delta=(int64_t)placed-pc-bias;
         if(delta<INT16_MIN || delta>INT16_MAX) { refusal="pc_displacement_encoding_overflow";continue; }
         changed.operands[j].value.value=(uint32_t)delta;
-      } else changed.operands[j].value.value=destination+region_offset;
+      } else changed.operands[j].value.value=placed;
       memset(&changed.operands[j].symbol_ref,0,sizeof(changed.operands[j].symbol_ref));
     }
     if(!matched) continue;

@@ -1,6 +1,14 @@
 #ifndef M68K_MEMORY_LAYOUT_H
 #define M68K_MEMORY_LAYOUT_H
 #include "m68k_ir.h"
+/* Shared finite geometry. Callers own memory-class, lease, alias and proof
+ * policy; these routines neither allocate nor infer a domain. Bounds are
+ * half-open and arithmetic is widened before validation. */
+int m68k_memory_layout_extent_fits(uint32_t address,uint32_t size,uint32_t alignment,
+    uint32_t domain_start,uint64_t domain_end);
+int m68k_memory_layout_overlaps(uint32_t address,uint32_t width,uint32_t start,uint32_t size);
+int m68k_memory_layout_translate_reference(uint32_t original,uint32_t placed,uint32_t size,
+    uint32_t address,uint32_t width,uint32_t *result);
 typedef struct M68kLayoutPoint {
   uint64_t address, prefix_max_moved_end;
   uint32_t containing_regions;

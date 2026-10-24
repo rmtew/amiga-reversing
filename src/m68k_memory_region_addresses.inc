@@ -61,5 +61,5 @@ static int mr_operand_address(const PlatformFileListingArtifact *a,const M68kRen
   return 3;
 }
 static int mr_overlaps(uint32_t address,uint32_t width,uint32_t start,uint32_t size) {
-  return (uint64_t)address+(width ? width : 1U)>start && address<(uint64_t)start+size;
+  return m68k_memory_layout_overlaps(address,width,start,size);
 }

@@ -162,7 +162,10 @@
   "host": {
     "machine": "x86_64",
     "system": "Linux",
-    "python": "3.12.14"
+    "python": "3.14.7",
+    "python_executable": "/workspace/amiga-reversing/.venv/bin/python",
+    "CPU_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+    "memory_total": "18440112 kB"
   },
   "implementation_sha256": {
     "src/m68k_layout_projection.c": "431cab43442dfe739c020a4fc9d09d77a5139f4c5b7872632495a568a888d4e3",
@@ -179,6 +182,7 @@
       "amiga_reversing/disasm/derived_artifact.py"
     ],
     "reason": "Legacy native data-relocation lane admits Slow RAM/Exec ownership leases, fixed-width byte ledgers and initialization manifests. New fixed-layout source exports admit Chip RAM placements and retained bootstrap. Deletion would remove supported capabilities; no proof checks were weakened or runtime-allocation implementation added.",
-    "next_decision": "Choose a narrowly specified compatibility migration covering those existing contracts, or explicitly revise their retirement boundary. Optional M5 allocation remains unimplemented."
+    "next_decision": "Choose a narrowly specified compatibility migration covering those existing contracts, or explicitly revise their retirement boundary. Optional M5 allocation remains unimplemented.",
+    "follow_up": "See pandora-layout-delivery-acceptance.json: shared finite geometry was subsequently consolidated without removing the semantic adapter."
   }
 }

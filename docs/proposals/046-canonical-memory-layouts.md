@@ -1,6 +1,6 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **First delivery remains open at the legacy compatibility/deletion boundary. Original/image/cursor exports and scoped runtime/output evidence pass; native frozen-plan reuse is measured. Strict original HAND-cycle equality remains refused.**
+Status: **Functional original/image/cursor delivery and measured native reuse are evidenced. Shared placement geometry is consolidated; the semantic data-relocation adapter remains. Strict original HAND-cycle equality is still not met, so unconditional first-delivery closure is unclaimed.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
@@ -104,16 +104,31 @@ before GO. This bounds the discrepancy to pre-entry execution, but does not
 explain the controlled eight-CCK stop difference or prove disk/ROM causality.
 Strict equality remains refused; no fitted delay or comparator allowance was added.
 
-**Remaining deletion boundary:** `src/m68k_memory_region.inc` and
-`memory_regions.py`/`derived_artifact.py` still serve a native data-relocation lane
-with Slow RAM/Exec ownership leases, fixed-width byte ledgers and initialization
-manifests. The new normal fixed-layout source path is Chip-only; it has not
-replaced those contracts. Deleting that lane now would discard supported positive
-and refusal cases, while implementing general allocation would cross into M5.
-First delivery therefore remains open at this concrete gate. The next decision
-is a bounded compatibility migration specification or explicit revision of that
-retirement requirement; do not silently remove capabilities or call M0–M4 complete.
-M5–M6 remain unimplemented. The target string builder is already deleted.
+**Consolidation disposition:** the canonical layout module now owns finite
+extent/domain/alignment checks, overlap and checked base-plus-offset translation.
+The older single-region path calls these shared calculations; its independent
+geometry expressions are removed. It remains a semantic adapter owning A500
+Chip/Slow class choices, eight-byte Exec leases, access/alias/stack proofs,
+generated fixed-width rewrite ledgers and initialization manifests. Those are
+supported contracts, not an alternate placement engine or newly implemented M5
+allocation. The adapter's instruction scans and inverse runtime-view enumeration
+remain necessary proof/disambiguation work; forward mappings already use the
+shared native runtime map. No duplicate Python placement model was introduced.
+289 relevant tests pass, including explicit Chip/Slow boundary and exact-ledger
+regressions. A fresh final original export takes 201.85 s and retains the exact
+source/package; current C assembly equals the retained independent vasm output
+for all 376,832 bytes. The historical benchmark receipt retains its pre-factoring code and
+backend identities; this factoring is not claimed as a newly measured speedup.
+
+The [milestone acceptance ledger](../../runtime/observations/pandora-layout-delivery-acceptance.json)
+distinguishes delivered mechanisms from the remaining strict original-to-image
+HAND-cycle condition. Both cold completions and bounded output comparisons are
+available, but exact bootstrap-cycle identity is refused and its cause is not
+established. Do not claim unconditional M0–M4 completion. The target string builder
+is deleted; shared placement geometry now replaces the overlapping calculations.
+Optional allocation/OS lifecycle remains M5–M6 and is not implemented. A decision
+to accept the explicit pre-entry deviation or a new, narrowly scoped startup
+investigation is still needed before claiming that strict criterion fulfilled.
 
 ### Earlier mechanism batches (historical)
 
@@ -505,15 +520,17 @@ when scan counts no longer grow as regions times instructions. Warm edits must
 equal clean output and avoid unaffected discovery; report actual savings rather
 than a target percentage. The initial design-only revision ran no performance
 measurements; the implementation checkpoint above now supplies baseline and
-index operation counts. The current checkpoint supplies scoped warm/clean latency and exact-output evidence; no universal latency guarantee is claimed.
+index operation counts. The current checkpoint supplies scoped warm/clean
+latency and exact-output evidence; no universal latency guarantee is claimed.
 
 ## Milestones and deletion gates
 
 The table defines acceptance, not a claim that every mechanism exists. M0 and M1
 have the partial implementation/evidence above; M2 has target profile builds and
 M3/M4 now have the scoped runtime/output evidence above; frozen-plan reuse and
-its measured performance are evidenced. The legacy compatibility/deletion gate
-remains open and exact original HAND-cycle equality is refused. M5–M6 are not started. M1–M4
+its measured performance are evidenced. Placement calculations are shared while
+the proof/manifest semantic adapter remains supported. Exact original HAND-cycle
+equality is still refused. M5–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are distinct later decisions. Each batch
@@ -524,7 +541,7 @@ remain untouched.
 | Milestone / dependency | Deliverable and acceptance | Non-goals and deletion gate |
 | --- | --- | --- |
 | **M0: migration contract, block selection and baselines**; none | Inventory canonical image/code, workspace and display owners, reference families, bootstrap facts and exact experiment variants. Inspect concrete candidate blocks' CPU/alias/DMA/lifetime/initialization constraints and choose a supported independent move, recording specific restrictions on other blocks. Capture exporter/performance identities and focused fixtures; confirm existing exact/output receipts and private evidence availability without unrelated reruns. | No architecture implementation hidden in baseline collection. No experimental path removed yet. If no block can be justified, report the exact missing evidence and keep first delivery open; do not substitute image-only completion. |
-| **M1: canonical layout planning**; M0 | Extend native region/view/reference schemas and revision-checked commands for image/code, workspace and display regions from the start. Model base-plus-offset subregions, independent placements, aliases, fixed RAM/hardware separation and indexed resolution. Include original, known-image and selected-block constraints. Test deterministic replay, valid containment/alias, invalid overlaps/alignments, stale edits, missing provenance and interval scaling. | No automatic placement solver or arbitrary overlays. Existing single-region service translates to shared planner only after its supported positive/refusal fixtures agree; delete its duplicate scan/policy engine at that point, retaining historical receipt verification. |
+| **M1: canonical layout planning**; M0 | Extend native region/view/reference schemas and revision-checked commands for image/code, workspace and display regions from the start. Model base-plus-offset subregions, independent placements, aliases, fixed RAM/hardware separation and indexed resolution. Include original, known-image and selected-block constraints. Test deterministic replay, valid containment/alias, invalid overlaps/alignments, stale edits, missing provenance and interval scaling. | No automatic placement solver or arbitrary overlays. Existing single-region service delegates shared placement/address calculations after positive/refusal parity. Retain its class/lease, proof and immutable-manifest semantics as an adapter; remove duplicate geometry rather than deleting supported capabilities. Historical receipt verification remains. |
 | **M2: normal exporter and internal baseline builds**; M1 | Render image/code, workspace and display bases/subregions naturally in the frozen native plan. Admit reviewed Pandora pointer families; resolve image symbols, tables, split sprite/Copper references and fixed buffers. Encode loader prefix/suffix, helper and timing-preserving bootstrap variant. Generate original and `$80000` packages; original C/vasm bytes exact, alternate matches the qualified payload or every difference has a reviewed typed cause. Verify widths and full-file/suffix placement; test overflow, partial split pointer, raw-asset fixups, copied-code view ambiguity and missing initialization refusal. | This is an internal step, not first-delivery completion; the independent block move is required by M4. No runtime allocation. Delete `symbolic_repairs`, ORG/comparison string replacements and experimental source builder only after this normal path passes; a thin observation client may temporarily consume either manifest until M3. No permanent dual build mode. |
 | **M3: baseline runtime qualification and experiment retirement**; M2 | Run the existing 576-phase normal-input saved-Earth route on the normal-export known-image payload, actual moved-PC/old-range guards and zero loss counters; qualify unheld cold completion and same-profile controlled output comparison. Retain failure receipts and scoped asset/DMA/output checks below. Wire CLI/MCP/UI to the same service with repeated/stale/non-pass parity checks. | Baseline qualification does not close first delivery. No unrelated proof/fuzzing work. Remove experiment-only build/config admission and duplicate observation address constants once the runner consumes the shared layout map. Keep historic receipts/comparator; preserve reproducible original and alternate exports before deleting obsolete fixtures/code. |
 | **M4: independent block move and first-delivery acceptance**; M1–M3 and M0's evidenced block constraints | Export one additional legal fixed layout independently moving at least one workspace or display block. Both kinds remain canonical base-plus-offset regions even if only one physically moves. Validate all relevant producers/consumers, alias/lifetime/initialization and CPU/DMA address construction; run focused negative constraints, existing route, unheld cold completion and matched output acceptance. Observe the actual new block addresses and unchanged or separately selected image placement. Report exact restrictions for blocks not moved. | Delivery closes only with original, known-image and independent-block acceptance plus required debt-removal gates. No requirement to move both workspace and display, no invented arbitrary placement or all-buffer safety claim. Delete selected-block mapping constants only when shared facts replace their consumers. Missing evidence blocks that move and delivery closure, not truthful partial reporting. |

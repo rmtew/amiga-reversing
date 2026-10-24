@@ -5,6 +5,23 @@
 _Static_assert(M68K_ANALYSIS_MEMORY_REGION_LIMIT<=32,"layout membership index uses a bounded bitmap");
 static int ancestor(const M68kResolvedMemoryLayout *,int,int);
 
+int m68k_memory_layout_extent_fits(uint32_t address,uint32_t size,uint32_t alignment,
+    uint32_t domain_start,uint64_t domain_end) {
+  return size && alignment && !(alignment & (alignment-1)) && !(address%alignment) &&
+      domain_end<=UINT64_C(0x100000000) && address>=domain_start &&
+      (uint64_t)address+size<=domain_end;
+}
+int m68k_memory_layout_overlaps(uint32_t address,uint32_t width,uint32_t start,uint32_t size) {
+  return (uint64_t)address+(width ? width : 1U)>start && address<(uint64_t)start+size;
+}
+int m68k_memory_layout_translate_reference(uint32_t original,uint32_t placed,uint32_t size,
+    uint32_t address,uint32_t width,uint32_t *result) {
+  uint64_t extent=width ? width : 1U;
+  if(!result || address<original || (uint64_t)address+extent>(uint64_t)original+size ||
+      (uint64_t)placed+size>UINT64_C(0x100000000)) return -1;
+  *result=placed+(address-original);return 0;
+}
+
 static int region_index(const M68kAnalysisPolicy *p,const char *id) {
   for(size_t i=0;i<p->memory_region_count;i++) if(!strcmp(p->memory_regions[i].region_id,id)) return (int)i;
   return -1;
@@ -37,7 +54,8 @@ static int resolve_region(const M68kAnalysisPolicy *p,const M68kMemoryLayoutIR *
   }
   if(!r->size || !r->alignment || (r->alignment & (r->alignment-1)) || address%r->alignment)
     return fail(out,i,"invalid_extent_or_alignment");
-  if(address+r->size>layout->chip_bytes) return fail(out,i,"outside_declared_chip_ram");
+  if(address>UINT32_MAX || !m68k_memory_layout_extent_fits((uint32_t)address,r->size,r->alignment,0,layout->chip_bytes))
+    return fail(out,i,"outside_declared_chip_ram");
   if(address!=r->runtime_address && address<0x1000) return fail(out,i,"reserved_low_memory");
   out->addresses[i]=(uint32_t)address;
   out->ancestor_bits[i]=(UINT32_C(1)<<i) | (out->parents[i]>=0 ? out->ancestor_bits[out->parents[i]] : 0);
@@ -112,7 +130,10 @@ int m68k_memory_layout_reference_profiled(const M68kAnalysisPolicy *p,const M68k
   uint32_t offset=address-r->runtime_address;
   int length=offset ? snprintf(expression,capacity,"%s+$%X",r->name,offset) : snprintf(expression,capacity,"%s",r->name);
   if(length<0 || (size_t)length>=capacity) return -1;
-  if(placed_address) *placed_address=resolved->addresses[selected]+offset;
+  uint32_t placed;
+  if(m68k_memory_layout_translate_reference(r->runtime_address,resolved->addresses[selected],
+      r->size,address,width,&placed)) return -1;
+  if(placed_address) *placed_address=placed;
   return 1;
 }
 int m68k_memory_layout_reference(const M68kAnalysisPolicy *p,const M68kResolvedMemoryLayout *resolved,
@@ -162,8 +183,8 @@ int m68k_memory_layout_resolve(const M68kAnalysisPolicy *p,const M68kMemoryLayou
   }
   for(size_t i=0;i<p->memory_region_count;i++) for(size_t j=0;j<i;j++) {
     if(ancestor(out,(int)i,(int)j) || ancestor(out,(int)j,(int)i)) continue;
-    if((uint64_t)out->addresses[i]+p->memory_regions[i].size>out->addresses[j] &&
-        (uint64_t)out->addresses[j]+p->memory_regions[j].size>out->addresses[i])
+    if(m68k_memory_layout_overlaps(out->addresses[i],p->memory_regions[i].size,
+        out->addresses[j],p->memory_regions[j].size))
       return fail(out,(int)i,"unrelated_region_overlap");
   }
   build_reference_index(p,out);

@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "status": "functional_delivery_evidenced_strict_HAND_criterion_unfulfilled",
+  "publication": "Direct master; no PR or feature branch.",
+  "reuse_commit": "66d3cd6fa0fc77b8fb139111f433abcf9bde3fb6",
+  "milestones": [
+    {
+      "id": "M0",
+      "status": "evidenced_for_selected_target",
+      "delivered": "Canonical seams/candidate constraints and measured cold/warm Pandora exports, operation counts and output identities.",
+      "evidence": [
+        "pandora-memory-layout-baseline.json",
+        "pandora-layout-reuse-performance.json"
+      ],
+      "limits": "Single host and sequential cases; cumulative RSS is not independent per-case peak. No universal latency guarantee."
+    },
+    {
+      "id": "M1",
+      "status": "evidenced_with_explicit_supported_bounds",
+      "delivered": "Native image/workspace/display roles, hierarchy, fixed layouts and indexed typed reference lookup. Single-region semantic adapter delegates finite extent/overlap/translation to the canonical layout module.",
+      "evidence": [
+        "pandora-canonical-layout-adoption.json",
+        "pandora-layout-reuse-performance.json"
+      ],
+      "limits": "16-region bound; Chip-only normal layout profiles. Slow RAM/Exec existing data-relocation adapter retains its proof/manifest policy. Its inverse-view and instruction scans are not a second placement model and were not deleted."
+    },
+    {
+      "id": "M2",
+      "status": "evidenced_for_three_named_profiles",
+      "delivered": "Normal frozen-plan source and owned packages for original, image 80000 and cursor E0000; typed pointers/bootstrap/loader seed; C and vasm full payload equality.",
+      "evidence": [
+        "pandora-canonical-workspace-qualification.json",
+        "pandora-layout-reuse-performance.json"
+      ],
+      "limits": "Loader-only suffix stays distinct from copied executable prefix. No blind pointer rewriting or arbitrary source-view splitting."
+    },
+    {
+      "id": "M3",
+      "status": "functional_acceptance_evidenced_strict_cycle_condition_not_met",
+      "delivered": "Normal-input cold saved-Earth/escape, moved PCs/old-range observations and zero loss counters. Shared CLI/MCP/UI delivery and actual string-builder deletion.",
+      "evidence": [
+        "pandora-canonical-workspace-qualification.json",
+        "pandora-layout-builder-retirement.json",
+        "pandora-layout-service-wiring.json",
+        "pandora-layout-preentry-clock-probe.json"
+      ],
+      "limits": "Original-to-image strict HAND stop differs by eight CCK and remains refused. Same-state sampled frames and actual-HAND-to-EOF PCM equality do not establish exact pre-entry cycle identity."
+    },
+    {
+      "id": "M4",
+      "status": "independent_block_functional_and_scoped_output_acceptance_evidenced",
+      "delivered": "140-byte cursor workspace independently at E0000; image fixed at80000. Cold 576-phase completion HP49/frame14353; controlled cursor/image comparison matches 576 phase clocks,509 controller calls,eight frames,24726568 float samples.",
+      "evidence": [
+        "pandora-canonical-workspace-qualification.json",
+        "pandora-canonical-cursor-output.json"
+      ],
+      "limits": "Six core plus two inventory DMA samples, not all DMA/assets/optional routes. Unchanged eight null-sprite WORD reads at0/2 stay outside certified bounds. Display naturally modeled but not independently moved."
+    },
+    {
+      "id": "M5-M6",
+      "status": "not_implemented_not_authorized_in_this_delivery",
+      "delivered": null,
+      "limits": "Runtime allocation and OS-hosted hardware lifecycle are separate decisions."
+    }
+  ],
+  "shared_geometry": {
+    "owner": "src/m68k_memory_layout.c",
+    "removed_duplicate_calculations": [
+      "Standalone A500 extent subtraction/bounds formulas",
+      "Standalone overlap arithmetic in the semantic adapter",
+      "Standalone destination-plus-offset rewrite calculations"
+    ],
+    "retained_semantics": [
+      "A500 Chip/Slow domain policy",
+      "8-byte Exec ownership rounding",
+      "Access/alias/stack/PC-relative proof obligations",
+      "Generated same-width rewrite ledger",
+      "Mapped initialization and immutable manifest/native-binding verification"
+    ],
+    "tests": {
+      "passed": 289,
+      "deselected": 240
+    },
+    "runtime_allocation_added": false,
+    "implementation_sha256": {
+      "src/m68k_memory_layout.c": "3f0ab2c993a7ce2f1d3faab0d3a492d37b8d9bd440a5cff7aa7a0f9667eb380b",
+      "src/m68k_memory_layout.h": "5aa9cd1f02ee23dc1ca3c93eb2dc8a1a77863b55feeec9d35b3f8b1a13051fd4",
+      "src/m68k_memory_region.inc": "727bb6f48c920abe7a67cec312e798f18684fdcda29595ebfb414eae5944e662",
+      "src/m68k_memory_region_addresses.inc": "460b0f5882dd982e2f24a9fe4e7e1e0e595990f3c49eeebed4595914b2cd7116"
+    },
+    "native_backend_sha256": "7453ab9932bf1406e0b4692d9940d61c9b33f7dbe171ee9eefed04fc1a09b690"
+  },
+  "remaining": {
+    "action": "Disposition the strict original-to-image HAND-cycle criterion",
+    "target": "Controlled direct-payload pre-entry handoff; eight-CCK difference",
+    "state": "criterion_unfulfilled_cause_unresolved_not_access_denied",
+    "evidence": "Boot-only probes already differ at BOOT before CMD_READ; natural HAND also differs. No fitted delay or comparator relaxation.",
+    "smallest_next_decision": "Explicitly accept the bounded pre-entry deviation with existing output evidence, or authorize a narrowly scoped startup timing investigation; do not silently treat it as passed."
+  },
+  "preservation": {
+    "B07_files": 9,
+    "B07_hashes_unchanged": true,
+    "proprietary_media_published": false,
+    "gameplay_state_injected": false,
+    "unconditional_delivery_complete": false
+  },
+  "post_consolidation_original_check": {
+    "status": "pass",
+    "original_source_and_package_unchanged": true,
+    "current_C_equals_prior_independent_vasm": true,
+    "payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "bytes": 376832,
+    "wall_seconds": 201.8518994320002,
+    "meaning": "Fresh final-source export and current C assembly equal retained original package and its independent vasm output; no redundant vasm invocation or gameplay rerun."
+  }
+}
