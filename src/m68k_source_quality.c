@@ -2539,7 +2539,8 @@ static int source_quality_copper_list_item_renders_word_row_at(const M68kSourceA
     const M68kSectionAnalysisIR *section_analysis, size_t section_index, uint32_t offset);
 
 static int append_copper_runtime_pointer_word_symbol_access_and_use(M68kSectionAnalysisIR *section,
-    uint32_t offset, const char *symbol_name, uint32_t runtime_address, uint32_t role_flags, uint8_t confidence) {
+    uint32_t offset, const char *symbol_name, uint32_t runtime_address, uint32_t role_flags, uint8_t confidence,
+    uint8_t value_part) {
   M68kExpectedSymbolAccessIR access;
   M68kPlatformSemanticUseIR use;
   if (section == NULL || symbol_name == NULL || symbol_name[0] == '\0' || runtime_address == 0U ||
@@ -2565,6 +2566,7 @@ static int append_copper_runtime_pointer_word_symbol_access_and_use(M68kSectionA
   use.operand_index = UINT32_MAX;
   use.has_runtime_address = 1U;
   use.runtime_address = runtime_address;
+  use.runtime_address_part = value_part;
   return m68k_ir_section_analysis_append_platform_semantic_use(section, &use);
 }
 
@@ -2652,11 +2654,11 @@ static int append_structured_copper_row_platform_semantic_uses(M68kSourceAnalysi
           platform_format_runtime_address_symbol_name(role, pointer_address, "_lo", low_symbol,
             sizeof(low_symbol));
           if (append_copper_runtime_pointer_word_symbol_access_and_use(section_analysis, row_offset, high_symbol,
-              pointer_address, role_flags, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+              pointer_address, role_flags, M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_RUNTIME_ADDRESS_PART_HIGH16) != 0) {
             return -1;
           }
           if (append_copper_runtime_pointer_word_symbol_access_and_use(section_analysis, row_offset + 4U,
-              low_symbol, pointer_address, role_flags, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+              low_symbol, pointer_address, role_flags, M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_RUNTIME_ADDRESS_PART_LOW16) != 0) {
             return -1;
           }
         }
@@ -11360,11 +11362,11 @@ static int append_expected_copper_runtime_pointer_word_symbol_accesses(M68kSourc
         sizeof(low_symbol));
       if (high_symbol[0] == '\0' || low_symbol[0] == '\0') continue;
       if (append_copper_runtime_pointer_word_symbol_access_and_use(section, ref->offset, high_symbol,
-          ref->runtime_address, ref->data_class_flags, ref->confidence) != 0) {
+          ref->runtime_address, ref->data_class_flags, ref->confidence, M68K_RUNTIME_ADDRESS_PART_HIGH16) != 0) {
         return -1;
       }
       if (append_copper_runtime_pointer_word_symbol_access_and_use(section, ref->offset + 4U, low_symbol,
-          ref->runtime_address, ref->data_class_flags, ref->confidence) != 0) {
+          ref->runtime_address, ref->data_class_flags, ref->confidence, M68K_RUNTIME_ADDRESS_PART_LOW16) != 0) {
         return -1;
       }
     }

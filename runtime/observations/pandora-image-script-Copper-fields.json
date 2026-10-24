@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "status": "typed_native_repair_qualified_by_full_payload_and_fixtures_live_route_pending",
+  "canonical_metadata_sha256": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "original_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "backend_sha256": "647bbdf848cf9a76f2f716b8d0fd6fc0fbc8b77f6496e626f2c67261bfafd62e",
+  "native_contract_sha256": "6b25a610c463fb132d7f74c0d470ebb19e20d0d38f0063ab21257d96caed62d4",
+  "failure": {
+    "frame": 1332,
+    "vector": 3,
+    "fault_PC": 528582,
+    "source_instruction": 4622,
+    "role": "script_copy_word",
+    "A4": 836376,
+    "player_A5": 836058,
+    "script_loop_source": 312082,
+    "missing_fields": [
+      312084,
+      312094
+    ],
+    "raw_private_capture_sha256": "a617d3ef996d0d854aae4885c47cfeb2288953c9ebf06bded316ace57706a1c1"
+  },
+  "repair": {
+    "previous_image_fields": 2578,
+    "current_image_fields": 2628,
+    "total_fields": 2739,
+    "additional_interpreted_LONGs": 22,
+    "additional_Copper_WORDs": 28,
+    "mechanism": "Existing canonical per-element source/runtime bindings plus frozen paired Copper address-part identities. No numeric scans, source string patches or opcode size changes.",
+    "covered_legacy_fact_policy": "An already admitted native field remains authoritative only if its original encoded runtime value agrees; unused legacy local-offset tuples are not reinterpreted."
+  },
+  "full_payload_reference": {
+    "status": "exact_payload_bytes_at_previously_observed_bases_not_new_run_qualification",
+    "bytes": 376832,
+    "reference_sha256": "321628688cbe617accd4cc03da3bb7c730db472bf7f4f68ae8e3f781f98d7b21",
+    "owners": {
+      "pandora_prng_state": 6552,
+      "keyboard_state": 65904,
+      "pandora_ui_snapshot_body": 66032,
+      "pandora_title_stars": 68336,
+      "pandora_cpu_workspace": 69336,
+      "pandora_low_generated_masks": 117392,
+      "pandora_image": 523960
+    },
+    "contract_sha256": "6b25a610c463fb132d7f74c0d470ebb19e20d0d38f0063ab21257d96caed62d4",
+    "reference_metadata_sha256": "989d81541e537742636781279c039650f7cf222d045435e62df535af188260a8",
+    "normalized_import_source_offset": 1240,
+    "normalized_import_value": 564702,
+    "limits": [
+      "Import is bound to native initializer for byte comparison, not the external HUNK callback.",
+      "Actual current guest owner returns require fresh native admission.",
+      "Full bytes match native C and vasm; no gameplay or output comparison claimed."
+    ]
+  },
+  "build": {
+    "status": "normal_HUNK_game_application_built_runtime_pending",
+    "owners": [
+      "pandora_prng_state",
+      "keyboard_state",
+      "pandora_ui_snapshot_body",
+      "pandora_title_stars",
+      "pandora_cpu_workspace",
+      "pandora_low_generated_masks",
+      "pandora_image"
+    ],
+    "contract_sha256": "7e3ddd1f00ae3fb7883014ce7e571bd27840c1c3b099bced09d3b784bdf57803",
+    "payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+    "source_sha256": "d05c30919ee8faa0d116b74ce08f4ca18877457b35f3f0b2719dbc972dedc713",
+    "HUNK_sha256": "6971a36879ed1e86bf67a2489125165c709b97121ae6bfd05ee876e0f34c41c9",
+    "loader_sources_sha256": {
+      "amiga_pandora_OS.s": "d05c30919ee8faa0d116b74ce08f4ca18877457b35f3f0b2719dbc972dedc713",
+      "amiga_pandora_OS_fields.i": "a4f17b238d0d4d5473aa084796918f152ad1581c24c796ee0b34fab438b0ac67",
+      "amiga_pandora_OS_audio.i": "f2576fc60fcce64a3a700875134ae1029f15b4fe1fddcdba614b964864fac20e",
+      "amiga_pandora_OS_takeover.i": "55138ebb6a08ebd1511b3dfda5d9ddde1c4a60845cd0f5a307894a5819637dfc"
+    },
+    "fixed_lease_intents": [
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "ADF_sha256": "b1a3e88eb4350b2cb6269fa331573f7e3c27b1ef67d46f64fc0de7a835368683"
+  },
+  "validation": {
+    "passed": 160,
+    "skipped": 0,
+    "native_C_vasm_fixture": true,
+    "stale_late_WORD_refused_without_partial_write": true,
+    "unsigned_DMA_low_word_above_0x7fff": true,
+    "signed_absolute_WORD_reach_guard_retained": true,
+    "fixed_six_owner_HUNK_sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c"
+  },
+  "limits": [
+    "Fresh actual-base admission and normal-input completion/output/cleanup are pending, not certified by fixtures or payload equality.",
+    "Original byte-exact build and fixed-image executable remain preserved.",
+    "Carrier/input, high masks and display still require fixed claims; A1 is not the programme endpoint.",
+    "Eight-CCK original-to-image startup discrepancy, shared-wrapper proof limits and unobserved paths remain open.",
+    "No proprietary payload, ROM, raw checkpoint, screenshot or PCM is included."
+  ]
+}

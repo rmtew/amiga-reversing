@@ -3695,6 +3695,7 @@ int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR 
         existing->has_operand_expr == use->has_operand_expr &&
         existing->has_runtime_address == use->has_runtime_address &&
         existing->runtime_address == use->runtime_address &&
+        existing->runtime_address_part == use->runtime_address_part &&
         existing->operand_index == use->operand_index &&
         text_equal_nullable(existing->note_text, use->note_text) &&
         text_equal_nullable(existing->operand_expr, use->operand_expr)) {

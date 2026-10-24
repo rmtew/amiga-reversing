@@ -89,6 +89,7 @@ static const char *mr_image_instruction_fixup(const PlatformFileListingArtifact 
   *emitted=1;return NULL;
 }
 #include "m68k_source_image_relations.inc"
+#include "m68k_source_image_data.inc"
 
 static const char *mr_allocation_image_fixups_checked(const PlatformFileListingArtifact *a,
     const M68kMemoryRegionIR *r,const M68kBootstrapContractIR *boot,uint32_t staged,
@@ -187,10 +188,12 @@ static const char *mr_allocation_image_fixups_checked(const PlatformFileListingA
 
 static const char *mr_allocation_image_fixups(const PlatformFileListingArtifact *a,
     const M68kMemoryRegionIR *r,const M68kBootstrapContractIR *boot,uint32_t staged,
-    MRAllocationFixup *sites,size_t capacity,size_t *count,const M68kRenderPlannedExpression **refused) {
+    MRAllocationFixup *sites,size_t capacity,size_t *count,const M68kRenderPlannedExpression **refused,uint32_t *data_failure) {
   unsigned char *checked=calloc(r->size ? r->size:1,1);
   if(!checked) return "relative_image_guard_allocation_failed";
   const char *reason=mr_image_relative_data_guard(&a->source_analysis,&a->object,&a->source_plan,r,checked,refused);
   if(!reason) reason=mr_allocation_image_fixups_checked(a,r,boot,staged,sites,capacity,count,refused,checked);
+  if(!reason) reason=mr_image_interpreted_fields(a,r,staged,sites,capacity,count,data_failure);
+  if(!reason) reason=mr_image_copper_fields(a,r,staged,sites,capacity,count,refused);
   free(checked);return reason;
 }

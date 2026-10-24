@@ -3,9 +3,10 @@
 typedef struct MRAllocationFixup {
   uint32_t source_offset,region_offset,staged_value,instruction_offset;
   uint16_t opcode;
-  uint8_t width,operand_index,instruction_field,has_source_target,pointer_domain_plus_one,runtime_alias;
+  uint8_t width,operand_index,instruction_field,has_source_target,pointer_domain_plus_one,runtime_alias,value_part;
   uint32_t target_offset;
-  const char *symbol;
+  const char *symbol,*interpreted_owner;
+  uint32_t pair_source_offset;
 } MRAllocationFixup;
 static size_t mr_allocation_site_capacity(const PlatformFileListingArtifact *a) {
   if(!a) return 0;
@@ -117,7 +118,7 @@ static int mr_runtime_allocation_context_json_alloc(
   MRAllocationFixup *sites=NULL;int cpu_scope=0,image_scope=0,dma_address_fixups=0;uint32_t maximum_base=0xffffffU;
   const M68kRenderPlannedInstruction *frame_guards[M68K_ADDRESS_FRAME_SITE_LIMIT];size_t frame_guard_count=0;
   const M68kRenderPlannedInstruction *refusal_instruction=NULL;size_t refusal_operand=0;
-  const M68kRenderPlannedExpression *refusal_expression=NULL;
+  const M68kRenderPlannedExpression *refusal_expression=NULL;uint32_t interpreted_failure=UINT32_MAX;
   const M68kMemoryRegionIR *r=NULL;const M68kBootstrapContractIR *boot=NULL;
   if(!a || !region_id || !layout_id || !out_text) return -1;
   *out_text=NULL;if(admitted_count) *admitted_count=0;
@@ -164,7 +165,7 @@ static int mr_runtime_allocation_context_json_alloc(
     reason=initial.reason;goto result;
   }
   if(image_scope) {
-    reason=mr_allocation_image_fixups(a,r,boot,initial.addresses[ri],sites,site_capacity,&fixups,&refusal_expression);
+    reason=mr_allocation_image_fixups(a,r,boot,initial.addresses[ri],sites,site_capacity,&fixups,&refusal_expression,&interpreted_failure);
     if(reason) goto result;
   } else {
   for(size_t i=0;i<a->source_plan.instruction_count;i++) {
@@ -350,6 +351,8 @@ result:
       ",\"refusal_reference\":{\"source_section_index\":%u,\"source_offset\":%u,\"kind\":%u,\"operand_index\":%u}",
       refusal_expression->source_section_index,refusal_expression->source_offset,refusal_expression->kind,
       refusal_expression->operand_index)) goto failed;
+  if(interpreted_failure!=UINT32_MAX && json_builder_appendf(&b,
+      ",\"refusal_interpreted_source_offset\":%u",interpreted_failure)) goto failed;
   if(!reason) {
     if(admitted_sites && admitted_count) {
       if(fixups>admitted_capacity) goto failed;
@@ -360,7 +363,8 @@ result:
           r->size,r->alignment,r->runtime_address,initial.addresses[ri],numeric)) goto failed;
     for(size_t fi=0;fi<fixups;fi++) {
       const MRAllocationFixup *f=&sites[fi];
-      const char *encoding=f->instruction_field==2 ? "absolute_long_immediate" :
+      const char *encoding=f->value_part==M68K_RUNTIME_ADDRESS_PART_HIGH16 ? "dma_address_high_word" :
+        f->value_part==M68K_RUNTIME_ADDRESS_PART_LOW16 ? "dma_address_low_word" : f->instruction_field==2 ? "absolute_long_immediate" :
         f->instruction_field ? (f->width==2 ? "absolute_word_operand" : "absolute_long_operand") : "absolute_long_data";
       if((fi && json_builder_append(&b,",")) || json_builder_appendf(&b,
           "{\"source_section_index\":0,\"source_offset\":%u,\"width\":%u,\"encoding\":",
@@ -369,6 +373,10 @@ result:
           f->has_source_target ? "mapped_source":"runtime_only",f->region_offset,f->staged_value)) goto failed;
       if(f->has_source_target && json_builder_appendf(&b,
           ",\"target_section_index\":0,\"target_offset\":%u",f->target_offset)) goto failed;
+      if(f->interpreted_owner && (json_builder_append(&b,",\"interpreted_owner_id\":") ||
+          json_builder_append_json_string(&b,f->interpreted_owner))) goto failed;
+      if(f->value_part && json_builder_appendf(&b,",\"value_part\":%u,\"pair_source_offset\":%u",
+          f->value_part,f->pair_source_offset)) goto failed;
       if(f->runtime_alias && json_builder_append(&b,",\"source_identity_origin\":\"typed_runtime_alias\"")) goto failed;
       if(f->pointer_domain_plus_one) {
         static const char *domains[]={"legacy","mapped_source","runtime_only"};

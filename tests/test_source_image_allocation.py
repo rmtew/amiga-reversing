@@ -141,3 +141,62 @@ def test_numeric_immediate_coincidence_is_not_promoted_to_image_alias(tmp_path):
         assert p['status']=='bounded_allocation_candidate',p
         assert 6 not in {f['source_offset'] for f in p['fixups']}
     finally:a.close()
+
+
+@pytest.mark.parametrize('runtime,target',[(0x10000,0),(0x10002,0)])
+def test_explicit_scalar_interpretation_projects_only_verified_source_binding(tmp_path,runtime,target):
+    a=fixture(tmp_path,extra=dict(manual_runtime_address_refs=[dict(hunk=0,addr=26,size=4,
+        target_hunk=0,target_offset=target,runtime_address=runtime,
+        owner_kind='data_block_interpreted_ref',owner_id='scalar-contract',
+        owner_layout_id='record',owner_element_offset=4,xref_generation_mode='bidirectional',confidence=3)]))
+    try:
+        p=a.runtime_allocation_plan('image','diagnostic')
+        if runtime!=0x10000:
+            assert p['status']=='refused' and p['reason']=='unsupported_or_stale_interpreted_image_field',p
+        else:
+            assert p['status']=='bounded_allocation_candidate',p
+            f=next(f for f in p['fixups'] if f['source_offset']==26)
+            assert f['width']==4 and f['staged_value']==0x80000
+            assert f['interpreted_owner_id']=='scalar-contract'
+    finally:a.close()
+
+
+def test_Copper_pointer_pair_retains_typed_high_low_parts(tmp_path):
+    extent=512
+    data=bytes.fromhex('4e71b3ca04800001001623fc0001002000dff0804e75')
+    data+=bytes(32-len(data))+bytes.fromhex('0120000101220010fffffffe')
+    data+=bytes(512-len(data))
+    m=metadata();m['memory_regions'][0]['size']=extent
+    m['execution_views'][0]['source_end']=extent
+    m['bootstrap_contracts'][0].update(file_size=len(data),copied_source_end=extent,
+        input_sha256=hashlib.sha256(data).hexdigest())
+    m['seeded_entities']=[dict(addr=32,end=44,hunk=0,unit='word',subtype='copper_list',name='display_commands')]
+    a=build(tmp_path,m,data)
+    try:
+        p=a.runtime_allocation_plan('image','diagnostic')
+        assert p['status']=='bounded_allocation_candidate',p
+        fields={f['source_offset']:f for f in p['fixups']}
+        assert fields[34]['encoding']=='dma_address_high_word'
+        assert fields[38]['encoding']=='dma_address_low_word'
+        assert fields[34]['region_offset']==fields[38]['region_offset']==0x10
+        assert fields[34]['staged_value']==8 and fields[38]['staged_value']==0x10
+        actual=a.runtime_allocation_plan('image','diagnostic',0x9f000)
+        assert actual['status']=='actual_placement_valid',actual
+        import copy,subprocess
+        from amiga_reversing.disasm.c_backend import assemble_platform_source_text_with_c_backend
+        from amiga_reversing.tools.direct_payload_adapter import VASM,NDK_INCLUDE
+        from amiga_reversing.tools.pandora_OS_application import runtime_field_value
+        staged,_=assemble_platform_source_text_with_c_backend('amiga-raw',a.inline_source_text_with_profile()[0],include_dir=NDK_INCLUDE)
+        patched=bytearray(staged)
+        for f in p['fixups']:
+            patched[f['source_offset']:f['source_offset']+f['width']]=runtime_field_value(f,0x9f000).to_bytes(f['width'],'big')
+        reference=copy.deepcopy(m);reference['memory_layouts'][0]['placements'][0]['runtime_address']=0x9f000
+        directory=tmp_path/'reference';directory.mkdir();b=build(directory,reference,data)
+        try:
+            source=b.inline_source_text_with_profile()[0]
+            expected,_=assemble_platform_source_text_with_c_backend('amiga-raw',source,include_dir=NDK_INCLUDE)
+            asm=directory/'reference.s';binary=directory/'reference.bin';asm.write_text(source)
+            subprocess.run([str(VASM),'-quiet','-Fbin','-m68000','-no-opt','-I'+str(NDK_INCLUDE),'-o',str(binary),str(asm)],check=True,capture_output=True)
+            assert bytes(patched)==expected==binary.read_bytes()
+        finally:b.close()
+    finally:a.close()

@@ -15,6 +15,12 @@ def executable(tmp_path,request):
     (tmp_path/'pandora_OS_seeds.i').write_text(' move.w INPUT_ADDRESS+12,$40000\n')
     if getattr(request,'param',False):
         with (tmp_path/'pandora_OS_plan.i').open('a') as f:f.write('IMAGE_ALLOCATED EQU 1\nIMAGE_OWNER_OFFSET EQU 0\nWORLD_INITIALIZER_SOURCE EQU $20\n')
+    if getattr(request,'param',False)=='split':
+        plan=tmp_path/'pandora_OS_plan.i'
+        plan.write_text(plan.read_text().replace('FIXUP_COUNT EQU 2','FIXUP_COUNT EQU 4').replace('PAYLOAD_SIZE EQU 16','PAYLOAD_SIZE EQU 20'))
+        table=tmp_path/'pandora_OS_tables.i'
+        table.write_text(table.read_text().replace('crc_table:',
+            ' dc.l 16,3\n dc.w 20,$12\n dc.l 4\n dc.l 18,4\n dc.w 20,$22\n dc.l 4\ncrc_table:'))
     target=tmp_path/'app';listing=tmp_path/'app.list'
     p=subprocess.run([str(VASM),'-Fhunkexe','-m68000','-no-opt','-I'+str(NDK_INCLUDE),'-I'+str(ROOT/'tools'),'-I'+str(tmp_path),'-L',str(listing),'-o',str(target),str(ROOT/'tools/amiga_pandora_OS.s')],capture_output=True,text=True)
     assert p.returncode==0,p.stderr
@@ -44,6 +50,7 @@ def call(m,entry):
     except Done:pass
     else:raise AssertionError('Own bounded routine did not return')
 
+@pytest.mark.parametrize('executable',[False,True],indirect=True)
 @pytest.mark.parametrize('bad',['none','WORD_reach','unaligned_owner','late_stale_field'])
 def test_validate_all_before_apply_and_preserve_WORD_LONG_fields(executable,bad):
     m,l,data=machine(executable)
@@ -147,3 +154,19 @@ def test_image_initializer_binding_comes_from_returned_owner(executable):
     assert m.cpu.r_reg(machine68k.Register.D0)==1
     call(m,base+l['apply_runtime_fields'])
     assert m.mem.r32(base+l['state_image_initializer'])==0x1998+0x20
+
+
+@pytest.mark.parametrize('executable',['split'],indirect=True)
+@pytest.mark.parametrize('stale',[False,True])
+def test_split_DMA_words_are_unsigned_and_all_checked_before_mutation(executable,stale):
+    m,l,_=machine(executable);base=0x1000
+    m.mem.w16(0x20010,3);m.mem.w16(0x20012,5 if stale else 4)
+    before=m.mem.r_block(0x20000,20)
+    call(m,base+l['validate_runtime_fields'])
+    assert m.cpu.r_reg(machine68k.Register.D0)==int(not stale)
+    assert m.mem.r_block(0x20000,20)==before
+    if not stale:
+        call(m,base+l['apply_runtime_fields'])
+        assert m.mem.r16(0x20010)==1
+        assert m.mem.r16(0x20012)==0xca94
+        assert m.mem.r16(0x2000e)==0

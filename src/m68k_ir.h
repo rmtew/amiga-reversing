@@ -2130,6 +2130,12 @@ typedef enum M68kPlatformSemanticUseKind {
   M68K_PLATFORM_SEMANTIC_USE_RUNTIME_SINK_POINTER = 21
 } M68kPlatformSemanticUseKind;
 
+typedef enum M68kRuntimeAddressPart {
+  M68K_RUNTIME_ADDRESS_PART_NONE = 0,
+  M68K_RUNTIME_ADDRESS_PART_HIGH16 = 1,
+  M68K_RUNTIME_ADDRESS_PART_LOW16 = 2
+} M68kRuntimeAddressPart;
+
 typedef struct M68kPlatformSemanticUseIR {
   char *note_text;
   char *operand_expr;
@@ -2149,6 +2155,7 @@ typedef struct M68kPlatformSemanticUseIR {
   uint8_t has_secondary_target;
   uint8_t has_operand_expr;
   uint8_t has_runtime_address;
+  uint8_t runtime_address_part;
 } M68kPlatformSemanticUseIR;
 
 typedef struct M68kCodeStartRefIR {

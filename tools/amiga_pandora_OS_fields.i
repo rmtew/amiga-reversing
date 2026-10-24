@@ -19,10 +19,20 @@ validate_actual_owner:
     move.w #FIXUP_COUNT-1,d7
 validate_next_field:
     bsr.w decode_runtime_field
+    IFD IMAGE_ALLOCATED
+    cmpi.w #4,d5
+    beq.b validate_LONG_field
+    cmpi.w #2,d5
+    bne.b validate_word_field
+    ELSE
     cmpi.w #2,d5
     bne.b validate_LONG_field
+    ENDC
     cmpi.l #$7FFF,d0
     bhi.w fields_invalid
+    IFD IMAGE_ALLOCATED
+validate_word_field:
+    ENDC
     moveq #0,d1
     move.w (a1),d1
     cmp.l d3,d1
@@ -43,8 +53,13 @@ apply_runtime_fields:
     move.w #FIXUP_COUNT-1,d7
 apply_next_field:
     bsr.b decode_runtime_field
+    IFD IMAGE_ALLOCATED
+    cmpi.w #4,d5
+    beq.b apply_LONG_field
+    ELSE
     cmpi.w #2,d5
     bne.b apply_LONG_field
+    ENDC
     move.w d0,(a1)
     bra.b field_applied
 apply_LONG_field:
@@ -71,6 +86,19 @@ decode_runtime_field:
     lea state_owners-host_state(a5),a0
     move.l 0(a0,d4.w),d0
     add.l d6,d0
+    IFD IMAGE_ALLOCATED
+    ; Tags $12/$22 are unsigned high/low DMA words, not abs.W operands.
+    cmpi.w #$12,d5
+    bne.b decode_check_low_word
+    swap d0
+    andi.l #$FFFF,d0
+    bra.b decode_address_part_done
+decode_check_low_word:
+    cmpi.w #$22,d5
+    bne.b decode_address_part_done
+    andi.l #$FFFF,d0
+decode_address_part_done:
+    ENDC
     movea.l #INPUT_ADDRESS,a1
     adda.l d2,a1
     rts

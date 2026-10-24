@@ -79,6 +79,7 @@ typedef struct M68kRenderPlannedExpression {
    * source offset and is never runtime ownership evidence. */
   uint8_t pointer_address_domain;
   uint8_t pointer_width;
+  uint8_t pointer_value_part; /* Explicit typed split address, never expression-string parsing. */
   char expression[M68K_RENDER_PLANNED_EXPRESSION_TEXT_CAPACITY];
   char target_symbol[M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY];
   char base_symbol[M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY];

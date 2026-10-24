@@ -5389,6 +5389,12 @@ static int plan_rendered_copper_equate_expressions(M68kRenderIRPreview *preview,
       expression.operand_index = UINT32_MAX;
       expression.kind = M68K_RENDER_PLANNED_EXPRESSION_EQUATE;
       expression.outcome = M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC;
+      if(use->has_runtime_address && use->runtime_address_part) {
+        expression.logical_address=use->runtime_address;
+        expression.pointer_width=2;
+        expression.pointer_address_domain=M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY;
+        expression.pointer_value_part=use->runtime_address_part;
+      }
       snprintf(expression.expression, sizeof(expression.expression), "%s", symbol);
       if (m68k_render_plan_append_expression(&preview->asm_source_plan, &expression) != 0 ||
           (preview->precomputing_planned_evidence &&

@@ -35,6 +35,19 @@ def application_owners(contract):
     raise ValueError('Unsupported native hosted owner set')
 
 
+def runtime_field_value(field,base):
+    """Interpret native field encoding, without discovering or placing targets."""
+    encoding=field['encoding'];width=field['width']
+    widths={'absolute_word_operand':2,'absolute_long_operand':4,'absolute_long_immediate':4,
+        'absolute_long_data':4,'dma_address_high_word':2,'dma_address_low_word':2}
+    if widths.get(encoding)!=width:raise ValueError('Unsupported native field encoding/width')
+    value=base+field['region_offset']
+    if not 0<=value<=0xffffffff:raise ValueError('Native pointer arithmetic overflow')
+    if encoding=='dma_address_high_word':return value>>16
+    if encoding=='dma_address_low_word':return value&0xffff
+    return value
+
+
 def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,layout_id='pandora_OS_hosted_ecs1m',expected_payload_sha256='9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b'):
     """Generate owned sources from native bindings; no assembly, disk or emulator."""
     LOADED_SOURCE.require_current()
@@ -82,7 +95,7 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
             for f in plans[name]['fixups']:
                 if (any(type(f[k]) is not int for k in ('source_section_index','source_offset','width','region_offset','staged_value'))
                         or f['source_offset']<0 or not 0<=f['region_offset']<plans[name]['size']
-                        or f['staged_value']!=plans[name]['staged_address']+f['region_offset']
+                        or f['staged_value']!=runtime_field_value(f,plans[name]['staged_address'])
                         or f['source_section_index']!=0 or f['address_domain']!=('mapped_source' if name==IMAGE_OWNER else 'runtime_only')
                         or f['width'] not in (2,4) or f['source_offset']%2
                         or f['source_offset']+f['width']>len(data)
@@ -106,8 +119,9 @@ def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,lay
     if game:
         field_table=['runtime_fields:']
         for f,index in fixes:
+            tag={'dma_address_high_word':0x12,'dma_address_low_word':0x22}.get(f['encoding'],f['width'])
             field_table.extend((f"    dc.l ${f['source_offset']:X},${f['staged_value']:X}",
-                          f"    dc.w {index*4},{f['width']}",f"    dc.l ${f['region_offset']:X}"))
+                          f"    dc.w {index*4},{tag}",f"    dc.l ${f['region_offset']:X}"))
         seeds=[r['loader_seed'] for r in batch['layout']['items'][0]['regions'] if 'loader_seed' in r]
         # Seed initialization is represented by the same frozen native layout,
         # not inferred from allocation contents or zero-filled by this loader.
@@ -277,7 +291,7 @@ def observe_game(out,rom,copperline,actual_validator,*,route=None,audio_stems=No
         if c.read_memory(0x20000,len(expected))!=expected:raise ValueError('Complete unbound payload differs')
         for member in native['members']:
             for f in member['fixups']:
-                value=owners[member['region_id']]+f['region_offset']
+                value=runtime_field_value(f,owners[member['region_id']])
                 expected[f['source_offset']:f['source_offset']+f['width']]=value.to_bytes(f['width'],'big')
         imported=native['layout']['items'][0]['bootstrap']['exit_dispatch_import']
         expected[imported['source_offset']:imported['source_offset']+4]=(base+labels['mission_restart_dispatch']).to_bytes(4,'big')

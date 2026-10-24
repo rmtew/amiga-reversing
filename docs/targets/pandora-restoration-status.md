@@ -3,6 +3,29 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
+### A1 image allocation: typed script and Copper fields (qualification pending)
+
+The four reviewed A6-relative passage stores now compose with their disjoint
+LONG image-source fields (`e3d84672`, 145 focused tests). The next cold route
+reached title/UI/proximity at a real Exec-selected image base `$7FEB8`, then
+faulted in `script_copy_word` at source `$120E`. Its script cursor came from
+unpatched per-element LONG fields at `$4C314/$4C31E`; those already had canonical
+interpretation facts but no frozen pointer expression. This is a failed route,
+not an allocated-image completion or cleanup qualification.
+
+The repair consumes those explicit interpretation facts, including their
+source/domain checks, and retains paired Copper address high/low identities in
+the frozen native plan. Split DMA words are unsigned address parts, distinct
+from signed absolute-W instruction operands. Numeric coincidences are not
+promoted. Native C/vasm fixture bytes agree; stale-field, width/overflow and
+pre-mutation refusal tests pass. The existing six-owner HUNK remains byte exact
+(SHA256 `77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c`).
+All 160 focused tests pass without skips. Fresh native admission passes 2,628 image fields / 2,739 total fields. Applying
+them at the previous observed bases matches all 376,832 native C/vasm reference
+bytes ([receipt](../../runtime/observations/pandora-image-script-Copper-fields.json)).
+The unchanged normal-input completion route is running; source-package promotion,
+allocated-image output comparison and the retained carrier lifetime remain open.
+
 ### Natural priest completion: four-store exercise
 
 [The bounded cold route](../../runtime/observations/pandora-priest-passage-natural-qualification.json)

@@ -9,6 +9,23 @@ from amiga_reversing.tools.pandora_OS_application import own_code
 
 ROOT=Path(__file__).resolve().parents[1]
 
+
+@pytest.mark.parametrize('encoding,width,expected',[
+    ('absolute_long_data',4,0x9f040),('dma_address_high_word',2,9),
+    ('dma_address_low_word',2,0xf040)])
+def test_native_field_value_keeps_full_pointer_and_physical_encoding_separate(encoding,width,expected):
+    from amiga_reversing.tools.pandora_OS_application import runtime_field_value
+    assert runtime_field_value(dict(encoding=encoding,width=width,region_offset=0x40),0x9f000)==expected
+
+
+@pytest.mark.parametrize('field,base',[
+    (dict(encoding='dma_address_low_word',width=4,region_offset=0),0),
+    (dict(encoding='unknown',width=2,region_offset=0),0),
+    (dict(encoding='absolute_long_data',width=4,region_offset=1),0xffffffff)])
+def test_native_field_value_refuses_bad_width_kind_or_overflow(field,base):
+    from amiga_reversing.tools.pandora_OS_application import runtime_field_value
+    with pytest.raises(ValueError):runtime_field_value(field,base)
+
 @pytest.fixture
 def executable(tmp_path):
     (tmp_path/'pandora_OS_plan.i').write_text('OWNER_COUNT EQU 6\nFIXED_COUNT EQU 4\nINPUT_ADDRESS EQU $20000\nPAYLOAD_SIZE EQU 16\nPAYLOAD_CRC32 EQU 0\n')

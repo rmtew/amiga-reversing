@@ -4,11 +4,11 @@ static int append_source_reference_expression(JsonBuilder *b,const PlatformFileL
     const M68kRenderPlannedExpression *e) {
     if(json_builder_appendf(b,
         "{\"source_section_index\":%u,\"source_offset\":%u,\"kind\":%u,\"outcome\":%u,"
-        "\"operand_index\":%u,\"logical_address\":%u,\"pointer_width\":%u,\"pointer_address_domain\":%u,"
+        "\"operand_index\":%u,\"logical_address\":%u,\"pointer_width\":%u,\"pointer_address_domain\":%u,\"pointer_value_part\":%u,"
         "\"has_target\":%s,\"target_section_index\":%u,\"target_offset\":%u,"
         "\"has_base_target\":%s,\"base_section_index\":%u,\"base_offset\":%u,\"addend\":%d,\"reason\":",
         e->source_section_index,e->source_offset,e->kind,e->outcome,e->operand_index,e->logical_address,
-        e->pointer_width,e->pointer_address_domain,e->has_target ? "true":"false",
+        e->pointer_width,e->pointer_address_domain,e->pointer_value_part,e->has_target ? "true":"false",
         e->target_section_index,e->target_offset,e->has_base_target ? "true":"false",
         e->base_section_index,e->base_offset,e->addend) ||
         json_builder_append_json_string(b,e->reason) || json_builder_append(b,",\"target_symbol\":") ||

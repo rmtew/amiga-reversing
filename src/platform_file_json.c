@@ -5021,9 +5021,11 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           goto oom;
       }
       if (use->has_runtime_address) {
-        if (json_builder_appendf(&builder, ",\"runtime_address\":%u", (unsigned)use->runtime_address) != 0)
+        if (json_builder_appendf(&builder, ",\"runtime_address\":%u",(unsigned)use->runtime_address) != 0)
           goto oom;
       }
+      if (use->runtime_address_part && json_builder_appendf(&builder, ",\"runtime_address_part\":%u",
+          (unsigned)use->runtime_address_part) != 0) goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
