@@ -40,6 +40,7 @@ def main() -> int:
     parser.add_argument('--rom',type=Path,required=True)
     parser.add_argument('--copperline',type=Path,required=True)
     parser.add_argument('--mode',choices=('prefix','title','full','unheld','fault_before','fault_after','qualify'),default='prefix')
+    parser.add_argument('--prefix-end',default='take_sonicdriver',help='Named compiled objective phase for a bounded prefix')
     parser.add_argument('--scratch-extra',type=int,choices=(0,64),action='append')
     parser.add_argument('--region-id',choices=('pandora_ui_snapshot_body','pandora_cpu_workspace'),default='pandora_ui_snapshot_body')
     parser.add_argument('--prior-allocation-bytes',type=int,choices=(0,4096),action='append')
@@ -84,7 +85,7 @@ def main() -> int:
             (out/'experiment-config.json').write_text(json.dumps(current,indent=2)+'\n')
             print('RUN',mode,extra,flush=True)
             result=pandora_layout_runtime.observe(out,out/'experiment.bin',current,args.rom.resolve(),args.copperline.resolve(),
-                True,mode=='full','take_sonicdriver' if mode=='prefix' else 'title_menu_loop' if mode=='title' else None,
+                True,mode=='full',args.prefix_end if mode=='prefix' else 'title_menu_loop' if mode=='title' else None,
                 180 if mode=='title' else 0,False,mode!='unheld',scenario_path=args.scenario.resolve(),allocation_validator=validate)
             identities()
             expected=('allocation_failure_unwound' if mode.startswith('fault_') else

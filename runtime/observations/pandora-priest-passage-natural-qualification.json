@@ -1,0 +1,264 @@
+{
+  "status": "four_stores_exercised_with_paired_PC_and_cell_snapshots",
+  "report_sha256": "f81bf647704dbe3b16a56e833f2d35626959d9a3544743d4e5d62e750be6686b",
+  "phases": 230,
+  "lease": {
+    "region_id": "pandora_cpu_workspace",
+    "base": 28800,
+    "size": 48051,
+    "scratch_base": 0,
+    "scratch_size": 0,
+    "record_address": 524032,
+    "static_reservations_acquired": 6,
+    "status": "guest_lease_live_requires_native_placement_admission",
+    "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+    "prior_base": 24704,
+    "prior_size": 4096
+  },
+  "health": 35,
+  "player_xy": [
+    199,
+    406
+  ],
+  "loss_counters": {
+    "events": 74,
+    "dropped_notifications": 0,
+    "dropped_events": 0
+  },
+  "witnesses": [
+    {
+      "name": "passage_reset_store",
+      "source_offset": 40760,
+      "runtime_pc": 565048,
+      "frame": 586,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 609320,
+      "stack_return": "0x00dff000"
+    },
+    {
+      "name": "passage_reset_written",
+      "source_offset": 40768,
+      "runtime_pc": 565056,
+      "frame": 586,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 609320,
+      "stack_return": "0x00dff000"
+    },
+    {
+      "name": "pp_combat_open_store",
+      "source_offset": 30916,
+      "runtime_pc": 555204,
+      "frame": 5778,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 583976,
+      "stack_return": "0x000805ce"
+    },
+    {
+      "name": "pp_combat_open_written",
+      "source_offset": 30924,
+      "runtime_pc": 555212,
+      "frame": 5778,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 583976,
+      "stack_return": "0x000805ce"
+    },
+    {
+      "name": "pp_completion_closed_store",
+      "source_offset": 31218,
+      "runtime_pc": 555506,
+      "frame": 6093,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 583976,
+      "stack_return": "0x000805ce"
+    },
+    {
+      "name": "pp_priest_completion_store",
+      "source_offset": 307406,
+      "runtime_pc": 831694,
+      "frame": 6093,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 609320,
+      "stack_return": "0x00087a02"
+    },
+    {
+      "name": "pp_priest_completion_written",
+      "source_offset": 307414,
+      "runtime_pc": 831702,
+      "frame": 6093,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 583976,
+      "stack_return": "0x00087a02"
+    },
+    {
+      "name": "pp_passage_callback_finished",
+      "source_offset": 1494,
+      "runtime_pc": 525782,
+      "frame": 6094,
+      "A6": 28800,
+      "cell_address": 39748,
+      "cell_value": 583976,
+      "stack_return": "0x00000010"
+    }
+  ],
+  "natural_callback_caller_source": 31232,
+  "limits": [
+    "Snapshots plus matched executed instruction coordinates, not CPU write events.",
+    "Reset/open stores can rewrite the existing value; only the closing/callback pair changes it here.",
+    "Combat callback exercised; ranged callback remains covered by the earlier conditional static A6 contract only.",
+    "No new graphics/PCM equality, arbitrary-entry or OS-return claim."
+  ],
+  "schema": "pandora-priest-passage-natural-qualification/v1",
+  "date": "2026-10-24",
+  "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+  "runtime_payload_sha256": "d77e33eafcc4865ec8512a655f43d090f8a0f872671cdde3d7eb0ff5cd451933",
+  "native_plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+  "scenario_sha256": "7063a0f56bfcf497de8040703b294d1ae896b8f7f6ddc7edc47742adb3540b80",
+  "compiled_scenario_sha256": "cabb14cd8277fb1e356286ab879b9ab97739d8ba7b4b0dca46205b9b9c62758a",
+  "tools": {
+    "amiga_reversing/tools/pandora_priest_passage.py": "9e64fb53f21918f22a945d7673eecbedb6435da9748c8d5c0cbe01daea0640fe"
+  },
+  "prior_failures": [
+    {
+      "name": "allocated-a",
+      "status": "experiment_error_before_gameplay",
+      "reason": "Optional compiler function catalogue absent; observer incorrectly required symbols.",
+      "report_sha256": "d0a155cf5028e8aee8c4f41d71ea628dd8de746e12eb75cbcaa28c9c8ab265c4"
+    },
+    {
+      "name": "allocated-b",
+      "status": "bounded_movement_goal_not_reached",
+      "position": [
+        115,
+        398
+      ],
+      "health": 70,
+      "reason": "Chamber west wall; corrected with the existing all-pose terrain model.",
+      "report_sha256": "e92aef4e16e9510bca860a11465ca3bd070514bc9398a2500e30bc38bcd5dcbd"
+    }
+  ],
+  "revised_approach": {
+    "model": "Existing pandora_world_model.Terrain/plan; original source bindings and excluded-tile map.",
+    "expanded": 1770,
+    "seconds": 0.139,
+    "unique_pose_bounds": 17,
+    "legs": [
+      [
+        "up",
+        [
+          115,
+          458
+        ]
+      ],
+      [
+        "right",
+        [
+          206,
+          458
+        ]
+      ],
+      [
+        "left",
+        [
+          199,
+          458
+        ]
+      ],
+      [
+        "down",
+        [
+          206,
+          458
+        ]
+      ],
+      [
+        "up",
+        [
+          206,
+          410
+        ]
+      ],
+      [
+        "left",
+        [
+          192,
+          410
+        ]
+      ],
+      [
+        "down",
+        [
+          199,
+          410
+        ]
+      ],
+      [
+        "up",
+        [
+          199,
+          406
+        ]
+      ]
+    ],
+    "limits": "Offline conditional candidate; actual normal-input route subsequently completed."
+  },
+  "checks": {
+    "runtime_mapping_walkthrough_tests_passed": 151,
+    "skipped": 0,
+    "postprocessing_negatives": [
+      {
+        "case": "A6",
+        "status": "refused",
+        "reason": "A6 does not name the admitted CPU owner"
+      },
+      {
+        "case": "cell",
+        "status": "refused",
+        "reason": "Unexpected passage cell"
+      },
+      {
+        "case": "loss",
+        "status": "refused",
+        "reason": "Incomplete events"
+      },
+      {
+        "case": "caller",
+        "status": "refused",
+        "reason": "Not the original combat callback return"
+      },
+      {
+        "case": "missing_phase",
+        "status": "refused",
+        "reason": "Missing/duplicate/unhit phases"
+      }
+    ],
+    "negative_scope": "Mutated report refusal checks, not injected guest state or additional gameplay."
+  },
+  "coverage": {
+    "before": "Four conditional static A6 contexts and isolated semantics/bus fixtures; ending route did not exercise priest completion.",
+    "after": "All four original transformed store instructions exercised around matched PCs on one cold normal-input combat path at app7080; cell closed/open sequence observed.",
+    "code_or_data_classification_gain": 0,
+    "unknown_byte_reduction": 0,
+    "natural_priest_dispatchers_observed": [
+      31232
+    ],
+    "static_conditional_dispatchers": [
+      31232,
+      37876
+    ]
+  },
+  "next": "OS-friendly loading, ownership and successful DMA-safe return remain separate work; current boot shim is not an OS-hosted executable.",
+  "reproduction": {
+    "scenario": "python -m amiga_reversing.tools.pandora_priest_passage --output <scenario.json>",
+    "compile": "copperline_session.compile_scenario(TARGET, scenario, compiled)",
+    "run": "python -m amiga_reversing.tools.pandora_allocated_walkthrough --export-json <canonical CPU export.json> --scenario <compiled.json> --region-id pandora_cpu_workspace --prior-allocation-bytes 4096 --mode prefix --prefix-end pp_passage_callback_finished --jobs 1 --output <private directory> --rom <legal ROM> --copperline <pinned emulator>",
+    "review": "python -m amiga_reversing.tools.pandora_priest_passage --report <private report.json> --output <review.json>"
+  },
+  "publication": "Processed witnesses only; proprietary payloads, original captures and raw game state remain private."
+}

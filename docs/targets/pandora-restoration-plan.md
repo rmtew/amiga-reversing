@@ -53,8 +53,10 @@ now applies those LONG fields with checked frame guards, explicit prior-lease
 ownership and tested pre-entry unwind. [Actual qualification](../../runtime/observations/pandora-CPU-allocation-qualification.json)
 records guest-selected `$6080/$7080`, two576-phase cold completions, an unheld
 cold completion, zero loss counters and exact scoped graphics/PCM comparison.
-66 focused tests pass. Natural priest-callback/four-store coverage and successful
-DMA-safe cleanup/OS return remain open; route completion is not all-path proof.
+66 focused tests pass. The [natural priest route](../../runtime/observations/pandora-priest-passage-natural-qualification.json)
+subsequently exercises all four stores on the combat path, at HP35/frame6094.
+The ranged caller and successful DMA-safe cleanup/OS return remain open; route
+completion is not all-path proof.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

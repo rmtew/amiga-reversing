@@ -5,6 +5,26 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
+### Natural priest completion: four-store exercise
+
+[The bounded cold route](../../runtime/observations/pandora-priest-passage-natural-qualification.json)
+now exercises the startup reset, combat-open, completion-close and priest-open
+stores at actual app `$7080`, cell `$9B44`. All230 phases complete at frame6094,
+HP35, with zero event loss. The original combat dispatch returns to `$87A02`;
+A6 stays `$7080` at all eight before/after hooks. The completion pair changes
+`$8E928 → $94C28 → $8E928`. Reset/open can rewrite an already present value;
+these are matched instruction/cell snapshots, not a write-event trace.
+
+The first attempt exposed an optional-symbol-catalogue observer assumption;
+the next met the chamber's west wall while still alive. Retained failures and
+the existing17-pose terrain model produced a southern-doorway approach which
+then completed without state injection.151 relevant runtime/mapping/walkthrough
+tests pass; five altered-report witness checks refuse. The natural ranged
+callback caller remains unexercised, with only the earlier conditional static
+contract. No new byte classification or graphics/PCM equality is claimed here.
+Next is actual OS-friendly entry/loading, ownership and DMA-safe return; the
+current boot shim does not provide that lifecycle.
+
 ### Guest-selected CPU bases: route and scoped output qualified
 
 [CPU allocation qualification](../../runtime/observations/pandora-CPU-allocation-qualification.json)
@@ -27,9 +47,9 @@ or clock fitting. Original-to-image eight-CCK HAND equality remains unfulfilled.
 
 66 focused tests pass without skips. The subsequent partial-static unwind
 observer fix handles uninitialized record RAM without changing guest bytes or
-any completed gameplay artifact. Natural priest-completion/four-store coverage
-and successful DMA-safe OS return remain the next concrete obligations; this
-route does not close those optional-path or lifecycle questions.
+any completed gameplay artifact. The later natural-priest checkpoint above closes the combat four-store
+exercise; successful DMA-safe OS return and the natural ranged caller remain
+separate obligations. This ending route alone did not exercise them.
 
 ### Four-site target adoption (earlier export checkpoint)
 

@@ -205,7 +205,10 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 phase.update(breakpoint_address=runtime_base+phase['source_offset'],runtime_view=view)
                 for read in phase.get('capture',{}).get('memory_reads',[]):update_read(read)
                 if 'until_memory' in phase:update_read(phase['until_memory'])
-            scenario['symbols']['runtime_view']=view
+            # The canonical compiler permits no function catalogue for
+            # source-row continuation phases. Keep their resolved phase and
+            # payload checks; do not invent function-entry admission.
+            scenario.setdefault('symbols',{})['runtime_view']=view
             for function in scenario['symbols'].get('functions',[]):function.update(runtime_start=runtime_base+function['source_start'],runtime_end=runtime_base+function['source_end'])
             write(out/'runtime-scenario.json',scenario)
             # A narrow known live app write supplies global stream-loss
