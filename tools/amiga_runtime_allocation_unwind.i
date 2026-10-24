@@ -11,11 +11,20 @@ allocation_unwind:
     clr.l ALLOCATION_RECORD+4
 allocation_unwind_scratch:
     move.l ALLOCATION_RECORD+8,d0
-    beq.b allocation_unwind_static
+    beq.b allocation_unwind_prior
     movea.l d0,a1
     move.l ALLOCATION_RECORD+12,d0
     jsr _LVOFreeMem(a6)
     clr.l ALLOCATION_RECORD+8
+allocation_unwind_prior:
+    IFD ALLOCATION_CPU
+    move.l ALLOCATION_RECORD+24,d0
+    beq.b allocation_unwind_static
+    movea.l d0,a1
+    move.l ALLOCATION_RECORD+28,d0
+    jsr _LVOFreeMem(a6)
+    clr.l ALLOCATION_RECORD+24
+    ENDC
 allocation_unwind_static:
     INCLUDE "direct_payload_allocation_static_unwind.i"
 allocation_abort_publish:

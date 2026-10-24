@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from amiga_reversing.disasm.project_paths import resolve_project_paths
-from .runtime_allocation import allocation_backing, allocation_source, validate_payload as validate_allocation_payload
+from .runtime_allocation import allocation_backing, allocation_source, validate_payload as validate_allocation_payload, CPU_SCOPE, CPU_static_reservation_source
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_DIRECTORY = ROOT / "runtime" / "direct_payload_contracts"
@@ -287,6 +287,8 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
             reservation_lines.extend(('    addq.l #1,d4',f'    move.l d4,${contract.handoff_marker_address-4:X}'))
             if index==0:
                 reservation_lines.extend(('    lea start(pc),a0',f'    move.l a0,${contract.handoff_marker_address-8:X}'))
+    if contract.runtime_allocation is not None and contract.runtime_allocation['plan']['scope']==CPU_SCOPE:
+        reservation_lines=CPU_static_reservation_source(contract.runtime_allocation,spans,contract.handoff_marker_address)
     command = [str(VASM), "-Fbin", "-m68000", "-I", str(output_path.parent), "-I", str(NDK_INCLUDE)]
     command.extend(f"-D{name}=${value:X}" for name, value in definitions.items())
     allocation_files=[]

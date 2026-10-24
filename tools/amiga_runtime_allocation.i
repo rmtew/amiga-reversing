@@ -6,9 +6,25 @@ allocation_acquire:
     clr.l ALLOCATION_RECORD+8
     clr.l ALLOCATION_RECORD+12
     clr.l ALLOCATION_RECORD+16
+    IFD ALLOCATION_CPU
+    clr.l ALLOCATION_RECORD+24
+    clr.l ALLOCATION_RECORD+28
+    ENDC
     move.l #'ALLO',ALLOCATION_RECORD
     IFD ALLOCATION_FAIL_BEFORE
     bra.w failed
+    ENDC
+    IFD ALLOCATION_CPU
+    IFNE ALLOCATION_PRIOR_BYTES
+    ; A real prior lease changes allocator state; it is never a selected base.
+    move.l #ALLOCATION_PRIOR_BYTES,d0
+    move.l #MEMF_CHIP,d1
+    jsr _LVOAllocMem(a6)
+    move.l d0,ALLOCATION_RECORD+24
+    tst.l d0
+    beq.w failed
+    move.l #ALLOCATION_PRIOR_BYTES,ALLOCATION_RECORD+28
+    ENDC
     ENDC
 allocation_request_owner:
     move.l #ALLOCATION_SIZE,d0

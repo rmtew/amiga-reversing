@@ -47,8 +47,13 @@ At app `$6080`, the actual cell `$8B44` also exceeds positive absolute-W reach.
 The [explicit address-frame adoption](../../runtime/observations/pandora-passage-address-frame-adoption.json)
 now supplies the conditional same-size form for the four stores. Full restored
 C/vasm export and original exactness pass; the native CPU candidate has seven
-fields and four frame guards. Next is guest CPU lease/patch application and
-normal-input passage/allocator-selected route qualification.
+fields and four frame guards. The
+[CPU guest bridge](../../runtime/observations/pandora-CPU-guest-allocation-implementation.json)
+now applies those LONG fields with checked frame guards, explicit prior-lease
+ownership and tested pre-entry unwind. Both boot variants fit the existing
+loader budget; 39 focused tests pass. Actual allocator returns, normal-input
+passage/route qualification and matched output remain pending; modeled Exec
+tests are not gameplay evidence.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

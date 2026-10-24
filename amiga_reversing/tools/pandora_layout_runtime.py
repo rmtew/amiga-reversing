@@ -126,6 +126,16 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 config['layout_plan_sha256']=plan_digest(actual_plan)
                 config['runtime_payload_sha256']=hashlib.sha256(expected_payload).hexdigest()
             report['handoff']=verify_handoff(client,contract,payload)
+            identity_payload=payload
+            if allocation:
+                # Compare phase PCs with the fully verified guest-patched image,
+                # not stale template words. This file is observation evidence;
+                # no host write changes guest code or gameplay state here.
+                identity_payload=out/'runtime-identity.bin'
+                identity_payload.write_bytes(expected_payload)
+                report['runtime_identity_payload']={'path':identity_payload.name,
+                    'sha256':hashlib.sha256(expected_payload).hexdigest(),
+                    'scope':'Native actual-base admission plus complete HAND readback and later copied-prefix verification.'}
             if phase_locked_boot:
                 stop=client.run_until({'cck':500*71051},timeout=30)
                 require(stop.get('reason')=='target' and client.read_memory(0x7FFF8,4)==b'HAND','Boot phase fixture did not remain in handoff')
@@ -279,7 +289,7 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                             client.request('profile.start',{'path':str(directory),'frames':3,'slots':True,'memory':False,'screenshots':'none','pc_samples':True})
                             active={'name':result['name'],'path':directory,'frame':event['frame'],'resource':True}
                 return result
-            report['scenario']=run_scenario(client,scenario,payload,trace_directory=out,phase_runner=progress)
+            report['scenario']=run_scenario(client,scenario,identity_payload,trace_directory=out,phase_runner=progress)
             client.request('events.unsubscribe',{'events':['mmio']});client.events=queue
             report['output_observations']={'screenshots':media,'dma':dma}
             report['resource_observations']={'snapshots':resource_snapshots,'dma':resource_dma}

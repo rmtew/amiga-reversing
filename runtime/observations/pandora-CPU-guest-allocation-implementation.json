@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "guest_bridge_tested_live_placement_and_gameplay_pending",
+  "input_export": "pandora-passage-address-frame-adoption.json",
+  "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+  "scope": {
+    "owner": "pandora_cpu_workspace",
+    "native_fixups": 7,
+    "immutable_frame_guards": 4,
+    "guest_patch_widths": [
+      "LONG"
+    ],
+    "prior_allocation_bytes": [
+      0,
+      4096
+    ],
+    "placement": "Guest AllocMem(MEMF_CHIP), followed by native returned-base validation; no selected base supplied.",
+    "static_reservations": "Remove exactly the native CPU root backing claim; retain independent keyboard, input, seed and hardware owners.",
+    "runtime_identity": "Host comparison artifact from complete guest-patched HAND readback; no host guest-code or gameplay-state write."
+  },
+  "boot_budget": {
+    "limit": 1012,
+    "code_bytes_prior_0": 958,
+    "code_bytes_prior_4096": 992,
+    "compact_static_table": "Emission of the existing reservation_plan only; exact partial-prefix acquisition/free tested."
+  },
+  "tests": {
+    "passed": 39,
+    "skipped": 0,
+    "command": "PYTHONPATH=. /workspace/amiga-reversing/.venv/bin/python -m pytest -q tests/test_runtime_CPU_allocation_plan.py tests/test_CPU_allocation_boot.py tests/test_runtime_allocation_boot.py tests/test_runtime_allocation_collision.py tests/test_allocation_unwind_observation.py tests/test_observed_layout_mapping.py",
+    "exec_stub_boundary": "Executable Musashi loader diagnostics with recorded Exec stub calls; these do not establish real OS allocation or gameplay.",
+    "cases": [
+      "zero/4096 prior lease, successful HAND plus ABRT/FREE",
+      "before/after owner failure",
+      "each partial static acquisition prefix",
+      "stale instruction opcode and frame opcode/displacement",
+      "unwind acknowledgement refuses retained owner, quarantine or prior lease"
+    ]
+  },
+  "legacy_body_loader": {
+    "status": "legacy_loader_894_code_bytes_identical_no_gameplay_revalidation",
+    "sha256": "d1cb436cb882961db274c77b1f2761794823c94bae3b1ba35783484ae5c4bea5",
+    "historical_build_sha256": "d1cb436cb882961db274c77b1f2761794823c94bae3b1ba35783484ae5c4bea5"
+  },
+  "pending": [
+    "Actual CPU allocator return and placement admission",
+    "Normal-input cold route and passage callback exercise",
+    "Matched graphics/PCM for actual CPU placements",
+    "Successful game exit with DMA-safe cleanup and OS return"
+  ],
+  "limits": [
+    "Prior 8-CCK original-to-image HAND difference remains unresolved.",
+    "Conditional A6 proof retains its original entry/normal-return/intact-stack assumptions.",
+    "No all-path alias or arbitrary-placement claim."
+  ]
+}
