@@ -7,6 +7,31 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ### Active display continuation
 
+
+[Live Copper constraint](../../runtime/observations/pandora-display-live-pointer-constraint.json)
+now explains the first-surface mismatch causally. The D8000 profile completes
+both controlled and unheld576-phase routes (HP49/frame14465 and14353), and matches
+all phase clocks,509 calls, PCM and later selected output. It still fails graphics:
+14 pixels differ on the first partial title surface. Four-frame bus traces show
+two fetches interleaved between live high/low Copper writes: D0002/D0006 read
+image/audio words3831/9699 instead of the original seeded zero reads70002/70006.
+Those words contain14 set bits and are backed by the verified image at source
+$50002/$50006, in primary audio records. This proves backing, not an OS lease.
+Matching early null/low-RAM bitplane fetches stay outside display certification;
+the later DMA allowlist is unchanged. Native committed profile-frame labels are
+not equated with physical run-until frame numbers. This is not an initial-RAM
+seed hypothesis.
+
+The retained sequence now has an explicit64-KiB parent alignment constraint.
+Original70000 is valid; D8000 now refuses rather than being reported as qualified.
+The next candidate is displayE0000..ED000 with cursor still65370, independently
+of image80000. No simultaneous cursorE0000/display claim is made.73 focused tests
+pass and full original C/vasm remains exact (`743e95a4…`). E-layout build and fresh
+common-loader qualification are pending. The failed comparator remains failed;
+no tolerance, crop, fitted delay or Copper timing change was introduced. This
+runtime display issue is separate from the unchanged pre-GO eight-CCK finding.
+
+
 [Status/ticker follow-up](../../runtime/observations/pandora-display-status-aliases.json):
 the repaired overlay prefix passes frame595, then the same guard catches source
 `$9ABE` clearing abandoned `$77800` at frame944. The existing `STATUS_BAND_BASE`

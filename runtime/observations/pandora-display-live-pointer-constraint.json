@@ -1,0 +1,486 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-24",
+  "status": "live_split_pointer_constraint_demonstrated_safe_candidate_qualification_pending",
+  "causal_scope": "Display initialization after guest GO, distinct from the retained unresolved eight-CCK pre-GO HAND finding.",
+  "negative_profile": "pandora_display_d8000_ecs1m",
+  "negative_payload_sha256": "a460854e72fe053c80ce4d03f171c05d435948328cc6daf207bb949dc4bd0b7a",
+  "negative_outcomes": [
+    {
+      "mode": "display-full",
+      "report_sha256": "3474d3daccfd8a35f9746f9112703b12e54cb13e035a06ff1c5f65c7f8496367",
+      "payload_sha256": "a460854e72fe053c80ce4d03f171c05d435948328cc6daf207bb949dc4bd0b7a",
+      "status": "saved_earth_and_escaped_relocated_cold_boot",
+      "phases": 576,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14465
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      }
+    },
+    {
+      "mode": "display-unheld",
+      "report_sha256": "24053aa7c85695403f9e86fed7e6d3ab5adce02e21aceaca100ffcbebcd54dc2",
+      "payload_sha256": "a460854e72fe053c80ce4d03f171c05d435948328cc6daf207bb949dc4bd0b7a",
+      "status": "saved_earth_and_escaped_relocated_cold_boot",
+      "phases": 576,
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14353
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      }
+    }
+  ],
+  "negative_comparison": {
+    "report_sha256": "ae58c193a2dc6530026a8d8422b088460024ba986d1262bdd05d810b777b2d27",
+    "status": "mismatch",
+    "matched_phases": 576,
+    "matched_controller_calls": 509,
+    "images": [
+      {
+        "state": "title_menu_loop",
+        "status": "mismatch",
+        "original_frame": 592,
+        "candidate_frame": 592,
+        "original_size": [
+          320,
+          85
+        ],
+        "candidate_size": [
+          320,
+          85
+        ],
+        "original_sha256": "cce6a8bf538d1706620cca80f34d0f58dde72dd165278d33a9bba03407114a7f",
+        "candidate_sha256": "21ed45b88880ad677ecb527fbb57fbce0881daff50fbd263124cad7fe54e557f"
+      },
+      {
+        "state": "ui_overlay_initialization",
+        "status": "pass",
+        "original_frame": 595,
+        "candidate_frame": 595,
+        "original_size": [
+          358,
+          285
+        ],
+        "candidate_size": [
+          358,
+          285
+        ],
+        "original_sha256": "104ca69991ad9644263b4a29f20ea31d1bf8c72f3e7fa4af57b0e7953495f1ee",
+        "candidate_sha256": "104ca69991ad9644263b4a29f20ea31d1bf8c72f3e7fa4af57b0e7953495f1ee"
+      },
+      {
+        "state": "initial_proximity_context",
+        "status": "pass",
+        "original_frame": 597,
+        "candidate_frame": 597,
+        "original_size": [
+          358,
+          285
+        ],
+        "candidate_size": [
+          358,
+          285
+        ],
+        "original_sha256": "455f3a837e144db85dc7bc3fe1755d79dfc8d91ddaa26bf307a9e447de6bc68f",
+        "candidate_sha256": "455f3a837e144db85dc7bc3fe1755d79dfc8d91ddaa26bf307a9e447de6bc68f"
+      },
+      {
+        "state": "entry_officer_card_transferred",
+        "status": "pass",
+        "original_frame": 785,
+        "candidate_frame": 785,
+        "original_size": [
+          320,
+          200
+        ],
+        "candidate_size": [
+          320,
+          200
+        ],
+        "original_sha256": "cb97c4dd506c1c765a48eb30161e670f8c528baf6c1c7ac825ead32ab46438a4",
+        "candidate_sha256": "cb97c4dd506c1c765a48eb30161e670f8c528baf6c1c7ac825ead32ab46438a4"
+      },
+      {
+        "state": "ei_sonicdriver_hit_1",
+        "status": "pass",
+        "original_frame": 4138,
+        "candidate_frame": 4138,
+        "original_size": [
+          320,
+          200
+        ],
+        "candidate_size": [
+          320,
+          200
+        ],
+        "original_sha256": "a767500522b8c2f57c47e1210541002ce5b3d1f1955bcb4f690371b05c9a2e15",
+        "candidate_sha256": "a767500522b8c2f57c47e1210541002ce5b3d1f1955bcb4f690371b05c9a2e15"
+      },
+      {
+        "state": "ac_console_ready",
+        "status": "pass",
+        "original_frame": 11389,
+        "candidate_frame": 11389,
+        "original_size": [
+          320,
+          200
+        ],
+        "candidate_size": [
+          320,
+          200
+        ],
+        "original_sha256": "91c295f52df84737de15c2dee5a19606d08d9f9954e3a99024295185a80b10a1",
+        "candidate_sha256": "91c295f52df84737de15c2dee5a19606d08d9f9954e3a99024295185a80b10a1"
+      },
+      {
+        "state": "post_ending",
+        "status": "pass",
+        "original_frame": 14495,
+        "candidate_frame": 14495,
+        "original_size": [
+          320,
+          200
+        ],
+        "candidate_size": [
+          320,
+          200
+        ],
+        "original_sha256": "0cfb185bec7c09d961365c0b1016917be7557ba5480c919ec54d45465477344d",
+        "candidate_sha256": "0cfb185bec7c09d961365c0b1016917be7557ba5480c919ec54d45465477344d"
+      },
+      {
+        "state": "settled_title_180_frames",
+        "original_frame": 772,
+        "candidate_frame": 772,
+        "status": "pass",
+        "dimensions": [
+          320,
+          200
+        ],
+        "original_sha256": "848e4ef01ef7b3dbf1a893cbb66a01fd139698968f9e2a3b345388da52823ff1",
+        "candidate_sha256": "848e4ef01ef7b3dbf1a893cbb66a01fd139698968f9e2a3b345388da52823ff1"
+      }
+    ],
+    "first_surface_difference": {
+      "pixels": 14,
+      "bounding_box": [
+        258,
+        0,
+        304,
+        1
+      ],
+      "surface_size": [
+        320,
+        85
+      ]
+    },
+    "PCM": {
+      "status": "pass",
+      "format": {
+        "rate": 44100,
+        "channels": 2,
+        "block": 8,
+        "bits": 32,
+        "offset": 68,
+        "data_bytes": 102439904,
+        "frames": 12804988
+      },
+      "start_cck": 35525517,
+      "end_cck": 1029885441,
+      "start_sample": 441704,
+      "end_sample": 12804988,
+      "compared_stereo_frames": 12363284,
+      "compared_float_samples": 24726568,
+      "first_different_sample": null,
+      "original_interval_sha256": "3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f",
+      "candidate_interval_sha256": "3067ef3704857f099506c14bee458610c8b9e61ad1eb737f2b9c52f4bfc5690f",
+      "alignment": "Identical captured emulated clock; no shift/resampling/tolerance.",
+      "end_bound": "Entire equal-length recorded PCM to EOF; no fitted crop."
+    },
+    "DMA_status": "pass",
+    "DMA_bounds_status": "original_null_sprite_controls_outside_asset_bounds",
+    "new_findings": []
+  },
+  "initial_trace_attempt": {
+    "status": "incomplete_zero_committed_frames",
+    "reason": "Stopping at title PC before rendered-frame commit produced no bus sidecars; not counted as coverage.",
+    "correction": "Advance normally through frame596 before profile.stop; no controller inputs or guest state writes."
+  },
+  "traces": [
+    {
+      "role": "control-complete",
+      "report_sha256": "17078b7a7d25d11155b78c8b5ec3d8c35816e6c262ad2db18a48afc08e56ffb9",
+      "metadata_sha256": "277d0d3a0eaccdbd0eea5040624b7931ca7f083c5c7ba05aa669dc85bbf0de81",
+      "started": {
+        "frame": 574,
+        "seconds": 11.509764455953729
+      },
+      "ended": {
+        "frame": 596,
+        "seconds": 11.949245184872966
+      },
+      "frames_written": 4,
+      "samples_dropped": 0,
+      "frames": [
+        {
+          "frame": 592,
+          "partial": false,
+          "slots_sha256": "9f62f7c8ef89a2809d9eb3eab9ac50c510f4edf3dcfd94c10d91efe8890f4822"
+        },
+        {
+          "frame": 593,
+          "partial": false,
+          "slots_sha256": "e306829333dfa9b5cbd55ed03fce3d112f409aee613692d93d4dbf2d4273ce91"
+        },
+        {
+          "frame": 594,
+          "partial": false,
+          "slots_sha256": "1997c8adf1c7c0c7b2955c2a8a52c667212833b9e31f2c20ba23f2a05f50c4f8"
+        },
+        {
+          "frame": 595,
+          "partial": false,
+          "slots_sha256": "1153451da920d87de2ff8452b205a3ad25badc3d1b7c9dc5327a652be16210cd"
+        }
+      ]
+    },
+    {
+      "role": "display-complete",
+      "report_sha256": "1e118bc6e4e9483e3e7cbcd9a655ba5a640ee3bd192caf373ed3e55788fddb88",
+      "metadata_sha256": "277d0d3a0eaccdbd0eea5040624b7931ca7f083c5c7ba05aa669dc85bbf0de81",
+      "started": {
+        "frame": 574,
+        "seconds": 11.509764455953729
+      },
+      "ended": {
+        "frame": 596,
+        "seconds": 11.949245184872966
+      },
+      "frames_written": 4,
+      "samples_dropped": 0,
+      "frames": [
+        {
+          "frame": 592,
+          "partial": false,
+          "slots_sha256": "351f13fa943efccf0f7f709297376cd9d939400dea149b47a863701d3d6e5f75"
+        },
+        {
+          "frame": 593,
+          "partial": false,
+          "slots_sha256": "6ea68286129f80e0a390d73868be7b4999917814c92e998537b756234f6c48ea"
+        },
+        {
+          "frame": 594,
+          "partial": false,
+          "slots_sha256": "810195b0a94c92455e6db9594e62b558d52341d7b60fa53e529f27c4fc801c68"
+        },
+        {
+          "frame": 595,
+          "partial": false,
+          "slots_sha256": "e2cae0a4d7351c447e48c49f061496204735c356afc0d552af37f88e8cd9ce16"
+        }
+      ]
+    }
+  ],
+  "bitplane_comparison": {
+    "control": 54744,
+    "candidate": 54744,
+    "normalized_mismatches": 2,
+    "first": [
+      [
+        [
+          [
+            592,
+            36276
+          ],
+          458754,
+          [
+            "display",
+            "pandora_framebuffer_bank0",
+            2
+          ],
+          0
+        ],
+        [
+          [
+            592,
+            36276
+          ],
+          851970,
+          [
+            "image",
+            327682
+          ],
+          14385
+        ]
+      ],
+      [
+        [
+          [
+            592,
+            36290
+          ],
+          458758,
+          [
+            "display",
+            "pandora_framebuffer_bank0",
+            6
+          ],
+          0
+        ],
+        [
+          [
+            592,
+            36290
+          ],
+          851974,
+          [
+            "image",
+            327686
+          ],
+          38553
+        ]
+      ]
+    ]
+  },
+  "witnesses": [
+    {
+      "frame": 592,
+      "row": 159,
+      "plane": 2,
+      "high_write_hpos": 180,
+      "DMA_hpos": 183,
+      "low_write_hpos": 184,
+      "control_address": 458754,
+      "candidate_address": 851970,
+      "intended_candidate_base": 884736,
+      "source_image_offset": 327682,
+      "control_word": 0,
+      "candidate_word": 14385,
+      "set_bits": 6
+    },
+    {
+      "frame": 592,
+      "row": 159,
+      "plane": 4,
+      "high_write_hpos": 196,
+      "DMA_hpos": 197,
+      "low_write_hpos": 200,
+      "control_address": 458758,
+      "candidate_address": 851974,
+      "intended_candidate_base": 884736,
+      "source_image_offset": 327686,
+      "control_word": 0,
+      "candidate_word": 38553,
+      "set_bits": 8
+    }
+  ],
+  "cause": "The retained title Copper list writes each bitplane high WORD before low WORD while fetches are active. With baseD8000, intermediate pointers D0002/D0006 read image/audio words rather than the seeded first40 zero bytes. Original base70000 keeps lowWORD0 and intermediate reads70002/70006 are zero. Two differing WORDs have14 set bits, matching14 changed pixels.",
+  "constraint": {
+    "region_id": "pandora_display_storage",
+    "alignment": 65536,
+    "scope": "Conservative congruence constraint for the retained live pointer-update sequence; not universal Chip RAM alignment.",
+    "original": 458752,
+    "refused": 884736,
+    "candidate": 917504,
+    "candidate_end": 970752,
+    "cursor_address": 414576,
+    "combined_cursor_display_qualified": false
+  },
+  "canonical_actions": [
+    {
+      "action_id": "manual-1a671b137b5b4976bddc2b10b0a571e0",
+      "kind": "update_manual_memory_region"
+    },
+    {
+      "action_id": "manual-321970aa84ca4d32b12e665feb33834d",
+      "kind": "create_manual_memory_layout"
+    }
+  ],
+  "original_verification": {
+    "receipt_id": "743e95a4cd7da9d8691c84b4cd585285404f8b5940d4e1452d384869bdcf0535",
+    "subject_revision": "763edf76cfabd0b7c80d8725a24f584f6382c35c2c79e1e13552a3dbc38e10d1",
+    "source_sha256": "161b4f1f33efd98a46d64f9789f813a111a17fc7d73bf7affce722426ad9619d",
+    "source_package_sha256": "8cfc5d781673dae2386dd6fe1d3f890edb382aa107c5c246094c4bd714d5e73e",
+    "output_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_size": 376832,
+    "exact": true
+  },
+  "tests": {
+    "passed": 73,
+    "scope": "Display congruence positive/refusal fixture, native memory layouts and output comparator; prior177test immediate-reference suite retained."
+  },
+  "remaining": "Build and qualify the new E0000 display profile with a fresh common-loader control. Do not relabel failed D8000 graphics or eight-CCK startup comparison as passes.",
+  "limits": [
+    "54744 bitplane WORD samples per startup trace across four frames; not all game paths or future DMA schedules.",
+    "Startup also retains matching original temporary low/null-pointer fetches; equality does not certify ownership of those addresses.",
+    "PCM equality and later selected frames did not erase the first-surface mismatch.",
+    "No full-frame cropping, tolerance, fitted delay, opcode patch or extra seed data used as a fix.",
+    "Raw media, ROM, WAV, screenshots and bus sidecars stay private.",
+    "Matching pre-install bitplane fetches at low/null fixed Chip RAM addresses are outside display ownership certification; they are not added to the later DMA bounds allowlist."
+  ],
+  "frame_coordinate_domain": "frame592 is the native committed profiler-frame label; do not equate it arithmetically with run_until physical frame numbers. Slot row/hpos are native profile coordinates.",
+  "hybrid_backing": {
+    "canonical_region_id": "pandora_image",
+    "runtime_extent": [
+      524288,
+      873328
+    ],
+    "materialization": {
+      "address": 524288,
+      "size": 349040,
+      "sha256": "5375c779cc1916ed3326d37812e28237afc2e5aa52a7a8801e57463fc262e1c2",
+      "full_prefix_verified": true
+    },
+    "payload_sha256": "a460854e72fe053c80ce4d03f171c05d435948328cc6daf207bb949dc4bd0b7a",
+    "scope": "Verified copied image backing, not a display lease or proven OS allocation ownership.",
+    "samples": [
+      {
+        "source_offset": 327682,
+        "runtime_address": 851970,
+        "observed_and_payload_word": 14385,
+        "audio_record_index": 1,
+        "audio_record_sha256": "5179acf84db2dab707f5b4a6947160c8da12db5236034fe4613d04f42251f385"
+      },
+      {
+        "source_offset": 327686,
+        "runtime_address": 851974,
+        "observed_and_payload_word": 38553,
+        "audio_record_index": 1,
+        "audio_record_sha256": "5179acf84db2dab707f5b4a6947160c8da12db5236034fe4613d04f42251f385"
+      }
+    ]
+  },
+  "safe_candidate_intermediate_fetches": {
+    "expected": [
+      917506,
+      917510
+    ],
+    "within_parent": [
+      917504,
+      970752
+    ],
+    "within_CPU_zero_seed": [
+      917504,
+      917544
+    ],
+    "status": "Predicted from preserved lowWORD0; positive runtime qualification pending."
+  }
+}
