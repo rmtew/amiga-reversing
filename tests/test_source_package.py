@@ -166,3 +166,12 @@ def test_modified_manifest_is_preserved(tmp_path: Path):
     with pytest.raises(ValueError, match="modified"):
         write_source_package(package(assets=False), output)
     assert output.read_bytes() == previous
+
+
+def test_application_provided_includes_are_collected_without_SDK_shadow(tmp_path):
+    from amiga_reversing.disasm.source_package import collect_package_includes
+    sdk=tmp_path/'sdk';sdk.mkdir();(sdk/'system.i').write_text('VALUE EQU 1\n')
+    records=collect_package_includes(' include "owned.i"\n',sdk,provided={'owned.i':b' include "system.i"\n'})
+    assert [(r['path'],r['provenance']) for r in records]==[('owned.i','provided-application-source'),('system.i','configured-platform-sdk')]
+    with pytest.raises(ValueError,match='shadow'):
+        collect_package_includes(' include "system.i"',sdk,provided={'system.i':b'other'})

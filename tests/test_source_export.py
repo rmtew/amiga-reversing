@@ -21,6 +21,18 @@ def test_layout_export_requires_native_vasm():
         source_export.source_export_payload('unused', assembler_profile='devpac', layout_id='alternate')
 
 
+def test_cli_accepts_hosted_build_without_claiming_original_exact(monkeypatch, tmp_path):
+    from tests.test_source_package import package
+    payload = dict(status='ok', source_text='rts\n', filename='fixture.s', package=package())
+    monkeypatch.setattr(source_export_cli, 'source_export_payload', lambda *a, **k: payload)
+    monkeypatch.setattr(source_export, 'verify_source_export_package', lambda *a, **k:
+        dict(exact=False, build_verified=True, runtime_verified=False))
+    assert source_export_cli.main(['fixture', '--binary-assets', '--verify-package',
+        '--output', str(tmp_path/'source.zip'), '--json']) == 0
+    assert payload['verification']['exact'] is False
+    assert payload['verification']['runtime_verified'] is False
+
+
 def test_layout_selection_cli_reaches_normal_export(monkeypatch, tmp_path):
     calls = []
     def export(target, **options):

@@ -21,7 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--structure-macros", action="store_true", help="Generate eligible structure macros from the canonical type definitions; expanded fallbacks remain explicit.")
     parser.add_argument("--minimum-asset-size", type=int, default=256)
     parser.add_argument("--layout", help="Select a canonical fixed memory layout; export is not runtime qualification.")
-    parser.add_argument("--verify-package", action="store_true", help="Check the package with the C assembler and vasm, comparing complete originals.")
+    parser.add_argument("--verify-package", action="store_true", help="Check C/vasm assembly; hosted packages also build their loader. Runtime qualification is separate.")
     parser.add_argument("--json", action="store_true", help="Print export metadata as JSON.")
     args = parser.parse_args(argv)
 
@@ -57,13 +57,13 @@ def main(argv: list[str] | None = None) -> int:
         from amiga_reversing.disasm.source_export import verify_source_export_package
         verification = verify_source_export_package(args.target, payload)
         payload["verification"] = verification
-        exact = verification["exact"] is True
+        exact = verification.get("build_verified", verification["exact"]) is True
     if args.json:
         metadata = {key: value for key, value in payload.items() if key not in {"source_text", "package"}}
         metadata["output"] = str(output)
         print(json.dumps(metadata, indent=2, sort_keys=True))
     else:
-        print(f"exported {output}" + (f" (package exact: {exact})" if args.verify_package else " (not verification)"))
+        print(f"exported {output}" + (f" (package build verified: {exact})" if args.verify_package else " (not verification)"))
     return 0 if exact else 3
 
 

@@ -150,12 +150,18 @@ def _c_backend_binary_source_export(
 def _native_source_export(target_name,paths,assembler_profile,project_root,*,minimum_asset_size=None,
                           structure_macros=False,layout_id=None):
     binary_source = paths.binary_source
+    from . import hosted_application_export
+    application_contract=None
     with effective_metadata_file(paths.target_dir, **({"layout_id": layout_id} if layout_id is not None else {})) as metadata_path:
+        hosted=hosted_application_export.required(metadata_path,layout_id)
+        if hosted and minimum_asset_size is None:
+            raise SourceExportRefused(dict(status='refused',reason='hosted_application_requires_package',
+                message='This hosted profile requires the complete binary-asset source package, including its DOS runtime.'))
         def build():
             return build_listing_artifact_profile_from_binary_source(
                 binary_source, metadata_path=metadata_path, project_root=project_root)[2]
         lease=(layout_export_cache.acquire(paths,project_root,metadata_path,build,LOADED_SOURCE,
-                   minimum_asset_size if minimum_asset_size is not None else 0xFFFFFFFF)
+                   minimum_asset_size if minimum_asset_size is not None else 0xFFFFFFFF,require_native_baseline=hosted)
                if layout_id is not None and metadata_path is not None and not structure_macros else closing(build()))
         with lease as artifact:
             selected_plan = None
@@ -164,6 +170,8 @@ def _native_source_export(target_name,paths,assembler_profile,project_root,*,min
                                       if p["layout_id"] == layout_id), None)
                 if selected_plan is None or selected_plan["status"] != "placement_valid":
                     raise ValueError("Selected native memory layout has unresolved placement constraints")
+            if hosted:
+                application_contract=hosted_application_export.native_contract(artifact,target_name,layout_id)
             rendering = render_source_from_binary_source(
                 target_id=target_name,
                 binary_source=binary_source,
@@ -251,6 +259,8 @@ def _native_source_export(target_name,paths,assembler_profile,project_root,*,min
             includes = collect_package_includes(str(payload["source_text"]), include_root)
             payload["package"] = build_source_package(payload, native_package["assets"], minimum_asset_size,
                 includes=includes)
+    if application_contract is not None:
+        payload=hosted_application_export.attach(payload,application_contract,project_root)
     return payload
 
 
@@ -425,6 +435,9 @@ def _safe_filename(target_name: str) -> str:
 
 def verify_source_export_package(target_name: str, payload: dict[str, Any], *, project_root: Path = PROJECT_ROOT) -> dict[str, Any]:
     """Use the existing reproduction and oracle pipelines on the identical package."""
+    if payload['package']['manifest'].get('application') is not None:
+        from .hosted_application_export import verify
+        return verify(target_name, payload, project_root)
     from amiga_reversing.disasm.oracle_compatibility import run_vasm_oracle
     from amiga_reversing.disasm.reproduction import run_reproduction
     package = payload["package"]

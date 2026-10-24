@@ -71,7 +71,7 @@ class _Projection:
 
 
 @contextmanager
-def acquire(paths,project_root,metadata_path,builder,owner_source,minimum_asset_size):
+def acquire(paths,project_root,metadata_path,builder,owner_source,minimum_asset_size,*,require_native_baseline=False):
     """Lease one artifact/projection through rendering and package emission."""
     project=str(paths.target_dir.resolve())
     try:
@@ -96,7 +96,7 @@ def acquire(paths,project_root,metadata_path,builder,owner_source,minimum_asset_
                     selected_memory_layout_id=metadata['selected_memory_layout_id']),minimum_asset_size)
                 if payload['status']=='refused':
                     raise LayoutExportRefused(payload['reason'],'Native layout projection refused: '+payload['reason'])
-                if payload['status']=='rebuild_required':
+                if payload['status']=='rebuild_required' or (require_native_baseline and getattr(owner,'layout_identity',None)!=layout_identity):
                     _CACHE.clear_project(project);owner=None
                 else:projected=_Projection(payload,owner,identities,backend,native_matches=getattr(owner,'layout_identity',None)==layout_identity)
             if owner is None:

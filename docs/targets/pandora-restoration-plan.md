@@ -34,7 +34,7 @@ now qualifies independent keyboard `$6000`, app/raster `$6080` and grid `$6684`
 through controlled and unheld completion plus exact scoped graphics/PCM. Its
 conditional grid-end byte is backing only, not new semantic data. That footprint
 supersedes independent placement assumptions for the two historical body bases;
-their observed outputs remain recorded. Allocator-selected CPU bases and native operand fixups are subsequently qualified below. A separately scoped normal-HUNK launch/F7 return now has DMA-safe release evidence; hosted full ending/output and broader allocation-selected loading remain open.
+their observed outputs remain recorded. Allocator-selected CPU bases and native operand fixups are subsequently qualified below. A separately scoped normal-HUNK launch/F7 return now has DMA-safe release evidence; hosted output comparison and broader allocation-selected loading remain open; hosted full ending is now qualified below.
 Other low scratch and hardware/vector ownership remain open.
 The [CPU fixup projection](../../runtime/observations/pandora-CPU-fixup-projection.json)
 now has 20 passing focused tests but refuses the real target at `$78C4`. Four
@@ -61,12 +61,16 @@ then separately scoped runtime allocation and OS entry/cleanup. This does not
 reopen the completed original-layout review. Staged M5/M6 implementation is now
 authorized after its concrete owner/fixup/lifecycle prerequisites are established.
 
-Current OS-hosted checkpoint: the [normal-HUNK game lifecycle](../../runtime/observations/pandora-normal-HUNK-game-lifecycle.json)
-qualifies actual six-owner allocation,111 typed fields, original initialization,
-normal fire/gameplay/F7 exit, DMA disable with all ten leases retained, exact
-reverse frees and CLI keyboard recovery. It is not hosted saved-Earth completion
-or graphics/PCM equality. Those checks and removal of the four remaining fixed
-input/image/high-mask/display placement requirements remain explicit next gates.
+Current OS-hosted checkpoint: the [cold hosted completion](../../runtime/observations/pandora-hosted-saved-earth-cold.json)
+qualifies all 576 normal-input phases, saved Earth plus escape, natural post-ending
+AmigaDOS return and exact ten-lease cleanup. Four gameplay images match the
+previous qualified source-helper run; title/UI and PCM comparisons remain open.
+The [complete source package](../../runtime/observations/pandora-hosted-source-package.json)
+now includes canonical game source, authored OS allocation/startup/cleanup source,
+native-generated bindings and a standalone build. Its external build reproduces
+the qualified payload and HUNK exactly. Original byte-exact export remains
+separate. Four required fixed input/image/high-mask/display OS claims, broader
+platform/path coverage and the eight-CCK limitation remain explicit restrictions.
 
 Status: **original-layout reviewed closeout with explicit unknowns**.
 [Final source-bound review](../validation/pandora-original-layout-closeout.json)

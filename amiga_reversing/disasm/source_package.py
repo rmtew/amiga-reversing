@@ -48,12 +48,17 @@ def _path(value: object) -> str:
     return value
 
 
-def collect_package_includes(source_text: str, include_root: Path) -> list[dict[str, Any]]:
+def collect_package_includes(source_text: str, include_root: Path, *, provided: dict[str, bytes] | None = None) -> list[dict[str, Any]]:
     """Collect literal SDK INCLUDE dependencies using the configured include root.
 
     This does not interpret data or change the rendered source. Conditional
     includes are intentionally over-collected; dynamic include names are refused.
     """
+    provided=dict(provided or {})
+    for name,data in provided.items():
+        _path(name)
+        if not isinstance(data,bytes):raise ValueError('Provided INCLUDE must be bytes')
+        if (include_root/name).exists():raise ValueError('Provided INCLUDE may not shadow the configured SDK')
     pending = [source_text]
     found: dict[str, dict[str, Any]] = {}
     root = include_root.resolve()
@@ -72,9 +77,10 @@ def collect_package_includes(source_text: str, include_root: Path) -> list[dict[
             resolved = (root / path).resolve()
             if not resolved.is_relative_to(root):
                 raise ValueError("INCLUDE dependency escapes configured SDK root")
-            data = resolved.read_bytes()
+            data = provided[path] if path in provided else resolved.read_bytes()
+            provenance = 'provided-application-source' if path in provided else 'configured-platform-sdk'
             found[path] = {"path": path, "data_hex": data.hex(), "kind": "include",
-                           "size": len(data), "provenance": "configured-platform-sdk"}
+                           "size": len(data), "provenance": provenance}
             pending.append(data.decode("latin-1"))
     return [found[path] for path in sorted(found)]
 
@@ -109,6 +115,28 @@ def build_source_package(payload: dict[str, Any], assets: list[dict[str, Any]], 
     package = {"manifest": manifest, "sha256": _hash(_json(manifest)), "files": files}
     validate_source_package(package)
     return package
+
+
+def extend_source_package(package: dict[str, Any], records: list[dict[str, Any]], *, application: dict[str, Any]) -> dict[str, Any]:
+    """Add owned application sources to the existing deterministic package."""
+    import copy
+    existing=validate_source_package(package);result=copy.deepcopy(package)
+    for record in records:
+        path=_path(record['path']);data=bytes.fromhex(record['data_hex'])
+        if len(data)!=record['size']:raise ValueError('Application file extent differs')
+        if path in existing:
+            old=next(r for r in result['manifest']['files'] if r['path']==path)
+            if data!=existing[path] or record.get('kind')!='include' or old.get('kind')!='include':
+                raise ValueError('Application file collides with existing package')
+            continue
+        existing[path]=data
+        attributes={k:v for k,v in record.items() if k!='data_hex'}
+        result['manifest']['files'].append(dict(attributes,sha256=_hash(data)))
+        result['files'].append(dict(path=path,data_base64=base64.b64encode(data).decode('ascii')))
+    result['manifest']['application']=copy.deepcopy(application)
+    result['manifest']['files'].sort(key=lambda r:r['path']);result['files'].sort(key=lambda r:r['path'])
+    result['sha256']=_hash(_json(result['manifest']));validate_source_package(result)
+    return result
 
 
 def validate_source_package(package: dict[str, Any]) -> dict[str, bytes]:

@@ -1,0 +1,104 @@
+{
+  "schema": "pandora-hosted-source-package/v1",
+  "status": "complete_current_canonical_source_export_and_external_build_verified_runtime_evidence_separate",
+  "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+  "layout_id": "pandora_OS_hosted_ecs1m",
+  "metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "native_layout_plan_sha256": "ec5cff357e29004d93d66f56b663da9475b2caf4fb42451f14d47a7f2dbc5aaf",
+  "source_export_options": {
+    "layout_id": "pandora_OS_hosted_ecs1m",
+    "binary_assets": true,
+    "verify_package": true
+  },
+  "package_sha256": "7bdf103b16a05e4df3f5831f5f3e63d173a74d9c3d1689bd4f4ae4cd442b993b",
+  "package_zip_sha256": "9f3e81d728d404f44975cfc57b6350911cdcbfc13af89cf91a840277188e803e",
+  "provenance": {
+    "bindings": "native allocation plans and declared bootstrap import",
+    "game": "canonical native Pandora rendering",
+    "runtime": "authored framework templates"
+  },
+  "dynamic_owners": [
+    "pandora_prng_state",
+    "keyboard_state",
+    "pandora_ui_snapshot_body",
+    "pandora_title_stars",
+    "pandora_cpu_workspace",
+    "pandora_low_generated_masks"
+  ],
+  "fixed_lease_intents": [
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 524288,
+      "size": 349040
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    }
+  ],
+  "build_verification": {
+    "build": {
+      "files": {
+        "Pandora": {
+          "bytes": 8092,
+          "sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c"
+        },
+        "Pandora.payload": {
+          "bytes": 376832,
+          "sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b"
+        }
+      },
+      "original_binary_exact": false,
+      "original_binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "package_manifest_sha256": "7bdf103b16a05e4df3f5831f5f3e63d173a74d9c3d1689bd4f4ae4cd442b993b",
+      "schema": "pandora-standalone-application-build/v1",
+      "status": "game_C_expected_bytes_and_vasm_match_loader_HUNK_assembled_not_runtime_qualification",
+      "vasm_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825"
+    },
+    "build_verified": true,
+    "exact": false,
+    "package_sha256": "7bdf103b16a05e4df3f5831f5f3e63d173a74d9c3d1689bd4f4ae4cd442b993b",
+    "runtime_verified": false,
+    "status": "build_verified"
+  },
+  "external_build": {
+    "environment": "Fresh /tmp directory outside repository; system Python with PYTHONPATH removed; copied vasm; no native backend/emulator/ROM/image tools",
+    "files": {
+      "Pandora.payload": {
+        "bytes": 376832,
+        "sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b"
+      },
+      "Pandora": {
+        "bytes": 8092,
+        "sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c"
+      }
+    },
+    "vasm_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "qualified_binaries_byte_identical": true
+  },
+  "runtime_evidence": {
+    "receipt": "runtime/observations/pandora-hosted-saved-earth-cold.json",
+    "sha256": "87e31523c41f81304b5afc76df76a325779f7d1b0ffb4d9eb3ee04490913af1c",
+    "claim": "same built binaries completed normal-input saved-Earth route and natural AmigaDOS return; four exact gameplay images; title/UI and PCM comparison remain unqualified"
+  },
+  "tests": {
+    "command": "pytest tests/test_source_package_interfaces.py tests/test_source_package_integration.py tests/test_hosted_application_export.py tests/test_pandora_OS_application.py tests/test_source_export.py tests/test_source_package.py tests/test_layout_export_cache.py",
+    "passed": 90,
+    "skipped": 0
+  },
+  "limits": [
+    "Six actual AllocMem owners plus four required fixed AllocAbs ranges, not unrestricted dynamic loading.",
+    "Authored runtime templates are part of the framework; canonical game source is rendered, not worker hand-polished.",
+    "Standalone manifest checks establish integrity, not authentication. Shared verify-package additionally rebinds to the current canonical export.",
+    "Assembly/build verification does not prove wrapper correctness, all-path execution, universal hardware support or graphics/audio equivalence.",
+    "Original byte-exact export and unresolved eight-CCK discrepancy remain separate.",
+    "Proprietary payload, ROM, source-selected asset bytes and raw captures remain private; published code/receipts reproduce the package from local target input."
+  ]
+}

@@ -7,6 +7,7 @@ saved-Earth playthrough or output-equivalence certification.
 """
 import argparse
 from contextlib import contextmanager
+from amiga_reversing.disasm.behaviour_validation import LoadedSource
 import hashlib
 import json
 import re
@@ -17,14 +18,17 @@ from pathlib import Path
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.tools.pandora_os_entry_probe import build as build_host,sha
 
+LOADED_SOURCE=LoadedSource(__file__)
+
 OWNERS=('pandora_prng_state','keyboard_state','pandora_ui_snapshot_body',
         'pandora_title_stars','pandora_cpu_workspace','pandora_low_generated_masks')
 
 
-def build(out,xdftool,payload,contract,*,game=False):
-    data=payload.read_bytes();plans=contract['candidates'];batch=contract['template_geometry']
-    if (len(data)!=376832 or hashlib.sha256(data).hexdigest()!=
-            '9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b'
+def application_sources(data,contract,*,game=False,project_root=PROJECT_ROOT,layout_id='pandora_OS_hosted_ecs1m',expected_payload_sha256='9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b'):
+    """Generate owned sources from native bindings; no assembly, disk or emulator."""
+    LOADED_SOURCE.require_current()
+    files={};plans=contract['candidates'];batch=contract['template_geometry']
+    if (len(data)!=376832 or hashlib.sha256(data).hexdigest()!=expected_payload_sha256
             or set(plans)!=set(OWNERS) or batch.get('status')!='actual_placements_valid'
             or batch.get('owner_count')!=6 or batch.get('uncovered_runtime_extents')!=[]):
         raise ValueError('Complete native hosted template and exact preserved payload required')
@@ -32,7 +36,7 @@ def build(out,xdftool,payload,contract,*,game=False):
         raise ValueError('Refused owner cannot become an Exec request')
     layouts=batch.get('layout',{}).get('items',[])
     if (len(layouts)!=1 or layouts[0].get('status')!='placement_valid'
-            or layouts[0].get('layout_id')!='pandora_OS_hosted_ecs1m'
+            or layouts[0].get('layout_id')!=layout_id
             or layouts[0].get('chip_bytes')!=0x100000):
         raise ValueError('Declared ECS hosted native profile required')
     bootstrap=layouts[0].get('bootstrap',{})
@@ -43,7 +47,6 @@ def build(out,xdftool,payload,contract,*,game=False):
     fixed=batch['fixed_leases_requiring_OS_acquisition']
     if any(r['address']<0x10000 or r['address']%8 or r['size']%8 for r in fixed):
         raise ValueError('Hosted source-helper profile with aligned fixed leases required')
-    build_host(out,xdftool)
     constants={'OWNER_COUNT':len(OWNERS),'FIXED_COUNT':len(fixed),'INPUT_ADDRESS':0x20000,
                'PAYLOAD_SIZE':len(data),'PAYLOAD_CRC32':zlib.crc32(data)}
     if game:
@@ -77,7 +80,7 @@ def build(out,xdftool,payload,contract,*,game=False):
                 raise ValueError('Import and owner fields overlap')
         if int.from_bytes(data[imported['source_offset']:imported['source_offset']+4],'big')!=imported['staged_value']:
             raise ValueError('Stale original import')
-    (out/'pandora_OS_plan.i').write_text('\n'.join(f'{n} EQU ${v:X}' for n,v in constants.items())+'\n')
+    files['pandora_OS_plan.i']=('\n'.join(f'{n} EQU ${v:X}' for n,v in constants.items())+'\n').encode()
     table=['fixed_table:']+[f"    dc.l ${r['address']:X},${r['size']:X}" for r in fixed]
     table+=['owner_sizes:']+[f"    dc.l ${(plans[n]['size']+7)&~7:X}" for n in OWNERS]
     if game:
@@ -97,14 +100,24 @@ def build(out,xdftool,payload,contract,*,game=False):
             for f,_ in fixes:
                 if offset<f['source_offset']+f['width'] and f['source_offset']<offset+size:raise ValueError('Seed source overlaps fixup')
             seed_source.append(f"    move.{'w' if size==2 else 'l'} INPUT_ADDRESS+${offset:X},${address:X}")
-        (out/'pandora_OS_seeds.i').write_text('\n'.join(seed_source)+'\n')
+        files['pandora_OS_seeds.i']=('\n'.join(seed_source)+'\n').encode()
     table+=['crc_table:']
     for i in range(256):
         crc=i
         for _ in range(8):crc=(crc>>1)^(0xedb88320 if crc&1 else 0)
         table.append(f'    dc.l ${crc:08X}')
-    (out/'pandora_OS_tables.i').write_text('\n'.join(table)+'\n')
-    source=PROJECT_ROOT/'tools/amiga_pandora_OS.s'
+    files['pandora_OS_tables.i']=('\n'.join(table)+'\n').encode()
+    for name in ('amiga_pandora_OS.s','amiga_pandora_OS_fields.i','amiga_pandora_OS_audio.i','amiga_pandora_OS_takeover.i'):
+        files[name]=(project_root/'tools'/name).read_bytes()
+    LOADED_SOURCE.require_current()
+    return files,fixed
+
+
+def build(out,xdftool,payload,contract,*,game=False):
+    data=payload.read_bytes();files,fixed=application_sources(data,contract,game=game)
+    build_host(out,xdftool)
+    for name,content in files.items():(out/name).write_bytes(content)
+    source=out/'amiga_pandora_OS.s'
     assembled=subprocess.run([str(PROJECT_ROOT/'tools/vasmm68k_mot.exe'),'-Fhunkexe','-m68000','-no-opt',
         '-L',str(out/'Pandora.list'),'-I'+str(out),'-I'+str(PROJECT_ROOT/'tools'),'-I'+str(PROJECT_ROOT/'ext/amiga_includes/ndk_2.0/include'),
         '-o',str(out/'Pandora'),str(source)],capture_output=True,text=True)
@@ -121,7 +134,7 @@ def build(out,xdftool,payload,contract,*,game=False):
     return dict(status='normal_HUNK_game_application_built_runtime_pending' if game else 'normal_HUNK_pre_entry_application_built_not_game_launch',owners=list(OWNERS),
         contract_sha256=hashlib.sha256(json.dumps(contract,sort_keys=True).encode()).hexdigest(),
         payload_sha256=sha(payload),source_sha256=sha(source),HUNK_sha256=sha(out/'Pandora'),
-        loader_sources_sha256={n:sha(PROJECT_ROOT/'tools'/n) for n in ('amiga_pandora_OS.s','amiga_pandora_OS_fields.i','amiga_pandora_OS_audio.i','amiga_pandora_OS_takeover.i')},
+        loader_sources_sha256={n:sha(out/n) for n in ('amiga_pandora_OS.s','amiga_pandora_OS_fields.i','amiga_pandora_OS_audio.i','amiga_pandora_OS_takeover.i')},
         fixed_lease_intents=fixed,ADF_sha256=sha(out/'host.adf'))
 
 

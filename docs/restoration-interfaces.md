@@ -498,6 +498,25 @@ value, a numeric named EQU avoids that forward dependency while the evidence
 retains its canonical owner/offset relationship. Extending forward dependency
 resolution is separate work; do not accept a slice on vasm equality alone.
 
+For Pandora's declared `pandora_OS_hosted_ecs1m` layout, `source_export` with
+`--layout pandora_OS_hosted_ecs1m --binary-assets` includes both the canonical
+game source and the authored AmigaDOS allocation/startup/cleanup sources. Native
+plans generate the typed runtime binding tables. The package includes its SDK
+include closure and a standalone `build.py`; Python's standard library and vasm
+build `bin/Pandora` and `bin/Pandora.payload` outside this repository. No manual
+post-render game-source edits are involved. Four fixed OS-acquired ranges remain
+explicit in its manifest/README; this is not unrestricted dynamic loading.
+
+`--verify-package` checks the complete current package against a fresh canonical
+export, builds the game and loader, and requires vasm game bytes to equal the
+native assembler's expected bytes. Hosted results distinguish `build_verified`
+from original-binary `exact` and from `runtime_verified` (not established by
+assembly). Missing prerequisites, stale packages and mismatches do not pass.
+Original byte-exact output remains a separate export without this restored
+application profile. See the
+[hosted source-package receipt](../runtime/observations/pandora-hosted-source-package.json)
+for measured external-build and runtime-evidence identities.
+
 Custom pointer fields can explicitly declare `pointer_address_domain` as
 `mapped_source` or `runtime_only`; omission retains the existing `legacy`
 behavior. `mapped_source` requires a unique eligible source mapping and an

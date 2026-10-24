@@ -33,7 +33,7 @@ def setup(tmp_path,monkeypatch):
     def builder():
         result=build(tmp_path,current['metadata'],current['data']);artifacts.append(result);return result
     owner_source=LoadedSource(owner_file)
-    def acquire():return cache.acquire(paths,PROJECT_ROOT,path,builder,owner_source,256)
+    def acquire(**options):return cache.acquire(paths,PROJECT_ROOT,path,builder,owner_source,256,**options)
     snapshot()
     yield current,snapshot,acquire,artifacts,path,owner_file
     cache._CACHE.reset()
@@ -164,3 +164,19 @@ def test_shared_export_warm_package_equals_a_clean_export(tmp_path,monkeypatch):
         assert len(builds)==2
         assert warm['source_text']==clean['source_text'] and warm['package']==clean['package']
     finally:cache._CACHE.reset()
+
+
+def test_allocation_export_refreshes_only_a_valid_different_baseline(setup):
+    current,snapshot,acquire,artifacts,_,_=setup
+    with acquire():pass
+    current['metadata']['memory_layouts'][0]['placements'].append(dict(region_id='workspace',runtime_address=0x80000));snapshot()
+    with pytest.raises(cache.LayoutExportRefused,match='unrelated_region_overlap'):
+        with acquire(require_native_baseline=True):pass
+    assert len(artifacts)==1 and artifacts[0]._handle.value
+    current['metadata']['memory_layouts'][0]['placements'][-1]['runtime_address']=0xe0000;snapshot()
+    with acquire(require_native_baseline=True) as artifact:artifact.loaded_backend_identity()
+    assert len(artifacts)==2 and not artifacts[0]._handle.value
+    with acquire(require_native_baseline=True) as projection:
+        assert projection._native is artifacts[1]
+        projection.loaded_backend_identity()
+    assert len(artifacts)==2

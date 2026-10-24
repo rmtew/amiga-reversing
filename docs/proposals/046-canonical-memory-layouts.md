@@ -1136,3 +1136,20 @@ authored OS templates, native-generated bindings and standalone executable build
 This package integration and output qualification are the immediate next gates;
 fixed image/input/display/high-mask placement and the eight-CCK limitation remain
 explicit. No claim of fully allocation-selected loading or universal OS support.
+
+### M6 complete source-package export (2026-10-24 UTC)
+
+The normal shared source exporter now includes the complete declared Pandora
+DOS application when the hosted layout and binary-asset package are selected:
+canonical game ASM/assets, authored allocation/startup/cleanup ASM, native typed
+bindings, SDK include closure and a standalone Python/vasm build. This replaces
+the previous game-only package gap; it is not a second game renderer or manual
+post-render polish. The [package receipt](../../runtime/observations/pandora-hosted-source-package.json)
+records canonical identities, external-build results and linkage to the qualified
+cold-run binaries. Original exact output remains a separate export. Four fixed
+OS-acquired ranges remain restrictions; runtime allocation is not universal.
+
+Shared package verification checks against the current canonical export before
+building. It separates build success from original byte equality and runtime
+qualification. A complete external build does not settle the pending title/UI
+and PCM comparisons, shared-wrapper semantics or unobserved execution paths.
