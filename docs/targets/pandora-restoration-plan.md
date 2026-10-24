@@ -21,11 +21,15 @@
 
 Current alternate-layout management: the
 [bounded HAND diagnosis](../../runtime/observations/pandora-HAND-causal-boundary.json)
-keeps strict cycle equality unfulfilled. The next implementation candidate is the
-cold display-clear/alias contract, before another independent display placement.
+keeps strict cycle equality unfulfilled. The
+[independent display move](../../runtime/observations/pandora-canonical-display-qualification.json)
+now qualifies E0000..ED000 with cursor still65370 and image80000, including cold
+completion and scoped graphics/PCM equality. The next allocation candidate is
+the body-background owner and its typed descriptor pointer; its actual allocation
+and cleanup contracts remain to be implemented.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
-then separately decided runtime allocation and OS entry/cleanup. This does not
+then separately scoped runtime allocation and OS entry/cleanup. This does not
 reopen the completed original-layout review. Staged M5/M6 implementation is now
 authorized after its concrete owner/fixup/lifecycle prerequisites are established.
 
@@ -36,7 +40,8 @@ remaining opaque/producer/continuation exceptions and stale-accounting limitatio
 Full semantic restoration and native C remain unclaimed. Alternate-layout
 execution now has the separately scoped
 [experimental completion/output evidence](../../runtime/observations/pandora-relocated-output-validation.json);
-normal canonical alternate-layout export is still proposed, not implemented.
+normal canonical alternate-layout export is implemented with the scoped cursor
+and display qualification linked above; runtime allocation and OS cleanup are not.
 Initial baseline: merged `22e55bb5`.
 This is a work plan and derived evidence index, not another semantic fact store.
 Canonical native facts, Manual Action Log and Decision Journal remain authoritative.

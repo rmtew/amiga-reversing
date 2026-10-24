@@ -96,7 +96,7 @@
     "target": "Controlled direct-payload pre-entry handoff; eight-CCK difference",
     "state": "criterion_unfulfilled_cause_unresolved_not_access_denied",
     "evidence": "Boot-only probes already differ at BOOT before CMD_READ; natural HAND also differs. No fitted delay or comparator relaxation.",
-    "smallest_next_decision": "Explicitly accept the bounded pre-entry deviation with existing output evidence, or authorize a narrowly scoped startup timing investigation; do not silently treat it as passed.",
+    "smallest_next_decision": "No per-milestone approval needed. Retain the strict eight-CCK criterion as unfulfilled; continue independently authorized allocation/lifecycle work without reopening this probe absent new evidence.",
     "latest_causal_boundary": "pandora-HAND-causal-boundary.json: same unreleased guest wait code/registers/17 instruction boundaries, offset8CCK including ROM interrupt entry; earlier scheduling cause unproved."
   },
   "preservation": {
@@ -115,5 +115,16 @@
     "wall_seconds": 201.8518994320002,
     "meaning": "Fresh final-source export and current C assembly equal retained original package and its independent vasm output; no redundant vasm invocation or gameplay rerun."
   },
-  "next_implementation_candidate": "M4 display initialization/alias contract around cold seeded clear70000..7CD28, front/back bank pointers, lower Copper split and snapshot/palette reuse; no broad M5/M6 implementation started."
+  "next_implementation_candidate": "M5 bounded body-background allocation candidate: inspect canonical typed pointer, initialization and blitter lifetime before implementing actual allocator-selected bases and unwind. M6 cleanup remains a separate contract.",
+  "independent_display": {
+    "evidence": "pandora-canonical-display-qualification.json",
+    "profile": "pandora_display_e0000_ecs1m",
+    "display": [
+      917504,
+      970752
+    ],
+    "cursor": 414576,
+    "simultaneous_cursor_move": false,
+    "status": "scoped_functional_and_output_qualification"
+  }
 }

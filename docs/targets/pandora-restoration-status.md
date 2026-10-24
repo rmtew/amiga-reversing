@@ -3,40 +3,33 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
-[Live Copper constraint](../../runtime/observations/pandora-display-live-pointer-constraint.json)
-now explains the first-surface mismatch causally. The D8000 profile completes
-both controlled and unheld576-phase routes (HP49/frame14465 and14353), and matches
-all phase clocks,509 calls, PCM and later selected output. It still fails graphics:
-14 pixels differ on the first partial title surface. Four-frame bus traces show
-two fetches interleaved between live high/low Copper writes: D0002/D0006 read
-image/audio words3831/9699 instead of the original seeded zero reads70002/70006.
-Those words contain14 set bits. This is not an initial-RAM seed hypothesis.
+[Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
+now records the normal-export E0000..ED000 display group, independently of image
+80000, with cursor still at65370. Fresh common-loader control/candidate runs both
+complete all576 phases at HP49/frame14465. The unheld cold candidate completes
+at HP49/frame14353, with both loss counters zero. All576 phase clocks,509 controller
+calls, eight selected RGBA frames and24,726,568 float PCM samples through EOF
+match exactly. Six sampled core DMA frames match; the same eight NULL-sprite
+reads at0/2 remain outside asset bounds. Raw unchanged asset bytes total295,492.
 
-The retained sequence now has an explicit64-KiB parent alignment constraint.
-Original70000 is valid; D8000 now refuses rather than being reported as qualified.
-The next candidate is displayE0000..ED000 with cursor still65370, independently
-of image80000. No simultaneous cursorE0000/display claim is made.73 focused tests
-pass and full original C/vasm remains exact (`743e95a4…`). E-layout build and fresh
-common-loader qualification are pending. The failed comparator remains failed;
-no tolerance, crop, fitted delay or Copper timing change was introduced. This
-runtime display issue is separate from the unchanged pre-GO eight-CCK finding.
+Four additional committed startup profile frames contain54,744 bitplane WORDs
+per role with zero normalized address/data mismatches. The two hybrid witnesses
+now read zero atE0002/E0006 inside the first40 CPU-zeroed bytes. HAND/init/title
+PCs and clocks match the retained diagnostic control exactly. The new invariant
+test asserts low16 preservation for every child, both witness offsets and their
+complete WORD containment; three cases pass. Children retain2-byte alignment;
+the64-KiB restriction belongs only to the parent and retained live Copper sequence.
 
+The historical D8000 comparator remains a14-pixel mismatch and that placement
+now refuses. No timing padding, cropping, tolerance or extra seed was used.
+Original full C/vasm remains exact (`743e95a4…`). This does not resolve the separate
+original-to-image eight-CCK pre-GO finding, certify all paths, qualify simultaneous
+cursorE0000/display movement, or implement allocation/OS cleanup. The next
+allocation candidate under inspection is the2,304-byte body-background owner and
+its typed bitmap pointer, with blitter completion/lifetime explicitly required.
 
-The [status/ticker alias follow-up](../../runtime/observations/pandora-display-status-aliases.json)
-retains a second real watch failure at frame944/source `$9ABE`/old `$77800`.
-Two existing address expressions now render symbolically; original full C/vasm
-remains exact (`7f2a2ce0…`). The repaired candidate rebuild/qualification is
-pending; neither negative is erased or treated as a pass.
-
-Active continuation: [display contract / retained failure](../../runtime/observations/pandora-display-initialization-contract.json).
-The new 53,248-byte display-group candidate retains cross-bank clear and
-snapshot/palette offsets, plus the two-byte priming seed. Initial title pixels
-match, but its first full route stopped at frame595 on a proven stale overlay
-base. Immediate-reference runtime-domain preservation is fixed and 177 focused
-tests pass; original full C/vasm remains exact (`32a3c5a6…`). Repaired candidate
-qualification is pending, not a display-completion claim. Broader movement,
-allocator-selected loading and OS cleanup are authorized staged work; B07 stays
-paused and the eight-CCK finding stays recorded without blocking that work.
+Earlier display failures remain in their linked causal receipts; this positive
+qualification supersedes pending status prose, not the failed evidence.
 
 [Independent workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json):
 the normal image at `$80000` plus 140-byte cursor workspace at `$E0000` completes
@@ -107,11 +100,7 @@ Earlier boot/read/interrupt scheduling remains the causal boundary: no evidence
 identifies a target relocation defect or justifies a game patch. Strict comparison
 remains refused. No fitted delay, comparator change, full route or regeneration.
 
-The next proposed implementation slice is the display initialization/alias
-contract: the cold seeded clear crosses `$70000..$7CD28`, both framebuffer roles
-and reused storage. Resolve that producer together with bank swap, lower-screen
-Copper, snapshot/palette containment and loader-tail initialization before
-admitting another bank move. The
+The display initialization/alias and E-layout move are now qualified above. The
 [managed continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 also define a separate broader CPU-workspace gate, a bounded genuine runtime
 allocation/loading gate, and OS entry/cleanup acceptance. Those later stages

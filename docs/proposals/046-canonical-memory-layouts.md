@@ -1,71 +1,44 @@
 # Proposal 046: Canonical memory regions and layout export
 
-Status: **Functional original/image/cursor delivery and measured native reuse are evidenced. Shared placement geometry is consolidated; the semantic data-relocation adapter remains. Strict original HAND-cycle equality is still not met, so unconditional first-delivery closure is unclaimed.**
+Status: **Functional original/image/cursor/display delivery and measured native reuse are evidenced. Shared placement geometry is consolidated; the semantic data-relocation adapter remains. Strict original HAND-cycle equality is still not met, so unconditional first-delivery closure is unclaimed.**
 Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
 ### Active display continuation
 
+[Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
+now records the normal-export E0000..ED000 display group, independently of image
+80000, with cursor still at65370. Fresh common-loader control/candidate runs both
+complete all576 phases at HP49/frame14465. The unheld cold candidate completes
+at HP49/frame14353, with both loss counters zero. All576 phase clocks,509 controller
+calls, eight selected RGBA frames and24,726,568 float PCM samples through EOF
+match exactly. Six sampled core DMA frames match; the same eight NULL-sprite
+reads at0/2 remain outside asset bounds. Raw unchanged asset bytes total295,492.
 
-[Live Copper constraint](../../runtime/observations/pandora-display-live-pointer-constraint.json)
-now explains the first-surface mismatch causally. The D8000 profile completes
-both controlled and unheld576-phase routes (HP49/frame14465 and14353), and matches
-all phase clocks,509 calls, PCM and later selected output. It still fails graphics:
-14 pixels differ on the first partial title surface. Four-frame bus traces show
-two fetches interleaved between live high/low Copper writes: D0002/D0006 read
-image/audio words3831/9699 instead of the original seeded zero reads70002/70006.
-Those words contain14 set bits and are backed by the verified image at source
-$50002/$50006, in primary audio records. This proves backing, not an OS lease.
-Matching early null/low-RAM bitplane fetches stay outside display certification;
-the later DMA allowlist is unchanged. Native committed profile-frame labels are
-not equated with physical run-until frame numbers. This is not an initial-RAM
-seed hypothesis.
+Four additional committed startup profile frames contain54,744 bitplane WORDs
+per role with zero normalized address/data mismatches. The two hybrid witnesses
+now read zero atE0002/E0006 inside the first40 CPU-zeroed bytes. HAND/init/title
+PCs and clocks match the retained diagnostic control exactly. The new invariant
+test asserts low16 preservation for every child, both witness offsets and their
+complete WORD containment; three cases pass. Children retain2-byte alignment;
+the64-KiB restriction belongs only to the parent and retained live Copper sequence.
 
-The retained sequence now has an explicit64-KiB parent alignment constraint.
-Original70000 is valid; D8000 now refuses rather than being reported as qualified.
-The next candidate is displayE0000..ED000 with cursor still65370, independently
-of image80000. No simultaneous cursorE0000/display claim is made.73 focused tests
-pass and full original C/vasm remains exact (`743e95a4…`). E-layout build and fresh
-common-loader qualification are pending. The failed comparator remains failed;
-no tolerance, crop, fitted delay or Copper timing change was introduced. This
-runtime display issue is separate from the unchanged pre-GO eight-CCK finding.
+The historical D8000 comparator remains a14-pixel mismatch and that placement
+now refuses. No timing padding, cropping, tolerance or extra seed was used.
+Original full C/vasm remains exact (`743e95a4…`). This does not resolve the separate
+original-to-image eight-CCK pre-GO finding, certify all paths, qualify simultaneous
+cursorE0000/display movement, or implement allocation/OS cleanup. The next
+allocation candidate under inspection is the2,304-byte body-background owner and
+its typed bitmap pointer, with blitter completion/lifetime explicitly required.
 
-
-[Status/ticker follow-up](../../runtime/observations/pandora-display-status-aliases.json):
-the repaired overlay prefix passes frame595, then the same guard catches source
-`$9ABE` clearing abandoned `$77800` at frame944. The existing `STATUS_BAND_BASE`
-and `STATUS_TICKER_ROW0_BASE` facts already contain framebuffer-relative
-expressions but were rendered as hex. Two revision-checked catalog edits now
-select those expressions; scalar insertion offsets remain unchanged. Original
-C/vasm remains exact, receipt `7f2a2ce0…`; selected exports and qualification are
-in progress. No general EQU policy or completion assertion changed.
-
-[Display contract and retained failure](../../runtime/observations/pandora-display-initialization-contract.json):
-five API actions preserve bank/snapshot/palette identities under a 53,248-byte
-parent required by the retained cross-bank clear. The explicit candidate moves
-that group to `$D8000..$E5000`, independently of the `$80000` image. A two-byte
-guest seed preserves the priming self-copy at original `$77D00` before the clear.
-The two title prefixes match pixels/clocks, but the first full candidate correctly
-stops at frame595: source `$6218` writes BYTE `$FF` to abandoned `$7550C`.
-The overlay origin's accepted immediate reference at `$6138` had lost its runtime
-address domain and was emitted as a scalar EQU.
-
-The narrow metadata fix retains explicit runtime points for immediate references,
-just as the existing data-block path does; scalars/source coordinates stay put.
-There are two such current facts, the second being the active-world-object data
-table at source `$A0A4`, whose source label already moves its encoded address.
-177 focused tests pass (four deselected), including independent original/moved
-vasm fixtures. Full original C/vasm still matches all 376,832 bytes, receipt
-`32a3c5a6…`; stored original source hash remains `66e6add4…`. Fresh candidate
-qualification is running; neither title equality nor the failed route counts as
-a completed display move.
-
-Richard's continuation direction authorizes staged movement, real allocation and
-OS-friendly ownership/cleanup without per-milestone approval. M5/M6 have not yet
-been implemented. The recorded eight-CCK finding stays unfulfilled and does not
-block independent functional work; do not reopen it without new relevant evidence.
-
+Historical causal failures and their canonical repairs remain in
+[the live-pointer receipt](../../runtime/observations/pandora-display-live-pointer-constraint.json),
+[status aliases](../../runtime/observations/pandora-display-status-aliases.json) and
+[initialization contract](../../runtime/observations/pandora-display-initialization-contract.json).
+The current pass supersedes their pending-qualification statements, preserving
+the failed runs and exact original receipts. M5/M6 continuation is authorized;
+neither is implemented yet. Do not reopen the eight-CCK probe without new evidence.
 
 [Workspace qualification](../../runtime/observations/pandora-canonical-workspace-qualification.json)
 records normal-export saved-Earth completion with image `$80000` and an
@@ -595,7 +568,7 @@ the proof/manifest semantic adapter remains supported. Exact original HAND-cycle
 equality is still refused. M5–M6 are not started. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
-M5–M6 are distinct later decisions. Each batch
+M5–M6 are separately authorized continuation gates. Each batch
 records mechanism delivered, target scope, tests/evidence, remaining restrictions
 and removed implementation. Existing unfinished B07 files are independent and
 remain untouched.
@@ -612,7 +585,7 @@ remain untouched.
 
 ### Managed continuation gates (2026-10-24)
 
-The current batch is a bounded startup investigation, not an expansion into M5/M6.
+The following records the completed bounded pre-GO investigation; current continuation is described above.
 [HAND causal-boundary evidence](../../runtime/observations/pandora-HAND-causal-boundary.json)
 reproduces the qualified stops at 35,525,509/35,525,517 for requested CCK
 35,525,500. Both are the same boot-shim BNE at `$1628`; all 17 subsequent
@@ -633,10 +606,10 @@ retroactively turn the strict failed receipt into a pass. Functional cold
 completion, eight selected frames, bounded DMA and actual-HAND-to-EOF PCM remain
 separate evidence; they are not all-path semantic or cycle-level equivalence.
 
-The next substantive implementation candidate is the display initialization and
-alias contract below. It can be investigated statically without resolving every
-boot/OS timing question; no new placement or broad allocator work is launched by
-this roadmap update.
+The display initialization/alias and independent-placement gates below now have
+the scoped E-layout qualification above. The remaining CPU workspace, runtime
+allocation and OS lifecycle gates remain distinct; the completed timing probe
+is not a prerequisite to their independently authorized progress.
 
 | Next acceptance gate / dependency | Concrete evidence and implementation slice | Acceptance / stop boundary |
 | --- | --- | --- |
@@ -716,7 +689,8 @@ with the selected block's typed reference ledger and explicit remaining limits.
    source-patching debt or to deliver the required original, known-image and
    independently moved-block layouts.
 
-The next implementation action, if authorized, is M0 followed by M1–M4 as one
-staged first delivery, reporting internal validation results without prematurely
-closing delivery. M5–M6 remain separate decisions; implementation progress must
-not silently broaden first-delivery scope into runtime allocation or OS hosting.
+M0–M4 now have the scoped functional, source and performance evidence above;
+strict original HAND equality remains unfulfilled. Richard has authorized M5–M6
+continuation without per-milestone approval. Establish a concrete owner/fixup and
+lifecycle contract for each bounded slice; fixed placement is not runtime
+allocation, and AllocMem alone is not an OS-hosted game.
