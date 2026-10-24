@@ -8937,10 +8937,66 @@ static int append_metadata_abstract_region_local(const char *object_start, const
 
 static int layout_required_u32_local(const char *,const char *,const char *,uint32_t *);
 
+static unsigned frame_hex_digit_local(char c) {
+  return c>='0' && c<='9' ? (unsigned)(c-'0') : c>='a' && c<='f' ? (unsigned)(c-'a'+10) : 16U;
+}
+static int append_metadata_address_frame_local(const char *start,const char *end,M68kMemoryRegionIR *r) {
+  const char *frame=json_find_key_local(start,end,"address_frame"),*frame_end=NULL;
+  if(!frame) return 1;
+  frame=json_skip_ws_local(frame,end);
+  const char *object=json_next_object_local(frame,end,&frame_end);
+  static const char *const keys[]={"schema_version","kind","register","contract_sha256","input_sha256","sites"};
+  char kind[64]={0},reg[8]={0};uint32_t version=0;
+  if(r->source_mapped || r->dma_access || r->parent_region_id[0] || r->has_loader_seed ||
+      !object || object!=frame || !json_object_has_only_keys_local(object,frame_end,keys,6) ||
+      !layout_required_u32_local(object,frame_end,"schema_version",&version) || version!=1 ||
+      !json_optional_string_field_local(object,frame_end,"kind",kind,sizeof(kind)) ||
+      strcmp(kind,"same_size_move_long_immediate_store") ||
+      !json_optional_string_field_local(object,frame_end,"register",reg,sizeof(reg)) ||
+      strlen(reg)!=2 || reg[0]!='a' || reg[1]<'0' || reg[1]>'6' ||
+      !json_optional_string_field_local(object,frame_end,"contract_sha256",r->address_frame_contract_sha256,65) ||
+      strlen(r->address_frame_contract_sha256)!=64 ||
+      !json_optional_string_field_local(object,frame_end,"input_sha256",r->address_frame_input_sha256,65) ||
+      strlen(r->address_frame_input_sha256)!=64) return 0;
+  for(size_t i=0;i<64;i++) if(frame_hex_digit_local(r->address_frame_contract_sha256[i])==16 ||
+      frame_hex_digit_local(r->address_frame_input_sha256[i])==16) return 0;
+  r->address_frame_register=(uint8_t)(reg[1]-'0');
+  char *text=calloc((size_t)(frame_end-object)+1,1);if(!text) return 0;
+  memcpy(text,object,(size_t)(frame_end-object));
+  const char *array_end=NULL,*cursor=json_find_array_local(text,"sites",&array_end);
+  if(!cursor) {free(text);return 0;}
+  cursor=json_skip_ws_local(cursor,array_end);
+  while(cursor<array_end) {
+    const char *entry_end=NULL,*entry=json_next_object_local(cursor,array_end,&entry_end);
+    static const char *const sk[]={"section_index","source_offset","operand_index","expected_hex"};
+    char hex[17]={0};uint32_t operand=0;
+    if(!entry || entry!=cursor || r->address_frame_site_count>=M68K_ADDRESS_FRAME_SITE_LIMIT) {free(text);return 0;}
+    M68kAddressFrameSiteIR *site=&r->address_frame_sites[r->address_frame_site_count];
+    if(!json_object_has_only_keys_local(entry,entry_end,sk,4) ||
+        !layout_required_u32_local(entry,entry_end,"section_index",&site->section_index) || site->section_index ||
+        !layout_required_u32_local(entry,entry_end,"source_offset",&site->source_offset) ||
+        site->source_offset>0xfffff8 || site->source_offset%2 ||
+        !layout_required_u32_local(entry,entry_end,"operand_index",&operand) || operand!=1 ||
+        !json_optional_string_field_local(entry,entry_end,"expected_hex",hex,sizeof(hex)) || strlen(hex)!=16) {free(text);return 0;}
+    site->operand_index=1;
+    for(size_t i=0;i<8;i++) {
+      unsigned a=frame_hex_digit_local(hex[i*2]),b=frame_hex_digit_local(hex[i*2+1]);
+      if(a==16 || b==16) {free(text);return 0;}site->expected_bytes[i]=(uint8_t)((a<<4)|b);
+    }
+    for(size_t i=0;i<r->address_frame_site_count;i++) if(r->address_frame_sites[i].source_offset==site->source_offset) {free(text);return 0;}
+    r->address_frame_site_count++;cursor=json_skip_ws_local(entry_end,array_end);
+    if(cursor<array_end) {
+      if(*cursor!=',') {free(text);return 0;}
+      cursor=json_skip_ws_local(cursor+1,array_end);if(cursor==array_end) {free(text);return 0;}
+    }
+  }
+  free(text);return r->address_frame_site_count!=0;
+}
+
 static int append_metadata_memory_region_local(const char *start, const char *end,
     M68kAnalysisPolicy *policy) {
   static const char *const keys[] = {"region_id", "name", "runtime_address", "size", "alignment",
-    "source_domain", "memory_class", "lifetime", "dma_access", "region_kind", "parent_region_id", "loader_seed"};
+    "source_domain", "memory_class", "lifetime", "dma_access", "region_kind", "parent_region_id", "loader_seed", "address_frame"};
   M68kMemoryRegionIR r = {0};
   char source[32] = {0}, memory[32] = {0}, lifetime[32] = {0}, dma[32] = {0};
   int present; uint16_t i;
@@ -8982,6 +9038,7 @@ static int append_metadata_memory_region_local(const char *start, const char *en
   else if(!strcmp(kind,"workspace")) r.region_kind=2;
   else if(!strcmp(kind,"display")) r.region_kind=3;
   else return 0;
+  if(!append_metadata_address_frame_local(start,end,&r)) return 0;
   for (i=0;i<policy->memory_region_count;i++) {
     const M68kMemoryRegionIR *old=&policy->memory_regions[i];
     /* Shared storage may have more than one semantic identity. Native region

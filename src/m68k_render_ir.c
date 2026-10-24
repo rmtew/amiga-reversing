@@ -10872,6 +10872,8 @@ static void attach_source_analysis_indexed_table_expression_symbols(const M68kRe
 /* This is the planning counterpart of instruction emission.  It deliberately
  * follows the accepted-candidate walk, including platform-state transitions,
  * rather than deriving source obligations from analysis-wide fact arrays. */
+#include "m68k_address_frame.inc"
+
 static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start_all,
     uint8_t **accepted_bytes, const M68kSourceAnalysisIR *source_analysis) {
@@ -10880,6 +10882,11 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
   size_t section_index;
   if (preview == NULL || lookup == NULL || decode == NULL || accepted_start_all == NULL ||
       accepted_bytes == NULL || source_analysis == NULL) return -1;
+  AddressFrameBinding frame_bindings[M68K_ANALYSIS_MEMORY_REGION_LIMIT*M68K_ADDRESS_FRAME_SITE_LIMIT];
+  size_t frame_count=0;
+  if(!address_frame_bindings(policy,decode,frame_bindings,&frame_count)) {
+    preview->memory_layout.reason="duplicate_address_frame_site_or_stale_input";return -1;
+  }
   metric_baseline = *preview;
   memset(&platform_state, 0, sizeof(platform_state));
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
@@ -10985,11 +10992,15 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
         }
         if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
             !m68k_instruction_make_fpu_id_render_instruction(&instruction, &render_instruction)) return -1;
+        memset(&planned_instruction, 0, sizeof(planned_instruction));
+        planned_instruction.instruction=instruction;
+        planned_instruction.render_instruction=render_instruction;
+        if(!apply_address_frame(preview,section,candidate,frame_bindings,frame_count,&planned_instruction)) return -1;
+        render_instruction=planned_instruction.render_instruction;
         m68k_render_policy_init_default(&render_policy);
         m68k_diag_list_reset(&diagnostics);
         rendered = m68k_ir_render_one_at_with_policy(&render_instruction, candidate->offset, &render_policy,
           m68k_diag_sink(&diagnostics));
-        memset(&planned_instruction, 0, sizeof(planned_instruction));
         planned_instruction.source_section_index = (uint32_t)section->section_index;
         planned_instruction.source_offset = candidate->offset;
         planned_instruction.has_bootstrap_variant=(uint8_t)has_variant;
@@ -11001,6 +11012,13 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
           lookup_instruction_comment(lookup, section->section_index, candidate->offset));
         (void)append_comment_part_local(planned_instruction.comment, sizeof(planned_instruction.comment),
           platform_comment);
+        if(planned_instruction.address_frame_active) {
+          const M68kMemoryRegionIR *owner=&policy->memory_regions[planned_instruction.address_frame_region_index_plus_one-1];
+          char frame_note[192];snprintf(frame_note,sizeof(frame_note),
+              "restored-only address frame a%u; original abs.W store; contract %s",owner->address_frame_register,
+              owner->address_frame_contract_sha256);
+          (void)append_comment_part_local(planned_instruction.comment,sizeof(planned_instruction.comment),frame_note);
+        }
         if (m68k_diag_has_errors(&diagnostics) || rendered.text[0] == '\0' ||
             plan_rendered_instruction_symbol_accesses(preview, lookup, section->section_index, candidate,
               source_analysis, &render_instruction, rendered.rendered_operand_symbol_mask,
@@ -11785,6 +11803,15 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     }
     if (plan_rendered_instruction_expressions(out_preview, lookup, decode, policy, accepted_start,
         accepted_bytes, source_analysis) != 0) goto cleanup;
+    if(policy) for(size_t ri=0;ri<policy->memory_region_count;ri++)
+      for(size_t si=0;si<policy->memory_regions[ri].address_frame_site_count;si++) {
+        const M68kAddressFrameSiteIR *site=&policy->memory_regions[ri].address_frame_sites[si];
+        const M68kRenderPlannedInstruction *instruction=m68k_render_plan_find_instruction(
+            &out_preview->asm_source_plan,site->section_index,site->source_offset);
+        if(!instruction || instruction->address_frame_region_index_plus_one!=ri+1) {
+          out_preview->memory_layout.reason="address_frame_site_not_an_admitted_instruction";goto cleanup;
+        }
+      }
     if(out_preview->memory_layout_enabled) {
       const char *width_reason=m68k_memory_layout_validate_plan(&out_preview->asm_source_plan,
           policy,&out_preview->memory_layout);

@@ -5,6 +5,26 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
+### Explicit address-frame implementation; target adoption pending
+
+[Four-site review and scoped timing evidence](../../runtime/observations/pandora-passage-address-frame-contract.json)
+now support a conditional A6-relative candidate covering both original priest
+callback paths. Native region annotations bind the full input, each original
+instruction and the review contract. Moved owners render an explicit same-size
+IR transformation; original owners retain their absolute-W instruction. Used
+cell/base symbols and expected symbol-access checks remain intact. Frozen reuse
+requests a new plan when activation changes; runtime plans expose opcode and
+displacement guards. Numeric/scalar, stale, unaccepted and unsupported forms
+refuse. The regression suite passes161 cases plus3 added negatives, without skips.
+
+Independent C/vasm/Musashi checks match eight bytes,24cycles and scoped state
+semantics for all four sites across four modeled app bases and32CCRs. The
+isolated Chip-bus pair matches recorded slot phases and9782cellWORDwrites;
+only expected code fetch values differ. The profile is marked partial, so no
+full-frame/all-contention or natural gameplay timing claim is made. Full target
+adoption, normal-input passage coverage and CPU allocator-selected gameplay are
+still pending; these diagnostics do not substitute for them.
+
 ### Priest-passage reference correction and CPU encoding boundary
 
 [Correction and allocation diagnostic](../../runtime/observations/pandora-passage-relocation-boundary.json)

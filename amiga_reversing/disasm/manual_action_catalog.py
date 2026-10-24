@@ -6829,6 +6829,16 @@ def _target_memory_region_action(update: bool = False) -> dict[str, object]:
             "dma_access": {"type": "string", "enum": ["none", "chip"]},
             "region_kind": {"type": "string", "enum": ["storage", "image", "workspace", "display"]},
             "parent_region_id": {"type": "string"},
+            "address_frame": {"type": "object", "required": ["schema_version", "kind", "register", "contract_sha256", "input_sha256", "sites"],
+                "properties": {"schema_version": {"type": "integer", "enum": [1]},
+                    "kind": {"type": "string", "enum": ["same_size_move_long_immediate_store"]},
+                    "register": {"type": "string", "enum": [f"a{i}" for i in range(7)]},
+                    "contract_sha256": {"type": "string"},
+                    "input_sha256": {"type": "string"},
+                    "sites": {"type": "array", "maxItems": 8, "items": {"type": "object",
+                        "required": ["section_index", "source_offset", "operand_index", "expected_hex"],
+                        "properties": {"section_index": {"type": "integer"}, "source_offset": {"type": "integer"},
+                            "operand_index": {"type": "integer"}, "expected_hex": {"type": "string"}}}}}},
             "loader_seed": {"type": "object", "required": ["source_offset", "region_offset", "size"],
                 "properties": {key: {"type": "integer"} for key in ("source_offset", "region_offset", "size")}}}})
 

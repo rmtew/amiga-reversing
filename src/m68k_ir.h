@@ -796,6 +796,12 @@ typedef struct M68kAnalysisAbstractRegion {
  * Persistent CPU storage is the deliberately narrow first relocation contract;
  * phase overlays and DMA lifetimes remain explicit unsupported obligations. */
 #define M68K_ANALYSIS_MEMORY_REGION_LIMIT 16U
+#define M68K_ADDRESS_FRAME_SITE_LIMIT 8U
+typedef struct M68kAddressFrameSiteIR {
+  uint32_t section_index,source_offset;
+  uint8_t operand_index;
+  uint8_t expected_bytes[8];
+} M68kAddressFrameSiteIR;
 typedef struct M68kMemoryRegionIR {
   char region_id[96];
   char name[64];
@@ -813,6 +819,13 @@ typedef struct M68kMemoryRegionIR {
    * Placement changes preserve this bounded seed before entering game code. */
   uint8_t has_loader_seed;
   uint32_t loader_seed_source_offset, loader_seed_region_offset, loader_seed_size;
+  /* Explicit reviewed same-size MOVE.L immediate abs.W -> d16(An) sites.
+   * The review supplies the register-entry contract; native encoding checks
+   * never infer that contract from numeric address coincidence. */
+  uint8_t address_frame_register,address_frame_site_count;
+  char address_frame_contract_sha256[65];
+  char address_frame_input_sha256[65];
+  M68kAddressFrameSiteIR address_frame_sites[M68K_ADDRESS_FRAME_SITE_LIMIT];
 } M68kMemoryRegionIR;
 
 #define M68K_MEMORY_LAYOUT_LIMIT 8U

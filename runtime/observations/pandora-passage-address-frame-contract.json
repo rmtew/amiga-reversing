@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "status": "reviewed_conditional_A6_frame_and_scoped_instruction_timing_target_adoption_pending",
+  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "owner": "pandora_cpu_workspace",
+  "original_base": 14844,
+  "base_register": "a6",
+  "cell_original": 25792,
+  "displacement": 10948,
+  "sites": [
+    {
+      "section_index": 0,
+      "source_offset": 30916,
+      "operand_index": 1,
+      "expected_hex": "21fc0001e92864c0"
+    },
+    {
+      "section_index": 0,
+      "source_offset": 31218,
+      "operand_index": 1,
+      "expected_hex": "21fc00024c2864c0"
+    },
+    {
+      "section_index": 0,
+      "source_offset": 40760,
+      "operand_index": 1,
+      "expected_hex": "21fc00024c2864c0"
+    },
+    {
+      "section_index": 0,
+      "source_offset": 307406,
+      "operand_index": 1,
+      "expected_hex": "21fc0001e92864c0"
+    }
+  ],
+  "caller_contract": {
+    "combat_callback_source": 31232,
+    "ranged_callback_source": 37876,
+    "original_priest_field_source": 301882,
+    "precondition": "At each admitted store A6 is the current app-owner base. Both original completion dispatches are covered; not only combat.",
+    "proof": {
+      "status": "conditional_original_paths_APP_invariant",
+      "points": {
+        "0x78c4": 1,
+        "0x79f2": 1,
+        "0x9f38": 1,
+        "0x7a00": 1,
+        "0x93f4": 1,
+        "0x4b0ce": 1
+      },
+      "states": 6191,
+      "normal_returns": 218,
+      "audio_scope": 400,
+      "save_pairs": {
+        "2314": 2276,
+        "2338": 2276,
+        "2362": 2276,
+        "2376": 2276,
+        "2518": 2508,
+        "4072": 4062,
+        "4148": 4138,
+        "38856": 38846,
+        "316224": 316214,
+        "316256": 316244,
+        "316280": 316270,
+        "348920": 348902,
+        "348996": 348978,
+        "349022": 349010
+      },
+      "excluded_relative_command": "0x11f2",
+      "unknown_BLIT_return": "0x932",
+      "assumptions": [
+        "Normal call returns and intact matched stack frames; no hostile stack mutation.",
+        "Only reviewed original stored callback/command targets; no arbitrary or replacement entry.",
+        "Original IRQ entry saves caller A6 and establishes its own APP frame; no reentry that overwrites a live saved-frame slot."
+      ],
+      "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+      "auditor_sha256": "10fa12637c3dcfc4d7cdfef3220d175002cb42f37d8fd05b1848cad474efa243",
+      "facts_sha256": "4461e297a7cef19338c28b2a76406a33dd975ce9d76e1adc1b169adf494aa6ac",
+      "edges_sha256": "790b66f21e5f83e9ff100a8dc3c9af5a9f8a5452551e1ecaa6c539c404a27cd0"
+    },
+    "method": [
+      "Original foreground root48C establishes APP; IRQ saves incoming A6 at8E4 and establishes APP at8E8.",
+      "All18 accepted-code A6 writers and14 matched save/restore pairs are checked; ordinary normal-return states retain APP.",
+      "Only the two saved audio calls9D0/FE2 enter the400-instruction HW-A6 scope. That scope has no non-return path to the four stores.",
+      "Both original completion field callers7A00/93F4 enter4B0CE with APP. Deliberate clobber before ranged dispatch poisons the result.",
+      "Unrepresented relative-command11F2 is an explicit analysis boundary, not an assumed preserving call; unknown BLIT callback932 return is modeled clobbering."
+    ],
+    "limitations": [
+      "Normal-return, matched-stack and reviewed original-target assumptions are necessary; no arbitrary entry, stack corruption, mutated callback or synthesized command proof.",
+      "Excluding unrepresented opcode22 is scoped to the bounded stored corpus; no proof that computed/replacement commands can never use it.",
+      "The unknown BLIT target is not established as absent; original known-target contract does not certify future installers."
+    ]
+  },
+  "transformation": {
+    "kind": "same_size_move_long_immediate_store",
+    "activation": "Owner placement differs from its original address; original export stays abs.W.",
+    "effect": "Replace only the reviewed absolute-W destination with d16(A6), displacement=cell-original_owner. Retain the LONG immediate, MOVE CCR semantics, register identities and eight-byte extent.",
+    "rendering": "fixed_priest_passage_tile_ptr-cpu_workspace_base(a6)",
+    "implementation": "Native IR and generated Motorola-derived form selection/encoder. No numeric scanning, rendered-text replacement, branch relaxation or target opcode fix."
+  },
+  "verification": {
+    "semantic_cases": 4,
+    "per_case_app_bases": [
+      14844,
+      24704,
+      28800,
+      65536
+    ],
+    "per_case_CCR_inputs": 32,
+    "ordered_effects": "Independent C/vasm bytes; Musashi24cycles per form, unchanged D/A registers and LONG-only destination, X retained,N/Z from source,V/C clear.",
+    "test_files": [
+      "tests/test_pandora_passage_address_frame.py",
+      "tests/test_address_frame_layout.py"
+    ],
+    "regression_suite_passed": 161,
+    "additional_negative_cases_passed": 3,
+    "skips": 0,
+    "chip_bus_comparison": {
+      "schema": "passage-address-form-chip-bus-comparison/v1",
+      "status": "observed_bus_phases_equal_expected_code_fetch_differences_only",
+      "scanned_slots": 71051,
+      "first_CPU_slot": 11,
+      "last_CPU_slot": 71048,
+      "counts": {
+        "identical_data_slots": 61267,
+        "CPU_transfers": 33014,
+        "cell_WORD_writes": 9782
+      },
+      "expected_changed_fetches": {
+        "0x0": 1223,
+        "0x6": 1223,
+        "0x8": 1223,
+        "0xe": 1223,
+        "0x10": 1223,
+        "0x16": 1223,
+        "0x18": 1223,
+        "0x1e": 1223
+      },
+      "start": {
+        "cck": 35525509,
+        "detail": "cck 35525500",
+        "frame": 500,
+        "hpos": 9,
+        "pc": 5628,
+        "reason": "target",
+        "retired_instructions": 4815977,
+        "seconds": 10.015946059863627,
+        "vpos": 0
+      },
+      "profile_frame": 501,
+      "profile_partial": true,
+      "samples_dropped": [
+        0,
+        0
+      ],
+      "raw_sha256": [
+        "5701f607e4fdf1ac04a3b6fd8c8d968f74ab6113b30f839844566dc0cd1bff11",
+        "c2b0411fd6e341336e22a746e3115c6607f04fcc3efd057b4101ef673d01a7a9"
+      ],
+      "payload_sha256": [
+        "d92c339bd81d06849a416d908d435db778704eeffd1512b5197a2cfca3eeee5f",
+        "52bd817d355743cfd5ade2c518f04e090a09e3fedae2268f72ecc1451dc66742"
+      ],
+      "limits": [
+        "Isolated same-effective-address Chip-RAM repeated stores, not natural Pandora execution or all DMA contention states.",
+        "Copperline marks this profile partial; only recorded slots are compared. No assertion about pre-capture slots.",
+        "The ordinary range projection truncates at4096 matches; this comparator checks the complete bounded sidecar directly, not that truncated list.",
+        "No timing fitting, padding or shifted comparison. Only actual opcode/displacement fetch values differ as verified against each diagnostic binary."
+      ]
+    },
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f"
+  },
+  "remaining": [
+    "Natural normal-input path through all four stores is not yet qualified.",
+    "Full target original/restored export and actual CPU allocator admission are pending adoption; fixture success is not target gameplay.",
+    "No successful OS return, universal alias closure or original-to-image HAND-cycle equality is claimed."
+  ]
+}

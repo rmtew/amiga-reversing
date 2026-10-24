@@ -220,6 +220,23 @@ int platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc(
           "\"runtime_address\":%u,\"staging_address\":%u,\"phase\":\"before_payload_entry\"}",
           r->loader_seed_source_offset,r->loader_seed_region_offset,r->loader_seed_size,
           resolved.addresses[i]+r->loader_seed_region_offset,r->runtime_address+r->loader_seed_region_offset)) goto failed;
+      if(r->address_frame_site_count) {
+        if(json_builder_appendf(&b,",\"address_frame\":{\"kind\":\"same_size_move_long_immediate_store\","
+            "\"register\":\"a%u\",\"active\":%s,\"contract_sha256\":",r->address_frame_register,
+            resolved.addresses[i]!=r->runtime_address ? "true" : "false") ||
+            json_builder_append_json_string(&b,r->address_frame_contract_sha256) ||
+            json_builder_append(&b,",\"input_sha256\":") || json_builder_append_json_string(&b,r->address_frame_input_sha256) ||
+            json_builder_append(&b,",\"sites\":[")) goto failed;
+        for(size_t si=0;si<r->address_frame_site_count;si++) {
+          const M68kAddressFrameSiteIR *s=&r->address_frame_sites[si];char hex[17];
+          for(size_t bi=0;bi<8;bi++) snprintf(hex+bi*2,3,"%02x",s->expected_bytes[bi]);
+          if((si && json_builder_append(&b,",")) || json_builder_appendf(&b,
+              "{\"section_index\":%u,\"source_offset\":%u,\"operand_index\":%u,\"expected_hex\":",
+              s->section_index,s->source_offset,s->operand_index) || json_builder_append_json_string(&b,hex) ||
+              json_builder_append(&b,"}")) goto failed;
+        }
+        if(json_builder_append(&b,"]}")) goto failed;
+      }
       if(json_builder_append(&b,"}")) goto failed;
     }
     if(json_builder_append(&b,"],\"bootstrap\":")) goto failed;

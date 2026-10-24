@@ -97,6 +97,7 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
   MRAllocationRange *ranges=NULL;size_t range_count=0,range_capacity=0;
   M68kResolvedMemoryLayout initial,resolved;
   MRAllocationFixup sites[32];int cpu_scope=0;uint32_t maximum_base=0xffffffU;
+  const M68kRenderPlannedInstruction *frame_guards[M68K_ADDRESS_FRAME_SITE_LIMIT];size_t frame_guard_count=0;
   const M68kRenderPlannedInstruction *refusal_instruction=NULL;size_t refusal_operand=0;
   const M68kMemoryRegionIR *r=NULL;const M68kBootstrapContractIR *boot=NULL;
   if(!a || !region_id || !layout_id || !out_text) return -1;
@@ -144,6 +145,18 @@ int platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc(
       if(m && m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS) width=1;
       if(!mr_overlaps(address,width ? width : 1,r->runtime_address,r->size)) continue;
       if(!kind) continue;
+      if(cpu_scope && kind==1 && ins->address_frame_active &&
+          ins->address_frame_region_index_plus_one==(size_t)ri+1 && j==ins->address_frame_operand_index) {
+        const M68kOperandIR *operand=&ins->render_instruction.operands[j];
+        if(frame_guard_count>=M68K_ADDRESS_FRAME_SITE_LIMIT ||
+            m68k_instruction_operand_decoded_ea_shape(operand)!=M68K_SIM_EA_SHAPE_DISPLACEMENT ||
+            operand->value.ea_reg!=r->address_frame_register ||
+            operand->value.value!=address-r->runtime_address ||
+            ins->address_frame_displacement!=address-r->runtime_address) {
+          reason="address_frame_allocation_guard_refused";refusal_instruction=ins;refusal_operand=j;goto result;
+        }
+        frame_guards[frame_guard_count++]=ins;continue;
+      }
       if(!cpu_scope) {reason="non_data_pointer_reference_unsupported";goto result;}
       if(kind!=1 || !m || m->flow_kind!=M68K_SIM_FLOW_SEQUENTIAL ||
           (m->operand_access_kinds[j]!=M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
@@ -277,7 +290,26 @@ result:
           f->instruction_offset,f->operand_index,f->opcode) || json_builder_append_json_string(&b,f->symbol))) goto failed;
       if(json_builder_append(&b,"}")) goto failed;
     }
-    if(json_builder_append(&b,"],\"protected_ranges\":[")) goto failed;
+    if(json_builder_append(&b,"]")) goto failed;
+    if(cpu_scope && frame_guard_count) {
+      if(json_builder_append(&b,",\"address_frame_contract_sha256\":") ||
+          json_builder_append_json_string(&b,r->address_frame_contract_sha256) ||
+          json_builder_append(&b,",\"address_frame_guards\":[")) goto failed;
+      for(size_t gi=0;gi<frame_guard_count;gi++) {
+        const M68kRenderPlannedInstruction *ins=frame_guards[gi];InstructionSpec spec;unsigned char bytes[32];
+        m68k_instruction_ir_to_spec(&ins->render_instruction,&spec);
+        size_t offset=m68k_asm_operand_relative_base_offset(spec.asm_form_index,spec.operands,
+            spec.operand_count,spec.size_suffix,ins->address_frame_operand_index,0);
+        if(m68k_instruction_spec_assemble_bytes(&spec,bytes,sizeof(bytes))!=8 || offset+2!=8) goto failed;
+        if((gi && json_builder_append(&b,",")) || json_builder_appendf(&b,
+            "{\"instruction_source_offset\":%u,\"opcode\":%u,\"displacement_source_offset\":%u,"
+            "\"displacement\":%u,\"base_register\":%u,\"instruction_size\":8}",ins->source_offset,
+            m68k_read_u16be(bytes),ins->source_offset+(uint32_t)offset,
+            ins->address_frame_displacement,r->address_frame_register)) goto failed;
+      }
+      if(json_builder_append(&b,"]")) goto failed;
+    }
+    if(json_builder_append(&b,",\"protected_ranges\":[")) goto failed;
     for(size_t pi=0;pi<range_count;pi++)
       if((pi && json_builder_append(&b,",")) || json_builder_appendf(&b,
           "{\"address\":%u,\"size\":%u}",ranges[pi].start,ranges[pi].size)) goto failed;

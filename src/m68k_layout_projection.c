@@ -21,7 +21,7 @@ const char *m68k_memory_layout_validate_plan(const M68kRenderPlan *plan,
       const M68kRenderPlannedSymbolAccess *s=&ins->symbol_accesses[si];
       if(s->comment_only || s->has_target || s->operand_index>=ins->instruction.operand_count ||
           s->access_kind!=M68K_RENDERED_SYMBOL_ACCESS_EQUATE) continue;
-      const M68kOperandIR *operand=&ins->instruction.operands[s->operand_index];
+      const M68kOperandIR *operand=&ins->render_instruction.operands[s->operand_index];
       if(m68k_instruction_operand_decoded_ea_shape(operand)!=M68K_SIM_EA_SHAPE_ABSOLUTE_WORD) continue;
       uint32_t address=operand->value.value,placed=0;char expression[128];int typed=0;
       for(size_t qi=0;qi<policy->target_equate_count;qi++) {
@@ -61,6 +61,12 @@ int m68k_layout_projection_build(M68kLayoutProjection *out,const M68kRenderPlan 
     return stop(out,-1,out->resolved.reason ? out->resolved.reason : "layout_resolution_failed");
   if(m68k_memory_layout_resolve(policy,baseline,&before))
     return stop(out,-1,"invalid_frozen_layout");
+  for(size_t i=0;i<policy->memory_region_count;i++) {
+    const M68kMemoryRegionIR *r=&policy->memory_regions[i];
+    if(r->address_frame_site_count && ((before.addresses[i]!=r->runtime_address)!=
+        (out->resolved.addresses[i]!=r->runtime_address)))
+      return stop(out,1,"address_frame_activation_requires_new_plan");
+  }
   const char *width_reason=m68k_memory_layout_validate_plan(base,policy,&out->resolved);
   if(width_reason) return stop(out,-1,width_reason);
   if(!baseline->bootstrap_contract_id[0] || baseline->chip_bytes!=selected->chip_bytes ||

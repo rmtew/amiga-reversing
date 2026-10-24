@@ -17,7 +17,7 @@ def validate_region(region: dict) -> dict:
         "lifetime",
         "dma_access",
     }
-    optional = {"region_kind", "parent_region_id", "loader_seed"}
+    optional = {"region_kind", "parent_region_id", "loader_seed", "address_frame"}
     if not fields <= set(region) or set(region) - fields - optional:
         raise ValueError(
             "memory_region requires exactly the supported definition fields"
@@ -69,6 +69,31 @@ def validate_region(region: dict) -> dict:
                 or seed["region_offset"] + seed["size"] > size):
             raise ValueError("memory_region loader_seed requires a bounded original-file byte interval")
         result["loader_seed"] = dict(seed)
+    if "address_frame" in region:
+        frame = region["address_frame"]
+        keys = {"schema_version", "kind", "register", "contract_sha256", "input_sha256", "sites"}
+        if (region['source_domain']!='runtime_only' or region['dma_access']!='none'
+                or region.get('parent_region_id') or region.get('loader_seed')
+                or not isinstance(frame,dict) or set(frame)!=keys
+                or type(frame['schema_version']) is not int or frame['schema_version']!=1
+                or frame['kind']!='same_size_move_long_immediate_store'
+                or not isinstance(frame['register'],str) or not re.fullmatch(r'a[0-6]',frame['register'])
+                or not isinstance(frame['contract_sha256'],str)
+                or not re.fullmatch(r'[0-9a-f]{64}',frame['contract_sha256'])
+                or not isinstance(frame['input_sha256'],str) or not re.fullmatch(r'[0-9a-f]{64}',frame['input_sha256'])
+                or not isinstance(frame['sites'],list) or not 1<=len(frame['sites'])<=8):
+            raise ValueError('memory_region address_frame requires a reviewed bounded CPU owner contract')
+        seen=set()
+        for site in frame['sites']:
+            if (not isinstance(site,dict) or set(site)!={'section_index','source_offset','operand_index','expected_hex'}
+                    or any(type(site[k]) is not int for k in ('section_index','source_offset','operand_index'))
+                    or site['section_index']!=0 or not 0<=site['source_offset']<=0xfffff8
+                    or site['source_offset']%2 or site['operand_index']!=1
+                    or not isinstance(site['expected_hex'],str) or not re.fullmatch(r'[0-9a-f]{16}',site['expected_hex'])
+                    or site['source_offset'] in seen):
+                raise ValueError('memory_region address_frame requires unique identity-bound store sites')
+            seen.add(site['source_offset'])
+        result['address_frame']={**frame,'sites':[dict(s) for s in frame['sites']]}
     return result
 
 
