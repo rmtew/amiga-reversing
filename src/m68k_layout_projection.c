@@ -1,4 +1,6 @@
 #include "m68k_layout_projection.h"
+#include "m68k_instruction_spec.h"
+#include "m68k_simulator.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -9,6 +11,40 @@ void m68k_layout_projection_destroy(M68kLayoutProjection *p) {
 }
 static int stop(M68kLayoutProjection *p,int result,const char *reason) {
   p->reason=reason;return result;
+}
+const char *m68k_memory_layout_validate_plan(const M68kRenderPlan *plan,
+    const M68kAnalysisPolicy *policy,const M68kResolvedMemoryLayout *resolved) {
+  if(!plan || !policy || !resolved) return "layout_plan_required";
+  for(size_t i=0;i<plan->instruction_count;i++) {
+    const M68kRenderPlannedInstruction *ins=&plan->instructions[i];
+    for(size_t si=0;si<ins->symbol_access_count;si++) {
+      const M68kRenderPlannedSymbolAccess *s=&ins->symbol_accesses[si];
+      if(s->comment_only || s->has_target || s->operand_index>=ins->instruction.operand_count ||
+          s->access_kind!=M68K_RENDERED_SYMBOL_ACCESS_EQUATE) continue;
+      const M68kOperandIR *operand=&ins->instruction.operands[s->operand_index];
+      if(m68k_instruction_operand_decoded_ea_shape(operand)!=M68K_SIM_EA_SHAPE_ABSOLUTE_WORD) continue;
+      uint32_t address=operand->value.value,placed=0;char expression[128];int typed=0;
+      for(size_t qi=0;qi<policy->target_equate_count;qi++) {
+        const M68kAnalysisTargetEquate *q=&policy->target_equates[qi];
+        if(q->address_domain && !strcmp(q->name,s->symbol_name) && address>=(uint32_t)q->value &&
+            address-(uint32_t)q->value<(q->extent_bytes ? q->extent_bytes : 1U)) typed=1;
+      }
+      for(size_t ri=0;ri<policy->memory_region_count;ri++) {
+        const M68kMemoryRegionIR *r=&policy->memory_regions[ri];
+        if(!strcmp(r->name,s->symbol_name) && address>=r->runtime_address &&
+            address-r->runtime_address<r->size) typed=1;
+      }
+      if(!typed) continue;
+      int rc=m68k_memory_layout_reference(policy,resolved,address,1,expression,sizeof(expression),&placed);
+      if(rc<0) return "partial_or_ambiguous_runtime_reference";
+      /* The stored word is sign extended before the 68000's 24-bit bus
+       * address is selected. Retain untouched fixed/hardware encodings;
+       * moving RAM cannot merely truncate an unrepresentable address. */
+      uint32_t word_address=(uint32_t)(int32_t)(int16_t)(placed&0xffffU)&0xffffffU;
+      if(rc && placed!=address && word_address!=placed) return "absolute_word_layout_overflow";
+    }
+  }
+  return NULL;
 }
 int m68k_layout_projection_build(M68kLayoutProjection *out,const M68kRenderPlan *base,
     const M68kAnalysisPolicy *policy,const M68kMemoryLayoutIR *baseline,
@@ -25,6 +61,8 @@ int m68k_layout_projection_build(M68kLayoutProjection *out,const M68kRenderPlan 
     return stop(out,-1,out->resolved.reason ? out->resolved.reason : "layout_resolution_failed");
   if(m68k_memory_layout_resolve(policy,baseline,&before))
     return stop(out,-1,"invalid_frozen_layout");
+  const char *width_reason=m68k_memory_layout_validate_plan(base,policy,&out->resolved);
+  if(width_reason) return stop(out,-1,width_reason);
   if(!baseline->bootstrap_contract_id[0] || baseline->chip_bytes!=selected->chip_bytes ||
       strcmp(baseline->bootstrap_contract_id,selected->bootstrap_contract_id) ||
       baseline->bootstrap_forward_disjoint!=selected->bootstrap_forward_disjoint)

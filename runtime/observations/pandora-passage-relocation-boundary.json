@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "status": "canonical_reference_correction_original_exact_CPU_profile_refused_absolute_W_overflow",
+  "source_sites": [
+    "s0:000078C4:instruction",
+    "s0:000079F2:instruction",
+    "s0:00009F38:instruction",
+    "s0:0004B0CE:instruction"
+  ],
+  "canonical_changes": [
+    {
+      "name": "PRIEST_PASSAGE_OPEN_PIXELS",
+      "value": 125224,
+      "address_domain": "runtime",
+      "extent_bytes": 128,
+      "action_ids": [
+        "manual-81ad9651597942eb982f9abbd6fec673"
+      ]
+    },
+    {
+      "name": "PRIEST_PASSAGE_CLOSED_PIXELS",
+      "value": 150568,
+      "address_domain": "runtime",
+      "extent_bytes": 128,
+      "action_ids": [
+        "manual-fc3bfcfe565745ea8086085dd19817ce"
+      ]
+    },
+    {
+      "name": "fixed_priest_passage_tile_ptr",
+      "value": 25792,
+      "address_domain": "runtime",
+      "extent_bytes": 4,
+      "action_ids": [
+        "manual-a9cd267073b34937b15700d745fdd07b"
+      ]
+    }
+  ],
+  "width_contract": {
+    "original_app": 14844,
+    "grid_offset": 1540,
+    "cell_offset": 10948,
+    "template_app": 24704,
+    "template_cell": 35652,
+    "unaligned_W_base_ceiling": 21819,
+    "owner_alignment": 4,
+    "aligned_W_base_ceiling": 21816
+  },
+  "allocator_diagnostic": {
+    "status": "diagnostic_only_no_gameplay",
+    "owner": {
+      "alignment": 4,
+      "dma_access": "none",
+      "lifetime": "persistent",
+      "memory_class": "cpu_ram",
+      "name": "cpu_workspace_base",
+      "region_id": "pandora_cpu_workspace",
+      "region_kind": "workspace",
+      "runtime_address": 14844,
+      "size": 48051,
+      "source_domain": "runtime_only"
+    },
+    "subject": {
+      "subject_revision": "99abe25b5b0403c64ddcc04f99bb3048562044f2abf9c9b25f8de95ee127f111",
+      "revision": "f82bb8da6dac99e3a244a49b3699f548cfb54355521da1417bc4b4e30fce0124"
+    },
+    "results": [
+      {
+        "prior_scratch_bytes": 0,
+        "owner_base": 23016,
+        "scratch_base": 0,
+        "owner_free_completed": true,
+        "cell_if_moved": 33964,
+        "within_positive_W_reach": false,
+        "registers": {
+          "d0": 0,
+          "d1": 1040,
+          "d2": 1,
+          "d3": 0,
+          "d4": 0,
+          "d5": 0,
+          "d6": 4294967295,
+          "d7": 50,
+          "a0": 1024,
+          "a1": 23016,
+          "a2": 4294967295,
+          "a3": 16680686,
+          "a4": 5464,
+          "a5": 12588258,
+          "a6": 12583542,
+          "a7": 12588210,
+          "pc": 131172,
+          "sr": 16,
+          "sp": 12588210
+        },
+        "adf_sha256": "28dbeccbc37beb2d831b0c8aabee63ad23cff4fd22001d475c2613e68c344c95"
+      },
+      {
+        "prior_scratch_bytes": 64,
+        "owner_base": 23080,
+        "scratch_base": 23016,
+        "owner_free_completed": true,
+        "cell_if_moved": 34028,
+        "within_positive_W_reach": false,
+        "registers": {
+          "d0": 64,
+          "d1": 1040,
+          "d2": 1,
+          "d3": 0,
+          "d4": 0,
+          "d5": 64,
+          "d6": 4294967295,
+          "d7": 50,
+          "a0": 1024,
+          "a1": 23016,
+          "a2": 4294967295,
+          "a3": 16680686,
+          "a4": 5464,
+          "a5": 12588258,
+          "a6": 12583542,
+          "a7": 12588210,
+          "pc": 131172,
+          "sr": 16,
+          "sp": 12588210
+        },
+        "adf_sha256": "6f60f7209badf2c97d74f31ae56b463242026df930cb2af6f76ebdca55f58006"
+      }
+    ],
+    "source": "tools/amiga_allocmem_probe.s",
+    "source_sha256": "f9cadfa63f3b35a2231f848f069a9f62832ae85170c78dfa717f3e78be17e315",
+    "payload_sha256": "d847c3e415b023609534c7cc3e9bfde16791ede881e35b2c5ac1ff8ab77e0882",
+    "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+    "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+    "limits": [
+      "Only staged input and handoff backing leased; not the final combined runtime environment.",
+      "Returned owner is freed before completion; no target pointer is patched and no Pandora instruction is executed.",
+      "Two first-fit observations do not prove that every possible OS memory arrangement lacks a low base."
+    ],
+    "reproduction": "Assemble tools/amiga_allocmem_probe.s with PROBE_SIZE=48051. Use existing DirectPayloadContract at20000, marker7FFF8/HAND, D5=0 then64 on independent a500ecs_1m cold boots, reserving the canonical full staged input. Observe DONE and retained16-byte result at20100. This is the existing allocation diagnostic, not target gameplay."
+  },
+  "checks": {
+    "focused_tests": 38,
+    "layout_regression_tests": 108,
+    "skips": 0,
+    "original_C": {
+      "schema_version": 1,
+      "summary": {
+        "failures": 0,
+        "rendered_source_content_exact_only": 0,
+        "rendered_source_full_file_exact": 1,
+        "targets": 1,
+        "unsupported": 0
+      },
+      "targets": [
+        {
+          "diff_range_count": 0,
+          "failure_kinds": [],
+          "message": null,
+          "rendered_source_content_exact": true,
+          "rendered_source_full_file_exact": true,
+          "status": "exact",
+          "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+          "tool_error": null
+        }
+      ]
+    },
+    "original_vasm_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_vasm_bytes": 376832,
+    "tracked_assembly_unchanged": true
+  },
+  "qualification_revision": "Previous fixed6080 route/input/frame/PCM observations are retained. They do not close these four stale references; both roles can share the scalar-address bug. No repeat of unchanged gameplay in this batch.",
+  "next_boundary": {
+    "action": "CPU guest fixup application and allocator-selected gameplay",
+    "state": "blocked_by_unsupported_address_form_contract_not_permission",
+    "reason": "Observed bases place app+$2AC4 beyond positive absolute-W reach; the framework currently changes typed values, not general instruction addressing forms.",
+    "smallest_candidate": "Review an explicit same-size A6-relative address-frame lowering at the four sites: d16=$2AC4 fits, both source and replacement have one address extension WORD. Establish A6=the app owner in original caller/callback contexts and retain the original export. A runtime address equality alone is not register provenance.",
+    "evidence": "Nearby combat/reset app accesses are original-entry linked in docs/validation/pandora-app-usage-closure.json. The priest callback is an original record target under docs/validation/pandora-indirect-closeout.json. No final per-site lowering contract is asserted here.",
+    "excluded": "No absolute-L widening, source-offset/branch relaxation engine, injected gameplay, hidden opcode rewrite or all-layout reach claim."
+  },
+  "limits": [
+    "Two allocator observations do not prove all OS arrangements lack a lower legal base.",
+    "No CPU AllocMem gameplay or CPU guest descriptor/application has run.",
+    "Original-to-image eight-CCK HAND criterion remains unfulfilled.",
+    "No new pixel/PCM equivalence is claimed after changing canonical address domains.",
+    "The shared width guard covers reviewed runtime EQUs and canonical region symbols; it is not a universal source/control-flow relocation proof."
+  ],
+  "current_CPU_export_admission": {
+    "status": "refused",
+    "exception": "RuntimeError",
+    "message": "C backend DLL failed: facts_v2 memory layout source refused: absolute_word_layout_overflow",
+    "subject": {
+      "subject_revision": "4438f83f0dae81f9e39fc196401d4233d001134baa646e3d8f910ca500a6ec69",
+      "revision": "500a08c61c4f3a35bcd6d2f1b0537cdeff9555b470c6d077abc23bf19ff36226"
+    },
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "e30e217770e508e5595d6a4e926937eb8e9d52d041881823531b69bfed12d817"
+    },
+    "wall_seconds": 179.6018357119974
+  }
+}

@@ -4,6 +4,7 @@
 #include "m68k_bitset.h"
 #include "m68k_disassembler.h"
 #include "m68k_instruction_spec.h"
+#include "m68k_layout_projection.h"
 #include "m68k_ir.h"
 #include "m68k_ir_codec.h"
 #include "m68k_parse_util.h"
@@ -11784,6 +11785,11 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     }
     if (plan_rendered_instruction_expressions(out_preview, lookup, decode, policy, accepted_start,
         accepted_bytes, source_analysis) != 0) goto cleanup;
+    if(out_preview->memory_layout_enabled) {
+      const char *width_reason=m68k_memory_layout_validate_plan(&out_preview->asm_source_plan,
+          policy,&out_preview->memory_layout);
+      if(width_reason) {out_preview->memory_layout.reason=width_reason;goto cleanup;}
+    }
     if(out_preview->bootstrap_forward_disjoint) {
       const M68kRenderPlannedInstruction *comparison=m68k_render_plan_find_instruction(
         &out_preview->asm_source_plan,0,out_preview->bootstrap_contract->comparison_source_offset);

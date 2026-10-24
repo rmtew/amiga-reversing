@@ -5,6 +5,34 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
+### Priest-passage reference correction and CPU encoding boundary
+
+[Correction and allocation diagnostic](../../runtime/observations/pandora-passage-relocation-boundary.json)
+records three canonical address-domain corrections via the revision-checked API:
+cell `$64C0` (4 bytes), open pixels `$1E928` and closed pixels `$24C28` (128 bytes
+each). Original source stays unchanged and full C/vasm equality holds. The
+exporter and frozen projection now share an absolute-W reach guard; emitting the
+low word of an unrepresentable positive RAM address is refused, not a pass.
+38 focused and 108 adjacent layout regressions pass without skips. A fresh
+corrected real CPU export refuses with `absolute_word_layout_overflow` after
+179.6s; no broken alternate payload is admitted or runtime-qualified.
+
+The 48,051-byte owner probe returns `$59E8` / `$5A28` on independent cold boots
+with 0/64 prior scratch bytes. Both owners are freed; Pandora is never entered.
+Their cells would be `$84AC` / `$84EC`. Retaining absolute-W requires an app base
+no higher than `$553B` (at most `$5538` at the owner's alignment4), plus all
+ownership/collision constraints. These two observations do not rule out every
+possible low OS placement. The formerly qualified fixed `$6080` export has a
+known reference gap, not a new all-path pass: its scalar EQUs kept the cell and
+pixel pointers at old values. Existing captured outputs remain historical.
+
+CPU guest fixup execution is blocked on a legal address-form contract. A bounded
+candidate is an explicitly reviewed same-size A6-relative lowering for the four
+stores, if original caller/callback contexts establish the app base. That
+contract is not implemented or assumed here. No absolute-L widening, general
+branch relaxation or hidden opcode rewrite is introduced. Normal successful OS
+return and DMA-safe lifecycle cleanup remain open.
+
 ### CPU allocation projection: implementation tested, target refused
 
 [Native projection evidence](../../runtime/observations/pandora-CPU-fixup-projection.json)
@@ -18,8 +46,9 @@ rejects CPU scope; no CPU allocator-selected gameplay has run.
 The real target refuses at source `$78C4`, operand 1. Four known writers
 (`$78C4`, `$79F2`, `$9F38`, `$4B0CE`) use fixed priest-passage cell `$64C0`,
 app offset `$2AC4`. At app base `$6080` the actual cell is `$8B44`, beyond
-positive absolute-W reach. The slot and open/closed pixel EQUs (`$1E928`,
-`$24C28`) remain scalar in the existing alternate export. This is a concrete
+positive absolute-W reach. At that recorded head, the slot and open/closed pixel EQUs (`$1E928`,
+`$24C28`) were scalar in the alternate export; the correction above now binds
+their runtime domains. This is a concrete
 reference gap despite the passing route/output sample below: reset's old-cell
 write falls inside reused backing excluded by the guard; optional/warm-restart
 passage behaviour is not certified. No prior observation is relabelled as a pass

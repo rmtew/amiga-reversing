@@ -99,6 +99,9 @@ def test_priest_cell_offset_exposes_word_reach_instead_of_truncating(tmp_path,st
     m['manual_representations']=[dict(hunk=0,addr=8,end=16,
         element_kind='absolute_address',operand_index=1,style='symbol',
         symbol='PASSAGE_CELL',value=0x64c0,width_bytes=2)]
+    # Exercise native allocation admission separately. Fresh selected-layout
+    # source export now refuses the same overflow before producing assembly.
+    m['selected_memory_layout_id']=''
     a=build(tmp_path,m,data)
     try:
         result=a.runtime_allocation_plan('cpu','diagnostic')

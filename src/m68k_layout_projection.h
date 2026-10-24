@@ -21,4 +21,8 @@ int m68k_layout_projection_build(M68kLayoutProjection *,const M68kRenderPlan *,
     const M68kAnalysisPolicy *,const M68kMemoryLayoutIR *baseline,
     const M68kMemoryLayoutIR *selected,const M68kSourceAnalysisIR *);
 void m68k_layout_projection_destroy(M68kLayoutProjection *);
+/* Width constraints belong to layout admission, not assembler truncation.
+ * Shared by fresh planning and frozen-plan projection. */
+const char *m68k_memory_layout_validate_plan(const M68kRenderPlan *,
+    const M68kAnalysisPolicy *,const M68kResolvedMemoryLayout *);
 #endif

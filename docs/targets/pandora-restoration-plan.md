@@ -39,8 +39,10 @@ native generated operand fixups, then successful DMA-safe cleanup and OS return.
 Other low scratch and hardware/vector ownership remain open.
 The [CPU fixup projection](../../runtime/observations/pandora-CPU-fixup-projection.json)
 now has 20 passing focused tests but refuses the real target at `$78C4`. Four
-fixed priest-passage cell writes and their scalar pixel-address EQUs remain a
-known alternate-layout gap; the existing route/output pass does not close it.
+fixed priest-passage cell writes exposed a known alternate-layout gap; the
+existing route/output pass does not close it. Their canonical runtime domains
+are now corrected and an unrepresentable absolute-W placement refuses; see the
+[encoding boundary](../../runtime/observations/pandora-passage-relocation-boundary.json).
 At app `$6080`, the actual cell `$8B44` also exceeds positive absolute-W reach.
 Resolve the address/encoding contract before admitting CPU AllocMem gameplay.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
