@@ -1,0 +1,92 @@
+{
+  "schema": "pandora-allocated-image-first-failure/v1",
+  "status": "observed_image_execution_then_address_error_not_completion",
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "daa110b8a25829e9020bea18d990560583980be1805d91a7534a518475bf89b4"
+  },
+  "metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+  "HUNK_sha256": "9cff0c5717dc5aa4cb2429836436033ca41394fa0fed9eda76e9349c7d47177f",
+  "actual_owners": {
+    "pandora_prng_state": 6552,
+    "keyboard_state": 65904,
+    "pandora_ui_snapshot_body": 66032,
+    "pandora_title_stars": 68336,
+    "pandora_cpu_workspace": 69336,
+    "pandora_low_generated_masks": 117392,
+    "pandora_image": 523960
+  },
+  "observed_fixed_leases": [
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    }
+  ],
+  "observed_fixed_bytes": 442040,
+  "observed_game_lease_bytes": 852616,
+  "owned_CODE_bytes": 47144,
+  "owned_CODE_class": "Slow",
+  "global_OS_peak_bytes": null,
+  "staged_input_check": {
+    "bytes": 376832,
+    "fields": 2684,
+    "sha256": "60602a1cd6aca8397e3e6bbf66aca963571cc3dd81e3396d890040b06b1ea88a",
+    "whole_input_verified": true
+  },
+  "first_initializer": {
+    "cck": 93906401,
+    "detail": "Breakpoint at $089DDE",
+    "frame": 1321,
+    "hpos": 133,
+    "pc": 564702,
+    "reason": "breakpoint",
+    "retired_instructions": 12834811,
+    "seconds": 26.475664207708434,
+    "vpos": 211
+  },
+  "first_initializer_preserved_registers_SR_stack": true,
+  "fault": {
+    "vector": 3,
+    "frame": 2704,
+    "handler_PC": 16517146,
+    "fault_PC": 533448,
+    "source_instruction": 9488,
+    "instruction": "MOVE.L position_state_ptr(A1),D0",
+    "A1": 34738947,
+    "cpu_workspace_A6": 69336,
+    "raw_private_capture_sha256": "77d90e4333e1baaa6cc7bc174c28224c305267089e6ee8a168aa0de7c86f5cf4"
+  },
+  "diagnosed_producer": {
+    "source_offset": 41124,
+    "field_source_offset": 41126,
+    "symbol": "active_world_object_ptr_table",
+    "canonical_runtime_equate": 77978,
+    "unbound_staging_value": 536730,
+    "expected_actual_value": 536402,
+    "reason": "Existing typed runtime-symbol operand has no frozen expression source endpoint; image projection omitted it."
+  },
+  "repair": {
+    "status": "native_fixtures_pass_live_completion_pending",
+    "mechanism": "Consume explicit frozen runtime-symbol operand evidence, verify canonical domain/value, then reuse generated contiguous LONG field/re-encode guard. No raw-address scan or rendered text patch.",
+    "negative": "A numeric immediate with the same address-looking value is not admitted.",
+    "tests_passed": 128,
+    "tests_skipped": 0
+  },
+  "followup": "Fresh native admission and uninterrupted existing 576-phase normal-input route with private PCM capture are in progress.",
+  "limits": [
+    "This failed run does not qualify gameplay completion, output equality or cleanup.",
+    "Observed pre-entry ownership is not the global OS peak; 852616 game-lease bytes still include retained prefix duplication.",
+    "The initial app-slot producer value is established from the verified payload/source; 0x83162 was a later walker cursor, not an independently captured slot value.",
+    "Exception capture reuses only exactly matching prior actual owners, canonical metadata and backend identity; it performs no guest-state writes or artificial routine calls.",
+    "Input, high masks and display still have fixed claims. Eight-CCK and all-path limits remain open."
+  ]
+}

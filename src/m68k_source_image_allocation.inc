@@ -151,6 +151,37 @@ static const char *mr_allocation_image_fixups_checked(const PlatformFileListingA
       .staged_value=staged+target,.width=4,.symbol=e->target_symbol,.has_source_target=1,.target_offset=target,
       .pointer_domain_plus_one=(uint8_t)(e->pointer_address_domain+1)};
   }
+  /* Legacy accepted runtime-symbol operands can render an image-relative
+   * EQU without a source endpoint in the frozen expression. Admit only that
+   * explicit typed symbol, then verify the same generated encoding as source
+   * labels. Numeric immediates never enter this path. */
+  for(size_t i=0;i<a->source_plan.instruction_count;i++) {
+    const M68kRenderPlannedInstruction *ins=&a->source_plan.instructions[i];
+    for(size_t j=0;j<ins->instruction.operand_count;j++) {
+      uint32_t address=0;int kind=mr_operand_address(a,ins,j,&address);
+      if((kind!=1 && kind!=2) || address<r->runtime_address || address-r->runtime_address>=r->size) continue;
+      const char *symbol=mr_allocation_operand_symbol(a,ins,j,address);if(!symbol) continue;
+      int existing=0;
+      for(size_t f=0;f<*count;f++) if(sites[f].instruction_field && sites[f].instruction_offset==ins->source_offset &&
+          sites[f].operand_index==j) {
+        if(sites[f].region_offset!=address-r->runtime_address) return "conflicting_image_operand_identity";
+        existing=1;break;
+      }
+      if(existing) continue;
+      if(*count>=capacity) return "fixup_capacity_exceeded";
+      M68kRenderPlannedExpression e={.source_section_index=ins->source_section_index,
+        .source_offset=ins->source_offset,.kind=M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND,
+        .outcome=M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC,.operand_index=(uint32_t)j,
+        .has_target=1,.target_section_index=0,.target_offset=address-r->runtime_address};
+      *refused=m68k_render_plan_find_expression(&a->source_plan,ins->source_section_index,ins->source_offset,
+          (uint32_t)j,M68K_RENDER_PLANNED_EXPRESSION_INSTRUCTION_OPERAND);
+      int emitted=0;const char *reason=mr_image_instruction_fixup(a,r,boot,&e,staged+e.target_offset,&sites[*count],&emitted);
+      if(reason) return reason;
+      if(!emitted) return "typed_runtime_image_operand_not_encoded";
+      sites[*count].symbol=symbol; /* Native storage, not the local expression. */
+      sites[*count].runtime_alias=1;(*count)++;
+    }
+  }
   *refused=NULL;return NULL;
 }
 

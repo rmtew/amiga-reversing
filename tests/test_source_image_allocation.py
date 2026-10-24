@@ -4,7 +4,7 @@ import pytest
 from tests.test_bootstrap_layouts import build,metadata
 
 
-def fixture(tmp_path, *, pointer=0x10000, domain=None, extra=None, child=None, destination=0x10016):
+def fixture(tmp_path, *, pointer=0x10000, domain=None, extra=None, child=None, destination=0x10016, runtime_immediate=False, numeric_immediate=False):
     # NOP/CMPA retained bootstrap; SUBI.L prefix; MOVE.L immediate and
     # destination extension; RTS; one typed pointer and one equal scalar.
     data=bytes.fromhex('4e71b3ca04800001001623fc00010016000100164e75')
@@ -22,6 +22,12 @@ def fixture(tmp_path, *, pointer=0x10000, domain=None, extra=None, child=None, d
     m['manual_representations']=[dict(hunk=0,addr=4,end=10,style='symbol',operand_index=0,
         symbol='image_pointer',source_symbol=dict(section_index=0,source_offset=22,
             runtime_view=1,encoded_value=0x10016))]
+    if runtime_immediate:
+        m['target_equates']=[dict(name='image_slot_source',value=0x10016,extent_bytes=1,
+            group='immediate_runtime_reference_points',address_domain='runtime')]
+        m['manual_representations']=[dict(hunk=0,addr=4,end=10,style='symbol',operand_index=0,
+            element_kind='immediate_interpreted_ref',symbol='image_slot_source')]
+    if numeric_immediate:m['manual_representations']=[]
     if extra:m.update(extra)
     return build(tmp_path,m,data)
 
@@ -111,3 +117,27 @@ def test_image_child_retains_exact_inherited_source_mapping(tmp_path,mapped):
             assert next(f for f in fields if f['region_id']=='field')['runtime_address']==0x90016
     finally:a.close()
 
+
+
+def test_typed_runtime_instruction_alias_is_not_lost_when_expression_has_no_target(tmp_path):
+    a=fixture(tmp_path,runtime_immediate=True)
+    try:
+        es=a.query_payload('expressions',limit=100)['items']
+        e=next(e for e in es if e['source_offset']==4 and e['operand_index']==0)
+        assert not e['has_target']
+        p=a.runtime_allocation_plan('image','diagnostic')
+        assert p['status']=='bounded_allocation_candidate',p
+        f=next(f for f in p['fixups'] if f['source_offset']==6)
+        assert f['region_offset']==22 and f['staged_value']==0x80016
+        assert f['symbol']=='image_slot_source' and f['source_identity_origin']=='typed_runtime_alias'
+    finally:a.close()
+
+
+
+def test_numeric_immediate_coincidence_is_not_promoted_to_image_alias(tmp_path):
+    a=fixture(tmp_path,numeric_immediate=True)
+    try:
+        p=a.runtime_allocation_plan('image','diagnostic')
+        assert p['status']=='bounded_allocation_candidate',p
+        assert 6 not in {f['source_offset'] for f in p['fixups']}
+    finally:a.close()

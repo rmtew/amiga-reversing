@@ -3,7 +3,7 @@
 typedef struct MRAllocationFixup {
   uint32_t source_offset,region_offset,staged_value,instruction_offset;
   uint16_t opcode;
-  uint8_t width,operand_index,instruction_field,has_source_target,pointer_domain_plus_one;
+  uint8_t width,operand_index,instruction_field,has_source_target,pointer_domain_plus_one,runtime_alias;
   uint32_t target_offset;
   const char *symbol;
 } MRAllocationFixup;
@@ -369,6 +369,7 @@ result:
           f->has_source_target ? "mapped_source":"runtime_only",f->region_offset,f->staged_value)) goto failed;
       if(f->has_source_target && json_builder_appendf(&b,
           ",\"target_section_index\":0,\"target_offset\":%u",f->target_offset)) goto failed;
+      if(f->runtime_alias && json_builder_append(&b,",\"source_identity_origin\":\"typed_runtime_alias\"")) goto failed;
       if(f->pointer_domain_plus_one) {
         static const char *domains[]={"legacy","mapped_source","runtime_only"};
         if(f->pointer_domain_plus_one>3 || json_builder_append(&b,",\"encoded_pointer_address_domain\":") ||

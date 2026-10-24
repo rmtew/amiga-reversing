@@ -1295,3 +1295,31 @@ unique. A corrected cold test is in progress. No live fixed-byte reduction,
 completion, output or cleanup pass is claimed from the implementation alone.
 Normal source-package adoption of the new mode follows that qualification;
 existing complete fixed-image source export remains available unchanged.
+
+
+#### A1 first real allocation and demonstrated missing alias
+
+[First-failure evidence](../../runtime/observations/pandora-allocated-image-first-failure.json)
+records a real Exec image return of `$7FEB8`, native atomic admission, all 376,832
+staged bytes verified and execution at the original initializer's moved address
+`$89DDE` with registers/SR/stack preserved. Pre-entry acquisition comprised seven
+AllocMem owners and three fixed claims: 442,040 fixed bytes and 852,616 total game
+lease bytes. The owned CODE HUNK adds 47,144 Slow bytes; global OS peak memory is
+unmeasured. Retained prefix duplication has not been removed.
+
+The cold test failed after the normal start input. A bounded replay caught the
+first address-error exception at moved PC `$823C8` (source `$2510`). Existing
+source producer `$A0A4` still wrote staging value `$8309A` for
+`active_world_object_ptr_table`; the returned image requires `$82F52`. The
+canonical runtime EQU is already explicit, but the frozen instruction expression
+has no source endpoint. Image admission had omitted that typed runtime-operand
+family. This is a demonstrated projection gap, not a guessed pointer or new
+semantic annotation.
+
+The correction consumes explicit native runtime-symbol operand evidence and
+reuses the generated field/re-encoding checks. Same-valued numeric immediates
+remain excluded. 128 focused checks pass without skips. Fresh admission and the
+existing uninterrupted completion route are now testing the repair, with PCM
+kept private for subsequent output comparison. The failed run supplies no
+completion, output-equivalence or cleanup pass. Its exception trace is retained
+privately; the published receipt contains addresses, identities and limits.
