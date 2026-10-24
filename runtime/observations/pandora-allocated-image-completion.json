@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "status": "actual_Exec_image_saved_Earth_escape_and_natural_DOS_exit_pass_output_comparison_pending",
+  "canonical_metadata_sha256": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "647bbdf848cf9a76f2f716b8d0fd6fc0fbc8b77f6496e626f2c67261bfafd62e"
+  },
+  "native_contract_sha256": "6b25a610c463fb132d7f74c0d470ebb19e20d0d38f0063ab21257d96caed62d4",
+  "build": {
+    "status": "normal_HUNK_game_application_built_runtime_pending",
+    "owners": [
+      "pandora_prng_state",
+      "keyboard_state",
+      "pandora_ui_snapshot_body",
+      "pandora_title_stars",
+      "pandora_cpu_workspace",
+      "pandora_low_generated_masks",
+      "pandora_image"
+    ],
+    "contract_sha256": "7e3ddd1f00ae3fb7883014ce7e571bd27840c1c3b099bced09d3b784bdf57803",
+    "payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+    "source_sha256": "d05c30919ee8faa0d116b74ce08f4ca18877457b35f3f0b2719dbc972dedc713",
+    "HUNK_sha256": "6971a36879ed1e86bf67a2489125165c709b97121ae6bfd05ee876e0f34c41c9",
+    "loader_sources_sha256": {
+      "amiga_pandora_OS.s": "d05c30919ee8faa0d116b74ce08f4ca18877457b35f3f0b2719dbc972dedc713",
+      "amiga_pandora_OS_fields.i": "a4f17b238d0d4d5473aa084796918f152ad1581c24c796ee0b34fab438b0ac67",
+      "amiga_pandora_OS_audio.i": "f2576fc60fcce64a3a700875134ae1029f15b4fe1fddcdba614b964864fac20e",
+      "amiga_pandora_OS_takeover.i": "55138ebb6a08ebd1511b3dfda5d9ddde1c4a60845cd0f5a307894a5819637dfc"
+    },
+    "fixed_lease_intents": [
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "ADF_sha256": "b1a3e88eb4350b2cb6269fa331573f7e3c27b1ef67d46f64fc0de7a835368683"
+  },
+  "actual_owners": {
+    "pandora_prng_state": 6552,
+    "keyboard_state": 65904,
+    "pandora_ui_snapshot_body": 66032,
+    "pandora_title_stars": 68336,
+    "pandora_cpu_workspace": 69336,
+    "pandora_low_generated_masks": 117392,
+    "pandora_image": 523960
+  },
+  "allocation": {
+    "image_bytes": 349040,
+    "image_lease_base": 523960,
+    "image_end": 873000,
+    "dynamic_lease_bytes": 410576,
+    "fixed_address_bytes_remaining": 442040,
+    "total_game_leases": 852616,
+    "HUNK_CODE_bytes": 48056,
+    "peak_scope": "Simultaneously owned game leases at entry, including duplicated retained input prefix; not a global OS peak."
+  },
+  "field_application": {
+    "bytes": 376832,
+    "fields": 2739,
+    "sha256": "dff5c5dfcafec4f0b0b8fe229bbda09fe1f4ea21648e52654593c35cb0c62a42",
+    "whole_input_verified": true
+  },
+  "first_moved_initializer": {
+    "pc": 564702,
+    "cck": 93835350,
+    "preserved_registers_CCR_stack": true
+  },
+  "ending": {
+    "saved_earth": true,
+    "escaped": true,
+    "health": 49,
+    "message_pointer": 838045,
+    "selection_pc": 837780,
+    "final_frame": 15200
+  },
+  "route": {
+    "ending": {
+      "saved_earth": true,
+      "escaped": true,
+      "health": 49,
+      "message_pointer": 838045,
+      "selection_pc": 837780,
+      "final_frame": 15200
+    },
+    "screenshots": [
+      {
+        "phase": "title_menu_loop",
+        "frame": 1326,
+        "sha256": "5c1ee9314e559173ccaef30d04f8115cd2fd587e08d2a72b680d86b1e15936fd"
+      },
+      {
+        "phase": "ui_overlay_initialization",
+        "frame": 1329,
+        "sha256": "14f61f01bc7a9ec91e2995beccab5e2c13ed34c54ab11a4be508da96f9189112"
+      },
+      {
+        "phase": "initial_proximity_context",
+        "frame": 1331,
+        "sha256": "455f3a837e144db85dc7bc3fe1755d79dfc8d91ddaa26bf307a9e447de6bc68f"
+      },
+      {
+        "phase": "entry_officer_card_transferred",
+        "frame": 1520,
+        "sha256": "cb97c4dd506c1c765a48eb30161e670f8c528baf6c1c7ac825ead32ab46438a4"
+      },
+      {
+        "phase": "ei_sonicdriver_hit_1",
+        "frame": 4873,
+        "sha256": "a767500522b8c2f57c47e1210541002ce5b3d1f1955bcb4f690371b05c9a2e15"
+      },
+      {
+        "phase": "ac_console_ready",
+        "frame": 12124,
+        "sha256": "91c295f52df84737de15c2dee5a19606d08d9f9954e3a99024295185a80b10a1"
+      },
+      {
+        "phase": "saved_earth_escape",
+        "frame": 15200,
+        "sha256": "27e44e76143556b7b555b61c2911d31ba58d9661a9a7db0f90b83bd062cb25b9"
+      }
+    ],
+    "loss": {
+      "events": 262,
+      "dropped_notifications": 0,
+      "dropped_events": 0
+    },
+    "scenario_sha256": "8afe57738ff0df249b74197bba08a38e34d375692576be222b13592e0dbfbbc0",
+    "phases": 576,
+    "status": "saved_earth_escape_natural_exit_observed"
+  },
+  "CPU_guard_scope": {
+    "ranges": [
+      [
+        768,
+        810
+      ],
+      [
+        1024,
+        6552
+      ],
+      [
+        6560,
+        14370
+      ],
+      [
+        14716,
+        62895
+      ],
+      [
+        65536,
+        65904
+      ],
+      [
+        127432,
+        131072
+      ],
+      [
+        507904,
+        512000
+      ]
+    ],
+    "excluded_live_leases": [
+      {
+        "region_id": "keyboard_state",
+        "address": 65904,
+        "size": 128,
+        "semantic_size": 128,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_ui_snapshot_body",
+        "address": 66032,
+        "size": 2304,
+        "semantic_size": 2304,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_image",
+        "address": 523960,
+        "size": 349040,
+        "semantic_size": 349040,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_cpu_workspace",
+        "address": 69336,
+        "size": 48056,
+        "semantic_size": 48051,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_prng_state",
+        "address": 6552,
+        "size": 8,
+        "semantic_size": 8,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_title_stars",
+        "address": 68336,
+        "size": 1000,
+        "semantic_size": 1000,
+        "alignment": 8
+      },
+      {
+        "region_id": "pandora_low_generated_masks",
+        "address": 117392,
+        "size": 10040,
+        "semantic_size": 10034,
+        "alignment": 8
+      },
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "CPU_only": true,
+    "all_fetches": false,
+    "start": "before original world initialization, after early bootstrap/workspace setup"
+  },
+  "game_DMA_quiescent": {
+    "stop": {
+      "cck": 1146110853,
+      "detail": "Breakpoint at $C07E3A",
+      "frame": 16130,
+      "hpos": 111,
+      "pc": 12615226,
+      "reason": "breakpoint",
+      "retired_instructions": 136979194,
+      "seconds": 323.1307532362813,
+      "vpos": 256
+    },
+    "DMACONR": 8192,
+    "all_game_leases_still_owned": 10
+  },
+  "owned_exit": {
+    "freed": [
+      {
+        "address": 523960,
+        "size": 349040
+      },
+      {
+        "address": 117392,
+        "size": 10040
+      },
+      {
+        "address": 69336,
+        "size": 48056
+      },
+      {
+        "address": 68336,
+        "size": 1000
+      },
+      {
+        "address": 66032,
+        "size": 2304
+      },
+      {
+        "address": 65904,
+        "size": 128
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 6552,
+        "size": 8
+      }
+    ],
+    "retained_count": 0,
+    "audio_open": 0,
+    "audio_lock": 0,
+    "signal": 4294967295
+  },
+  "console": {
+    "returned_image_sha256": "0d1204a371644f20782e4a4e0f2b163a440e7e63bb46d471caf910ef6e608ec2",
+    "after_Return_key_image_sha256": "8171325b564ed6865ff05bf848979c872d87cbc646e892a2a38e892a31590b27",
+    "review": "CLI and probe2 greeting visible, Return produces another prompt."
+  },
+  "native_ASM_control": {
+    "canonical_metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+    "runtime_payload_sha256": "dff5c5dfcafec4f0b0b8fe229bbda09fe1f4ea21648e52654593c35cb0c62a42",
+    "native_contract_sha256": "3a645246659428e06e7cb202f70fb2b749e6afe06931b42a30c0187b5fe3eeff",
+    "status": "native_ASM_reference_matches_all_runtime_fixed_bytes_except_typed_HUNK_import",
+    "metadata_sha256": "989d81541e537742636781279c039650f7cf222d045435e62df535af188260a8",
+    "observed_receipt_sha256": "0e1ae0018b336f2bdfe2c6c7bb3a9245aa162ba798621079ff069c0ae46bfb91",
+    "payload_sha256": "321628688cbe617accd4cc03da3bb7c730db472bf7f4f68ae8e3f781f98d7b21",
+    "bytes": 376832,
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "647bbdf848cf9a76f2f716b8d0fd6fc0fbc8b77f6496e626f2c67261bfafd62e"
+    },
+    "wall_seconds": 176.2559461130004,
+    "temporary_configuration_only": true
+  },
+  "private_run_receipt_sha256": "f2ef4ab96b984f6d49886bf0107efc610b4388f390b84fd99139c690bc67b088",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "ROM_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "limits": [
+    "Gameplay completion and observed ten-lease cleanup pass; strict graphics/PCM comparison is pending.",
+    "Native C/vasm control agrees with every fixed payload byte except the declared host service import; shared wrapper equivalence is not proved by it.",
+    "Live carrier/other leases are excluded from CPU old-address watch intervals; no absence-of-hit proves unused, and these are not bus-wide DMA/all-path observations.",
+    "Retained carrier, high masks and display still have fixed address claims; six earlier small allocations alone were not the endpoint.",
+    "Original byte-exact export remains separate; eight-CCK original-to-image startup and unobserved paths remain open.",
+    "Proprietary bytes, raw PCM/screenshots and ROM remain private."
+  ]
+}

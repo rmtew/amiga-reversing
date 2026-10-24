@@ -12,6 +12,23 @@ from amiga_reversing.disasm.source_package import extend_source_package,validate
 ROOT=Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.parametrize('allocate_image',[False,True])
+def test_reference_contract_requests_the_same_guest_owner_family(allocate_image):
+    from amiga_reversing.disasm.hosted_application_export import native_contract,TARGET
+    from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER
+    class Artifact:
+        def __init__(self):self.requested=[]
+        def runtime_allocation_plan(self,name,layout):
+            self.requested.append(name)
+            return dict(status='bounded_allocation_candidate',staged_address=0x80000)
+        def runtime_allocation_batch_plan(self,layout,actual):
+            assert [p['region_id'] for p in actual['placements']]==self.requested
+            return dict(status='actual_placements_valid',uncovered_runtime_extents=[])
+        def loaded_backend_identity(self):return dict(sha256='fixture')
+    a=Artifact();contract=native_contract(a,TARGET,'hosted',allocate_image=allocate_image)
+    assert tuple(contract['candidates'])==((*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS)
+
+
 def record(name,data,kind='application_source'):
     return dict(path=name,size=len(data),data_hex=data.hex(),kind=kind,provenance='fixture')
 

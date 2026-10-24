@@ -3,6 +3,23 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
+### Actual image allocation: cold ending and natural DOS exit
+
+[The cold receipt](../../runtime/observations/pandora-allocated-image-completion.json)
+records all 576 phases, saved Earth plus escape at HP49/frame15200, zero event
+loss and natural DOS return. Exec selected image `$7FEB8..$D5228`; moved first
+initialization is `$89DDE`. All 2,739 fields and complete input bytes agree with
+native admission. Ten leases remain owned at DMA quiescence, then are freed
+exactly once; audio/lock/signal state clears, and the CLI responds to Return.
+
+Fixed claims fall from 791,080 to 442,040 bytes; total simultaneous game leases
+remain 852,616 bytes, including retained-prefix duplication. This is not a
+measured global OS peak or completion of the carrier/display work. The full
+seven-owner native C/vasm control matches the applied payload; its paired normal
+route and strict graphics/PCM comparison are running, not yet accepted. Original
+byte-exact and fixed-image modes remain preserved. The original eight-CCK and
+all-path evidence boundaries remain open.
+
 ### A1 image allocation: typed script and Copper fields (qualification pending)
 
 The four reviewed A6-relative passage stores now compose with their disjoint
