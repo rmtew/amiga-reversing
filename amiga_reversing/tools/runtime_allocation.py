@@ -278,10 +278,13 @@ def abort_guest(client,contract,boot_build,*,already_aborted=False):
         raise ValueError('Guest did not reach allocation unwind acknowledgement')
     from .direct_payload_adapter import reservation_plan
     spans=reservation_plan(contract,Path(boot_build['payload']).stat().st_size)
-    record_owned=int.from_bytes(client.read_memory(marker-4,4),'big')>spans.index((marker-0xf8,0xf0))
+    acquired=int.from_bytes(client.read_memory(marker-4,4),'big')
+    record_owned=acquired>spans.index((marker-0xf8,0xf0))
     cpu=contract.runtime_allocation['plan']['scope']==CPU_SCOPE
     record=client.read_memory(marker-0xf8,32 if cpu else 24) if record_owned else b''
-    if record and any(int.from_bytes(record[offset:offset+4],'big') for offset in ((4,8,24) if cpu else (4,8))):
+    # Before all static claims exist the guest never initializes this record or
+    # acquires dynamic leases. Its previous RAM contents are not ownership.
+    if acquired==len(spans) and record and any(int.from_bytes(record[offset:offset+4],'big') for offset in ((4,8,24) if cpu else (4,8))):
         raise ValueError('Guest allocation unwind retained an owned lease')
     verified=verify_boot_code(client,contract,boot_build)
     boot_base=verified['base'];closed=boot_base+verified['symbols']['allocation_closed']

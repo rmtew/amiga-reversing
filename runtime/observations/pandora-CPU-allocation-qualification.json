@@ -1,0 +1,2405 @@
+{
+  "schema": "pandora-CPU-allocation-qualification/v1",
+  "date": "2026-10-24",
+  "status": "two_guest_selected_CPU_bases_cold_route_and_scoped_output_qualified_passage_and_OS_return_pending",
+  "implementation_commit": "8290bd84ff19ded1a6dd2f1aaff016de5b58ee8b",
+  "native_plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+  "subject": {
+    "subject_revision": "0563e8f84925188a2e14b7e6fc89dad682b61c3947854418a7772bfdd03a9b80",
+    "revision": "270b62016ff58a7d589047b128f2d3d31dd0753cd08654157be8ef3fcfd8244d"
+  },
+  "backend": {
+    "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+    "sha256": "4c8fc8d767e5236c1930cc8c140eb129e1bcde77b5178563a51dc5ab37a8bee1"
+  },
+  "executed_source_identities": {
+    "amiga_reversing/tools/runtime_allocation.py": "cb4ff75e04178bacd2e18a04d23a4de3894a9a9f1d082e7c46a74dadeb65dba4",
+    "amiga_reversing/tools/direct_payload_adapter.py": "ba278cb231cc043f5144802697bd7f27d2cff73963e0df751afbdefb47613716",
+    "amiga_reversing/tools/copperline_runtime.py": "39efffbdd052c9b814a3fc38fdafaa4c756caa41947910c3592d350b682d2299",
+    "amiga_reversing/tools/observed_layout_mapping.py": "90fc4de16665669834bd8890d8874d011e26eee5826ca8cfc726baabaca3f05e",
+    "amiga_reversing/tools/pandora_layout_runtime.py": "3fac72d92599536be49a03bce44d091acd489e4d04d79ee1f0ed01a83c1a9858",
+    "amiga_reversing/tools/pandora_allocated_walkthrough.py": "6a7722ccaaa90721da2922423d9d628830532ebaa572ed0d407e0101929fa531",
+    "tools/amiga_direct_payload_bootblock.s": "a6d51b0f8a47bd986025eb29064faec857dae6141a63cffbe18d777a587eeafb",
+    "tools/amiga_runtime_allocation.i": "9487618fbe13c07f206e7681c56737cf495ced2ef4f2a1de2ad7c182bf73c348",
+    "tools/amiga_runtime_allocation_unwind.i": "13fe969c2cdd9563e4fb53cf168ccc6da1cc6b404335ea61e6d171e2befe9e6b"
+  },
+  "runs": [
+    {
+      "name": "fault_before-0",
+      "report_sha256": "a439d3284edc05e04dd9eba0a948dfe9038c75ab05cc97ac9c3676c18540f97d",
+      "status": "allocation_failure_unwound",
+      "ending": null,
+      "phases": 0,
+      "lease": null,
+      "loss_counters": null,
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "6c5b3478c5ec5bc8d31f03877e499ff5d270941b5fc47679b34a46889ecd4f39",
+      "loader_identity": null,
+      "runtime_identity": null,
+      "materialization": null,
+      "unwind": {
+        "status": "guest_unwind_complete_diagnostic_hold_not_OS_return",
+        "pre_release_record": "414c4c4f00000000000000000000000000000000000000000000000000000000",
+        "after_release_registers": {
+          "d0": 16,
+          "d1": 1040,
+          "d2": 1,
+          "d3": 1179796805,
+          "d4": 6,
+          "d5": 0,
+          "d6": 4294967295,
+          "d7": 0,
+          "a0": 1024,
+          "a1": 23016,
+          "a2": 5560,
+          "a3": 16680686,
+          "a4": 5464,
+          "a5": 12588258,
+          "a6": 12583542,
+          "a7": 12588162,
+          "pc": 6434,
+          "sr": 16,
+          "sp": 12588162
+        },
+        "stop": {
+          "address": "0x00001922",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "stop_event": {
+            "cck": 15183271,
+            "detail": "Breakpoint at $001922",
+            "frame": 213,
+            "hpos": 149,
+            "pc": 6434,
+            "reason": "breakpoint",
+            "retired_instructions": 2656110,
+            "seconds": 4.280721870819407,
+            "vpos": 217
+          },
+          "pc": "0x00001922",
+          "sp": "0x00c01482",
+          "stack_return_address": "0x00000000"
+        },
+        "boot_base": 5476,
+        "completion_pc": 6434,
+        "acknowledgement_scope": "Loader protocol only; no gameplay entered or CPU registers forced"
+      },
+      "moved_pcs": [],
+      "CPU_guards": null,
+      "resource_CPU_guards": null
+    },
+    {
+      "name": "fault_after-4096",
+      "report_sha256": "4ead1df361b982ad21242352c78b9fbad067103154c200c6b2147a758e3353cc",
+      "status": "allocation_failure_unwound",
+      "ending": null,
+      "phases": 0,
+      "lease": null,
+      "loss_counters": null,
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "d7edc9c091198291a35dc1eca3f79c9dcff77b7dc4efc8002bb01c38d6c59a1d",
+      "loader_identity": null,
+      "runtime_identity": null,
+      "materialization": null,
+      "unwind": {
+        "status": "guest_unwind_complete_diagnostic_hold_not_OS_return",
+        "pre_release_record": "414c4c4f00000000000000000000000000000001000000000000000000001000",
+        "after_release_registers": {
+          "d0": 16,
+          "d1": 1040,
+          "d2": 28800,
+          "d3": 1179796805,
+          "d4": 6,
+          "d5": 0,
+          "d6": 4294967295,
+          "d7": 0,
+          "a0": 1024,
+          "a1": 23016,
+          "a2": 5560,
+          "a3": 16680686,
+          "a4": 5464,
+          "a5": 12588258,
+          "a6": 12583542,
+          "a7": 12588162,
+          "pc": 6468,
+          "sr": 16,
+          "sp": 12588162
+        },
+        "stop": {
+          "address": "0x00001944",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "stop_event": {
+            "cck": 15185226,
+            "detail": "Breakpoint at $001944",
+            "frame": 213,
+            "hpos": 61,
+            "pc": 6468,
+            "reason": "breakpoint",
+            "retired_instructions": 2656451,
+            "seconds": 4.2812730571387085,
+            "vpos": 226
+          },
+          "pc": "0x00001944",
+          "sp": "0x00c01482",
+          "stack_return_address": "0x00000000"
+        },
+        "boot_base": 5476,
+        "completion_pc": 6468,
+        "acknowledgement_scope": "Loader protocol only; no gameplay entered or CPU registers forced"
+      },
+      "moved_pcs": [],
+      "CPU_guards": null,
+      "resource_CPU_guards": null
+    },
+    {
+      "name": "prefix-0",
+      "report_sha256": "ec7fe6466613e72f4840f8db8ed3be5dddf8797ed9f31ab08ca121c27e2092df",
+      "status": "bounded_output_prefix_complete",
+      "ending": null,
+      "phases": 28,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 24704,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 0,
+        "prior_size": 0
+      },
+      "loss_counters": {
+        "events": 14,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "17a36e30171a75fd6b6dabdb56d69088341fe9a85f2a6607e85063cd99ae128d",
+      "loader_identity": {
+        "base": 5476,
+        "size": 958,
+        "sha256": "1bd50c949a70aa3eee4b1bfc5b7a7d9adf9c6b8b8fcd0ff3e06541238d8b8f74",
+        "symbols": {
+          "allocation_abort_publish": 892,
+          "allocation_abort_wait": 902,
+          "allocation_closed": 954
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "068df221c4a7632dcb26bb11f9a795fb33421b4d3f94963eaf8472b68632eae0",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 500,
+          "stop_event": {
+            "cck": 35531511,
+            "detail": "Breakpoint at $020000",
+            "frame": 500,
+            "hpos": 109,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 5062544,
+            "seconds": 10.017638244154394,
+            "vpos": 26
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40814174,
+            "detail": "Breakpoint at $08046A",
+            "frame": 574,
+            "hpos": 28,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 6109761,
+            "seconds": 11.507015008902153,
+            "vpos": 136
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40823926,
+            "detail": "Breakpoint at $08048C",
+            "frame": 574,
+            "hpos": 19,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 6111520,
+            "seconds": 11.509764455953729,
+            "vpos": 179
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 72755,
+          "len": 341821,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 72755,
+            "len": 341821,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 72755,
+              "id": 5,
+              "kind": "mmio",
+              "len": 341821
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14844,
+            "len": 9732,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 24704
+        }
+      ]
+    },
+    {
+      "name": "prefix-4096",
+      "report_sha256": "67e2a169d5fd85e7530a80cedf889bba4e0a7c2b274530d9ccf29b56cd557630",
+      "status": "bounded_output_prefix_complete",
+      "ending": null,
+      "phases": 28,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 28800,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 24704,
+        "prior_size": 4096
+      },
+      "loss_counters": {
+        "events": 14,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "5aa4c818920f2784cfe0ba5bdf0fdac3ffb1a4e091add6cdf984f8c3b7520755",
+      "loader_identity": {
+        "base": 5476,
+        "size": 992,
+        "sha256": "4560aabd16386825a7bdadcce9df73f27fda23132161d51936ec973db5b1041b",
+        "symbols": {
+          "allocation_abort_publish": 926,
+          "allocation_abort_wait": 936,
+          "allocation_closed": 988
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "d77e33eafcc4865ec8512a655f43d090f8a0f872671cdde3d7eb0ff5cd451933",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "b256a961f8843f86c1add1518a95cc766bc41d25412a793ada4e62943fd2a8cf",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 500,
+          "stop_event": {
+            "cck": 35531511,
+            "detail": "Breakpoint at $020000",
+            "frame": 500,
+            "hpos": 109,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 5062685,
+            "seconds": 10.017638244154394,
+            "vpos": 26
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40814174,
+            "detail": "Breakpoint at $08046A",
+            "frame": 574,
+            "hpos": 28,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 6109902,
+            "seconds": 11.507015008902153,
+            "vpos": 136
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40823926,
+            "detail": "Breakpoint at $08048C",
+            "frame": 574,
+            "hpos": 19,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 6111661,
+            "seconds": 11.509764455953729,
+            "vpos": 179
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 76851,
+          "len": 337725,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 76851,
+            "len": 337725,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 76851,
+              "id": 5,
+              "kind": "mmio",
+              "len": 337725
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": null,
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            },
+            {
+              "kind": "mmio",
+              "addr": 24704,
+              "len": 4096,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              },
+              {
+                "access": "access",
+                "addr": 24704,
+                "id": 11,
+                "kind": "mmio",
+                "len": 4096
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 28800
+        }
+      ]
+    },
+    {
+      "name": "full-0",
+      "report_sha256": "7374465c9c62ef20a45fe67439832af7439401bca0bd94591ea3398a969ad460",
+      "status": "saved_earth_and_escaped_relocated_cold_boot",
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14465
+      },
+      "phases": 576,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 24704,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 0,
+        "prior_size": 0
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "17a36e30171a75fd6b6dabdb56d69088341fe9a85f2a6607e85063cd99ae128d",
+      "loader_identity": {
+        "base": 5476,
+        "size": 958,
+        "sha256": "1bd50c949a70aa3eee4b1bfc5b7a7d9adf9c6b8b8fcd0ff3e06541238d8b8f74",
+        "symbols": {
+          "allocation_abort_publish": 892,
+          "allocation_abort_wait": 902,
+          "allocation_closed": 954
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "068df221c4a7632dcb26bb11f9a795fb33421b4d3f94963eaf8472b68632eae0",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 500,
+          "stop_event": {
+            "cck": 35531511,
+            "detail": "Breakpoint at $020000",
+            "frame": 500,
+            "hpos": 109,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 5062544,
+            "seconds": 10.017638244154394,
+            "vpos": 26
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40814174,
+            "detail": "Breakpoint at $08046A",
+            "frame": 574,
+            "hpos": 28,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 6109761,
+            "seconds": 11.507015008902153,
+            "vpos": 136
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40823926,
+            "detail": "Breakpoint at $08048C",
+            "frame": 574,
+            "hpos": 19,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 6111520,
+            "seconds": 11.509764455953729,
+            "vpos": 179
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 72755,
+          "len": 341821,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 72755,
+            "len": 341821,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 72755,
+              "id": 5,
+              "kind": "mmio",
+              "len": 341821
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14844,
+            "len": 9732,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 24704
+        }
+      ]
+    },
+    {
+      "name": "full-4096",
+      "report_sha256": "0daddbcd11ec8fb50772e063b0f366f162c1e6a9aaa35bcc2f7ef823d39d5ea8",
+      "status": "saved_earth_and_escaped_relocated_cold_boot",
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14465
+      },
+      "phases": 576,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 28800,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 24704,
+        "prior_size": 4096
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "5aa4c818920f2784cfe0ba5bdf0fdac3ffb1a4e091add6cdf984f8c3b7520755",
+      "loader_identity": {
+        "base": 5476,
+        "size": 992,
+        "sha256": "4560aabd16386825a7bdadcce9df73f27fda23132161d51936ec973db5b1041b",
+        "symbols": {
+          "allocation_abort_publish": 926,
+          "allocation_abort_wait": 936,
+          "allocation_closed": 988
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "d77e33eafcc4865ec8512a655f43d090f8a0f872671cdde3d7eb0ff5cd451933",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "b256a961f8843f86c1add1518a95cc766bc41d25412a793ada4e62943fd2a8cf",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 500,
+          "stop_event": {
+            "cck": 35531511,
+            "detail": "Breakpoint at $020000",
+            "frame": 500,
+            "hpos": 109,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 5062685,
+            "seconds": 10.017638244154394,
+            "vpos": 26
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40814174,
+            "detail": "Breakpoint at $08046A",
+            "frame": 574,
+            "hpos": 28,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 6109902,
+            "seconds": 11.507015008902153,
+            "vpos": 136
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40823926,
+            "detail": "Breakpoint at $08048C",
+            "frame": 574,
+            "hpos": 19,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 6111661,
+            "seconds": 11.509764455953729,
+            "vpos": 179
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 76851,
+          "len": 337725,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 76851,
+            "len": 337725,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 76851,
+              "id": 5,
+              "kind": "mmio",
+              "len": 337725
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": null,
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            },
+            {
+              "kind": "mmio",
+              "addr": 24704,
+              "len": 4096,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              },
+              {
+                "access": "access",
+                "addr": 24704,
+                "id": 11,
+                "kind": "mmio",
+                "len": 4096
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 28800
+        }
+      ]
+    },
+    {
+      "name": "title-0",
+      "report_sha256": "0f3310e27735f6c91290cb5c40382d2a0b807053e57df83ad50585e402fca6bf",
+      "status": "bounded_output_prefix_complete",
+      "ending": null,
+      "phases": 1,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 24704,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 0,
+        "prior_size": 0
+      },
+      "loss_counters": {
+        "events": 2,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "17a36e30171a75fd6b6dabdb56d69088341fe9a85f2a6607e85063cd99ae128d",
+      "loader_identity": {
+        "base": 5476,
+        "size": 958,
+        "sha256": "1bd50c949a70aa3eee4b1bfc5b7a7d9adf9c6b8b8fcd0ff3e06541238d8b8f74",
+        "symbols": {
+          "allocation_abort_publish": 892,
+          "allocation_abort_wait": 902,
+          "allocation_closed": 954
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "068df221c4a7632dcb26bb11f9a795fb33421b4d3f94963eaf8472b68632eae0",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 500,
+          "stop_event": {
+            "cck": 35531511,
+            "detail": "Breakpoint at $020000",
+            "frame": 500,
+            "hpos": 109,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 5062544,
+            "seconds": 10.017638244154394,
+            "vpos": 26
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40814174,
+            "detail": "Breakpoint at $08046A",
+            "frame": 574,
+            "hpos": 28,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 6109761,
+            "seconds": 11.507015008902153,
+            "vpos": 136
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40823926,
+            "detail": "Breakpoint at $08048C",
+            "frame": 574,
+            "hpos": 19,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 6111520,
+            "seconds": 11.509764455953729,
+            "vpos": 179
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 72755,
+          "len": 341821,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 72755,
+            "len": 341821,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 72755,
+              "id": 5,
+              "kind": "mmio",
+              "len": 341821
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14844,
+            "len": 9732,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 24704
+        }
+      ]
+    },
+    {
+      "name": "title-4096",
+      "report_sha256": "9c82ec50bf97c42558b2f9bc27ff225c26cf0e806297305a8f9ff3f3abebc517",
+      "status": "bounded_output_prefix_complete",
+      "ending": null,
+      "phases": 1,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 28800,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 24704,
+        "prior_size": 4096
+      },
+      "loss_counters": {
+        "events": 2,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "5aa4c818920f2784cfe0ba5bdf0fdac3ffb1a4e091add6cdf984f8c3b7520755",
+      "loader_identity": {
+        "base": 5476,
+        "size": 992,
+        "sha256": "4560aabd16386825a7bdadcce9df73f27fda23132161d51936ec973db5b1041b",
+        "symbols": {
+          "allocation_abort_publish": 926,
+          "allocation_abort_wait": 936,
+          "allocation_closed": 988
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "d77e33eafcc4865ec8512a655f43d090f8a0f872671cdde3d7eb0ff5cd451933",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "b256a961f8843f86c1add1518a95cc766bc41d25412a793ada4e62943fd2a8cf",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 500,
+          "stop_event": {
+            "cck": 35531511,
+            "detail": "Breakpoint at $020000",
+            "frame": 500,
+            "hpos": 109,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 5062685,
+            "seconds": 10.017638244154394,
+            "vpos": 26
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40814174,
+            "detail": "Breakpoint at $08046A",
+            "frame": 574,
+            "hpos": 28,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 6109902,
+            "seconds": 11.507015008902153,
+            "vpos": 136
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 574,
+          "stop_event": {
+            "cck": 40823926,
+            "detail": "Breakpoint at $08048C",
+            "frame": 574,
+            "hpos": 19,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 6111661,
+            "seconds": 11.509764455953729,
+            "vpos": 179
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 76851,
+          "len": 337725,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 76851,
+            "len": 337725,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 76851,
+              "id": 5,
+              "kind": "mmio",
+              "len": 337725
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": null,
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            },
+            {
+              "kind": "mmio",
+              "addr": 24704,
+              "len": 4096,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 76851,
+                "id": 5,
+                "kind": "mmio",
+                "len": 337725
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              },
+              {
+                "access": "access",
+                "addr": 24704,
+                "id": 11,
+                "kind": "mmio",
+                "len": 4096
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 28800
+        }
+      ]
+    },
+    {
+      "name": "unheld-0",
+      "report_sha256": "96dcb7e6fc7f3450b0cb62c96d94c0fb6ca8c253eacf149f7eeefc4b67310e37",
+      "status": "saved_earth_and_escaped_relocated_cold_boot",
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14351
+      },
+      "phases": 576,
+      "lease": {
+        "region_id": "pandora_cpu_workspace",
+        "base": 24704,
+        "size": 48051,
+        "scratch_base": 0,
+        "scratch_size": 0,
+        "record_address": 524032,
+        "static_reservations_acquired": 6,
+        "status": "guest_lease_live_requires_native_placement_admission",
+        "plan_sha256": "37a31adff4084bd82bcba431d81fba8978b68957bf762ce285f860887c3b0fbb",
+        "prior_base": 0,
+        "prior_size": 0
+      },
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "payload_sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+      "adf_sha256": "17a36e30171a75fd6b6dabdb56d69088341fe9a85f2a6607e85063cd99ae128d",
+      "loader_identity": {
+        "base": 5476,
+        "size": 958,
+        "sha256": "1bd50c949a70aa3eee4b1bfc5b7a7d9adf9c6b8b8fcd0ff3e06541238d8b8f74",
+        "symbols": {
+          "allocation_abort_publish": 892,
+          "allocation_abort_wait": 902,
+          "allocation_closed": 954
+        }
+      },
+      "runtime_identity": {
+        "path": "runtime-identity.bin",
+        "sha256": "848ce5ad4c552789d6438cc43e94d89347ca1ee1c47d73adadb4c66ac97fc391",
+        "scope": "Native actual-base admission plus complete HAND readback and later copied-prefix verification."
+      },
+      "materialization": {
+        "address": 524288,
+        "size": 349040,
+        "sha256": "068df221c4a7632dcb26bb11f9a795fb33421b4d3f94963eaf8472b68632eae0",
+        "full_prefix_verified": true
+      },
+      "unwind": null,
+      "moved_pcs": [
+        {
+          "source_offset": 0,
+          "runtime_pc": 131072,
+          "frame": 386,
+          "stop_event": {
+            "cck": 27474123,
+            "detail": "Breakpoint at $020000",
+            "frame": 386,
+            "hpos": 86,
+            "pc": 131072,
+            "reason": "breakpoint",
+            "retired_instructions": 4206876,
+            "seconds": 7.74596456901036,
+            "vpos": 213
+          }
+        },
+        {
+          "source_offset": 1130,
+          "runtime_pc": 525418,
+          "frame": 461,
+          "stop_event": {
+            "cck": 32756793,
+            "detail": "Breakpoint at $08046A",
+            "frame": 461,
+            "hpos": 12,
+            "pc": 525418,
+            "reason": "breakpoint",
+            "retired_instructions": 5254093,
+            "seconds": 9.235343307315272,
+            "vpos": 10
+          }
+        },
+        {
+          "source_offset": 1164,
+          "runtime_pc": 525452,
+          "frame": 461,
+          "stop_event": {
+            "cck": 32766544,
+            "detail": "Breakpoint at $08048C",
+            "frame": 461,
+            "hpos": 2,
+            "pc": 525452,
+            "reason": "breakpoint",
+            "retired_instructions": 5255852,
+            "seconds": 9.238092472430111,
+            "vpos": 53
+          }
+        }
+      ],
+      "CPU_guards": {
+        "CPU_data": {
+          "kind": "mmio",
+          "addr": 72755,
+          "len": 341821,
+          "access": "access"
+        },
+        "CPU_ranges": [
+          {
+            "kind": "mmio",
+            "addr": 72755,
+            "len": 341821,
+            "access": "access"
+          }
+        ],
+        "DMA_covered": false,
+        "readback": {
+          "breaks": [
+            {
+              "access": "access",
+              "addr": 72755,
+              "id": 5,
+              "kind": "mmio",
+              "len": 341821
+            }
+          ]
+        },
+        "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+        "fallback_PC_sentinels": [
+          65536,
+          66666
+        ],
+        "all_instruction_fetches_covered": false
+      },
+      "resource_CPU_guards": [
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14716,
+            "len": 128,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14716,
+              "len": 128,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "keyboard_state",
+          "runtime_address": 24576
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 458752,
+            "len": 53248,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 458752,
+              "len": 53248,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_display_storage",
+          "runtime_address": 917504
+        },
+        {
+          "CPU_data": {
+            "kind": "mmio",
+            "addr": 14844,
+            "len": 9732,
+            "access": "access"
+          },
+          "CPU_ranges": [
+            {
+              "kind": "mmio",
+              "addr": 14844,
+              "len": 9732,
+              "access": "access"
+            }
+          ],
+          "DMA_covered": false,
+          "readback": {
+            "breaks": [
+              {
+                "addr": 65536,
+                "hits": 0,
+                "id": 6,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "addr": 66666,
+                "hits": 0,
+                "id": 7,
+                "ignore": 0,
+                "kind": "pc"
+              },
+              {
+                "access": "access",
+                "addr": 72755,
+                "id": 5,
+                "kind": "mmio",
+                "len": 341821
+              },
+              {
+                "access": "access",
+                "addr": 14716,
+                "id": 8,
+                "kind": "mmio",
+                "len": 128
+              },
+              {
+                "access": "access",
+                "addr": 458752,
+                "id": 9,
+                "kind": "mmio",
+                "len": 53248
+              },
+              {
+                "access": "access",
+                "addr": 14844,
+                "id": 10,
+                "kind": "mmio",
+                "len": 9732
+              }
+            ]
+          },
+          "exclusion_scope": "Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.",
+          "region_id": "pandora_cpu_workspace",
+          "runtime_address": 24704
+        }
+      ]
+    }
+  ],
+  "output_comparison": "pandora-CPU-allocation-output-comparison.json",
+  "comparison_sha256": "149a16c303332c7fe17dbf3fc34d0d0f04ffdcf74fed760eb8fbdce712d6bd0f",
+  "tests": {
+    "passed": 66,
+    "skipped": 0,
+    "scope": "Native projection, executable stubbed-Exec boot/unwind, identity/observer and strict comparison admission tests."
+  },
+  "loader_observer_followup": "After these runs, partial-static unwind observer ignores uninitialized record bytes until all static claims exist. Positive/full-acquisition checks and emitted guest bytes are unchanged; focused retained-lease and partial-record tests pass. No repeat of unaffected gameplay.",
+  "preserved_original": "Full original C/vasm byte-exact receipt is unchanged from passage-address-frame-adoption; this batch changes loader/observer/comparison, not game export.",
+  "remaining": [
+    "Natural-input priest completion callback and full four-store exercise remain open; the ending route is not that optional path.",
+    "Successful DMA-safe game teardown and return to OS remain open.",
+    "Prior original-to-image 8-CCK strict HAND difference remains unresolved.",
+    "CPU data watches and PC sentinels are bounded; no full fetch or DMA watch claim.",
+    "Eight selected graphics frames and captured mixed PCM qualify this route/profile, not every optional path or every asset use.",
+    "Conditional original-entry A6 invariant and normal-return/intact-stack assumptions remain."
+  ],
+  "publication": "Processed receipts only. Proprietary payloads, raw checkpoints, screenshots, audio and bus captures remain private."
+}

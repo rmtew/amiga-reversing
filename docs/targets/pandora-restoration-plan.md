@@ -50,10 +50,11 @@ C/vasm export and original exactness pass; the native CPU candidate has seven
 fields and four frame guards. The
 [CPU guest bridge](../../runtime/observations/pandora-CPU-guest-allocation-implementation.json)
 now applies those LONG fields with checked frame guards, explicit prior-lease
-ownership and tested pre-entry unwind. Both boot variants fit the existing
-loader budget; 39 focused tests pass. Actual allocator returns, normal-input
-passage/route qualification and matched output remain pending; modeled Exec
-tests are not gameplay evidence.
+ownership and tested pre-entry unwind. [Actual qualification](../../runtime/observations/pandora-CPU-allocation-qualification.json)
+records guest-selected `$6080/$7080`, two576-phase cold completions, an unheld
+cold completion, zero loss counters and exact scoped graphics/PCM comparison.
+66 focused tests pass. Natural priest-callback/four-store coverage and successful
+DMA-safe cleanup/OS return remain open; route completion is not all-path proof.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

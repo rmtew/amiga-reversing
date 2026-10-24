@@ -5,7 +5,33 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
-### Four-site target adoption; CPU candidate admitted, gameplay pending
+### Guest-selected CPU bases: route and scoped output qualified
+
+[CPU allocation qualification](../../runtime/observations/pandora-CPU-allocation-qualification.json)
+records real Exec `AllocMem(MEMF_CHIP)` returns `$6080` and `$7080`. A genuine
+4,096-byte prior lease selects the latter; neither base is supplied to Exec.
+Native admission and complete guest-patched input/prefix readback pass. Both
+cold controlled runs complete all576 phases, saved Earth plus escape, at
+HP49/frame14465; an unheld cold run completes at HP49/frame14351. Both loss
+counters are zero. Before/after-owner failure probes complete guest unwind.
+
+[Strict output comparison](../../runtime/observations/pandora-CPU-allocation-output-comparison.json)
+passes all576 phase clocks,509 controller calls, eight exact RGBA frames and
+24,726,568 float32 PCM samples through EOF. Known null-sprite0/2 findings remain;
+no new sampled DMA bound finding appears. Keyboard stays `$6000`, display stays
+`$E0000..$ED000` and cursor stays `$65370`. The loader variants differ in size:
+raw pre-GO PCs differ34bytes. Full code/listing binding establishes the same
+instruction in identical40-byte wait blocks; clocks and all other registers
+match exactly. This is explicit loader-relative identity, not raw-PC equality
+or clock fitting. Original-to-image eight-CCK HAND equality remains unfulfilled.
+
+66 focused tests pass without skips. The subsequent partial-static unwind
+observer fix handles uninitialized record RAM without changing guest bytes or
+any completed gameplay artifact. Natural priest-completion/four-store coverage
+and successful DMA-safe OS return remain the next concrete obligations; this
+route does not close those optional-path or lifecycle questions.
+
+### Four-site target adoption (earlier export checkpoint)
 
 [Adoption and corrected input validation](../../runtime/observations/pandora-passage-address-frame-adoption.json)
 record full restored export C/vasm agreement and unchanged, byte-exact original

@@ -356,9 +356,16 @@ def admit_display_control(a,b):
 
 
 def admit_allocated_body_control(a,b):
+    return _admit_allocated_control(a,b,'pandora_ui_snapshot_body','scratch_extra')
+
+
+def admit_allocated_CPU_control(a,b):
+    return _admit_allocated_control(a,b,'pandora_cpu_workspace','prior_allocation_bytes')
+
+
+def _admit_allocated_control(a,b,root,profile_key):
     """Two actual allocations; retain the strict clocks/CPU/output checks below."""
     from amiga_reversing.tools.runtime_allocation import validate,plan_digest
-    root='pandora_ui_snapshot_body'
     _admit_region_control(a,b,root)
     capsules=[]
     for report in (a,b):
@@ -379,8 +386,54 @@ def admit_allocated_body_control(a,b):
                 'Patched input was not verified against the exact returned base')
         require(report.get('allocation_loader_identity',{}).get('sha256'),
                 'Executed guest allocation code was not verified')
-        capsules.append({key:value for key,value in allocation.items() if key!='scratch_extra'})
+        if profile_key=='prior_allocation_bytes':
+            require(lease.get('prior_size')==allocation[profile_key] and
+                    bool(lease.get('prior_base'))==bool(allocation[profile_key]),
+                    'Prior guest lease does not match the CPU allocation profile')
+        capsules.append({key:value for key,value in allocation.items() if key!=profile_key})
     require(capsules[0]==capsules[1],'Allocation contract/fixups changed between profiles')
+
+
+def _allocation_wait_fixture(directory,report):
+    """Bind the startup PC to assembled code, never a fitted clock/address delta."""
+    import re
+    identity=report['allocation_loader_identity']
+    code=(directory/'experiment.adf').read_bytes()[12:12+identity['size']]
+    require(hashlib.sha256(code).hexdigest()==identity['sha256'],'Loader bytes differ from executed identity')
+    listing_path=directory/'experiment.bootcode.allocation.lst'
+    listing=listing_path.read_text();covered=set()
+    for offset,hexbytes in re.findall(r'^00:([0-9A-Fa-f]{8}) ([0-9A-Fa-f]+)(?:\s|$)',listing,re.M):
+        offset=int(offset,16);data=bytes.fromhex(hexbytes)
+        require(code[offset:offset+len(data)]==data,'Loader listing bytes do not match executed code')
+        covered.update(range(offset,offset+len(data)))
+    require(covered==set(range(len(code))),'Incomplete loader listing')
+    labels={}
+    for offset,name in re.findall(r'^([0-9A-Fa-f]{8}) (await_session_release|failed)$',listing,re.M):
+        require(name not in labels,'Duplicate loader wait label')
+        labels[name]=int(offset,16)
+    require(set(labels)=={'await_session_release','failed'},'Missing loader wait labels')
+    start,end=labels['await_session_release'],labels['failed']
+    pc=report['boot_phase_fixture']['registers']['pc']-identity['base']
+    require(0<=start<=pc<end<=len(code),'Boot PC is outside the verified wait block')
+    return dict(pc_offset=pc-start,block=code[start:end],listing_sha256=digest(listing_path),
+                code_sha256=identity['sha256'],start=identity['base']+start)
+
+
+def compare_boot_fixture(original,candidate,a,b,control):
+    fa,fb=a['boot_phase_fixture'],b['boot_phase_fixture']
+    require(fa['stop']['cck']==fb['stop']['cck'],'Boot clock fixture differs')
+    if control!='canonical_allocated_CPU':
+        require(fa['registers']==fb['registers'],'Boot CPU fixture differs')
+        return dict(status='pass',kind='identical_raw_registers_and_clock')
+    wa,wb=_allocation_wait_fixture(original,a),_allocation_wait_fixture(candidate,b)
+    require(wa['block']==wb['block'] and wa['pc_offset']==wb['pc_offset'],
+            'Boot PCs do not name the same instruction in identical verified wait blocks')
+    require({k:v for k,v in fa['registers'].items() if k!='pc'}==
+            {k:v for k,v in fb['registers'].items() if k!='pc'},'Boot CPU registers differ')
+    for w in (wa,wb):
+        w['block_sha256']=hashlib.sha256(w.pop('block')).hexdigest()
+    return dict(status='pass',kind='same_verified_loader_wait_instruction_exact_clock_and_other_registers',
+                control=wa,candidate=wb,scope='Loader PC coordinates only; subsequent phase clocks and inputs remain exact.')
 
 
 def compare(original, candidate, title_original, title_candidate, target, *, control='original'):
@@ -389,7 +442,7 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
     paths = [original, candidate, title_original, title_candidate]
     reports = [json.loads((p/'report.json').read_text()) for p in paths]
     a, b, ta, tb = reports
-    require(control in ('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body','canonical_cpu_workspace'),'Unsupported comparison control')
+    require(control in ('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body','canonical_cpu_workspace','canonical_allocated_CPU'),'Unsupported comparison control')
     expected_a=('saved_earth_and_escaped_original_control' if control=='original' else 'saved_earth_and_escaped_relocated_cold_boot')
     require(a['status'] == expected_a and
             b['status'] == 'saved_earth_and_escaped_relocated_cold_boot', 'Incomplete cold route')
@@ -400,15 +453,15 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
         require(a['payload_sha256'] == a['config']['original_binary_sha256'], 'Original was modified')
     else:
         {'canonical_image_cursor':admit_cursor_control,'canonical_image_display':admit_display_control,
-         'canonical_allocated_body':admit_allocated_body_control,'canonical_cpu_workspace':admit_cpu_workspace_control}[control](a,b)
+         'canonical_allocated_body':admit_allocated_body_control,'canonical_cpu_workspace':admit_cpu_workspace_control,
+         'canonical_allocated_CPU':admit_allocated_CPU_control}[control](a,b)
         require(a['native_materialization']['full_prefix_verified'],'Control moved prefix not verified')
     for directory,report in zip((original,candidate),(a,b)):
         require(digest(directory/'experiment.bin')==report['payload_sha256']==report['config']['payload_sha256'],
                 'Compared payload identity changed')
     require(b['native_materialization']['full_prefix_verified'], 'Moved prefix not verified')
-    fixture_a, fixture_b = a['boot_phase_fixture'], b['boot_phase_fixture']
-    require(fixture_a['stop']['cck'] == fixture_b['stop']['cck'] and
-            fixture_a['registers'] == fixture_b['registers'], 'Boot clock/CPU fixture differs')
+    fixture_a=a['boot_phase_fixture']
+    boot_fixture=compare_boot_fixture(original,candidate,a,b,control)
     phases_a, phases_b = a['scenario']['phases'], b['scenario']['phases']
     require(len(phases_a) == len(phases_b) == 576, 'Missing route phases')
     for x, y in zip(phases_a, phases_b):
@@ -465,7 +518,7 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
     return dict(schema='pandora-output-comparison-v1',
                 status=('pass_with_original_bounds_findings' if integrity['original_bounds_findings'] else 'pass') if pcm['status'] == full_pcm['status'] == integrity['status'] == 'pass' and all(x['status'] == 'pass' for x in images) else 'mismatch',
                 comparison_control=control,profile=a['config']['profile'], matched_phases=576,
-                matched_controller_calls=len(inputs(a)), boot_release_cck=start_cck,
+                matched_controller_calls=len(inputs(a)), boot_release_cck=start_cck, boot_fixture=boot_fixture,
                 report_sha256=[digest(p/'report.json') for p in paths],
                 images=images, PCM=pcm, PCM_to_EOF=full_pcm, asset_and_DMA_integrity=integrity,
                 limits=['Representative frames only; not every frame/optional path.',
@@ -477,6 +530,8 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
                         if control=='canonical_image_display' else
                         ['Two genuinely allocator-selected body placements only; fixed-layout/OS-return comparison is separate.']
                         if control=='canonical_allocated_body' else
+                        ['Two genuinely allocator-selected CPU placements only; keyboard stays fixed. No all-path alias or successful OS-return claim.']
+                        if control=='canonical_allocated_CPU' else
                         ['Independent app/grid parent plus separate keyboard move only; not full OS ownership/return.']
                         if control=='canonical_cpu_workspace' else []))
 
@@ -485,7 +540,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('original', 'candidate', 'title-original', 'title-candidate', 'target', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
-    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body','canonical_cpu_workspace'),default='original',
+    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body','canonical_cpu_workspace','canonical_allocated_CPU'),default='original',
         help='Original reference by default; independent resource controls require identical canonical image/bootstrap and other regions')
     args = parser.parse_args()
     tool_sha=digest(Path(__file__))
