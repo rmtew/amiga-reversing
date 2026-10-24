@@ -39,3 +39,14 @@ def test_incomplete_or_wrong_ending_never_qualifies(defect):
         address={'unarmed':0x3D27,'wrong_flags':0x3D38,'health':BASE+0x4C35E,'text':BASE+0x4CAE5}[defect]
         next(r for r in selected['capture']['memory_reads'] if int(r['address'],0)==address)['bytes']='00'
     with pytest.raises(ValueError):ending_outcome(report,BASE,IMAGE_SIZE)
+
+
+def test_translated_app_reads_keep_the_same_ending_values_required():
+    report=completed();reads=report['phases'][-2]['capture']['memory_reads']
+    for read in reads:
+        if int(read['address'],0) in (0x3d27,0x3d38):read['address']=hex(int(read['address'],0)+0x2684)
+    mapper=lambda address,size:address+0x2684 if 0x39fc<=address<0xf568 else address
+    assert ending_outcome(report,BASE,IMAGE_SIZE,address_mapper=mapper)['saved_earth']
+    next(r for r in reads if int(r['address'],0)==0x3d27+0x2684)['bytes']='00'
+    with pytest.raises(ValueError,match='Earth/escape state differs'):
+        ending_outcome(report,BASE,IMAGE_SIZE,address_mapper=mapper)

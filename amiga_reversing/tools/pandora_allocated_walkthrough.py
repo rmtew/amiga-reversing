@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import sys
 _PRELOADED = any('amiga_reversing.tools.'+name in sys.modules for name in
-    ('runtime_allocation','direct_payload_adapter','copperline_runtime','pandora_layout_runtime'))
+    ('runtime_allocation','direct_payload_adapter','copperline_runtime','observed_layout_mapping','pandora_layout_runtime'))
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -22,11 +22,11 @@ from amiga_reversing.disasm.behaviour_validation import LoadedSource
 from amiga_reversing.disasm.c_backend import build_project_listing_artifact_profile
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.restoration import revisions
-from amiga_reversing.tools import runtime_allocation, direct_payload_adapter, copperline_runtime, pandora_layout_runtime
+from amiga_reversing.tools import runtime_allocation, direct_payload_adapter, copperline_runtime, observed_layout_mapping, pandora_layout_runtime
 from amiga_reversing.tools.pandora_layout_walkthrough import TARGET,build_from_export
 
 _SOURCES=[LoadedSource(module.__file__) for module in
-    (runtime_allocation,direct_payload_adapter,copperline_runtime,pandora_layout_runtime)]
+    (runtime_allocation,direct_payload_adapter,copperline_runtime,observed_layout_mapping,pandora_layout_runtime)]
 _SOURCES += [LoadedSource(__file__)] + [LoadedSource(PROJECT_ROOT/'tools'/name) for name in
     ('amiga_direct_payload_bootblock.s','amiga_runtime_allocation.i','amiga_runtime_allocation_unwind.i')]
 

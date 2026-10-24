@@ -31,14 +31,15 @@ def runtime_context(config):
     return image,bootstrap
 
 
-def ending_outcome(scenario,runtime_base,image_size):
+def ending_outcome(scenario,runtime_base,image_size,address_mapper=None):
     phases=scenario['phases'];require(len(phases)==576 and all(p['status']=='hit' for p in phases),'Incomplete ending route')
     require(all(p['pc']==p['address'] and runtime_base<=int(p['pc'],0)<runtime_base+image_size for p in phases),'Unmoved phase execution')
     selected=phases[-2];require(selected['name']=='es_saved_earth_outcome_selected' and int(selected['pc'],0)==runtime_base+0x4C9DC,'Wrong ending selection')
     require(phases[-1]['name']=='es_escape_commit_inhibited' and int(phases[-1]['pc'],0)==runtime_base+0x4C99C,'Escape not committed')
     capture=selected['capture'];require(int(capture['registers']['a0'],0)==runtime_base+0x4CAE5,'Wrong ending message')
     reads={int(r['address'],0):bytes.fromhex(r['bytes']) for r in capture['memory_reads']}
-    require(reads[0x3D27]==b'\xff' and reads[0x3D38]==b'\x5c','Earth/escape state differs')
+    map_address=address_mapper or (lambda address,size:address)
+    require(reads[map_address(0x3D27,1)]==b'\xff' and reads[map_address(0x3D38,1)]==b'\x5c','Earth/escape state differs')
     require(reads[runtime_base+0x4C35E]==b'\x00\x31' and reads[runtime_base+0x4CAE5]==b'CONGRATU','Health or saved-Earth text differs')
     require(all(r['outcome']=='acknowledged' for r in scenario['input_trace']),'Uncertain controller input')
     return {'saved_earth':True,'escaped':True,'health':49,'message_pointer':runtime_base+0x4CAE5,
@@ -60,7 +61,11 @@ def summarize_dma(directory,context,expected_frames=3):
             if not 1<=size<=8:continue
             engine=KINDS.get(kind,'unknown')
             old_start=context['original_address'];active=context['runtime_address'];size_of_image=context['size']
+            other_live=any(not r.get('parent_region_id') and r.get('region_kind')!='image'
+                           and r['runtime_address']<=address and address+size<=r['runtime_address']+r['size']
+                           for r in context.get('runtime_regions',[]))
             domain=('active_image' if address<active+size_of_image and address+size>active else
+                    'active_resource' if other_live else
                     'abandoned_image' if active!=old_start and address<old_start+size_of_image and address+size>old_start else 'fixed_or_other')
             counts[engine,domain]+=1
             if domain=='abandoned_image' and len(old)<32:old.append({'frame':frame['frame'],'engine':engine,'address':address,'width':size})
@@ -75,6 +80,7 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
     from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract,build_boot_adf
     from amiga_reversing.tools.copperline_control import CopperlineProcess,MACHINE_PROFILES
     from amiga_reversing.tools.copperline_runtime import wait_for_marker,verify_handoff,release_handoff,wait_for_pc,run_scenario
+    from .observed_layout_mapping import observed_address,abandoned_ranges
     config=copy.deepcopy(config)
     allocation=config.get('runtime_allocation')
     if allocation is not None:
@@ -134,25 +140,31 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 if offset==continuation:
                     require(client.read_memory(runtime_base,prefix_size)==expected_payload[:prefix_size],'Native moved copy differs')
                     report['native_materialization']={'address':runtime_base,'size':prefix_size,'sha256':hashlib.sha256(expected_payload[:prefix_size]).hexdigest(),'full_prefix_verified':True}
+            def install_vacated_guards(address,size):
+                watches=[]
+                for start,length in abandoned_ranges(config['layout_plan'],address,size):
+                    watch={'kind':'mmio','addr':start,'len':length,'access':'access'}
+                    ident=client.request('break.add',watch)['id']
+                    readback=client.request('break.list')
+                    require(any(r.get('id')==ident and all(r.get(k)==v for k,v in watch.items())
+                                for r in readback['breaks']),'Abandoned CPU guard readback differs')
+                    watches.append(watch)
+                return {'CPU_data':watches[0] if len(watches)==1 else None,'CPU_ranges':watches,
+                        'DMA_covered':False,'readback':client.request('break.list'),
+                        'exclusion_scope':'Current canonical root backing is live RAM, including partial old-range reuse; excluded portions are not watched for stale references.'}
             if runtime_base!=old_start:
-                watch={'kind':'mmio','addr':old_start,'len':prefix_size,'access':'access'}
-                ident=client.request('break.add',watch)['id']
+                report['guards']=install_vacated_guards(old_start,prefix_size)
                 for address in [old_start,old_start+continuation]:client.add_breakpoint(address)
-                report['guards']={'CPU_data':watch,'fallback_PC_sentinels':[old_start,old_start+continuation],'all_instruction_fetches_covered':False,'DMA_covered':False,'readback':client.request('break.list')}
-                require(any(r.get('id')==ident and all(r.get(k)==v for k,v in watch.items()) for r in report['guards']['readback']['breaks']),'Old data guard readback differs')
+                report['guards'].update(fallback_PC_sentinels=[old_start,old_start+continuation],all_instruction_fetches_covered=False)
             else:report['guards']={'original_control':True,'reason':'Original materialized range is intentionally live.'}
             report['resource_guards']=[]
             for region in config['layout_plan']['regions']:
-                if(region.get('parent_region_id') or (region.get('region_kind') not in ('workspace','display') and
+                if(region.get('parent_region_id') or (region.get('region_kind') not in ('storage','workspace','display') and
                          (not allocation or region['region_id']!=allocation['plan']['region_id'])) or
                         region['runtime_address']==region['original_address']):continue
-                watch={'kind':'mmio','addr':region['original_address'],'len':region['size'],'access':'access'}
-                ident=client.request('break.add',watch)['id']
-                readback=client.request('break.list')
-                require(any(r.get('id')==ident and all(r.get(k)==v for k,v in watch.items()) for r in readback['breaks']),
-                    'Abandoned resource CPU guard readback differs')
-                report['resource_guards'].append({'region_id':region['region_id'],'CPU_data':watch,
-                    'runtime_address':region['runtime_address'],'DMA_covered':False,'readback':readback})
+                record=install_vacated_guards(region['original_address'],region['size'])
+                record.update(region_id=region['region_id'],runtime_address=region['runtime_address'])
+                report['resource_guards'].append(record)
             scenario=copy.deepcopy(load(scenario_path))
             report['input_scenario']={'sha256':sha(scenario_path),'phases':len(scenario['phases']),
                 'scope':'Existing compiled normal-input route; runtime mapping is adapted below.'}
@@ -169,10 +181,10 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 require(stop_after=='title_menu_loop' and type(title_visits) is int and 1<=title_visits<=240,'Title-only frame bound required')
             view={'base_addr':runtime_base,'source_start':0,'source_end':prefix_size,'runtime_base':runtime_base,
                 'execution_view_id':'normal-layout-'+config['layout_plan_sha256']}
-            def moved(address):return runtime_base+address-old_start if old_start<=address<old_end else address
+            def moved(address,size=1):return observed_address(config['layout_plan'],address,size)
             def update_read(read):
                 address=read.get('address')
-                if address is not None:read['address']=moved(address)
+                if address is not None:read['address']=moved(address,read.get('size',1))
                 # Only explicit pointer-typed field expectations. Never scan
                 # XY/item/table bytes for address-looking scalar values.
                 if 'expect_hex' in read and address in (0x3B9A,0x3B9E,0x3BBA):
@@ -201,7 +213,7 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                     queue.append(message)
                 def __iter__(self):return iter(queue)
             client.events=Sink()
-            heartbeat={'addr':0x3B9A,'len':4,'access':'write'}
+            heartbeat={'addr':moved(0x3B9A,4),'len':4,'access':'write'}
             client.request('events.subscribe',{'events':['mmio'],'mmio':[heartbeat]})
             report['loss_monitor']={'filter':heartbeat,'readback':client.request('events.list'),'counters':loss}
             import amiga_reversing.tools.copperline_runtime as runtime
@@ -211,7 +223,8 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 nonlocal active
                 if active is not None:
                     client.request('profile.stop')
-                    record={'phase':active['name'],**summarize_dma(active['path'],image,active.get('profile_frames',3))}
+                    context=dict(image,runtime_regions=config['layout_plan']['regions'])
+                    record={'phase':active['name'],**summarize_dma(active['path'],context,active.get('profile_frames',3))}
                     if active.get('resource'):
                         record['directory']=active['path'].name;resource_dma.append(record)
                     else:dma.append(record)
@@ -254,11 +267,11 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                     if result['name'] in ('inventory_open','take_engineer_card_ready','take_sonicdriver_ready'):
                         cursor=next(r for r in config['layout_plan']['regions'] if r['region_id']=='pandora_cursor_sprites')
                         buffer=client.read_memory(cursor['runtime_address'],cursor['size'])
-                        pointers=client.read_memory(0x3C08,8)
+                        pointers=client.read_memory(moved(0x3C08,8),8)
                         resource_snapshots.append({'phase':result['name'],'frame':event['frame'],'cck':event['cck'],
                             'pc':result['pc'],'registers':client.registers(),'buffer_address':cursor['runtime_address'],
                             'buffer_size':cursor['size'],'buffer_sha256':hashlib.sha256(buffer).hexdigest(),'buffer_hex':buffer.hex(),
-                            'app_pointer_slot_address':0x3C08,'app_pointer_values':[int.from_bytes(pointers[i:i+4],'big') for i in (0,4)],
+                            'app_pointer_slot_address':moved(0x3C08,8),'app_pointer_values':[int.from_bytes(pointers[i:i+4],'big') for i in (0,4)],
                             'scope':'Stopped phase snapshot, not a CPU memory-access event.'})
                         if result['name']=='inventory_open':
                             require(active is None,'Overlapping resource/output DMA profiles')
@@ -276,14 +289,15 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
             if stop_after and all(p['status']=='hit' for p in report['scenario']['phases']):
                 finish_profile();report['status']='bounded_output_prefix_complete';report['prefix_end']=stop_after
             if len(report['scenario']['phases'])==576 and all(p['status']=='hit' for p in report['scenario']['phases']):
-                report['ending']=ending_outcome(report['scenario'],runtime_base,prefix_size)
+                report['ending']=ending_outcome(report['scenario'],runtime_base,prefix_size,address_mapper=moved)
                 require(loss['events']>0 and loss['dropped_events']==loss['dropped_notifications']==0,'Incomplete event loss accounting')
                 if inspect_output:
                     finish_profile();directory=out/'dma-ending'
                     client.request('profile.start',{'path':str(directory),'frames':3,'slots':True,'memory':False,'screenshots':'none','pc_samples':True})
                     stop=client.run_until({'frame':report['ending']['final_frame']+30},timeout=30)
                     require(stop.get('reason')=='target','Unexpected access during post-ending observation')
-                    client.request('profile.stop');dma.append({'phase':'post_ending',**summarize_dma(directory,image)})
+                    context=dict(image,runtime_regions=config['layout_plan']['regions'])
+                    client.request('profile.stop');dma.append({'phase':'post_ending',**summarize_dma(directory,context)})
                     image=out/'saved-earth.png';media.append({'phase':'post_ending','frame':stop['frame'],'capture':client.request('capture.screenshot',{'path':str(image),'native':True}),'sha256':sha(image)})
                     report['post_ending_stop']=stop
                 if allocation:

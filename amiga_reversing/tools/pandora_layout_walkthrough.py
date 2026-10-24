@@ -71,7 +71,7 @@ def seed_copies(plan, original, assembled=None):
 
 def loader_family_context(payload, original, assembled, family):
     """Use one explicit pre-entry seed program in every comparison control."""
-    from amiga_reversing.tools.direct_payload_adapter import normalize_seed_copies, seed_reservation_spans
+    from amiga_reversing.tools.direct_payload_adapter import normalize_seed_copies, seed_reservation_spans, rounded_reservation_span
     plan=payload['layout_plan']
     plans={plan['layout_id']:(payload['layout_plan_sha256'],plan)}
     for member in family:
@@ -83,7 +83,13 @@ def loader_family_context(payload, original, assembled, family):
     program=normalize_seed_copies(tuple(copy for _,member in plans.values()
         for copy in seed_copies(member,original,assembled)),
         payload_size=len(original),load_address=plan['bootstrap']['load_address'])
-    reservations=tuple(sorted(set(seed_reservation_spans(program))))
+    # Own independently moved CPU workspace backing before I/O. Consume the
+    # native extents; this does not choose placements or initialize unknown RAM.
+    workspace_spans={rounded_reservation_span(r['runtime_address'],r['size'])
+        for _,member in plans.values() for r in member['regions']
+        if not r.get('parent_region_id') and r.get('region_kind')=='workspace'
+        and r['runtime_address']!=r['original_address']}
+    reservations=tuple(sorted(set(seed_reservation_spans(program))|workspace_spans))
     identities=[dict(layout_id=k,layout_plan_sha256=v[0]) for k,v in sorted(plans.items())]
     return selected,program,reservations,identities
 

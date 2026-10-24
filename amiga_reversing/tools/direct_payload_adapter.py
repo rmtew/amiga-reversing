@@ -187,9 +187,14 @@ def normalize_seed_copies(copies, *, payload_size=None, load_address=None):
     return tuple(merged)
 
 
+def rounded_reservation_span(address, size):
+    """Exec ownership rounding, not a claim about padding byte purposes."""
+    return address & ~7, ((address+size+7)&~7)-(address&~7)
+
+
 def seed_reservation_spans(copies):
     """Exec ownership rounding is not an assertion about extra byte purposes."""
-    return tuple(((address & ~7), ((address+size+7)&~7)-(address&~7))
+    return tuple(rounded_reservation_span(address,size)
                  for _,address,size in normalize_seed_copies(copies))
 
 

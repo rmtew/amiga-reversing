@@ -1957,6 +1957,14 @@
           "0cfb185bec7c09d961365c0b1016917be7557ba5480c919ec54d45465477344d",
           "0cfb185bec7c09d961365c0b1016917be7557ba5480c919ec54d45465477344d"
         ]
+      },
+      {
+        "phase": "settled_title_180_frames",
+        "equal": true,
+        "sha256": [
+          "848e4ef01ef7b3dbf1a893cbb66a01fd139698968f9e2a3b345388da52823ff1",
+          "848e4ef01ef7b3dbf1a893cbb66a01fd139698968f9e2a3b345388da52823ff1"
+        ]
       }
     ],
     "PCM": {
@@ -1983,7 +1991,11 @@
     },
     "limits": [
       "Allocation loader changes pre-GO CPU/loader context; the strict whole-boot comparator is not admitted for this pair.",
-      "Seven selected frames here; settled-title eighth point is qualified between the two allocated cases, not remeasured against fixed E."
+      "Eight selected frames including an exact 180-frame settled title; not continuous pixel comparison."
+    ],
+    "settled_title_report_sha256": [
+      "d8134310381dfb3d5f160137d2bb1e228ac45135392656fa5f305487b9a315fe",
+      "344819ecf3ee2e0cc7a585e79451ec74ce820ed946545219da221d197937082d"
     ]
   },
   "collision_fix": {
@@ -2005,24 +2017,37 @@
         "region": "keyboard_state",
         "address": 14712,
         "size": 136,
-        "returned": 0
+        "returned": 0,
+        "canonical_semantic_extent": {
+          "address": 14716,
+          "size": 128
+        }
       },
       {
         "region": "pandora_raster_row_offsets",
         "address": 14840,
         "size": 408,
-        "returned": 0
+        "returned": 0,
+        "canonical_semantic_extent": {
+          "address": 14844,
+          "size": 400
+        }
       },
       {
         "region": "world_tilemap_pointer_grid",
         "address": 16384,
         "size": 46440,
-        "returned": 0
+        "returned": 0,
+        "canonical_semantic_extent": {
+          "address": 16384,
+          "size": 46440
+        }
       }
     ],
     "source_sha256": "8055ec5d704f5887571f8e267c250a20671e9be20f2c9899370731632bb990b9",
     "report_sha256": "7744c7c37119d6cb0f4b9423cfc3906f136a21b94228a022611eb0a09ed8b0c7",
-    "consequence": "All three fixed low-workspace AllocAbs requests return NULL on the declared ECS/Kick13 boot profile. No game was entered and no failed address was written or freed. Canonical CPU workspace movement is required before claiming those ranges as OS-owned."
+    "consequence": "All three fixed low-workspace AllocAbs requests return NULL on the declared ECS/Kick13 boot profile. No game was entered and no failed address was written or freed. Canonical CPU workspace movement is required before claiming those ranges as OS-owned.",
+    "lease_extent_note": "Request sizes are eight-byte Exec ownership rounding, not semantic extents or evidence of object aliases. The keyboard/raster leases overlap only due to rounding."
   },
   "preservation": {
     "original_payload_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
@@ -2037,5 +2062,10 @@
     "Four consumer WORDs were outside the observed DMA window; the 1148 observed reads match preceding captured producer values. No claim about intervening uncaptured writes.",
     "Eight selected frames and captured PCM are bounded output evidence, not every frame or optional asset.",
     "The original-to-image eight-CCK startup criterion remains unfulfilled and was not reopened."
-  ]
+  ],
+  "current_model_note": {
+    "status": "historical_observations_retained_placement_assumptions_superseded",
+    "evidence": "pandora-canonical-cpu-workspace-qualification.json",
+    "reason": "The recorded conditional grid-end probe at F5AE intersects both historical body allocations. Current admission must use the expanded canonical backing/protected footprint; prior output observations are not reclassified as failures."
+  }
 }

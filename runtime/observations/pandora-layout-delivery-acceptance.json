@@ -50,20 +50,24 @@
     {
       "id": "M4",
       "status": "independent_block_functional_and_scoped_output_acceptance_evidenced",
-      "delivered": "140-byte cursor workspace independently at E0000; image fixed at80000. Cold 576-phase completion HP49/frame14353; controlled cursor/image comparison matches 576 phase clocks,509 controller calls,eight frames,24726568 float samples.",
+      "delivered": "Independent cursor move, independent display E0000 and combined image80000/displayE0000/keyboard6000/app6080/grid6684 have bounded cold completion and exact selected graphics/PCM evidence.",
       "evidence": [
         "pandora-canonical-workspace-qualification.json",
-        "pandora-canonical-cursor-output.json"
+        "pandora-canonical-cursor-output.json",
+        "pandora-canonical-display-qualification.json",
+        "pandora-canonical-cpu-workspace-qualification.json"
       ],
-      "limits": "Six core plus two inventory DMA samples, not all DMA/assets/optional routes. Unchanged eight null-sprite WORD reads at0/2 stay outside certified bounds. Display naturally modeled but not independently moved."
+      "limits": "Eight selected frames and sampled DMA, not all optional paths. NULL sprite0/2 findings remain explicit. Original-to-image strict HAND criterion remains unfulfilled."
     },
     {
       "id": "M5",
-      "status": "bounded_body_allocation_first_cold_completion_second_and_output_pending",
-      "delivered": null,
-      "limits": "One bounded runtime-only LONG-data owner; successful lease held through post-ending observation. Two-layout output and unheld qualification are pending; OS return is not implemented.",
+      "status": "body_mechanism_evidenced_historical_placement_assumptions_superseded_CPU_allocation_pending",
+      "delivered": "Native typed LONG-data plan, actual-base validation, guest allocation/fixup and tested pre-entry unwind. Two historical allocations passed scoped output; subsequent conditional-probe evidence restricts current placements.",
+      "limits": "CPU operand fixups and allocator-selected CPU ownership remain next. No successful DMA-quiescent OS return; old body bases are not current independent-placement approvals.",
       "evidence": [
-        "pandora-runtime-allocation-implementation.json"
+        "pandora-runtime-allocation-implementation.json",
+        "pandora-runtime-allocation-qualification.json",
+        "pandora-canonical-cpu-workspace-qualification.json"
       ]
     },
     {
@@ -123,7 +127,7 @@
     "wall_seconds": 201.8518994320002,
     "meaning": "Fresh final-source export and current C assembly equal retained original package and its independent vasm output; no redundant vasm invocation or gameplay rerun."
   },
-  "next_implementation_candidate": "Finish M5 second allocation/output/unheld and bounded body DMA qualification, then establish the concrete ownership/bootstrap/exit contracts for M6.",
+  "next_implementation_candidate": "Native generated absolute-operand fixups and actual allocator-selected app/grid bases with width/bounds admission, then persistent startup/exit ownership and DMA-safe OS return. Preserve the independent keyboard contract and original exact export.",
   "independent_display": {
     "evidence": "pandora-canonical-display-qualification.json",
     "profile": "pandora_display_e0000_ecs1m",
@@ -134,5 +138,11 @@
     "cursor": 414576,
     "simultaneous_cursor_move": false,
     "status": "scoped_functional_and_output_qualification"
+  },
+  "independent_cpu_workspace": {
+    "status": "fixed_placement_qualified",
+    "evidence": "pandora-canonical-cpu-workspace-qualification.json",
+    "semantic_grid_size_unchanged": true,
+    "original_unknown_byte_credit": 0
   }
 }

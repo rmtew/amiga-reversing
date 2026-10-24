@@ -309,30 +309,42 @@ def compare_resource_prefix(original,candidate,target):
                 scope='Matched bounded inventory prefix, three stopped snapshots and two complete DMA frames per layout; not full gameplay or CPU access-event coverage.')
 
 
-def _admit_region_control(a,b,root):
-    """Admit one translated owner family; preserve all other contracts."""
+def _admit_region_controls(a,b,roots):
+    """Admit only the explicitly moved families; preserve every other contract."""
     import copy
     ca,cb=a['config'],b['config']
     require(ca.get('normal_layout_export') and cb.get('normal_layout_export') and
             not ca['original_control'] and not cb['original_control'], 'Canonical image controls required')
     require(ca['assembly_base']==cb['assembly_base'] and ca['original_binary_sha256']==cb['original_binary_sha256'],
-            'Cursor control changed image placement or original input')
+            'Resource control changed image placement or original input')
     pa,pb=ca['layout_plan'],cb['layout_plan']
-    require(pa['bootstrap']==pb['bootstrap'] and pa['chip_bytes']==pb['chip_bytes'],'Cursor control changed bootstrap/profile')
+    require(pa['bootstrap']==pb['bootstrap'] and pa['chip_bytes']==pb['chip_bytes'],'Resource control changed bootstrap/profile')
     ra={r['region_id']:r for r in pa['regions']};rb={r['region_id']:r for r in pb['regions']}
-    require(set(ra)==set(rb) and root in ra,'Cursor control region inventory differs')
-    family={root}
-    for _ in ra:
-        family.update(rid for rid,r in ra.items() if r.get('parent_region_id') in family)
-    delta=rb[root]['runtime_address']-ra[root]['runtime_address']
-    require(delta!=0,'No independent cursor movement')
+    require(set(ra)==set(rb) and all(root in ra for root in roots),'Resource control region inventory differs')
+    deltas={}
+    for root in roots:
+        require(not ra[root].get('parent_region_id'),'Independent control must name a root')
+        family={root}
+        for _ in ra:family.update(rid for rid,r in ra.items() if r.get('parent_region_id') in family)
+        delta=rb[root]['runtime_address']-ra[root]['runtime_address']
+        require(delta!=0,'No independent resource movement')
+        for rid in family:
+            require(rid not in deltas,'Overlapping independent control families')
+            deltas[rid]=delta
     for rid in ra:
         x,y=copy.deepcopy(ra[rid]),copy.deepcopy(rb[rid])
-        if rid in family:
-            y['runtime_address']-=delta
-            if 'loader_seed' in y:y['loader_seed']['runtime_address']-=delta
-        require(x==y,'Cursor control changed another region or contract: '+rid)
+        if rid in deltas:
+            y['runtime_address']-=deltas[rid]
+            if 'loader_seed' in y:y['loader_seed']['runtime_address']-=deltas[rid]
+        require(x==y,'Resource control changed another region or contract: '+rid)
 
+
+def _admit_region_control(a,b,root):
+    return _admit_region_controls(a,b,(root,))
+
+
+def admit_cpu_workspace_control(a,b):
+    return _admit_region_controls(a,b,('pandora_cpu_workspace','keyboard_state'))
 
 
 def admit_cursor_control(a,b):
@@ -377,7 +389,7 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
     paths = [original, candidate, title_original, title_candidate]
     reports = [json.loads((p/'report.json').read_text()) for p in paths]
     a, b, ta, tb = reports
-    require(control in ('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body'),'Unsupported comparison control')
+    require(control in ('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body','canonical_cpu_workspace'),'Unsupported comparison control')
     expected_a=('saved_earth_and_escaped_original_control' if control=='original' else 'saved_earth_and_escaped_relocated_cold_boot')
     require(a['status'] == expected_a and
             b['status'] == 'saved_earth_and_escaped_relocated_cold_boot', 'Incomplete cold route')
@@ -388,7 +400,7 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
         require(a['payload_sha256'] == a['config']['original_binary_sha256'], 'Original was modified')
     else:
         {'canonical_image_cursor':admit_cursor_control,'canonical_image_display':admit_display_control,
-         'canonical_allocated_body':admit_allocated_body_control}[control](a,b)
+         'canonical_allocated_body':admit_allocated_body_control,'canonical_cpu_workspace':admit_cpu_workspace_control}[control](a,b)
         require(a['native_materialization']['full_prefix_verified'],'Control moved prefix not verified')
     for directory,report in zip((original,candidate),(a,b)):
         require(digest(directory/'experiment.bin')==report['payload_sha256']==report['config']['payload_sha256'],
@@ -464,14 +476,16 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
                         ['Independent display-family move only; not original-to-image or all-path qualification.']
                         if control=='canonical_image_display' else
                         ['Two genuinely allocator-selected body placements only; fixed-layout/OS-return comparison is separate.']
-                        if control=='canonical_allocated_body' else []))
+                        if control=='canonical_allocated_body' else
+                        ['Independent app/grid parent plus separate keyboard move only; not full OS ownership/return.']
+                        if control=='canonical_cpu_workspace' else []))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('original', 'candidate', 'title-original', 'title-candidate', 'target', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
-    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body'),default='original',
+    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body','canonical_cpu_workspace'),default='original',
         help='Original reference by default; independent resource controls require identical canonical image/bootstrap and other regions')
     args = parser.parse_args()
     tool_sha=digest(Path(__file__))

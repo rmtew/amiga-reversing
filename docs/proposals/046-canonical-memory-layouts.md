@@ -5,21 +5,62 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
-### M5 qualification: two allocator-selected body placements
+### CPU workspace plus display: qualified fixed placement
+
+[Current qualification](../../runtime/observations/pandora-canonical-cpu-workspace-qualification.json)
+combines image `$80000`, display `$E0000..$ED000`, independent keyboard `$6000`
+and app/raster base `$6080` with grid `$6684`. The app/grid parent preserves the
+actual `APP_STATE_BASE + $604 == grid base` alias. Keyboard remains a separate
+root; physical adjacency or rounded lease overlap is not mandatory co-placement.
+Normal export and C/vasm agree. Both controlled roles complete all 576 phases at
+HP49/frame14465; the unheld candidate completes at HP49/frame14353. Phase clocks,
+509 controller calls, eight RGBA frames and 24,726,568 float32 PCM samples through
+EOF match exactly. The two event-loss counters are zero. Current framework and
+independent vasm checks reproduce all 376,832 original bytes; tracked source is
+unchanged. 120 focused tests pass, without skips.
+
+The first moved run stopped at frame1999: source `$2904` read `$11C32` from
+A4=`$11BEC`. This is the already-documented stale-A4 inventory path, not a new
+table. Grid extent stays unchanged at `$4000..$F568`. Only parent backing now
+extends through the conditional byte `$F5AE` (exclusive `$F5AF`), translated to
+`$11C32` (exclusive `$11C33`). The intervening suffix is unclassified; no seed,
+new producer, bit-7 consumer or original-file classification credit is invented.
+Changing this envelope changes zero game bytes. Both earlier failure and passing
+captures are retained privately with published identities.
+
+Observation reads and typed pointer expectations consume native coordinates.
+CPU guards exclude only explicitly live canonical roots and report excluded
+reuse as uncovered; they are not complete fetch or DMA coverage. Core-region
+changes cost a new native baseline (202.4s for the envelope correction); the
+layout-only projection reused its frozen plan in22.7s. No second planner or
+rendered-text patch engine was added.
+
+This is fixed placement with pre-I/O Exec backing. Next: native generated
+operand fixups and allocator-returned CPU bases, preserving the low-address
+encoding limits, then persistent ownership/entry/cleanup. Other low scratch,
+vectors/hardware lifecycle and successful OS return remain open. The original-
+to-image eight-CCK criterion remains unfulfilled. No all-path claim is made.
+
+### Historical M5 body-allocation qualification
 
 [Qualification and exact evidence identities](../../runtime/observations/pandora-runtime-allocation-qualification.json)
-record real Exec-selected `$F568` and `$F5A8` placements for the 2,304-byte body
+record real Exec-selected `$F568` and `$F5A8` placements under the earlier model for the 2,304-byte body
 snapshot. Both complete all 576 phases, saving Earth and escaping at HP49 / frame
 14465. The strict pair matches all phase clocks, 509 controller calls, eight
 selected RGBA frames and 24,726,568 float32 PCM samples through EOF, without
 alignment fitting or tolerances. Both loss counters are zero. This is the same
 1-MiB Chip/ECS profile, image80000/displayE0000/cursor65370, not arbitrary placement.
 
+The current model adds the conditional grid-end probe `$F5AE` above. Both old
+body bases overlap that footprint, so their independent-placement assumptions
+are superseded. Recorded route/output observations remain historical evidence;
+new allocation admission must consume the updated canonical plan.
+
 The finite body DMA episode captures 1,152 producer WORD writes and 1,148 consumer
 WORD reads; every observed read matches its preceding captured write. Four reads
 are outside the recorded consumer window. No old-body access was observed in
 these windows. No claim of all-callers lifetime or no intervening unrecorded write
-is made. A separate fixed-E measurement matches seven selected frames and captured
+is made. A separate fixed-E measurement matches eight selected frames and captured
 post-GO PCM; its different pre-GO CPU fixture is explicit, not a strict boot pass.
 
 Review found and reproduced a second-collision unwind bug: the first scratch
@@ -37,11 +78,11 @@ Original source and its retained full C/vasm exact receipt are unchanged. The
 owner/scratch remain leased through post-ending observation; normal OS return,
 DMA-quiescent successful cleanup and ownership of all fixed RAM are still pending.
 A loader-only next-step probe returns NULL for fixed keyboard, raster-table and
-grid leases. Next: connected CPU workspace/alias movement before OS-safe takeover;
-not blind fixed-memory acquisition. M5/M6 and all-path closure are not claimed.
+grid leases. The connected fixed CPU movement is now qualified above; allocator-
+selected CPU placement and OS-safe takeover remain next. M5/M6 and all-path closure are not claimed.
 The separate original-to-image eight-CCK criterion remains unfulfilled.
 
-### Active display continuation
+### Earlier display continuation (qualified)
 
 [Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
 now records the normal-export E0000..ED000 display group, independently of image
@@ -64,9 +105,8 @@ The historical D8000 comparator remains a 14-pixel mismatch and that placement
 now refuses. No timing padding, cropping, tolerance or extra seed was used.
 Original full C/vasm remains exact (`743e95a4…`). This does not resolve the separate
 original-to-image eight-CCK pre-GO finding, certify all paths, qualify simultaneous
-cursorE0000/display movement, or implement allocation/OS cleanup. The next
-allocation candidate under inspection is the 2,304-byte body-background owner and
-its typed bitmap pointer, with blitter completion/lifetime explicitly required.
+cursorE0000/display movement, or implement allocation/OS cleanup. The later body-allocation evidence and combined
+CPU movement are described above; allocator-selected CPU placement is next.
 
 Historical causal failures and their canonical repairs remain in
 [the live-pointer receipt](../../runtime/observations/pandora-display-live-pointer-constraint.json),
@@ -96,8 +136,8 @@ admitted for the game: both overlap the fixed world-pointer grid `$4000..$F568`.
 The diagnostic never starts Pandora or patches its pointer. This is capability
 and collision evidence, not two successful M5 layouts or OS-friendly loading.
 
-The next implementation slice is an explicit allocation/lease and typed-fixup
-contract: acquire or avoid live fixed ranges, validate the actual returned base
+That preparation led to the historical body allocation above. Its required
+contract was: acquire or avoid live fixed ranges, validate the actual returned base
 with the canonical planner, apply only reviewed typed source-coordinate fixups,
 verify initialized materialization, and unwind owned resources on failure.
 The body's capture and restore routines return before the new blit completes;

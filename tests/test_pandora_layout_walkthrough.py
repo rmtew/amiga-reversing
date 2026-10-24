@@ -117,3 +117,16 @@ def test_runtime_observer_consumes_native_context_and_refuses_legacy_or_stale_bo
     assert image['runtime_address']==0x10000 and bootstrap['load_address']==0x20000
     for field,value in [('normal_layout_export',False),('layout_plan_sha256','old'),('assembly_base',0x80000),('copied_prefix_bytes',3)]:
         with pytest.raises(ValueError):runtime_context(config|{field:value})
+
+
+def test_moved_cpu_backing_is_owned_without_inventing_seed_bytes():
+    original,data=fixture()
+    original['layout_plan']['regions'].append(dict(region_id='cpu',region_kind='workspace',
+        original_address=0x397c,runtime_address=0x397c,size=0xbbec))
+    bind(original)
+    moved=copy.deepcopy(original);moved['layout_id']=moved['layout_plan']['layout_id']='cpu_moved'
+    moved['layout_plan']['regions'][-1]['runtime_address']=0x6000;bind(moved)
+    selected,program,reservations,_=loader_family_context(moved,data,data,[original])
+    assert selected==program==()
+    assert reservations==((0x6000,0xbbf0),)
+    assert loader_family_context(original,data,data,[moved])[2]==reservations

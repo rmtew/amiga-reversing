@@ -29,9 +29,14 @@ completion and scoped graphics/PCM equality. The
 now has [two allocator-selected completions and scoped output qualification](../../runtime/observations/pandora-runtime-allocation-qualification.json)
 for the body snapshot at `$F568`/`$F5A8`, plus a corrected-loader unheld cold
 completion. Native actual-base validation and tested failure unwind are implemented.
-Fixed keyboard/raster/grid lease probes return NULL; connected CPU workspace
-movement is the next OS-ownership prerequisite. Successful OS
-return/cleanup and ownership of the remaining fixed game RAM are not.
+The [combined CPU-workspace/display layout](../../runtime/observations/pandora-canonical-cpu-workspace-qualification.json)
+now qualifies independent keyboard `$6000`, app/raster `$6080` and grid `$6684`
+through controlled and unheld completion plus exact scoped graphics/PCM. Its
+conditional grid-end byte is backing only, not new semantic data. That footprint
+supersedes independent placement assumptions for the two historical body bases;
+their observed outputs remain recorded. Next: allocator-selected CPU bases and
+native generated operand fixups, then successful DMA-safe cleanup and OS return.
+Other low scratch and hardware/vector ownership remain open.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

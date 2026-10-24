@@ -87,3 +87,15 @@ def test_another_old_owner_alias_is_not_inferred_as_a_fixup(tmp_path):
         assert a.runtime_allocation_plan('body','diagnostic')==dict(
             status='refused',reason='unbound_runtime_alias_of_allocation_owner')
     finally:a.close()
+
+
+@pytest.mark.parametrize('base,expected',[(0xf568,'refused'),(0xf5a8,'refused'),(0xf5b0,'actual_placement_valid')])
+def test_grid_end_probe_byte_must_not_alias_an_independent_body_lease(tmp_path,base,expected):
+    # Existing stale-A4 inventory path reads grid_end + $46. A BYTE footprint
+    # excludes both historical body bases without extending the grid itself.
+    artifact=fixture(tmp_path,extra_runtime_extent=(0xf568+0x46,1))
+    try:
+        result=artifact.runtime_allocation_plan('body','diagnostic',base)
+        assert result['status']==expected
+        if expected=='refused':assert result['reason']=='allocator_result_overlaps_protected_runtime_extent'
+    finally:artifact.close()
