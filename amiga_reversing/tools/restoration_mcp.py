@@ -185,6 +185,13 @@ def create_server(client: RestorationClient):
         return call(project, "memory_plan", expected_revision=expected_revision, region_id=region_id,
                     destination=destination, memory_class=memory_class)
 
+    @server.tool(annotations=read, structured_output=True)
+    def restoration_allocation_plan(project: str, expected_revision: str, region_id: str,
+                                    layout_id: str, actual_base: int | None = None) -> dict[str, object]:
+        """Get bounded typed-data fixups or validate an actual allocator return natively."""
+        return call(project, "allocation_plan", expected_revision=expected_revision,
+                    region_id=region_id, layout_id=layout_id, actual_base=actual_base)
+
     @server.tool(annotations=write, structured_output=True)
     def restoration_memory_build(project: str, expected_revision: str, region_id: str,
                                  destination: int, memory_class: Literal["chip", "slow", "fast"],

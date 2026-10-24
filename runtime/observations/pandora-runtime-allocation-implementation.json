@@ -1,0 +1,1100 @@
+{
+  "schema": "pandora-M5-typed-allocation-implementation/v1",
+  "date": "2026-10-24",
+  "status": "first_allocator_selected_cold_completion_evidenced_second_profile_and_output_pending",
+  "native_context": {
+    "report_sha256": "18f8e3a57f687055a98ce992a59e5b0d68a6560c48767eb044034fe72577708f",
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "989426546900e107a27028ba21e0e74e996394943ed31466de1d10a9167bf1c2"
+    },
+    "subject": {
+      "subject_revision": "19275151d5a6014d556b709e3232461e24f7961993193912bfe425dd49bc4269",
+      "revision": "916ae99a19e4c45da8bebaadf7753cb2b3f68235a58c15e1575d9763e5fa26c6"
+    },
+    "wall_seconds": 154.40088248300162
+  },
+  "contract": {
+    "owner": "pandora_ui_snapshot_body",
+    "size": 2304,
+    "source_fixups": [
+      {
+        "source_section_index": 0,
+        "source_offset": 13314,
+        "width": 4,
+        "encoding": "absolute_long_data",
+        "address_domain": "runtime_only",
+        "region_offset": 0,
+        "staged_value": 2032
+      }
+    ],
+    "protected_ranges": [
+      {
+        "address": 1024,
+        "size": 1000
+      },
+      {
+        "address": 4336,
+        "size": 10032
+      },
+      {
+        "address": 14716,
+        "size": 528
+      },
+      {
+        "address": 16384,
+        "size": 46440
+      },
+      {
+        "address": 414576,
+        "size": 140
+      },
+      {
+        "address": 415104,
+        "size": 21176
+      },
+      {
+        "address": 512000,
+        "size": 11952
+      },
+      {
+        "address": 524288,
+        "size": 349040
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "scope": "reviewed_typed_LONG_data_only_not_all_path_alias_proof",
+    "unresolved": [
+      "Numeric immediates, unclassified bytes and synthesized aliases are not certified by this candidate.",
+      "Normal-input execution, initialization, DMA lifetime and output qualification remain required.",
+      "Fixed game RAM outside explicit leases is not certified as OS-owned."
+    ]
+  },
+  "mechanism": [
+    "Real Exec AllocMem(MEMF_CHIP) chooses the owner. Native region and typed runtime-equate extents supply exclusions; they are not guessed address-looking words.",
+    "Staged input, image, display and diagnostic backing are acquired before CMD_READ. A rejected owner is freed; one real scratch lease quarantines the collided range before retry. An unexpected scratch base or second collision fails closed.",
+    "The native canonical planner validates the actual returned base before GO. Only explicit runtime-only LONG-data source coordinates are patched by the guest; the whole staged payload and copied prefix are checked with the exact admitted fixup.",
+    "Guest loader code is read back against its assembled bytes. The owner and scratch leases remain live through gameplay and the post-ending observation.",
+    "Pre-entry faults release dynamic leases and static backing. An acknowledged final phase frees telemetry and mailbox too; completion is observed at the exact verified assembly label, including possible ROM-task preemption. No OS return is claimed by that diagnostic hold."
+  ],
+  "domain_correction": {
+    "source_pointer_numeric_coincidence": 2032,
+    "mapped_runtime_address": 67568,
+    "behavior": "Source-backed pointers use unique canonical runtime mapping, retaining domain/target coordinates. Unresolved sites stay separate and do not become runtime owner fixups."
+  },
+  "runs": [
+    {
+      "name": "fault-before",
+      "report_sha256": "b58416744a0883254125415977584bdd1fe5a694d67cee9b2e9c466011bde543",
+      "status": "allocation_failure_unwound",
+      "payload_sha256": "28b127d0dba1a18302ac8be0c2b414bb4afc59949fee610c1e70141c6ad3a2d3",
+      "adf_sha256": "686b8d6bdeddd87c8fd9a713d273c1c719436e7929ab5f412018ec85c7404b30",
+      "native_allocation": null,
+      "loader_identity": null,
+      "ending": null,
+      "phases": 0,
+      "loss_counters": null,
+      "unwind_status": "guest_unwind_complete_diagnostic_hold_not_OS_return",
+      "unwind_completion_pc": 6376,
+      "frontend_identities": {
+        "amiga_reversing/tools/runtime_allocation.py": "b79e5dc8ec284c38c9242b8f28809e27e90a5647b9ff0745e8088caa8769b141",
+        "amiga_reversing/tools/direct_payload_adapter.py": "7a369a7105c0f4c8d8c84fcb06b539a7367c9ae2e7a18afaf0c96e3c27e330df",
+        "amiga_reversing/tools/copperline_runtime.py": "39efffbdd052c9b814a3fc38fdafaa4c756caa41947910c3592d350b682d2299",
+        "amiga_reversing/tools/pandora_layout_runtime.py": "28a000b04dc51c0bcb9d8c10f6482b7524b3d570f3e98584cba1b6bfb9b55f93"
+      }
+    },
+    {
+      "name": "fault-after",
+      "report_sha256": "c63a789e74c50cd51f62c57339b633ced4d084fbba60dac5c5be75bf73a2b91f",
+      "status": "allocation_failure_unwound",
+      "payload_sha256": "28b127d0dba1a18302ac8be0c2b414bb4afc59949fee610c1e70141c6ad3a2d3",
+      "adf_sha256": "2c8fa55119abe1e641966f2e56046ef59f95cdda96a14b72fc4e5d25372fb9a1",
+      "native_allocation": null,
+      "loader_identity": null,
+      "ending": null,
+      "phases": 0,
+      "loss_counters": null,
+      "unwind_status": "guest_unwind_complete_diagnostic_hold_not_OS_return",
+      "unwind_completion_pc": 6376,
+      "frontend_identities": {
+        "amiga_reversing/tools/runtime_allocation.py": "b79e5dc8ec284c38c9242b8f28809e27e90a5647b9ff0745e8088caa8769b141",
+        "amiga_reversing/tools/direct_payload_adapter.py": "7a369a7105c0f4c8d8c84fcb06b539a7367c9ae2e7a18afaf0c96e3c27e330df",
+        "amiga_reversing/tools/copperline_runtime.py": "39efffbdd052c9b814a3fc38fdafaa4c756caa41947910c3592d350b682d2299",
+        "amiga_reversing/tools/pandora_layout_runtime.py": "28a000b04dc51c0bcb9d8c10f6482b7524b3d570f3e98584cba1b6bfb9b55f93"
+      }
+    },
+    {
+      "name": "prefix-0-abs",
+      "report_sha256": "6876a4cd676346672ac5cbe71a809cf6898abb7e9e43e92b2fe128ff8c741154",
+      "status": "bounded_output_prefix_complete",
+      "payload_sha256": "28b127d0dba1a18302ac8be0c2b414bb4afc59949fee610c1e70141c6ad3a2d3",
+      "adf_sha256": "4c77e7f0340d54a04cb94cf7b1cb9b1a079f3ffd9fe1ad612557d21303cfb0e6",
+      "native_allocation": {
+        "lease": {
+          "region_id": "pandora_ui_snapshot_body",
+          "base": 62824,
+          "size": 2304,
+          "scratch_base": 23016,
+          "scratch_size": 39808,
+          "record_address": 524032,
+          "static_reservations_acquired": 5,
+          "status": "guest_lease_live_requires_native_placement_admission",
+          "plan_sha256": "e83fd9df550f9b1380411b918f266cc99aa4ac754b909764c0f7c4df275b27fd"
+        },
+        "native_admission": {
+          "status": "actual_placement_valid",
+          "reason": null,
+          "region_id": "pandora_ui_snapshot_body",
+          "size": 2304,
+          "alignment": 2,
+          "memory_requirement": "chip",
+          "original_address": 2032,
+          "staged_address": 2032,
+          "numeric_immediate_candidates_not_fixups": 28,
+          "fixups": [
+            {
+              "source_section_index": 0,
+              "source_offset": 13314,
+              "width": 4,
+              "encoding": "absolute_long_data",
+              "address_domain": "runtime_only",
+              "region_offset": 0,
+              "staged_value": 2032
+            }
+          ],
+          "protected_ranges": [
+            {
+              "address": 1024,
+              "size": 1000
+            },
+            {
+              "address": 4336,
+              "size": 10032
+            },
+            {
+              "address": 14716,
+              "size": 528
+            },
+            {
+              "address": 16384,
+              "size": 46440
+            },
+            {
+              "address": 414576,
+              "size": 140
+            },
+            {
+              "address": 415104,
+              "size": 21176
+            },
+            {
+              "address": 512000,
+              "size": 11952
+            },
+            {
+              "address": 524288,
+              "size": 349040
+            },
+            {
+              "address": 917504,
+              "size": 53248
+            }
+          ],
+          "layout": {
+            "items": [
+              {
+                "layout_id": "pandora_display_e0000_ecs1m",
+                "chip_bytes": 1048576,
+                "status": "placement_valid",
+                "export_ready": false,
+                "reason": null,
+                "failed_region_index": -1,
+                "regions": [
+                  {
+                    "region_id": "keyboard_state",
+                    "base_symbol": "keyboard_state",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 14716,
+                    "runtime_address": 14716,
+                    "size": 128,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "audio_master_volume",
+                    "base_symbol": "audio_master_volume",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_image",
+                    "original_address": 384256,
+                    "runtime_address": 843008,
+                    "size": 2,
+                    "parent_offset": 318720
+                  },
+                  {
+                    "region_id": "world_tilemap_pointer_grid",
+                    "base_symbol": "world_tilemap_pointer_grid",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 16384,
+                    "runtime_address": 16384,
+                    "size": 46440,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_raster_row_offsets",
+                    "base_symbol": "raster_row_offsets",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 14844,
+                    "runtime_address": 14844,
+                    "size": 400,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_framebuffer_bank0",
+                    "base_symbol": "framebuffer_bank0",
+                    "region_kind": "display",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 458752,
+                    "runtime_address": 917504,
+                    "size": 32000,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_framebuffer_bank1_world",
+                    "base_symbol": "framebuffer_bank1_world",
+                    "region_kind": "display",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 491520,
+                    "runtime_address": 950272,
+                    "size": 20480,
+                    "parent_offset": 32768
+                  },
+                  {
+                    "region_id": "pandora_ui_snapshot_hit",
+                    "base_symbol": "ui_snapshot_hit",
+                    "region_kind": "storage",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 490752,
+                    "runtime_address": 949504,
+                    "size": 768,
+                    "parent_offset": 32000,
+                    "loader_seed": {
+                      "source_offset": 359680,
+                      "region_offset": 0,
+                      "size": 2,
+                      "runtime_address": 949504,
+                      "staging_address": 490752,
+                      "phase": "before_payload_entry"
+                    }
+                  },
+                  {
+                    "region_id": "pandora_ui_snapshot_body",
+                    "base_symbol": "ui_snapshot_body",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 2032,
+                    "runtime_address": 62824,
+                    "size": 2304,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_work_buffer_palette_input",
+                    "base_symbol": "work_buffer_palette_input_alias",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_ui_snapshot_hit",
+                    "original_address": 491488,
+                    "runtime_address": 950240,
+                    "size": 32,
+                    "parent_offset": 736
+                  },
+                  {
+                    "region_id": "pandora_image",
+                    "base_symbol": "PANDORA_IMAGE_BASE",
+                    "region_kind": "image",
+                    "parent_region_id": "",
+                    "original_address": 65536,
+                    "runtime_address": 524288,
+                    "size": 349040,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprites",
+                    "base_symbol": "CURSOR_SPRITE_WORKSPACE_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "",
+                    "original_address": 414576,
+                    "runtime_address": 414576,
+                    "size": 140,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite0",
+                    "base_symbol": "CURSOR_SPRITE0_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414576,
+                    "runtime_address": 414576,
+                    "size": 68,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite1",
+                    "base_symbol": "CURSOR_SPRITE1_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414644,
+                    "runtime_address": 414644,
+                    "size": 68,
+                    "parent_offset": 68
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite_lookahead",
+                    "base_symbol": "CURSOR_SPRITE_LOOKAHEAD_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414712,
+                    "runtime_address": 414712,
+                    "size": 4,
+                    "parent_offset": 136,
+                    "loader_seed": {
+                      "source_offset": 283640,
+                      "region_offset": 0,
+                      "size": 4,
+                      "runtime_address": 414712,
+                      "staging_address": 414712,
+                      "phase": "before_payload_entry"
+                    }
+                  },
+                  {
+                    "region_id": "pandora_display_storage",
+                    "base_symbol": "PANDORA_DISPLAY_STORAGE_BASE",
+                    "region_kind": "display",
+                    "parent_region_id": "",
+                    "original_address": 458752,
+                    "runtime_address": 917504,
+                    "size": 53248,
+                    "parent_offset": 0
+                  }
+                ],
+                "bootstrap": {
+                  "contract_id": "pandora_native_prefix_copy",
+                  "image_region_id": "pandora_image",
+                  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+                  "kind": "retained_prefix_copy",
+                  "variant": "forward_disjoint",
+                  "load_address": 131072,
+                  "file_size": 376832,
+                  "copied_source_end": 349040,
+                  "helper_source_start": 40,
+                  "helper_source_end": 82,
+                  "helper_runtime_address": 768,
+                  "continuation_source_offset": 1130,
+                  "comparison_source_offset": 58
+                }
+              }
+            ],
+            "total": 1,
+            "scope": "canonical_fixed_layout_placement_only"
+          },
+          "scope": "reviewed_typed_LONG_data_only_not_all_path_alias_proof",
+          "lifetime": "retain_until_DMA_quiescent_exit",
+          "unresolved": [
+            "Numeric immediates, unclassified bytes and synthesized aliases are not certified by this candidate.",
+            "Normal-input execution, initialization, DMA lifetime and output qualification remain required.",
+            "Fixed game RAM outside explicit leases is not certified as OS-owned."
+          ]
+        },
+        "static_layout_plan_sha256": "bf353e2c455938227d996a241551dca85223b3ed623440b9c5a987e015b89446"
+      },
+      "loader_identity": {
+        "base": 5476,
+        "size": 894,
+        "sha256": "597590f6d90bd277ac6a80e7a49e9144ce6385c607c5fe258187eec93bc61deb",
+        "symbols": {
+          "allocation_abort_publish": 828,
+          "allocation_abort_wait": 838,
+          "allocation_closed": 890
+        }
+      },
+      "ending": null,
+      "phases": 28,
+      "loss_counters": {
+        "events": 14,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "unwind_status": null,
+      "unwind_completion_pc": null,
+      "frontend_identities": {
+        "amiga_reversing/tools/runtime_allocation.py": "b79e5dc8ec284c38c9242b8f28809e27e90a5647b9ff0745e8088caa8769b141",
+        "amiga_reversing/tools/direct_payload_adapter.py": "7a369a7105c0f4c8d8c84fcb06b539a7367c9ae2e7a18afaf0c96e3c27e330df",
+        "amiga_reversing/tools/copperline_runtime.py": "39efffbdd052c9b814a3fc38fdafaa4c756caa41947910c3592d350b682d2299",
+        "amiga_reversing/tools/pandora_layout_runtime.py": "28a000b04dc51c0bcb9d8c10f6482b7524b3d570f3e98584cba1b6bfb9b55f93"
+      }
+    },
+    {
+      "name": "full-0",
+      "report_sha256": "795cd02671cfde79de89bf6bc72f2a33cb260e08a2bd44cae2e1ee5ee0881f3c",
+      "status": "saved_earth_and_escaped_relocated_cold_boot",
+      "payload_sha256": "28b127d0dba1a18302ac8be0c2b414bb4afc59949fee610c1e70141c6ad3a2d3",
+      "adf_sha256": "4c77e7f0340d54a04cb94cf7b1cb9b1a079f3ffd9fe1ad612557d21303cfb0e6",
+      "native_allocation": {
+        "lease": {
+          "region_id": "pandora_ui_snapshot_body",
+          "base": 62824,
+          "size": 2304,
+          "scratch_base": 23016,
+          "scratch_size": 39808,
+          "record_address": 524032,
+          "static_reservations_acquired": 5,
+          "status": "guest_lease_live_requires_native_placement_admission",
+          "plan_sha256": "e83fd9df550f9b1380411b918f266cc99aa4ac754b909764c0f7c4df275b27fd"
+        },
+        "native_admission": {
+          "status": "actual_placement_valid",
+          "reason": null,
+          "region_id": "pandora_ui_snapshot_body",
+          "size": 2304,
+          "alignment": 2,
+          "memory_requirement": "chip",
+          "original_address": 2032,
+          "staged_address": 2032,
+          "numeric_immediate_candidates_not_fixups": 28,
+          "fixups": [
+            {
+              "source_section_index": 0,
+              "source_offset": 13314,
+              "width": 4,
+              "encoding": "absolute_long_data",
+              "address_domain": "runtime_only",
+              "region_offset": 0,
+              "staged_value": 2032
+            }
+          ],
+          "protected_ranges": [
+            {
+              "address": 1024,
+              "size": 1000
+            },
+            {
+              "address": 4336,
+              "size": 10032
+            },
+            {
+              "address": 14716,
+              "size": 528
+            },
+            {
+              "address": 16384,
+              "size": 46440
+            },
+            {
+              "address": 414576,
+              "size": 140
+            },
+            {
+              "address": 415104,
+              "size": 21176
+            },
+            {
+              "address": 512000,
+              "size": 11952
+            },
+            {
+              "address": 524288,
+              "size": 349040
+            },
+            {
+              "address": 917504,
+              "size": 53248
+            }
+          ],
+          "layout": {
+            "items": [
+              {
+                "layout_id": "pandora_display_e0000_ecs1m",
+                "chip_bytes": 1048576,
+                "status": "placement_valid",
+                "export_ready": false,
+                "reason": null,
+                "failed_region_index": -1,
+                "regions": [
+                  {
+                    "region_id": "keyboard_state",
+                    "base_symbol": "keyboard_state",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 14716,
+                    "runtime_address": 14716,
+                    "size": 128,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "audio_master_volume",
+                    "base_symbol": "audio_master_volume",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_image",
+                    "original_address": 384256,
+                    "runtime_address": 843008,
+                    "size": 2,
+                    "parent_offset": 318720
+                  },
+                  {
+                    "region_id": "world_tilemap_pointer_grid",
+                    "base_symbol": "world_tilemap_pointer_grid",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 16384,
+                    "runtime_address": 16384,
+                    "size": 46440,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_raster_row_offsets",
+                    "base_symbol": "raster_row_offsets",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 14844,
+                    "runtime_address": 14844,
+                    "size": 400,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_framebuffer_bank0",
+                    "base_symbol": "framebuffer_bank0",
+                    "region_kind": "display",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 458752,
+                    "runtime_address": 917504,
+                    "size": 32000,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_framebuffer_bank1_world",
+                    "base_symbol": "framebuffer_bank1_world",
+                    "region_kind": "display",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 491520,
+                    "runtime_address": 950272,
+                    "size": 20480,
+                    "parent_offset": 32768
+                  },
+                  {
+                    "region_id": "pandora_ui_snapshot_hit",
+                    "base_symbol": "ui_snapshot_hit",
+                    "region_kind": "storage",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 490752,
+                    "runtime_address": 949504,
+                    "size": 768,
+                    "parent_offset": 32000,
+                    "loader_seed": {
+                      "source_offset": 359680,
+                      "region_offset": 0,
+                      "size": 2,
+                      "runtime_address": 949504,
+                      "staging_address": 490752,
+                      "phase": "before_payload_entry"
+                    }
+                  },
+                  {
+                    "region_id": "pandora_ui_snapshot_body",
+                    "base_symbol": "ui_snapshot_body",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 2032,
+                    "runtime_address": 62824,
+                    "size": 2304,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_work_buffer_palette_input",
+                    "base_symbol": "work_buffer_palette_input_alias",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_ui_snapshot_hit",
+                    "original_address": 491488,
+                    "runtime_address": 950240,
+                    "size": 32,
+                    "parent_offset": 736
+                  },
+                  {
+                    "region_id": "pandora_image",
+                    "base_symbol": "PANDORA_IMAGE_BASE",
+                    "region_kind": "image",
+                    "parent_region_id": "",
+                    "original_address": 65536,
+                    "runtime_address": 524288,
+                    "size": 349040,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprites",
+                    "base_symbol": "CURSOR_SPRITE_WORKSPACE_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "",
+                    "original_address": 414576,
+                    "runtime_address": 414576,
+                    "size": 140,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite0",
+                    "base_symbol": "CURSOR_SPRITE0_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414576,
+                    "runtime_address": 414576,
+                    "size": 68,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite1",
+                    "base_symbol": "CURSOR_SPRITE1_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414644,
+                    "runtime_address": 414644,
+                    "size": 68,
+                    "parent_offset": 68
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite_lookahead",
+                    "base_symbol": "CURSOR_SPRITE_LOOKAHEAD_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414712,
+                    "runtime_address": 414712,
+                    "size": 4,
+                    "parent_offset": 136,
+                    "loader_seed": {
+                      "source_offset": 283640,
+                      "region_offset": 0,
+                      "size": 4,
+                      "runtime_address": 414712,
+                      "staging_address": 414712,
+                      "phase": "before_payload_entry"
+                    }
+                  },
+                  {
+                    "region_id": "pandora_display_storage",
+                    "base_symbol": "PANDORA_DISPLAY_STORAGE_BASE",
+                    "region_kind": "display",
+                    "parent_region_id": "",
+                    "original_address": 458752,
+                    "runtime_address": 917504,
+                    "size": 53248,
+                    "parent_offset": 0
+                  }
+                ],
+                "bootstrap": {
+                  "contract_id": "pandora_native_prefix_copy",
+                  "image_region_id": "pandora_image",
+                  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+                  "kind": "retained_prefix_copy",
+                  "variant": "forward_disjoint",
+                  "load_address": 131072,
+                  "file_size": 376832,
+                  "copied_source_end": 349040,
+                  "helper_source_start": 40,
+                  "helper_source_end": 82,
+                  "helper_runtime_address": 768,
+                  "continuation_source_offset": 1130,
+                  "comparison_source_offset": 58
+                }
+              }
+            ],
+            "total": 1,
+            "scope": "canonical_fixed_layout_placement_only"
+          },
+          "scope": "reviewed_typed_LONG_data_only_not_all_path_alias_proof",
+          "lifetime": "retain_until_DMA_quiescent_exit",
+          "unresolved": [
+            "Numeric immediates, unclassified bytes and synthesized aliases are not certified by this candidate.",
+            "Normal-input execution, initialization, DMA lifetime and output qualification remain required.",
+            "Fixed game RAM outside explicit leases is not certified as OS-owned."
+          ]
+        },
+        "static_layout_plan_sha256": "bf353e2c455938227d996a241551dca85223b3ed623440b9c5a987e015b89446",
+        "end_lifetime": "Lease remains owned through sampled DMA and post-ending output; successful OS return/free is M6, not claimed here."
+      },
+      "loader_identity": {
+        "base": 5476,
+        "size": 894,
+        "sha256": "597590f6d90bd277ac6a80e7a49e9144ce6385c607c5fe258187eec93bc61deb",
+        "symbols": {
+          "allocation_abort_publish": 828,
+          "allocation_abort_wait": 838,
+          "allocation_closed": 890
+        }
+      },
+      "ending": {
+        "saved_earth": true,
+        "escaped": true,
+        "health": 49,
+        "message_pointer": 838373,
+        "selection_pc": 838108,
+        "final_frame": 14465
+      },
+      "phases": 576,
+      "loss_counters": {
+        "events": 262,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "unwind_status": null,
+      "unwind_completion_pc": null,
+      "frontend_identities": {
+        "amiga_reversing/tools/runtime_allocation.py": "b79e5dc8ec284c38c9242b8f28809e27e90a5647b9ff0745e8088caa8769b141",
+        "amiga_reversing/tools/direct_payload_adapter.py": "7a369a7105c0f4c8d8c84fcb06b539a7367c9ae2e7a18afaf0c96e3c27e330df",
+        "amiga_reversing/tools/copperline_runtime.py": "39efffbdd052c9b814a3fc38fdafaa4c756caa41947910c3592d350b682d2299",
+        "amiga_reversing/tools/pandora_layout_runtime.py": "28a000b04dc51c0bcb9d8c10f6482b7524b3d570f3e98584cba1b6bfb9b55f93"
+      }
+    },
+    {
+      "name": "title-0",
+      "report_sha256": "344819ecf3ee2e0cc7a585e79451ec74ce820ed946545219da221d197937082d",
+      "status": "bounded_output_prefix_complete",
+      "payload_sha256": "28b127d0dba1a18302ac8be0c2b414bb4afc59949fee610c1e70141c6ad3a2d3",
+      "adf_sha256": "4c77e7f0340d54a04cb94cf7b1cb9b1a079f3ffd9fe1ad612557d21303cfb0e6",
+      "native_allocation": {
+        "lease": {
+          "region_id": "pandora_ui_snapshot_body",
+          "base": 62824,
+          "size": 2304,
+          "scratch_base": 23016,
+          "scratch_size": 39808,
+          "record_address": 524032,
+          "static_reservations_acquired": 5,
+          "status": "guest_lease_live_requires_native_placement_admission",
+          "plan_sha256": "e83fd9df550f9b1380411b918f266cc99aa4ac754b909764c0f7c4df275b27fd"
+        },
+        "native_admission": {
+          "status": "actual_placement_valid",
+          "reason": null,
+          "region_id": "pandora_ui_snapshot_body",
+          "size": 2304,
+          "alignment": 2,
+          "memory_requirement": "chip",
+          "original_address": 2032,
+          "staged_address": 2032,
+          "numeric_immediate_candidates_not_fixups": 28,
+          "fixups": [
+            {
+              "source_section_index": 0,
+              "source_offset": 13314,
+              "width": 4,
+              "encoding": "absolute_long_data",
+              "address_domain": "runtime_only",
+              "region_offset": 0,
+              "staged_value": 2032
+            }
+          ],
+          "protected_ranges": [
+            {
+              "address": 1024,
+              "size": 1000
+            },
+            {
+              "address": 4336,
+              "size": 10032
+            },
+            {
+              "address": 14716,
+              "size": 528
+            },
+            {
+              "address": 16384,
+              "size": 46440
+            },
+            {
+              "address": 414576,
+              "size": 140
+            },
+            {
+              "address": 415104,
+              "size": 21176
+            },
+            {
+              "address": 512000,
+              "size": 11952
+            },
+            {
+              "address": 524288,
+              "size": 349040
+            },
+            {
+              "address": 917504,
+              "size": 53248
+            }
+          ],
+          "layout": {
+            "items": [
+              {
+                "layout_id": "pandora_display_e0000_ecs1m",
+                "chip_bytes": 1048576,
+                "status": "placement_valid",
+                "export_ready": false,
+                "reason": null,
+                "failed_region_index": -1,
+                "regions": [
+                  {
+                    "region_id": "keyboard_state",
+                    "base_symbol": "keyboard_state",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 14716,
+                    "runtime_address": 14716,
+                    "size": 128,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "audio_master_volume",
+                    "base_symbol": "audio_master_volume",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_image",
+                    "original_address": 384256,
+                    "runtime_address": 843008,
+                    "size": 2,
+                    "parent_offset": 318720
+                  },
+                  {
+                    "region_id": "world_tilemap_pointer_grid",
+                    "base_symbol": "world_tilemap_pointer_grid",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 16384,
+                    "runtime_address": 16384,
+                    "size": 46440,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_raster_row_offsets",
+                    "base_symbol": "raster_row_offsets",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 14844,
+                    "runtime_address": 14844,
+                    "size": 400,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_framebuffer_bank0",
+                    "base_symbol": "framebuffer_bank0",
+                    "region_kind": "display",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 458752,
+                    "runtime_address": 917504,
+                    "size": 32000,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_framebuffer_bank1_world",
+                    "base_symbol": "framebuffer_bank1_world",
+                    "region_kind": "display",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 491520,
+                    "runtime_address": 950272,
+                    "size": 20480,
+                    "parent_offset": 32768
+                  },
+                  {
+                    "region_id": "pandora_ui_snapshot_hit",
+                    "base_symbol": "ui_snapshot_hit",
+                    "region_kind": "storage",
+                    "parent_region_id": "pandora_display_storage",
+                    "original_address": 490752,
+                    "runtime_address": 949504,
+                    "size": 768,
+                    "parent_offset": 32000,
+                    "loader_seed": {
+                      "source_offset": 359680,
+                      "region_offset": 0,
+                      "size": 2,
+                      "runtime_address": 949504,
+                      "staging_address": 490752,
+                      "phase": "before_payload_entry"
+                    }
+                  },
+                  {
+                    "region_id": "pandora_ui_snapshot_body",
+                    "base_symbol": "ui_snapshot_body",
+                    "region_kind": "storage",
+                    "parent_region_id": "",
+                    "original_address": 2032,
+                    "runtime_address": 62824,
+                    "size": 2304,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_work_buffer_palette_input",
+                    "base_symbol": "work_buffer_palette_input_alias",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_ui_snapshot_hit",
+                    "original_address": 491488,
+                    "runtime_address": 950240,
+                    "size": 32,
+                    "parent_offset": 736
+                  },
+                  {
+                    "region_id": "pandora_image",
+                    "base_symbol": "PANDORA_IMAGE_BASE",
+                    "region_kind": "image",
+                    "parent_region_id": "",
+                    "original_address": 65536,
+                    "runtime_address": 524288,
+                    "size": 349040,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprites",
+                    "base_symbol": "CURSOR_SPRITE_WORKSPACE_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "",
+                    "original_address": 414576,
+                    "runtime_address": 414576,
+                    "size": 140,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite0",
+                    "base_symbol": "CURSOR_SPRITE0_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414576,
+                    "runtime_address": 414576,
+                    "size": 68,
+                    "parent_offset": 0
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite1",
+                    "base_symbol": "CURSOR_SPRITE1_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414644,
+                    "runtime_address": 414644,
+                    "size": 68,
+                    "parent_offset": 68
+                  },
+                  {
+                    "region_id": "pandora_cursor_sprite_lookahead",
+                    "base_symbol": "CURSOR_SPRITE_LOOKAHEAD_BASE",
+                    "region_kind": "workspace",
+                    "parent_region_id": "pandora_cursor_sprites",
+                    "original_address": 414712,
+                    "runtime_address": 414712,
+                    "size": 4,
+                    "parent_offset": 136,
+                    "loader_seed": {
+                      "source_offset": 283640,
+                      "region_offset": 0,
+                      "size": 4,
+                      "runtime_address": 414712,
+                      "staging_address": 414712,
+                      "phase": "before_payload_entry"
+                    }
+                  },
+                  {
+                    "region_id": "pandora_display_storage",
+                    "base_symbol": "PANDORA_DISPLAY_STORAGE_BASE",
+                    "region_kind": "display",
+                    "parent_region_id": "",
+                    "original_address": 458752,
+                    "runtime_address": 917504,
+                    "size": 53248,
+                    "parent_offset": 0
+                  }
+                ],
+                "bootstrap": {
+                  "contract_id": "pandora_native_prefix_copy",
+                  "image_region_id": "pandora_image",
+                  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+                  "kind": "retained_prefix_copy",
+                  "variant": "forward_disjoint",
+                  "load_address": 131072,
+                  "file_size": 376832,
+                  "copied_source_end": 349040,
+                  "helper_source_start": 40,
+                  "helper_source_end": 82,
+                  "helper_runtime_address": 768,
+                  "continuation_source_offset": 1130,
+                  "comparison_source_offset": 58
+                }
+              }
+            ],
+            "total": 1,
+            "scope": "canonical_fixed_layout_placement_only"
+          },
+          "scope": "reviewed_typed_LONG_data_only_not_all_path_alias_proof",
+          "lifetime": "retain_until_DMA_quiescent_exit",
+          "unresolved": [
+            "Numeric immediates, unclassified bytes and synthesized aliases are not certified by this candidate.",
+            "Normal-input execution, initialization, DMA lifetime and output qualification remain required.",
+            "Fixed game RAM outside explicit leases is not certified as OS-owned."
+          ]
+        },
+        "static_layout_plan_sha256": "bf353e2c455938227d996a241551dca85223b3ed623440b9c5a987e015b89446"
+      },
+      "loader_identity": {
+        "base": 5476,
+        "size": 894,
+        "sha256": "597590f6d90bd277ac6a80e7a49e9144ce6385c607c5fe258187eec93bc61deb",
+        "symbols": {
+          "allocation_abort_publish": 828,
+          "allocation_abort_wait": 838,
+          "allocation_closed": 890
+        }
+      },
+      "ending": null,
+      "phases": 1,
+      "loss_counters": {
+        "events": 2,
+        "dropped_notifications": 0,
+        "dropped_events": 0
+      },
+      "unwind_status": null,
+      "unwind_completion_pc": null,
+      "frontend_identities": {
+        "amiga_reversing/tools/runtime_allocation.py": "b79e5dc8ec284c38c9242b8f28809e27e90a5647b9ff0745e8088caa8769b141",
+        "amiga_reversing/tools/direct_payload_adapter.py": "7a369a7105c0f4c8d8c84fcb06b539a7367c9ae2e7a18afaf0c96e3c27e330df",
+        "amiga_reversing/tools/copperline_runtime.py": "39efffbdd052c9b814a3fc38fdafaa4c756caa41947910c3592d350b682d2299",
+        "amiga_reversing/tools/pandora_layout_runtime.py": "28a000b04dc51c0bcb9d8c10f6482b7524b3d570f3e98584cba1b6bfb9b55f93"
+      }
+    }
+  ],
+  "fixed_mode_boot_preservation": {
+    "status": "pass",
+    "qualified_report_sha256": "9cf24f79099e847b17755543e086ede389f0379af7fcf2eba7825f8e5eb97a18",
+    "adf_sha256": "fe5f8ce3fffb35ec08570efcbbaa7d965b30a046bb5cd1866d6fe2950efaec1b",
+    "bytes": 901120,
+    "runtime_allocation": false
+  },
+  "tests": {
+    "scoped_python_passed": 423,
+    "real_MCP_and_CLI_passed": 10,
+    "skips": 0,
+    "scope": "Native placement/protection/domain positives/refusals, boot assembly/extended seeds/stale fixups, cleanup label observation, source/layout projection, direct/runtime and shared service transports. Service tests are included in scoped count."
+  },
+  "original": {
+    "source_or_history_changed": false,
+    "last_whole_file_exact_receipt": "743e95a4cd7da9d8691c84b4cd585285404f8b5940d4e1452d384869bdcf0535",
+    "meaning": "Original source/facts unchanged; existing exact evidence retained, not a new whole-target rebuild claim."
+  },
+  "reproduction": "python -m amiga_reversing.tools.pandora_allocated_walkthrough --export-json <normal-E-layout-export.json> --output <fresh-private-directory> --scenario <qualified-compiled-route.json> --rom <legal-rom> --copperline <pinned-binary> --mode qualify --jobs 2",
+  "pending": [
+    "Second allocator-selected full route and matched eight-frame/PCM output comparison.",
+    "Independent unheld cold completion through the public CLI.",
+    "Bounded body capture/restore DMA observations on the second profile; the first route predates that additional passive capture hook.",
+    "Successful exit/OS cleanup, broader allocations and all-path alias closure remain unimplemented. Low fixed game RAM outside explicit leases is not certified OS-owned.",
+    "The separate original-to-image eight-CCK startup criterion remains unfulfilled."
+  ],
+  "limits": [
+    "Normal-input direct-payload ECS/1MiB Chip diagnostic profile; not original disk/OCS parity.",
+    "CPU abandoned-range watches are not DMA or all-instruction-fetch coverage.",
+    "Numeric immediate candidates and unclassified/synthesized aliases are not automatically certified or rewritten.",
+    "Raw ROM/media, checkpoints, screenshots, PCM and bus sidecars remain private."
+  ]
+}

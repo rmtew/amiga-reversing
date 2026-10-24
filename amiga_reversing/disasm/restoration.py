@@ -517,6 +517,10 @@ def execute(target_id: str, body: dict) -> dict:
                     body.get("scenario"), receipt)
             if revisions(target_id)["subject_revision"] != current["subject_revision"]:
                 raise ValueError("source changed during verification; receipt is not current")
+        elif operation == "allocation_plan":
+            current = require_revision(target_id, body.get('expected_revision'), current=current)
+            result = {'plan': _artifact(target_id).runtime_allocation_plan(
+                body.get('region_id'),body.get('layout_id'),body.get('actual_base'))}
         elif operation in {"memory_plan", "memory_build"}:
             from amiga_reversing.disasm.memory_regions import relocation_plan, build_derived_artifact
             artifact = _artifact(target_id)

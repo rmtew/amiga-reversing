@@ -1802,6 +1802,8 @@ def _platform_file_dll(project_root: Path) -> CDLL:
     dll.platform_file_facts_v2_listing_artifact_source_plan_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.argtypes = [c_void_p, POINTER(c_void_p)]
     dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc.argtypes = [c_void_p, c_char_p, c_char_p, c_int, c_uint32, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc.argtypes = [c_void_p, c_char_p, c_uint32, POINTER(c_void_p)]
     dll.platform_file_facts_v2_listing_artifact_layout_projection_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_package_json_alloc.argtypes = [
@@ -2320,6 +2322,16 @@ class CListingArtifact:
         return json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_memory_layouts_json_alloc,
         ))
+
+    def runtime_allocation_plan(self, region_id: str, layout_id: str, actual_base: int | None = None) -> dict:
+        for identity in (region_id, layout_id):
+            if not isinstance(identity, str) or not identity or len(identity)>95 or '\0' in identity:
+                raise ValueError('Invalid allocation region/layout identity')
+        if actual_base is not None and (type(actual_base) is not int or not 0<=actual_base<0x1000000):
+            raise ValueError('Invalid actual allocator base')
+        return json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_runtime_allocation_json_alloc,
+            region_id,layout_id,int(actual_base is not None),actual_base or 0))
 
     def layout_projection_payload(self, overlay: dict[str, object], minimum_asset_size: int = 256) -> dict[str, object]:
         """Native scoped projection; callers must handle refused/rebuild_required."""

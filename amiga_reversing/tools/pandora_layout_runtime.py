@@ -71,10 +71,17 @@ def summarize_dma(directory,context):
             'first_abandoned_image_transfers':old,'scope':'Two sampled frames only, not whole-route DMA coverage.'}
 
 
-def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False,stop_after=None,title_visits=0,pcm_stems=False,phase_locked_boot=False,*,scenario_path):
+def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False,stop_after=None,title_visits=0,pcm_stems=False,phase_locked_boot=False,*,scenario_path,allocation_validator=None):
     from amiga_reversing.tools.direct_payload_adapter import DirectPayloadContract,build_boot_adf
     from amiga_reversing.tools.copperline_control import CopperlineProcess,MACHINE_PROFILES
     from amiga_reversing.tools.copperline_runtime import wait_for_marker,verify_handoff,release_handoff,wait_for_pc,run_scenario
+    config=copy.deepcopy(config)
+    allocation=config.get('runtime_allocation')
+    if allocation is not None:
+        from .runtime_allocation import validate,consume_return,abort_guest,plan_digest,verify_boot_code
+        validate(allocation)
+        require(callable(allocation_validator),'Live native allocation validator required')
+        require(allocation_validator(None)==allocation['plan'],'Native allocation capsule is stale')
     image,bootstrap=runtime_context(config)
     require(scenario_path is not None,'Explicit compiled normal-input route required')
     runtime_base=image['runtime_address'];load_base=bootstrap['load_address']
@@ -82,17 +89,36 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
     continuation=bootstrap['continuation_source_offset']
     contract=DirectPayloadContract('pandora-canonical-layout',TARGET,sha(payload),load_base,config['entrypoint'],{'a1':load_base},0x7FFF8,0x48414E44,
         reservations=tuple(tuple(span) for span in config.get('loader_shared_reservations',[])),
-        seed_copies=tuple((seed['source_offset'],seed['runtime_address'],seed['size']) for seed in config.get('loader_seed_copies',[])))
+        seed_copies=tuple((seed['source_offset'],seed['runtime_address'],seed['size']) for seed in config.get('loader_seed_copies',[])), runtime_allocation=allocation)
     require(sha(payload)==config['payload_sha256'] and payload.stat().st_size==bootstrap['file_size'],'Canonical executable identity/extent differs')
     require(config['profile']==MACHINE_PROFILES['a500ecs_1m'],'Unsupported diagnostic machine profile')
-    adf=out/'experiment.adf';write(out/'boot-build.json',build_boot_adf(contract,payload,adf))
+    adf=out/'experiment.adf';boot_build=build_boot_adf(contract,payload,adf);write(out/'boot-build.json',boot_build)
     report={'normal_layout_export':True,'config':config,'payload_sha256':sha(payload),'adf_sha256':sha(adf),'rom_sha256':sha(rom),'emulator_sha256':sha(binary),'moved_pcs':[]}
     try:
         with CopperlineProcess(binary,rom=rom,floppy=adf,machine_profile='a500ecs_1m',
                 audio_wav=out/'mixed-audio.wav' if capture_pcm and not pcm_stems else None,
                 audio_stems=out/'audio-stems' if pcm_stems else None) as process:
-            client=process.client;report['boot_marker']=wait_for_marker(client,0x7FFF8,contract.handoff_marker_value.to_bytes(4,'big'),90)
+            client=process.client;report['boot_marker']=wait_for_marker(client,0x7FFF8,contract.handoff_marker_value.to_bytes(4,'big'),90,terminal_values=(b'ABOR',) if allocation else ())
+            if allocation and report['boot_marker'].get('terminal'):
+                report['unwind']=abort_guest(client,contract,boot_build,already_aborted=True)
+                report['status']='allocation_failure_unwound'
+                return report
             require(report['boot_marker']['matched'],'Boot handoff missing')
+            expected_payload=payload.read_bytes()
+            if allocation:
+                report['allocation_loader_identity']=verify_boot_code(client,contract,boot_build)
+                expected_payload,lease=consume_return(client,contract,expected_payload)
+                admitted=allocation_validator(lease['base'])
+                report['runtime_allocation']={'lease':lease,'native_admission':admitted,
+                    'static_layout_plan_sha256':config['layout_plan_sha256']}
+                if admitted.get('status')!='actual_placement_valid':
+                    report['unwind']=abort_guest(client,contract,boot_build)
+                    report['status']='allocation_placement_refused_unwound'
+                    return report
+                actual_plan=admitted['layout']['items'][0]
+                config['layout_plan']=actual_plan
+                config['layout_plan_sha256']=plan_digest(actual_plan)
+                config['runtime_payload_sha256']=hashlib.sha256(expected_payload).hexdigest()
             report['handoff']=verify_handoff(client,contract,payload)
             if phase_locked_boot:
                 stop=client.run_until({'cck':500*71051},timeout=30)
@@ -102,12 +128,12 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
             for offset in [0,continuation,0x48C]:
                 address=load_base if offset==0 else runtime_base+offset
                 stop=wait_for_pc(client,address,30);require(stop['status']=='hit','Runtime entry was not observed')
-                require(client.read_memory(address,16)==payload.read_bytes()[offset:offset+16],'Canonical payload PC bytes differ')
+                require(client.read_memory(address,16)==expected_payload[offset:offset+16],'Canonical payload PC bytes differ')
                 report['moved_pcs'].append({'source_offset':offset,'runtime_pc':client.registers()['pc'],'frame':stop['stop_event']['frame'],'stop_event':stop['stop_event']})
                 print('MOVED_PC',hex(client.registers()['pc']),flush=True)
                 if offset==continuation:
-                    require(client.read_memory(runtime_base,prefix_size)==payload.read_bytes()[:prefix_size],'Native moved copy differs')
-                    report['native_materialization']={'address':runtime_base,'size':prefix_size,'sha256':hashlib.sha256(payload.read_bytes()[:prefix_size]).hexdigest(),'full_prefix_verified':True}
+                    require(client.read_memory(runtime_base,prefix_size)==expected_payload[:prefix_size],'Native moved copy differs')
+                    report['native_materialization']={'address':runtime_base,'size':prefix_size,'sha256':hashlib.sha256(expected_payload[:prefix_size]).hexdigest(),'full_prefix_verified':True}
             if runtime_base!=old_start:
                 watch={'kind':'mmio','addr':old_start,'len':prefix_size,'access':'access'}
                 ident=client.request('break.add',watch)['id']
@@ -117,7 +143,8 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
             else:report['guards']={'original_control':True,'reason':'Original materialized range is intentionally live.'}
             report['resource_guards']=[]
             for region in config['layout_plan']['regions']:
-                if(region.get('parent_region_id') or region.get('region_kind') not in ('workspace','display') or
+                if(region.get('parent_region_id') or (region.get('region_kind') not in ('workspace','display') and
+                         (not allocation or region['region_id']!=allocation['plan']['region_id'])) or
                         region['runtime_address']==region['original_address']):continue
                 watch={'kind':'mmio','addr':region['original_address'],'len':region['size'],'access':'access'}
                 ident=client.request('break.add',watch)['id']
@@ -205,7 +232,7 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 with (out/'progress.jsonl').open('a') as stream:stream.write(json.dumps(row)+'\n')
                 print('PHASE',json.dumps(row),flush=True)
                 if inspect_output and result['status']=='hit':
-                    if active is not None and event.get('frame',0)>=active['frame']+4:finish_profile()
+                    if active is not None and event.get('frame',0)>=active['frame']+active.get('minimum_end_frames',4):finish_profile()
                     if result['name'] in ('title_menu_loop','ui_overlay_initialization','initial_proximity_context','entry_officer_card_transferred','ei_sonicdriver_hit_1','ac_console_ready'):
                         image=out/(result['name']+'.png')
                         media.append({'phase':result['name'],'frame':event['frame'],'capture':client.request('capture.screenshot',{'path':str(image),'native':True}),'sha256':sha(image)})
@@ -214,6 +241,16 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                         directory=out/('dma-'+result['name'])
                         client.request('profile.start',{'path':str(directory),'frames':3,'slots':True,'memory':False,'screenshots':'none','pc_samples':True})
                         active={'name':result['name'],'path':directory,'frame':event['frame']}
+                    if allocation and result['name'] in ('il_icelord_body_row','il_recover_sonicdriver'):
+                        # Start before the normal open/close input anchors. Five
+                        # frames retain complete producer/consumer frames after
+                        # the initial partial frame; no input timing is changed.
+                        require(active is None,'Overlapping body/output DMA profiles')
+                        directory=out/('resource-dma-'+result['name'])
+                        client.request('profile.start',{'path':str(directory),'frames':5,'slots':True,
+                            'memory':False,'screenshots':'none','pc_samples':True})
+                        active={'name':result['name'],'path':directory,'frame':event['frame'],'resource':True,
+                                'minimum_end_frames':6}
                     if result['name'] in ('inventory_open','take_engineer_card_ready','take_sonicdriver_ready'):
                         cursor=next(r for r in config['layout_plan']['regions'] if r['region_id']=='pandora_cursor_sprites')
                         buffer=client.read_memory(cursor['runtime_address'],cursor['size'])
@@ -249,6 +286,10 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                     client.request('profile.stop');dma.append({'phase':'post_ending',**summarize_dma(directory,image)})
                     image=out/'saved-earth.png';media.append({'phase':'post_ending','frame':stop['frame'],'capture':client.request('capture.screenshot',{'path':str(image),'native':True}),'sha256':sha(image)})
                     report['post_ending_stop']=stop
+                if allocation:
+                    _,final_lease=consume_return(client,contract,payload.read_bytes())
+                    require(final_lease==report['runtime_allocation']['lease'],'Allocation ownership record changed during gameplay')
+                    report['runtime_allocation']['end_lifetime']='Lease remains owned through sampled DMA and post-ending output; successful OS return/free is M6, not claimed here.'
                 report['status']='saved_earth_and_escaped_original_control' if config.get('original_control') else 'saved_earth_and_escaped_relocated_cold_boot'
     except BaseException as exc:
         report['status']='experiment_error';report['error']={'type':type(exc).__name__,'message':str(exc)};raise

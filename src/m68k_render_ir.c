@@ -3321,6 +3321,9 @@ static uint8_t resolve_rendered_data_pointer_expression(const M68kRenderLookup *
     ? M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY : M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER;
   value = m68k_read_u32be(section->data + offset);
   out_expression->logical_address = value;
+  out_expression->pointer_width = 4U;
+  out_expression->pointer_address_domain = item != NULL ? item->pointer_address_domain :
+    M68K_ANALYSIS_POINTER_DOMAIN_LEGACY;
   if (value == 0U) {
     out_expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
     snprintf(out_expression->reason, sizeof(out_expression->reason), "null_pointer");

@@ -5,6 +5,31 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
+### M5 implementation: first allocated cold completion
+
+[Implementation and retained evidence](../../runtime/observations/pandora-runtime-allocation-implementation.json)
+now record a native typed-data allocation plan, actual-base validation and a
+shared guest loader path. Real Exec allocation selects `$F568` for the 2,304-byte
+body snapshot; the temporary exclusion lease is `$59E8..$F568`. The native plan
+protects named owners and explicit runtime-equate extents. Source-backed pointers
+retain their domain/target identity and cannot become workspace fixups merely by
+numeric coincidence. The old proof adapter remains unchanged and still refuses
+its unresolved numeric candidates.
+
+The first allocated run completes all 576 normal-input phases, saving Earth and
+escaping at HP49/frame14465, with 262 heartbeat events and both loss counters zero.
+Both pre-entry fault paths release owned backing; final release is observed at a
+byte-verified loader label rather than a frame-delay guess. Existing fixed E-layout
+boot bytes remain identical. 423 scoped tests and 10 real MCP/CLI transport tests
+pass. The native read service, CLI and MCP use the same allocation operation.
+
+The second selected allocation, matched output comparison, bounded body DMA
+capture/restore observations and public-CLI unheld cold run are in progress.
+The lease remains owned through the successful route's post-ending observation;
+normal OS return/free is not implemented. Other fixed game RAM is not certified
+OS-owned. This is a bounded M5 implementation result, not an M5/M6 or all-path
+closeout. The separate original-to-image eight-CCK criterion remains unfulfilled.
+
 ### Active display continuation
 
 [Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
@@ -38,9 +63,9 @@ Historical causal failures and their canonical repairs remain in
 [initialization contract](../../runtime/observations/pandora-display-initialization-contract.json).
 The current pass supersedes their pending-qualification statements, preserving
 the failed runs and exact original receipts. M5/M6 continuation is authorized;
-M5 has only the preparation below; neither allocation nor OS lifecycle is implemented yet. Do not reopen the eight-CCK probe without new evidence.
+M5 now has the bounded implementation above; OS lifecycle remains unimplemented. Do not reopen the eight-CCK probe without new evidence.
 
-### M5 preparation: typed sites and allocator collision
+### Earlier M5 preparation: typed sites and allocator collision
 
 [Native evidence and allocator probe](../../runtime/observations/pandora-allocation-preparation.json)
 identify the body descriptor's one typed LONG at source `$3402`, pointing to
@@ -595,7 +620,7 @@ have the partial implementation/evidence above; M2 has target profile builds and
 M3/M4 now have the scoped runtime/output evidence above; frozen-plan reuse and
 its measured performance are evidenced. Placement calculations are shared while
 the proof/manifest semantic adapter remains supported. Exact original HAND-cycle
-equality is still refused. M5 has preparation evidence only; M6 is not implemented. M1–M4
+equality is still refused. M5 has the bounded implementation checkpoint above; M6 is not implemented. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are separately authorized continuation gates. Each batch

@@ -75,6 +75,10 @@ typedef struct M68kRenderPlannedExpression {
   uint8_t has_base_addend;
   uint8_t requires_declaration;
   uint8_t has_relative_key;
+  /* Retain the typed encoding domain; logical_address alone may be a local
+   * source offset and is never runtime ownership evidence. */
+  uint8_t pointer_address_domain;
+  uint8_t pointer_width;
   char expression[M68K_RENDER_PLANNED_EXPRESSION_TEXT_CAPACITY];
   char target_symbol[M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY];
   char base_symbol[M68K_RENDER_PLANNED_SYMBOL_TEXT_CAPACITY];

@@ -10,6 +10,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from amiga_reversing.disasm.project_paths import resolve_project_paths
+from .runtime_allocation import allocation_backing, allocation_source, validate_payload as validate_allocation_payload
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_DIRECTORY = ROOT / "runtime" / "direct_payload_contracts"
@@ -43,6 +44,8 @@ class DirectPayloadContract:
     # Original staged-file bytes copied by the guest shim before HAND/entry.
     # Each tuple is (file offset, destination, size), not a host memory patch.
     seed_copies: tuple[tuple[int, int, int], ...] = ()
+    # Native typed allocation capsule, revalidated by the observing caller.
+    runtime_allocation: dict | None = None
 
 
 def _integer(record: dict[str, object], name: str) -> int:
@@ -214,7 +217,10 @@ def reservation_plan(contract: DirectPayloadContract, payload_size: int) -> tupl
     if type(marker) is not int or marker < 0x1008 or marker > 0xFFFFFC or marker % 4:
         raise DirectPayloadContractError("Invalid handoff marker reservation")
     spans = []
-    for address, size in (*contract.reservations, *seed_reservation_spans(contract.seed_copies)):
+    allocation_spans = ()
+    if contract.runtime_allocation is not None:
+        allocation_spans = allocation_backing(contract.runtime_allocation, marker)
+    for address, size in (*contract.reservations, *seed_reservation_spans(contract.seed_copies), *allocation_spans):
         if (type(address) is not int or type(size) is not int or address % 8
                 or size <= 0 or size % 8 or address < 0x1000
                 or address + size > 0x1000000):
@@ -267,11 +273,25 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
     reservation_path = output_path.parent / "direct_payload_reservations.i"
     seed_path = output_path.parent / "direct_payload_seed_copies.i"
     reservation_lines=[]
-    for index,(address,size) in enumerate(reservation_plan(contract, payload_size)):
+    spans=reservation_plan(contract,payload_size)
+    if contract.runtime_allocation is not None:reservation_lines.append('    moveq #0,d4')
+    for index,(address,size) in enumerate(spans):
         reservation_lines.extend((f"    move.l #${size:X},d0", f"    movea.l #${address:X},a1",
             "    jsr _LVOAllocAbs(a6)", f"    cmpi.l #${address:X},d0", "    bne.w reservation_unowned" if index == 0 else "    bne.w failed"))
+        if contract.runtime_allocation is not None:
+            reservation_lines.extend(('    addq.l #1,d4',f'    move.l d4,${contract.handoff_marker_address-4:X}'))
+            if index==0:
+                reservation_lines.extend(('    lea start(pc),a0',f'    move.l a0,${contract.handoff_marker_address-8:X}'))
     command = [str(VASM), "-Fbin", "-m68000", "-I", str(output_path.parent), "-I", str(NDK_INCLUDE)]
     command.extend(f"-D{name}=${value:X}" for name, value in definitions.items())
+    allocation_files=[]
+    listing_path=output_path.with_suffix('.allocation.lst')
+    if contract.runtime_allocation is not None:
+        generated,constants=allocation_source(contract.runtime_allocation,contract,payload_size,spans)
+        for name,text in generated.items():
+            path=output_path.parent/name;path.write_text(text,encoding='ascii');allocation_files.append(path)
+        command.extend('-D'+key+'='+str(value) for key,value in constants.items())
+        command.extend(('-I',str(ROOT/'tools'),'-L',str(listing_path)))
     command.extend(("-o", str(output_path), str(BOOT_SOURCE)))
     try:
         context_path.write_text(entry_context_source(contract.entry_registers), encoding="ascii")
@@ -285,6 +305,7 @@ def assemble_boot_code(contract: DirectPayloadContract, payload_size: int, *, ou
         context_path.unlink(missing_ok=True)
         reservation_path.unlink(missing_ok=True)
         seed_path.unlink(missing_ok=True)
+        for path in allocation_files:path.unlink(missing_ok=True)
 
 
 def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_path: Path) -> dict[str, object]:
@@ -297,6 +318,9 @@ def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_p
     if len(payload) > ADF_SIZE - BOOT_BLOCK_SIZE:
         raise DirectPayloadContractError("Direct payload does not fit on a DD ADF.")
     validate_materialization(contract, len(payload))
+    if contract.runtime_allocation is not None:
+        validate_allocation_payload(contract.runtime_allocation,payload,contract.load_address,
+            contract.handoff_marker_address,contract.seed_copies)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     code_path = output_path.with_suffix(".bootcode.bin")
     try:
@@ -330,6 +354,15 @@ def build_boot_adf(contract: DirectPayloadContract, payload_path: Path, output_p
             staging_address=contract.load_address+s,source_sha256=hashlib.sha256(payload[s:s+n]).hexdigest(),
             phase='guest_shim_before_handoff') for s,a,n in normalize_seed_copies(contract.seed_copies,
                 payload_size=len(payload),load_address=contract.load_address)]
+    if contract.runtime_allocation is not None:
+        import re
+        listing=code_path.with_suffix('.allocation.lst').read_text()
+        wanted={'allocation_abort_publish','allocation_abort_wait','allocation_closed'}
+        symbols={name:int(address,16) for address,name in re.findall(r'^([0-9A-Fa-f]{8}) (allocation_[A-Za-z_]+)$',listing,re.M) if name in wanted}
+        if set(symbols)!=wanted:raise DirectPayloadContractError('Missing exact allocation debug symbols')
+        report['allocation_boot_symbols']=symbols
+        report['allocation_boot_code_size']=len(code)
+        report['allocation_boot_code_sha256']=hashlib.sha256(code).hexdigest()
     return report
 
 

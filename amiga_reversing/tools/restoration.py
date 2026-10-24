@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
             "review_batch",
             "history",
             "rollback",
+            "allocation_plan",
             "memory_plan",
             "memory_build",
         ),

@@ -3,6 +3,31 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
+### M5 implementation: first allocated cold completion
+
+[Implementation and retained evidence](../../runtime/observations/pandora-runtime-allocation-implementation.json)
+now record a native typed-data allocation plan, actual-base validation and a
+shared guest loader path. Real Exec allocation selects `$F568` for the 2,304-byte
+body snapshot; the temporary exclusion lease is `$59E8..$F568`. The native plan
+protects named owners and explicit runtime-equate extents. Source-backed pointers
+retain their domain/target identity and cannot become workspace fixups merely by
+numeric coincidence. The old proof adapter remains unchanged and still refuses
+its unresolved numeric candidates.
+
+The first allocated run completes all 576 normal-input phases, saving Earth and
+escaping at HP49/frame14465, with 262 heartbeat events and both loss counters zero.
+Both pre-entry fault paths release owned backing; final release is observed at a
+byte-verified loader label rather than a frame-delay guess. Existing fixed E-layout
+boot bytes remain identical. 423 scoped tests and 10 real MCP/CLI transport tests
+pass. The native read service, CLI and MCP use the same allocation operation.
+
+The second selected allocation, matched output comparison, bounded body DMA
+capture/restore observations and public-CLI unheld cold run are in progress.
+The lease remains owned through the successful route's post-ending observation;
+normal OS return/free is not implemented. Other fixed game RAM is not certified
+OS-owned. This is a bounded M5 implementation result, not an M5/M6 or all-path
+closeout. The separate original-to-image eight-CCK criterion remains unfulfilled.
+
 [Independent display qualification](../../runtime/observations/pandora-canonical-display-qualification.json)
 now records the normal-export E0000..ED000 display group, independently of image
 80000, with cursor still at 65370. Fresh common-loader control/candidate runs both

@@ -1,6 +1,38 @@
 #include "m68k_memory_region_proof.inc"
 #include "m68k_memory_pointer_liveness.inc"
 #include "m68k_memory_region_addresses.inc"
+/* A typed encoded LONG can name source storage rather than a runtime address.
+ * Resolve its identity first; never assign ownership by raw numeric equality. */
+static int mr_pointer_runtime_address(const PlatformFileListingArtifact *a,
+    const M68kRenderPlannedExpression *e,uint32_t *address) {
+  if(e->pointer_width!=4U || (e->kind!=M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER &&
+      e->kind!=M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY) ||
+      e->outcome!=M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC) return 0;
+  if(e->pointer_address_domain==M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY) {
+    if(e->has_target || strcmp(e->reason,"resolved_runtime_symbol")) return 0;
+    *address=e->logical_address;return 1;
+  }
+  return e->has_target && mr_source_address(a,e->target_section_index,e->target_offset,address)==1;
+}
+static int mr_append_pointer_site(JsonBuilder *b,const M68kRenderPlannedExpression *e,
+    int resolved,uint32_t address,uint32_t region_start) {
+  static const char *domains[]={"legacy","mapped_source","runtime_only"};
+  if(json_builder_appendf(b,
+      "{\"source_section_index\":%u,\"source_offset\":%u,\"width\":%u,"
+      "\"encoded_value\":%u,\"address_domain\":\"%s\",\"has_target\":%s,\"target_section_index\":",
+      e->source_section_index,e->source_offset,e->pointer_width,e->logical_address,
+      e->pointer_address_domain<=2 ? domains[e->pointer_address_domain] : "unknown",
+      e->has_target ? "true" : "false")) return -1;
+  if(e->has_target) {
+    if(json_builder_appendf(b,"%u,\"target_offset\":%u",e->target_section_index,e->target_offset)) return -1;
+  } else if(json_builder_append(b,"null,\"target_offset\":null")) return -1;
+  if(resolved && json_builder_appendf(b,",\"address\":%u,\"region_offset\":%u",address,address-region_start)) return -1;
+  return json_builder_appendf(b,",\"kind\":\"%s\",\"symbolic\":%s,\"reason\":",
+      e->kind==M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER ? "data_pointer" : "table_entry",
+      e->outcome==M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ? "true" : "false") ||
+    json_builder_append_json_string(b,e->reason) || json_builder_append(b,",\"target_symbol\":") ||
+    json_builder_append_json_string(b,e->target_symbol) || json_builder_append(b,"}") ? -1 : 0;
+}
 /* Native formal-memory projection. Included after the canonical artifact and
  * JSON codec definitions; it never scans rendered source or invents owners. */
 static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingArtifact *a,
@@ -118,20 +150,11 @@ static int memory_region_append_facts(JsonBuilder *b, const PlatformFileListingA
    * contracts before a runtime allocator may consume these coordinates. */
   for(i=0;i<p->expression_count;i++) {
     const M68kRenderPlannedExpression *e=&p->expressions[i];
-    if((e->kind!=M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER &&
-        e->kind!=M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY) ||
-        e->logical_address<r->runtime_address ||
-        e->logical_address-r->runtime_address>=r->size) continue;
-    if((pointer_count++ && json_builder_append(b,",")) || json_builder_appendf(b,
-        "{\"source_section_index\":%u,\"source_offset\":%u,\"width\":4,"
-        "\"address\":%u,\"region_offset\":%u,\"kind\":\"%s\",\"symbolic\":%s,\"reason\":",
-        e->source_section_index,e->source_offset,e->logical_address,
-        e->logical_address-r->runtime_address,
-        e->kind==M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER ? "data_pointer" : "table_entry",
-        e->outcome==M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC ? "true" : "false") ||
-        json_builder_append_json_string(b,e->reason) ||
-        json_builder_append(b,",\"target_symbol\":") ||
-        json_builder_append_json_string(b,e->target_symbol) || json_builder_append(b,"}")) return -1;
+    uint32_t address=0;
+    if(!mr_pointer_runtime_address(a,e,&address) || address<r->runtime_address ||
+        address-r->runtime_address>=r->size) continue;
+    if((pointer_count++ && json_builder_append(b,",")) ||
+        mr_append_pointer_site(b,e,1,address,r->runtime_address)) return -1;
   }
   return json_builder_appendf(b,"],\"typed_data_pointer_site_count\":%zu,"
     "\"typed_data_pointer_scope\":\"frozen_typed_expressions_only_not_all_alias_or_runtime_fixup_proof\","
@@ -151,7 +174,18 @@ int platform_file_facts_v2_listing_artifact_memory_regions_json_alloc(
   for(i=0;i<a->policy.memory_region_count;i++) {
     if((i && json_builder_append(&b,",")) || memory_region_append_facts(&b,a,&a->policy.memory_regions[i])) goto fail;
   }
-  if(json_builder_appendf(&b,"],\"total\":%u,\"scope\":\"canonical_native_memory_regions\"}",a->policy.memory_region_count)) goto fail;
+  if(json_builder_append(&b,"],\"unresolved_typed_data_pointer_sites\":[")) goto fail;
+  size_t unresolved=0;
+  for(size_t ei=0;ei<a->source_plan.expression_count;ei++) {
+    const M68kRenderPlannedExpression *e=&a->source_plan.expressions[ei];uint32_t address=0;
+    if(e->pointer_width!=4U || e->logical_address==0 ||
+        (e->kind!=M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER &&
+         e->kind!=M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY) ||
+        mr_pointer_runtime_address(a,e,&address)) continue;
+    if((unresolved++ && json_builder_append(&b,",")) || mr_append_pointer_site(&b,e,0,0,0)) goto fail;
+  }
+  if(json_builder_appendf(&b,"],\"unresolved_typed_data_pointer_site_count\":%zu,\"total\":%u,"
+      "\"scope\":\"canonical_native_memory_regions\"}",unresolved,a->policy.memory_region_count)) goto fail;
   *out_text=json_builder_build(&b); json_builder_destroy(&b); return *out_text ? 0 : -1;
 fail: json_builder_destroy(&b); return -1;
 }
@@ -333,3 +367,5 @@ int platform_file_facts_v2_listing_artifact_memory_region_plan_json_alloc(
   *out_text=json_builder_build(&b);json_builder_destroy(&b);return *out_text ? 0 : -1;
 fail:json_builder_destroy(&b);return -1;
 }
+
+#include "m68k_runtime_allocation.inc"

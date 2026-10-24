@@ -24,9 +24,12 @@ Current alternate-layout management: the
 keeps strict cycle equality unfulfilled. The
 [independent display move](../../runtime/observations/pandora-canonical-display-qualification.json)
 now qualifies E0000..ED000 with cursor still65370 and image80000, including cold
-completion and scoped graphics/PCM equality. The next allocation candidate is
-the body-background owner and its typed descriptor pointer; its actual allocation
-and cleanup contracts remain to be implemented.
+completion and scoped graphics/PCM equality. The
+[bounded M5 implementation](../../runtime/observations/pandora-runtime-allocation-implementation.json)
+now has its first allocator-selected cold completion for the body snapshot at
+`$F568`; second-placement/output and unheld qualification remain active. Native
+actual-base validation and guest failure unwind are implemented. Successful OS
+return/cleanup and ownership of the remaining fixed game RAM are not.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not

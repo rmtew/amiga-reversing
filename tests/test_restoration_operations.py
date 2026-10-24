@@ -540,3 +540,23 @@ def test_instruction_text_query_passed_to_native_provider(target):
 def test_empty_text_query_keeps_native_query_compatibility(target, kind):
     invoke("query", kind=kind, query="", limit=1)
     assert target.calls[-1]["query"] == ""
+
+
+def test_runtime_allocation_plan_requires_current_revision_and_keeps_refusal(target,monkeypatch):
+    artifact=target.backend._LISTING_PROJECTION_SERVICE.valid_artifact()
+    calls=[]
+    def plan(region_id,layout_id,actual):
+        calls.append((region_id,layout_id,actual))
+        return dict(status='refused',reason='allocator_result_overlaps_protected_runtime_extent')
+    monkeypatch.setattr(artifact,'runtime_allocation_plan',plan,raising=False)
+    with pytest.raises(ValueError,match='revision'):
+        invoke('allocation_plan',region_id='body',layout_id='layout',actual_base=0x59e8)
+    assert calls==[]
+    revision=current()
+    for _ in range(2):
+        result=invoke('allocation_plan',expected_revision=revision,
+            region_id='body',layout_id='layout',actual_base=0x59e8)
+        assert result['plan']['status']=='refused'
+    assert calls==[('body','layout',0x59e8)]*2
+    with pytest.raises(ValueError,match='revision'):
+        invoke('allocation_plan',expected_revision='old',region_id='body',layout_id='layout')

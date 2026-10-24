@@ -379,7 +379,7 @@ def wait_for_pc(client, address, seconds, *, frame_limit=None):
             client.remove_breakpoint(ident)
 
 
-def wait_for_marker(client, address, expected, seconds, *, write_watch=True):
+def wait_for_marker(client, address, expected, seconds, *, write_watch=True, terminal_values=()):
     if not 0 <= address <= 0xFFFFFC or (
         expected is not None and (not isinstance(expected, bytes) or len(expected) != 4)
     ):
@@ -397,6 +397,9 @@ def wait_for_marker(client, address, expected, seconds, *, write_watch=True):
     try:
         for _ in range(4096):
             value = client.read_memory(address, 4)
+            if value in terminal_values:
+                return {'address':f'0x{address:08x}', 'bytes':value.hex(), 'matched':False,
+                        'terminal':True, 'stop_reason':reason}
             if value == expected or (expected is None and reason == "watchpoint"):
                 return {
                     "address": f"0x{address:08x}",
@@ -440,6 +443,11 @@ def verify_handoff(client, contract, payload_path):
     expected = contract.payload_sha256
     if hashlib.sha256(payload).hexdigest() != expected:
         raise CopperlineError("Local payload does not match direct contract")
+    allocation = None
+    if getattr(contract, 'runtime_allocation', None) is not None:
+        from .runtime_allocation import consume_return
+        payload, allocation = consume_return(client, contract, payload)
+        expected = hashlib.sha256(payload).hexdigest()
     digest = hashlib.sha256()
     for offset in range(0, len(payload), 65536):
         digest.update(
@@ -468,6 +476,9 @@ def verify_handoff(client, contract, payload_path):
         "status": "verified",
     }
     if seeds:report['loader_seeds']=seeds
+    if allocation:
+        report['runtime_allocation']=allocation
+        report['static_payload_sha256']=contract.payload_sha256
     return report
 
 

@@ -58,13 +58,18 @@
       "limits": "Six core plus two inventory DMA samples, not all DMA/assets/optional routes. Unchanged eight null-sprite WORD reads at0/2 stay outside certified bounds. Display naturally modeled but not independently moved."
     },
     {
-      "id": "M5-M6",
-      "status": "authorized_continuation_M5_preparation_only_lifecycle_not_implemented",
+      "id": "M5",
+      "status": "bounded_body_allocation_first_cold_completion_second_and_output_pending",
       "delivered": null,
-      "limits": "Typed pointer discovery and guest allocation/free probes are not admitted runtime fixups, legal game placements, normal-input allocated completion or OS cleanup. Measured returns overlap the fixed world grid.",
+      "limits": "One bounded runtime-only LONG-data owner; successful lease held through post-ending observation. Two-layout output and unheld qualification are pending; OS return is not implemented.",
       "evidence": [
-        "pandora-allocation-preparation.json"
+        "pandora-runtime-allocation-implementation.json"
       ]
+    },
+    {
+      "id": "M6",
+      "status": "authorized_not_implemented",
+      "limits": "Review ownership, vectors/IRQ/DMA/CPU/stack and actual host return. Existing fixed low game RAM is not certified OS-owned."
     }
   ],
   "shared_geometry": {
@@ -118,7 +123,7 @@
     "wall_seconds": 201.8518994320002,
     "meaning": "Fresh final-source export and current C assembly equal retained original package and its independent vasm output; no redundant vasm invocation or gameplay rerun."
   },
-  "next_implementation_candidate": "M5 explicit lease/actual-base fixup contract for body-background owner: avoid or acquire live fixed ranges, native placement admission, source-coordinate binding, initialized materialization and DMA-safe failure/unwind. Native typed LONG at source3402 is now exposed; the plain allocator returns59E8/5A28 are refused for gameplay because they overlap world grid4000..F568. M6 remains separate.",
+  "next_implementation_candidate": "Finish M5 second allocation/output/unheld and bounded body DMA qualification, then establish the concrete ownership/bootstrap/exit contracts for M6.",
   "independent_display": {
     "evidence": "pandora-canonical-display-qualification.json",
     "profile": "pandora_display_e0000_ecs1m",

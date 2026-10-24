@@ -172,7 +172,7 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             initialized = await session.initialize()
             assert initialized.server_info.name == "Amiga source restoration"
             tools = (await session.list_tools()).tools
-            assert len(tools) == 15
+            assert len(tools) == 16
             by_name = {tool.name: tool for tool in tools}
             assert 'layout_id' in by_name['restoration_export'].input_schema['properties']
             exported=await session.call_tool('restoration_export',dict(project='demo',layout_id='placed'))
@@ -245,6 +245,17 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
             assert requests[-1]['operation']=='behaviour'
             assert requests[-1]['contract_id']=='bounded'
             assert not by_name['restoration_behaviour'].annotations.read_only_hint
+            allocation_request=dict(project='demo',expected_revision='current',
+                region_id='body',layout_id='layout',actual_base=0xf568)
+            for _ in range(2):
+                allocated=await session.call_tool('restoration_allocation_plan',allocation_request)
+                assert not allocated.is_error
+                assert requests[-1]==dict(operation='allocation_plan',
+                    expected_revision='current',region_id='body',layout_id='layout',actual_base=0xf568)
+            assert by_name['restoration_allocation_plan'].annotations.read_only_hint
+            stale=await session.call_tool('restoration_allocation_plan',
+                {**allocation_request,'expected_revision':'old'})
+            assert stale.is_error and 'stale_revision' in stale.content[0].text
             rejected = await session.call_tool(
                 "restoration_verify", {"project": "demo", "expected_revision": "old"}
             )
@@ -266,3 +277,13 @@ def test_mcp_stdio_initialize_list_and_operation_parity(operation_server):
 def test_adapter_rejects_nonlocal_or_ambiguous_origin(url):
     with pytest.raises(ValueError, match="local|origin"):
         RestorationClient(url)
+
+
+def test_cli_native_allocation_request_keeps_actual_return_and_revision(operation_server):
+    url,requests=operation_server
+    parameters=dict(expected_revision='current',region_id='body',layout_id='layout',actual_base=0xf568)
+    result=subprocess.run([sys.executable,'-m','amiga_reversing.tools.restoration','--server',url,
+        '--target','demo','allocation_plan','--request','-'],input=json.dumps(parameters),
+        cwd=ROOT,capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stderr
+    assert requests[-1]==dict(operation='allocation_plan',**parameters)
