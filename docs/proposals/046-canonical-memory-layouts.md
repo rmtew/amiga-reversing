@@ -830,7 +830,7 @@ have the partial implementation/evidence above; M2 has target profile builds and
 M3/M4 now have the scoped runtime/output evidence above; frozen-plan reuse and
 its measured performance are evidenced. Placement calculations are shared while
 the proof/manifest semantic adapter remains supported. Exact original HAND-cycle
-equality is still refused. M5 has the bounded implementation checkpoint above; M6 is not implemented. M1–M4
+equality is still refused. M5 has bounded allocation evidence; M6 now has the short normal-HUNK entry/exit evidence below, not full hosted ending/output qualification or arbitrary placement. M1–M4
 form the required first delivery. Original, known-image and independent-block
 validation are incremental internal steps; M2 or M3 alone cannot close delivery.
 M5–M6 are separately authorized continuation gates. Each batch
@@ -1084,3 +1084,34 @@ tests pass. The initial undersized ledger failure is retained and superseded by
 an eight-byte-per-entry extent guard and corrected live run. This is deliberately
 pre-entry: typed field application, audio ownership, active hardware takeover and
 the mission-restart exit/restore path remain the immediate implementation gate.
+
+### M6 first normal-HUNK game entry/exit (2026-10-24)
+
+[Lifecycle receipt](../../runtime/observations/pandora-normal-HUNK-game-lifecycle.json):
+DOS LoadSeg placed the owned `code_f` HUNK at `$C07888`. Real Exec returned the
+six workspace bases; native atomic validation accepted111 fields, and the
+observer verified the complete376,832-byte input after guest application plus
+the typed host import. The guest validates all fields before applying any,
+retains both declared startup seeds and executes the real original world
+initializer at `$89F26`; all registers, stack and SR match across first dispatch.
+Normal fire starts gameplay; normal F7 enters the explicit one-session return.
+
+The supervisor exit waits for blitter completion before clearing DMA/IRQ.
+Supported `custom.read` reports DMACONR `$2000` (BLTZERO only, busy/enables clear)
+with all ten leases still owned. Vectors, saved IRQ/DMA/ADK state, CIA CRA/LED,
+old view and supervisor context are restored; two WaitTOF calls and WaitBlit
+precede resource release. The trace then observes every exact FreeMem pair in
+reverse order. Audio's FREE completes its pending LOCK before WaitIO/CloseDevice;
+the signal is released. The second normal HUNK runs, and ordinary Return creates
+a fresh CLI prompt. 28 executable/field/failure checks pass. The idle SSP probe
+remains historical diagnostic evidence, not a competing game loader.
+
+This closes a bounded launch/F7-exit slice, not M6 wholesale. Immediate next
+acceptance is the576-phase hosted saved-Earth route followed by its natural exit,
+with scoped output/PCM qualification on a corresponding declared control. Four
+fixed AllocAbs claims still remain (input, copied image prefix, high masks,
+display); genuine allocation-selected image/display loading is a further
+explicit placement/fixup gate, not implied by six movable workspaces. No
+universal OS/RTG support, exact CIA timer phase, active CPU-fault recovery or
+original pre-entry clock identity is claimed. Retained failed observations and
+all raw media/captures remain private and non-passing.

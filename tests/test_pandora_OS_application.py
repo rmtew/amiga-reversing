@@ -55,6 +55,55 @@ def test_every_allocation_prefix_or_library_failure_frees_only_exact_owned_pairs
     try:m.cpu.execute(200000)
     except Done:pass
     else:raise AssertionError('Owned application did not return within bounds')
+    assert m.cpu.r_reg(machine68k.Register.D0)==20
     assert not owned and freed==list(reversed(acquired))
     assert len(acquired)==min(fail_index,10)
     assert m.mem.r32(base+labels['state_count'])==0
+
+@pytest.mark.parametrize('failure',['open','read_error','short_read','extra_byte','CRC_mismatch'])
+def test_file_admission_failures_close_file_once_and_unwind_all_ten(executable,failure):
+    code,labels=executable;m=machine68k.Machine(machine68k.CPUType.M68000,1024)
+    base=0x1000;execbase=0xf0000;dosbase=0xf1000;stop=0xfe000
+    m.mem.w_block(base,code);m.mem.w32(4,execbase)
+    for address in [execbase-n for n in (198,204,210,552,414)]+[dosbase-n for n in (30,36,42,48,60)]:
+        m.mem.w_block(address,b'\x4e\x75')
+    m.cpu.w_reg(machine68k.Register.A7,0xf8000);m.mem.w32(0xf8000,stop)
+    m.cpu.w_sr(0x2000);m.cpu.w_pc(base)
+    owned={};acquired=[];freed=[];dynamic=0;read_count=0;closes=0;steps=0
+    class Done(Exception):pass
+    def hook(pc):
+        nonlocal dynamic,read_count,closes,steps
+        steps+=1;assert steps<3000
+        if pc==stop:raise Done
+        if pc in (execbase-198,execbase-204):
+            size=m.cpu.r_reg(machine68k.Register.D0)
+            if pc==execbase-204:address=m.cpu.r_reg(machine68k.Register.A1)
+            else:
+                address=(0x2000,0x10170,0x101f0,0x10af0,0x10ed8,0x1ca90)[dynamic];dynamic+=1
+            owned[address]=size;acquired.append((address,size));m.cpu.w_reg(machine68k.Register.D0,address)
+        elif pc==execbase-552:m.cpu.w_reg(machine68k.Register.D0,dosbase)
+        elif pc==dosbase-30:m.cpu.w_reg(machine68k.Register.D0,0 if failure=='open' else 0x55)
+        elif pc==dosbase-42:
+            read_count+=1
+            assert m.cpu.r_reg(machine68k.Register.D1)==0x55
+            if read_count==1:
+                size=-1 if failure=='read_error' else 15 if failure=='short_read' else 16
+                if size>0:m.mem.w_block(0x20000,bytes(size))
+            else:size=1 if failure=='extra_byte' else 0
+            m.cpu.w_reg(machine68k.Register.D0,size&0xffffffff)
+        elif pc==dosbase-36:
+            closes+=1;assert m.cpu.r_reg(machine68k.Register.D1)==0x55
+        elif pc==dosbase-60:m.cpu.w_reg(machine68k.Register.D0,0x66)
+        elif pc==dosbase-48:m.cpu.w_reg(machine68k.Register.D0,m.cpu.r_reg(machine68k.Register.D3))
+        elif pc==execbase-210:
+            address=m.cpu.r_reg(machine68k.Register.A1);size=m.cpu.r_reg(machine68k.Register.D0)
+            assert owned.pop(address)==size;freed.append((address,size))
+    m.cpu.set_instr_hook_callback(hook)
+    try:m.cpu.execute(500000)
+    except Done:pass
+    else:raise AssertionError('File failure did not return within bounds')
+    assert m.cpu.r_reg(machine68k.Register.D0)==20
+    assert not owned and freed==list(reversed(acquired)) and len(acquired)==10
+    assert closes==(failure!='open')
+    assert m.mem.r32(base+labels['state_phase'])==1
+    assert m.mem.r32(base+labels['state_file'])==0

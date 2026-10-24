@@ -1,0 +1,208 @@
+{
+  "schema": "pandora-normal-HUNK-game-lifecycle/v1",
+  "status": "short_cold_normal_input_entry_F7_exit_qualified_not_full_ending_or_output_equivalence",
+  "profile": "a500ecs_1m; 68000/PAL/ECS; 1MiB Chip plus 512KiB Slow; Kickstart1.3",
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "HUNK_sha256": "77f450c077904a130ad102aeb65e6d15c654dc978dc700212fd8817d2acbe43c",
+  "ADF_sha256_private_payload_not_published": "6da5800f60b3242c0da813940c1017bd218c87644ebfb5e5112a968db3c0f1da",
+  "payload_template_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+  "guest_source_sha256": {
+    "amiga_pandora_OS.s": "2ff05cb3a1e43f80915f89d28663d79888eee281f49020943357aa318ade9b44",
+    "amiga_pandora_OS_fields.i": "1679318f22212781523ee1af306a47503ecf80921029560b24878d4d7b5abecb",
+    "amiga_pandora_OS_audio.i": "f2576fc60fcce64a3a700875134ae1029f15b4fe1fddcdba614b964864fac20e",
+    "amiga_pandora_OS_takeover.i": "2a4bfffc16cc23b5379e32050d17d08f4bb2e8ea277152eed79249fe249c51de"
+  },
+  "observed_HUNK_base": 12613768,
+  "actual_owners": {
+    "pandora_prng_state": 6552,
+    "keyboard_state": 65904,
+    "pandora_ui_snapshot_body": 66032,
+    "pandora_title_stars": 68336,
+    "pandora_cpu_workspace": 69336,
+    "pandora_low_generated_masks": 117392
+  },
+  "native_actual_admission": {
+    "owner_count": 6,
+    "fixup_count": 111,
+    "uncovered_declared_runtime_extents": []
+  },
+  "whole_input_after_guest_fields_and_typed_import": {
+    "bytes": 376832,
+    "fields": 111,
+    "sha256": "fc432dbd4331b96930d46991a70a9008b27547ea1f5e2c09ddbd7bb193708749",
+    "whole_input_verified": true
+  },
+  "first_original_world_initializer": {
+    "pc": 565030,
+    "frame": 1253,
+    "registers_stack_SR_equal_across_dispatch": true
+  },
+  "normal_controller_inputs": [
+    {
+      "frame": 2700,
+      "port": 2,
+      "red": true
+    },
+    {
+      "frame": 2710,
+      "port": 2,
+      "red": false
+    },
+    {
+      "frame": 2900,
+      "rawkey": 86,
+      "pressed": true
+    },
+    {
+      "release": "finally immediately after bounded quiescence stop",
+      "rawkey": 86,
+      "pressed": false
+    },
+    {
+      "frame": 3400,
+      "rawkey": 68,
+      "pressed": true
+    },
+    {
+      "frame": 3403,
+      "rawkey": 68,
+      "pressed": false
+    }
+  ],
+  "DMA_stop_before_free": {
+    "frame": 2902,
+    "DMACONR_custom_read": 8192,
+    "busy_and_enable_mask": 18431,
+    "all_ten_leases_still_owned": true
+  },
+  "host_Supervisor_return_frame": 2902,
+  "exact_observed_FreeMem_calls": [
+    {
+      "address": 117392,
+      "size": 10040
+    },
+    {
+      "address": 69336,
+      "size": 48056
+    },
+    {
+      "address": 68336,
+      "size": 1000
+    },
+    {
+      "address": 66032,
+      "size": 2304
+    },
+    {
+      "address": 65904,
+      "size": 128
+    },
+    {
+      "address": 917504,
+      "size": 53248
+    },
+    {
+      "address": 524288,
+      "size": 349040
+    },
+    {
+      "address": 512000,
+      "size": 11960
+    },
+    {
+      "address": 131072,
+      "size": 376832
+    },
+    {
+      "address": 6552,
+      "size": 8
+    }
+  ],
+  "after_exit_ownership": {
+    "freed": [
+      {
+        "address": 117392,
+        "size": 10040
+      },
+      {
+        "address": 69336,
+        "size": 48056
+      },
+      {
+        "address": 68336,
+        "size": 1000
+      },
+      {
+        "address": 66032,
+        "size": 2304
+      },
+      {
+        "address": 65904,
+        "size": 128
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      },
+      {
+        "address": 524288,
+        "size": 349040
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 6552,
+        "size": 8
+      }
+    ],
+    "retained_count": 0,
+    "audio_open": 0,
+    "audio_lock": 0,
+    "signal": 4294967295
+  },
+  "screenshots_private_sha256": {
+    "title.png": "c878d914981409f085ef38a12b52975ac4903a824587d0660e81be2558646350",
+    "gameplay.png": "e41289f2fc15b2b3ed03c51b668e17fa3c4a936e138762cd28883ce9cf2a23e4",
+    "returned.png": "0d1204a371644f20782e4a4e0f2b163a440e7e63bb46d471caf910ef6e608ec2",
+    "after-key.png": "8171325b564ed6865ff05bf848979c872d87cbc646e892a2a38e892a31590b27"
+  },
+  "manual_review": [
+    "Title and gameplay images show coherent rendered output; no pixel comparison was performed.",
+    "Returned image shows second ordinary HUNK and CLI. After ordinary Return, after-key image has a fresh second CLI prompt."
+  ],
+  "tests": {
+    "passed": 28,
+    "scope": [
+      "All ten allocation prefixes and OpenLibrary failure unwind exactly owned requests and return DOS failure20.",
+      "Open/read-error/short-read/extra-byte/CRC failures close owned file and unwind.",
+      "WORD reach, misalignment and late stale field refuse without partial mutation; WORD/LONG apply and seed copy observed.",
+      "First dispatch preserves all registers, stack link and four SR/CCR cases at the execution boundary.",
+      "Audio cleanup call order completes pending lock before CloseDevice and signal release."
+    ]
+  },
+  "private_receipt_sha256": "68c3942e282bea463dc53fd71d5da544d9dd28342aeac0d492236db01111788c",
+  "retained_diagnostic_failures": [
+    "First live title run stopped on unsupported joystick fire argument; corrected to full-state red input, not a game change.",
+    "Debugger mem.read of custom hardware is not a live status oracle. The failed quiescence attempt was superseded by supported numeric custom.read; threshold unchanged.",
+    "Oracle SR sampling was moved to the instruction hook boundary to avoid observing deferred host-side flag state after raising; no guest code or expected CCR weakened."
+  ],
+  "limits": [
+    "This is a short fire/F7 lifecycle route, not hosted saved-Earth completion.",
+    "No matched graphics/PCM, all-frame DMA, all-path semantic or universal hardware restoration claim.",
+    "CPU register and synchronous FreeMem/custom.read evidence is not a bus trace; no asynchronous dropped-event claim is made.",
+    "Four fixed AllocAbs intents remain: input, image prefix, high masks and display. Six workspaces are allocator-selected; image/display placement is not yet allocator-selected.",
+    "Exclusive original-chipset profile; no RTG/multitasking, arbitrary CPU fault recovery or task-kill guarantee. CIA CRA/LED and vectors are restored; exact CIA timer phase/latch identity is not claimed.",
+    "Cold DOS entry, file/device APIs and ordinary inputs only. No host guest-memory/register writes, loaded checkpoints, calibrated delays or forced game state.",
+    "Strict original-to-image eight-CCK startup identity remains unresolved; the new OS-hosted loader makes no original pre-entry timing identity claim.",
+    "Existing null-sprite0/2 exception remains unqualified here; coherent screenshots do not establish sprite or pixel equivalence."
+  ],
+  "native_admission_reuse": "Final rerun reuses the preceding native actual-base receipt only after exact actual-base equality, unchanged canonical src/target files and unchanged loaded backend hash. Guest HUNK changed for explicit DOS failure return codes; typed native target model did not.",
+  "failure_return_code": 20
+}

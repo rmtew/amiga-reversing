@@ -34,8 +34,7 @@ now qualifies independent keyboard `$6000`, app/raster `$6080` and grid `$6684`
 through controlled and unheld completion plus exact scoped graphics/PCM. Its
 conditional grid-end byte is backing only, not new semantic data. That footprint
 supersedes independent placement assumptions for the two historical body bases;
-their observed outputs remain recorded. Next: allocator-selected CPU bases and
-native generated operand fixups, then successful DMA-safe cleanup and OS return.
+their observed outputs remain recorded. Allocator-selected CPU bases and native operand fixups are subsequently qualified below. A separately scoped normal-HUNK launch/F7 return now has DMA-safe release evidence; hosted full ending/output and broader allocation-selected loading remain open.
 Other low scratch and hardware/vector ownership remain open.
 The [CPU fixup projection](../../runtime/observations/pandora-CPU-fixup-projection.json)
 now has 20 passing focused tests but refuses the real target at `$78C4`. Four
@@ -55,13 +54,19 @@ records guest-selected `$6080/$7080`, two576-phase cold completions, an unheld
 cold completion, zero loss counters and exact scoped graphics/PCM comparison.
 66 focused tests pass. The [natural priest route](../../runtime/observations/pandora-priest-passage-natural-qualification.json)
 subsequently exercises all four stores on the combat path, at HP35/frame6094.
-The ranged caller and successful DMA-safe cleanup/OS return remain open; route
-completion is not all-path proof.
+The ranged caller remains unobserved dynamically. The later hosted short-session cleanup below is qualified separately; route completion is not all-path proof.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
 then separately scoped runtime allocation and OS entry/cleanup. This does not
 reopen the completed original-layout review. Staged M5/M6 implementation is now
 authorized after its concrete owner/fixup/lifecycle prerequisites are established.
+
+Current OS-hosted checkpoint: the [normal-HUNK game lifecycle](../../runtime/observations/pandora-normal-HUNK-game-lifecycle.json)
+qualifies actual six-owner allocation,111 typed fields, original initialization,
+normal fire/gameplay/F7 exit, DMA disable with all ten leases retained, exact
+reverse frees and CLI keyboard recovery. It is not hosted saved-Earth completion
+or graphics/PCM equality. Those checks and removal of the four remaining fixed
+input/image/high-mask/display placement requirements remain explicit next gates.
 
 Status: **original-layout reviewed closeout with explicit unknowns**.
 [Final source-bound review](../validation/pandora-original-layout-closeout.json)
@@ -71,7 +76,7 @@ Full semantic restoration and native C remain unclaimed. Alternate-layout
 execution now has the separately scoped
 [experimental completion/output evidence](../../runtime/observations/pandora-relocated-output-validation.json);
 normal canonical alternate-layout export is implemented with the scoped cursor
-and display qualification linked above; runtime allocation and OS cleanup are not.
+and display qualification linked above. Runtime allocation and short hosted cleanup now have bounded evidence; complete hosted route/output qualification and allocation-selected image/display loading remain open.
 Initial baseline: merged `22e55bb5`.
 This is a work plan and derived evidence index, not another semantic fact store.
 Canonical native facts, Manual Action Log and Decision Journal remain authoritative.

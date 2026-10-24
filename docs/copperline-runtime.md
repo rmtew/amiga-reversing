@@ -1734,3 +1734,50 @@ health/return route before arming. Its lack of an ending predicate does not
 make it ignorable on this particular route. Neither late encounter was won;
 no console submissions, AWOL authorization or ending are claimed. No general
 planner rewrite, memory injection, new memory watches or target-byte edits.
+
+### Pandora normal-HUNK hosted lifecycle
+
+The explicit hosted profile has a
+[short cold entry/F7-exit receipt](../runtime/observations/pandora-normal-HUNK-game-lifecycle.json).
+It loads through DOS, acquires six allocator-selected workspaces plus four fixed
+claims, validates native fields before applying them once, binds the reviewed
+restart import, and preserves the original first world initialization. F7 is a
+normal game input; the hosted profile returns to DOS rather than starting a
+second session. Original/fixed-layout exports retain their original behaviour.
+
+With the preserved private target payload, legal ROM and installed amitools
+`xdftool`, build the unbound canonical payload and run the hosted application:
+
+```sh
+uv run python -m amiga_reversing.tools.pandora_layout_walkthrough \
+  --layout pandora_OS_hosted_ecs1m --output .runtime-state/hosted-template
+uv run python -m amiga_reversing.tools.pandora_OS_application --game --run \
+  --payload .runtime-state/hosted-template/experiment.bin \
+  --output .runtime-state/hosted-cold --xdftool /path/to/xdftool \
+  --rom /path/to/legal/kick13.rom --copperline /path/to/copperline
+```
+
+The application needs the declared A500/ECS 68000 profile with1MiB Chip and512KiB
+Slow RAM. Its owned HUNK uses `code_f`; DOS selects its execution address. The
+normal exporter remains the payload authority. One native context supplies the
+template and actual six-owner validation in the cold-run command; no placement
+search or target source-string patching occurs. CRC32 guards accidental guest
+file corruption; the observer also compares the entire staged input to the
+native-derived expected bytes. CRC32 is not a cryptographic admission proof.
+
+The observer uses supported numeric `custom.read` for DMACONR, observes the ten
+exact reverse FreeMem calls after host/view restoration, then sends and releases
+ordinary Return to check CLI keyboard recovery. Audio allocation starts at
+minimum precedence without stealing, is raised only after successful acquisition,
+and locks channels before direct hardware access. FREE completes that pending
+LOCK before WaitIO/CloseDevice; the protocol follows the
+[Amiga audio.device documentation](https://wiki.amigaos.net/wiki/Audio_Device)
+and existing NDK definitions. All media, HUNK binaries and raw captures stay in
+ignored local state. Startup resource/file refusals unwind and return failure20.
+
+This short route is not the576-phase hosted saved-Earth route or matched
+pixel/PCM qualification. It does not certify every CIA timer phase, bus-master
+access or arbitrary active-game CPU fault. Four fixed input/image/high-mask/
+display claims remain; six allocator-selected workspaces do not establish fully
+allocation-selected loading. The original eight-CCK timing discrepancy is still
+unresolved; no original pre-entry clock identity is required of this OS loader.
