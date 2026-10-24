@@ -21,7 +21,8 @@ def main():
     parser.add_argument('--output',type=Path)
     args=parser.parse_args();root=Path(__file__).resolve().parent
     manifest=json.loads((root/'manifest.json').read_text());application=manifest['application']
-    if application['profile']!='pandora-dos-owned-prefix-v1':raise ValueError('Unsupported application profile')
+    if application['profile'] not in ('pandora-dos-owned-prefix-v1','pandora-dos-allocated-image-v1'):
+        raise ValueError('Unsupported application profile')
     for record in manifest['files']:
         path=(root/record['path']).resolve()
         if not path.is_relative_to(root) or path.stat().st_size!=record['size'] or sha(path)!=record['sha256']:

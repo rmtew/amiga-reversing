@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "status": "canonical_allocated_image_source_package_external_build_matches_cold_qualified_artifacts",
+  "package_sha256": "a87369ed005c0dcd4bbf9c5cfd1d7efc5692652fdda4e463cdc3470b02f1e5b0",
+  "ZIP_sha256": "ecfbed8ca8463a4d2c2b8a15694031c303076bc2e8f43dcda7d5747bc243883f",
+  "metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+  "layout_id": "pandora_OS_hosted_ecs1m",
+  "application": {
+    "schema": "native-hosted-application-source/v1",
+    "profile": "pandora-dos-allocated-image-v1",
+    "entry_source": "amiga_pandora_OS.s",
+    "game_source": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8-vasm.s",
+    "expected_payload_sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b",
+    "expected_payload_bytes": 376832,
+    "native_layout_id": "pandora_OS_hosted_ecs1m",
+    "native_layout_plan_sha256": "ec5cff357e29004d93d66f56b663da9475b2caf4fb42451f14d47a7f2dbc5aaf",
+    "provenance": {
+      "game": "canonical native Pandora rendering",
+      "runtime": "authored framework templates",
+      "bindings": "native allocation plans and declared bootstrap import"
+    },
+    "dynamic_owners": [
+      "pandora_prng_state",
+      "keyboard_state",
+      "pandora_ui_snapshot_body",
+      "pandora_title_stars",
+      "pandora_cpu_workspace",
+      "pandora_low_generated_masks",
+      "pandora_image"
+    ],
+    "fixed_lease_intents": [
+      {
+        "address": 131072,
+        "size": 376832
+      },
+      {
+        "address": 512000,
+        "size": 11960
+      },
+      {
+        "address": 917504,
+        "size": 53248
+      }
+    ],
+    "status": "source_only_unqualified",
+    "requires": "vasm plus Python standard library to build; declared ECS/1MiB Chip/512KiB Slow host to run"
+  },
+  "external_build": {
+    "schema": "pandora-standalone-application-build/v1",
+    "status": "game_C_expected_bytes_and_vasm_match_loader_HUNK_assembled_not_runtime_qualification",
+    "package_manifest_sha256": "a87369ed005c0dcd4bbf9c5cfd1d7efc5692652fdda4e463cdc3470b02f1e5b0",
+    "vasm_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "files": {
+      "Pandora.payload": {
+        "bytes": 376832,
+        "sha256": "9b0bf6e9747fdaf008983f3c0f9e77910ec9b30f777b0ace95594a41d8833f8b"
+      },
+      "Pandora": {
+        "bytes": 50356,
+        "sha256": "6971a36879ed1e86bf67a2489125165c709b97121ae6bfd05ee876e0f34c41c9"
+      }
+    },
+    "original_binary_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+    "original_binary_exact": false
+  },
+  "runtime_evidence": "runtime/observations/pandora-allocated-image-completion.json",
+  "original_export_preserved": true,
+  "limits": [
+    "The authored startup/allocation/cleanup templates and canonical game source are both included; no hand-edited game source or patched input binary is needed.",
+    "Seven AllocMem owners plus three fixed AllocAbs claims (442040 bytes); retained carrier/image duplication remains.",
+    "Assembly/build reproducibility does not certify PCM timing, all paths or arbitrary host configurations.",
+    "Source-selected proprietary assets, ROM and executable bytes are retained locally, not published in this receipt."
+  ]
+}

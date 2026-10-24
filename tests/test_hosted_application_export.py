@@ -12,7 +12,7 @@ from amiga_reversing.disasm.source_package import extend_source_package,validate
 ROOT=Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize('allocate_image',[False,True])
+@pytest.mark.parametrize('allocate_image',[None,False,True])
 def test_reference_contract_requests_the_same_guest_owner_family(allocate_image):
     from amiga_reversing.disasm.hosted_application_export import native_contract,TARGET
     from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER
@@ -25,8 +25,9 @@ def test_reference_contract_requests_the_same_guest_owner_family(allocate_image)
             assert [p['region_id'] for p in actual['placements']]==self.requested
             return dict(status='actual_placements_valid',uncovered_runtime_extents=[])
         def loaded_backend_identity(self):return dict(sha256='fixture')
-    a=Artifact();contract=native_contract(a,TARGET,'hosted',allocate_image=allocate_image)
-    assert tuple(contract['candidates'])==((*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS)
+    a=Artifact()
+    contract=native_contract(a,TARGET,'hosted',**({} if allocate_image is None else dict(allocate_image=allocate_image)))
+    assert tuple(contract['candidates'])==((*OWNERS,IMAGE_OWNER) if allocate_image is not False else OWNERS)
 
 
 def record(name,data,kind='application_source'):
@@ -66,7 +67,7 @@ def test_hosted_verification_missing_assembler_is_not_pass(monkeypatch, tmp_path
     assert result['exact'] is result['build_verified'] is result['runtime_verified'] is False
 
 
-@pytest.mark.parametrize('mode',['ok','wrong_game','changed_source','changed_assembler'])
+@pytest.mark.parametrize('mode',['ok','allocated_image','wrong_game','changed_source','changed_assembler'])
 def test_standalone_script_builds_without_repo_imports_and_refuses_stale_inputs(tmp_path,mode):
     root=tmp_path/'extracted';root.mkdir();script=root/'build.py'
     script.write_bytes((ROOT/'tools/amiga_pandora_package_build.py').read_bytes())
@@ -82,10 +83,11 @@ def test_standalone_script_builds_without_repo_imports_and_refuses_stale_inputs(
     records=[dict(path=p.name,size=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in root.iterdir()]
     manifest=dict(files=records,target_identity_sha256='original',application=dict(profile='pandora-dos-owned-prefix-v1',
         game_source='game.s',entry_source='runtime.s',expected_payload_sha256=hashlib.sha256(data).hexdigest()))
+    if mode=='allocated_image':manifest['application']['profile']='pandora-dos-allocated-image-v1'
     (root/'manifest.json').write_text(json.dumps(manifest))
     if mode=='changed_source':(root/'game.s').write_bytes(b'changed')
     result=subprocess.run([sys.executable,str(script),'--vasm',str(assembler)],cwd=tmp_path,capture_output=True,text=True)
-    if mode=='ok':
+    if mode in ('ok','allocated_image'):
         assert result.returncode==0,result.stderr
         receipt=json.loads((root/'bin/build-receipt.json').read_text())
         assert receipt['files']['Pandora']['sha256']==hashlib.sha256(hunk).hexdigest()

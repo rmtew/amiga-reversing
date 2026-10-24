@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "status": "strict_initial_clock_mismatch_not_output_equivalence_pass",
+  "failure": "Original initializer clocks differ",
+  "phase_clock_delta_histogram": {
+    "-71051": 348,
+    "-71074": 2,
+    "-71055": 17,
+    "-71049": 29,
+    "-71039": 5,
+    "-71050": 1,
+    "-71057": 4,
+    "-71008": 1,
+    "-71080": 2,
+    "-71031": 6,
+    "-71023": 1,
+    "-71021": 12,
+    "-71081": 14,
+    "-71040": 3,
+    "-71033": 4,
+    "-71016": 1,
+    "-71075": 3,
+    "-71079": 3,
+    "-71029": 9,
+    "-71073": 4,
+    "-71061": 4,
+    "-71062": 1,
+    "-71067": 3,
+    "-71070": 1,
+    "-71096": 1,
+    "-71065": 7,
+    "-71054": 1,
+    "-71041": 3,
+    "-71053": 7,
+    "-71069": 3,
+    "-71035": 5,
+    "-71037": 3,
+    "-71099": 2,
+    "-71047": 4,
+    "-71058": 1,
+    "-71036": 3,
+    "-71063": 8,
+    "-71027": 2,
+    "-70997": 1,
+    "-71076": 1,
+    "-71060": 1,
+    "-71101": 1,
+    "-71059": 2,
+    "-70979": 1,
+    "-71072": 1,
+    "-71017": 1,
+    "-71032": 1,
+    "-71095": 1,
+    "-71043": 3,
+    "-71045": 1,
+    "-71116": 1,
+    "-71082": 2,
+    "-71018": 1,
+    "-71026": 1,
+    "-71088": 1,
+    "-70857": 1,
+    "-71004": 1,
+    "-71038": 1,
+    "-71048": 2,
+    "-71071": 9,
+    "-71084": 1,
+    "-71044": 1,
+    "-71012": 1,
+    "-71025": 1,
+    "-71056": 1,
+    "-71091": 1,
+    "-71066": 1,
+    "-71019": 1,
+    "-71086": 1,
+    "-71089": 1,
+    "-71013": 1,
+    "-70999": 1,
+    "-71030": 1
+  },
+  "images": [
+    {
+      "name": "title_menu_loop.png",
+      "width": 320,
+      "height": 61,
+      "differing_pixels": 0,
+      "status": "pass"
+    },
+    {
+      "name": "ui_overlay_initialization.png",
+      "width": 358,
+      "height": 285,
+      "differing_pixels": 0,
+      "status": "pass"
+    },
+    {
+      "name": "initial_proximity_context.png",
+      "width": 358,
+      "height": 285,
+      "differing_pixels": 0,
+      "status": "pass"
+    },
+    {
+      "name": "entry_officer_card_transferred.png",
+      "width": 320,
+      "height": 200,
+      "differing_pixels": 0,
+      "status": "pass"
+    },
+    {
+      "name": "ei_sonicdriver_hit_1.png",
+      "width": 320,
+      "height": 200,
+      "differing_pixels": 0,
+      "status": "pass"
+    },
+    {
+      "name": "ac_console_ready.png",
+      "width": 320,
+      "height": 200,
+      "differing_pixels": 0,
+      "status": "pass"
+    },
+    {
+      "name": "saved_earth_escape.png",
+      "width": 320,
+      "height": 200,
+      "differing_pixels": 0,
+      "status": "pass"
+    }
+  ],
+  "unshifted_common_clock_audio": {
+    "paula": {
+      "status": "mismatch",
+      "format": {
+        "rate": 44100,
+        "channels": 2,
+        "block": 8,
+        "bits": 32,
+        "offset": 68,
+        "data_bytes": 116343368,
+        "frames": 14542921
+      },
+      "start_cck": 87684040,
+      "end_cck": 1146039802,
+      "start_sample": 1090212,
+      "end_sample": 14249182,
+      "compared_stereo_frames": 13158970,
+      "compared_float_samples": 26317940,
+      "first_different_sample": 1172497,
+      "original_interval_sha256": "9f4f48b36a433e93ada459fb3ebcf45044c1ae69063859c82689134c45787318",
+      "candidate_interval_sha256": "4acd92c97ce7065f4627c5af1d59b128069608b9a19a86a477e37f0606cf87bb",
+      "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+    },
+    "master": {
+      "status": "mismatch",
+      "format": {
+        "rate": 44100,
+        "channels": 2,
+        "block": 8,
+        "bits": 32,
+        "offset": 68,
+        "data_bytes": 116343368,
+        "frames": 14542921
+      },
+      "start_cck": 87684040,
+      "end_cck": 1146039802,
+      "start_sample": 1090212,
+      "end_sample": 14249182,
+      "compared_stereo_frames": 13158970,
+      "compared_float_samples": 26317940,
+      "first_different_sample": 1172497,
+      "original_interval_sha256": "9f4f48b36a433e93ada459fb3ebcf45044c1ae69063859c82689134c45787318",
+      "candidate_interval_sha256": "4acd92c97ce7065f4627c5af1d59b128069608b9a19a86a477e37f0606cf87bb",
+      "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+    },
+    "drivesounds": {
+      "status": "pass",
+      "format": {
+        "rate": 44100,
+        "channels": 2,
+        "block": 8,
+        "bits": 32,
+        "offset": 68,
+        "data_bytes": 116343368,
+        "frames": 14542921
+      },
+      "start_cck": 87684040,
+      "end_cck": 1146039802,
+      "start_sample": 1090212,
+      "end_sample": 14249182,
+      "compared_stereo_frames": 13158970,
+      "compared_float_samples": 26317940,
+      "first_different_sample": null,
+      "original_interval_sha256": "e4b43682a2263d5cb015d419f464c1ea3e213f264c4bdd0cbfa4929e53b33413",
+      "candidate_interval_sha256": "e4b43682a2263d5cb015d419f464c1ea3e213f264c4bdd0cbfa4929e53b33413",
+      "alignment": "Identical captured emulated clock; no shift/resampling/tolerance."
+    }
+  },
+  "limits": [
+    "Seven images measured at corresponding phase PCs; no pixel masks.",
+    "Absolute-clock PCM windows are unshifted and diagnostic only; strict common-state admission failed.",
+    "No resampling, shifted/fitted clocks, changed thresholds or PRNG writes.",
+    "The one-PAL-frame initial difference is not the earlier eight-CCK original-image finding."
+  ],
+  "startup_probe": {
+    "candidate": {
+      "events": [
+        {
+          "label": "host_entry",
+          "HUNK_base": 12613768,
+          "cck": 29734858,
+          "frame": 418
+        },
+        {
+          "label": "crc_next",
+          "HUNK_base": 12613768,
+          "cck": 65768884,
+          "frame": 925
+        }
+      ],
+      "pre_entry_cck": 86870169,
+      "payload_entry_cck": 87684040,
+      "initializer_cck": 93835350,
+      "title_cck": 106972604,
+      "title_stars_sha256": "64bcf1b6de9a7f598cab9df2c93559cf415d0c71c25f872b7688a034dd0c28ec",
+      "PRNG": "954295008577e6ea",
+      "complete_DMA_frames": 2,
+      "first_abandoned_image_transfers": []
+    },
+    "control": {
+      "events": [
+        {
+          "label": "host_entry",
+          "HUNK_base": 12613768,
+          "cck": 29705253,
+          "frame": 418
+        },
+        {
+          "label": "crc_next",
+          "HUNK_base": 12613768,
+          "cck": 65687751,
+          "frame": 924
+        }
+      ],
+      "pre_entry_cck": 86789066,
+      "payload_entry_cck": 87613005,
+      "initializer_cck": 93764299,
+      "title_cck": 106901549,
+      "title_stars_sha256": "64bcf1b6de9a7f598cab9df2c93559cf415d0c71c25f872b7688a034dd0c28ec",
+      "PRNG": "954295008577e6ea",
+      "complete_DMA_frames": 2,
+      "first_abandoned_image_transfers": []
+    }
+  },
+  "settled_title": {
+    "status": "pass",
+    "width": 320,
+    "height": 200,
+    "differing_pixels": 0
+  },
+  "control_build": {
+    "canonical_metadata_hash": "866237860cf3b7d21617fa4ec8bb6e31ad1da12f53155a419f54931e4583eef3",
+    "runtime_payload_sha256": "dff5c5dfcafec4f0b0b8fe229bbda09fe1f4ea21648e52654593c35cb0c62a42",
+    "native_contract_sha256": "3a645246659428e06e7cb202f70fb2b749e6afe06931b42a30c0187b5fe3eeff",
+    "status": "native_ASM_reference_matches_all_runtime_fixed_bytes_except_typed_HUNK_import",
+    "metadata_sha256": "989d81541e537742636781279c039650f7cf222d045435e62df535af188260a8",
+    "observed_receipt_sha256": "0e1ae0018b336f2bdfe2c6c7bb3a9245aa162ba798621079ff069c0ae46bfb91",
+    "payload_sha256": "321628688cbe617accd4cc03da3bb7c730db472bf7f4f68ae8e3f781f98d7b21",
+    "bytes": 376832,
+    "backend": {
+      "path": "/workspace/amiga-reversing/src/build/libamiga_backend.so",
+      "sha256": "647bbdf848cf9a76f2f716b8d0fd6fc0fbc8b77f6496e626f2c67261bfafd62e"
+    },
+    "wall_seconds": 176.2559461130004,
+    "temporary_configuration_only": true
+  },
+  "causal_boundary": "Clock divergence is already observed at host_entry, before this loader executes; it changes across DOS file read/CRC and reaches first game initialization one PAL frame apart. This localizes the earliest observed difference but does not establish a root cause in DOS/emulator code.",
+  "disposition": "Strict comparison remains mismatch. No clock fit, waveform shift, padding, PRNG forcing or comparator relaxation. Broader DOS boot investigation is deferred; functional memory-ownership work can proceed without claiming output equivalence.",
+  "scope": "Native assembly-time bindings versus runtime fixups under the same OS wrapper. Eight sampled images match; unshifted common-clock Paula/master PCM mismatches. No all-assets/all-path guarantee.",
+  "proprietary_raw_evidence": "private"
+}

@@ -3,6 +3,27 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
+### A1 package and strict output boundary
+
+[The normal source package](../../runtime/observations/pandora-allocated-image-source-package.json)
+now includes the seven-owner allocated-image runtime and canonical game source.
+A fresh external extraction/build reproduces the exact cold-qualified HUNK and
+payload. The legacy six-owner builder and original/fixed source exports remain
+available. This does not remove the three remaining fixed claims.
+
+[The paired output result](../../runtime/observations/pandora-allocated-image-output-boundary.json)
+retains a **strict timing/PCM mismatch**. Both runs complete and all seven route
+images plus the settled-title image are pixel-exact. Applied bytes, initializer
+registers/CCR/stack and retained PRNG match, but first initialization differs by
+one PAL frame; later instruction clocks are not a single fitted offset. Unshifted
+Paula/master PCM differs. The bounded probe observes divergence already at the
+HUNK's first instruction, before this loader runs. Its root cause in the earlier
+DOS/boot execution remains unestablished; no padding or comparator relaxation is
+used. Each title sample has two complete DMA frames and no abandoned-image
+transfer in that sample, not all-route DMA certification. This is distinct from
+the earlier original-to-image eight-CCK discrepancy. The strict gate remains
+open while independent high-mask/carrier/display ownership work proceeds.
+
 ### Actual image allocation: cold ending and natural DOS exit
 
 [The cold receipt](../../runtime/observations/pandora-allocated-image-completion.json)

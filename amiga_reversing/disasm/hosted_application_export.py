@@ -11,7 +11,7 @@ import tempfile
 from .behaviour_validation import LoadedSource
 from .source_package import collect_package_includes,extend_source_package,materialize_source_package
 from .c_backend import assemble_platform_source_path_with_c_backend
-from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER,application_sources,LOADED_SOURCE as APP_SOURCE
+from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER,application_owners,application_sources,LOADED_SOURCE as APP_SOURCE
 
 LOADED_SOURCE=LoadedSource(__file__)
 TARGET='amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8'
@@ -25,7 +25,7 @@ def required(metadata_path,layout_id):
     return 'exit_dispatch_call_source_offset' in boot
 
 
-def native_contract(artifact,target,layout_id,*,allocate_image=False):
+def native_contract(artifact,target,layout_id,*,allocate_image=True):
     LOADED_SOURCE.require_current();APP_SOURCE.require_current()
     if target!=TARGET:raise ValueError('No hosted application template is registered for this target')
     owners=(*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS
@@ -62,13 +62,17 @@ def attach(payload,contract,project_root):
     add(main,files[main],'application_source','authored-framework-template')
     add('build.py',(project_root/'tools/amiga_pandora_package_build.py').read_bytes(),'build_source','authored-framework-template')
     add('native-runtime-bindings.json',(json.dumps(contract,sort_keys=True,indent=2)+'\n').encode(),'runtime_bindings','native-admitted-fields')
-    application=dict(schema='native-hosted-application-source/v1',profile='pandora-dos-owned-prefix-v1',
+    owners=application_owners(contract)
+    profile='pandora-dos-allocated-image-v1' if IMAGE_OWNER in owners else 'pandora-dos-owned-prefix-v1'
+    fixed=contract['template_geometry']['fixed_leases_requiring_OS_acquisition']
+    application=dict(schema='native-hosted-application-source/v1',profile=profile,
         entry_source=main,game_source=payload['filename'],expected_payload_sha256=expected,
         expected_payload_bytes=len(data),native_layout_id=payload['layout_id'],
         native_layout_plan_sha256=payload['layout_plan_sha256'],
         provenance=dict(game='canonical native Pandora rendering',runtime='authored framework templates',bindings='native allocation plans and declared bootstrap import'),
-        dynamic_owners=list(OWNERS),fixed_lease_intents=contract['template_geometry']['fixed_leases_requiring_OS_acquisition'],
+        dynamic_owners=list(owners),fixed_lease_intents=fixed,
         status='source_only_unqualified',requires='vasm plus Python standard library to build; declared ECS/1MiB Chip/512KiB Slow host to run')
+    fixed_listing=', '.join(f"`${r['address']:X}..${r['address']+r['size']:X}` ({r['size']:,} bytes)" for r in fixed)
     readme=f'''# Pandora restored DOS application source
 
 Game source: `{payload['filename']}` is the canonical native renderer output.
@@ -91,14 +95,17 @@ canonical game's source-selected assets are included for your local build.
 Original byte-exact output remains a separate normal export; this restored
 payload is deliberately different. Original input SHA256:
 `{payload['target_identity_sha256']}`. Startup retains the owned helper and
-initialization. The loader owns six actual Exec AllocMem workspaces, validates
+initialization. The loader owns {len(owners)} actual Exec AllocMem regions
+({', '.join(owners)}), validates
 all typed fields before one-time application, binds the explicit first-init/
 restart dispatch and enters the real game. F7 or the normal ending restart
 returns to DOS after DMA/blitter quiescence, view/vector/IRQ state restoration,
 audio release and exact owned frees. Startup failures unwind and return20.
 
-Four fixed AllocAbs claims remain (input, copied image prefix, high masks,
-display). These are restrictions, not fully allocator-selected loading. Requires
+{len(fixed)} fixed AllocAbs claims remain: {fixed_listing}.
+Their combined {sum(r['size'] for r in fixed):,} bytes are restrictions, not fully
+allocator-selected loading. The retained input still contains a duplicated image
+prefix; do not free it merely because the copy completed. Requires
 a declared 68000/PAL/ECS host with1MiB Chip plus512KiB Slow; no RTG/multitasking,
 arbitrary CPU fault recovery or exact original startup-clock claim. Export and
 assembly are not runtime qualification; see Proposal046 and the hosted cold-run
