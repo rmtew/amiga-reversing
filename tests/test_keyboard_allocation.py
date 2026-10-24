@@ -11,18 +11,19 @@ from amiga_reversing.tools.runtime_allocation import capsule
 from amiga_reversing.disasm.c_backend import assemble_platform_source_text_with_c_backend
 
 
-def leaf(tmp_path):
+def leaf(tmp_path,*,long_immediate=False,size=128):
     source=tmp_path/'keyboard.s';binary=tmp_path/'keyboard.bin'
     source.write_text(' nop\n cmpa.l a2,a1\n bra.s entry\n rts\nentry:\n'+
         ' lea.l $4000.l,a0\n lea.l $4000.l,a1\n'*2+' lea.l $4000.l,a0\n lea.l $4040.l,a5\n lea.l $4050.l,a0\n rts\n')
+    if long_immediate:source.write_text(source.read_text().replace('lea.l ','movea.l #').replace('.l,a',',a'))
     subprocess.run([str(VASM),'-quiet','-Fbin','-m68000','-no-opt','-o',str(binary),str(source)],check=True,capture_output=True)
     data=binary.read_bytes();data+=bytes(512-len(data));m=metadata()
     m['memory_regions'][0]['size']=512
-    m['memory_regions'].append(region('keyboard',0x4000,128,kind='storage')|dict(dma_access='none'))
+    m['memory_regions'].append(region('keyboard',0x4000,size,kind='storage')|dict(dma_access='none'))
     m['memory_layouts'][0]['placements'].append(dict(region_id='keyboard',runtime_address=0x6000))
     m['bootstrap_contracts'][0].update(input_sha256=hashlib.sha256(data).hexdigest(),file_size=512,copied_source_end=512)
     m['execution_views'][0]['source_end']=512
-    m['target_equates']=[dict(name=name,value=0x4000+offset,extent_bytes=width,group='keyboard',address_domain='runtime') for name,offset,width in [('KEYBOARD_BASE',0,128),('KEYBOARD_INVENTORY_KEY_STATE',64,1),('KEYBOARD_PAUSE_KEY_STATE',80,1)]]
+    m['target_equates']=[dict(name=name,value=0x4000+offset,extent_bytes=width,group='keyboard',address_domain='runtime') for name,offset,width in [('KEYBOARD_BASE',0,size),('KEYBOARD_INVENTORY_KEY_STATE',64,1),('KEYBOARD_PAUSE_KEY_STATE',80,1)]]
     m['manual_representations']=[dict(hunk=0,addr=8+i*6,end=14+i*6,element_kind='absolute_address',operand_index=0,style='symbol',symbol=name,value=0x4000+offset,width_bytes=4) for i,(name,offset) in enumerate([('KEYBOARD_BASE',0)]*5+[('KEYBOARD_INVENTORY_KEY_STATE',64),('KEYBOARD_PAUSE_KEY_STATE',80)])]
     a=build(tmp_path,m,data)
     try:
@@ -62,3 +63,12 @@ def test_leaf_staged_bytes_are_still_checked_before_runtime_patching(tmp_path,fi
     f=p['fixups'][0];offset=f['instruction_source_offset'] if field=='opcode' else f['source_offset']
     data[offset]^=1
     with pytest.raises(ValueError):validate_payload(value,bytes(data),0x20000,0x7fff8)
+
+
+@pytest.mark.parametrize('fault',[None,'before_owner','after_owner'])
+def test_title_sized_LONG_immediate_leaf_keeps_encoding_and_exact_unwind(tmp_path,fault):
+    p,path=leaf(tmp_path,long_immediate=True,size=1000)
+    assert all(f['encoding']=='absolute_long_immediate' for f in p['fixups'])
+    c=DirectPayloadContract('title-shaped','fixture',hashlib.sha256(path.read_bytes()).hexdigest(),0x20000,0x20000,{},0x7fff8,0x48414e44,
+        runtime_allocation=capsule(p,fault=fault))
+    run_loader(tmp_path,c,path,fault=fault)

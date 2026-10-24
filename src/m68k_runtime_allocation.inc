@@ -98,7 +98,7 @@ static int mr_runtime_allocation_context_json_alloc(
   const char *reason=NULL;int ri=-1;size_t li=0,fixups=0,numeric=0;
   MRAllocationRange *ranges=NULL;size_t range_count=0,range_capacity=0;
   M68kResolvedMemoryLayout initial,resolved;
-  MRAllocationFixup sites[32];int cpu_scope=0;uint32_t maximum_base=0xffffffU;
+  MRAllocationFixup sites[32];int cpu_scope=0,dma_address_fixups=0;uint32_t maximum_base=0xffffffU;
   const M68kRenderPlannedInstruction *frame_guards[M68K_ADDRESS_FRAME_SITE_LIMIT];size_t frame_guard_count=0;
   const M68kRenderPlannedInstruction *refusal_instruction=NULL;size_t refusal_operand=0;
   const M68kMemoryRegionIR *r=NULL;const M68kBootstrapContractIR *boot=NULL;
@@ -151,6 +151,9 @@ static int mr_runtime_allocation_context_json_alloc(
             }
             sites[fixups++].instruction_field=2;continue;
           }
+          if(!cpu_scope && mr_allocation_operand_symbol(a,ins,j,address)) {
+            reason="DMA_immediate_pointer_reference_unsupported";refusal_instruction=ins;refusal_operand=j;goto result;
+          }
           numeric++;
         }
         continue;
@@ -171,7 +174,10 @@ static int mr_runtime_allocation_context_json_alloc(
         }
         frame_guards[frame_guard_count++]=ins;continue;
       }
-      if(!cpu_scope) {reason="non_data_pointer_reference_unsupported";goto result;}
+      int dma_lea=!cpu_scope && kind==1 && m && m->flow_kind==M68K_SIM_FLOW_SEQUENTIAL &&
+        ins->instruction.mnemonic_id==M68K_ASM_MNEMONIC_LEA &&
+        m->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS;
+      if(!cpu_scope && !dma_lea) {reason="non_data_pointer_reference_unsupported";goto result;}
       if(kind!=1 || !m || m->flow_kind!=M68K_SIM_FLOW_SEQUENTIAL ||
           (m->operand_access_kinds[j]!=M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
            m->operand_access_kinds[j]!=M68K_SIM_ACCESS_MEMORY_READ &&
@@ -185,6 +191,10 @@ static int mr_runtime_allocation_context_json_alloc(
       reason=mr_allocation_absolute_fixup(a,r,boot,ins,j,address,
           initial.addresses[ri]+address-r->runtime_address,&sites[fixups]);
       if(reason) {refusal_instruction=ins;refusal_operand=j;goto result;}
+      if(dma_lea) {
+        if(sites[fixups].width!=4) {reason="DMA_address_operand_requires_LONG";refusal_instruction=ins;refusal_operand=j;goto result;}
+        dma_address_fixups++;
+      }
       if(sites[fixups].width==2) {
         uint32_t bound=0x7fffU-sites[fixups].region_offset;
         if(bound<maximum_base) maximum_base=bound;
@@ -337,6 +347,7 @@ result:
         (cpu_scope && json_builder_appendf(&b,",\"maximum_actual_base\":%u",maximum_base)) ||
         json_builder_append(&b,",\"scope\":") || json_builder_append_json_string(&b,
           cpu_scope ? "reviewed_symbolic_absolute_operands_and_LONG_data_not_all_path_alias_proof" :
+          dma_address_fixups ? "reviewed_symbolic_LONG_LEA_and_data_Chip_only_not_all_path_alias_proof" :
           "reviewed_typed_LONG_data_only_not_all_path_alias_proof") ||
         json_builder_append(&b,",\"lifetime\":\"retain_until_DMA_quiescent_exit\",\"unresolved\":["
           "\"Numeric immediates, unclassified bytes and synthesized aliases are not certified by this candidate.\","

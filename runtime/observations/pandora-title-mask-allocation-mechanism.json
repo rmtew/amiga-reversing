@@ -1,0 +1,15 @@
+{
+  "schema": "pandora-title-mask-allocation-mechanism/v1",
+  "status": "focused_native_and_guest_fixtures_pass_target_adoption_exports_pending",
+  "checks": {
+    "passed": 72,
+    "skipped": 0,
+    "scope": "Native symbolic LONG LEA plus LONG data, CPU leaf LONG immediates, original CPU/body/atomic planner regressions; executable exact acquisition/free and staged guards."
+  },
+  "scope_guards": [
+    "DMA instruction admission is only typed sequential LEA with LONG extension; memory reads, WORD operands, immediates and numeric-only constructors refuse.",
+    "CPU unframed leaves may use native-projected LONG operands or LONG immediates; existing frame contracts remain mandatory.",
+    "No target opcode repair, instruction growth, address-looking word scan or universal placement search."
+  ],
+  "next": "Generate/verify the locally adopted required owners, then qualify the six-owner composition and actual DOS loader. No game OS-return claim."
+}

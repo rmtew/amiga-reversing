@@ -1,0 +1,164 @@
+{
+  "schema": "pandora-required-OS-storage/v1",
+  "status": "existing_storage_extent_and_neighbor_WORD_read_ownership_target_adoption_pending",
+  "input_sha256": "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f",
+  "title": {
+    "extent": [
+      1024,
+      2024
+    ],
+    "bytes": 1000,
+    "base_fields": [
+      {
+        "source_offset": 3414,
+        "original_hex": "247c00000400"
+      },
+      {
+        "source_offset": 3470,
+        "original_hex": "247c00000400"
+      }
+    ],
+    "encoding": "Two MOVEA.L immediate LONG fields; no instruction growth or frame lowering."
+  },
+  "low_masks": {
+    "written_extent": [
+      4336,
+      14368
+    ],
+    "owned_read_extent": [
+      4336,
+      14370
+    ],
+    "guard_bytes": 2,
+    "banks": [
+      {
+        "name": "scene_mask_bank_18",
+        "value": 4336,
+        "extent_bytes": 4372,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_21",
+        "value": 8708,
+        "extent_bytes": 4344,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_30",
+        "value": 13052,
+        "extent_bytes": 1316,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      }
+    ]
+  },
+  "high_masks": {
+    "written_extent": [
+      512000,
+      523952
+    ],
+    "owned_read_extent": [
+      512000,
+      523954
+    ],
+    "guard_bytes": 2,
+    "fixed_Exec_backing": [
+      512000,
+      523960
+    ],
+    "banks": [
+      {
+        "name": "scene_mask_bank_03",
+        "value": 512000,
+        "extent_bytes": 896,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_02",
+        "value": 512896,
+        "extent_bytes": 768,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_04",
+        "value": 513664,
+        "extent_bytes": 896,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_05",
+        "value": 514560,
+        "extent_bytes": 512,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_06",
+        "value": 515072,
+        "extent_bytes": 864,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_07",
+        "value": 515936,
+        "extent_bytes": 108,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_13",
+        "value": 516044,
+        "extent_bytes": 648,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "world_position_frame_masks_00_through_05",
+        "value": 516692,
+        "extent_bytes": 768,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "world_position_frame_masks_06_through_11",
+        "value": 517460,
+        "extent_bytes": 384,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "world_position_frame_masks_12_through_17",
+        "value": 517844,
+        "extent_bytes": 768,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_17",
+        "value": 518612,
+        "extent_bytes": 1896,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_20",
+        "value": 520508,
+        "extent_bytes": 1268,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_19",
+        "value": 521776,
+        "extent_bytes": 1920,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      },
+      {
+        "name": "scene_mask_bank_08",
+        "value": 523696,
+        "extent_bytes": 256,
+        "comment": "Generated mask bank address; extent proves writes, not DMA reads or lifetime closure."
+      }
+    ]
+  },
+  "consumer_contract": {
+    "source_entry": 27166,
+    "role": "blit_masked_frame_shifted_two_words_four_planes",
+    "derivation": "Two WORD A reads per row; A modulo = 2*row_stride_words-4. Each final column starts at the last mask WORD. Final-row read therefore includes the following WORD even with BLTALWM=0. Owned read footprint includes that WORD, not an invented initialized mask field.",
+    "high_last_consumer": "hooligan_frames_4A07C_3: mask bank08, stride4 WORDs, height32, width64; constructor produces128 WORDs.",
+    "limits": "Original valid geometry/clipping contract only, not arbitrary modified descriptors or a complete DMA/lifetime proof. Guard values are not inferred zero. All leases remain through final blitter completion."
+  },
+  "initialization": "Constructor writes the listed mask extents. Read guards retain prior contents; no zero/file seed or whole-allocation initialization claim.",
+  "other_policy": "Middle generated masks remain inside retained input; no font/bank45 layout changes."
+}

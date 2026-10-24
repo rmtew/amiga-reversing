@@ -1,0 +1,26 @@
+{
+  "schema": "pandora-normal-HUNK-display-SSP-return/v1",
+  "status": "reviewed_normal_DOS_return_and_keyboard_response_no_game_payload",
+  "source_sha256": "cf075e6895c4fd40a61171b33d5cdca09be0021dec7a6fd9729dd28f2b94a0bc",
+  "HUNK_sha256": "e508ca501f2ce8c0e97c16a99d2d286cf0b8191796446be19eba92ce9c94e4f4",
+  "ADF_sha256": "592023a76aa4f4a371cbbbb8b4f0588a26f6f46f6426dfc69ee84da57da0a073",
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "profile": "a500ecs_1m",
+  "reviewed_capture_sha256": {
+    "before-return-key.png": "1d547503ed8609eb0a755a9d730f320cf6cd38603de45edb3374d17c265d0aa3",
+    "after-return-key.png": "cf19d7e752345d279071c4f6587f5dbaadfd1064bf19b55844d389452d11f830"
+  },
+  "observed": [
+    "Own HUNK printed view/SSP-restored line after Supervisor callback, temporary own stack and RTE.",
+    "A second normal HUNK printed its line and returned to CLI.",
+    "Ordinary Return rawkey $44 down at1500/up1503 produced another CLI prompt by1530."
+  ],
+  "reproduce": "PYTHONPATH=. python -m amiga_reversing.tools.pandora_os_takeover_probe --output <new private directory> --xdftool <amitools0.8.1 xdftool> --rom <private kick13.rom> --copperline <binary>",
+  "limits": [
+    "No Pandora payload, game callback, gameplay checkpoint or memory injection.",
+    "Idle own callback only. Does not test a game exit with active blitter or audio, CIA modifications or allocation unwind.",
+    "Observable view/SSP/CLI return, not exhaustive identity of all OS/hardware latches.",
+    "No original-to-hosted startup timing equality claim."
+  ]
+}

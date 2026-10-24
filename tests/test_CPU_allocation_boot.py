@@ -48,7 +48,7 @@ def run_loader(tmp_path,c,payload,*,fault=None,fail_static=None):
     m.cpu.w_reg(machine68k.Register.A6,execbase);m.cpu.w_reg(machine68k.Register.A1,0x18000)
     m.cpu.w_reg(machine68k.Register.A7,0xf8000);m.cpu.w_sr(0x2700);m.cpu.w_pc(0x1000)
     owned={};acquired=[];freed=[];requests=[];steps=0;abort_seen=False;handoff=False
-    prior=c.runtime_allocation['prior_allocation_bytes'];base=0x7080 if prior else 0x6080
+    prior=c.runtime_allocation.get('prior_allocation_bytes',0);base=0x7080 if prior else 0x6080
     class Done(Exception):pass
     class Memory:
         def read_memory(self,address,count):return m.mem.r_block(address,count)
@@ -83,7 +83,7 @@ def run_loader(tmp_path,c,payload,*,fault=None,fail_static=None):
         if marker==b'HAND' and not handoff:
             handoff=True;assert fault is None and fail_static is None
             expected,lease=consume_return(Memory(),c,payload.read_bytes())
-            assert lease['base']==base and lease['prior_size']==prior
+            assert lease['base']==base and lease.get('prior_size',0)==prior
             assert m.mem.r_block(c.load_address,len(expected))==expected
             # Stop before game GO, exercising the ordinary ABRT/FREE protocol.
             m.mem.w_block(c.handoff_marker_address,b'ABRT')

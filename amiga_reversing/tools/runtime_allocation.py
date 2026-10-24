@@ -6,6 +6,7 @@ import json
 import re
 
 CPU_SCOPE='reviewed_symbolic_absolute_operands_and_LONG_data_not_all_path_alias_proof'
+DMA_ADDRESS_SCOPE='reviewed_symbolic_LONG_LEA_and_data_Chip_only_not_all_path_alias_proof'
 
 
 def plan_digest(plan):
@@ -23,10 +24,11 @@ def capsule(plan, *, scratch_extra=0, fault=None,prior_allocation_bytes=0):
 def validate(value):
     if not isinstance(value,dict):raise ValueError('Explicit native allocation capsule required')
     p=value.get('plan');cpu=isinstance(p,dict) and p.get('scope')==CPU_SCOPE
+    dma_address=isinstance(p,dict) and p.get('scope')==DMA_ADDRESS_SCOPE
     if set(value)!=({'plan','plan_sha256','scratch_extra','fault'}|({'prior_allocation_bytes'} if cpu else set())):
         raise ValueError('Explicit native allocation capsule required')
     if (not isinstance(p,dict) or p.get('status')!='bounded_allocation_candidate'
-            or p.get('scope') not in ('reviewed_typed_LONG_data_only_not_all_path_alias_proof',CPU_SCOPE)
+            or p.get('scope') not in ('reviewed_typed_LONG_data_only_not_all_path_alias_proof',CPU_SCOPE,DMA_ADDRESS_SCOPE)
             or plan_digest(p)!=value['plan_sha256']):
         raise ValueError('Missing, stale or refused native allocation candidate')
     if type(value['scratch_extra']) is not int or value['scratch_extra'] not in (0,64):
@@ -49,7 +51,7 @@ def validate(value):
     previous=-4
     for f in sorted(fixes,key=lambda f:f.get('source_offset',-1)):
         fields={'source_section_index','source_offset','width','encoding','address_domain','region_offset','staged_value'}
-        instruction=cpu and f.get('encoding') in ('absolute_long_operand','absolute_long_immediate')
+        instruction=(cpu and f.get('encoding') in ('absolute_long_operand','absolute_long_immediate')) or (dma_address and f.get('encoding')=='absolute_long_operand')
         if instruction:fields|={'instruction_source_offset','operand_index','opcode','symbol'}
         if (set(f)!=fields
                 or f['source_section_index']!=0 or f['width']!=4
@@ -64,9 +66,18 @@ def validate(value):
                 or not 0<=f['operand_index']<4 or not 0<=f['opcode']<=0xffff
                 or not isinstance(f['symbol'],str) or not f['symbol']):
             raise ValueError('Missing native instruction field identity')
-        if cpu and f['staged_value']!=p['staged_address']+f['region_offset']:
+        if (cpu or dma_address) and f['staged_value']!=p['staged_address']+f['region_offset']:
             raise ValueError('Native staged instruction value is inconsistent')
         previous=f['source_offset']
+    if dma_address:
+        owner=next((r for r in layout[0]['regions'] if r['region_id']==p['region_id']),None)
+        if (not owner or owner.get('parent_region_id') or owner.get('region_kind')!='storage'
+                or owner['size']!=p['size'] or owner['runtime_address']!=p['staged_address']
+                or 'address_frame' in owner or 'address_frame_guards' in p
+                or any(r.get('parent_region_id')==p['region_id'] for r in layout[0]['regions'])
+                or p.get('numeric_immediate_candidates_not_fixups')!=0
+                or not any(f['encoding']=='absolute_long_operand' for f in fixes)):
+            raise ValueError('DMA storage requires native LONG LEA/data fields without unknown numeric aliases')
     if cpu:
         owner=next((r for r in layout[0]['regions'] if r['region_id']==p['region_id']),None)
         frame=owner.get('address_frame',{}) if owner else {}
@@ -80,7 +91,7 @@ def validate(value):
                     or any(r.get('parent_region_id')==p['region_id'] for r in layout[0]['regions'])
                     or 'address_frame_guards' in p or 'address_frame_contract_sha256' in p
                     or p.get('numeric_immediate_candidates_not_fixups')!=0
-                    or any(f['encoding']!='absolute_long_operand' for f in fixes)):
+                    or any(f['encoding'] not in ('absolute_long_operand','absolute_long_immediate') for f in fixes)):
                 raise ValueError('CPU leaf allocation requires only native symbolic LONG operands')
             return p,layout[0]
         if (not owner or owner.get('parent_region_id') or owner['size']!=p['size']
