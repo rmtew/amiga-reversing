@@ -1,0 +1,124 @@
+{
+  "status": "normal_DOS_HUNK_entry_and_return_visually_observed_game_not_hosted",
+  "source_sha256": "584a54e89f6d07c990279f07edadaa0e2126f3ff86c042412063c7f5e5344b79",
+  "HUNK_sha256": [
+    "7ee6bbc59f5bf36e30fc826691a0e78f74758368ad291232678ccc51e7a1b209",
+    "5f52fdb1ed9c27fe2cd360329327a428b3bf86e217a6825d05a1ebd991e3047e"
+  ],
+  "ADF_sha256": "26e6efbb04a9b08d2d06eda12db92faa38c7bba238790ff029e3488686b92832",
+  "filesystem_tool": "amitools xdftool 0.8.1; external build dependency",
+  "scope": "Plain OFS boot and two normal DOS programs. No game bootstrap or guest-state forcing.",
+  "frames": [
+    {
+      "stop": {
+        "cck": 35554116,
+        "detail": "frame 500",
+        "frame": 500,
+        "hpos": 14,
+        "pc": 16519060,
+        "reason": "target",
+        "retired_instructions": 3266703,
+        "seconds": 10.024011424076551,
+        "vpos": 126
+      },
+      "registers": {
+        "d0": 0,
+        "d1": 0,
+        "d2": 1073741824,
+        "d3": 1540377429,
+        "d4": 800042,
+        "d5": 0,
+        "d6": 2147483648,
+        "d7": 3221225472,
+        "a0": 12583948,
+        "a1": 12592930,
+        "a2": 16645968,
+        "a3": 12583952,
+        "a4": 16519138,
+        "a5": 12597032,
+        "a6": 12583542,
+        "a7": 13107200,
+        "pc": 16519060,
+        "sr": 8192,
+        "sp": 13107200
+      },
+      "screenshot": "DOS-500.png",
+      "sha256": "318fed6dbcd2945087281aa82319fb529b48cf3d2cd5844b2204193e29115052"
+    },
+    {
+      "stop": {
+        "cck": 106617090,
+        "detail": "frame 1500",
+        "frame": 1500,
+        "hpos": 184,
+        "pc": 16519060,
+        "reason": "target",
+        "retired_instructions": 3754752,
+        "seconds": 30.059274379422,
+        "vpos": 178
+      },
+      "registers": {
+        "d0": 0,
+        "d1": 0,
+        "d2": 1073741824,
+        "d3": 1540377449,
+        "d4": 800262,
+        "d5": 0,
+        "d6": 2147483648,
+        "d7": 3221225472,
+        "a0": 12583948,
+        "a1": 12592930,
+        "a2": 16645968,
+        "a3": 12583952,
+        "a4": 16519138,
+        "a5": 12597032,
+        "a6": 12583542,
+        "a7": 13107200,
+        "pc": 16519060,
+        "sr": 8192,
+        "sp": 13107200
+      },
+      "screenshot": "DOS-1500.png",
+      "sha256": "318fed6dbcd2945087281aa82319fb529b48cf3d2cd5844b2204193e29115052"
+    }
+  ],
+  "profile": {
+    "model": "A500",
+    "cpu": "68000",
+    "chipset": "ECS",
+    "video": "PAL",
+    "chip": "1M",
+    "slow": "512K",
+    "fast": "0"
+  },
+  "rom_sha256": "1d68ba18412501d2a4b307a0a632b94a50b839c2c7c5ff2df6de2c38b99a921f",
+  "emulator_sha256": "e92e5d527369ae7565e8d8b16f978da7c6868f41aa4b0d8e01a9e7f4956eea3c",
+  "schema": "pandora-OS-entry-prerequisite/v1",
+  "date": "2026-10-24",
+  "capture_report_sha256": "0982385314b4020c27283743ae86cab4980c5c41f52194be436cd3264e7bd6ed",
+  "reviewed_output": {
+    "method": "Visual review of the bounded frame1500 screenshot after sequential Startup-Sequence.",
+    "own_lines": [
+      "PANDORA HOST ENTRY 1 - NORMAL CLI EXECUTABLE",
+      "PANDORA HOST ENTRY 2 - NORMAL CLI EXECUTABLE"
+    ],
+    "postcondition": "AmigaDOS 1> CLI prompt visible after both programs. First program returned normally before the second was invoked.",
+    "limits": "Not an instrumented OS syscall trace or game lifecycle/cleanup proof."
+  },
+  "external_tool_provenance": {
+    "package": "amitools",
+    "version": "0.8.1",
+    "source_distribution_sha256": "f622c0725c15737e7d4820ed147f930f4cfb7b80b04c786c2bc3943b799faf7e",
+    "built_wheel_sha256": "4dc76ac854a7b27f1a53d6e0e93891a2ee743a135536706b3dc50fcc8d8ceff0",
+    "source": "https://pypi.org/project/amitools/",
+    "docs": "https://amitools.readthedocs.io/en/latest/tools/xdftool.html",
+    "installation": "Isolated ignored host-tools virtualenv; project/shared environment unchanged."
+  },
+  "reproduction": "python -m amiga_reversing.tools.pandora_os_entry_probe --output <private directory> --xdftool <amitools0.8.1 xdftool> --rom <legal Kickstart1.3> --copperline <pinned Copperline> --run",
+  "remaining": [
+    "Actual Pandora OS-owned loading and startup replacement, including the fixed300 helper and input lifetime.",
+    "All game RAM owners acquired or avoided safely; typed dynamic imports/fixups, seeds and loader suffix retained.",
+    "Explicit normal/abort exit hook, hardware/vector/stack restoration, DMA quiescence before FreeMem and real game return to CLI."
+  ],
+  "publication": "Own ASM plus builder and processed hashes only. ROM, disk image and screenshots remain private."
+}

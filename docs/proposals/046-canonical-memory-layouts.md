@@ -5,6 +5,22 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
+### OS-host environment prerequisite; game lifecycle still pending
+
+[The normal DOS entry probe](../../runtime/observations/pandora-OS-entry-prerequisite.json)
+boots an own OFS disk under the available Kickstart1.3/ECS1MiB profile. Two own
+HUNK executables print in sequence and return to the CLI prompt, visually
+reviewed at frame1500. Existing vasm and external amitools0.8.1 suffice; no new
+filesystem implementation, Workbench media or original Pandora ADF was needed.
+The builder intentionally reports capture completion, not an automatic pass.
+
+This is not an OS-hosted game or game-cleanup receipt. The next bounded source
+contract is an input-owned copy helper instead of the fixed `$300` helper,
+retaining initialization and explicit source lifetime. Actual DOS-loaded input,
+all RAM owners, an exit hook, hardware/vector/stack restoration and DMA-safe
+release remain required. No blind bootstrap stripping or address-word scan is
+admitted by this probe.
+
 ### Natural priest completion: four-store exercise
 
 [The bounded cold route](../../runtime/observations/pandora-priest-passage-natural-qualification.json)
