@@ -30,15 +30,17 @@ allocation_owner_valid:
 allocation_collision:
     ; Free only the just-returned owner. The exclusion scratch lease is a real
     ; allocation, not a chosen owner base; refuse an unexpected allocator choice.
-    move.l d6,ALLOCATION_RECORD+12
-    sub.l d2,ALLOCATION_RECORD+12
-    addi.l #ALLOCATION_SCRATCH_EXTRA,ALLOCATION_RECORD+12
     movea.l d2,a1
     move.l #ALLOCATION_SIZE,d0
     jsr _LVOFreeMem(a6)
     clr.l ALLOCATION_RECORD+4
     tst.l ALLOCATION_RECORD+8
     bne.w failed
+    ; A second collision must retain the first lease's exact FreeMem size.
+    ; D2/D6 survive Exec calls; only initialize this after proving no lease.
+    move.l d6,ALLOCATION_RECORD+12
+    sub.l d2,ALLOCATION_RECORD+12
+    addi.l #ALLOCATION_SCRATCH_EXTRA,ALLOCATION_RECORD+12
     move.l ALLOCATION_RECORD+12,d0
     move.l #MEMF_CHIP,d1
     jsr _LVOAllocMem(a6)

@@ -45,11 +45,11 @@ def ending_outcome(scenario,runtime_base,image_size):
             'selection_pc':runtime_base+0x4C9DC,'final_frame':phases[-1]['stop_event']['frame']}
 
 
-def summarize_dma(directory,context):
+def summarize_dma(directory,context,expected_frames=3):
     """Two complete frames, using the existing fixed slot decoder and checks."""
     from collections import Counter
     from amiga_reversing.tools.copperline_bus_trace import read_bus_profile,SLOT,KINDS
-    checked=read_bus_profile(directory,[],3);counts=Counter();old=[]
+    checked=read_bus_profile(directory,[],expected_frames);counts=Counter();old=[]
     complete=[frame for frame in checked['frames'] if not frame.get('partial')]
     require(len(complete)>=2,'Fewer than two complete DMA frames')
     selected={frame['frame'] for frame in complete[-2:]}
@@ -211,7 +211,7 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                 nonlocal active
                 if active is not None:
                     client.request('profile.stop')
-                    record={'phase':active['name'],**summarize_dma(active['path'],image)}
+                    record={'phase':active['name'],**summarize_dma(active['path'],image,active.get('profile_frames',3))}
                     if active.get('resource'):
                         record['directory']=active['path'].name;resource_dma.append(record)
                     else:dma.append(record)
@@ -250,7 +250,7 @@ def observe(out,payload,config,rom,binary,inspect_output=False,capture_pcm=False
                         client.request('profile.start',{'path':str(directory),'frames':5,'slots':True,
                             'memory':False,'screenshots':'none','pc_samples':True})
                         active={'name':result['name'],'path':directory,'frame':event['frame'],'resource':True,
-                                'minimum_end_frames':6}
+                                'minimum_end_frames':6,'profile_frames':5}
                     if result['name'] in ('inventory_open','take_engineer_card_ready','take_sonicdriver_ready'):
                         cursor=next(r for r in config['layout_plan']['regions'] if r['region_id']=='pandora_cursor_sprites')
                         buffer=client.read_memory(cursor['runtime_address'],cursor['size'])

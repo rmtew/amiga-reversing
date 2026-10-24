@@ -213,3 +213,14 @@ def test_partition_join_refuses_incomplete_or_changed_evidence(tmp_path,monkeypa
 ])
 def test_partition_schema_stays_bounded(tmp_path,partitions,limit):
     with pytest.raises(CopperlineError):bus.read_bus_partitions(tmp_path,partitions,2,max_total=limit)
+
+
+def test_body_window_uses_its_exact_requested_frame_count(tmp_path):
+    from amiga_reversing.tools.pandora_layout_runtime import summarize_dma
+    profile(tmp_path,frames=5)
+    context=dict(original_address=0x10000,runtime_address=0x80000,size=0x1000)
+    with pytest.raises(CopperlineError,match='Incomplete'):
+        summarize_dma(tmp_path,context)
+    result=summarize_dma(tmp_path,context,expected_frames=5)
+    assert [r['frame'] for r in result['frames']]==[13,14]
+    assert result['validated_slots']==20

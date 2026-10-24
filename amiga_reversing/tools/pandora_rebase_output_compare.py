@@ -60,6 +60,9 @@ def normalize_dma_address(report,address):
     if start<=address<end:return ('cursor',address-start)
     for rid,start,end in display_ranges(report):
         if start<=address<end:return ('display',rid,address-start)
+    for r in report['config'].get('layout_plan',{}).get('regions',[]):
+        if r['region_id']=='pandora_ui_snapshot_body' and r['runtime_address']<=address<r['runtime_address']+r['size']:
+            return ('body_snapshot',address-r['runtime_address'])
     return ('fixed',address)
 
 
@@ -340,13 +343,41 @@ def admit_display_control(a,b):
     return _admit_region_control(a,b,'pandora_display_storage')
 
 
+def admit_allocated_body_control(a,b):
+    """Two actual allocations; retain the strict clocks/CPU/output checks below."""
+    from amiga_reversing.tools.runtime_allocation import validate,plan_digest
+    root='pandora_ui_snapshot_body'
+    _admit_region_control(a,b,root)
+    capsules=[]
+    for report in (a,b):
+        config=report['config'];allocation=config.get('runtime_allocation')
+        plan,_=validate(allocation)
+        require(plan['region_id']==root and allocation['fault'] is None,'Wrong allocation owner/fault profile')
+        observed=report.get('runtime_allocation',{});lease=observed.get('lease',{})
+        admitted=observed.get('native_admission',{})
+        require(admitted.get('status')=='actual_placement_valid','Actual allocation was not admitted natively')
+        actual=admitted['layout']['items'][0]
+        require(actual==config['layout_plan'] and plan_digest(actual)==config['layout_plan_sha256'],
+                'Actual allocation layout identity differs')
+        owner=next(r for r in actual['regions'] if r['region_id']==root)
+        require(lease.get('base')==owner['runtime_address'] and lease.get('size')==owner['size'] and
+                lease.get('plan_sha256')==allocation['plan_sha256'],'Allocation return/owner binding differs')
+        require(report.get('handoff',{}).get('runtime_allocation')==lease and
+                report['handoff'].get('payload_sha256')==config.get('runtime_payload_sha256'),
+                'Patched input was not verified against the exact returned base')
+        require(report.get('allocation_loader_identity',{}).get('sha256'),
+                'Executed guest allocation code was not verified')
+        capsules.append({key:value for key,value in allocation.items() if key!='scratch_extra'})
+    require(capsules[0]==capsules[1],'Allocation contract/fixups changed between profiles')
+
+
 def compare(original, candidate, title_original, title_candidate, target, *, control='original'):
     from PIL import Image  # Explicit local prerequisite; never silently skipped.
 
     paths = [original, candidate, title_original, title_candidate]
     reports = [json.loads((p/'report.json').read_text()) for p in paths]
     a, b, ta, tb = reports
-    require(control in ('original','canonical_image_cursor','canonical_image_display'),'Unsupported comparison control')
+    require(control in ('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body'),'Unsupported comparison control')
     expected_a=('saved_earth_and_escaped_original_control' if control=='original' else 'saved_earth_and_escaped_relocated_cold_boot')
     require(a['status'] == expected_a and
             b['status'] == 'saved_earth_and_escaped_relocated_cold_boot', 'Incomplete cold route')
@@ -356,7 +387,8 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
         require(a['config']['original_control'] and b['config']['matched_startup'], 'Wrong build modes')
         require(a['payload_sha256'] == a['config']['original_binary_sha256'], 'Original was modified')
     else:
-        (admit_cursor_control if control=='canonical_image_cursor' else admit_display_control)(a,b)
+        {'canonical_image_cursor':admit_cursor_control,'canonical_image_display':admit_display_control,
+         'canonical_allocated_body':admit_allocated_body_control}[control](a,b)
         require(a['native_materialization']['full_prefix_verified'],'Control moved prefix not verified')
     for directory,report in zip((original,candidate),(a,b)):
         require(digest(directory/'experiment.bin')==report['payload_sha256']==report['config']['payload_sha256'],
@@ -430,14 +462,16 @@ def compare(original, candidate, title_original, title_candidate, target, *, con
                        (['Independent cursor move only; does not qualify the original-to-image transformation.']
                         if control=='canonical_image_cursor' else
                         ['Independent display-family move only; not original-to-image or all-path qualification.']
-                        if control=='canonical_image_display' else []))
+                        if control=='canonical_image_display' else
+                        ['Two genuinely allocator-selected body placements only; fixed-layout/OS-return comparison is separate.']
+                        if control=='canonical_allocated_body' else []))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('original', 'candidate', 'title-original', 'title-candidate', 'target', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
-    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display'),default='original',
+    parser.add_argument('--control',choices=('original','canonical_image_cursor','canonical_image_display','canonical_allocated_body'),default='original',
         help='Original reference by default; independent resource controls require identical canonical image/bootstrap and other regions')
     args = parser.parse_args()
     tool_sha=digest(Path(__file__))

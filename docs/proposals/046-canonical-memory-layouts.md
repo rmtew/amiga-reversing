@@ -5,30 +5,41 @@ Audit baseline: master `a814a2a47bbd87abb6d06e11d8b69908e8dfd9d5`, 2026-10-23.
 
 ## Implementation checkpoint (2026-10-24)
 
-### M5 implementation: first allocated cold completion
+### M5 qualification: two allocator-selected body placements
 
-[Implementation and retained evidence](../../runtime/observations/pandora-runtime-allocation-implementation.json)
-now record a native typed-data allocation plan, actual-base validation and a
-shared guest loader path. Real Exec allocation selects `$F568` for the 2,304-byte
-body snapshot; the temporary exclusion lease is `$59E8..$F568`. The native plan
-protects named owners and explicit runtime-equate extents. Source-backed pointers
-retain their domain/target identity and cannot become workspace fixups merely by
-numeric coincidence. The old proof adapter remains unchanged and still refuses
-its unresolved numeric candidates.
+[Qualification and exact evidence identities](../../runtime/observations/pandora-runtime-allocation-qualification.json)
+record real Exec-selected `$F568` and `$F5A8` placements for the 2,304-byte body
+snapshot. Both complete all 576 phases, saving Earth and escaping at HP49 / frame
+14465. The strict pair matches all phase clocks, 509 controller calls, eight
+selected RGBA frames and 24,726,568 float32 PCM samples through EOF, without
+alignment fitting or tolerances. Both loss counters are zero. This is the same
+1-MiB Chip/ECS profile, image80000/displayE0000/cursor65370, not arbitrary placement.
 
-The first allocated run completes all 576 normal-input phases, saving Earth and
-escaping at HP49/frame14465, with 262 heartbeat events and both loss counters zero.
-Both pre-entry fault paths release owned backing; final release is observed at a
-byte-verified loader label rather than a frame-delay guess. Existing fixed E-layout
-boot bytes remain identical. 423 scoped tests and 10 real MCP/CLI transport tests
-pass. The native read service, CLI and MCP use the same allocation operation.
+The finite body DMA episode captures 1,152 producer WORD writes and 1,148 consumer
+WORD reads; every observed read matches its preceding captured write. Four reads
+are outside the recorded consumer window. No old-body access was observed in
+these windows. No claim of all-callers lifetime or no intervening unrecorded write
+is made. A separate fixed-E measurement matches seven selected frames and captured
+post-GO PCM; its different pre-GO CPU fixture is explicit, not a strict boot pass.
 
-The second selected allocation, matched output comparison, bounded body DMA
-capture/restore observations and public-CLI unheld cold run are in progress.
-The lease remains owned through the successful route's post-ending observation;
-normal OS return/free is not implemented. Other fixed game RAM is not certified
-OS-owned. This is a bounded M5 implementation result, not an M5/M6 or all-path
-closeout. The separate original-to-image eight-CCK criterion remains unfulfilled.
+Review found and reproduced a second-collision unwind bug: the first scratch
+lease could be freed with the second exclusion's size. The corrected guest code
+frees the rejected owner once and refuses before overwriting the live scratch
+size. All 60 focused tests pass, including executable assembly/Exec-stub refusal,
+comparison admission and incomplete/wrong-value DMA negatives. A fresh corrected-
+loader unheld cold run completes at HP49 / frame14351; both real pre-entry faults
+unwind at the byte-verified completion label. The strict PCM pair above predates
+this error-path repair; it is not relabelled as a new-loader paired capture.
+
+The [native implementation](../../runtime/observations/pandora-runtime-allocation-implementation.json)
+retains typed pointer domains, actual-base admission and shared service/CLI/MCP.
+Original source and its retained full C/vasm exact receipt are unchanged. The
+owner/scratch remain leased through post-ending observation; normal OS return,
+DMA-quiescent successful cleanup and ownership of all fixed RAM are still pending.
+A loader-only next-step probe returns NULL for fixed keyboard, raster-table and
+grid leases. Next: connected CPU workspace/alias movement before OS-safe takeover;
+not blind fixed-memory acquisition. M5/M6 and all-path closure are not claimed.
+The separate original-to-image eight-CCK criterion remains unfulfilled.
 
 ### Active display continuation
 

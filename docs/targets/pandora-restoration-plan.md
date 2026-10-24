@@ -26,9 +26,11 @@ keeps strict cycle equality unfulfilled. The
 now qualifies E0000..ED000 with cursor still65370 and image80000, including cold
 completion and scoped graphics/PCM equality. The
 [bounded M5 implementation](../../runtime/observations/pandora-runtime-allocation-implementation.json)
-now has its first allocator-selected cold completion for the body snapshot at
-`$F568`; second-placement/output and unheld qualification remain active. Native
-actual-base validation and guest failure unwind are implemented. Successful OS
+now has [two allocator-selected completions and scoped output qualification](../../runtime/observations/pandora-runtime-allocation-qualification.json)
+for the body snapshot at `$F568`/`$F5A8`, plus a corrected-loader unheld cold
+completion. Native actual-base validation and tested failure unwind are implemented.
+Fixed keyboard/raster/grid lease probes return NULL; connected CPU workspace
+movement is the next OS-ownership prerequisite. Successful OS
 return/cleanup and ownership of the remaining fixed game RAM are not.
 [Proposal 046 continuation gates](../proposals/046-canonical-memory-layouts.md#managed-continuation-gates-2026-10-24)
 state the evidence and acceptance for that slice, broader CPU workspace movement,
