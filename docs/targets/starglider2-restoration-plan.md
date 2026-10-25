@@ -30,8 +30,13 @@ overflow bonus is not a kill count; the shot counter precedes final spawn/pool
 checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
-a runtime instance census. 75 focused tests pass; source quality has zero
+a runtime instance census. 77 focused tests pass; source quality has zero
 diagnostics and retains the known encoded-entry boundary conflict.
+
+A second generic renderer defect hid interior pointer-table annotations.
+Both inferred and declared table fixtures reproduce it; each entry note now
+appears once. All 93 model-directory notes are verified in both inline and
+INCBIN source exports, with non-comment source lines unchanged.
 
 The normal-media probe verified intro/main payload bytes, entered title/start
 state, completed a CPU-only write-watch window at frames 881–1181 without a hit,

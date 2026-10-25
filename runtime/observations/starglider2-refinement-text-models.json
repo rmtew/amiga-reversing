@@ -9,10 +9,10 @@
     "kind": "verification",
     "framework_exact": true,
     "target_id": "amiga_raw_starglider2_game",
-    "subject_revision": "4f5f7d88d451144cc0869d8240ec9ac718bc3abd6bca65ee8864faf85ec5ed10",
+    "subject_revision": "6090f74530f408bbdff67632ea8a85a9ac0f3d4c09d27c819366ca2929bf8d2c",
     "status": "exact",
     "exact": true,
-    "source_sha256": "69477d0e57f0ca360ccc7bab6a1aee453ab8937ea9e10de38c06e858afa1c8b6",
+    "source_sha256": "d5a46bd3cc73e1cd4c72b9911fe745d68a19ec90c2cafdf616ef94712e5412bd",
     "source_package_sha256": null,
     "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
     "original_size": 412736,
@@ -27,8 +27,8 @@
       "assembler_status": "accepted",
       "message": "oracle output matched original bytes"
     },
-    "receipt_id": "5f1eb4cefca62d270b1a403d15a5cc02ce23c2dd16a85ea824d98c7233044449",
-    "revision": "841fcf722d901ab03484dfc574a54a476a4b254948cf734fe333aab5845f5570"
+    "receipt_id": "9731c9d4d8c5247c917dad6ba803c46744994f2dfa3e25e2f99d96c0fbb4fb65",
+    "revision": "0e43020b276b0d8a31d54b045d36db82876ce0b6ffb7aab16cabcaab59b24232"
   },
   "standalone_build": {
     "schema_version": 1,
@@ -103,11 +103,12 @@
       "removed_bytes": 410853,
       "removed_comment_markers": 12903,
       "before_lines": 66559,
-      "after_lines": 66559
+      "after_lines": 66559,
+      "non_comment_line_content_identical": true
     },
     "text_discovery": "Referenced control-prefixed NUL text; indexed MOVEA text-pointer prefixes with runtime mapping and ownership checks. Heuristics do not promote orphan bytes to code.",
     "focused_tests": {
-      "passed": 75,
+      "passed": 77,
       "failed": 0,
       "skipped": 0,
       "scope": [
@@ -116,8 +117,17 @@
         "indexed text pointers and refusal cases",
         "Copper labels",
         "compact structured arrays",
-        "manual comment preservation"
+        "manual comment preservation",
+        "inferred and declared pointer-table interior comments"
       ]
+    },
+    "pointer_entry_comments": {
+      "baseline_regression_failures": 2,
+      "fixed_regression_passes": 2,
+      "all_93_model_notes_visible_once": true,
+      "previously_hidden_notes": 92,
+      "non_comment_source_lines_unchanged": true,
+      "renderer_source_sha256": "4968d4652db1c013e94dc07ecf551fcce32f5b09f4e5a1628bcce4852ec7c776"
     }
   },
   "canonical_adoption": {
@@ -475,8 +485,8 @@
   "asset_bytes_unchanged": true,
   "paused_files_preserved": 16,
   "source_package_C_exact": true,
-  "source_file_sha256": "a965ec237bc49adc9c931d3eb8283311d32671600b696fb940bd8720c5c92945",
-  "native_backend_sha256": "32dd7aaefb349e6aa4043e8a775f7addfa4db36cea45a0dea01e20fa06b6da84",
-  "validated_target_git_tree": "628e20e882b002e15e149838f82d321adfcb0f8a",
+  "source_file_sha256": "3c6bb053de12dbfb12e26171a6b98e88362229bf9666778cf6d14ad80411aebc",
+  "native_backend_sha256": "d8290d34245109dabc920e403526774163e80076d1de4fb92c99845a37aae577",
+  "validated_target_git_tree": "8b83c394b11e2a26e62d31f6fba7c07b3a79a815",
   "clean_staged_tree_build": true
 }

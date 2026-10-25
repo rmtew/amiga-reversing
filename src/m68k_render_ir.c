@@ -4300,6 +4300,11 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   if (available == item->size && structured_data_item_is_pointer_table(item)) {
     uint32_t cursor;
     for (cursor = 0U; cursor + 4U <= available; cursor += 4U) {
+      if (cursor != 0U) {
+        render_asm_policy_entry_comments(preview, lookup->policy, section->section_index, item->offset + cursor);
+        render_asm_comment_line(preview,
+          lookup_instruction_comment(lookup, section->section_index, item->offset + cursor));
+      }
       const M68kFact *relocation = lookup_relocation_at(lookup, section->section_index, item->offset + cursor);
       if (relocation != NULL && relocation->size == 4U) {
         render_asm_relocation_expr(preview, lookup, relocation);

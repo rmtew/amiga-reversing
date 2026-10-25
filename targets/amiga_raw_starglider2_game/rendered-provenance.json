@@ -4,7 +4,7 @@
   "canonical_source_commit": "6314caee007a8f6704abd61c00070447b9037378",
   "publication_base_commit": "6314caee007a8f6704abd61c00070447b9037378",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "a965ec237bc49adc9c931d3eb8283311d32671600b696fb940bd8720c5c92945",
+  "main_source_sha256": "3c6bb053de12dbfb12e26171a6b98e88362229bf9666778cf6d14ad80411aebc",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,12 +25,12 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "framework/publication base, not a claim that accompanying facts already existed in that commit",
-  "canonical_source_subject_revision": "4f5f7d88d451144cc0869d8240ec9ac718bc3abd6bca65ee8864faf85ec5ed10",
+  "canonical_source_subject_revision": "6090f74530f408bbdff67632ea8a85a9ac0f3d4c09d27c819366ca2929bf8d2c",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
     "manual_actions.jsonl": "7a48e37a1b6e2623801d54f366b6559f1bc832c5e678ec74ec6fd519ad84c7a1",
-    "decision_journal.jsonl": "a2b80dfbf32f8edbb7e02646494e4c95881a68a558149784dfea50fc06079d14"
+    "decision_journal.jsonl": "7e74ac4196276dcc87b8b410f19a3838b25082c9587d32cc2dc390020c5647c5"
   },
   "refinement_receipt": "runtime/observations/starglider2-refinement-text-models.json"
 }

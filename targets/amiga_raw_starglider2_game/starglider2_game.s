@@ -23576,108 +23576,200 @@ abs_0_0001896E:
     ; Type 0: No records found. Shares header with type1; zero is skipped in visible-object drawing.
 model_header_pointers:
 	dc.l model_headers	; 104 model pointers; entries 0 and 1 intentionally alias the same header
+    ; Type 1: Walker.
 	dc.l model_headers
+    ; Type 2: Proximity Mine.
 	dc.l model_headers+$1C
+    ; Type 3: Egron Spire Building.
 	dc.l model_headers+$38
+    ; Type 4: Solar Energy Converter.
 	dc.l model_headers+$54
+    ; Type 5: Egron Silo.
 	dc.l model_header_run_01
+    ; Type 6: Buzz Bomb.
 	dc.l model_header_run_01+$18
+    ; Type 7: Large Bird.
 	dc.l model_header_run_02
+    ; Type 8: Emma 2.
 	dc.l model_header_run_02+$1C
+    ; Type 9: Egron Land Tank.
 	dc.l model_header_run_02+$38
+    ; Type 10: Egron Mechanical Whale.
 	dc.l model_header_run_02+$54
+    ; Type 11: Egron Duck.
 	dc.l model_header_run_03
+    ; Type 12: Homing Missile.
 	dc.l model_header_run_04
+    ; Type 13: Armed Transport.
 	dc.l model_header_run_04+$1C
+    ; Type 14: Escape Capsule.
 	dc.l model_header_run_04+$38
+    ; Type 15: Stomper.
 	dc.l model_header_run_04+$54
+    ; Type 16: Small Fighter.
 	dc.l model_header_run_04+$70
+    ; Type 17: Horatio.
 	dc.l model_header_run_04+$8C
+    ; Type 18: Large Egron Transport.
 	dc.l model_header_run_04+$A8
+    ; Type 19: Pulsing Pyramids.
 	dc.l model_header_run_05
+    ; Type 20: Tunnel Sentinel.
 	dc.l model_header_run_06
+    ; Type 21: Vampire Type Fighter.
 	dc.l model_header_run_06+$1C
+    ; Type 22: Egron Space Tug.
 	dc.l model_header_run_06+$38
+    ; Type 23: GBML.
 	dc.l model_header_run_07
+    ; Type 24: Petrified Tree.
 	dc.l model_header_run_07+$18
+    ; Type 25: Missile.
 	dc.l model_header_run_08
+    ; Type 26: Tripuss.
 	dc.l model_header_run_09
+    ; Type 27: Starglider.
 	dc.l model_header_run_10
+    ; Type 28: Egron Square Rocket.
 	dc.l model_header_run_10+$1C
+    ; Type 29: Egron Mini Rocket.
 	dc.l model_header_run_10+$38
+    ; Type 30: The Icarus. Visible-object drawing substitutes app0192; this is the stored type30 model.
 	dc.l model_header_run_10+$54
+    ; Type 31: Space Fighter.
 	dc.l model_header_run_10+$70
+    ; Type 32: Personnel Shuttle.
 	dc.l model_header_run_10+$8C
+    ; Type 33: Egron Buzz Bomber.
 	dc.l model_header_run_10+$A8
+    ; Type 34: Flying Saucer.
 	dc.l model_header_run_10+$C4
+    ; Type 35: Egron Bird Fighter.
 	dc.l model_header_run_10+$E0
+    ; Type 36: Pac-Worm.
 	dc.l model_header_run_10+$FC
+    ; Type 37: Egron Mini-Sentinel.
 	dc.l model_header_run_11
+    ; Type 38: Flat Diamond.
 	dc.l model_header_run_12
+    ; Type 39: Hover Car.
 	dc.l model_header_run_12+$1C
+    ; Type 40: Pirate Ship.
 	dc.l model_header_run_13
+    ; Type 41: Space Ray.
 	dc.l model_header_run_14
+    ; Type 42: Satellite Dish.
 	dc.l model_header_run_14+$1C
+    ; Type 43: Skim Launcher Drone.
 	dc.l model_header_run_15
+    ; Type 44: Tug Truck.
 	dc.l model_header_run_16
+    ; Type 45: Fighter Escort.
 	dc.l model_header_run_16+$1C
+    ; Type 46: Egron Dome Silo.
 	dc.l model_header_run_17
 	dc.l model_header_run_17+$18
+    ; Type 48: Tunnel Entrance/Exit.
 	dc.l model_header_run_17+$30
+    ; Type 49: BT Tower.
 	dc.l model_header_run_18
+    ; Type 50: GBML with Cannon.
 	dc.l model_header_run_18+$1C
+    ; Type 51: Pyramid.
 	dc.l model_header_run_19
+    ; Type 52: Tower Block.
 	dc.l model_header_run_19+$18
+    ; Type 53: Tapering Tower Block.
 	dc.l model_header_run_19+$30
+    ; Type 54: Energy Transmitter.
 	dc.l model_header_run_20
+    ; Type 55: Bouncing Ball.
 	dc.l model_header_run_20+$1C
+    ; Type 56: Cobweb.
 	dc.l model_header_run_21
+    ; Type 57: Tunnel Exit Indicators.
 	dc.l model_header_run_21+$18
+    ; Type 58: Tunnel Exit Indicators.
 	dc.l model_header_run_21+$30
+    ; Type 59: Old Heap Of Junk.
 	dc.l model_header_run_21+$48
+    ; Type 60: Skim Missile.
 	dc.l model_header_run_21+$60
+    ; Type 61: Scrap Metal.
 	dc.l model_header_run_21+$78
+    ; Type 62: Scrap Metal.
 	dc.l model_header_run_21+$90
+    ; Type 63: Blast Doors.
 	dc.l model_header_run_21+$A8
+    ; Type 64: Blowhole.
 	dc.l model_header_run_21+$C0
+    ; Type 65: Energy gate.
 	dc.l model_header_run_21+$D8
 	dc.l model_header_run_21+$F0
 	dc.l model_header_run_21+$108
 	dc.l model_header_run_21+$120
 	dc.l model_header_run_21+$138
 	dc.l model_header_run_21+$150
+    ; Type 71: Icarus Pilot Couch.
 	dc.l model_header_run_21+$168
+    ; Type 72: Laser Bolt.
 	dc.l model_header_run_22
+    ; Type 73: Asteroid.
 	dc.l model_header_run_23
+    ; Type 74: Small Asteroid.
 	dc.l model_header_run_23+$18
+    ; Type 75: Egron Projector Base.
 	dc.l model_header_run_23+$30
+    ; Type 76: Egron Projector Mount.
 	dc.l model_header_run_23+$48
+    ; Type 77: Egron Projector Cover.
 	dc.l model_header_run_23+$60
+    ; Type 78: Egron Projector Turret.
 	dc.l model_header_run_23+$78
+    ; Type 79: Projector Fuel Crystals.
 	dc.l model_header_run_23+$90
+    ; Type 80: Projector Control Tower.
 	dc.l model_header_run_23+$A8
+    ; Type 81: Projector Crew Quarters.
 	dc.l model_header_run_23+$C0
+    ; Type 82: Egron Projector Sentinel.
 	dc.l model_header_run_24
+    ; Type 83: Cask of Vistan Wine.
 	dc.l model_header_run_25
+    ; Type 84: Energy Cube Launcher.
 	dc.l model_header_run_26
 	dc.l model_header_run_27
+    ; Type 86: Ground Based Laser Cannon.
 	dc.l model_header_run_27+$18
+    ; Type 87: Cluster of Nodules.
 	dc.l model_header_run_27+$30
+    ; Type 88: Volcano.
 	dc.l model_header_run_27+$48
+    ; Type 89: Columbus.
 	dc.l model_header_run_28
+    ; Type 90: Energy Tower.
 	dc.l model_header_run_29
+    ; Type 91: Bouncing Bomb.
 	dc.l model_header_run_30
 	dc.l model_header_run_31
+    ; Type 93: Energy Tower.
 	dc.l model_header_run_31+$18
+    ; Type 94: Tunnel Depot.
 	dc.l model_header_run_31+$30
 	dc.l model_header_run_31+$48
 	dc.l model_header_run_31+$60
 	dc.l model_header_run_31+$78
+    ; Type 98: Neutron Bomb.
 	dc.l model_header_run_31+$90
+    ; Type 99: Egron Space Station.
 	dc.l model_header_run_31+$A8
+    ; Type 100: Crate of Castrobars.
 	dc.l model_header_run_31+$C0
+    ; Type 101: Lump of Mineral Rock.
 	dc.l model_header_run_31+$D8
+    ; Type 102: Case of Nuclear Fuel.
 	dc.l model_header_run_31+$F0
+    ; Type 103: Icarus Gas Laser Bolt.
 	dc.l model_header_run_32
 model_headers:
 	dc.w $0016	; last_vertex_index
