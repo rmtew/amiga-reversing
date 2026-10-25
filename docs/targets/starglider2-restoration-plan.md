@@ -702,3 +702,27 @@ readable frame/view data flow. There are 76197 unclassified bytes, separately
 from the remaining semantic work. See
 `runtime/observations/starglider2-frame-view.json`. No new runtime qualification,
 archive or upload accompanies this batch.
+
+
+## Player flight-state producers and consumers
+
+The flight-control service `$2F69C` and motion-vector helpers `$37280/$3728C`
+now name the producer side of the restored view state. Player world XYZ at
+app `$704/$708/$70C` and three rotation WORDs `$744/$746/$748` are repeatedly
+copied into the constructor-established player record and read by view/matrix
+code. Rotation components remain numbered; an axis convention is not invented.
+
+App `$758` is the requested speed and `$75A` the value moved toward it by the
+original +6/-24/-16 branches. Exceptional settling and forced-state paths remain
+unchanged. The helper stores three motion WORDs `$74A/$74C/$74E`; integration
+sign-extends them with MOVEM.W, doubles each component, performs the original
+add/subtract and applies the horizontal world mask to X/Z. The helper's signed
+multiply/double/SWAP scale is explicitly distinguished from matrix Q14 dot
+products. View mode, two angle offsets and offset distance are also named.
+
+Twenty-two canonical actions improve these repeated accesses without changing
+classification accounting: 76197 bytes remain unclassified. Full original
+C/vasm equality, zero range violations and zero source-quality diagnostics are
+retained. See `runtime/observations/starglider2-player-motion.json`. This is
+static source understanding, not new runtime or arbitrary-input safety evidence.
+No new archive or upload was produced.

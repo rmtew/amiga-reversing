@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "player_flight_state_restoration",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 22,
+  "functions": {
+    "flight_controls": 194204,
+    "player_motion_vector": 225920,
+    "angles_motion_vector": 225932
+  },
+  "workspace": {
+    "world_xyz": [
+      1796,
+      1800,
+      1804
+    ],
+    "rotation_words": [
+      1860,
+      1862,
+      1864
+    ],
+    "motion_words": [
+      1866,
+      1868,
+      1870
+    ],
+    "speed_target": 1880,
+    "speed_smoothed": 1882,
+    "horizontal_world_mask": 1788,
+    "view_mode": 2027,
+    "view_angle_offsets": [
+      1980,
+      1982
+    ],
+    "view_distance": 1984
+  },
+  "consumers": {
+    "player_record_copy": "XYZ to record+4/+8/+C and rotations to+10/+12/+14; original player identity established by constructor and view selection",
+    "motion": "masked angles, signed multiply/double/SWAP; original scale and rounding retained",
+    "integration": "MOVEM.W sign-extension, doubled components, original add/subtract and X/Z mask"
+  },
+  "verification": {
+    "receipt_id": "56eb0807f72287ffcade07f185e29c8ab39e91b2c20c21def63d19d74efd4d8c",
+    "exact": true,
+    "source_sha256": "e043aa36b22328e7fdcd8245b97dda956fc5864aa4c2f947e885a7e72ed24d78",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "range_union_bytes": 336539,
+    "unclassified_bytes": 76197,
+    "new_classified_bytes": 0,
+    "accepted_code_bytes": 92300,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Names from repeated original producers/consumers, not new gameplay execution",
+    "Rotation components remain numbered; no universal axis convention",
+    "Requested/current speed distinction does not remove exceptional settling or forced-state branches",
+    "Motion-vector scale is distinct from Q14 matrix dot-product extraction",
+    "No arbitrary-input, all-path or exclusive-lifetime claim",
+    "Semantic source improvement only; no archive or upload"
+  ]
+}
