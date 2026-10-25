@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "kind": "original_picture_resources",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 13,
+  "pictures": [
+    {
+      "name": "cockpit_picture",
+      "start": 341020,
+      "palette_bytes": 32,
+      "stream_start": 341052,
+      "end": 353618,
+      "packed_bytes": 12566,
+      "packed_sha256": "11bd59ff48f4da9b1d7484120d3c75a0526a2c7ee876ef1a1d84bcb1a2bde6c6",
+      "width": 320,
+      "height": 200,
+      "plane_stride": 8192,
+      "row_stride": 40,
+      "planes": [
+        {
+          "written_bytes": 7999,
+          "repeats": 479,
+          "literals": 385
+        },
+        {
+          "written_bytes": 8000,
+          "repeats": 641,
+          "literals": 422
+        },
+        {
+          "written_bytes": 7999,
+          "repeats": 630,
+          "literals": 426
+        },
+        {
+          "written_bytes": 7999,
+          "repeats": 646,
+          "literals": 358
+        }
+      ],
+      "unknown_destination_bytes": 3
+    },
+    {
+      "name": "argonaut_splash_picture",
+      "start": 353620,
+      "palette_bytes": 32,
+      "stream_start": 353652,
+      "end": 368425,
+      "packed_bytes": 14773,
+      "packed_sha256": "bb9be66f13ae8d9f55d8a0b90d3780e91cff6bc9fb1777063ac64c2bcf99f43e",
+      "width": 320,
+      "height": 200,
+      "plane_stride": 8192,
+      "row_stride": 40,
+      "planes": [
+        {
+          "written_bytes": 7999,
+          "repeats": 679,
+          "literals": 614
+        },
+        {
+          "written_bytes": 7999,
+          "repeats": 461,
+          "literals": 360
+        },
+        {
+          "written_bytes": 7999,
+          "repeats": 470,
+          "literals": 366
+        },
+        {
+          "written_bytes": 7999,
+          "repeats": 364,
+          "literals": 254
+        }
+      ],
+      "unknown_destination_bytes": 4
+    }
+  ],
+  "verification": {
+    "receipt_id": "5599fb8605b89c3fe2dcfff9a5e1779efc8583cff8c4ece552cffd2ea370689d",
+    "exact": true,
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "source_sha256": "758141f5d77ee6ded83d495301ab60da90b2f6476ee07f249c1d0b84d4e75720"
+  },
+  "focused_tests": {
+    "command": "pytest -q tests/test_starglider2_pictures.py",
+    "passed": 10,
+    "skipped": 0
+  },
+  "native_incbins": {
+    "asset_count": 29,
+    "asset_bytes": 71347,
+    "assets": [
+      {
+        "name": "panel_animation_frame_26",
+        "path": "assets/panel_animation_frame_26.bin",
+        "source_offset": 320090,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "b93a8498feed71d4fd0089bbfcad6ec4e456828d8a5dcf22fc99f29d57fd18f2"
+      },
+      {
+        "name": "panel_animation_frame_27",
+        "path": "assets/panel_animation_frame_27.bin",
+        "source_offset": 320786,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "96acc25b2b80005b952c3d46acf1de4d6127ce0749703b09f486f04eca3c490b"
+      },
+      {
+        "name": "panel_animation_frame_28",
+        "path": "assets/panel_animation_frame_28.bin",
+        "source_offset": 321482,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "77c1de8fb1baa0c9c49439989646c7702bd93ee9e62d9e2a1ca0ec227b3992f0"
+      },
+      {
+        "name": "panel_animation_frame_29",
+        "path": "assets/panel_animation_frame_29.bin",
+        "source_offset": 322178,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "dd3af4e1475eb6fb53f6fa06dfd51822a8856c861f9c99a81d026874e4802153"
+      },
+      {
+        "name": "panel_animation_frame_30",
+        "path": "assets/panel_animation_frame_30.bin",
+        "source_offset": 322874,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "f1f5e8586e9b91fe53996c9c50fab8ccf74a6277db7690619f8d1a8bda951b85"
+      },
+      {
+        "name": "panel_animation_frame_31",
+        "path": "assets/panel_animation_frame_31.bin",
+        "source_offset": 323570,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "6d7d90ab7857522139bccb980c9b84fcaf7b717baf3b98f238baaadc0970a8ca"
+      },
+      {
+        "name": "panel_animation_frame_32",
+        "path": "assets/panel_animation_frame_32.bin",
+        "source_offset": 324266,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "7d67037bdaf1e6b4c2cc36542ddfc1b10a5153500a09257a64bb52cec83d0c6f"
+      },
+      {
+        "name": "panel_animation_frame_33",
+        "path": "assets/panel_animation_frame_33.bin",
+        "source_offset": 324962,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "5378d95280b0629feed9492cecc9a6c4c2974cd519b2b1df84345d0be04332f0"
+      },
+      {
+        "name": "panel_animation_frame_34",
+        "path": "assets/panel_animation_frame_34.bin",
+        "source_offset": 325658,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "183b6174ae1d31250c7c03c52aee42ef6aa0b5ea7e1429ad1b5cf69cc98a9944"
+      },
+      {
+        "name": "panel_animation_frame_35",
+        "path": "assets/panel_animation_frame_35.bin",
+        "source_offset": 326354,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "6c70dc224479611edcf2445016657e32d445afd7710750a45a617f10711a169a"
+      },
+      {
+        "name": "panel_animation_frame_36",
+        "path": "assets/panel_animation_frame_36.bin",
+        "source_offset": 327050,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "a1ab34f9c2b526075a618a1c84844bb84421ed8ed02b15d6b29a2c6792dba30f"
+      },
+      {
+        "name": "panel_animation_frame_37",
+        "path": "assets/panel_animation_frame_37.bin",
+        "source_offset": 327746,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "a79bc6940c6067f60e658ef10a2044c1ebe0293e6ac84589e623c69dd0b7268a"
+      },
+      {
+        "name": "panel_animation_frame_38",
+        "path": "assets/panel_animation_frame_38.bin",
+        "source_offset": 328442,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "6fb5bcfd3b2188b38700ce7092608a84cfa09198293a360212bc418cb63d9e4e"
+      },
+      {
+        "name": "panel_animation_frame_39",
+        "path": "assets/panel_animation_frame_39.bin",
+        "source_offset": 329138,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "78c47d0d357c088933aacc8314f990c840c417b638320174166b34507a0f1d78"
+      },
+      {
+        "name": "panel_animation_frame_40",
+        "path": "assets/panel_animation_frame_40.bin",
+        "source_offset": 329834,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "49007317db40743d94629313516cbc29623502c2fe25c17688aa50c1784e56d8"
+      },
+      {
+        "name": "panel_animation_frame_41",
+        "path": "assets/panel_animation_frame_41.bin",
+        "source_offset": 330530,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "3d62d25075b9a1d2aacd38503a35416fca696b80464386179c4392f387e59971"
+      },
+      {
+        "name": "panel_animation_frame_42",
+        "path": "assets/panel_animation_frame_42.bin",
+        "source_offset": 331226,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "ce88cccbc277c47e215bead15a0cd4ada011e42574bc9d2dbcc4347f8495383e"
+      },
+      {
+        "name": "panel_animation_frame_43",
+        "path": "assets/panel_animation_frame_43.bin",
+        "source_offset": 331922,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "009980d4068c4f4f04b4273a9534cf310929b6c46ef380de650ce54e46a8f2c5"
+      },
+      {
+        "name": "panel_animation_frame_44",
+        "path": "assets/panel_animation_frame_44.bin",
+        "source_offset": 332618,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "222d0c82bab0ab7c8fe7c0a720582c4a9153383352aec0a2d07ffcfc9fdbea76"
+      },
+      {
+        "name": "panel_animation_frame_45",
+        "path": "assets/panel_animation_frame_45.bin",
+        "source_offset": 333314,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "9a6323f8e622829b4d250d7e0a343ad6f3c7e422570d6391ccbb969a37eedc1e"
+      },
+      {
+        "name": "panel_animation_frame_46",
+        "path": "assets/panel_animation_frame_46.bin",
+        "source_offset": 334010,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "5894247db1e84001b86499d0e1f56a3695055c42a0f3bcc33c4c38d31f4e98fc"
+      },
+      {
+        "name": "panel_animation_frame_47",
+        "path": "assets/panel_animation_frame_47.bin",
+        "source_offset": 334706,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "859d41472d63d48d227f0ca4093a7c9fc49e8521e16c78ade04ee34c422ecef6"
+      },
+      {
+        "name": "panel_animation_frame_48",
+        "path": "assets/panel_animation_frame_48.bin",
+        "source_offset": 335402,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "65da109a763f560a220b67a29d4a017edddda67e993dae69967c65c23d87d4df"
+      },
+      {
+        "name": "panel_animation_frame_49",
+        "path": "assets/panel_animation_frame_49.bin",
+        "source_offset": 336098,
+        "size": 696,
+        "classification": "bitmap",
+        "sha256": "c6d0a5749e0af0b77c5f84736212d5e61ec571df2ea504147cd798b8ad4fc22b"
+      },
+      {
+        "name": "cockpit_picture_rle_data",
+        "path": "assets/cockpit_picture_rle_data.bin",
+        "source_offset": 336956,
+        "size": 12566,
+        "classification": "bitmap",
+        "sha256": "11bd59ff48f4da9b1d7484120d3c75a0526a2c7ee876ef1a1d84bcb1a2bde6c6"
+      },
+      {
+        "name": "argonaut_splash_picture_rle_data",
+        "path": "assets/argonaut_splash_picture_rle_data.bin",
+        "source_offset": 349556,
+        "size": 14773,
+        "classification": "bitmap",
+        "sha256": "bb9be66f13ae8d9f55d8a0b90d3780e91cff6bc9fb1777063ac64c2bcf99f43e"
+      },
+      {
+        "name": "paula_initial_channel0_sample",
+        "path": "assets/paula_initial_channel0_sample.bin",
+        "source_offset": 364340,
+        "size": 17104,
+        "classification": "sound_sample",
+        "sha256": "c04a225d7199c6955ec2bd42eb80987ec60c17c5afdefff9f4232798a4c1ebd9"
+      },
+      {
+        "name": "paula_initial_channel1_sample",
+        "path": "assets/paula_initial_channel1_sample.bin",
+        "source_offset": 381472,
+        "size": 948,
+        "classification": "sound_sample",
+        "sha256": "32f8241b5cdc9ffe1d2bbbcf9139a75936f34001c6216a64b4b750c449fac2d8"
+      },
+      {
+        "name": "paula_initial_channel2_sample",
+        "path": "assets/paula_initial_channel2_sample.bin",
+        "source_offset": 382448,
+        "size": 9252,
+        "classification": "sound_sample",
+        "sha256": "62dd60f3216633531809ae27e601277e870e7114f871d6a0a9c91a9635d1591a"
+      }
+    ],
+    "all_asset_bytes_equal_original_slices": true,
+    "standalone_vasm_full_match": true
+  },
+  "accounting": {
+    "before_range_union_bytes": 281265,
+    "after_range_union_bytes": 308604,
+    "before_unclassified_bytes": 131471,
+    "after_unclassified_bytes": 104132,
+    "new_classified_bytes": 27339,
+    "source_quality_diagnostics": 0,
+    "range_violations": 0
+  },
+  "limits": [
+    "Amiga four-plane decoder only; not generic PackBits or rendered-frame equality",
+    "Underfill destination bytes retain previous memory, not zero-padded source data",
+    "Visual identity from private decoded preview, not a new runtime screenshot comparison",
+    "Following 2/3-byte gaps and preceding 2-byte gap remain unclaimed",
+    "Palette/control WORDs mutable; alternate mode rewrites panel bank and palettes",
+    "No interim archive or upload; restoration incomplete"
+  ]
+}

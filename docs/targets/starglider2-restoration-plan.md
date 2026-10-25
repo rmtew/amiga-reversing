@@ -3,12 +3,13 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 131471 bytes remain unclassified and substantial
+byte equality is preserved; 104132 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
-identified assets and projection scales are documented. The startup-transformed novella-check region now has a separate reversible,
+identified assets and projection scales are documented. The startup-transformed
+novella-check region now has a separate reversible,
 canonical readable view; its execution remains conditional and unobserved in the
-bounded Amiga boot. Static image resources and central game-record/function
-contracts remain next.
+bounded Amiga boot. Cockpit and Argonaut splash RLE streams now export as identified assets.
+Central game-record/function contracts remain next.
 No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -503,3 +504,31 @@ See `runtime/observations/starglider2-protected-code.json` for identities and
 limits. This derived view does not reduce the original unknown-byte count by
 counting the same storage twice. Remaining original game-record/function
 contracts, pictures and other unclassified regions still require restoration.
+
+
+## Cockpit and splash streams
+
+The original Amiga decoder consumes four column-major plane streams after a
+32-byte palette/control header. Controls 1..127 repeat the following byte;
+129..255 copy `(-control)&127` literal bytes; zero ends the current plane.
+Control `$80` would enter a 65536-iteration DBF loop and is outside the admitted
+bounded resources. This is not a standard PackBits declaration.
+
+The cockpit stream is `$5343C..$56552` (12566 bytes); the Argonaut space-station
+splash stream is `$56574..$59F29` (14773 bytes). Their private decoded previews
+establish visual identity. They are now distinct canonical INCBIN assets, not
+replacement decoded images. Cockpit plane writes are 7999/8000/7999/7999 bytes;
+the splash writes 7999 per plane. Unwritten destination bytes keep previous
+memory. The following two-/three-byte gaps and preceding `$5341A..$5341C` remain
+unclaimed, and palette/control words are mutable. The alternate graphics path
+also rewrites the panel-image bank in place; all-mode lifetime is not proved.
+
+`python -m amiga_reversing.tools.starglider2_pictures game_copy.bin` audits the
+original stream boundaries/counts without publishing image bytes. The native
+source export currently emits 29 unchanged assets totalling 71347 bytes. Its
+unmodified source plus extracted assets rebuilt all 412736 original bytes with
+vasm in a fresh private directory. The inline C/vasm check is also exact; ten
+focused decoder/addressing/refusal tests pass. See
+`runtime/observations/starglider2-pictures.json`. The range-union complement is
+104132 bytes; this is classification accounting, not semantic completeness.
+No archive or download was produced.
