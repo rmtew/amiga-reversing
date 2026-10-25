@@ -1,7 +1,8 @@
 """Check the source-backed model catalogue in the reviewed Starglider 2 image.
 
-This finite recipe follows consumers at $49E0/$4A2A, $56BC and $583C. It does
-not infer variant-table lengths or identify models by their visual appearance.
+This finite recipe follows consumers at $49E0/$4A2A, $56BC and $583C, with
+variant extents bound by the original viewer at $EF4C/$EFAA. It does not prove
+all gameplay selector domains or identify models by visual appearance.
 The JSON contains addresses/counts, never model coordinates or game bytes.
 """
 from __future__ import annotations
@@ -16,6 +17,69 @@ PAYLOAD_SHA256 = "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864
 LOAD_ADDRESS = 0x1000
 TABLE_ADDRESS = 0x18974
 TABLE_COUNT = 104
+
+
+def _variant_inventory(payload: bytes, models: list[dict]) -> dict:
+    """Original model-viewer selector contract; not all gameplay writers."""
+    def word(address: int, signed: bool = False) -> int:
+        return struct.unpack_from(">h" if signed else ">H", payload, address - LOAD_ADDRESS)[0]
+
+    def long(address: int) -> int:
+        return struct.unpack_from(">I", payload, address - LOAD_ADDRESS)[0]
+
+    variants = []
+    for index, model in enumerate(models):
+        table = model["variant_table"]
+        if not table:
+            continue
+        endpoints, selector_rows = [], []
+        for table_index in model["table_indices"]:
+            offset = 0xECA2 - LOAD_ADDRESS + table_index * 4
+            row = list(payload[offset:offset + 4])
+            selector_rows.append(row)
+            if row[0] < 128:
+                endpoints.extend(row[:2])
+            if row[2] < 128:
+                endpoints.extend(row[2:])
+        count = max(endpoints, default=0)
+        if not 0 < count < 128:
+            raise ValueError("Variant table lacks a bounded original viewer selector")
+        table_end = table + count * 4
+        next_component = models[index + 1]["faces"] if index + 1 < len(models) else 0x2ADF8
+        if table_end != next_component:
+            raise ValueError("Viewer selector count does not fit the original pointer-table extent")
+        pointers = [long(table + 4 * item) for item in range(count)]
+        if pointers != sorted(set(pointers)):
+            raise ValueError("Variant aliases or non-monotonic records require separate review")
+        offsets = sorted({word(model["vertices"] + vertex * 8 + 6, True)
+                          for vertex in range(model["last_vertex_index"] + 1)
+                          if word(model["vertices"] + vertex * 8 + 6, True) >= 0})
+        base_end = model["vertices"] + (model["last_vertex_index"] + 1) * 8
+        if pointers[0] != base_end:
+            raise ValueError("Unexplained gap before variant frames")
+        frames = []
+        for start, end in zip(pointers, pointers[1:] + [table]):
+            if end <= start or offsets != list(range(0, end - start, 8)):
+                raise ValueError("Variant frame extent does not match its referenced record strides")
+            for offset in offsets:
+                for axis in range(3):
+                    reference = word(start + offset + axis * 2) & 0x7FFF
+                    if reference % 2 or reference >= model["coordinate_word_count"] * 2:
+                        raise ValueError("Variant coordinate reference outside its original WORD pool")
+            frames.append(dict(start=start, end=end, record_count=(end - start) // 8))
+        if len({frame["end"] - frame["start"] for frame in frames}) != 1:
+            raise ValueError("Non-uniform frames require a separate representation")
+        variants.append(dict(header=model["header"], table_indices=model["table_indices"],
+                             selector_rows=selector_rows, count=count, table=table,
+                             table_end=table_end, frames=frames))
+    return dict(bounds_table_address=0xECA2, bounds_table_count=104,
+                models=variants, frame_count=sum(item["count"] for item in variants),
+                frame_bytes=sum(frame["end"] - frame["start"]
+                                for item in variants for frame in item["frames"]),
+                pointer_bytes=sum(item["count"] * 4 for item in variants),
+                limits=["Count contract is original model-viewer initialization/stepping only",
+                        "Other gameplay selector writers are not exhaustively audited",
+                        "The fourth WORD in each variant vertex record remains uninterpreted"])
 
 
 def inventory(payload: bytes) -> dict:
@@ -101,8 +165,9 @@ def inventory(payload: bytes) -> dict:
     return dict(schema_version=1, binary_sha256=digest, load_address=LOAD_ADDRESS,
                 table_address=TABLE_ADDRESS, table_count=TABLE_COUNT,
                 unique_headers=len(models), component_bytes=totals, models=models,
+                variants=_variant_inventory(payload, models),
                 limits=["Static original-record validation, not runtime reachability",
-                        "Variant pointer table lengths/selector domains remain unresolved",
+                        "Variant extents use the conditional original model-viewer contract",
                         "Face flags/material meanings and visual model identities not inferred",
                         "No arbitrary replacement-input safety or complete image classification"])
 

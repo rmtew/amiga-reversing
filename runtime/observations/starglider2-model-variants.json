@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "conditional_original_viewer_variant_contract_and_source_C_vasm_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "7175e85d1ab8c2a7519bbbfaf22c4be07e270baedccd626ded4f24c7de7ae570",
+  "manual_actions": 593,
+  "accepted_interpretations": 557,
+  "manual_actions_sha256": "ffea149acf8d2f194e27d7127ed7d84368ac6882c2ec339931eee5181aaa01c6",
+  "decision_journal_sha256": "b6a04dfe2700a2c8431a769f4f65648d8a44e53bde2deb0a69a3bf1be52526c2",
+  "verification": {
+    "receipt_id": "e0e7dbcc4c58d8e6e47a70a739b29f820673da1df697bd7a6d5d2e972964d560",
+    "subject_revision": "2b624b82dbb40c584711f60ad9bc83240c32bfbac8dc89391b577bbcb5994041",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "variants": {
+    "new_actions": 106,
+    "variant_models": 33,
+    "frames": 471,
+    "encoded_vertex_records": 4611,
+    "frame_bytes": 36888,
+    "pointer_table_bytes": 1884,
+    "viewer_bounds_bytes": 416,
+    "unknown_record_WORD_bytes": 9222,
+    "viewer_bounds_start": 60578,
+    "viewer_bounds_end": 60994,
+    "selector_zero": "base model",
+    "positive_selector": "(selector-1)*4 into frame pointer table",
+    "disabled_span": "negative start byte",
+    "all_frame_reference_offsets": "contiguous eight-byte record strides",
+    "all_coordinate_references": "even and in original per-model coordinate pool",
+    "first_table_alias": "header IDs0/1 share Walker data; ID1 endpoints bound its22frames"
+  },
+  "accounting": {
+    "before_range_union_bytes": 168364,
+    "after_range_union_bytes": 207552,
+    "before_unclassified_bytes": 244372,
+    "after_unclassified_bytes": 205184,
+    "new_classified_bytes": 39188,
+    "code_bytes": 88142,
+    "range_violations": 0,
+    "model_family_start": 100724,
+    "model_family_end": 175608,
+    "model_family_bytes": 74884,
+    "model_family_all_classified": true
+  },
+  "checks": {
+    "full_C": "exact",
+    "full_vasm": "exact",
+    "finite_original_inventory": "passed",
+    "wrong_payload": "refused",
+    "source": "symbolic frame pointers and viewer controls inspected"
+  },
+  "limits": [
+    "Bounds qualified to original viewer initialization and stepping; not all gameplay selector writers",
+    "Fourth WORD of each variant vertex record remains uninterpreted, not declared unused or padding",
+    "Typed frame pointer describes six-byte XYZ-reference prefix, not aggregate extent",
+    "No arbitrary replacement-input or all-callers safety claim",
+    "No new runtime or output-equivalence validation",
+    "Restoration incomplete; no interim archive"
+  ]
+}

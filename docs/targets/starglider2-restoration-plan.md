@@ -271,3 +271,41 @@ to add a separate facts system or interrupt restoration with a performance proje
 The next source-backed contract is the viewer's bounded animation selectors and
 corresponding variant tables/frames; general gameplay selector provenance remains
 separate from those original record extents.
+
+## Conditional variant bounds from the original model viewer
+
+The four-byte records at runtime `$ECA2..$EE42` provide two endpoint pairs per
+model ID. A negative start byte disables its span. The viewer clears the instance
+selector at `$F0A0`; stepping at `$EF4C/$EFAA` moves toward an endpoint or switches
+to the other enabled span. Zero selects the base model, while a positive selector
+indexes the header's variant pointer table as `(selector-1)*4`. The Walker header
+is aliased by IDs 0 and 1: ID 0 has zero endpoints, but ID 1 supplies its 22-frame
+range. Ignoring that alias would incorrectly bound this table at zero.
+
+Applying the original viewer's endpoint ranges gives 33 variant tables with
+471 frame pointers. Every table ends exactly at the next declared model component
+(the last ends at the next consumer's `$2ADF8` data address). Frame starts are
+ordered without aliases; all frames within each model have the same length.
+The nonnegative WORD offsets in its base vertex records enumerate consecutive
+eight-byte records in each frame. Every XYZ triple is an even, in-pool encoded
+coordinate reference. The frame blocks account for 36888 bytes and their tables
+for 1884 bytes, precisely filling the previously excluded model-family gaps.
+
+The rendering keeps frame data as WORD arrays with frame count/stride in the
+owner role and symbolic frame pointer arrays. The pointer type describes only
+the three-WORD coordinate-reference prefix; it does not invent the purpose of
+the fourth WORD, turn a prefix into an aggregate pointee, or expand thousands of
+identical record annotations unnecessarily. Other gameplay writers of the
+instance selector are not exhaustively audited. These bounds establish a
+conditional original viewer contract and original data extents, not a global
+replacement-input or all-callers safety claim.
+
+[Variant receipt](../../runtime/observations/starglider2-model-variants.json):
+106 new interpretations are accepted with complete C/vasm equality. The 38772
+variant bytes plus 416 viewer-control bytes bring range ownership to 207552 and
+the unclassified complement to 205184; code remains 88142 bytes. Every byte of
+`$18974..$2ADF8` now has model-family ownership. That classification does not
+explain the 9222 bytes of fourth-WORD fields or prove other selector writers.
+Next is the secondary object dispatcher and its shared object-name catalogue:
+the current native inventory has 13 recovered indirect tables, one unresolved
+148-WORD object table, and one low-vector reboot transfer outside the image.
