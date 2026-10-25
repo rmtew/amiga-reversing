@@ -1,0 +1,354 @@
+{
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "directory_span": [
+    188112,
+    188280
+  ],
+  "directory_pointers": 41,
+  "converter_intervals": 40,
+  "sprite_spans": [
+    {
+      "start": 188348,
+      "end": 188536,
+      "bytes": 188
+    },
+    {
+      "start": 188536,
+      "end": 188728,
+      "bytes": 192
+    },
+    {
+      "start": 188728,
+      "end": 188920,
+      "bytes": 192
+    },
+    {
+      "start": 188920,
+      "end": 189112,
+      "bytes": 192
+    },
+    {
+      "start": 189112,
+      "end": 189304,
+      "bytes": 192
+    },
+    {
+      "start": 189304,
+      "end": 189496,
+      "bytes": 192
+    },
+    {
+      "start": 189496,
+      "end": 189688,
+      "bytes": 192
+    },
+    {
+      "start": 189688,
+      "end": 189880,
+      "bytes": 192
+    },
+    {
+      "start": 189880,
+      "end": 189912,
+      "bytes": 32
+    },
+    {
+      "start": 189912,
+      "end": 189972,
+      "bytes": 60
+    },
+    {
+      "start": 189972,
+      "end": 190004,
+      "bytes": 32
+    },
+    {
+      "start": 190004,
+      "end": 190036,
+      "bytes": 32
+    },
+    {
+      "start": 190036,
+      "end": 190068,
+      "bytes": 32
+    },
+    {
+      "start": 190068,
+      "end": 190100,
+      "bytes": 32
+    },
+    {
+      "start": 190100,
+      "end": 190132,
+      "bytes": 32
+    },
+    {
+      "start": 190132,
+      "end": 190164,
+      "bytes": 32
+    },
+    {
+      "start": 190164,
+      "end": 190196,
+      "bytes": 32
+    },
+    {
+      "start": 190196,
+      "end": 190228,
+      "bytes": 32
+    },
+    {
+      "start": 190228,
+      "end": 190260,
+      "bytes": 32
+    },
+    {
+      "start": 190260,
+      "end": 190292,
+      "bytes": 32
+    },
+    {
+      "start": 190292,
+      "end": 190324,
+      "bytes": 32
+    },
+    {
+      "start": 190324,
+      "end": 190356,
+      "bytes": 32
+    },
+    {
+      "start": 190356,
+      "end": 190388,
+      "bytes": 32
+    },
+    {
+      "start": 190388,
+      "end": 190420,
+      "bytes": 32
+    },
+    {
+      "start": 190420,
+      "end": 190452,
+      "bytes": 32
+    },
+    {
+      "start": 190452,
+      "end": 190484,
+      "bytes": 32
+    },
+    {
+      "start": 190484,
+      "end": 190516,
+      "bytes": 32
+    },
+    {
+      "start": 190516,
+      "end": 190548,
+      "bytes": 32
+    },
+    {
+      "start": 190548,
+      "end": 190580,
+      "bytes": 32
+    },
+    {
+      "start": 190580,
+      "end": 190612,
+      "bytes": 32
+    },
+    {
+      "start": 190612,
+      "end": 190648,
+      "bytes": 36
+    },
+    {
+      "start": 190648,
+      "end": 190680,
+      "bytes": 32
+    },
+    {
+      "start": 190680,
+      "end": 190712,
+      "bytes": 32
+    },
+    {
+      "start": 190712,
+      "end": 190744,
+      "bytes": 32
+    },
+    {
+      "start": 190744,
+      "end": 190780,
+      "bytes": 36
+    },
+    {
+      "start": 190780,
+      "end": 190812,
+      "bytes": 32
+    },
+    {
+      "start": 190812,
+      "end": 190844,
+      "bytes": 32
+    },
+    {
+      "start": 190844,
+      "end": 190876,
+      "bytes": 32
+    },
+    {
+      "start": 190876,
+      "end": 190908,
+      "bytes": 32
+    },
+    {
+      "start": 190908,
+      "end": 190940,
+      "bytes": 32
+    },
+    {
+      "start": 190940,
+      "end": 191012,
+      "bytes": 72
+    },
+    {
+      "start": 191012,
+      "end": 191084,
+      "bytes": 72
+    },
+    {
+      "start": 191084,
+      "end": 191156,
+      "bytes": 72
+    },
+    {
+      "start": 191156,
+      "end": 191228,
+      "bytes": 72
+    },
+    {
+      "start": 191228,
+      "end": 191300,
+      "bytes": 72
+    },
+    {
+      "start": 191300,
+      "end": 191372,
+      "bytes": 72
+    },
+    {
+      "start": 191372,
+      "end": 191444,
+      "bytes": 72
+    },
+    {
+      "start": 191444,
+      "end": 191516,
+      "bytes": 72
+    },
+    {
+      "start": 191516,
+      "end": 191588,
+      "bytes": 72
+    }
+  ],
+  "sprite_count": 49,
+  "sprite_bytes": 3240,
+  "scan_pointer_span": [
+    188320,
+    188348
+  ],
+  "scan_pointer_count": 7,
+  "scan_countdown_seed": 56,
+  "scan_byte_offsets": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24
+  ],
+  "converter_mode_span": [
+    188280,
+    188320
+  ],
+  "converter_rows": 648,
+  "converter_output_span": [
+    368428,
+    376204
+  ],
+  "converter_source_limit": 190944,
+  "limits": [
+    "Directory physical intervals are stored backing, not universal DMA-height admission",
+    "Converter skips4 bytes then DBF iterates span/4 times; consumes next interval first4 bytes as well as preceding terminator",
+    "Converted7776bytes overlap original first Paula sample backing; alternate path lifetime not universally proved",
+    "Countdown bounds conditional on original56 seed/decrements; arbitrary saved values not certified",
+    "Altitude selector has no local upper bound; stored pointer count is not arbitrary-height safety",
+    "Resource meter identities remain numbered rather than guessing energy/fuel/shield assignment",
+    "Static hardware-pointer/CPU-store evidence only, not new DMA/frame/audio qualification",
+    "Original/fixed exported bytes unchanged; no relocation, archive or upload"
+  ],
+  "schema_version": 1,
+  "kind": "hud_hardware_sprites_and_alternate_conversion",
+  "canonical_actions": 120,
+  "functions": {
+    "amiga_hud_update": 53854,
+    "alternate_graphics_setup": 238596
+  },
+  "null_seed": {
+    "start": 54808,
+    "end": 54816,
+    "special_reader": 54080,
+    "note": "Original MOVE.L reads zero contents into SPR0PT on this path, not the seed address; behavior preserved"
+  },
+  "header_contract": {
+    "bytes": 4,
+    "fields": [
+      "position WORD",
+      "control WORD"
+    ],
+    "scope": "Original stored source references; alternate converter rewrites directory to a different format"
+  },
+  "verification": {
+    "receipt_id": "32767546b3c280df09eebe8ef4e0fdd21541029ddb6779dbb975f0c591156fa3",
+    "exact": true,
+    "source_sha256": "c5182e57fe2a65a8f99fea43b1f79300fbd51e1b96ec12d3796f495e78d65168",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "standalone_native_build": {
+    "original_size": 412736,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "exact": true,
+    "source_sha256": "16e5be823fec4e6c3f46c84cbbfc93d94efa6107a4a59a19b9ef3c5429711e8d",
+    "asset_min_bytes": 64,
+    "asset_count": 52,
+    "asset_bytes": 74871,
+    "hud_asset_count": 17,
+    "hud_asset_bytes": 2180,
+    "all_asset_source_slices_equal": true,
+    "tools": {
+      "assembler": "vasmm68k_mot",
+      "format": "raw binary",
+      "cpu": "68000",
+      "optimization": "disabled"
+    },
+    "limits": [
+      "Private scratch build only; no archive or upload",
+      "Unmodified native rendered source and source_package_payload(64) assets",
+      "Asset byte identity is not runtime graphics/audio equivalence"
+    ]
+  },
+  "accounting": {
+    "before_range_union_bytes": 337964,
+    "after_range_union_bytes": 341404,
+    "before_unclassified_bytes": 74772,
+    "after_unclassified_bytes": 71332,
+    "new_classified_bytes": 3440,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  }
+}

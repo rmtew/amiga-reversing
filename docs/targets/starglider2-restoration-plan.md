@@ -2,8 +2,9 @@
 
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
-secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 74772 bytes remain unclassified and substantial
+secondary object updates, names, shared audio/render storage, frame/view and flight
+state, projected discs and HUD sprites. Complete C/vasm
+byte equality is preserved; 71332 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -758,3 +759,40 @@ Full original C/vasm equality is exact with zero structural/source-quality
 diagnostics; 1425 bytes gain range classification, leaving 74772 unclassified.
 See `runtime/observations/starglider2-disc-queue.json`. No new runtime/output
 qualification, archive or upload accompanies this batch.
+
+
+## HUD hardware sprites and alternate conversion
+
+The Amiga HUD updater `$D25E` installs sprite pointers and modifies the two
+control WORDs of the stored sprites. Forty-nine physical sprite-backed ranges
+occupy `$2DFBC..$2EC64` (3240 bytes), covering resource meters, speed/altitude
+indicators, reticles and seven scan-animation frames. The resource meter
+identities remain numbered rather than guessing energy/fuel/shield assignments.
+The shared 41-pointer directory contains nested meter-table aliases plus a
+negative sentinel. Its pointee type promises only the original four control
+bytes, not a uniform image size or persistent type after conversion.
+
+The original scan action seeds a countdown of 56; decrement/shift/mask selects
+seven pointers with byte offsets 0..24. This explains that original path, not
+arbitrary restored countdowns. The altitude selector has no local upper-bound
+guard; its stored six pointers and following negative sentinel are retained.
+The null-sprite path at `$D340` reads the seed's zero contents into SPR0PT,
+whereas the initial updater loads its address. That difference is preserved.
+
+The alternate converter processes 40 directory intervals and 40 colour-mode
+bytes. It skips four header bytes, then its original DBF loop consumes
+`span / 4` rows, including four bytes of the following header. Across the
+original directory this is 648 rows and 7776 output bytes at
+`$59F2C..$5BD8C`, overlapping the first Paula sample's backing. Directory
+pointers are rewritten in place. No immutable-asset, exclusive-lifetime or
+new all-platform runtime claim accompanies the static contracts.
+
+One hundred twenty canonical actions restore these references, backing and consumers.
+Full original C/vasm equality remains exact with zero structural/source-quality
+diagnostics. Classification grows by 3440 bytes, leaving 71332 unclassified.
+A fresh private scratch directory rebuilds the unmodified native INCBIN export
+with all 52 extracted assets (74871 bytes); every asset equals its
+original source slice and the complete 412736-byte output equals the original.
+This includes 17 HUD sprite assets selected by the 64-byte extraction threshold;
+smaller resources stay inline. See `runtime/observations/starglider2-hud-sprites.json`.
+No new archive or upload was produced; readable restoration remains incomplete.
