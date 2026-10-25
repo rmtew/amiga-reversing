@@ -1,0 +1,599 @@
+{
+  "schema_version": 1,
+  "kind": "event_message_directory_and_shared_queue_consumers",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 96,
+  "directory": {
+    "span": [
+      228200,
+      228548
+    ],
+    "entries": 87,
+    "entry_width": 4,
+    "direct_maximum_original_byte_selector": 344,
+    "maximum_entry_selected_by_that_site": 86,
+    "text_span": [
+      228548,
+      230659
+    ],
+    "text_bytes": 2111,
+    "strings": [
+      {
+        "index": 0,
+        "start": 228548,
+        "end": 228575,
+        "symbol": "event_message_stardrive_activated"
+      },
+      {
+        "index": 1,
+        "start": 228575,
+        "end": 228603,
+        "symbol": "event_message_stardrive_deactivated"
+      },
+      {
+        "index": 2,
+        "start": 228603,
+        "end": 228624,
+        "symbol": "event_message_tractor_beam_locked"
+      },
+      {
+        "index": 3,
+        "start": 228624,
+        "end": 228650,
+        "symbol": "event_message_tractor_beam_lock_failed"
+      },
+      {
+        "index": 4,
+        "start": 228650,
+        "end": 228667,
+        "symbol": "event_message_found_no_object"
+      },
+      {
+        "index": 5,
+        "start": 228667,
+        "end": 228694,
+        "symbol": "event_message_computer_visual_analysis"
+      },
+      {
+        "index": 6,
+        "start": 228694,
+        "end": 228714,
+        "symbol": "event_message_object_is_moveable"
+      },
+      {
+        "index": 7,
+        "start": 228714,
+        "end": 228737,
+        "symbol": "event_message_object_mass_too_large"
+      },
+      {
+        "index": 8,
+        "start": 228737,
+        "end": 228757,
+        "symbol": "event_message_no_object_in_range"
+      },
+      {
+        "index": 9,
+        "start": 228757,
+        "end": 228783,
+        "symbol": "event_message_lost_tractor_beam_object"
+      },
+      {
+        "index": 10,
+        "start": 228783,
+        "end": 228807,
+        "symbol": "event_message_no_atmosphere_detected"
+      },
+      {
+        "index": 11,
+        "start": 228807,
+        "end": 228828,
+        "symbol": "event_message_atmosphere_detected"
+      },
+      {
+        "index": 12,
+        "start": 228828,
+        "end": 228846,
+        "symbol": "event_message_object_collected"
+      },
+      {
+        "index": 13,
+        "start": 228846,
+        "end": 228871,
+        "symbol": "event_message_you_cannot_collect_this"
+      },
+      {
+        "index": 14,
+        "start": 228871,
+        "end": 228897,
+        "symbol": "event_message_object_too_far_from_ship"
+      },
+      {
+        "index": 15,
+        "start": 228897,
+        "end": 228918,
+        "symbol": "event_message_intelligence_report"
+      },
+      {
+        "index": 16,
+        "start": 228918,
+        "end": 228944,
+        "symbol": "event_message_all_projectors_activated"
+      },
+      {
+        "index": 17,
+        "start": 228944,
+        "end": 228967,
+        "symbol": "event_message_egron_space_station"
+      },
+      {
+        "index": 18,
+        "start": 228967,
+        "end": 228990,
+        "symbol": "event_message_under_construction"
+      },
+      {
+        "index": 19,
+        "start": 228990,
+        "end": 229016,
+        "symbol": "event_message_currently_no_information"
+      },
+      {
+        "index": 20,
+        "start": 229016,
+        "end": 229043,
+        "symbol": "event_message_egron_construction_crew"
+      },
+      {
+        "index": 21,
+        "start": 229043,
+        "end": 229067,
+        "symbol": "event_message_currently_out_to_lunch"
+      },
+      {
+        "index": 22,
+        "start": 229067,
+        "end": 229096,
+        "symbol": "event_message_conducting_pay_negotiations"
+      },
+      {
+        "index": 23,
+        "start": 229096,
+        "end": 229119,
+        "symbol": "event_message_in_management_dispute"
+      },
+      {
+        "index": 24,
+        "start": 229119,
+        "end": 229137,
+        "symbol": "event_message_in_union_dispute"
+      },
+      {
+        "index": 25,
+        "start": 229137,
+        "end": 229155,
+        "symbol": "event_message_taking_legal_aid"
+      },
+      {
+        "index": 26,
+        "start": 229155,
+        "end": 229176,
+        "symbol": "event_message_currently_on_strike"
+      },
+      {
+        "index": 27,
+        "start": 229176,
+        "end": 229198,
+        "symbol": "event_message_currently_on_holiday"
+      },
+      {
+        "index": 28,
+        "start": 229198,
+        "end": 229211,
+        "symbol": "event_message_all_rehired"
+      },
+      {
+        "index": 29,
+        "start": 229211,
+        "end": 229232,
+        "symbol": "event_message_firing_main_guns"
+      },
+      {
+        "index": 30,
+        "start": 229232,
+        "end": 229255,
+        "symbol": "event_message_charging_main_guns"
+      },
+      {
+        "index": 31,
+        "start": 229255,
+        "end": 229282,
+        "symbol": "event_message_radio_message_from_emma_2"
+      },
+      {
+        "index": 32,
+        "start": 229282,
+        "end": 229309,
+        "symbol": "event_message_professor_taymar_aboard"
+      },
+      {
+        "index": 33,
+        "start": 229309,
+        "end": 229332,
+        "symbol": "event_message_yes_make_us_the_bomb"
+      },
+      {
+        "index": 34,
+        "start": 229332,
+        "end": 229358,
+        "symbol": "event_message_no_do_not_make_the_bomb"
+      },
+      {
+        "index": 35,
+        "start": 229358,
+        "end": 229386,
+        "symbol": "event_message_blank_line"
+      },
+      {
+        "index": 36,
+        "start": 229386,
+        "end": 229410,
+        "symbol": "event_message_warning_space_pirates"
+      },
+      {
+        "index": 37,
+        "start": 229410,
+        "end": 229436,
+        "symbol": "event_message_warning_pirates_raiding"
+      },
+      {
+        "index": 38,
+        "start": 229436,
+        "end": 229463,
+        "symbol": "event_message_pirate_ship_cargo_dropped"
+      },
+      {
+        "index": 39,
+        "start": 229463,
+        "end": 229485,
+        "symbol": "event_message_they_have_stolen_a"
+      },
+      {
+        "index": 40,
+        "start": 229485,
+        "end": 229510,
+        "symbol": "event_message_icarus_current_location"
+      },
+      {
+        "index": 41,
+        "start": 229510,
+        "end": 229520,
+        "symbol": "event_message_in_space"
+      },
+      {
+        "index": 42,
+        "start": 229520,
+        "end": 229543,
+        "symbol": "event_message_icarus_inventory_full"
+      },
+      {
+        "index": 43,
+        "start": 229543,
+        "end": 229567,
+        "symbol": "event_message_status_report"
+      },
+      {
+        "index": 44,
+        "start": 229567,
+        "end": 229595,
+        "symbol": "event_message_warning_fatal_overheating"
+      },
+      {
+        "index": 45,
+        "start": 229595,
+        "end": 229622,
+        "symbol": "event_message_alert_temperature_rising"
+      },
+      {
+        "index": 46,
+        "start": 229622,
+        "end": 229648,
+        "symbol": "event_message_long_range_scout_ships"
+      },
+      {
+        "index": 47,
+        "start": 229648,
+        "end": 229677,
+        "symbol": "event_message_report_novenia_destroyed"
+      },
+      {
+        "index": 48,
+        "start": 229677,
+        "end": 229704,
+        "symbol": "event_message_by_massive_beam_weapon"
+      },
+      {
+        "index": 49,
+        "start": 229704,
+        "end": 229731,
+        "symbol": "event_message_message_from_apogee_depot"
+      },
+      {
+        "index": 50,
+        "start": 229731,
+        "end": 229757,
+        "symbol": "event_message_please_get_us_castrobars"
+      },
+      {
+        "index": 51,
+        "start": 229757,
+        "end": 229780,
+        "symbol": "event_message_he_has_given_you"
+      },
+      {
+        "index": 52,
+        "start": 229780,
+        "end": 229804,
+        "symbol": "event_message_icarus_inventory_empty"
+      },
+      {
+        "index": 53,
+        "start": 229804,
+        "end": 229829,
+        "symbol": "event_message_stardrive_not_available"
+      },
+      {
+        "index": 54,
+        "start": 229829,
+        "end": 229853,
+        "symbol": "event_message_leaving_planet"
+      },
+      {
+        "index": 55,
+        "start": 229853,
+        "end": 229880,
+        "symbol": "event_message_i_inventory_j_jettison"
+      },
+      {
+        "index": 56,
+        "start": 229880,
+        "end": 229905,
+        "symbol": "event_message_invertor_bomb"
+      },
+      {
+        "index": 57,
+        "start": 229905,
+        "end": 229934,
+        "symbol": "event_message_congratulations_icarus"
+      },
+      {
+        "index": 58,
+        "start": 229934,
+        "end": 229962,
+        "symbol": "event_message_space_station_destroyed"
+      },
+      {
+        "index": 59,
+        "start": 229962,
+        "end": 229986,
+        "symbol": "event_message_novenia_is_safe"
+      },
+      {
+        "index": 60,
+        "start": 229986,
+        "end": 230003,
+        "symbol": "event_message_for_now"
+      },
+      {
+        "index": 61,
+        "start": 230003,
+        "end": 230027,
+        "symbol": "event_message_mid_space_collision"
+      },
+      {
+        "index": 62,
+        "start": 230027,
+        "end": 230052,
+        "symbol": "event_message_tractor_beam_lock_off"
+      },
+      {
+        "index": 63,
+        "start": 230052,
+        "end": 230076,
+        "symbol": "event_message_velocity_too_high"
+      },
+      {
+        "index": 64,
+        "start": 230076,
+        "end": 230099,
+        "symbol": "event_message_shields_damaged"
+      },
+      {
+        "index": 65,
+        "start": 230099,
+        "end": 230123,
+        "symbol": "event_message_high_pressure_fatal"
+      },
+      {
+        "index": 66,
+        "start": 230123,
+        "end": 230147,
+        "symbol": "event_message_alert_high_pressure"
+      },
+      {
+        "index": 67,
+        "start": 230147,
+        "end": 230173,
+        "symbol": "event_message_you_have_no_laser_energy"
+      },
+      {
+        "index": 68,
+        "start": 230173,
+        "end": 230199,
+        "symbol": "event_message_you_have_no_energy_cubes"
+      },
+      {
+        "index": 69,
+        "start": 230199,
+        "end": 230228,
+        "symbol": "event_message_you_have_no_homing_missiles"
+      },
+      {
+        "index": 70,
+        "start": 230228,
+        "end": 230256,
+        "symbol": "event_message_you_have_no_bouncing_bombs"
+      },
+      {
+        "index": 71,
+        "start": 230256,
+        "end": 230282,
+        "symbol": "event_message_you_have_no_neutron_bomb"
+      },
+      {
+        "index": 72,
+        "start": 230282,
+        "end": 230307,
+        "symbol": "event_message_unfortunately_though"
+      },
+      {
+        "index": 73,
+        "start": 230307,
+        "end": 230336,
+        "symbol": "event_message_novenia_has_been_vapourised"
+      },
+      {
+        "index": 74,
+        "start": 230336,
+        "end": 230365,
+        "symbol": "event_message_tractor_beam_object_exploded"
+      },
+      {
+        "index": 75,
+        "start": 230365,
+        "end": 230388,
+        "symbol": "event_message_leaving_moon"
+      },
+      {
+        "index": 76,
+        "start": 230388,
+        "end": 230416,
+        "symbol": "event_message_an_energy_cube_launcher"
+      },
+      {
+        "index": 77,
+        "start": 230416,
+        "end": 230441,
+        "symbol": "event_message_professor_taymar_says"
+      },
+      {
+        "index": 78,
+        "start": 230441,
+        "end": 230465,
+        "symbol": "event_message_i_am_enjoying_the_ride"
+      },
+      {
+        "index": 79,
+        "start": 230465,
+        "end": 230488,
+        "symbol": "event_message_watch_out_for_pirates"
+      },
+      {
+        "index": 80,
+        "start": 230488,
+        "end": 230512,
+        "symbol": "event_message_icarus_is_a_fine_craft"
+      },
+      {
+        "index": 81,
+        "start": 230512,
+        "end": 230540,
+        "symbol": "event_message_i_like_the_in_flight_movie"
+      },
+      {
+        "index": 82,
+        "start": 230540,
+        "end": 230569,
+        "symbol": "event_message_message_from_apogee_depot_1"
+      },
+      {
+        "index": 83,
+        "start": 230569,
+        "end": 230582,
+        "symbol": "event_message_in_a_tunnel"
+      },
+      {
+        "index": 84,
+        "start": 230582,
+        "end": 230606,
+        "symbol": "event_message_construction_halted"
+      },
+      {
+        "index": 85,
+        "start": 230606,
+        "end": 230633,
+        "symbol": "event_message_neutron_bomb_detonated"
+      },
+      {
+        "index": 86,
+        "start": 230633,
+        "end": 230659,
+        "symbol": "event_message_yum_yum_castrobars"
+      }
+    ],
+    "scope": "All stored targets validated as distinct contiguous NUL-terminated ASCII spans; dynamic caller bounds remain conditional"
+  },
+  "consumers": {
+    "display_bridge": 236850,
+    "enqueue_bridge": 236904,
+    "display_blank_line": 214474,
+    "enqueue_blank_line": 214494,
+    "blank_entry": 35,
+    "blank_spaces": 27,
+    "outside_structure_enqueue": 225880,
+    "outside_condition": "inside_structure_flag==0",
+    "underlying_queue": 55986,
+    "underlying_timed_line": 56052
+  },
+  "shared_command": {
+    "command_id": "target.string.seed",
+    "fact": "Existing required data_role=string/unit=byte/encoding=ascii seed, existing C renderer and append-only MAL",
+    "bounds": "hunk/addr/exclusive end/name, optional role, ASCII only; unsupported encoding/unit and invalid ranges refuse",
+    "listing_rows_required": false,
+    "tests": {
+      "command": "pytest -q tests/test_target_data_seed.py tests/test_manual_action_catalog.py",
+      "passed": 81,
+      "scope": "Source command payload/defaults/refusals and existing catalog behavior; no new native string encoder"
+    },
+    "target_apply_measurement": {
+      "actions": 96,
+      "source_strings": 87,
+      "seconds": 19.719353330001468,
+      "scope": "One observed complete interpretation batch including directory, labels and three comments; excludes native analysis/verification, no claimed end-to-end speedup ratio"
+    }
+  },
+  "verification": {
+    "receipt_id": "cf89430e8e59ec07959f537b4ca572454355d8a037b85a392938bfcf307f7737",
+    "exact": true,
+    "source_sha256": "cd38e06d837cd9db7872f33b91cec1d0c1006c80a5ea8657dd770add439747a4",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 354886,
+    "after_range_union_bytes": 355735,
+    "before_unclassified_bytes": 57850,
+    "after_unclassified_bytes": 57001,
+    "new_classified_bytes": 849,
+    "accepted_code_bytes": 100856,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original pointer/text/caller evidence, no all-event or mission-path runtime validation",
+    "Exact stored extent is distinct from every dynamic caller index being safe",
+    "Original queue predecessor read, cap, countdown, pointer lifetime and error assumptions retained",
+    "New source-range command does not discover strings, infer pointers, validate terminators or establish semantic truth",
+    "No archive/upload; source understanding remains incomplete and accounting is not an overall completion percentage"
+  ]
+}

@@ -132,6 +132,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
         _target_data_seed_action(),
+        _target_string_seed_action(),
         _target_seed_remove_action(),
         _target_code_label_action(),
         _target_code_label_remove_action(),
@@ -219,6 +220,8 @@ def target_catalog_manual_payload(
     if action.get("action") == "create_manual_seed":
         if action_id == "target.data.seed":
             return "create_manual_seed", {"seed": _target_data_seed_payload(params)}
+        if action_id == "target.string.seed":
+            return "create_manual_seed", {"seed": _target_string_seed_payload(params)}
         return "create_manual_seed", {"seed": _target_code_seed_payload(params)}
     if action.get("action") == "remove_manual_seed":
         return "remove_manual_seed", {"seed_id": str(params["seed_id"])}
@@ -6011,6 +6014,33 @@ def _target_data_seed_action() -> dict[str, object]:
             "unit": {"type": "string", "enum": ["byte", "word", "long"]},
             "role": {"type": "string"}},
          "required": ["hunk", "addr", "end", "name", "unit"]})
+
+
+def _target_string_seed_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.string.seed", "Seed ASCII text at source range", "create_manual_seed",
+        {"type": "object", "properties": {
+            "hunk": {"type": "integer", "minimum": 0},
+            "addr": {"type": "integer", "minimum": 0},
+            "end": {"type": "integer", "minimum": 1},
+            "name": {"type": "string"},
+            "role": {"type": "string"},
+            "encoding": {"type": "string", "enum": ["ascii"]}},
+         "required": ["hunk", "addr", "end", "name"]})
+
+
+def _target_string_seed_payload(params: Mapping[str, object]) -> dict[str, object]:
+    # Reuse the existing string fact consumed by row/range commands and C.
+    # Source coordinates avoid materializing a listing just to select text.
+    if params.get("encoding", "ascii") != "ascii":
+        raise ValueError("target.string.seed supports ASCII encoding only")
+    if params.get("unit", "byte") != "byte":
+        raise ValueError("target.string.seed requires byte units")
+    seed = _target_data_seed_payload({**params, "unit": "byte"})
+    seed["seed_id"] = str(seed["seed_id"]).replace("catalog-data-seed-", "catalog-string-seed-", 1)
+    seed["data_role"] = "string"
+    seed["encoding"] = "ascii"
+    return seed
 
 
 def _target_data_seed_payload(params: Mapping[str, object]) -> dict[str, object]:

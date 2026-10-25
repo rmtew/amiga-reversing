@@ -8,6 +8,16 @@ the existing required data-seed fact; ordinary `target.seed.remove`/undo apply.
 It does not establish pointer targets or semantic truth, and partial units refuse.
 Use a data-block layout separately for structure and interpreted references.
 
+`target.string.seed` uses the same source coordinates and optional `role`, with
+ASCII byte encoding instead of raw units. It appends the existing required
+`data_role: string` fact used by row/range string commands; no new persistence or
+rendering lane is involved. Its range may start or end at an odd byte address.
+Unsupported encodings, non-byte units and invalid ranges refuse. Content,
+terminator and boundary interpretations still need evidence and exact rebuilding;
+the command does not discover strings or establish that every caller is safe.
+Use it for already evidenced text extents when selecting many listing rows would
+add unnecessary materialization overhead. Ordinary seed removal/undo applies.
+
 ## Retained bootstrap layout contracts
 
 `target.bootstrap.add` appends a versioned `retained_prefix_copy` contract through

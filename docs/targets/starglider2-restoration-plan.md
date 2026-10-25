@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 57850 bytes remain unclassified and substantial
+byte equality is preserved; 57001 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1074,3 +1074,36 @@ zero range/source-quality diagnostics. Accepted-range accounting changes by
 representation and selector contracts, not a manufactured completion percentage.
 See `runtime/observations/starglider2-view-messages.json`. No new runtime campaign
 or interim archive accompanies this batch.
+
+
+## Event-message directory and shared queue callers
+
+The indexed directory at `$37B68` contains 87 stored LONG pointers; its end is
+the first referenced text at `$37CC4`. A direct original byte selector `$158`
+reaches entry86. All stored targets are distinct contiguous NUL-terminated ASCII
+spans, 2111 bytes through `$38503`. Canonical pointer/string facts and descriptive
+message symbols now expose the event text directly in source. This stored
+extent does not establish safety of every dynamic caller index.
+
+Named shared queue/display bridges connect the original callers to the restored
+message services. Two helpers select index35, a 27-space blank line, to clear a
+line through immediate versus queued display. Another enqueues only when the
+inside-structure flag is zero. Original queue limits, predecessor read, timing
+and pointer-lifetime assumptions remain unchanged. No mission-playthrough claim
+is inferred from readable messages.
+
+The small shared `target.string.seed` command supplies already-evidenced source
+ranges directly, using the existing ASCII string fact and native renderer. It
+avoids resolving listing rows merely to declare text; it does not add another
+model or bypass revisions/provenance. Odd byte boundaries are legal; bad ranges,
+unsupported encodings and non-byte units refuse. The focused source-seed/catalog
+suite passes 81 tests, and this target adoption verifies quoted source plus full
+C/vasm equality. No opcode or native rendering implementation changed.
+
+Ninety-six canonical actions preserve all 412736 original bytes with zero
+range/source-quality diagnostics. One observed interpretation batch of those
+96 actions took 19.719 seconds, excluding native analysis and verification;
+no extrapolated speedup ratio is claimed. Accepted-range accounting changes by
+849 bytes, leaving 57001 unclassified. See
+`runtime/observations/starglider2-event-messages.json`. Semantic source restoration
+remains incomplete. No interim archive/upload accompanies this batch.
