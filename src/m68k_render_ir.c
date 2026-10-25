@@ -2539,8 +2539,8 @@ static void render_asm_dc_b(M68kRenderIRPreview *preview, const uint8_t *data, u
     uint8_t is_dcb = 0U;
     uint32_t chunk_size = render_asm_dc_b_chunk_size(data, offset + cursor, size - cursor, &is_dcb);
     if (chunk_size == 0U) return;
-    if (is_dcb) render_asm_dcb_b(preview, chunk_size, data[offset + cursor], comment);
-    else render_asm_dc_b_values_line(preview, data, offset + cursor, chunk_size, comment);
+    if (is_dcb) render_asm_dcb_b(preview, chunk_size, data[offset + cursor], cursor == 0U ? comment : NULL);
+    else render_asm_dc_b_values_line(preview, data, offset + cursor, chunk_size, cursor == 0U ? comment : NULL);
     cursor += chunk_size;
   }
 }
@@ -2584,8 +2584,8 @@ static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, const M
       }
     }
     begin_asm_source_plan_row(preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
-    if (is_dcb) render_asm_dcb_b(preview, chunk_size, section->data[offset + cursor], comment);
-    else render_asm_dc_b_values_line(preview, section->data, offset + cursor, chunk_size, comment);
+    if (is_dcb) render_asm_dcb_b(preview, chunk_size, section->data[offset + cursor], cursor == 0U ? comment : NULL);
+    else render_asm_dc_b_values_line(preview, section->data, offset + cursor, chunk_size, cursor == 0U ? comment : NULL);
     row = finish_asm_source_plan_row(preview, section->section_index, offset + cursor, chunk_size, 1);
     set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset + cursor,
       chunk_size);
@@ -2944,7 +2944,7 @@ static void render_asm_dc_w_values(M68kRenderIRPreview *preview, const uint8_t *
       snprintf(token, sizeof(token), "$%04X", (unsigned)m68k_read_u16be(data + offset + cursor + (index * 2U)));
       hash_asm_text(preview, token);
     }
-    if (comment != NULL && comment[0] != '\0') {
+    if (cursor == 0U && comment != NULL && comment[0] != '\0') {
       hash_asm_text(preview, "\t; ");
       hash_asm_text(preview, comment);
     }
@@ -2952,7 +2952,7 @@ static void render_asm_dc_w_values(M68kRenderIRPreview *preview, const uint8_t *
     ++preview->asm_source_lines;
     cursor += line_count * 2U;
   }
-  if (cursor < size) render_asm_dc_b(preview, data, offset + cursor, size - cursor, comment);
+  if (cursor < size) render_asm_dc_b(preview, data, offset + cursor, size - cursor, cursor == 0U ? comment : NULL);
 }
 
 static void render_asm_dc_l_values(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
@@ -2970,7 +2970,7 @@ static void render_asm_dc_l_values(M68kRenderIRPreview *preview, const uint8_t *
       snprintf(token, sizeof(token), "$%08X", (unsigned)m68k_read_u32be(data + offset + cursor + (index * 4U)));
       hash_asm_text(preview, token);
     }
-    if (comment != NULL && comment[0] != '\0') {
+    if (cursor == 0U && comment != NULL && comment[0] != '\0') {
       hash_asm_text(preview, "\t; ");
       hash_asm_text(preview, comment);
     }
@@ -2978,7 +2978,7 @@ static void render_asm_dc_l_values(M68kRenderIRPreview *preview, const uint8_t *
     ++preview->asm_source_lines;
     cursor += line_count * 4U;
   }
-  if (cursor < size) render_asm_dc_b(preview, data, offset + cursor, size - cursor, comment);
+  if (cursor < size) render_asm_dc_b(preview, data, offset + cursor, size - cursor, cursor == 0U ? comment : NULL);
 }
 
 static int structured_data_item_is_pointer_table(const M68kAnalysisStructuredDataItem *item);

@@ -5824,6 +5824,51 @@ static int source_quality_runtime_pointer_value_to_accepted_source_offset(const 
   return 1;
 }
 
+/* An indexed address-register load is pointer-use evidence, not a scan of
+ * arbitrary address-looking LONGs. Keep text targets separate from code targets.
+ * Resolve encoded addresses through the section's runtime mapping first. */
+static uint32_t source_quality_pointer_table_target_c_string_span(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_bytes, const M68kSectionAnalysisIR *section_analysis, uint32_t offset,
+    uint32_t min_text_size);
+
+static uint32_t source_quality_scan_indexed_text_pointer_table_span(
+    const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t start) {
+  uint32_t cursor, first_target = UINT32_MAX;
+  int distinct = 0;
+  if (section == NULL || section->data == NULL || analysis == NULL || accepted_bytes == NULL) return 0U;
+  for (cursor = start; cursor <= section->size && section->size - cursor >= 4U; cursor += 4U) {
+    uint32_t value, target, logical, text_span;
+    uint16_t owner_index;
+    int owner_conflict = 0;
+    if ((cursor != start && source_quality_section_has_label_at(analysis, cursor)) ||
+        source_quality_section_has_interior_label(analysis, cursor, 4U) ||
+        source_quality_accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 4U) ||
+        source_quality_existing_structured_data_overlaps(source_analysis,
+          (uint32_t)section->section_index, cursor, 4U) ||
+        source_quality_range_ownership_covers_noncode_or_conflict(analysis, cursor)) break;
+    value = m68k_read_u32be(section->data + cursor);
+    if (value == 0U || !source_quality_any_runtime_address_source_offset(analysis, value, section->size, &target) ||
+        !source_quality_source_logical_address(analysis, target, &logical) || logical != value) break;
+    text_span = source_quality_pointer_table_target_c_string_span(section, accepted_bytes, analysis, target, 4U);
+    if (text_span == 0U) break;
+    for (owner_index = 0U; owner_index < source_analysis->policy.structured_data_item_count; ++owner_index) {
+      const M68kAnalysisStructuredDataItem *owner = &source_analysis->policy.structured_data_items[owner_index];
+      if (!owner->has_section_index || owner->section_index != section->section_index || owner->size == 0U ||
+          owner->offset > UINT32_MAX - owner->size ||
+          owner->offset >= target + text_span || owner->offset + owner->size <= target) continue;
+      if (owner->kind != M68K_ANALYSIS_STRUCTURED_DATA_STRING || owner->offset != target ||
+          owner->size < text_span) { owner_conflict = 1; break; }
+    }
+    if (owner_conflict) break;
+    if (first_target == UINT32_MAX) first_target = target;
+    else if (target != first_target) distinct = 1;
+  }
+  /* A repeated address alone is especially weak evidence. The span is a stored
+   * prefix, never a proof of the caller's complete dynamic index domain. */
+  return distinct && cursor - start >= 8U ? cursor - start : 0U;
+}
+
 static uint32_t source_quality_scan_indexed_local_pointer_table_span(
     const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *table_analysis,
     const M68kDecodeSectionIR *table_section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
@@ -5912,6 +5957,11 @@ static int append_indexed_local_pointer_table_items(M68kSourceAnalysisIR *source
             span = source_quality_scan_indexed_local_pointer_table_span(source_analysis, target_analysis,
               target_section, accepted_start[target_section_index], accepted_bytes[target_section_index],
               table_offset);
+          }
+          if (span == 0U && !table_offset_is_code &&
+              source_quality_candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg)) {
+            span = source_quality_scan_indexed_text_pointer_table_span(source_analysis, target_analysis,
+              target_section, accepted_bytes[target_section_index], table_offset);
           }
           if (span == 0U && table_offset_is_code &&
               source_quality_candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg) &&
@@ -6164,12 +6214,13 @@ static uint32_t source_quality_pointer_table_target_c_string_span(const M68kDeco
   }
   cursor = offset;
   while (cursor < section->size && !source_quality_word_offset_string_terminator_byte(section->data[cursor])) {
-    if (!m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) return 0U;
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[cursor]) &&
+        section->data[cursor] != '\r' && section->data[cursor] != '\n' && section->data[cursor] != '\t') return 0U;
     if (source_quality_accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U)) return 0U;
     if (source_quality_range_ownership_kind_at(section_analysis, cursor, NULL)) return 0U;
     if (cursor != offset && source_quality_section_has_label_at(section_analysis, cursor)) return 0U;
     ++cursor;
-    ++text_size;
+    if (section->data[cursor - 1U] >= 0x20U) ++text_size;
   }
   if (cursor >= section->size || !source_quality_word_offset_string_terminator_byte(section->data[cursor]) ||
       text_size < min_text_size ||
@@ -6177,7 +6228,7 @@ static uint32_t source_quality_pointer_table_target_c_string_span(const M68kDeco
       source_quality_range_ownership_kind_at(section_analysis, cursor, NULL)) {
     return 0U;
   }
-  return text_size + 1U;
+  return cursor - offset + 1U;
 }
 
 static uint32_t source_quality_pointer_string_pool_next_offset(const M68kDecodeSectionIR *section,
@@ -7064,6 +7115,32 @@ static int append_source_quality_generic_string_item(M68kSourceAnalysisIR *sourc
   return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
 }
 
+/* A control prefix is a candidate only at an independently recovered label.
+ * Do not absorb adjacent records, padding, code, typed storage or interior
+ * references. Rendering preserves every control byte and the exact NUL extent. */
+static uint32_t source_quality_control_prefixed_string_span(
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kSectionAnalysisIR *analysis, const M68kFactIR *facts,
+    const uint8_t *accepted_bytes, uint32_t offset) {
+  uint32_t cursor, printable = 0U, letters = 0U;
+  uint8_t first;
+  if (offset >= section->size || !source_quality_section_has_label_at(analysis, offset)) return 0U;
+  first = section->data[offset];
+  if (first != '\r' && first != '\n' && first != '\t') return 0U;
+  for (cursor = offset; cursor < section->size && cursor - offset < 2048U; ++cursor) {
+    uint8_t value = section->data[cursor];
+    if ((cursor != offset && !source_quality_auto_string_interior_clear(source_analysis, analysis, facts,
+          (uint32_t)section->section_index, cursor)) ||
+        source_quality_accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U)) return 0U;
+    if (value == 0U) return printable >= 8U && letters >= 4U ? cursor - offset + 1U : 0U;
+    if (value == '\r' || value == '\n' || value == '\t') continue;
+    if (!m68k_ir_byte_is_quoted_string_safe(value)) return 0U;
+    ++printable;
+    if ((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z')) ++letters;
+  }
+  return 0U;
+}
+
 static int append_generic_string_items_for_section(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis, const M68kFactIR *facts,
     const uint8_t *accepted_bytes) {
@@ -7073,7 +7150,9 @@ static int append_generic_string_items_for_section(M68kSourceAnalysisIR *source_
     uint32_t span;
     uint8_t source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
     int record_context_kind;
-    int candidate_start = source_quality_auto_string_candidate_start(section, offset) ||
+    uint32_t control_span = source_quality_control_prefixed_string_span(source_analysis, section,
+      section_analysis, facts, accepted_bytes, offset);
+    int candidate_start = control_span != 0U || source_quality_auto_string_candidate_start(section, offset) ||
       (m68k_ir_byte_is_quoted_string_safe(section->data[offset]) &&
        source_quality_section_has_label_at(section_analysis, offset));
     if (!candidate_start ||
@@ -7083,7 +7162,9 @@ static int append_generic_string_items_for_section(M68kSourceAnalysisIR *source_
       continue;
     }
     record_context_kind = source_quality_auto_string_record_sequence_context_kind(source_analysis, section, offset);
-    span = source_quality_auto_renderable_string_span(source_analysis, section, section_analysis, facts,
+    span = control_span;
+    if (span != 0U) record_context_kind = SOURCE_QUALITY_AUTO_STRING_RECORD_CONTEXT_CONTROL_STREAM;
+    else span = source_quality_auto_renderable_string_span(source_analysis, section, section_analysis, facts,
       accepted_bytes, offset);
     if (span == 0U) {
       span = source_quality_auto_renderable_line_terminated_string_span(source_analysis, section, section_analysis,
