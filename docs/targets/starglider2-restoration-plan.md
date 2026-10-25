@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 59117 bytes remain unclassified and substantial
+byte equality is preserved; 57853 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1011,3 +1011,41 @@ contracts improve source meaning without a new runtime claim. See
 `runtime/observations/starglider2-projection-scratch.json`. A fresh private build
 of unmodified native source and its 52 INCBIN assets (74871 bytes) matches the complete original payload; all assets match source
 slices. No archive/upload.
+
+
+## Startup-selected alternate disk backend
+
+Nine original LONG stores at `$3B474` select the shared disk-service jump slots
+at `$FDA0..$FDD0`. Exact stub opcodes and the complete store sequence justify
+nine missing code entries. Named implementations cover two surface selections,
+deselection, seek-to-zero, guarded cylinder increment/decrement, sector-block
+reads and track-block writes. Surface A/B names describe slot order, not an
+independently measured physical head number. The alternate change-check slot
+intentionally returns zero; it does not certify unchanged physical media.
+
+The newly identified LONG at disk-state `$2E` is the DMA transfer cursor, copied
+from the input buffer or initialized to `$7E000`, advanced by transfer size and
+written as separate low/middle/high controller bytes. Its six-sector read case
+uses two 512-byte blocks for sector IDs `$F5..$F9` and one for `$FA`: 5632 bytes,
+matching the previously restored music block format. Hardware/controller paths
+remain separate from the Amiga software MFM implementation.
+
+The existing alternate formatter fills 7168 bytes at `$78000`; its constructed
+track uses a 60-byte prefix and ten 594-byte sector records, 6000 bytes in all.
+The records include real 512-byte payloads, controller CRC tokens and interleaved
+IDs. It mutates shared sync marks to `$F5` and inserts `$F7` CRC tokens. Scoped
+canonical data now names the copied 38-byte post-ID template, skipped 514-byte
+data/CRC placeholder and copied 22-byte post-data gap. The last two stored gap
+bytes remain unassigned. Shared mutation and original lifetime assumptions are
+preserved, without calling the skipped placeholder dead storage.
+
+The controller poll retains its original delay, `$40000` countdown and forced
+`$D0` command on timeout. I/O error returns -1, user abort -2. None of this is a
+new measured hardware-timing or media-integrity claim.
+
+Forty-five canonical actions retain exact C/vasm reconstruction of all 412736
+bytes with zero range/source-quality diagnostics. Accepted code gains
+690 bytes and total accepted-range accounting gains
+1264; 57853 bytes remain unclassified. See
+`runtime/observations/starglider2-alternate-disk.json`. This is static source
+restoration; no new emulator campaign or interim archive accompanies it.

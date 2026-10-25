@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "kind": "startup_selected_disk_backend_and_template_consumers",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 45,
+  "new_code_entries": 9,
+  "entry_evidence": {
+    "initializer_store_start": 242804,
+    "stubs": [
+      64928,
+      64934,
+      64940,
+      64946,
+      64952,
+      64958,
+      64964,
+      64970,
+      64976
+    ],
+    "targets": [
+      69542,
+      69574,
+      69592,
+      69666,
+      69740,
+      69602,
+      69814,
+      70048,
+      70682
+    ],
+    "new_entries": [
+      69542,
+      69574,
+      69592,
+      69666,
+      69740,
+      69602,
+      69814,
+      70048,
+      70682
+    ]
+  },
+  "service_roles": [
+    "two disk surface selection slots",
+    "deselect",
+    "seek cylinder zero",
+    "guarded advance/retreat cylinder",
+    "sector-block read",
+    "track-block write",
+    "intentional no-change-check return0"
+  ],
+  "surface_numbering": "A/B are original shared API slot order, not independently observed physical-head numbering",
+  "dma_transfer_cursor": {
+    "state_field_offset": 46,
+    "runtime_address": 74180,
+    "width": 4,
+    "name": "SG2DiskServiceState.dma_transfer_cursor",
+    "producers": [
+      69860,
+      70088
+    ],
+    "split_hardware_registers": [
+      4294936077,
+      4294936075,
+      4294936073
+    ],
+    "byte_order": "cursor low/middle/high via bytes121C7/6/5; preserve original24-bit controller interface"
+  },
+  "music_block_read": {
+    "entry": 69814,
+    "sector_count": 6,
+    "sector_ids": [
+      245,
+      246,
+      247,
+      248,
+      249,
+      250
+    ],
+    "sizes": [
+      1024,
+      1024,
+      1024,
+      1024,
+      1024,
+      512
+    ],
+    "bytes": 5632,
+    "scope": "Original count6 and finalFA cases; no media decode/runtime proof"
+  },
+  "format": {
+    "entry": 70242,
+    "fill_span": [
+      491520,
+      498688
+    ],
+    "fill_bytes": 7168,
+    "emitted_prefix_bytes": 60,
+    "sector_records": 10,
+    "bytes_per_record": 594,
+    "emitted_bytes": 6000,
+    "record_parts": {
+      "header": 20,
+      "first_crc_token": 1,
+      "post_id_template": 38,
+      "real_payload": 512,
+      "second_crc_token": 1,
+      "post_data_gap": 22
+    },
+    "sync_token": 245,
+    "crc_token": 247,
+    "note": "Controller tokens and mutated shared sync bytes differ from original Amiga software-MFM marks; retain original profile/lifetime behavior"
+  },
+  "templates": {
+    "post_id": [
+      74216,
+      74254
+    ],
+    "skipped_data_crc_placeholder": [
+      74254,
+      74768
+    ],
+    "copied_post_data_gap": [
+      74768,
+      74790
+    ],
+    "following_unassigned_gap_bytes": 2,
+    "limits": "Skipped placeholder is not proof of unused storage or arbitrary lifetime separation"
+  },
+  "poll_and_errors": {
+    "poll": 70602,
+    "delay_dbf_seed": 384,
+    "countdown": 262144,
+    "timeout_force_command": 208,
+    "io_error_return": -1,
+    "user_abort_return": -2,
+    "change_check_entry": 70682,
+    "change_check_return": 0,
+    "limits": "Original bounds/status/error behavior, not calibrated hardware timing or physical media stability"
+  },
+  "verification": {
+    "receipt_id": "6b74ac94fda7f6f63ecb37172ea54f3ed54418cf78ba2c48ee6825ff342215de",
+    "exact": true,
+    "source_sha256": "2e4484cce2d243fccfba63c3c0caad7938409f49f21c0c4a2f310cc01f04a4b2",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 353619,
+    "after_range_union_bytes": 354883,
+    "before_unclassified_bytes": 59117,
+    "after_unclassified_bytes": 57853,
+    "new_classified_bytes": 1264,
+    "before_accepted_code_bytes": 100166,
+    "after_accepted_code_bytes": 100856,
+    "new_accepted_code_bytes": 690,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original stored targets, callers, byte encodings and recovered implementation only",
+    "No alternate-controller execution, media read/write integrity, output or timing equivalence qualification",
+    "Amiga MFM and fixed buffers remain unchanged; no loader replacement or relocation",
+    "No archive/upload; last native INCBIN clean build remains dated projection-scratch batch",
+    "Readable restoration incomplete; remaining unknown classification is not overall semantic completion"
+  ]
+}
