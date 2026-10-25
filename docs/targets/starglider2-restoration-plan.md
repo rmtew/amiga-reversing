@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 57001 bytes remain unclassified and substantial
+byte equality is preserved; 56789 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1107,3 +1107,43 @@ no extrapolated speedup ratio is claimed. Accepted-range accounting changes by
 849 bytes, leaving 57001 unclassified. See
 `runtime/observations/starglider2-event-messages.json`. Semantic source restoration
 remains incomplete. No interim archive/upload accompanies this batch.
+
+
+## Object scale defaults and counted model population
+
+World-object BYTE `$1D` now has the canonical `model_scale_shift` field name.
+Constructor/spawn/default copies, parent copies, explicit constants, model-viewer
+writes and growth decrements agree with renderer and contact/selection shifts.
+The renderer retains its four-bit mask and original arithmetic. This field
+interpretation is scoped to evidenced original record/model contexts; it does
+not certify arbitrary register bases or every special-type layout.
+
+The known 104-model default prefix at `$172CE` contains shifts 0..6. The next
+bytes are 04,00 and remain separate. The corresponding 104-byte initializer
+prefix at `$17D0C` feeds object `$1C`, whose later meanings mix state, countdowns
+and flags. No universal flag definitions are invented. Its next six bytes are
+04 and remain unassigned. Physical adjacency is not proof of a larger table or
+padding, and original out-of-domain aliases remain explicit.
+
+`recompute_counted_model_population` scans 104 unsigned BYTE counters at app
+`$AE5`, excluding IDs 12/91/98/84. It stores a WORD sum and an original `LSL.W5`
+copy. The shared refresh bridge is named through its spawn/retirement callers.
+These are counted model-domain totals, not all-live-object or threat counts.
+Original counter-consistency and app-base assumptions remain.
+
+The first exact export defined the scale field without naming its main-renderer
+operand. The two original callers supply A4 from the visible-object list or
+the model viewer's first pool record. The added entry context binds the read
+at `$4A46` to the field name. Actual renderer entry is `$4A2A`; preceding `$4A28`
+is an RTS, correcting earlier address shorthand. A 79-byte context tag was
+rejected by the native 63-byte limit, then removed/re-added through normal
+revision-checked commands using a short tag. That failed attempt is retained
+and rejected in the journal, alongside the earlier definition-only receipt.
+Full explanation remains in provenance rather than the bounded context tag.
+
+Fifteen accepted source annotations retain exact full C/vasm reconstruction with zero
+range/source-quality diagnostics. Accepted-range accounting grows by
+212 bytes, leaving 56789 unclassified. See
+`runtime/observations/starglider2-object-defaults.json`. Function/field meaning
+has improved; no overall semantic completion percentage, new runtime campaign
+or interim archive is claimed.

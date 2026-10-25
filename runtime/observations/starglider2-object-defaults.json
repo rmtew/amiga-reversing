@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "kind": "object_model_scale_defaults_and_counted_population",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 17,
+  "accepted_source_annotations": 15,
+  "accepted_correction_commands": 1,
+  "rejected_invalid_context_attempts": 1,
+  "renderer_context": {
+    "entry": 18986,
+    "preceding_rts": 18984,
+    "field_operand": 19014,
+    "register": "A4",
+    "callers": [
+      "visible-object pointer list",
+      "model-viewer first pool record"
+    ],
+    "initial_failure": "79-byte context tag exceeds native63-byte payload limit; normal remove/re-add repair, full prose retained in evidence",
+    "initial_definition_only_receipt": "f63beeac7e8604173b6be7c29afd133fe47b960e70b0bd4569e6c4404fa332f5"
+  },
+  "model_scale": {
+    "struct": "SG2WorldObject",
+    "field": "model_scale_shift",
+    "offset": 29,
+    "width": 1,
+    "default_prefix": [
+      94926,
+      95030
+    ],
+    "stored_model_entries": 104,
+    "stored_prefix_range": [
+      0,
+      6
+    ],
+    "producers": [
+      "constructor/spawn default copies",
+      "parent copy or explicit spawn constant",
+      "model-viewer state",
+      "growth decrement toward default"
+    ],
+    "consumers": [
+      "renderer masks to4bits and scales model coordinates",
+      "contact extents right shifts",
+      "projected selection sizes"
+    ],
+    "extra_stored_bytes": [
+      4,
+      0
+    ],
+    "limits": "Known original object/model contexts; out-of-domain selectors and special types retain original assumptions, no arbitrary-record safety"
+  },
+  "control_defaults": {
+    "prefix": [
+      97548,
+      97652
+    ],
+    "copied_object_offset": 28,
+    "entries": 104,
+    "semantics": "Mixed type-dependent state/countdown/flag byte; no universal bit meanings imposed",
+    "following_unassigned_bytes": [
+      4,
+      4,
+      4,
+      4,
+      4,
+      4
+    ]
+  },
+  "population": {
+    "summary": 227236,
+    "bridge": 13220,
+    "count_prefix_workspace_offset": 2789,
+    "count_entries": 104,
+    "count_width": 1,
+    "excluded_type_ids": [
+      12,
+      91,
+      98,
+      84
+    ],
+    "total_word": 236414,
+    "shifted_word": 236412,
+    "shift": "LSL.W5",
+    "limits": "Counted model domain, not all-live-object or threat total; original count consistency, app base and arithmetic assumptions retained"
+  },
+  "verification": {
+    "receipt_id": "538d02947c917ae6c0e606615777fc3b85a069e8f57e912ea58faa7d57f85f99",
+    "exact": true,
+    "source_sha256": "d66658807ea59cae4d8e1f715b78e59cd0ecda7873260e594c95916873a3887c",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 355735,
+    "after_range_union_bytes": 355947,
+    "before_unclassified_bytes": 57001,
+    "after_unclassified_bytes": 56789,
+    "new_classified_bytes": 212,
+    "accepted_code_bytes": 100856,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original static field producers/consumers, not new execution or all-type lifetime proof",
+    "104-entry prefixes are not claims that all original type indices are locally bounded",
+    "Nonzero adjacent bytes retained unassigned; no padding/unused inference",
+    "BYTE1C remains type dependent; scale field does not resolve neighboring opaque storage",
+    "No archive/upload; source semantics and byte classification remain separate"
+  ]
+}
