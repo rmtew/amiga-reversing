@@ -4,7 +4,7 @@ Status: normal-media loader entries/bytes verified. Published source batches cov
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs and HUD sprites. Complete C/vasm
-byte equality is preserved; 67542 bytes remain unclassified and substantial
+byte equality is preserved; 65578 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -838,3 +838,45 @@ not an overall semantic completion percentage. See
 `runtime/observations/starglider2-alternate-services.json`. The preceding HUD
 section remains the dated standalone native INCBIN receipt; assets are unchanged.
 No new runtime/output qualification, archive or upload accompanies this batch.
+
+
+## Pixel masks, text rendering and editable input
+
+The graphics/text lookup family now distinguishes 320 original WORD pixel
+masks, 256 packed-BCD coordinate digit pairs and 95 stored eight-row glyphs
+for printable ASCII 32..126. Original mask identity is `$8000 >> (index & 15)`;
+alternate setup rewrites the same 640 bytes with its eight-entry two-bit-pixel
+pattern. The digit lookup's entries 254/255 are zero and stay zero. No scale
+resampling or glyph redesign is involved. Numeric glyph use starts at ASCII
+`$30` within the same font, rather than a separately owned digit asset.
+
+Named planar text helpers select eight row bytes per glyph and four planes
+from a colour mask. Cursor state is 40 columns by 25 rows; TAB and invalid-state
+behavior remain original. Inverse printing temporarily NOTs both glyph LONGs
+then restores them on normal return. The font is mutable, not certified readonly.
+Its interior numeric view makes native asset export keep it inline; this obeys
+`src/m68k_source_package.c` rather than patching rendered source to force INCBIN.
+
+The key-down array has 128 BYTE flags, indexed by scancode AND127. The pending
+press-code producer and translation reader are named. The translation storage
+prefix has 126 bytes; the nominal final two indices alias following text state.
+Its last eight zero bytes are also the blank-glyph source. These are shared
+bytes, not independent invented allocations or proof of every key mapping.
+
+Editable input admits printable 32..126, ends on CR, empties on ESC, and handles
+Backspace/Delete. Its WORD limit defaults to eight; the already decoded novella
+view writes 16 through its input-limit pointer. This resolves that consumer's
+purpose without claiming conditional novella execution or caller buffer safety.
+The ten-pointer message queue, dedup and advance helpers are also named: count0
+dedup reads the preceding LONG, and advance assumes a nonempty queue. Those
+original assumptions and countdown behavior are retained, not repaired.
+
+Thirty-seven canonical actions restore the connected lookups, fields and
+consumers.
+Complete C/vasm equality is exact, with zero structural/source-quality
+diagnostics. Classification grows by 1964 bytes, leaving 65578 unclassified;
+this is not an overall semantic completion percentage. A clean private build of
+the native source and its 52 INCBIN assets (74871 bytes) matches all 412736
+original bytes, with every asset identical to its source slice. Font data stays
+inline, as reported above. See `runtime/observations/starglider2-pixel-text.json`.
+No new runtime qualification, archive or upload accompanies this batch.

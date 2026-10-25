@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "kind": "pixel_masks_planar_text_keyboard_and_editing",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 37,
+  "pixel_masks": {
+    "span": [
+      92640,
+      93280
+    ],
+    "words": 320,
+    "original_identity": "8000 >> (index & 15)",
+    "alternate_builder": 238448,
+    "alternate_identity": "8000 >> (2 * (index & 7)), written backwards in 40 groups; original seed retained"
+  },
+  "coordinate_digits": {
+    "span": [
+      93280,
+      93536
+    ],
+    "bytes": 256,
+    "encoding": "packed BCD, every nibble0..9",
+    "special_zero_indices": [
+      254,
+      255
+    ],
+    "note": "Reader splits nibbles and ORs48; no fitted/resampled scale"
+  },
+  "font": {
+    "span": [
+      93536,
+      94296
+    ],
+    "glyph_count": 95,
+    "first_ascii": 32,
+    "last_ascii": 126,
+    "bytes_per_glyph": 8,
+    "numeric_view": 93664,
+    "numeric_view_first_ascii": 48,
+    "inverse_flag": 56952,
+    "mutation": "Temporary NOT of two LONGs, restored on original normal return",
+    "package": "kept inline by native export because numeric view is an interior label; no source patch",
+    "package_policy_reference": "src/m68k_source_package.c:82"
+  },
+  "text_input": {
+    "entry": 55256,
+    "wait_translated_key": 55210,
+    "limit_word": 55556,
+    "default_limit": 8,
+    "decoded_novella_limit": 16,
+    "decoded_view_reference": "amiga_raw_starglider2_protection_view, input-limit pointer at13D50",
+    "caller_buffer_start": 56948,
+    "accepted_printable_ascii": [
+      32,
+      126
+    ],
+    "controls": "CR terminates, ESC empties, Backspace/Delete erase; original caller buffer/limit assumptions retained"
+  },
+  "keyboard": {
+    "producer": 51514,
+    "pending_workspace_offset": 515,
+    "down_flags": [
+      56972,
+      57100
+    ],
+    "flag_entries": 128,
+    "press_value": 255,
+    "release_value": 0,
+    "down_index_mask": 127,
+    "translation_prefix": [
+      57100,
+      57226
+    ],
+    "translation_prefix_bytes": 126,
+    "nominal_translation_index_max": 127,
+    "tail_aliases": {
+      "126": 57226,
+      "127": 57227
+    },
+    "blank_glyph_alias": [
+      57218,
+      57226
+    ]
+  },
+  "text_state": {
+    "cursor_column": 56961,
+    "cursor_row": 56962,
+    "cursor_destination": 56968,
+    "colour_plane_mask": 57226,
+    "columns": 40,
+    "rows": 25,
+    "position_entry": 56248,
+    "cursor_entry": 56424,
+    "glyph_row_helper": 56806,
+    "note": "General controls/TAB have original unchecked-state assumptions; not arbitrary-string safety"
+  },
+  "messages": {
+    "enqueue": 55986,
+    "show_line": 56052,
+    "advance": 56066,
+    "pointer_slots": [
+      57476,
+      57516
+    ],
+    "slot_count": 10,
+    "workspace_count": 1966,
+    "workspace_countdown": 1972,
+    "limits": [
+      "At count0 dedup reads LONG before pointer array",
+      "Advance requires nonempty queue; original DBF has no zero guard",
+      "Countdown reload is not a measured wall-clock duration"
+    ]
+  },
+  "verification": {
+    "receipt_id": "13b8b5684ca1cc0ca6fc81ea9bbe446c74af0e18728d72484412d6a1df155e34",
+    "exact": true,
+    "source_sha256": "4ae80e381b536f1d30ddc5f3ebda0e6978537885f34d7252bea5e7d6497f20d0",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "standalone_native_build": {
+    "original_size": 412736,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "exact": true,
+    "source_sha256": "74226aa4d90818bd18ae55b8e58867fd05932b561637e29af84b269e30db34a6",
+    "asset_min_bytes": 64,
+    "asset_count": 52,
+    "asset_bytes": 74871,
+    "font_asset_count": 0,
+    "font_asset_bytes": 0,
+    "all_asset_source_slices_equal": true,
+    "tools": {
+      "assembler": "vasmm68k_mot",
+      "format": "raw binary",
+      "cpu": "68000",
+      "optimization": "disabled"
+    },
+    "limits": [
+      "Private scratch build only; no archive or upload",
+      "Unmodified native rendered source and source_package_payload(64) assets",
+      "Asset byte identity is not runtime graphics/audio equivalence"
+    ]
+  },
+  "accounting": {
+    "before_range_union_bytes": 345194,
+    "after_range_union_bytes": 347158,
+    "before_unclassified_bytes": 67542,
+    "after_unclassified_bytes": 65578,
+    "new_classified_bytes": 1964,
+    "accepted_code_bytes": 96162,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original readers/producers and initial bytes; no new runtime/input/DMA/frame/PCM qualification",
+    "Input limit semantics do not prove every caller buffer has limit+1 writable bytes",
+    "Font alphabet is the stored printable domain, not proof that general print callers reject every other code",
+    "Original inverse/font mutation, translation aliases, controls and BCD zero tail are preserved",
+    "No new archive/upload; font stays readable inline, existing INCBIN assets remain exact",
+    "Readable restoration remains incomplete; classification is not semantic completion"
+  ]
+}
