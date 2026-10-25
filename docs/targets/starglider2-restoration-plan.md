@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 47843 bytes remain unclassified and substantial
+byte equality is preserved; 27821 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1318,3 +1318,31 @@ zero range/source-quality diagnostics. Accepted code gains
 source lead is the Paula descriptor family and its consumers, including
 source-backed sample spans in the previously opaque tail. No interim archive
 is being created.
+
+
+## Paula object-sound descriptors and newly identified samples
+
+The sound consumer selects 16-byte descriptors, adds six to the stored sample
+base and programs AUD3 with the original WORD length. A coherent stored prefix
+contains 71 descriptors before separately written sound state. Their mapped-source
+pointers are thin references; no maximum-size pointee or standardized skipped
+header is invented. Original selectors retain conditional bounds and aliases.
+Base period/volume and the object-specific dispatch gate have named fields; two
+other WORDs remain opaque. Shared sample addresses with different lengths remain
+unchanged, as do the earlier initial-channel asset boundaries.
+
+The descriptor evidence identifies seven previously unclassified sample fragments,
+including DMA sources in the previously opaque tail. This supersedes the older
+no-current-reference inventory for those spans; remaining gaps are not called
+unused. The grayscale ramp and mutable channel state are separate from sample
+bytes. Source extraction preserves original bytes and possible runtime mutation;
+no audible effect identity or live playback is claimed.
+
+Thirty-two canonical actions retain exact full C/vasm reconstruction with zero
+range/source-quality diagnostics. Total classification gains 20022
+bytes, leaving 27821 unclassified. The native source/INCBIN package was also
+written unchanged to a fresh private directory and rebuilt byte-exactly, with
+57 assets totalling 93633 bytes. Every asset matches its
+original source slice. See `runtime/observations/starglider2-paula-descriptors.json`.
+This is build validation for the new asset family, not an interim archive or
+download deliverable; semantic restoration remains open.

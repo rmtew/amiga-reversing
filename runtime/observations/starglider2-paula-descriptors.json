@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "kind": "paula_object_sound_descriptors_and_sample_sources",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 32,
+  "descriptor_prefix": {
+    "start": 314356,
+    "end": 315492,
+    "records": 71,
+    "stride": 16,
+    "fields": [
+      "mapped-source sample-base LONG",
+      "sample length WORD",
+      "base period WORD",
+      "base volume WORD",
+      "opaque WORD10",
+      "opaque WORD12",
+      "object-specific-effect gate WORD14"
+    ],
+    "limits": "Stored coherent prefix before mutable state, not proof all original selectors are bounded0..70; no aggregate pointee extent inferred"
+  },
+  "DMA_consumer": {
+    "entry": 313010,
+    "channel": 3,
+    "pointer": "stored base + 6",
+    "length": "stored WORD count times2 bytes",
+    "profile": "Original Amiga Paula path, static programming evidence"
+  },
+  "unique_sample_bases": 9,
+  "logical_DMA_spans": [
+    [
+      315600,
+      315680
+    ],
+    [
+      368434,
+      385538
+    ],
+    [
+      386546,
+      395820
+    ],
+    [
+      395826,
+      398010
+    ],
+    [
+      398034,
+      400298
+    ],
+    [
+      400322,
+      400428
+    ],
+    [
+      402578,
+      414106
+    ],
+    [
+      414130,
+      416810
+    ]
+  ],
+  "new_sample_fragments": [
+    [
+      315634,
+      315680
+    ],
+    [
+      395796,
+      395820
+    ],
+    [
+      395826,
+      398010
+    ],
+    [
+      398034,
+      400298
+    ],
+    [
+      400322,
+      400428
+    ],
+    [
+      402578,
+      414106
+    ],
+    [
+      414130,
+      416810
+    ]
+  ],
+  "new_sample_bytes": 18832,
+  "new_tail_sample_bytes": 18786,
+  "shared_aliases": "Original per-descriptor lengths preserved, including one common base with differing lengths; existing initial-channel asset boundaries retained",
+  "grayscale_ramp": {
+    "span": [
+      314324,
+      314356
+    ],
+    "WORDs": 16,
+    "values": "111hex*(15-index)"
+  },
+  "verification": {
+    "receipt_id": "0dcab165710b7c485d85b6411110c2bd29b31d1dae5565cb813f6206a336b0ed",
+    "exact": true,
+    "source_sha256": "dc5455596e05256cc6d00e77fdc90e66657318be55ad34e562f8aa409890e62b",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "native_source_package": {
+    "exact": true,
+    "original_size": 412736,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "source_sha256": "b9bb2e9db7623b085c5315b9b4147bbe5d438481926ab52ea868438d4ee68019",
+    "asset_min_bytes": 64,
+    "asset_count": 57,
+    "asset_bytes": 93633,
+    "all_asset_source_slices_equal": true
+  },
+  "accounting": {
+    "before_range_union_bytes": 364893,
+    "after_range_union_bytes": 384915,
+    "before_unclassified_bytes": 47843,
+    "after_unclassified_bytes": 27821,
+    "new_classified_bytes": 20022,
+    "accepted_code_bytes": 105806,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static DMA sources, not audible sound identities or observed playback/PCM comparison",
+    "Skipped six-byte prefixes not promoted into a standardized header format",
+    "Original selector aliases, state transitions and possible runtime mutations unchanged",
+    "Fresh private native INCBIN build only; no interim archive or upload",
+    "Remaining tail gaps unobserved/unclassified, not unused"
+  ]
+}
