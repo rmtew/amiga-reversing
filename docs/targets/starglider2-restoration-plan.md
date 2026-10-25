@@ -309,3 +309,65 @@ explain the 9222 bytes of fourth-WORD fields or prove other selector writers.
 Next is the secondary object dispatcher and its shared object-name catalogue:
 the current native inventory has 13 recovered indirect tables, one unresolved
 148-WORD object table, and one low-vector reboot transfer outside the image.
+
+## Secondary object dispatch and shared names
+
+At runtime `$8218`, the object loop reads a signed WORD from `$821C` indexed by
+`2*object_type`, then jumps relative to the same base. The 148-entry literal table
+ends exactly at already decoded code at `$8344`; its 24 distinct targets lie
+outside the literals and inside the original image. Twenty-two were not accepted
+code in the preceding analysis. Explicit original encoded entrypoints retain
+their numeric symbols until their individual update roles are established.
+These are dispatch entries with inherited loop/register/flag state, not independent
+callable ABI contracts. The table interpretation requires the original type
+domain 0..147; it does not validate arbitrary replacement object records.
+
+The shared name table at `$F334..$F584` has 148 LONGs, not just the 104 model-viewer
+entries. The remaining entries include placeholders and names used by object/UI
+consumers. All original pointers refer to printable NUL-terminated text in
+`$F584..$FD07`; repeated pointers and spare strings remain intact. The pool ends
+before the adjacent non-text pointer/storage. Canonical character arrays keep
+names readable without creating a separate annotation for every character/string.
+The model viewer at `$F054` indexes this same table; other consumers include the
+bounded inventory loops at `$1DC8/$349A6` and the indexed UI paths.
+
+The other previously unresolved jump is at `$C6DE`. The diagnostic at `$C698`
+prints the original RAM-corruption/reboot messages, waits for a key, loads A7
+from address zero and its jump target from address four. That is an external
+low-vector restart path, not a missing in-image function address. Its actual
+vector value and platform-state validity remain unknown; no safe AmigaDOS exit
+or observed runtime reboot is claimed.
+
+The hash-bound static audit is reproducible with:
+
+```
+python -m amiga_reversing.tools.starglider2_objects PRIVATE_GAME_COPY.bin --output PRIVATE_OBJECT_AUDIT.json
+```
+
+It reports encoded targets, pointer extents and aliases without exporting the
+name strings or game bytes. The native target facts remain canonical.
+
+[Object-dispatch receipt](../../runtime/observations/starglider2-object-dispatch.json):
+34 new interpretations recover 1560 code bytes and the shared name/table source.
+Declared data owners overlap some previous inferred ownership, so the true new
+non-code classification is 887 bytes, not their entire declared extent. Range
+ownership is 209999 bytes, code 89702 and the unclassified complement 202737.
+Complete C/vasm reconstruction remains exact with no source-quality diagnostics
+or range violations.
+
+A narrow renderer correction lets a declared relative WORD relation name a
+labeled, accepted instruction start as a source owner. Previously it required a
+data owner and kept these entries numeric. All 148 now render as target-minus-base
+expressions. The old backend reproduces the regression; 32 focused native tests
+pass on the fix, including C/vasm round trips at loads zero and `$1000`, existing
+bounded data relations, and unaccepted/interior-code targets remaining numeric.
+Eighteen non-native validation cases were deselected, not counted as passes.
+
+The native indirect-pattern matcher still reports 13 recovered tables and two
+unresolved sites. It has not inferred CFG edges for the newly declared table;
+its orphan counter rises from 31 to 53 because the 22 explicit encoded entrypoints
+lack inferred incoming edges. Those 22 have canonical original-table provenance;
+this is not 22 newly discovered semantic mysteries, nor is the native counter a
+claim of complete control-flow recovery. The external restart value also remains
+unknown. No broad CFG-engine redesign is required to preserve the readable,
+byte-exact original source just recovered.

@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "secondary_object_dispatch_and_names_source_restored_C_vasm_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "c8ae880e211ef8303e812d38401efaaca6b8a7b8970e9ed095506a7017412cf1",
+  "native_backend_sha256": "b71cdc736e54b505bd22034c1a751bfa2c6f27d64aa8e0bd0f5344916b8c77ca",
+  "manual_actions": 627,
+  "accepted_interpretations": 591,
+  "manual_actions_sha256": "738593ddfec3d94332e21f876ec9661b5ca6c84bd4b19b80c1b0a8e4fea2b5a1",
+  "decision_journal_sha256": "b78b1985ea4b6d238c51e53c2b590a902c992f211e2f7417b33eb2efaf241b83",
+  "verification": {
+    "receipt_id": "cd352f0525be3584d2aecafdee2670704c1ee098012809b2b3808ab1667fc503",
+    "subject_revision": "9793667425855e32bb822abc16b08e6400feb26642db9dece1783d8add142c7c",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "dispatch": {
+    "site": 33304,
+    "table_start": 33308,
+    "table_end": 33604,
+    "entries": 148,
+    "distinct_targets": 24,
+    "new_code_entrypoints": 22,
+    "new_code_bytes": 1560,
+    "symbolic_WORD_expressions": 148,
+    "condition": "original object_type in0..147, inherited dispatch state; not standalone ABI"
+  },
+  "names": {
+    "pointer_table_start": 62260,
+    "pointer_table_end": 62852,
+    "entries": 148,
+    "unique_pointers": 111,
+    "text_start": 62852,
+    "text_end": 64775,
+    "text_bytes": 1923,
+    "aliases_and_spare_text_preserved": true
+  },
+  "accounting": {
+    "before_range_union_bytes": 207552,
+    "after_range_union_bytes": 209999,
+    "before_unclassified_bytes": 205184,
+    "after_unclassified_bytes": 202737,
+    "before_code_bytes": 88142,
+    "after_code_bytes": 89702,
+    "new_classified_bytes": 2447,
+    "new_classified_noncode_bytes": 887,
+    "source_quality_diagnostics": 0,
+    "range_violations": 0
+  },
+  "native_control_flow": {
+    "recovered_jump_tables": 13,
+    "unresolved_sites": 2,
+    "secondary_dispatch": "manual148-entry reference and explicit encoded targets; native pattern matcher remains unresolved",
+    "external_restart": "sourceC6DE loads jump target from absolute4 and stack from0; actual target/platform validity unknown",
+    "orphan_signals_before": 31,
+    "orphan_signals_after": 53,
+    "new_orphan_signals": "22 explicit encoded entrypoints have canonical table provenance, but native CFG lacks inferred incoming edges"
+  },
+  "renderer_fix": {
+    "problem": "source relative expressions required data owners and left accepted code targets numeric",
+    "change": "accept labeled accepted instruction starts as source coordinate owners; retain data owner and encoded/logical-address guards",
+    "old_backend_regression": "expected failure reproduced",
+    "patched_focused_tests_passed": 32,
+    "pure_validation_cases_deselected": 18,
+    "skipped": 0,
+    "negative_cases": "unaccepted named bytes and instruction interiors remain numeric",
+    "synthetic_C_and_vasm_round_trips": "pass at load0 and1000"
+  },
+  "limits": [
+    "Original conditional table contract, not all gameplay record producers or arbitrary mutated types",
+    "Native indirect/CFG recognition remains incomplete as measured above",
+    "Handler individual semantic names not invented; original numeric symbols retained",
+    "External reboot is not a proven safe OS exit or observed runtime path",
+    "No new gameplay/graphics/audio validation",
+    "Restoration incomplete; no interim archive"
+  ]
+}

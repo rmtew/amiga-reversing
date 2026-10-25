@@ -3207,6 +3207,7 @@ static uint8_t resolve_owned_source_pointer_expression(const M68kRenderLookup *l
   const uint8_t *target_accepted_start = NULL;
   const M68kAnalysisStructuredDataItem *owner = NULL;
   uint32_t owner_start = 0U, owner_size = 0U;
+  int has_code_owner;
   size_t decode_index;
   uint16_t index;
   expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
@@ -3238,7 +3239,14 @@ static uint8_t resolve_owned_source_pointer_expression(const M68kRenderLookup *l
       owner_size = candidate_size;
     }
   }
-  if (require_owner && owner == NULL) {
+  /* A declared source relation may target code as well as data.  Only an
+   * accepted instruction start with an emitted label owns that coordinate;
+   * a name on unaccepted bytes or inside an instruction is insufficient. */
+  has_code_owner = target_section != NULL && target_accepted_start != NULL &&
+    accepted_start_at(target_section, target_accepted_start, offset) &&
+    render_asm_should_emit_label_statement(NULL, lookup, target_section,
+      target_accepted_start, section, offset);
+  if (require_owner && owner == NULL && !has_code_owner) {
     snprintf(expression->reason, sizeof(expression->reason), "missing_source_owner");
     return expression->outcome;
   }
