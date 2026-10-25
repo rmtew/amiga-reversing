@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "source_dispatch_recovered_and_C_vasm_full_image_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "405fe47baebfb8fcdcd2cbb48fe3ef49c6ae005038a3a2f84efcac85900a00d0",
+  "native_backend_sha256": "d36bdecedb48cd903e9db5babcb7798220239cc73a8d9eb1e8d4d9420c598917",
+  "manual_actions_sha256": "5091715c71b5a9738ea363062cbe5d95e2c11b8cdf0716289a389e369710e93e",
+  "manual_actions": 56,
+  "decision_journal_sha256": "6595bb918e81dc5a33ddd8333b449850033e470e315a5136fe60e36583598e7d",
+  "accepted_interpretations": 20,
+  "verification": {
+    "receipt_id": "ddee1fe720b3c7bcfb121513d6fd696a098b3801606d4e8138d0a4ff5e68e7b6",
+    "subject_revision": "d702e75caa21acc92b0cca4dabed0d80ff28360ada5afd2871948bc7d45874d0",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "dispatches": [
+    {
+      "offset": 249228,
+      "source_offset": 249228,
+      "source_size": 2,
+      "operand_index": 0,
+      "flow_kind": 2,
+      "flow": "jump",
+      "shape_id": 1,
+      "shape": "ind",
+      "status_id": 6,
+      "status": "jump_table",
+      "source_pattern_id": 1,
+      "source_pattern": "indirect",
+      "is_table_candidate": false,
+      "detail": "accepted indirect jump table targets",
+      "target": 249582,
+      "target_count": 16,
+      "has_expression_base": false,
+      "expression_base_offset": null,
+      "has_table_base": false,
+      "table_offset": null,
+      "table_size": null,
+      "table_entry_size": null,
+      "table_entry_count": null,
+      "table_bounds_status_id": 0,
+      "table_bounds_status": "none"
+    },
+    {
+      "offset": 254224,
+      "source_offset": 254224,
+      "source_size": 2,
+      "operand_index": 0,
+      "flow_kind": 2,
+      "flow": "jump",
+      "shape_id": 1,
+      "shape": "ind",
+      "status_id": 6,
+      "status": "jump_table",
+      "source_pattern_id": 1,
+      "source_pattern": "indirect",
+      "is_table_candidate": false,
+      "detail": "accepted indirect jump table targets",
+      "target": 254386,
+      "target_count": 16,
+      "has_expression_base": false,
+      "expression_base_offset": null,
+      "has_table_base": false,
+      "table_offset": null,
+      "table_size": null,
+      "table_entry_size": null,
+      "table_entry_count": null,
+      "table_bounds_status_id": 0,
+      "table_bounds_status": "none"
+    }
+  ],
+  "code_bytes": {
+    "before": 81560,
+    "after": 88142
+  },
+  "native_unclassified_bytes": {
+    "before": 283594,
+    "after": 280484,
+    "denominator": 412736,
+    "method": "complement of union of range_ownership intervals"
+  },
+  "tests": {
+    "focused_passed": 93,
+    "selected_existing_native_passed": 3,
+    "pre_existing_failed": [
+      "test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtrips"
+    ],
+    "failure_boundary": "exact-line source-format expectation fails also with unmodified analyzer; held test file unchanged"
+  },
+  "limits": [
+    "16 literal targets per original table, not arbitrary-index domain proof",
+    "Planar labels describe color-masked span handlers consuming inherited flags, not standalone function ABI",
+    "Interleaved handler color semantics remain separately unassessed",
+    "No new gameplay or graphics/audio qualification",
+    "No claim of completed readable restoration"
+  ]
+}

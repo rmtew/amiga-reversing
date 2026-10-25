@@ -145,3 +145,46 @@ range ownership grows from 101084 to 129142 bytes; the complement within the
 412736-byte payload falls from 311652 to 283594. Overlapping ownership is counted
 once. These are classification counts, not purpose or semantic completeness.
 See [drawing/audio source receipt](../../runtime/observations/starglider2-drawing-audio-source.json).
+
+## Recovered span dispatches
+
+Native tracing had incorrectly treated the base of `LEA d8(PC,Dn),An` as a
+complete address, dropping the index. Small fixtures reproduced both a false
+target for an unknown index and a wrong target for a known nonzero index. The
+fix retains numeric indices with proper WORD sign extension and transports the
+existing WORD-relative-table value into a PC-indexed LEA. Unknown, clobbered,
+unsupported and address-domain-only values do not become numeric indices.
+Table scanning/enqueueing also stops before a following zero becomes a bogus
+handler at the already-consumed table data. This is scoped recovery, not a full
+effective-address evaluator or arbitrary-input jump-table proof.
+
+The two jumps at source `$3CD8C` and `$3E110` now each identify the actual 16
+table handlers. Both WORD tables render symbolic target-minus-base expressions.
+All 16 planar handlers have color-specific labels: their partial-span writes
+OR the inside mask into precisely the planes selected by the four color bits,
+AND the outside mask into the others, at plane strides `$2000`. They are handler
+entry labels, **not independently callable function contracts**: their initial
+BPL uses the flags established before dispatch. The interleaved dispatcher is
+named separately; its handler color meanings are not promoted by analogy.
+
+This recovers 6582 additional code bytes (88142 total native code bytes), with
+some previously inferred data reclassified as code. The union-based unclassified
+complement falls by 3110 to 280484 bytes, not by the entire code increase. Both
+assemblers again reproduce all 412736 bytes. Twenty evidence-bearing naming and
+reference interpretations are accepted through the normal Decision Journal,
+bound to a current exact rebuild receipt; the older 36 ordinary catalogue
+actions remain unassessed there.
+
+The focused suite passes 93 tests. Three selected existing native regressions
+pass; `test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtrips`
+has a pre-existing exact-line-format assertion failure, independently reproduced
+with the unmodified analyzer. It has not been changed or counted as passing.
+See [span-dispatch receipt](../../runtime/observations/starglider2-span-dispatch.json).
+
+Next connected scope: the model catalogue rooted at runtime `$18974`. The
+initializer explicitly walks 104 pointers (103 distinct headers, first two
+entries aliased). A bounded static pass finds variable 24/28-byte headers,
+counted face records and coordinate-reference streams, with all 103 records
+agreeing with the consumer-derived boundaries. Do not assume uniform header
+size, flatten the alias, or treat the coordinate dictionary as vertex indices.
+Canonical adoption and detailed field interpretation remain to be done.

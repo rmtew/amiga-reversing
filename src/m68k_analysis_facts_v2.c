@@ -2966,8 +2966,8 @@ static int trace_state_move_source_low16(size_t section_index, const M68kDecodeS
   }
   if (trace_value_from_candidate_source(section_index, section, candidate, operand_index, state, &value) &&
       (value.kind == M68K_FACTS_V2_TRACE_CONSTANT ||
-       value.kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
-       value.kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET)) {
+       value.kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS)) {
+    /* A source-coordinate address is not the WORD stored at that address. */
     *out_value = (uint16_t)(value.value & 0xFFFFU);
     return 1;
   }
@@ -3725,6 +3725,10 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
         section->section_index, section->size, target_address, &target_offset)) {
       break;
     }
+    /* Already consumed table words are data, not another inferred handler.
+     * In particular a following mask/padding zero must not add the table base
+     * as a fictitious target. A distinct code base with a zero entry is valid. */
+    if (target_offset >= table_offset && target_offset < cursor + 2U) break;
     if (control_target_starts_in_zero_padding(section, target_offset)) break;
     if (accepted_offset_is_interior(section, accepted_start, accepted_bytes, target_offset)) break;
     if (targets != NULL) {
@@ -4093,6 +4097,53 @@ static int trace_state_candidate_swaps_keyed_long_relative_table_entry(const M68
   return 1;
 }
 
+static void trace_state_apply_pc_indexed_lea(size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
+    const M68kRuntimeAddressSpace *runtime_addresses, const M68kFactsV2TraceState *before,
+    M68kFactsV2TraceState *after) {
+  M68kInstructionIR instruction;
+  const M68kAsmOperandValue *operand;
+  const M68kFactsV2TraceValue *index;
+  uint8_t dest_reg;
+  uint32_t base_offset, base_address, scale;
+  int64_t displacement, target;
+  if (section == NULL || candidate == NULL || before == NULL || after == NULL) return;
+  if (candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA || candidate->operand_count != 2U ||
+      !facts_v2_asm_operand_is_indexed_or_pc_indexed(&candidate->operands[0]) ||
+      !operand_is_address_register_direct(&candidate->operands[1], &dest_reg)) return;
+  /* Unknown index is not zero. Discard any generic base-only interpretation. */
+  trace_value_set_unknown(&after->a[dest_reg]);
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      m68k_instruction_operand_decoded_ea_shape(&instruction.operands[0]) != M68K_SIM_EA_SHAPE_PC_INDEX)
+    return;
+  operand = &candidate->operands[0];
+  if (operand->index_is_address || operand->index_reg >= 8U ||
+      operand->full_ext_base_suppress || operand->full_ext_index_suppress ||
+      operand->full_ext_iis || operand->full_ext_outer_disp_size ||
+      !candidate_operand_data_target_offset(candidate, 0U, section_index, &base_offset)) return;
+  scale = operand->scale != 0U ? operand->scale : 1U;
+  index = &before->d[operand->index_reg];
+  if (!operand->index_long && scale == 1U &&
+      index->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE && index->section_index == section_index) {
+    base_address = base_offset;
+    (void)runtime_address_space_source_to_runtime_near(runtime_addresses, section_index,
+      base_offset, 0U, 0U, &base_address);
+    trace_value_set_word_relative_table_with_base(&after->a[dest_reg], section_index,
+      index->value, base_address);
+    return;
+  }
+  if (!operand->index_long && m68k_bitset_u32_has(before->d_low16_known, operand->index_reg))
+    displacement = (int32_t)m68k_sign_extend32(before->d_low16[operand->index_reg], 16U);
+  else if (index->kind == M68K_FACTS_V2_TRACE_CONSTANT)
+    displacement = operand->index_long ? (int32_t)index->value :
+      (int32_t)m68k_sign_extend32(index->value, 16U);
+  else return;
+  target = (int64_t)base_offset + displacement * scale;
+  if (target < 0 || target >= (int64_t)section->size) return;
+  trace_value_set_source_offset_with_origin(&after->a[dest_reg], section_index,
+    (uint32_t)target, section_index, candidate->offset, 0U);
+}
+
 static void trace_state_apply_known_effects(size_t section_index, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2RelocationLookup *relocation_lookup,
     const M68kFactIR *facts, M68kFactsV2TraceState *state) {
@@ -4264,6 +4315,7 @@ static int trace_state_after_candidate(size_t section_index, const M68kDecodeSec
   if (has_keyed_table_value && keyed_table_dest_reg < 8U) {
     after->d[keyed_table_dest_reg] = keyed_table_value;
   }
+  trace_state_apply_pc_indexed_lea(section_index, section, candidate, runtime_addresses, before, after);
   return 0;
 }
 
@@ -5588,6 +5640,8 @@ static int candidate_lea_pc_relative_data_target(const M68kDecodeCandidate *cand
   dest_operand = candidate->operands[1];
   dest_operand.kind = candidate->operand_kinds[1];
   if (!operand_is_address_register_direct(&dest_operand, &dest_reg)) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      facts_v2_instruction_operand_is_indexed_or_pc_indexed(&instruction, 0U)) return 0;
   for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
     const M68kDecodeTarget *target = &candidate->targets[target_index];
     if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_operand || target->operand_index != 0U ||
@@ -6280,7 +6334,9 @@ static int enqueue_word_relative_table_targets_for_indirect_site(M68kDecodeIR *d
     accepted_bytes[section_index], table_offset, base_address, NULL, 0U, skip_zero_displacement, NULL);
   if (target_count == 0U) return 0;
   trace_state_init_unknown(&unknown_state);
-  for (cursor = table_offset; cursor + 2U <= section->size; cursor += 2U) {
+  /* Never let the enqueue replay continue past the validated scan count. */
+  for (cursor = table_offset; cursor + 2U <= section->size && emitted_target_count < target_count;
+      cursor += 2U) {
     int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(section->data + cursor);
     int64_t target64 = (int64_t)(uint64_t)base_address + (int64_t)displacement;
     uint32_t target_address;
