@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "source_backed_projection_scale_arithmetic_run_C_vasm_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "fef52c1d3b646ccd21dc52034502960d7f8262df16ce3c2cbd49194bb1930942",
+  "manual_actions": 713,
+  "accepted_interpretations": 677,
+  "manual_actions_sha256": "a9680b9fc8dfcf13e59df638316460f2fb6ba00df3bc05ec436ce984e470b298",
+  "decision_journal_sha256": "0121902dd91550324f6de04b3fec05e75c383320d98706ecd0de77046a7fa61a",
+  "verification": {
+    "receipt_id": "5c33070e1ca52aa3847ca44f47155de3405a9b477922ead65dc0589782527cdc",
+    "subject_revision": "df82932f8f5ce8ff2b6f70d120af5f164a2e06def5821012631d112729c7cb71",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "lookup": {
+    "start": 175608,
+    "end_of_verified_run": 188112,
+    "size": 12504,
+    "WORDs": 6252,
+    "offset_unit": "even byte offsets from lookup base",
+    "offset_zero": 32767,
+    "prefix_offsets": [
+      2,
+      128
+    ],
+    "prefix_formula": "floor(0x4000/(o-1))",
+    "main_offsets": [
+      130,
+      12502
+    ],
+    "main_formula": "floor(0x3fff80/(o-2))",
+    "all_values_checked": true,
+    "next_WORD_breaks_pattern": true,
+    "primary_consumer": 17578,
+    "large_depth_alternative": "XY shifted left7 then signed DIVS by depth",
+    "original_approximation_preserved": true,
+    "complete_logical_object_extent_proved": false
+  },
+  "accounting": {
+    "before_range_union_bytes": 268761,
+    "after_range_union_bytes": 281265,
+    "before_unclassified_bytes": 143975,
+    "after_unclassified_bytes": 131471,
+    "new_classified_bytes": 12504,
+    "code_bytes": 89702,
+    "source_quality_diagnostics": 0,
+    "range_violations": 0
+  },
+  "admission": {
+    "first_oversized_comment": "native191-character entry-comment guard refused the whole batch before append",
+    "corrected_comment": "within existing limit; no guard changed"
+  },
+  "limits": [
+    "Maximal verified arithmetic run, not a universal table/caller bound",
+    "Small-offset prefix purpose beyond the measured formula not fully established",
+    "No correction of original rounding/bias or new runtime/output comparison",
+    "Assets unchanged; prior native INCBIN receipt remains explicitly dated to panel batch",
+    "Restoration incomplete; no archive"
+  ]
+}

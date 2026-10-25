@@ -3,9 +3,10 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 143975 bytes remain unclassified and substantial
-function/field meaning remains unresolved. Panel-animation images now export as
-identified assets; projection scales and remaining static image resources are next.
+byte equality is preserved; 131471 bytes remain unclassified and substantial
+function/field meaning remains unresolved. Panel-animation images export as
+identified assets and projection scales are documented. Remaining static image
+resources and central game-record/function contracts are next.
 No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -430,3 +431,26 @@ This batch adds 19300 classified bytes: ownership is 268761, code remains 89702
 and the unclassified complement is 143975. Current next candidates are the
 source-backed projection-scale table and the remaining static panel/background
 resources, not another runtime or packaging programme.
+
+## Projection scales
+
+[Projection receipt](../../runtime/observations/starglider2-projection-scales.json):
+three new interpretations name the lookup and its primary projection path and
+put a compact arithmetic explanation in the rendered source. Every one of the
+6252 original WORDs in `$2ADF8..$2DED0` was checked. With even byte offset `o`,
+entry zero is `$7FFF`; offsets 2..128 equal `floor($4000/(o-1))`; offsets
+130..12502 equal `floor($3FFF80/(o-2))`. The next WORD breaks that pattern.
+
+The `$44AA` path uses lookup multiplication/doubling/SWAP after near-depth
+clipping. Its large-depth alternative shifts XY by seven and uses signed DIVS.
+The original coefficients and bias remain unchanged. The measured run is a
+bounded data interpretation, not proof of the complete logical object extent,
+all callers' bounds, or every small-offset use. No larger source range was
+classified merely from adjacency.
+
+A too-long header comment was refused atomically by the native 191-character
+limit; shortening it used the existing guard, without framework changes.
+Complete C and vasm reproduction remains exact. This adds 12504 classified bytes:
+range ownership is 281265, code remains 89702 and the unclassified complement
+is 131471. Media assets did not change, so the panel batch's separate native
+INCBIN verification was not repeated solely for this scalar-table annotation.
