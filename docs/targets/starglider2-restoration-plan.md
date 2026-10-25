@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 21631 bytes remain unclassified and substantial
+byte equality is preserved; 20043 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -20,24 +20,22 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Current remaining-work inventory
 
-After the world-reference batch, the current native ownership complement is
-248 intervals / 21631 bytes. This is classification accounting, not a semantic
+After the weapon/HUD and Copper batch, the native ownership complement is
+251 intervals / 20043 bytes. This is classification accounting, not a semantic
 completion percentage. Function/field completeness has no measured denominator.
 The largest interval, `$12F80..$13BFC` (3196 bytes), is encoded protection storage
 with an existing separately reconstructed decoded view; do not count it as both
 newly classified original bytes and decoded bytes.
 
-The next substantial connected source review is the weapon/HUD family at
-`$719C..$7F1E`: projectile profile fields, dispatch/status byte, icon counts and
-background save/restore. Existing producer/consumer instructions give a concrete
-basis for this work. Following that are remaining display/control streams
-(including `$CECC..$D170` and `$E706..$E9B4`) and sound/scratch backing extents
-(including `$4B4DE..$4B99E`, `$4DD7C..$4DED4`, `$61C2C..$62492`). Their boundaries
-and meanings require actual consumers; adjacency or absent direct xrefs alone
-cannot establish a role or deadness. World/body and object-record views still
-retain explicitly conditional index/alias assumptions, rather than arbitrary
-input-safety proofs. The LONG-entry world-message prefix table and later message
-bodies also have concrete consumer leads to review.
+The weapon/HUD family at `$719C..$7F1E` and the three rotating Copper lists
+now have producer/consumer-backed source contracts, with their exact limits
+recorded below. Next is the settings/UI stream at `$E706..$E9B4`, followed by
+sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
+`$61C2C..$62492`. Boundaries and meanings require actual consumers; adjacency or
+absent direct xrefs alone cannot establish a role or deadness. World/body and
+object-record views retain explicit conditional index/alias assumptions, rather
+than arbitrary input-safety proofs. The world-message pointer prefix at
+`$38504..$38544` and later message bodies also have concrete consumer leads.
 
 Conditional external continuations remain distinct: the decoded protection
 entry/provider at `$380`, reset through vector4, intro low-memory patches, and
@@ -1483,3 +1481,45 @@ projections and full C/vasm equality across all 412736 bytes. Classification gai
 814 bytes, leaving 21631 unclassified; code
 coverage is unchanged. Range/source-quality diagnostics remain zero. See
 `runtime/observations/starglider2-world-visual-references.json`. No interim archive.
+
+
+## Weapon profiles, HUD backgrounds and writable Copper lists
+
+The two projectile profiles contain seven WORDs and one scale BYTE: fifteen
+consumed bytes each. The first following gap is not part of its record; the
+second following byte is a separate NEG.B variant sign. Profile fields name
+actual projectile type, cooldown, forward-speed addend, scale and distinct
+Amiga/alternate effect volume/period consumers. The spawn-side sign retains
+its original signed displacement behavior without invented left/right names.
+
+Each HUD background bank has four 112-byte slots, fourteen rows of eight bytes.
+The original add/remove callers explain the normal count domain 0..4; a mask of
+seven inside the common routines does not prove eight physical slots or safety
+for malformed counts. Amiga backing saves four plane WORDs per row while the
+alternate display saves two LONGs. Screen-origin LONGs retain their original
+Amiga values but are replaced by the alternate mode initializer; they are
+mutable framebuffer cursors, not image pointers or permanent assignments.
+
+The selected-weapon BYTE has normal four-byte table offsets and separate
+alternate status/countdown uses. Shared action cooldown also serves other
+weapons/mission paths. Firing, scanning, spawn helpers, HUD save/restore and the
+existing five-target dispatch now use semantic names without changing guard
+order, original instructions or fixed hardware accesses.
+
+The 87 canonical actions across weapon/HUD and display backing preserve all
+412736 bytes in C/vasm verification
+with zero range/source-quality diagnostics. Classification gains
+1588 bytes, leaving 20043 unclassified; accepted code
+bytes remain 105966. See `runtime/observations/starglider2-weapon-hud-copper-source.json`.
+This is source understanding, not a newly executed weapon/audio/HUD test.
+
+The three physical rotating Copper lists occupy 596 bytes. Their first stored
+stop markers are explicitly replaced with $4A01/$FF00 WAIT commands by initialization
+and restored to $FFFF/$FFFE by teardown. Thus the continuation blocks are retained
+as writable command backing, with final terminators defining the physical
+bounds; they are not unconditionally executed tails or padding. The three
+effect-colour bases each select COLOR15 data at +$0E. Original fixed framebuffer
+pointers, register values and command order remain unchanged. The typed pointer
+table names the actual three list targets using only a thin command-prefix
+contract, without an aggregate DMA-size claim. The original palette copy covers
+16 WORDs; the following 48 bytes remain outside that demonstrated extent.

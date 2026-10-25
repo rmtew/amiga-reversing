@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "kind": "weapon_hud_and_original_copper_display_contracts",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 87,
+  "projectile_profiles": {
+    "type84": [
+      32468,
+      32483
+    ],
+    "type103": [
+      32484,
+      32499
+    ],
+    "bytes_each": 15,
+    "copy": "Seven WORDs, one BYTE at7216",
+    "fields": [
+      [
+        "projectile_type",
+        0,
+        2
+      ],
+      [
+        "action_cooldown",
+        2,
+        2
+      ],
+      [
+        "forward_speed_addend",
+        4,
+        2
+      ],
+      [
+        "amiga_effect_volume",
+        6,
+        2
+      ],
+      [
+        "alternate_effect_volume",
+        8,
+        2
+      ],
+      [
+        "amiga_effect_period",
+        10,
+        2
+      ],
+      [
+        "alternate_effect_period",
+        12,
+        2
+      ],
+      [
+        "model_scale_shift",
+        14,
+        1
+      ]
+    ],
+    "not_padding": {
+      "uncopied_first_gap": 32483,
+      "following_second_record_variant_sign": 32499
+    },
+    "mutable_state": [
+      [
+        32448,
+        "selected_projectile_type"
+      ],
+      [
+        32450,
+        "selected_projectile_amiga_effect_volume"
+      ],
+      [
+        32452,
+        "selected_projectile_amiga_effect_period"
+      ],
+      [
+        32454,
+        "selected_projectile_alternate_effect_volume"
+      ],
+      [
+        32456,
+        "selected_projectile_alternate_effect_period"
+      ],
+      [
+        32462,
+        "selected_projectile_action_cooldown"
+      ],
+      [
+        32464,
+        "selected_projectile_forward_speed_addend"
+      ],
+      [
+        32500,
+        "projectile_spawn_side_sign"
+      ],
+      [
+        315492,
+        "paula_projectile_effect_volume"
+      ],
+      [
+        315494,
+        "paula_projectile_effect_period"
+      ],
+      [
+        319008,
+        "alternate_projectile_effect_volume"
+      ],
+      [
+        319010,
+        "alternate_projectile_effect_period"
+      ]
+    ],
+    "audio": "Independent Amiga AUD1 volume/period and alternate YM effect volume/period processing; not two Paula channels",
+    "scale_state_byte": 32466,
+    "adjacent_byte_unassigned": 32467
+  },
+  "hud_backing": {
+    "banks": [
+      [
+        31552,
+        32000
+      ],
+      [
+        32000,
+        32448
+      ]
+    ],
+    "bytes_each": 448,
+    "physical_slots_each": 4,
+    "bytes_per_slot": 112,
+    "rows": 14,
+    "bytes_per_row": 8,
+    "save": "Original(oldcount&7)*112 after count==4 refusal and increment",
+    "restore": "Original((oldcount-1)&7)*112 with caller decrement; free-object/inventory guard order unchanged",
+    "domain": "Initialized normal count0..4 implies slots0..3; original mask7 does not prove8slots or malformed-state safety",
+    "formats": "Amiga four planeWORDs versus alternate twoLONGs per row",
+    "origin_initial_values": {
+      "7920": 465918,
+      "7924": 465916
+    },
+    "origin_mutability": "Alternate initializer writes68000+6F58/6F50 or68000+6FEC/6FE8; original values are not permanent assignments or source-image pointers"
+  },
+  "weapon_dispatch": {
+    "field": 2026,
+    "normal_byte_offsets": [
+      0,
+      4,
+      8,
+      12,
+      16
+    ],
+    "entry": 29084,
+    "table": 32522,
+    "other_use": "Alternate interrupt uses high status/countdown bits, including80 state. Preserve original entry/domain gates, no universal0..4 enum.",
+    "shared_cooldown_WORD": 1988
+  },
+  "function_labels": [
+    [
+      6774,
+      "cycle_selected_weapon"
+    ],
+    [
+      29084,
+      "dispatch_selected_weapon_action"
+    ],
+    [
+      29186,
+      "try_spawn_type84_projectile"
+    ],
+    [
+      29198,
+      "try_spawn_type103_projectile"
+    ],
+    [
+      29206,
+      "load_projectile_profile_and_try_spawn"
+    ],
+    [
+      29686,
+      "select_reticle_target_candidate"
+    ],
+    [
+      30078,
+      "scan_or_fire_homing_missile"
+    ],
+    [
+      30186,
+      "try_launch_homing_missile_after_input"
+    ],
+    [
+      30492,
+      "add_bouncing_bomb_hud_icon"
+    ],
+    [
+      30526,
+      "add_homing_missile_hud_icon"
+    ],
+    [
+      30560,
+      "save_background_and_draw_weapon_hud_icon"
+    ],
+    [
+      30850,
+      "restore_weapon_hud_icon_background"
+    ],
+    [
+      31016,
+      "try_launch_bouncing_bomb"
+    ],
+    [
+      31384,
+      "initialize_launched_bomb_header"
+    ],
+    [
+      31410,
+      "initialize_player_launched_bomb_motion"
+    ],
+    [
+      226040,
+      "select_visible_scan_target"
+    ]
+  ],
+  "verification": {
+    "receipt_id": "f039c263b0427aa0b63c91d45c03a51416b8beef10cec3501ee4b7882f014746",
+    "exact": true,
+    "source_sha256": "0b4e6ea37bca965c39dfa6a21e0c29d818b37f53ddd2a0546505f4a86c9bafca",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 391105,
+    "after_range_union_bytes": 392693,
+    "before_unclassified_bytes": 21631,
+    "after_unclassified_bytes": 20043,
+    "new_classified_bytes": 1588,
+    "accepted_code_bytes": 105966,
+    "new_code_bytes": 0,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original code/data/field restoration; no new firing/HUD/gameplay or audio runtime evidence",
+    "Original input, inventory, free-object guard order and malformed-state behavior preserved",
+    "No invented physical left/right interpretation for projectile sign toggle",
+    "Profile gap and unrelated following bytes not absorbed as padding",
+    "No archive, relocation, C conversion or Pandora resumption"
+  ],
+  "framework_prerequisite": {
+    "commits": [
+      "ca8869c09f79aa8a3abc0e3d4112884352c18e6e",
+      "c56c54e0f763ef283e945e00034aad15891b97cc"
+    ],
+    "correction": "Resume command rendering after value-word labels; select Copper expression ownership from the same exact-start fragment and boundaries used by emission, rather than a broader raw covering range. Preserve original words and strict expected-access diagnostics",
+    "regression_cases": 5,
+    "focused_tests_passed": 52,
+    "suites": [
+      "tests/test_copper_word_labels.py",
+      "tests/test_serialized_runtime_data_refs.py",
+      "tests/test_canonical_source_symbol.py"
+    ],
+    "fixture_scope": "Authored value-word labels with/without early physical stops, plus a writable early stop in nested raw/Copper ownership reproducing exact kind12 refusal; full C and vasm fixture bytes match",
+    "observed_target_refusal": {
+      "kind": 12,
+      "source_offset": 48888,
+      "runtime_address": 52984,
+      "symbol": "bitmap_00078000_hi",
+      "summary": "expected symbol access was not rendered"
+    },
+    "not_changed": "No comparator thresholds, target code bytes or ignored source-quality failures"
+  },
+  "additional_legacy_check": {
+    "test": "tests/test_c_backend.py::test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer",
+    "result": "failed",
+    "cause": "Old code_start_refs exact snapshot lacks evidence_kind/evidence_kind_id and expects size10 rather than current0",
+    "baseline_control": "Same failure reproduced with renderer from ca8869c0 and otherwise identical compiled core objects; new writable-gate fixture fails with kind12 on that control and passes after c56c54e0",
+    "test_file": "Paused file preserved unchanged",
+    "private_control_log_sha256": "ac1e38bd8547a594a15f1a4fcb06efb94d695a47981df296bfe83b268501fdab"
+  },
+  "review": {
+    "accepted": 85,
+    "rejected_superseded_shared_element_names": 2,
+    "note": "Final bank element upserts retain precise storage and distinguish missile/bouncing-bomb labels"
+  },
+  "workflow_cost": {
+    "observed_successful_native_projection_seconds": [
+      319.97,
+      328.01,
+      319.05,
+      322.7
+    ],
+    "scope": "Separate necessary owner/field/role projections and final corrected export, not a performance benchmark or ETA. Refused full exports motivated the small synthetic reproducer; no gameplay rerun."
+  },
+  "canonical_action_groups": {
+    "weapon_and_HUD": 54,
+    "Copper_and_palette": 33
+  },
+  "copper_lists": {
+    "physical_spans": [
+      [
+        52940,
+        53160
+      ],
+      [
+        53160,
+        53380
+      ],
+      [
+        53380,
+        53536
+      ]
+    ],
+    "bytes": 596,
+    "rotating_pointer_table": [
+      14626,
+      14638
+    ],
+    "normal_table_byte_offsets": [
+      0,
+      4,
+      8
+    ],
+    "table_targets": [
+      53380,
+      52940,
+      53160
+    ],
+    "mutable_first_markers": [
+      52980,
+      53200,
+      53420
+    ],
+    "enabled_wait_hex": "4A01FF00",
+    "disabled_stop_hex": "FFFFFFFE",
+    "enable_stores": [
+      8582,
+      8592,
+      8602
+    ],
+    "disable_stores": [
+      9958,
+      9968,
+      9978
+    ],
+    "final_stops": [
+      53156,
+      53376,
+      53532
+    ],
+    "effect_colour_bases": [
+      53036,
+      53256,
+      53444
+    ],
+    "effect_write_offset": 14,
+    "effect_register": "COLOR15 ($019E)",
+    "pointer_type_scope": "One original4-byte Copper-command prefix only; not universal DMA/backing coverage",
+    "palette_copy": [
+      53536,
+      53568
+    ],
+    "palette_WORDs": 16,
+    "following_unassigned": [
+      53568,
+      53616
+    ],
+    "scope": "Original self-modified Copper commands with fixed framebuffer constants; no relocation or new graphical/timing equivalence"
+  }
+}

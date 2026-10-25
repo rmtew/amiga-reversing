@@ -199,5 +199,14 @@
       ],
       "question": "Projectile profile fields, weapon dispatch/status byte, HUD count/background save/restore and firing consumers"
     }
+  },
+  "native_query_confirmation": {
+    "fields": 97,
+    "incoming": 97,
+    "outgoing": 97,
+    "canonical_frozen_target_symbols": 97,
+    "pointer_domain": "runtime_only, unchanged",
+    "checked_world_source_sha256": "6d51a52e8827f91f372e23d3648486079b779cfd178811ede530b59404fe17c9",
+    "query_evidence_sha256": "c706f0dff09b573d7990411c5498f345a9525430d127b31fa82aa525675973a9"
   }
 }
