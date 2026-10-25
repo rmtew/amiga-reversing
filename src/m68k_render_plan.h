@@ -109,7 +109,9 @@ typedef struct M68kRenderPlannedSymbolAccess {
   uint8_t has_target;
   uint8_t comment_only;
   uint8_t reserved;
-  char symbol_name[96];
+  /* Access evidence must retain the complete attached operand expression,
+   * including composite hardware masks, rather than truncate its last token. */
+  char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
 } M68kRenderPlannedSymbolAccess;
 
 typedef struct M68kRenderPlannedInstruction {

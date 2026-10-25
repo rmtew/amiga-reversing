@@ -1,6 +1,7 @@
 # Starglider 2: original source restoration
 
-Status: extraction established statically; main-image classification in progress.
+Status: normal-media loader entries/bytes verified; first canonical source batch
+rebuilds exactly with C and vasm. Semantic restoration remains in progress.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
@@ -57,6 +58,47 @@ does not by itself qualify natural loader execution or every byte's role.
    metadata and evidence descriptions. Do not promise a DOS HUNK or original
    disk reconstruction without separate demonstrated support.
 
-Initial main render refuses an unterminated/invalid code range at source offset
-249230 (`$3CD8E`). This is an analysis obligation, not a successful source export
-or evidence of corrupt media. No semantic completion percentage is known.
+## First source batch
+
+The registered recovered target is `targets/amiga_raw_starglider2_game/`.
+Its source descriptor, initial metadata and append-only Manual Action Log are
+published; its `binary.bin` and generated listing remain private. To materialize
+the target, copy the extractor's `game_copy.bin` to that `binary.bin`. The
+original disk import remains registered separately, preserving its history.
+
+The initial structural refusals at source `$3CD8E` and `$3E112` were inline
+WORD dispatch tables. At `$3CD3E/$3CD42` and `$3E0C6/$3E0CA`, indexed PC loads
+and LEAs select offsets consumed by the jumps at `$3CD8C/$3E110`. Both tables
+occupy 32 bytes; the second selector is explicitly masked with 15. This does
+not establish validity of arbitrary first-table indices or every record producer.
+Canonical layouts plus required data seeds prevent treating the tables as code.
+
+Five code labels and three further layouts name the entry/initialization path,
+workspace clearing loop, platform runtime setup, drawing lookup initialization,
+platform/entry flags, workspace-base pointer and 200 WORD raster-row offsets.
+The Amiga initializer fills the latter with `0,40,...7960`; indexed renderer
+consumers use doubled row indices. Flag bit15 selects the Amiga path; bit0
+controls fixed workspace setup and whether SuperState is called. Other flag bits
+and general startup-environment contracts remain unassessed.
+
+Two renderer defects were exposed and fixed without changing game bytes:
+planned access evidence truncated long CIA mask expressions; numeric absolute-W
+addresses in the upper signed half needed explicit sign extension for vasm.
+The small synthetic regressions and catalogue/extraction suite pass 77 tests.
+
+[Normal-media entry receipt](../../runtime/observations/starglider2-loader-entry.json)
+records an unchanged ADF cold boot on A500 OCS/68000, 512K Chip + 512K Slow RAM.
+All 55808 intro bytes matched at PC `$24000`. A normal port-one blue-button
+hold released the intro, and all 412736 game bytes matched at PC `$1000`; the
+button was released there. No memory/register injection or direct-payload loader
+was used. This qualifies extraction, not gameplay, graphics/audio equivalence,
+or the later effects of the intro's low-memory patches.
+
+The [first source receipt](../../runtime/observations/starglider2-initial-source.json)
+binds native/vasm builds to the canonical actions and original payload. Both
+assemblers reproduce all bytes. This baseline is not a readable-restoration
+completion: much data and many function/field roles remain unclassified or
+anonymous, no assets are yet independently typed for INCBIN export, and there
+is no semantic completion percentage. Next: restore the connected drawing-mask
+tables and their initializer/consumers, then choose the next evidence-backed
+subsystem from the native gap inventory.

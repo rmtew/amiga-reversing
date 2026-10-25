@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "C_and_vasm_full_raw_image_exact",
+  "original_size": 412736,
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "source_sha256": "ff846683987dc0f2748ea53206aa800c0ab5354404162ad5447fe4818ba17bba",
+  "manual_actions_sha256": "64c345ba9cac3e94b7e623ab8a6bb12727bee4f5c666a78fbb61d26ab5b4404b",
+  "manual_action_count": 12,
+  "metadata_sha256": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
+  "native_backend_sha256": "e1b0079ddf876d484c3f30237c2b0159fda963a278b5e4abcb3adf458bfb9c23",
+  "vasm_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+  "builds": {
+    "C": {
+      "size": 412736,
+      "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "exact": true
+    },
+    "vasm": {
+      "size": 412736,
+      "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "exact": true
+    }
+  },
+  "source_quality_blockers": [],
+  "tests": {
+    "passed": 77,
+    "scope": "CIA mask/sign-extended abs.W regressions, source-range data seed/catalogue, extraction"
+  },
+  "limits": [
+    "No semantic completeness claim",
+    "Generated source still embeds unclassified raw asset bytes and remains private",
+    "No gameplay or graphics/audio qualification",
+    "Ordinary catalogue actions are durable facts; no Decision Journal semantic acceptance asserted"
+  ]
+}

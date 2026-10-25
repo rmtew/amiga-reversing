@@ -339,6 +339,12 @@ static int append_ea_text(char *out_text, size_t out_text_size, size_t *inout_us
   case 7:
     switch (operand->ea_reg) {
     case 0:
+      /* Absolute-W effective addresses are sign extended. Spell the upper
+       * half as that address, so vasm does not reject $8000..$FFFF as an
+       * out-of-range positive signed-W address. The extension WORD is intact. */
+      if ((operand->value & 0x8000U) != 0U)
+        return append_format(out_text, out_text_size, inout_used, "$%08X.w",
+          (unsigned)m68k_sign_extend32(operand->value, 16U));
       return append_format(out_text, out_text_size, inout_used, "$%04X.w", (unsigned)(operand->value & 0xFFFFU));
     case 1:
       return append_format(out_text, out_text_size, inout_used, "$%08X.l", (unsigned)operand->value);

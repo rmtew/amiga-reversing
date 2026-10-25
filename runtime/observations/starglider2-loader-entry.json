@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "profile": {
+    "emulator": "copperline 1.0.0",
+    "profile": "A500OCS PAL 68000 512K chip + 512K slow",
+    "direct_payload_contract": null,
+    "checkpoint_load": null
+  },
+  "extraction": {
+    "schema_version": 1,
+    "disk_sha256": "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3",
+    "disk_size": 901120,
+    "spans": [
+      {
+        "name": "bootblock",
+        "disk_offset": 0,
+        "size": 1024,
+        "load_address": null,
+        "entrypoint": 12,
+        "sha256": "a1595211043e209cb26abfc4b2c448c149ea3b19fead6e9ef3c0cc4ce4470d82"
+      },
+      {
+        "name": "intro_read",
+        "disk_offset": 11264,
+        "size": 55808,
+        "load_address": 147448,
+        "entrypoint": 147456,
+        "sha256": "553dcd88883415160d219d6c5b1c3cddfb9c80e2aeb20aab20cb8943a0650f2e"
+      },
+      {
+        "name": "game_read",
+        "disk_offset": 90112,
+        "size": 413184,
+        "load_address": 106496,
+        "entrypoint": null,
+        "sha256": "8522ceadd6d6dfac3ff1ac4201c5000e029f0a8376695bf0237a702c2cf50c46"
+      },
+      {
+        "name": "game_copy",
+        "disk_offset": 90112,
+        "size": 412736,
+        "load_address": 4096,
+        "entrypoint": 4096,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      }
+    ],
+    "bootblock_read_setup_sites": [
+      76,
+      160
+    ],
+    "copy_loop_source_offset": 258,
+    "copy_iterations": 103184,
+    "copy_width": 4,
+    "copy_source": 106496,
+    "copy_destination": 4096,
+    "read_suffix_not_copied": 448,
+    "status": "static_extraction",
+    "limits": [
+      "No runtime entry or intro return qualification",
+      "Not a DOS HUNK or reconstructed disk",
+      "No claim that every copied byte is code"
+    ]
+  },
+  "input_events": [
+    {
+      "after": "intro_entry",
+      "port": 1,
+      "blue": true
+    },
+    {
+      "after": "game_entry",
+      "port": 1,
+      "blue": false
+    }
+  ],
+  "stages": [
+    {
+      "name": "intro_entry",
+      "entry": 147456,
+      "load_address": 147448,
+      "wait": {
+        "address": "0x00024000",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "stop_event": {
+          "cck": 15526754,
+          "detail": "Breakpoint at $024000",
+          "frame": 218,
+          "hpos": 181,
+          "pc": 147456,
+          "reason": "breakpoint",
+          "retired_instructions": 2614512,
+          "seconds": 4.377562346785005,
+          "vpos": 165
+        },
+        "pc": "0x00024000",
+        "sp": "0x00c014ae",
+        "stack_return_address": "0x00000244"
+      },
+      "size": 55808,
+      "byte_exact": true,
+      "observed_sha256": "553dcd88883415160d219d6c5b1c3cddfb9c80e2aeb20aab20cb8943a0650f2e",
+      "registers": {
+        "d0": 0,
+        "d1": 2147483648,
+        "d2": 1,
+        "d3": 0,
+        "d4": 0,
+        "d5": 0,
+        "d6": 4294967295,
+        "d7": 0,
+        "a0": 12588330,
+        "a1": 12588258,
+        "a2": 916,
+        "a3": 724,
+        "a4": 5464,
+        "a5": 12588214,
+        "a6": 12583542,
+        "a7": 12588206,
+        "pc": 147456,
+        "sr": 20,
+        "sp": 12588206
+      }
+    },
+    {
+      "name": "game_entry",
+      "entry": 4096,
+      "load_address": 4096,
+      "wait": {
+        "address": "0x00001000",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "stop_event": {
+          "cck": 44096554,
+          "detail": "Breakpoint at $001000",
+          "frame": 620,
+          "hpos": 215,
+          "pc": 4096,
+          "reason": "breakpoint",
+          "retired_instructions": 6833958,
+          "seconds": 12.43243851312204,
+          "vpos": 197
+        },
+        "pc": "0x00001000",
+        "sp": "0x00c7fffa",
+        "stack_return_address": "0x00100000"
+      },
+      "size": 412736,
+      "byte_exact": true,
+      "observed_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "registers": {
+        "d0": 0,
+        "d1": 2147483648,
+        "d2": 1,
+        "d3": 0,
+        "d4": 0,
+        "d5": 0,
+        "d6": 4294967295,
+        "d7": 0,
+        "a0": 519232,
+        "a1": 416832,
+        "a2": 916,
+        "a3": 724,
+        "a4": 5464,
+        "a5": 12588214,
+        "a6": 14675968,
+        "a7": 13107194,
+        "pc": 4096,
+        "sr": 8192,
+        "sp": 13107194
+      }
+    }
+  ],
+  "status": "normal_media_loader_entries_and_bytes_exact",
+  "limits": [
+    "CPU entry and loaded bytes only; no DMA or output comparison",
+    "No gameplay completion qualification"
+  ]
+}
