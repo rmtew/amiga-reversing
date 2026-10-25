@@ -1,4 +1,4 @@
-"""Audit the original Starglider 2 secondary object dispatch and name catalogue.
+"""Audit the original Starglider 2 object dispatches, record-pool evidence and name catalogue.
 
 A finite hash-bound source recipe, not a runtime object-domain proof. Encoded
 jump targets and name pointers are evidence; canonical interpretation lives in
@@ -28,6 +28,20 @@ def inventory(payload: bytes) -> dict:
     if any(target % 2 or not load <= target < load + len(payload)
            or dispatch <= target < dispatch + count * 2 for target in targets):
         raise ValueError("Invalid original encoded dispatch target")
+    primary_base = 0x802A
+    primary_values = [struct.unpack_from(">h", payload, primary_base-load+i*2)[0]
+                      for i in range(count)]
+    primary_targets = [primary_base+value for value in primary_values]
+    if primary_base+2*count != 0x8152 or any(
+            target % 2 or not load <= target < load+len(payload)
+            or primary_base <= target < primary_base+2*count
+            for target in primary_targets):
+        raise ValueError("Invalid primary dispatch extent or encoded target")
+    # Exact repeated stores, independently of an inferred aggregate type.
+    if payload[0x17DC4-load:0x17DC4-load+34] != bytes.fromhex('20c1')*17:
+        raise ValueError("Pool initialization no longer clears 17 LONGs per iteration")
+    if payload[0x819A-load:0x819A-load+34] != bytes.fromhex('20c0')*17:
+        raise ValueError("Release no longer clears 17 LONGs")
     pointers = [struct.unpack_from(">I", payload, names - load + index * 4)[0]
                 for index in range(count)]
     if min(pointers) != names + count * 4:
@@ -53,6 +67,15 @@ def inventory(payload: bytes) -> dict:
                                                          indices=[i for i, value in enumerate(targets)
                                                                   if value == target])
                                                     for target in sorted(set(targets))]),
+                primary_dispatch_table=dict(start=primary_base, end=0x8152,
+                    dispatch_site=0x8026, entries=count, entry_width=2,
+                    target_entries=[dict(target=target,
+                        indices=[i for i, value in enumerate(primary_targets) if value == target])
+                        for target in sorted(set(primary_targets))]),
+                object_pool=dict(workspace_offset=0x2330, record_size=68,
+                    record_count=250, end_workspace_offset=0x6598,
+                    clear_loop=0x17DC4, release_entry=0x8196,
+                    partition_entry=0x4140, record_stride_register='A5=$44'),
                 names=dict(table_start=names, table_end=names + count * 4,
                            entries=count, unique_pointers=len(set(pointers)),
                            text_start=start, text_end=end, text_bytes=end - start,

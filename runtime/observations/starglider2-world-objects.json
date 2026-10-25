@@ -1,0 +1,684 @@
+{
+  "schema_version": 1,
+  "kind": "world_object_lifecycle_and_primary_dispatch",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 85,
+  "original_pool": {
+    "workspace_offset": 9008,
+    "record_size": 68,
+    "record_count": 250,
+    "end_workspace_offset": 26008,
+    "clear_loop": 97732,
+    "release_entry": 33174,
+    "partition_entry": 16704,
+    "record_stride_register": "A5=$44"
+  },
+  "primary_dispatch": {
+    "start": 32810,
+    "end": 33106,
+    "dispatch_site": 32806,
+    "entries": 148,
+    "entry_width": 2,
+    "target_entries": [
+      {
+        "target": 33234,
+        "indices": [
+          0,
+          24,
+          51,
+          52,
+          53,
+          56,
+          66,
+          67,
+          68,
+          69,
+          70,
+          87,
+          92,
+          94,
+          96,
+          97,
+          104,
+          105,
+          106,
+          107,
+          108,
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          144,
+          147
+        ]
+      },
+      {
+        "target": 33752,
+        "indices": [
+          59,
+          61,
+          62
+        ]
+      },
+      {
+        "target": 33786,
+        "indices": [
+          73,
+          74
+        ]
+      },
+      {
+        "target": 33790,
+        "indices": [
+          60
+        ]
+      },
+      {
+        "target": 33814,
+        "indices": [
+          43
+        ]
+      },
+      {
+        "target": 33838,
+        "indices": [
+          71
+        ]
+      },
+      {
+        "target": 33924,
+        "indices": [
+          37
+        ]
+      },
+      {
+        "target": 33948,
+        "indices": [
+          88
+        ]
+      },
+      {
+        "target": 33960,
+        "indices": [
+          47
+        ]
+      },
+      {
+        "target": 33984,
+        "indices": [
+          95
+        ]
+      },
+      {
+        "target": 33992,
+        "indices": [
+          129,
+          130,
+          131,
+          132,
+          133
+        ]
+      },
+      {
+        "target": 34004,
+        "indices": [
+          134,
+          135
+        ]
+      },
+      {
+        "target": 34016,
+        "indices": [
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142
+        ]
+      },
+      {
+        "target": 34028,
+        "indices": [
+          143
+        ]
+      },
+      {
+        "target": 34088,
+        "indices": [
+          145
+        ]
+      },
+      {
+        "target": 34112,
+        "indices": [
+          75
+        ]
+      },
+      {
+        "target": 34124,
+        "indices": [
+          76
+        ]
+      },
+      {
+        "target": 34136,
+        "indices": [
+          77
+        ]
+      },
+      {
+        "target": 34148,
+        "indices": [
+          78
+        ]
+      },
+      {
+        "target": 34160,
+        "indices": [
+          79
+        ]
+      },
+      {
+        "target": 34172,
+        "indices": [
+          80
+        ]
+      },
+      {
+        "target": 34184,
+        "indices": [
+          81
+        ]
+      },
+      {
+        "target": 34196,
+        "indices": [
+          82
+        ]
+      },
+      {
+        "target": 34232,
+        "indices": [
+          99
+        ]
+      },
+      {
+        "target": 34256,
+        "indices": [
+          146
+        ]
+      },
+      {
+        "target": 34280,
+        "indices": [
+          91
+        ]
+      },
+      {
+        "target": 34304,
+        "indices": [
+          98
+        ]
+      },
+      {
+        "target": 34328,
+        "indices": [
+          40
+        ]
+      },
+      {
+        "target": 34364,
+        "indices": [
+          22,
+          44
+        ]
+      },
+      {
+        "target": 34690,
+        "indices": [
+          30
+        ]
+      },
+      {
+        "target": 34730,
+        "indices": [
+          86
+        ]
+      },
+      {
+        "target": 34750,
+        "indices": [
+          42
+        ]
+      },
+      {
+        "target": 34760,
+        "indices": [
+          57,
+          58,
+          85
+        ]
+      },
+      {
+        "target": 34862,
+        "indices": [
+          54
+        ]
+      },
+      {
+        "target": 34896,
+        "indices": [
+          1
+        ]
+      },
+      {
+        "target": 35230,
+        "indices": [
+          65
+        ]
+      },
+      {
+        "target": 35272,
+        "indices": [
+          49
+        ]
+      },
+      {
+        "target": 35298,
+        "indices": [
+          90
+        ]
+      },
+      {
+        "target": 35348,
+        "indices": [
+          93
+        ]
+      },
+      {
+        "target": 35380,
+        "indices": [
+          41
+        ]
+      },
+      {
+        "target": 35406,
+        "indices": [
+          36
+        ]
+      },
+      {
+        "target": 35444,
+        "indices": [
+          15
+        ]
+      },
+      {
+        "target": 35770,
+        "indices": [
+          18
+        ]
+      },
+      {
+        "target": 35796,
+        "indices": [
+          35
+        ]
+      },
+      {
+        "target": 35816,
+        "indices": [
+          7
+        ]
+      },
+      {
+        "target": 35836,
+        "indices": [
+          27
+        ]
+      },
+      {
+        "target": 36322,
+        "indices": [
+          2
+        ]
+      },
+      {
+        "target": 36472,
+        "indices": [
+          3
+        ]
+      },
+      {
+        "target": 36622,
+        "indices": [
+          4
+        ]
+      },
+      {
+        "target": 36764,
+        "indices": [
+          63
+        ]
+      },
+      {
+        "target": 36880,
+        "indices": [
+          13,
+          16,
+          21,
+          28,
+          31,
+          32,
+          33,
+          45
+        ]
+      },
+      {
+        "target": 37580,
+        "indices": [
+          17
+        ]
+      },
+      {
+        "target": 37656,
+        "indices": [
+          89
+        ]
+      },
+      {
+        "target": 37678,
+        "indices": [
+          38
+        ]
+      },
+      {
+        "target": 37776,
+        "indices": [
+          11
+        ]
+      },
+      {
+        "target": 37838,
+        "indices": [
+          20
+        ]
+      },
+      {
+        "target": 37942,
+        "indices": [
+          55
+        ]
+      },
+      {
+        "target": 38086,
+        "indices": [
+          39
+        ]
+      },
+      {
+        "target": 38118,
+        "indices": [
+          10
+        ]
+      },
+      {
+        "target": 38144,
+        "indices": [
+          8
+        ]
+      },
+      {
+        "target": 38300,
+        "indices": [
+          72,
+          103
+        ]
+      },
+      {
+        "target": 38402,
+        "indices": [
+          84
+        ]
+      },
+      {
+        "target": 38522,
+        "indices": [
+          12
+        ]
+      },
+      {
+        "target": 38548,
+        "indices": [
+          25
+        ]
+      },
+      {
+        "target": 39356,
+        "indices": [
+          14
+        ]
+      },
+      {
+        "target": 39490,
+        "indices": [
+          6,
+          83,
+          100,
+          101,
+          102
+        ]
+      },
+      {
+        "target": 39702,
+        "indices": [
+          29
+        ]
+      },
+      {
+        "target": 39756,
+        "indices": [
+          9
+        ]
+      },
+      {
+        "target": 40064,
+        "indices": [
+          50
+        ]
+      },
+      {
+        "target": 40188,
+        "indices": [
+          23
+        ]
+      },
+      {
+        "target": 40328,
+        "indices": [
+          26
+        ]
+      },
+      {
+        "target": 40648,
+        "indices": [
+          19
+        ]
+      },
+      {
+        "target": 40942,
+        "indices": [
+          5
+        ]
+      },
+      {
+        "target": 41270,
+        "indices": [
+          48
+        ]
+      },
+      {
+        "target": 41412,
+        "indices": [
+          64
+        ]
+      },
+      {
+        "target": 41664,
+        "indices": [
+          46
+        ]
+      },
+      {
+        "target": 41984,
+        "indices": [
+          34
+        ]
+      }
+    ]
+  },
+  "new_encoded_entries": [
+    33752,
+    33786,
+    33790,
+    33814,
+    33838,
+    33924,
+    33948,
+    33960,
+    33984,
+    33992,
+    34004,
+    34016,
+    34028,
+    34088,
+    34112,
+    34124,
+    34136,
+    34148,
+    34160,
+    34172,
+    34184,
+    34196,
+    34232,
+    34256,
+    34280,
+    34304,
+    34328,
+    34730,
+    34750,
+    34760,
+    34862,
+    35230,
+    35272,
+    35298,
+    35348,
+    35380,
+    35406,
+    35796,
+    36764,
+    37656,
+    37678,
+    37942,
+    38086,
+    38300,
+    38402,
+    40064,
+    41270,
+    41412,
+    41664,
+    41984
+  ],
+  "record_contract": {
+    "size": 68,
+    "identified_fields": 12,
+    "identified_bytes": 28,
+    "opaque_bytes": 40,
+    "fields": {
+      "object_type": [
+        0,
+        2
+      ],
+      "flags": [
+        2,
+        1
+      ],
+      "world_xyz": [
+        4,
+        8,
+        12
+      ],
+      "relative_xyz": [
+        22,
+        24,
+        26
+      ],
+      "retirement_phase_or_negative": [
+        30,
+        1
+      ],
+      "signed_velocity_xyz": [
+        44,
+        46,
+        48
+      ]
+    }
+  },
+  "source_payoff": {
+    "symbolic_primary_word_entries": 148,
+    "direct_named_A0_A4_field_operands": 51,
+    "named_workspace_regions": 12,
+    "explicit_record_contexts": 7
+  },
+  "verification": {
+    "receipt_id": "ae9e94647c88a90c47aa5bf8cee59e5a12ad5ae6fc4552237f3cd85a224c92a1",
+    "exact": true,
+    "source_sha256": "a4ee608d40e2ecbe92f1f6a20751932a33cf44c0d736ced22f627c3f25a64806",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+  },
+  "accounting": {
+    "before_range_union_bytes": 308604,
+    "after_range_union_bytes": 311494,
+    "before_unclassified_bytes": 104132,
+    "after_unclassified_bytes": 101242,
+    "new_classified_bytes": 2890,
+    "before_code_bytes": 89702,
+    "after_code_bytes": 92300,
+    "source_quality_diagnostics": 0,
+    "range_violations": 0
+  },
+  "limits": [
+    "No new gameplay/runtime or all-object-type reachability qualification",
+    "Conditional original pool/count/list provenance; not arbitrary callbacks or modified pointers",
+    "Native primary indirect inference still reports 27 targets; canonical encoded table has77. Manual table xrefs do not constitute full native CFG closure",
+    "40 record bytes remain opaque; constructor temporarily uses high type byte as map flags before clearing/copying it",
+    "Pool end app+$6598 is not the complete $6998-byte cleared workspace",
+    "Pointer lists are not declared exclusive ranges; saved-game alias/serialization lifetimes remain unproved",
+    "No archive or upload; restoration incomplete"
+  ],
+  "native_incbins": {
+    "asset_count": 29,
+    "asset_bytes": 71347,
+    "asset_bytes_equal_original_slices": true,
+    "standalone_vasm_full_match": true
+  }
+}

@@ -3,13 +3,14 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 104132 bytes remain unclassified and substantial
+byte equality is preserved; 101242 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
 canonical readable view; its execution remains conditional and unobserved in the
 bounded Amiga boot. Cockpit and Argonaut splash RLE streams now export as identified assets.
-Central game-record/function contracts remain next.
+The world-object pool, update dispatch and selected motion fields now have
+canonical names/types. Other game-record/function contracts remain open.
 No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -494,7 +495,7 @@ protection path. Neither decoded bytes nor target assets are public commits.
 
 The unchanged-media boot probe matched all 412736 main-entry bytes, then every
 one of the 3484 subtraction-stage bytes at `$1F0C`, frame 624. A subsequent
-60-second wait did **not** observe `$13BFC` and stopped at `$11A4`. This is a
+60-second wall-clock wait did **not** observe `$13BFC` and stopped at `$11A4`. This is a
 negative bounded observation, not an execution pass for the decoded routine.
 The supplied image's initial `$5341C` control WORD is zero, so the conditional
 picture check is skipped. No guest writes or artificial calls forced entry.
@@ -532,3 +533,44 @@ focused decoder/addressing/refusal tests pass. See
 `runtime/observations/starglider2-pictures.json`. The range-union complement is
 104132 bytes; this is classification accounting, not semantic completeness.
 No archive or download was produced.
+
+
+## World-object lifecycle and primary updates
+
+The pool constructor at `$17D90` clears 250 records of 17 LONGs each and then
+advances records by 68 bytes. The partitioner at `$4140` independently uses
+`A5=$44`. The pool is `app+$2330..$6598`, 17000 bytes; this is not the entire
+`$6998`-byte workspace. Release at `$8196` clears the same 17 LONGs, marks the
+retirement phase negative, and pushes a pointer on the free-object stack.
+The allocator pops that stack and decrements its count. These are original
+in-program records and pointers, not an external standalone callback ABI.
+
+`SG2WorldObject` describes the 68-byte record with 12 identified fields
+(28 bytes): type, flags, LONG world XYZ, WORD relative XYZ, retirement phase,
+and signed WORD XYZ velocities. Forty bytes remain opaque. During map
+construction the high type byte temporarily carries flags which a later path
+copies/clears; do not claim the type domain holds at every construction step.
+The IRQ integrates the selected objects' velocities into their positions and
+masks X/Z. Seven explicit original code-point contexts give these field names
+actual use in the generated code, including the IRQ and partitioner. Twelve
+workspace regions name the pool, list cursors, counts and DBF index. Pointer
+lists are not declared exclusive owners: saved-game serialization/alias
+lifetimes remain unproved.
+
+The primary signed WORD dispatch at `$8026` has 148 entries at
+`$802A..$8152` and 77 distinct encoded targets. Fifty targets previously outside
+accepted code ranges are now seeded from those actual entries, with original
+numeric labels retained where handler meaning is unknown. All 148 offsets
+render as symbolic target-minus-table expressions. The contract requires
+original type 0..147; this is not proof that all types occur during gameplay.
+The native indirect-site inference still reports a 27-target subset; manual
+table references do not pretend to close that native CFG limitation.
+
+The original payload remains exact with C and vasm. The current source has 51
+direct named A0/A4 field operands plus postincrement annotations, and both
+picture headers now render as 16 palette/control WORDs. Accepted code rises
+from 89702 to 92300 bytes; the range-union complement is 101242 bytes. These
+are separate readability/classification measures, not an overall completion
+percentage. See `runtime/observations/starglider2-world-objects.json` and the
+hash-bound `starglider2_objects` audit tool. No new runtime or all-path proof,
+archive, or upload is claimed.
