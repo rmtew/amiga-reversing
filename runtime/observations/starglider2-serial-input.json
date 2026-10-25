@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "kind": "alternate_serial_input_and_flight_control_state",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 18,
+  "entry_evidence": {
+    "initializer": 242670,
+    "vector": 280,
+    "root": 243122,
+    "packet_handlers": [
+      243280,
+      243332,
+      243392,
+      243432,
+      243504
+    ],
+    "registration_instructions": [
+      243258,
+      243290,
+      243342,
+      243372,
+      243412,
+      243452,
+      243482,
+      243546
+    ],
+    "validation": "Exact original absolute/PC-relative LEA+vector-store bytes verified before canonical code seeds; no guessed entries"
+  },
+  "hardware": {
+    "read_byte": 4294966274,
+    "acknowledge_byte": 4294965777,
+    "acknowledge_value": 191,
+    "coverage": "conditional original alternate path, not executed in supplied Amiga profile"
+  },
+  "key_flags": {
+    "storage": [
+      56972,
+      57100
+    ],
+    "entries": 128,
+    "alternate_startup_clear_bytes": 112,
+    "alternate_press_value": 1,
+    "amiga_press_value": 255,
+    "release_value": 0,
+    "pending_scancode_offset": 515
+  },
+  "translation": {
+    "stored_prefix": [
+      251722,
+      251842
+    ],
+    "stored_prefix_bytes": 120,
+    "nominal_index_max": 127,
+    "tail_alias": [
+      251842,
+      251850
+    ],
+    "tail_role": "first8 bytes of double-pixel expansion LUT; not independent keymap ownership"
+  },
+  "packet_header_byte": 243576,
+  "workspace": {
+    "rotation_2_control_accumulator": 1954,
+    "rotation_0_control_accumulator": 1956,
+    "negative_speed_control_accumulator": 1960,
+    "joystick_direction_bits": 348,
+    "primary_fire_flag": 509
+  },
+  "flight_consumers": {
+    "entry": 194304,
+    "rotation_2": "negated control accumulator, masked to4095, original later corrections retained",
+    "rotation_0": "control accumulator ASR1, after original clamps",
+    "requested_speed": "negated speed accumulator after original clamps/exception branches",
+    "axis_limit": "numbered original rotations, no invented universal pitch/roll convention"
+  },
+  "verification": {
+    "receipt_id": "ee3e463925cf85462b859440caccfa9297d80eb2aa17e2d9f8f4890e54326b4b",
+    "exact": true,
+    "source_sha256": "accae68f7229842dfb6f5c081fcf025e7d043c4521920e04cda9b2d0fa8b8d52",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 351860,
+    "after_range_union_bytes": 352427,
+    "before_unclassified_bytes": 60876,
+    "after_unclassified_bytes": 60309,
+    "new_classified_bytes": 567,
+    "before_accepted_code_bytes": 99720,
+    "after_accepted_code_bytes": 100166,
+    "new_accepted_code_bytes": 446,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static vector registration and original instructions only; no new serial hardware execution or input/output equivalence",
+    "Original packet dispatch, signed shifts, arithmetic, acknowledge and register preservation retained",
+    "128stored key flags do not imply128translation bytes or128cleared startup bytes",
+    "Control state also has keyboard/Amiga producers and original exceptional branches; not exclusive serial ownership",
+    "No archive/upload; readable source restoration remains incomplete"
+  ]
+}

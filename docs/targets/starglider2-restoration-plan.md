@@ -4,7 +4,7 @@ Status: normal-media loader entries/bytes verified. Published source batches cov
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs and HUD sprites. Complete C/vasm
-byte equality is preserved; 60876 bytes remain unclassified and substantial
+byte equality is preserved; 60309 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -946,3 +946,36 @@ range/source-quality diagnostics. Accepted-range accounting gains
 measure overall semantic completion. See
 `runtime/observations/starglider2-contact-bounds.json`. No new runtime test or
 archive accompanies the static restoration.
+
+
+## Alternate serial input and shared flight controls
+
+The original initializer installs `$3B5B2` at vector `$118`; its absolute and
+PC-relative LEA/store instructions register five further packet handlers and
+restore the root handler. Six canonical code origins now recover that finite
+interrupt family. Entry evidence is the exact vector-registration instructions,
+not a scan of opcode-shaped bytes. The selected alternate path reads serial
+BYTE `$FFFFFC02` and acknowledges through `$FFFFFA11`; it has not been executed
+in the supplied Amiga profile.
+
+Press/release translation shares the existing key-down storage and pending
+scancode. This producer writes 1/0, whereas the Amiga producer writes FF/0.
+Alternate startup clears 112 of the 128 stored flag bytes. Its translation
+prefix contains 120 bytes, followed by the pixel-expansion lookup: nominal
+indices120..127 read the first eight lookup bytes. Those original aliases and
+clear extents remain explicit rather than becoming independent invented arrays.
+
+Packet deltas, Amiga input and keyboard controls feed the same three flight
+accumulators. The original flight consumer negates `$7A2` into numbered rotation2,
+arithmetic-shifts `$7A4` into rotation0, and negates `$7A8` toward requested speed,
+retaining clamps, exceptional branches and later corrections. Canonical names
+connect those producers and consumers without inventing world-axis conventions.
+The joystick direction bits and primary-fire truth flag are also named.
+
+Eighteen canonical actions retain exact C/vasm output for all 412736 bytes,
+with zero range/source-quality diagnostics. Accepted code gains
+446 bytes and total accepted-range coverage gains
+567; 60309 bytes remain unclassified. These are
+accounting figures, not semantic completion. See
+`runtime/observations/starglider2-serial-input.json`. No new runtime campaign,
+archive or upload accompanies this batch.
