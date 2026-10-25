@@ -1,7 +1,9 @@
 # Starglider 2: original source restoration
 
-Status: normal-media loader entries/bytes verified; first canonical source batch
-rebuilds exactly with C and vasm. Semantic restoration remains in progress.
+Status: normal-media loader entries/bytes verified. Published source batches cover
+startup, drawing masks, Paula sample assets, span dispatches and the model
+header catalogue. Complete C/vasm byte equality is preserved; semantic restoration
+and substantial data classification remain in progress. No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
@@ -248,3 +250,24 @@ variant producer/selector contracts, retaining unresolved gaps explicitly.
 No further interim archives are to be created or uploaded. Tested incremental
 restoration belongs on master; the private source/build archive is a final
 restoration deliverable, not a substitute for readable source completion.
+
+The body representation uses 33 physical runs containing only adjacent audited
+components. Each model retains separate face, auxiliary-face (when present),
+coordinate-pool and vertex-record elements. Grouping storage does not assert a
+shared runtime lifetime or relocation contract. `SG2VertexReferences` names the
+three encoded coordinate references and the signed variant offset/sentinel;
+it deliberately does not treat those WORDs as absolute pointers. Normal and
+auxiliary face elements remain WORD arrays because their records have variable
+length and the remaining command bits are not fully interpreted.
+
+[Base-model receipt](../../runtime/observations/starglider2-model-bodies.json):
+388 additional evidence-bearing actions are accepted after complete C/vasm
+reproduction. The 354 component elements include all 1570 base vertex records.
+The new owners classify exactly 33044 bytes, bringing range ownership to 168364
+and its complement to 244372 bytes; code remains 88142 bytes with no range
+violations. Native analysis grew from 77 to 192 seconds across the bounded
+batches as typed records expanded. This is a concrete workflow cost, not a reason
+to add a separate facts system or interrupt restoration with a performance project.
+The next source-backed contract is the viewer's bounded animation selectors and
+corresponding variant tables/frames; general gameplay selector provenance remains
+separate from those original record extents.

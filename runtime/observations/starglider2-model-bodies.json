@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "base_model_components_source_restored_C_vasm_full_image_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "59fd2912a30e51d69e086223061ff1edbba33c6a48d5e1a9e6d8212bb0ad685b",
+  "manual_actions": 487,
+  "accepted_interpretations": 451,
+  "manual_actions_sha256": "24741c04d09e706db0b86bfb66800ceb4a4e96b46f688636ae9266e07ea1b489",
+  "decision_journal_sha256": "e74856b4a6cee390b87b8efd4a05ac25087b2665c92e37fa044df7256566057a",
+  "verification": {
+    "receipt_id": "979436f0f1c07c8c9f11b617a04f4d523f2461f681152b43b8bcc0fe15100440",
+    "subject_revision": "d26097b7a6442d5fa462654f579d7bea008fc4ab67c7b0bf8401f8ac25d5ba27",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "source_representation": {
+    "new_actions": 388,
+    "physical_body_runs": 33,
+    "component_elements": 354,
+    "unique_models": 103,
+    "vertex_records": 1570,
+    "vertex_record_size": 8,
+    "normal_face_bytes": 13510,
+    "auxiliary_face_bytes": 928,
+    "coordinate_word_bytes": 6046,
+    "vertex_record_bytes": 12560,
+    "total_new_classified_bytes": 33044
+  },
+  "accounting": {
+    "before_range_union_bytes": 135320,
+    "after_range_union_bytes": 168364,
+    "before_unclassified_bytes": 277416,
+    "after_unclassified_bytes": 244372,
+    "code_bytes": 88142,
+    "range_violations": 0
+  },
+  "checks": {
+    "full_C": "exact",
+    "full_vasm": "exact",
+    "all_original_face_indices": "valid aligned vertex references",
+    "all_original_coordinate_references": "valid aligned coordinate pool references",
+    "component_intervals": "no overlap, exact declared boundaries",
+    "source": "typed coordinate references, separate normal/auxiliary face arrays and vertex records inspected"
+  },
+  "workflow_cost": {
+    "native_analysis_seconds": [
+      77.21,
+      78.11,
+      88.95,
+      125.84,
+      153.54,
+      191.7
+    ],
+    "reason": "Each bounded revision-checked interpretation batch requires a current native artifact; no new framework optimization attempted"
+  },
+  "limits": [
+    "No arbitrary replacement-input or all-selector validity claim",
+    "Variant regions excluded from these owners; separate source-backed viewer-range audit is ready but not yet adopted",
+    "Variable face commands remain WORD arrays; unproved flags preserved",
+    "No new runtime, graphics or audio validation",
+    "Readable restoration remains incomplete; no interim archive"
+  ]
+}
