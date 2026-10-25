@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "kind": "model_projection_scratch_and_edge_reciprocal_consumers",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 14,
+  "model_coordinate_maxima": {
+    "span": [
+      22808,
+      23016
+    ],
+    "entries": 104,
+    "width": 2,
+    "seed": "zero",
+    "producer": 18928,
+    "loop": 18964,
+    "identity": "Maximum signed coordinate WORD from each model coordinate pool, scan initialized to8000; not maximum absolute radius"
+  },
+  "projected_scratch": {
+    "classified_prefix": [
+      308062,
+      308446
+    ],
+    "stride": 8,
+    "entries": 48,
+    "original_model_header_count": 104,
+    "maximum_stored_last_vertex_index": 47,
+    "special_mesh_count": 36,
+    "normal_projection_loop": 19720,
+    "special_projection_loop": 193130,
+    "fields": {
+      "0": "projected X WORD",
+      "2": "projected Y WORD",
+      "4": "depth WORD",
+      "6": "special-mesh clip BYTE; some readers test WORD6",
+      "7": "untouched by these destination writers, original seed dependency retained"
+    },
+    "normal_source_clip_byte": 7,
+    "unclassified_adjacent_backing": [
+      308446,
+      309662
+    ],
+    "limits": "Stored original model prefix and fixed mesh only; not arbitrary model/face index safety or proof that remaining zero backing is unused"
+  },
+  "edge_reciprocals": {
+    "span": [
+      309662,
+      310262
+    ],
+    "entries": 300,
+    "width": 2,
+    "identity": "[0]=0, [1]=7FFF, [i>=2]=floor(8000hex/i)",
+    "all_stored_entries_checked": true,
+    "consumer": 252808,
+    "index_expression": "2*dY+2 BYTE offset",
+    "following_unassigned_zero_bytes": 10,
+    "limits": "Preserve saturated seed, MULS/double/truncation and original bounds assumptions; no arbitrary polygon safety claim"
+  },
+  "verification": {
+    "receipt_id": "141dd0c74db9f4eca9a563ec81fd67e9f6b4c6c9d60849efc9e263a67753f70b",
+    "exact": true,
+    "source_sha256": "d3e18225cd7e93f1f336b6cd46aaa84d1a7ace61b16d7204c904a2a523f9f79d",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 352427,
+    "after_range_union_bytes": 353619,
+    "before_unclassified_bytes": 60309,
+    "after_unclassified_bytes": 59117,
+    "new_classified_bytes": 1192,
+    "accepted_code_bytes": 100166,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original producers/consumers and finite stored-data identities, no new runtime output or all-path qualification",
+    "Transform continuation consumes original caller save state; not an arbitrary-stack callable ABI",
+    "Original mutable storage, untouched bytes and arithmetic retained",
+    "No archive/upload; remaining code/data and semantic questions stay open"
+  ],
+  "standalone_native_build": {
+    "original_size": 412736,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "exact": true,
+    "source_sha256": "64301a5b8347176aad63d10c78b78d60b22aee115c9b9ad8d4c79b674c2570b4",
+    "asset_min_bytes": 64,
+    "asset_count": 52,
+    "asset_bytes": 74871,
+    "all_asset_source_slices_equal": true,
+    "tools": {
+      "assembler": "vasmm68k_mot",
+      "format": "raw binary",
+      "cpu": "68000",
+      "optimization": "disabled"
+    },
+    "limits": [
+      "Private scratch build only; no archive or upload",
+      "Unmodified native rendered source and source_package_payload(64) assets",
+      "Asset byte identity is not runtime graphics/audio equivalence"
+    ]
+  }
+}

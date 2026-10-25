@@ -3,8 +3,9 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names, shared audio/render storage, frame/view and flight
-state, projected discs and HUD sprites. Complete C/vasm
-byte equality is preserved; 60309 bytes remain unclassified and substantial
+state, projected discs, HUD sprites, text/input, contact lists and polygon
+edge lookup/scratch contracts. Complete C/vasm
+byte equality is preserved; 59117 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -979,3 +980,34 @@ with zero range/source-quality diagnostics. Accepted code gains
 accounting figures, not semantic completion. See
 `runtime/observations/starglider2-serial-input.json`. No new runtime campaign,
 archive or upload accompanies this batch.
+
+
+## Projection scratch and polygon-edge reciprocals
+
+The model initializer writes 104 WORDs at `$5918` by scanning signed coordinate
+pools from `$8000` and retaining the maximum signed coordinate. This table now
+has a role-specific name; it is not relabelled as a maximum absolute radius.
+The model last-vertex index at app `$174` is also named through its producer and
+projection loops. All 104 stored headers have last-index at most47.
+
+Only the resulting 48-slot, eight-byte projected-vertex prefix at `$4B35E` is
+classified here. A separate fixed mesh writes 36 slots. The model path writes
+X/Y/depth WORDs and keeps clipping in its source array; the special mesh also
+writes destination clip BYTE6, while some readers test WORD6. Untouched byte7
+and original zero-seed assumptions remain explicit. Adjacent zero storage up
+to the next lookup remains unclassified, rather than being called unused or
+an invented fully understood 200-record array.
+
+The edge interpolator uses 300 WORD reciprocal entries at `$4B99E`: index 0 is
+zero, index 1 is saturated `$7FFF`, and each later entry is `floor($8000/index)`.
+Every stored value matches that identity. Its observed indexing expression is
+`2*dY+2`; original multiplication, truncation and input bounds remain. The ten
+following zero bytes are not added to the lookup merely because they are adjacent.
+
+Fourteen canonical actions preserve exact full C/vasm output and zero
+range/source-quality diagnostics. Accepted-range accounting grows by
+1192 bytes; 59117 remain unclassified. The scoped producer/consumer
+contracts improve source meaning without a new runtime claim. See
+`runtime/observations/starglider2-projection-scratch.json`. A fresh private build
+of unmodified native source and its 52 INCBIN assets (74871 bytes) matches the complete original payload; all assets match source
+slices. No archive/upload.
