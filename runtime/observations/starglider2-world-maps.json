@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "pointer_table": {
+    "start": 195068,
+    "end": 195196,
+    "entries": 32
+  },
+  "unique_maps": [
+    {
+      "start": 195196,
+      "end": 195198,
+      "count": 0,
+      "stride": 16,
+      "indices": [
+        16,
+        17,
+        18,
+        20,
+        21,
+        22,
+        31
+      ]
+    },
+    {
+      "start": 195198,
+      "end": 195450,
+      "count": 25,
+      "stride": 10,
+      "indices": [
+        0
+      ]
+    },
+    {
+      "start": 195450,
+      "end": 196502,
+      "count": 105,
+      "stride": 10,
+      "indices": [
+        1
+      ]
+    },
+    {
+      "start": 196502,
+      "end": 198054,
+      "count": 155,
+      "stride": 10,
+      "indices": [
+        2
+      ]
+    },
+    {
+      "start": 198054,
+      "end": 199096,
+      "count": 104,
+      "stride": 10,
+      "indices": [
+        3
+      ]
+    },
+    {
+      "start": 199096,
+      "end": 199098,
+      "count": 0,
+      "stride": 10,
+      "indices": [
+        4
+      ]
+    },
+    {
+      "start": 199098,
+      "end": 200430,
+      "count": 133,
+      "stride": 10,
+      "indices": [
+        5
+      ]
+    },
+    {
+      "start": 200430,
+      "end": 201542,
+      "count": 111,
+      "stride": 10,
+      "indices": [
+        6
+      ]
+    },
+    {
+      "start": 201542,
+      "end": 202294,
+      "count": 75,
+      "stride": 10,
+      "indices": [
+        7
+      ]
+    },
+    {
+      "start": 202294,
+      "end": 203296,
+      "count": 100,
+      "stride": 10,
+      "indices": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "start": 203296,
+      "end": 204198,
+      "count": 90,
+      "stride": 10,
+      "indices": [
+        15
+      ]
+    },
+    {
+      "start": 204632,
+      "end": 205962,
+      "count": 83,
+      "stride": 16,
+      "indices": [
+        19
+      ]
+    },
+    {
+      "start": 205962,
+      "end": 206988,
+      "count": 64,
+      "stride": 16,
+      "indices": [
+        23
+      ]
+    },
+    {
+      "start": 206988,
+      "end": 208494,
+      "count": 94,
+      "stride": 16,
+      "indices": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    }
+  ],
+  "unique_placement_records": 1139,
+  "map_bytes": 12864,
+  "max_original_map_records": 155,
+  "constructor": 97680,
+  "next_record": 97874,
+  "extended_record": 97940,
+  "limits": [
+    "World index must remain in the original 0..31 catalogue domain",
+    "Shared empty maps guarantee only a 2-byte tag, not a full record pointee",
+    "Extended WORDs copied to object +$24/+$28 remain type-dependent/opaque",
+    "Record counts are static templates, not all gameplay allocations or visits",
+    "Sparse gaps and aliases retained; no unused-storage claim"
+  ],
+  "kind": "world_placement_stream_restoration",
+  "canonical_actions": 70,
+  "verification": {
+    "receipt_id": "b06f90b732822eb3749714b16d7984beae74afeb7181b065655a22ab1e23445b",
+    "exact": true,
+    "source_sha256": "90b4f09ed2083be7143f1e38c1e83bb308943078cd8be1168905d08fcfe62d60",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "focused_tests": {
+    "command": "pytest -q tests/test_starglider2_world_maps.py",
+    "passed": 9,
+    "skipped": 0
+  },
+  "accounting": {
+    "before_range_union_bytes": 322246,
+    "after_range_union_bytes": 335238,
+    "before_unclassified_bytes": 90490,
+    "after_unclassified_bytes": 77498,
+    "new_classified_bytes": 12992,
+    "source_quality_diagnostics": 0,
+    "range_violations": 0
+  },
+  "sparse_gaps_not_claimed": [
+    [
+      195060,
+      195068
+    ],
+    [
+      204198,
+      204632
+    ],
+    [
+      208494,
+      208496
+    ]
+  ],
+  "native_incbins": "Assets unchanged; previous standalone INCBIN receipt remains the world-object batch",
+  "completion": "Incomplete restoration; no archive or upload"
+}

@@ -3,7 +3,7 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 90490 bytes remain unclassified and substantial
+byte equality is preserved; 77498 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -605,3 +605,31 @@ A small protection-view refinement also distinguishes the external input-limit
 pointer at `$13D50` from the following eight unchanged context bytes. A JMP-like
 pattern alone is not promoted to executed code; the suffix stays raw. The
 refined view still reassembles and inverse-encodes exactly. No new archive or upload was produced; restoration remains incomplete.
+
+
+## World placements and structure transitions
+
+The constructor at `$17D90/$17E52` consumes a 32-LONG world-layout catalogue at
+`$2F9FC..$2FA7C`. Slots below 16 use 10-byte placements: a type/map-flags WORD
+and LONG world X/Z. Slots 16..31 use 16-byte placements, set Y to -1000, and
+copy three extra WORDs into object `$24/$28/$12`. The first two purposes remain
+type-dependent/opaque; the third shares the orientation/type-parameter slot.
+Surface/interior transitions subtract 16 and mask 15, or add 16 and mask 31.
+Their code points and the world-layout/inside-structure state now have names.
+This does not certify every other writer or arbitrary caller input.
+
+Fourteen distinct streams serve all 32 pointers through aliases: nine nonempty
+surface maps, three nonempty interior maps and two distinct empty tags. They
+contain 1139 unique stored placement records; the largest map has 155, plus
+the separately constructed player. These static templates fit the 250-record
+pool; this is not a proof of every later gameplay allocation. The pointer type
+promises only the first 2-byte tag, so empty streams do not acquire fictitious
+10-/16-byte pointee extents. Nonempty arrays and zero terminators are separately
+typed and retain all original values. No raw coordinates are public metadata.
+
+The table and streams occupy 12992 bytes. Prefix `$2F9F4..$2F9FC`, sparse gap
+`$31DA6..$31F58`, and trailing `$32E6E..$32E70` remain unclaimed. Nine focused
+parser/bounds/refusal tests pass; complete original C/vasm equality is exact.
+See `runtime/observations/starglider2-world-maps.json` and the reproducible
+`starglider2_world_maps` audit. No extra gameplay or all-path claim, archive or
+upload accompanies this batch.
