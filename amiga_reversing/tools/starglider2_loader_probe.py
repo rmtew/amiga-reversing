@@ -15,6 +15,7 @@ from .copperline_session import HeadlessCopperlineSession
 from .copperline_control import CopperlineProcess
 from .copperline_runtime import wait_for_pc
 from .starglider2_extract import extract
+from .starglider2_protection import START, SIZE, subtract_stage
 
 
 def main() -> None:
@@ -23,6 +24,8 @@ def main() -> None:
     parser.add_argument("--rom", type=Path, required=True)
     parser.add_argument("--copperline", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument('--check-protection-subtraction', action='store_true',
+                        help='Verify the first startup transform at PC $1F0C')
     args = parser.parse_args()
     payloads, extraction = extract(args.disk.read_bytes())
     args.output.mkdir(parents=True, exist_ok=False)
@@ -66,6 +69,23 @@ def main() -> None:
                     client.joystick(port=1, blue=True)
             client.joystick(port=1)
             receipt["input_events"].append(dict(after="game_entry", port=1, blue=False))
+            if args.check_protection_subtraction:
+                expected = subtract_stage(payloads['game_copy'][START-0x1000:START-0x1000+SIZE])
+                stage = dict(name='protection_subtraction', entry=0x1F0C,
+                             load_address=START, wait=wait_for_pc(client, 0x1F0C, 60))
+                receipt['stages'].append(stage)
+                save()
+                if stage['wait']['status'] != 'hit':
+                    raise RuntimeError('Protection subtraction not observed within bounds')
+                observed = client.read_memory(START, SIZE)
+                stage.update(size=SIZE, byte_exact=observed == expected,
+                             observed_sha256=hashlib.sha256(observed).hexdigest(),
+                             registers=client.registers())
+                save()
+                if observed != expected:
+                    raise RuntimeError('Protection subtraction bytes differ')
+                print(f'protection_subtraction: all {SIZE} bytes match', flush=True)
+                receipt['limits'].append('Rotation/decoded protection entry not qualified by SUB-stage match')
             receipt["status"] = "normal_media_loader_entries_and_bytes_exact"
     except Exception as exc:
         receipt.update(status="failed_or_not_observed", error=str(exc))

@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "kind": "protected_code_and_data_restoration",
+  "transformation": {
+    "schema_version": 1,
+    "parent_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "source_offset": 73600,
+    "load_address": 77696,
+    "entrypoint": 80892,
+    "size": 3484,
+    "long_count": 871,
+    "declared_end": 81182,
+    "untransformed_tail_size": 2,
+    "key": 844723765,
+    "encoded_sha256": "e655dadf03ab32f4ee36a8d96f240bb9055b0e49f2d8f05951fa485e88a3646f",
+    "decoded_sha256": "fb551353d3d0ab5e77eac02acbd55f2ebf336a34096966c32c280b99898a25ef",
+    "inverse_exact": true,
+    "subtraction_loop": 7940,
+    "rotation_loops": [
+      7992,
+      58436
+    ],
+    "limits": [
+      "Static decoded view; conditional execution requires separate evidence",
+      "Original payload remains encoded and is not replaced by this view",
+      "Two bytes before the declared end are outside the LONG loops"
+    ],
+    "context_end": 81244,
+    "unchanged_context_size": 64,
+    "analysis_view_size": 3548,
+    "analysis_view_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+    "unchanged_context_sha256": "82bdd995e2c077d607997aa2af7f84bbec6b12479ea85b25bf1dda404239f154",
+    "derived_verification_id": "f1b9a5eabf26abba506068fa28329ad51cd7154e53dcf1ff642964ece129d57b",
+    "derived_source_sha256": "54655a855ee664a0e90e3c915f09ad68f179098889bc603070e85ebe9612244a",
+    "rebuilt_then_inverse_exact": true
+  },
+  "native_target": "amiga_raw_starglider2_protection_view",
+  "derived_verification": {
+    "receipt_id": "f1b9a5eabf26abba506068fa28329ad51cd7154e53dcf1ff642964ece129d57b",
+    "exact": true,
+    "original_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+    "original_size": 3548,
+    "source_sha256": "54655a855ee664a0e90e3c915f09ad68f179098889bc603070e85ebe9612244a",
+    "output_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+  },
+  "normal_media_observation": {
+    "input_sequence": [
+      "cold boot original disk",
+      "hold port1 blue at intro entry",
+      "release blue at main entry"
+    ],
+    "stages": [
+      {
+        "name": "intro",
+        "wait": {
+          "address": "0x00024000",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "stop_event": {
+            "cck": 15526754,
+            "detail": "Breakpoint at $024000",
+            "frame": 218,
+            "hpos": 181,
+            "pc": 147456,
+            "reason": "breakpoint",
+            "retired_instructions": 2614512,
+            "seconds": 4.377562346785005,
+            "vpos": 165
+          },
+          "pc": "0x00024000",
+          "sp": "0x00c014ae",
+          "stack_return_address": "0x00000244"
+        },
+        "byte_exact": true,
+        "sha256": "553dcd88883415160d219d6c5b1c3cddfb9c80e2aeb20aab20cb8943a0650f2e"
+      },
+      {
+        "name": "main",
+        "wait": {
+          "address": "0x00001000",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "stop_event": {
+            "cck": 44096554,
+            "detail": "Breakpoint at $001000",
+            "frame": 620,
+            "hpos": 215,
+            "pc": 4096,
+            "reason": "breakpoint",
+            "retired_instructions": 6833958,
+            "seconds": 12.43243851312204,
+            "vpos": 197
+          },
+          "pc": "0x00001000",
+          "sp": "0x00c7fffa",
+          "stack_return_address": "0x00100000"
+        },
+        "byte_exact": true,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "name": "subtracted",
+        "wait": {
+          "address": "0x00001f0c",
+          "status": "hit",
+          "termination": "breakpoint_hit",
+          "stop_reason": "breakpoint-hit",
+          "stop_event": {
+            "cck": 44387597,
+            "detail": "Breakpoint at $001F0C",
+            "frame": 624,
+            "hpos": 17,
+            "pc": 7948,
+            "reason": "breakpoint",
+            "retired_instructions": 6889550,
+            "seconds": 12.514494226640483,
+            "vpos": 228
+          },
+          "pc": "0x00001f0c",
+          "sp": "0x0000336c",
+          "stack_return_address": "0x000010fe"
+        },
+        "byte_exact": true,
+        "sha256": "425bba86784ea7c414dc4e2b188db63b0787e816b007d35422600bcded7dbced"
+      },
+      {
+        "name": "decoded_entry",
+        "wait": {
+          "address": "0x00013bfc",
+          "status": "timeout",
+          "termination": "deadline_interrupt",
+          "stop_reason": "pause",
+          "stop_event": null,
+          "pc": "0x000011a4",
+          "sp": "0x00003370",
+          "stack_return_address": "0x00000000"
+        }
+      }
+    ],
+    "status": "failed_or_not_observed"
+  },
+  "focused_tests": {
+    "command": "pytest -q tests/test_starglider2_protection.py tests/test_starglider2_extract.py",
+    "passed": 17,
+    "skipped": 0
+  },
+  "decoded_contract": {
+    "record_count": 163,
+    "record_stride": 16,
+    "coordinate_byte_offsets": [
+      0,
+      1,
+      2
+    ],
+    "answer_and_fill": [
+      3,
+      16
+    ],
+    "selector_admitted_records": 147,
+    "attempt_limit": 3,
+    "conditional_helpers": "Normal-return assumption at original trampolines, including external low-memory $380 selector provider"
+  },
+  "limits": [
+    "No decoded-entry execution observed in the bounded normal-media run; timeout is retained, not pass",
+    "Initial picture control WORD is zero in supplied image; no modification to force protection entry",
+    "The 64 adjacent bytes are unchanged trampoline/context data, not transformed bytes",
+    "Separate decoded view does not constitute a replacement executable or complete game restoration",
+    "Global original ownership accounting is not reduced by double-counting this derived view"
+  ],
+  "original_verification": {
+    "receipt_id": "2efc1ca35ea53a9b1b4b26959efab5f862ef2fd978e7fdd9aa8373fff8734595",
+    "exact": true,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "source_sha256": "cbfce8a0d63b6583af5aa5db52d7ed5a2988419c416c49368ce3fb616db8029e",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+  }
+}

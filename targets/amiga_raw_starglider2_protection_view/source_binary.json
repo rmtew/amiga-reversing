@@ -1,0 +1,8 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 80892,
+  "kind": "raw_binary",
+  "load_address": 77696,
+  "path": "targets/amiga_raw_starglider2_protection_view/binary.bin"
+}

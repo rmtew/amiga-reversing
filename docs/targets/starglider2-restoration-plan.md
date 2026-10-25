@@ -5,8 +5,10 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names and shared audio/render storage. Complete C/vasm
 byte equality is preserved; 131471 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
-identified assets and projection scales are documented. Remaining static image
-resources and central game-record/function contracts are next.
+identified assets and projection scales are documented. The startup-transformed novella-check region now has a separate reversible,
+canonical readable view; its execution remains conditional and unobserved in the
+bounded Amiga boot. Static image resources and central game-record/function
+contracts remain next.
 No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -454,3 +456,50 @@ Complete C and vasm reproduction remains exact. This adds 12504 classified bytes
 range ownership is 281265, code remains 89702 and the unclassified complement
 is 131471. Media assets did not change, so the panel batch's separate native
 INCBIN verification was not repeated solely for this scalar-table annotation.
+
+## Protected code/data view
+
+Startup has a second representation of `$12F80..$13D1C`. The loop at `$1F04`
+subtracts `$32597635+i` from 871 successive LONGs. Both conditional loops at
+`$1F38` and `$E444` then rotate each first WORD left twice and each second WORD
+right three times. The computed LONG count deliberately leaves the final two
+bytes before the declared `$13D1E` endpoint untouched. Do not extend the transform
+or interpret the encoded entry bytes as meaningful instructions.
+
+The decoded entry `$13BFC` implements the novella word check: three attempts,
+selector below 147, a 16-byte record, and NUL-terminated answer comparison.
+There are 163 contiguous original records, each with page/paragraph/word bytes
+and a 13-byte answer/fill suffix. Only the first 147 are admitted by this
+selector; the other 16 are retained without a dead-storage claim. Prompt text,
+comparison/retry paths and records are canonical facts in the separate
+`amiga_raw_starglider2_protection_view` target. Its 64 adjacent unchanged context
+bytes retain the helper trampolines and pointer storage. The selector provider
+jumps to external low-memory `$380`; its original implementation/ABI is not
+proved by this bounded view. Continuations assume helpers return normally.
+
+To reproduce privately:
+
+```sh
+python -m amiga_reversing.tools.starglider2_protection game_copy.bin --output PRIVATE_FRESH_DIR
+```
+
+Copy the resulting `binary.bin` into the registered view target to analyze it.
+The generated view source rebuilds all 3548 bytes exactly with C and vasm.
+Applying the inverse transform to its first 3484 rebuilt bytes and retaining
+the final 64 bytes reproduces the corresponding original image span exactly.
+The original main target still emits its original encoded bytes; this is an
+additional readable analysis source, not a replacement executable or a patched
+protection path. Neither decoded bytes nor target assets are public commits.
+
+The unchanged-media boot probe matched all 412736 main-entry bytes, then every
+one of the 3484 subtraction-stage bytes at `$1F0C`, frame 624. A subsequent
+60-second wait did **not** observe `$13BFC` and stopped at `$11A4`. This is a
+negative bounded observation, not an execution pass for the decoded routine.
+The supplied image's initial `$5341C` control WORD is zero, so the conditional
+picture check is skipped. No guest writes or artificial calls forced entry.
+The normal loader probe's optional `--check-protection-subtraction` reproduces
+that positive first-stage check without a repeated no-hit campaign.
+See `runtime/observations/starglider2-protected-code.json` for identities and
+limits. This derived view does not reduce the original unknown-byte count by
+counting the same storage twice. Remaining original game-record/function
+contracts, pictures and other unclassified regions still require restoration.

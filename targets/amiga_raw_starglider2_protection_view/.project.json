@@ -1,0 +1,11 @@
+{
+  "created_at": "2026-10-25T08:21:17.067164+00:00",
+  "origin": {
+    "kind": "materialized_target",
+    "parent_project_id": "amiga_raw_starglider2_game",
+    "size": 3548,
+    "transformation": "starglider2_protection_v1"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-10-25T08:23:36.404435+00:00"
+}
