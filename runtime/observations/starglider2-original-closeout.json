@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "kind": "original_layout_reviewed_closeout_with_explicit_unknowns",
+  "scope": "Readable original absolute-address main payload and separate reversible protection analysis view, not full semantic/all-path/disk restoration",
+  "canonical_actions": 12,
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "verification": {
+    "receipt_id": "88695d6528a74e9ca0b74328f6184b0fae532ae32e66c7e4d11d5e46bf0ce71d",
+    "subject_revision": "660667607e40dd92028d15572003455c275897bb1ff4c59bac385e5aaeb6874c",
+    "exact": true,
+    "source_sha256": "226d8994cdfa159a2d847cc57fd7a650c2bc02075c75b82315a1abb6b287fc72",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "accepted_range_union_bytes": 397625,
+    "accepted_code_bytes": 106034,
+    "unclassified_bytes": 15111,
+    "unclassified_intervals": 256,
+    "prior_code_lost_bytes": 0,
+    "new_classified_original_bytes": 60,
+    "source_quality_diagnostics": 0,
+    "range_violations": 1,
+    "known_encoded_entry_exception": {
+      "offset": 76796,
+      "kind": 3,
+      "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+    }
+  },
+  "source_quality_review": {
+    "prior_code_preserved": true,
+    "all_current_unclassified_intervals_dispositioned": true,
+    "no_current_native_code_start_fact_inside_unknown_intervals": true,
+    "not_all_indirect_entries_proven": true,
+    "meaningful_connected_lead_fixed": "3781E nearby sound analysis: two fixed message pointers, exact NUL strings and selected object name; 39CE2 gated modulo512 notice phase",
+    "raw_code_not_replaced_by_whole_image_INCBIN": true,
+    "source_assembly_hand_edits": false
+  },
+  "boot_selector_contract": {
+    "kind": "static_original_boot_installed_selector_contract",
+    "disk_sha256": "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3",
+    "bootblock_sha256": "a1595211043e209cb26abfc4b2c448c149ea3b19fead6e9ef3c0cc4ce4470d82",
+    "slices": [
+      {
+        "role": "installer_with_original_source_context",
+        "bootblock_span": [
+          36,
+          76
+        ],
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b",
+        "source_sha256": "5e00c3550ed485acdf19814f94af1c8b4b41a5d8e2d1cc84827e6226c72a12a9",
+        "C_exact": true,
+        "vasm_exact": true,
+        "analysis_view_base": 36,
+        "address_domain": "bootblock_source_offsets; actual OS buffer base is not assumed",
+        "original_source_context_included": true
+      },
+      {
+        "role": "resident_shim",
+        "bootblock_span": [
+          56,
+          76
+        ],
+        "runtime_base": 896,
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024",
+        "source_sha256": "787f9a6ac293c87433e8cb539a798776893b5ae213da51a44383fe00b44b905b",
+        "C_exact": true,
+        "vasm_exact": true,
+        "address_domain": "fixed installed runtime addresses"
+      }
+    ],
+    "copy": {
+      "installer": [
+        36,
+        56
+      ],
+      "source_offset": 56,
+      "destination": 896,
+      "long_count": 5,
+      "bytes": 20
+    },
+    "contract": {
+      "stack_return_address": 80902,
+      "matching_D0_LONG": 145,
+      "other_tail_target": 9826,
+      "bridge": 81208,
+      "decoded_BSR": 80898
+    },
+    "limits": [
+      "Original media provisioning, not a newly installed bypass",
+      "No execution or residency claim after returning intro; any intervening writes remain a condition",
+      "No whole bootblock/disk reconstruction or new emulator run",
+      "Installer source view ORG24 preserves bootblock-relative coordinates; it is not a claim that the OS loaded the bootblock at address24"
+    ]
+  },
+  "decoded_view": {
+    "original_bytes": 3548,
+    "encoded_prefix_bytes": 3484,
+    "unchanged_context_bytes": 64,
+    "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+    "source_sha256": "abcce583e06d12f652728009d35376ef3a8469e74bcaba1e3e773171f5e2d89a",
+    "receipt_id": "fcdcb73160ad6d0b555e0a85dad143100fd59d23102fdfc90c41472573ce70c9",
+    "C_exact": true,
+    "vasm_exact": true,
+    "inverse_matches_original_encoded_window": true,
+    "original_coverage_double_counted_bytes": 0
+  },
+  "asset_export": {
+    "C_package_exact": true,
+    "asset_minimum_size": 64,
+    "asset_count": 57,
+    "asset_bytes": 93633,
+    "all_asset_source_slices_equal": true,
+    "source_package_sha256": "8266db3d9b8d88b5c7162a6e3103d93fd80b31730b34069d79d27e5ff08ac0cc",
+    "source_hand_edits": false
+  },
+  "runtime_source_provenance": {
+    "commit": "fe027b899fa06252a37c06d00463c0fa25daf5b4",
+    "matching_files": 347,
+    "different": [],
+    "missing": []
+  },
+  "residual_evidence": "runtime/observations/starglider2-original-unknown-intervals.json",
+  "remaining_limits": [
+    "15111 bytes plus some field/function detail intentionally remain unresolved; no semantic-completion percentage",
+    "Original boot provision at380 is known statically; post-intro residency/protected execution not observed",
+    "Original reset/intro low-memory effects and uncopied448-byte read suffix remain outside main-image semantic closure",
+    "No all-path, gameplay completion or alternate-platform runtime claim; not a DOS HUNK or reconstructed boot disk"
+  ],
+  "delivery_gate": "Clean extracted standalone rebuild and private final archive delivery still pending; no interim archive is delivered"
+}

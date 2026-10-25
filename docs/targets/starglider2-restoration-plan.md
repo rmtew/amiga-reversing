@@ -1,65 +1,70 @@
 # Starglider 2: original source restoration
 
-Status: normal-media loader entries/bytes verified. Published source batches cover
-startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
-secondary object updates, names, shared audio/render storage, frame/view and flight
-state, projected discs, HUD sprites, text/input, contact lists and polygon
-edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 15171 bytes remain unclassified and substantial
-function/field meaning remains unresolved. Panel-animation images export as
-identified assets and projection scales are documented. The startup-transformed
-novella-check region now has a separate reversible,
-canonical readable view; its execution remains conditional and unobserved in the
-bounded Amiga boot. Cockpit and Argonaut splash RLE streams now export as identified assets.
-The world-object pool, update dispatch and selected motion fields now have
-canonical names/types. Other game-record/function contracts remain open.
-No interim archives.
+Status: **original-layout source review closed with explicit unknowns**.
+Canonical generated source preserves all 412736 main-payload bytes in C/vasm;
+106034 bytes are accepted code. The normal INCBIN export contains 57 assets /
+93633 bytes, each identical to its source slice, and also passes the native C
+assembler. The final standalone archive rebuild and private delivery are the
+remaining packaging gates, not another semantic implementation programme.
+
+This is not full semantic or all-path restoration: 15111 bytes in 256 intervals
+remain explicitly unclassified. No instruction or asset was replaced to make
+an assertion pass, and the assembly is not hand-polished. Source facts, names,
+structures and comments belong to the canonical catalogue/MAL/DJ. All batch
+results below are historical; the closeout and residual evidence govern the
+current disposition. No interim archive is delivered.
+
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
 
-## Current remaining-work inventory
+## Reviewed closeout and remaining limits
 
-After the sound/control alias batch, native ownership leaves
-256 intervals / 15171 bytes unclassified. This is classification accounting,
-not semantic completion; function/field completeness has no measured denominator.
-The largest interval is now `$61C2C..$62492` (2150 bytes). Original encoded
-storage is explicitly data, and its separate decoded view is not added again
-to the original coverage count.
+The bounded residual review accounts for every unclassified interval from the
+current native ownership union. Of 256 intervals, 58 have resolved static
+operand sites and 198 do not. There is no current native code-start fact inside
+that complement. This does not prove absence of indirect/implicit entries,
+cursor aliases or later writes, and no interval is called unused or dead.
+Accessed opaque cells retain their original bytes and generic names where a
+supported semantic layout is absent. The review evidence is not a second fact
+database and does not change native classification.
 
-The weapon/HUD family at `$719C..$7F1E` and the three rotating Copper lists
-now have producer/consumer-backed source contracts, as does the settings/UI
-stream at `$E706..$E9B4` (bounded backing exceptions remain explicit below).
-The seven unchanged protection-context bridges and text-screen helper now
-have conditional source contracts. Remaining work includes sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
-`$61C2C..$62492`. Boundaries and meanings require actual consumers; adjacency or
-absent direct xrefs alone cannot establish a role or deadness. World/body and
-object-record views retain explicit conditional index/alias assumptions, rather
-than arbitrary input-safety proofs. The planetfall pointer prefix at `$38504..$38544`, its text and the
-16 departure-message flags now have explicit source contracts. Conditional
-higher-selector aliases remain qualified; these are not universal domain proofs.
+The major retained envelopes are sound/array backing such as
+`$4B4DE..$4B99E` and `$61C2C..$62492`, unentered instruction-shaped/UI bytes
+such as `$2F70..$3374` and `$653E..$67F4`, and detailed mutable render/world/
+alternate-backend state. Their source uses and exact intervals are recorded in
+`runtime/observations/starglider2-original-unknown-intervals.json`. No whole-span
+scratch reservation, arbitrary-index safety, all-callers lifetime or missing
+reader proof is manufactured. Deeper semantic refinement is optional future
+work, not hidden completion of those meanings.
 
-Concrete next producer/consumer leads are the remaining world/effect cells at
-`$39C24..$39CE0`, render/flight state at `$48D8..$49B0`, `$5894..$5918`,
-`$2EFF4..$2F018` and `$2F524..$2F644`, and conditional alternate-backend
-state at `$3A0B8..$3A2D4` and `$3CAE4..$3CAF2`. The unentered UI/bridge
-span `$2F70..$3374` and arithmetic-looking bytes `$653E..$67F4` need original
-entry evidence, not opcode-pattern classification. These are finite source
-leads, not a measured function-completeness denominator.
+The original bootblock's `$24..$38` installer copies five LONGs from its `$38`
+source to `$380`. Its resident shim recognizes stacked return address `$13C06`
+and returns selector `$91`; other callers tailcall the main PRNG at `$2662`.
+The existing decoded BSR/JMP chain gives exactly that return address. Both the
+installer with its original source context and the resident view rebuild
+exactly in C/vasm. This resolves static producer/conditional ABI, not post-intro
+residency or observed protected execution. No new bypass was installed.
 
-Conditional external continuations remain distinct: the decoded protection
-entry/provider at `$380`, reset through vector4, intro low-memory patches, and
-the 448-byte second-read suffix. Existing normal-media entry evidence establishes
-extraction but does not resolve these later contracts or prove gameplay paths.
+The original encoded-window entry still produces one explicit native code/data
+conflict. Its original bytes render as encoded data; a separate 3548-byte
+readable view has a 3484-byte transformed prefix and 64 unchanged context bytes,
+rebuilds exactly and inversely reproduces the original. It is not counted twice.
+Reset/intro low-memory dependencies and the 448-byte uncopied loader suffix
+remain qualified. There is no all-path/game-completion or new output-equivalence
+claim for this source review.
 
-Useful original-source completion requires a final connected review of the
-remaining meaningful function/field/table leads, a bounded disposition for every
-residual opaque interval, and a source-quality audit of generated symbols,
-structures and asset consumers. Unsettled meanings must remain explicitly
-qualified, not receive invented names. Then regenerate the canonical assembly
-and INCBIN export once and verify a clean standalone C/vasm rebuild of every
-original byte before private final packaging. A byte-exact raw dump or an
-ownership percentage alone does not meet that gate; no interim archive.
+The last active residual lead was the nearby-sound analysis routine: it now has
+named heading/suffix text and its actual two-slot pointer prefix, around the
+existing object-name directory, plus a gated modulo512 notice phase. Two
+following zero bytes remain unclassified. All prior accepted code is retained.
+See `runtime/observations/starglider2-original-closeout.json`.
+
+The useful source completion gate has therefore been met with explicit unknowns.
+Finish with the normal source/INCBIN export, a clean extracted standalone exact
+build and private source/raw-payload archive. The archive is not an AmigaDOS
+executable or a reconstructed boot disk. No relocation, C conversion or further
+naming queue is active.
 
 ## Reproducible extraction
 
@@ -75,8 +80,11 @@ with a fresh output directory. Do not publish the extracted copyrighted bytes.
 | `$16000..$7AE00` | `$1A000..$7EE00` | Second trackdisk read, 413184 bytes |
 | `$16000..$7AC40` | `$1000..$65C40` after forward LONG copy | Main entry `$1000`, 412736 bytes |
 
-The retained bootblock listing is
-`targets/amiga_disk_starglider-2-1988-rainbird-cr-ua---wow/targets/amiga_raw_bootblock/bootblock.s`.
+The relevant original boot installer and resident-shim views are hash-bound
+in `runtime/observations/starglider2-original-closeout.json` and supplied as
+analysis source in the private deliverable. The old nested bootblock listing
+path is not part of this committed export; disk provenance comes from the
+extracted original bytes and the existing deterministic extraction recipe.
 At source `$4C` it configures CMD_READ length `$DA00`, destination `$23FF8`,
 disk offset `$2C00`, then calls `$24000`. The second setup at `$A0` reads
 length `$64E00`, destination `$1A000`, offset `$16000`. At `$F0` the trap handler
@@ -97,21 +105,22 @@ Main-copy SHA256:
 This is a raw loaded image, not an AmigaDOS executable. Static disk extraction
 does not by itself qualify natural loader execution or every byte's role.
 
-## Connected acceptance steps
+## Acceptance disposition
 
-1. Verify natural intro return and main entry against extracted bytes; follow any
-   additional loads or self-modification actually encountered.
-2. Import the recovered image through existing raw-target services. Resolve
-   code/data ownership and structural refusals through canonical facts; never
-   suppress a guard merely to emit a listing.
-3. Restore connected functions, shared fields and table/asset consumers with
-   evidence-backed names. Keep unresolved control/data explicitly unknown.
-4. Generate canonical original assembly and INCBIN assets, verify complete raw
-   payload equality with C and vasm, and package a standalone clean rebuild.
-5. Deliver the copyrighted source/assets/raw output privately with README,
-   provenance and checksums. Public commits contain only appropriate tooling,
-   metadata and evidence descriptions. Do not promise a DOS HUNK or original
-   disk reconstruction without separate demonstrated support.
+1. Original-media intro return/main entry and extracted bytes: retained qualified
+   runtime evidence; not a walkthrough or every bootstrap-path proof.
+2. Canonical main code/data and connected source restoration: reviewed with the
+   explicit residual and encoded-entry exceptions above.
+3. Source preservation and normal native INCBIN export: exact; 57 assets match
+   original slices, every prior accepted code byte retained.
+4. Clean standalone package rebuild/private delivery: pending final packaging
+   validation. No interim archive.
+
+## Historical restoration batches
+
+The following sections retain earlier evidence, counts and decisions. Later
+closeout dispositions refine earlier open leads; historical "next" wording is
+not an active programme backlog.
 
 ## First source batch
 
@@ -1692,3 +1701,18 @@ accepted code byte. Classification gains 151 bytes, leaving
 diagnostics remain zero, and the known encoded-entry conflict remains one.
 See `runtime/observations/starglider2-sound-controls.json`. This is source
 understanding, not new playback/all-state proof or a completed restoration.
+
+
+## Final source-review packet
+
+Twelve canonical actions close the original-media selector producer contract,
+name its shared PRNG/fixed effects bridge, and restore the active nearby-sound
+analysis feedback and gated notice phase. The new text/field interpretation
+classifies 60 original bytes; two following zero bytes remain opaque. Full
+C/vasm reconstruction remains exact, accepted code stays 106034 bytes with
+zero code loss, and the unclassified complement is 15111 bytes. The only native
+range exception is the known transformed entry; source-quality diagnostics are
+zero. The separate decoded view also has fresh exact C/vasm and inverse proof.
+This is the final bounded source-review packet, not an invitation to continue
+with cosmetic names or speculative classifications. Packaging remains until
+the clean standalone rebuild and private delivery are verified.
