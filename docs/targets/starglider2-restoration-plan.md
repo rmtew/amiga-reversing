@@ -11,7 +11,8 @@ The current ownership union leaves 14748 bytes in
 260 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
-[refinement receipt](../../runtime/observations/starglider2-refinement-text-models.json).
+[static refinement receipt](../../runtime/observations/starglider2-static-dispatch-resources.json) and
+[current flight evidence](../../runtime/observations/starglider2-flight-input-evidence.json).
 
 ## Current refinement and next evidence
 
@@ -24,13 +25,14 @@ weak repeated-only/numeric cases are checked. Four original indexed directories
 now render symbolically, including the 16-entry rating table. The other three
 are prefixes of 2, 5 and 7 text pointers, not proven complete index domains.
 
-Canonical facts now explain 18 rating texts, five app fields and two routines.
+The recent source-refinement batches explain 18 rating texts, 12 app fields,
+four routines and two internal meter-stage labels.
 Writable decimal slots and original arithmetic remain explicit. The energy
 overflow bonus is not a kill count; the shot counter precedes final spawn/pool
 checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
-a runtime instance census. 77 focused tests pass; source quality has zero
+an all-path runtime instance census. 91 focused tests pass; source quality has zero
 diagnostics and retains the known encoded-entry boundary conflict.
 
 A second generic renderer defect hid interior pointer-table annotations.
@@ -38,21 +40,21 @@ Both inferred and declared table fixtures reproduce it; each entry note now
 appears once. All 93 model-directory notes are verified in both inline and
 INCBIN source exports, with non-comment source lines unchanged.
 
-The normal-media probe verified intro/main payload bytes, entered title/start
-state, completed a CPU-only write-watch window at frames 881–1181 without a hit,
-and bounded the flight-entry search to frame 1931. It stopped in text input at
-$D7BE with a stacked return $13CD6; actual flight was not observed. A follow-up
-that would read and enter the selected protection answer was rejected before
-execution by automatic approval review. That dependent runtime action awaits
-explicit approval; no workaround was attempted. Screenshot materialization also
-failed, so no pixel-specific conclusion is claimed.
+The initial normal-media probe stopped at protection input and its answer step
+was denied before execution. After explicit user approval, that exact read and
+normal keyboard-input step succeeded; no guest memory/register write was used.
+The original-media route reached flight at frame 862 and captured four bounded
+bus frames plus two 250-record snapshots. Configured Space input then triggered
+the shot counter at PC $7278, frame 989; joystick input alone had no hit with
+one-hand mode off. See the current flight evidence for counts and limitations.
 
-Next, resolve those concrete input/image prerequisites, then trace actual flight
-and model/field instances. 30 orphan signals retain unresolved inbound paths;
-two instruction-shaped trampolines are leads only, not executable-code proof.
-Do not infer dead storage from a no-hit window or promote code from appearance.
-The public probe is `amiga_reversing/tools/starglider2_refinement_probe.py`;
-private original inputs and ROM must be supplied explicitly.
+Next evidence should target a concrete unresolved callback, model selector or
+field consumer rather than repeat this same route. Thirty orphan signals and
+the raw trampolines retain unresolved incoming paths; no code is promoted from
+appearance or called dead from a no-hit window. Screenshot materialization still
+failed, so no pixel-specific conclusion is claimed. Reproduce the new bounded
+route with `amiga_reversing/tools/starglider2_flight_probe.py`; private original
+inputs and ROM are required and stay outside Git.
 
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -1832,7 +1834,40 @@ The regenerated original export and clean standalone build remain byte-exact.
 See `runtime/observations/starglider2-static-dispatch-resources.json` for current
 accounting and evidence identities. The raw trampolines at $C4FC/$B4DC retain
 unresolved incoming paths. No new runtime run or screenshot claim is made;
-protection-step approval remains pending. The historical closeout above was
+protection-step approval was pending at that static batch; the subsequent
+authorized flight result below resolves that input prerequisite. The historical closeout above was
 reopened by the user's source review, and does not describe current semantic
 completeness. All 16 paused working files remain byte-for-byte unchanged; only
 the two clean baseline capacity hunks are integrated separately.
+
+
+## Authorized normal-input flight evidence
+
+The specifically approved protection-record read and normal keyboard-answer
+step succeeded. Original-media boots reproducibly reached flight entry $1288
+at frame 862 without guest-memory or register writes. This supersedes the
+previous pending-input blocker for this probe, not its historical denial.
+
+A four-frame bus capture (983..986, first frame partial) observed 305 CPU
+transfers across the requested resource words, sound flags and player record,
+with zero dropped or omitted records. Frame PC samples were already accepted
+code; they are not per-access instruction attribution. Snapshot type WORDs
+from all 250 original 68-byte records can now be joined with stored names;
+zero/free, type30's render substitution and out-of-catalogue type145 remain
+explicit. This is not visual model recognition or all-callback proof.
+
+Joystick port2 fire held across frames987..1287 produced no counter write.
+Original one-hand mode was off: the weapon gate at $71DE accepts app+$201
+or the configured keyboard scancode at app+$7F2 instead. A targeted repeat
+using the original configured Space key observed the counter's low-WORD write
+at frame989, triggering PC $7278, A6=$69668. The original instruction is a
+LONG increment and precedes later spawn checks, so no completed projectile
+claim follows merely from this watch. No byte classification or orphan-code
+promotion is manufactured from these observations.
+
+Reproduce with `python -m amiga_reversing.tools.starglider2_flight_probe`
+and explicit private `--inputs`, `--rom`, `--copperline`, `--output` paths plus
+`--answer-selected-protection-request`. Copperline requires loopback network
+permission for its control server. The probe uses fixed bounded inputs and
+explicit releases; raw answer, memory snapshots and bus sidecars remain private.
+See `runtime/observations/starglider2-flight-input-evidence.json`.

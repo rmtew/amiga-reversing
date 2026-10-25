@@ -1,0 +1,672 @@
+{
+  "schema_version": 1,
+  "kind": "normal_input_flight_and_configured_fire_observation",
+  "status": "bounded_runtime_observation_complete",
+  "target": "amiga_raw_starglider2_game",
+  "source_base_commit": "8d9e58802a0277d0ca56dffdb93faed981d09721",
+  "original_payload_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_adf_sha256": "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3",
+  "machine_profile": "a500ocs_512k",
+  "protection_step": {
+    "status": "approved_action_executed_successfully",
+    "input_loop_frame": 784,
+    "normal_keyboard_transitions": 12,
+    "submitted_by_frame": 820,
+    "guest_register_memory_writes": false,
+    "answer_and_raw_keyboard_log_published": false
+  },
+  "flight_entry": {
+    "name": "flight_entry",
+    "address": "0x00001288",
+    "status": "hit",
+    "termination": "breakpoint_hit",
+    "stop_reason": "breakpoint-hit",
+    "stop_event": {
+      "cck": 61308574,
+      "detail": "Breakpoint at $001288",
+      "frame": 862,
+      "hpos": 187,
+      "pc": 4744,
+      "reason": "breakpoint",
+      "retired_instructions": 9662074,
+      "seconds": 17.285139255602434,
+      "vpos": 275
+    },
+    "pc": "0x00001288",
+    "sp": "0x00003370",
+    "stack_return_address": "0x00000000"
+  },
+  "workspace_base": 431720,
+  "trace": {
+    "start_frame": 982,
+    "stop_frame": 987,
+    "captured_frames": [
+      983,
+      984,
+      985,
+      986
+    ],
+    "first_frame_partial": true,
+    "ranges": [
+      {
+        "name": "app_resource_words",
+        "address": 433576,
+        "length": 96
+      },
+      {
+        "name": "sound_event_flags",
+        "address": 434504,
+        "length": 224
+      },
+      {
+        "name": "player_record",
+        "address": 440728,
+        "length": 68
+      }
+    ],
+    "counts": [
+      {
+        "range": "app_resource_words",
+        "engine": "cpu",
+        "access": "read",
+        "transfers": 167
+      },
+      {
+        "range": "app_resource_words",
+        "engine": "cpu",
+        "access": "write",
+        "transfers": 35
+      },
+      {
+        "range": "player_record",
+        "engine": "cpu",
+        "access": "read",
+        "transfers": 67
+      },
+      {
+        "range": "player_record",
+        "engine": "cpu",
+        "access": "write",
+        "transfers": 13
+      },
+      {
+        "range": "sound_event_flags",
+        "engine": "cpu",
+        "access": "read",
+        "transfers": 18
+      },
+      {
+        "range": "sound_event_flags",
+        "engine": "cpu",
+        "access": "write",
+        "transfers": 5
+      }
+    ],
+    "matching_transfers": 305,
+    "omitted_matching_records": 0,
+    "samples_dropped": 0,
+    "pc_samples": [
+      {
+        "frame": 983,
+        "pc": 19450,
+        "partial": true,
+        "already_accepted_code": true,
+        "slots_sha256": "50b1bd13310b4bf087fda34c2024324133d6ed1cb5755f396724c1e5a86628c6"
+      },
+      {
+        "frame": 984,
+        "pc": 267912,
+        "partial": false,
+        "already_accepted_code": true,
+        "slots_sha256": "c03d04c1ea0fa84bdd3c41706da02571e5eb8c81d713882ef9fa8f9072312c51"
+      },
+      {
+        "frame": 985,
+        "pc": 237272,
+        "partial": false,
+        "already_accepted_code": true,
+        "slots_sha256": "05e77cff8028cf041099ef572e371a38f34890c50eff943bb4e528f6743d2bf9"
+      },
+      {
+        "frame": 986,
+        "pc": 16980,
+        "partial": false,
+        "already_accepted_code": true,
+        "slots_sha256": "439b05b5dc02d4d8d32bcf5c4f928a8f3d6d8a533ebc77b78ba2936af6f6c37d"
+      }
+    ],
+    "per_access_PC_available": false
+  },
+  "field_observations": [
+    {
+      "app_offset": 1858,
+      "bus_transfer_count": 1,
+      "read_write_counts": {
+        "read": 1
+      },
+      "observed_values": [
+        "0x0000000000000000"
+      ]
+    },
+    {
+      "app_offset": 1908,
+      "bus_transfer_count": 6,
+      "read_write_counts": {
+        "read": 5,
+        "write": 1
+      },
+      "observed_values": [
+        "0x000000000000f9bc",
+        "0x000000000000f9be"
+      ]
+    },
+    {
+      "app_offset": 1910,
+      "bus_transfer_count": 6,
+      "read_write_counts": {
+        "read": 6
+      },
+      "observed_values": [
+        "0x000000000000ee48"
+      ]
+    },
+    {
+      "app_offset": 1940,
+      "bus_transfer_count": 3,
+      "read_write_counts": {
+        "read": 3
+      },
+      "observed_values": [
+        "0x000000000000fa00"
+      ]
+    },
+    {
+      "app_offset": 2785,
+      "bus_transfer_count": 1,
+      "read_write_counts": {
+        "read": 1
+      },
+      "observed_values": [
+        "0x0000000000000000"
+      ]
+    },
+    {
+      "app_offset": 2998,
+      "bus_transfer_count": 1,
+      "read_write_counts": {
+        "read": 1
+      },
+      "observed_values": [
+        "0x0000000000000000"
+      ]
+    }
+  ],
+  "objects": {
+    "record_count": 250,
+    "stride": 68,
+    "base": 440728,
+    "snapshots": [
+      {
+        "phase": "pool_at_flight_entry",
+        "sha256": "86c09bf1a01d01a0fa2695ad88c6fd66507bc453fa4a841512ae68e98fa48a36",
+        "counts": [
+          {
+            "stored_type": 0,
+            "records": 145,
+            "catalogue_name": null,
+            "limits": "zero/free or outside104-entry catalogue; do not mask into model index"
+          },
+          {
+            "stored_type": 2,
+            "records": 6,
+            "catalogue_name": "Proximity Mine",
+            "limits": null
+          },
+          {
+            "stored_type": 3,
+            "records": 9,
+            "catalogue_name": "Egron Spire Building",
+            "limits": null
+          },
+          {
+            "stored_type": 4,
+            "records": 7,
+            "catalogue_name": "Solar Energy Converter",
+            "limits": null
+          },
+          {
+            "stored_type": 5,
+            "records": 6,
+            "catalogue_name": "Egron Silo",
+            "limits": null
+          },
+          {
+            "stored_type": 8,
+            "records": 6,
+            "catalogue_name": "Emma 2",
+            "limits": null
+          },
+          {
+            "stored_type": 30,
+            "records": 1,
+            "catalogue_name": "The Icarus",
+            "limits": "type30 substitutes app0192 in visible-object path"
+          },
+          {
+            "stored_type": 43,
+            "records": 3,
+            "catalogue_name": "Skim Launcher Drone",
+            "limits": null
+          },
+          {
+            "stored_type": 46,
+            "records": 4,
+            "catalogue_name": "Egron Dome Silo",
+            "limits": null
+          },
+          {
+            "stored_type": 48,
+            "records": 2,
+            "catalogue_name": "Tunnel Entrance/Exit",
+            "limits": null
+          },
+          {
+            "stored_type": 49,
+            "records": 13,
+            "catalogue_name": "BT Tower",
+            "limits": null
+          },
+          {
+            "stored_type": 50,
+            "records": 11,
+            "catalogue_name": "GBML with Cannon",
+            "limits": null
+          },
+          {
+            "stored_type": 51,
+            "records": 4,
+            "catalogue_name": "Pyramid",
+            "limits": null
+          },
+          {
+            "stored_type": 52,
+            "records": 10,
+            "catalogue_name": "Tower Block",
+            "limits": null
+          },
+          {
+            "stored_type": 53,
+            "records": 5,
+            "catalogue_name": "Tapering Tower Block",
+            "limits": null
+          },
+          {
+            "stored_type": 90,
+            "records": 14,
+            "catalogue_name": "Energy Tower",
+            "limits": null
+          },
+          {
+            "stored_type": 93,
+            "records": 1,
+            "catalogue_name": "Energy Tower",
+            "limits": null
+          },
+          {
+            "stored_type": 96,
+            "records": 1,
+            "catalogue_name": "No records found",
+            "limits": null
+          },
+          {
+            "stored_type": 97,
+            "records": 1,
+            "catalogue_name": "No records found",
+            "limits": null
+          },
+          {
+            "stored_type": 145,
+            "records": 1,
+            "catalogue_name": null,
+            "limits": "zero/free or outside104-entry catalogue; do not mask into model index"
+          }
+        ]
+      },
+      {
+        "phase": "pool_after_settle",
+        "sha256": "0cc9a2da4a2cb18065202da66b324a741be45c09fd6f300506fb05d2faa3dd4e",
+        "counts": [
+          {
+            "stored_type": 0,
+            "records": 131,
+            "catalogue_name": null,
+            "limits": "zero/free or outside104-entry catalogue; do not mask into model index"
+          },
+          {
+            "stored_type": 1,
+            "records": 1,
+            "catalogue_name": "Walker",
+            "limits": null
+          },
+          {
+            "stored_type": 2,
+            "records": 6,
+            "catalogue_name": "Proximity Mine",
+            "limits": null
+          },
+          {
+            "stored_type": 3,
+            "records": 9,
+            "catalogue_name": "Egron Spire Building",
+            "limits": null
+          },
+          {
+            "stored_type": 4,
+            "records": 7,
+            "catalogue_name": "Solar Energy Converter",
+            "limits": null
+          },
+          {
+            "stored_type": 5,
+            "records": 6,
+            "catalogue_name": "Egron Silo",
+            "limits": null
+          },
+          {
+            "stored_type": 8,
+            "records": 6,
+            "catalogue_name": "Emma 2",
+            "limits": null
+          },
+          {
+            "stored_type": 9,
+            "records": 1,
+            "catalogue_name": "Egron Land Tank",
+            "limits": null
+          },
+          {
+            "stored_type": 13,
+            "records": 2,
+            "catalogue_name": "Armed Transport",
+            "limits": null
+          },
+          {
+            "stored_type": 15,
+            "records": 2,
+            "catalogue_name": "Stomper",
+            "limits": null
+          },
+          {
+            "stored_type": 20,
+            "records": 1,
+            "catalogue_name": "Tunnel Sentinel",
+            "limits": null
+          },
+          {
+            "stored_type": 21,
+            "records": 1,
+            "catalogue_name": "Vampire Type Fighter",
+            "limits": null
+          },
+          {
+            "stored_type": 30,
+            "records": 1,
+            "catalogue_name": "The Icarus",
+            "limits": "type30 substitutes app0192 in visible-object path"
+          },
+          {
+            "stored_type": 31,
+            "records": 1,
+            "catalogue_name": "Space Fighter",
+            "limits": null
+          },
+          {
+            "stored_type": 32,
+            "records": 1,
+            "catalogue_name": "Personnel Shuttle",
+            "limits": null
+          },
+          {
+            "stored_type": 43,
+            "records": 3,
+            "catalogue_name": "Skim Launcher Drone",
+            "limits": null
+          },
+          {
+            "stored_type": 45,
+            "records": 1,
+            "catalogue_name": "Fighter Escort",
+            "limits": null
+          },
+          {
+            "stored_type": 46,
+            "records": 4,
+            "catalogue_name": "Egron Dome Silo",
+            "limits": null
+          },
+          {
+            "stored_type": 48,
+            "records": 2,
+            "catalogue_name": "Tunnel Entrance/Exit",
+            "limits": null
+          },
+          {
+            "stored_type": 49,
+            "records": 13,
+            "catalogue_name": "BT Tower",
+            "limits": null
+          },
+          {
+            "stored_type": 50,
+            "records": 11,
+            "catalogue_name": "GBML with Cannon",
+            "limits": null
+          },
+          {
+            "stored_type": 51,
+            "records": 4,
+            "catalogue_name": "Pyramid",
+            "limits": null
+          },
+          {
+            "stored_type": 52,
+            "records": 10,
+            "catalogue_name": "Tower Block",
+            "limits": null
+          },
+          {
+            "stored_type": 53,
+            "records": 5,
+            "catalogue_name": "Tapering Tower Block",
+            "limits": null
+          },
+          {
+            "stored_type": 72,
+            "records": 3,
+            "catalogue_name": "Laser Bolt",
+            "limits": null
+          },
+          {
+            "stored_type": 90,
+            "records": 14,
+            "catalogue_name": "Energy Tower",
+            "limits": null
+          },
+          {
+            "stored_type": 93,
+            "records": 1,
+            "catalogue_name": "Energy Tower",
+            "limits": null
+          },
+          {
+            "stored_type": 96,
+            "records": 1,
+            "catalogue_name": "No records found",
+            "limits": null
+          },
+          {
+            "stored_type": 97,
+            "records": 1,
+            "catalogue_name": "No records found",
+            "limits": null
+          },
+          {
+            "stored_type": 145,
+            "records": 1,
+            "catalogue_name": null,
+            "limits": "zero/free or outside104-entry catalogue; do not mask into model index"
+          }
+        ]
+      }
+    ],
+    "scope": "Stored instance type WORD joined with original catalogue, not visual identification, model selection proof or executed callback coverage. Type30 substitutes app0192 on drawing; type145 is retained as outside catalogue without guessed masking."
+  },
+  "fire": {
+    "failed_control": {
+      "input": "port2 red joystick held",
+      "window": [
+        987,
+        1287
+      ],
+      "status": "completed_no_shot_counter_write",
+      "reason": "Original one-hand flag00 skips primary_fire as direct gate; original71DE path accepts app0201 or configured key at app07F2."
+    },
+    "successful_input": {
+      "name": "configured_fire_key",
+      "rawkey": 64,
+      "one_hand": "00"
+    },
+    "watch": {
+      "name": "shots_field_write",
+      "requested_watch": {
+        "address": 433476,
+        "length": 4,
+        "access": "write",
+        "engine": "cpu",
+        "wait_seconds": 30,
+        "frames": 300
+      },
+      "armed_watch": {
+        "kind": "mmio",
+        "addr": 433476,
+        "len": 4,
+        "access": "write"
+      },
+      "registration": {
+        "id": 6
+      },
+      "watch_id": 6,
+      "wait_seconds": 30,
+      "stop_event": {
+        "access": {
+          "access": "write",
+          "addr": 433478,
+          "pc": 29304,
+          "position": {
+            "cck": 70321912,
+            "frame": 989,
+            "hpos": 36,
+            "seconds": 19.826330353731926,
+            "vpos": 231
+          },
+          "size": 2,
+          "value": 1
+        },
+        "cck": 70321914,
+        "detail": "MMIO write $069D46.W = $0001 (pc $007278, f989 v231 h36, cck 70321912)",
+        "frame": 989,
+        "hpos": 38,
+        "pc": 29308,
+        "reason": "mmio",
+        "retired_instructions": 11191900,
+        "seconds": 19.8263309176054,
+        "vpos": 231
+      },
+      "frame_window": {
+        "start_frame": 987,
+        "target_frame": 1287
+      },
+      "backend_watch_state": {
+        "breaks": [
+          {
+            "access": "write",
+            "addr": 433476,
+            "id": 6,
+            "kind": "mmio",
+            "len": 4
+          }
+        ]
+      },
+      "filter_confirmed": true,
+      "status": "hit",
+      "termination": "access_observed",
+      "queued_stop_notifications": [],
+      "registers": {
+        "d0": 0,
+        "d1": 127008772,
+        "d2": 4294966296,
+        "d3": 131071,
+        "d4": 119078681,
+        "d5": 0,
+        "d6": 2138505215,
+        "d7": 4294901839,
+        "a0": 32499,
+        "a1": 83808,
+        "a2": 457184,
+        "a3": 437468,
+        "a4": 440728,
+        "a5": 92640,
+        "a6": 431720,
+        "a7": 13164,
+        "pc": 29308,
+        "sr": 8192,
+        "sp": 13164
+      },
+      "elapsed_seconds": 0.04
+    },
+    "semantic_scope": "Original7278 LONG increment is observed as low-WORD bus write at app06DE. Counter increment precedes later pool/spawn checks, so this is firing-path evidence, not independent successful projectile creation proof."
+  },
+  "source_analysis": {
+    "new_code_promotions": 0,
+    "new_unclassified_bytes_resolved": 0,
+    "native_unresolved_indirect_sites": 2,
+    "trampolines": "No new execution evidence for C4FC/B4DC"
+  },
+  "validation": {
+    "live_runs": [
+      "Approved answer-only boot reached flight862",
+      "Four-frame trace plus joystick no-hit control",
+      "Same prefix with configured key produced watch hit989"
+    ],
+    "no_runtime_code_or_state_patch": true,
+    "target_source_unchanged": true,
+    "byte_exact_rebuild": "Existing8d9e5880 receipt remains applicable; no regenerated game-source changes",
+    "probe_checks": [
+      "Python compilation",
+      "CLI help",
+      "Missing opt-in refuses before emulator launch",
+      "Bad original identity refuses before emulator launch"
+    ]
+  },
+  "limits": [
+    "Bounded normal flight/input observation, not a walkthrough completion",
+    "Four bus frames including one partial; only requested ranges projected",
+    "Selected transfers are CPU; no broad DMA correctness or all-access claim",
+    "Frame PC samples lack per-access PC; only watch event has exact triggeringPC/register context",
+    "Snapshots do not establish lifecycle or execution of every record",
+    "Library screenshots still unavailable; no screenshot-specific diagnosis",
+    "Raw records, memory snapshots, ROM, disk and answer remain private"
+  ],
+  "private_evidence_sha256": {
+    "receipt.json": "8b8ef4ffbc2b4fd11ad287c0f452f7387222e323459c023b1027684936e67ebf",
+    "flight-bus-trace.json": "63809d092bd203f7a9127d45f6df6dabeb00f49fb6ecc3ea1cb1799448831a53",
+    "pool_at_flight_entry.bin": "86c09bf1a01d01a0fa2695ad88c6fd66507bc453fa4a841512ae68e98fa48a36",
+    "pool_after_settle.bin": "0cc9a2da4a2cb18065202da66b324a741be45c09fd6f300506fb05d2faa3dd4e"
+  },
+  "reproduction": {
+    "executed_private_script_sha256": "91a8e91fb3a7b96112e27ed75a4848d5ee23c6c6d11962f933723c4a72d3f58c",
+    "published_probe_sha256": "eb9b96c0185e8f5a70fea07a26aff607abc877cf24b6a8b39807a89ffdb9ffd3",
+    "differences": "Published CLI parameterizes existing private paths, adds explicit opt-in/input hashes, main wrapper and release-event logging; same input timing and trace/watch logic. Live qualification used the private fixed-path version.",
+    "live_public_cli_replay": false
+  }
+}
