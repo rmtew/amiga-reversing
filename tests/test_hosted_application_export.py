@@ -12,10 +12,10 @@ from amiga_reversing.disasm.source_package import extend_source_package,validate
 ROOT=Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize('allocate_image',[None,False,True])
-def test_reference_contract_requests_the_same_guest_owner_family(allocate_image):
+@pytest.mark.parametrize('allocate_image,high_masks,count',[(None,None,8),(False,None,6),(True,False,7),(True,True,8)])
+def test_reference_contract_requests_the_same_guest_owner_family(allocate_image,high_masks,count):
     from amiga_reversing.disasm.hosted_application_export import native_contract,TARGET
-    from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER
+    from amiga_reversing.tools.pandora_OS_application import OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER
     class Artifact:
         def __init__(self):self.requested=[]
         def runtime_allocation_plan(self,name,layout):
@@ -26,8 +26,10 @@ def test_reference_contract_requests_the_same_guest_owner_family(allocate_image)
             return dict(status='actual_placements_valid',uncovered_runtime_extents=[])
         def loaded_backend_identity(self):return dict(sha256='fixture')
     a=Artifact()
-    contract=native_contract(a,TARGET,'hosted',**({} if allocate_image is None else dict(allocate_image=allocate_image)))
-    assert tuple(contract['candidates'])==((*OWNERS,IMAGE_OWNER) if allocate_image is not False else OWNERS)
+    flags={} if allocate_image is None else dict(allocate_image=allocate_image)
+    if high_masks is not None:flags['allocate_high_masks']=high_masks
+    contract=native_contract(a,TARGET,'hosted',**flags)
+    assert tuple(contract['candidates'])==(*OWNERS,IMAGE_OWNER,HIGH_MASK_OWNER)[:count]
 
 
 def test_high_mask_contract_does_not_bypass_image_profile_precondition():

@@ -3,6 +3,33 @@
 ## Canonical layout implementation checkpoint (2026-10-24)
 
 
+### Eight-owner cold completion and reproducible source package
+
+[High-mask qualification](../../runtime/observations/pandora-high-mask-allocation-qualification.json)
+now records all576 phases, saved Earth and escape at HP49/frame15203, natural
+DOS return and ten exact frees after DMA quiescence. Normal source export now
+selects eight Exec owners; a fresh external extraction/build reproduces the
+qualified executable (SHA256 `168f84e05186c36ea2e674dd65ede61ef80ee1a2cf882df46b679056f7d91cd6`).
+Explicit six/seven-owner compatibility remains in the same builder.189 focused
+tests pass without skips. Only carrier/display remain fixed:430,080 bytes.
+Total game leases remain852,616 bytes; no peak-memory reduction is claimed.
+
+Output evidence is conditional, not a strict pass. Five later gameplay images
+match, while early title crop, UI (9,368 pixels), settled title (197 pixels) and
+unshifted Paula/master PCM differ. Initial clocks and PRNG states differ; the
+six-initialized/two-uninitialized-byte PRNG contract is preserved without forcing
+values. Both runs complete.86 asset spans/290,180 bytes and the audio banks are
+unchanged; sampled audio/Copper/bitplane DMA bounds pass. The separate combat
+sample has one high-mask CPU read, no direct high-mask DMA hit and no observed
+semantic-extent miss. These samples do not certify all routes/engines.
+
+The next carrier prerequisite is bootstrap-scoped ownership. A bounded native
+fixture accepts original overlapping prefix copying, but adding its full load
+source as a persistent global region refuses `unrelated_region_overlap`.
+The OS input owner must derive from the existing bootstrap/load view, retaining
+the full file, known aliases and seed sources; it must not invalidate original
+profiles or weaken overlap checks. No prefix-freeing claim is justified yet.
+
 ### A3 high masks: actual eight-owner admission
 
 [High-mask admission](../../runtime/observations/pandora-high-mask-allocation-admission.json)
@@ -16,8 +43,8 @@ new-layout output comparison and cleanup are still pending.
 Only the input carrier and display remain fixed (430,080 bytes); total game
 leases remain 852,616 bytes. There is no memory-peak reduction claim.188 focused
 tests pass, including every allocation-prefix/library failure for the eight-owner
-loader. The default source package remains the already cold-qualified
-seven-owner version until this new route is qualified.
+loader. At this earlier admission checkpoint, default source export still used the
+seven-owner version; the qualified eight-owner export is recorded above.
 
 ### A1 package and strict output boundary
 

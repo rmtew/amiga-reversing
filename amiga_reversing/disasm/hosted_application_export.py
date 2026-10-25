@@ -25,9 +25,10 @@ def required(metadata_path,layout_id):
     return 'exit_dispatch_call_source_offset' in boot
 
 
-def native_contract(artifact,target,layout_id,*,allocate_image=True,allocate_high_masks=False):
+def native_contract(artifact,target,layout_id,*,allocate_image=True,allocate_high_masks=None):
     LOADED_SOURCE.require_current();APP_SOURCE.require_current()
     if target!=TARGET:raise ValueError('No hosted application template is registered for this target')
+    if allocate_high_masks is None:allocate_high_masks=allocate_image
     owners=(*OWNERS,IMAGE_OWNER) if allocate_image else OWNERS
     if allocate_high_masks:
         if not allocate_image:raise ValueError('High-mask profile requires the admitted image owner')
