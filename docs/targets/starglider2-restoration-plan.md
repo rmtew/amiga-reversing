@@ -3,7 +3,7 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 77498 bytes remain unclassified and substantial
+byte equality is preserved; 76235 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -633,3 +633,41 @@ parser/bounds/refusal tests pass; complete original C/vasm equality is exact.
 See `runtime/observations/starglider2-world-maps.json` and the reproducible
 `starglider2_world_maps` audit. No extra gameplay or all-path claim, archive or
 upload accompanies this batch.
+
+
+## Disk services and streamed music
+
+The original music loader uses seven 5632-byte ring slots. Its custom profile
+has six sector IDs starting at `$F5`: five 1024-byte payloads and one 512-byte
+tail. Ordinary game/high-score tracks have ten 512-byte payloads. Eighty music
+blocks total 450560 bytes; the optional memory cache spans `$C00000..$C6E000`.
+The Amiga probe stores direct-disk mode after a CMP followed by an original NOP.
+That behavior is preserved, not repaired or treated as a working cache selection.
+No assumption is made that the supplied disk contains suitable custom music media.
+
+The MFM encoder's 256 WORDs and decoder's 128 bytes match their derived
+bit-interleaving/nibble rules exactly. The CRC helper generates two 256-byte
+tables using polynomial `$1021`, retaining the original zero seed in source.
+The producer ring cursor, cache flags, mutable MFM ID template, cleared sector
+flag prefix and 15 fields of the 50-byte shared disk state now have names/types;
+20 state bytes remain opaque. The original interleave lookup's following byte
+and the unused-looking flag tail are not claimed as padding or dead storage.
+
+Named save/load routines normalize selected pointers stored in the workspace
+relative to A6, then reverse that conversion on restore. This is save-state
+encoding, not executable relocation or proof of pointee ownership. Record link
+conversion skips low-byte types >=128 and preserves 0/-1 sentinels. The staged
+read covers five 5120-byte tracks; 24292 bytes are copied into app `$6B4..$6598`,
+ending exactly at the known world-object pool boundary. This is a further
+concrete disk-IO alias of the existing shared music/render workspace; full
+lifetime exclusion remains unproved.
+
+The fourth Paula channel's 40-byte initial zero sample is identified. The three
+other sample bases skip 8/4/4 original seed bytes, which remain opaque; no
+standard audio-file header or reinterpretation of their stored numbers is
+invented. Six focused codec tests and complete original C/vasm rebuilding pass.
+Two premature mechanical-direction labels were explicitly rejected/superseded
+before publication; final step names describe counter advance/retreat. See
+`runtime/observations/starglider2-disk-audio.json` and the hash-bound audit tool.
+These are static source contracts, not new runtime disk, music, DMA or PCM
+qualification. No new archive or upload was produced.
