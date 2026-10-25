@@ -4,8 +4,9 @@ Status: **original-layout source review closed with explicit unknowns**.
 Canonical generated source preserves all 412736 main-payload bytes in C/vasm;
 106034 bytes are accepted code. The normal INCBIN export contains 57 assets /
 93633 bytes, each identical to its source slice, and also passes the native C
-assembler. The final standalone archive rebuild and private delivery are the
-remaining packaging gates, not another semantic implementation programme.
+assembler. The final ZIP has passed a clean extracted standalone rebuild and
+was delivered privately to the user. The bounded original-layout deliverable
+is complete; unresolved meanings remain explicit below.
 
 This is not full semantic or all-path restoration: 15111 bytes in 256 intervals
 remain explicitly unclassified. No instruction or asset was replaced to make
@@ -60,11 +61,13 @@ existing object-name directory, plus a gated modulo512 notice phase. Two
 following zero bytes remain unclassified. All prior accepted code is retained.
 See `runtime/observations/starglider2-original-closeout.json`.
 
-The useful source completion gate has therefore been met with explicit unknowns.
-Finish with the normal source/INCBIN export, a clean extracted standalone exact
-build and private source/raw-payload archive. The archive is not an AmigaDOS
-executable or a reconstructed boot disk. No relocation, C conversion or further
-naming queue is active.
+The useful source completion gate has been met with explicit unknowns. The
+normal source/INCBIN export and clean extracted standalone build are exact.
+`Starglider2-original-restored-ed496d68.zip` was delivered privately. The archive
+is not an AmigaDOS executable or a reconstructed boot disk. No relocation, C
+conversion or further naming queue is active. The immutable source-review
+receipt predates packaging; `runtime/observations/starglider2-original-release.json`
+closes its delivery gate.
 
 ## Reproducible extraction
 
@@ -113,8 +116,10 @@ does not by itself qualify natural loader execution or every byte's role.
    explicit residual and encoded-entry exceptions above.
 3. Source preservation and normal native INCBIN export: exact; 57 assets match
    original slices, every prior accepted code byte retained.
-4. Clean standalone package rebuild/private delivery: pending final packaging
-   validation. No interim archive.
+4. Clean standalone package rebuild/private delivery: passed. The final ZIP
+   contains source, 57 INCBIN assets, required headers, prebuilt raw image,
+   README, reproducible build script, canonical facts and checksums. No
+   interim archive was delivered for this closeout.
 
 ## Historical restoration batches
 
@@ -1713,6 +1718,24 @@ C/vasm reconstruction remains exact, accepted code stays 106034 bytes with
 zero code loss, and the unclassified complement is 15111 bytes. The only native
 range exception is the known transformed entry; source-quality diagnostics are
 zero. The separate decoded view also has fresh exact C/vasm and inverse proof.
-This is the final bounded source-review packet, not an invitation to continue
-with cosmetic names or speculative classifications. Packaging remains until
-the clean standalone rebuild and private delivery are verified.
+This is the final bounded source-review packet. The clean standalone rebuild
+and private delivery are now verified; see the release receipt. No further
+semantic or relocation implementation is active.
+
+
+## Final private source archive
+
+Source snapshot `ed496d684525f798eef9047248180275a678b410` is packaged as
+`Starglider2-original-restored-ed496d68.zip` (1179055 bytes), SHA256
+`2d857bd8dcd3adeb09fadfc4a7577fff8b947f7b15e4cbfb10890476b77fcf76`.
+The actual ZIP was extracted to a clean temporary directory and its supplied
+Python build script rebuilt all 412736 main bytes with vasm, validated all
+57 asset slices, rebuilt the separate decoded/boot analysis views and checked
+the inverse transformation. Checksums and ZIP integrity also passed. No
+repository checkout, analysis DLL, emulator or network is used by that rebuild.
+
+Private Library delivery is confirmed. The copyrighted archive, raw media,
+ROMs and captures are not committed to public Git. The seven paused A2 and
+nine B07 files remain unchanged and are excluded. This delivery closes the
+reviewed original-layout restoration; the explicit unknowns above remain
+limits rather than an automatically continuing implementation programme.

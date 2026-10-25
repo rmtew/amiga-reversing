@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "kind": "final_private_archive_clean_extraction_rebuild",
+  "status": "pass",
+  "source_commit": "ed496d684525f798eef9047248180275a678b410",
+  "filename": "Starglider2-original-restored-ed496d68.zip",
+  "size_bytes": 1179055,
+  "sha256": "2d857bd8dcd3adeb09fadfc4a7577fff8b947f7b15e4cbfb10890476b77fcf76",
+  "zip_integrity": true,
+  "manifest_checksums": true,
+  "clean_standalone_build": true,
+  "clean_build_receipt": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "all_main_bytes_equal_prebuilt": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "ed496d684525f798eef9047248180275a678b410",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "asset_count": 57,
+  "asset_bytes": 93633,
+  "unclassified_bytes": 15111,
+  "source_hand_edits": false,
+  "private_payload_not_public_git": true,
+  "paused_work_included": false,
+  "closes_pending_gate_of": "runtime/observations/starglider2-original-closeout.json",
+  "private_library_delivery_confirmed": true,
+  "library_identifiers_not_public": true,
+  "format": "original_absolute_raw_payload_not_AmigaDOS_HUNK_or_disk_image",
+  "scope": "original-layout reviewed closeout with explicit unknowns; not full semantic or all-path restoration"
+}
