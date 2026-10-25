@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "kind": "original_encoded_storage_presentation_correction",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 5,
+  "encoded_original": {
+    "span": [
+      77696,
+      81180
+    ],
+    "source_span": [
+      73600,
+      77084
+    ],
+    "bytes": 3484,
+    "LONGs": 871,
+    "sha256": "e655dadf03ab32f4ee36a8d96f240bb9055b0e49f2d8f05951fa485e88a3646f",
+    "transformed_entry_storage": 80892,
+    "encoded_accepted_code_bytes_before": 10,
+    "encoded_accepted_code_bytes_after": 0,
+    "original_code_bytes_changed": 0
+  },
+  "existing_readable_view": {
+    "target": "amiga_raw_starglider2_protection_view",
+    "analysis_view_bytes": 3548,
+    "transformed_bytes": 3484,
+    "unchanged_context_bytes": 64,
+    "additional_original_coverage_bytes": 0,
+    "retained_receipt": "runtime/observations/starglider2-protected-code.json",
+    "retained_view_verification": {
+      "receipt_id": "7badf0b34047b5fcab794e67434097a31264b14a2ccfe7ca100d5aa68f021d28",
+      "exact": true,
+      "original_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+      "original_size": 3548,
+      "source_sha256": "abcce583e06d12f652728009d35376ef3a8469e74bcaba1e3e773171f5e2d89a",
+      "output_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+    },
+    "retained_inverse_exact": true,
+    "scope": "Existing decoded source and inverse proof retained; this batch does not claim fresh protected execution or add decoded bytes to original accounting"
+  },
+  "bootstrap": "Original subtract32597635+i and conditional firstWORD ROL2/secondWORD ROR3 unchanged; normal-media subtraction observation already retained, decoded entry not observed",
+  "context_limits": {
+    "following_span": [
+      81180,
+      81244
+    ],
+    "not_in_encoded_owner": true,
+    "declared_end": 81182,
+    "two_bytes_outside_LONG_loop": 2,
+    "unchanged_helpers": "Existing decoded-view context contains7conditional JMP bridges and input-limit pointer; main-source admission remains a next connected review. Unentered bridge-shaped suffix not promoted to live code."
+  },
+  "ratings_boundary": "Original transfer ends12F66; two followingzero bytes stay outside despite literal zero-run coalescing",
+  "verification": {
+    "receipt_id": "898c465b8638a4aaf345ed3afaf00b89017997db4b950dcb455e41968cb23d98",
+    "exact": true,
+    "source_sha256": "2fd388956c37eb6c60a1a2928bf29c5dd4f80b2ebeaed4528a96aafc8d6240d2",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 393397,
+    "after_range_union_bytes": 396871,
+    "before_unclassified_bytes": 19339,
+    "after_unclassified_bytes": 15865,
+    "new_classified_original_bytes": 3474,
+    "before_code_bytes": 105966,
+    "accepted_code_bytes": 105956,
+    "code_delta": -10,
+    "decoded_view_double_counted_bytes": 0,
+    "range_violations": 1,
+    "known_diagnostic": {
+      "offset": 76796,
+      "kind": 3,
+      "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+    },
+    "source_quality_diagnostics": 0,
+    "unclassified_intervals": 253
+  },
+  "limits": [
+    "Original raw payload remains identical; no bypass, new loader, forced routine call or injected state",
+    "No protected-entry execution/selector-provider ABI qualification",
+    "Physical original encoded-data purpose is distinct from decoded code/data source coverage",
+    "No interim archive or Pandora resumption"
+  ],
+  "largest_remaining_intervals": [
+    [
+      400428,
+      402578,
+      2150
+    ],
+    [
+      308446,
+      309662,
+      1216
+    ],
+    [
+      12144,
+      13172,
+      1028
+    ],
+    [
+      25918,
+      26612,
+      694
+    ],
+    [
+      237752,
+      238292,
+      540
+    ],
+    [
+      235926,
+      236412,
+      486
+    ],
+    [
+      51640,
+      52096,
+      456
+    ],
+    [
+      204198,
+      204632,
+      434
+    ],
+    [
+      24298,
+      24710,
+      412
+    ],
+    [
+      231152,
+      231496,
+      344
+    ],
+    [
+      193828,
+      194116,
+      288
+    ],
+    [
+      307784,
+      308062,
+      278
+    ]
+  ]
+}

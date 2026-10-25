@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 19339 bytes remain unclassified and substantial
+byte equality is preserved; 15865 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -20,17 +20,17 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Current remaining-work inventory
 
-After the settings/UI batch, the native ownership complement is
-254 intervals / 19339 bytes. This is classification accounting, not a semantic
-completion percentage. Function/field completeness has no measured denominator.
-The largest interval, `$12F80..$13BFC` (3196 bytes), is encoded protection storage
-with an existing separately reconstructed decoded view; do not count it as both
-newly classified original bytes and decoded bytes.
+After the encoded-storage source correction, native ownership leaves
+253 intervals / 15865 bytes unclassified. This is classification accounting,
+not semantic completion; function/field completeness has no measured denominator.
+The largest interval is now `$61C2C..$62492` (2150 bytes). Original encoded
+storage is explicitly data, and its separate decoded view is not added again
+to the original coverage count.
 
 The weapon/HUD family at `$719C..$7F1E` and the three rotating Copper lists
 now have producer/consumer-backed source contracts, as does the settings/UI
 stream at `$E706..$E9B4` (bounded backing exceptions remain explicit below).
-Remaining work includes the encoded-storage source presentation and
+Remaining work includes the unchanged protection-context helpers and
 sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
 `$61C2C..$62492`. Boundaries and meanings require actual consumers; adjacency or
 absent direct xrefs alone cannot establish a role or deadness. World/body and
@@ -1560,3 +1560,31 @@ and zero range/source-quality diagnostics. Classification gains
 704 bytes, leaving 19339 unclassified; code bytes
 remain 105966. See `runtime/observations/starglider2-options-source.json`.
 No interim archive.
+
+
+## Original encoded storage presentation
+
+The exact original `$12F80..$13D1C` window now renders literal encoded data.
+Ten bytes at the transformed entry had previously decoded incidentally as
+instructions despite an explicit warning; those bytes are no longer counted or
+shown as original code. The original subtraction and conditional rotations,
+call addresses, data and complete payload remain unchanged. The separate
+readable protection view and retained inverse proof remain the code/data view
+after the transforms, with their existing conditional-entry/provider limits.
+
+This is classification of original encoded input storage, not addition of the
+decoded view to the same storage count. The following 64-byte unchanged context
+is outside this owner. Its actual decoded callers establish helper leads for
+a connected main-source review; the unentered bridge-shaped suffix remains
+qualified rather than promoted merely from opcode appearance. Two bytes beyond
+the ratings transfer also remain outside that file record even when emitted
+literal zero runs coalesce.
+
+Five canonical actions preserve all 412736 bytes in C/vasm verification
+with zero source-quality diagnostics. One retained code/data conflict marks the
+conditional call into transformed storage; the decoded view explains it, but
+the original-layout analyzer does not model the transformation at that edge. Original classification gains
+3474 bytes; code count decreases by ten to 105956 as the
+incidental ciphertext interpretation is corrected. The unclassified complement
+is 15865 bytes. See `runtime/observations/starglider2-encoded-storage-source.json`.
+No new execution claim or interim archive.
