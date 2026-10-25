@@ -1,0 +1,20 @@
+# This explicitly published rendered export overrides the broad target ignores.
+!/.gitignore
+!/README.md
+!/build.py
+!/rendered-manifest.json
+!/rendered-provenance.json
+!/assets/
+!/assets/*.bin
+!/includes/
+!/includes/**/
+!/includes/**/*.i
+!/analysis_views/
+!/analysis_views/*.s
+!/tools/
+!/tools/starglider2_protection.py
+# Canonical input and reconstructed outputs remain local.
+/binary.bin
+/bin/
+__pycache__/
+*.pyc

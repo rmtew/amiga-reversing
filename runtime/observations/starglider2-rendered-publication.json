@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "kind": "committed_rendered_standalone_publication",
+  "status": "pass",
+  "target_directory": "targets/amiga_raw_starglider2_game",
+  "validated_target_git_tree": "a0549448d9d7d310d09fd134c61fe182ff3f450a",
+  "rendered_source_origin": "ed496d684525f798eef9047248180275a678b410",
+  "publication_parent": "9377b5327e610f181a6be7f044be8c678de8afdb",
+  "rendered_files": 76,
+  "asset_count": 57,
+  "asset_bytes": 93633,
+  "header_files": 9,
+  "clean_git_index_export": true,
+  "private_binary_bin_absent": true,
+  "private_zip_absent": true,
+  "reference_binary_required": false,
+  "canonical_facts_unchanged": true,
+  "paused_files_unchanged": 16,
+  "game_assembly_hand_edits": false,
+  "generated_comment_whitespace_warnings": 25,
+  "non_generated_whitespace_check": true,
+  "main_source_sha256": "8266db3d9b8d88b5c7162a6e3103d93fd80b31730b34069d79d27e5ff08ac0cc",
+  "output_directory": "bin/rebuilt",
+  "build_receipt": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "ed496d684525f798eef9047248180275a678b410",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "publication_scope": "User explicitly authorized final rendered main source, 57 INCBIN binaries, required headers and standalone support in Git",
+  "excluded": [
+    "ROMs",
+    "ADF/full original media",
+    "captures",
+    "assembler executables",
+    "original binary.bin",
+    "paused Pandora edits"
+  ],
+  "limits": [
+    "Original raw payload, not an AmigaDOS HUNK or bootable disk",
+    "Existing 15111 unclassified bytes and source-review limits unchanged",
+    "Original private ZIP receipt is historical; rendered source/assets are now explicitly published"
+  ],
+  "whitespace_check": {
+    "status": "known_generated_comment_warning",
+    "lines": 25,
+    "reason": "Source bytes preserved verbatim from the already verified native export; non-generated files pass"
+  }
+}

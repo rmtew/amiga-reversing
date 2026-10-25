@@ -19,6 +19,24 @@ Scope: the UA/WOW Amiga disk already imported in this repository. Restore readab
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
 
+## Committed buildable rendered output
+
+The user explicitly requested the final rendered source and dependencies in Git.
+They now live in [`targets/amiga_raw_starglider2_game`](../../targets/amiga_raw_starglider2_game/README.md):
+`starglider2_game.s`, all 57 INCBIN files under `assets/`, nine headers under
+`includes/`, related source under `analysis_views/`, and standalone `build.py`.
+The main assembly and dependency bytes are unchanged from the verified final
+native export. Canonical facts remain intact. Python 3.9+ and an external
+`vasmm68k_mot` are required; no private reference binary or analysis DLL is used
+by the standalone build. Outputs go to the ignored target `bin/rebuilt/`.
+The original ZIP delivery remains private, but rendered source/assets are now
+committed under this new explicit publication instruction. Original disks,
+ROMs, captures and assembler executables are excluded.
+
+See `runtime/observations/starglider2-rendered-publication.json` for the clean
+committed-layout rebuild. The older archive receipt records its original
+private-delivery stage; it is not the current source-publication policy.
+
 ## Reviewed closeout and remaining limits
 
 The bounded residual review accounts for every unclassified interval from the
@@ -131,8 +149,9 @@ not an active programme backlog.
 
 The registered recovered target is `targets/amiga_raw_starglider2_game/`.
 Its source descriptor, initial metadata and append-only Manual Action Log are
-published; its `binary.bin` and generated listing remain private. To materialize
-the target, copy the extractor's `game_copy.bin` to that `binary.bin`. The
+published; at that stage its generated listing remained private. The final
+rendered source/dependencies are now committed as described above. The analyzer
+input `binary.bin` remains local; materialize it from the extractor's `game_copy.bin`. The
 original disk import remains registered separately, preserving its history.
 
 The initial structural refusals at source `$3CD8E` and `$3E112` were inline
@@ -189,7 +208,7 @@ The routine at `$4DEDC`, now `initialize_paula_sample_channels`, configures four
 channels and enables audio DMA. Three retained sample spans are fixed directly
 by its address arithmetic and AUDxLEN WORD counts:
 
-| Runtime data span | Length | Native private INCBIN |
+| Runtime data span | Length | Native INCBIN (now committed) |
 |---|---:|---|
 | `$59F34..$5E204` | 17104 | `paula_initial_channel0_sample.bin` |
 | `$5E220..$5E5D4` | 948 | `paula_initial_channel1_sample.bin` |
@@ -1735,7 +1754,9 @@ the inverse transformation. Checksums and ZIP integrity also passed. No
 repository checkout, analysis DLL, emulator or network is used by that rebuild.
 
 Private Library delivery is confirmed. The copyrighted archive, raw media,
-ROMs and captures are not committed to public Git. The seven paused A2 and
+ROMs and captures are not committed to public Git. The rendered source and
+extracted INCBIN assets are now committed at the user's subsequent explicit
+request; the ZIP itself remains a separate private delivery. The seven paused A2 and
 nine B07 files remain unchanged and are excluded. This delivery closes the
 reviewed original-layout restoration; the explicit unknowns above remain
 limits rather than an automatically continuing implementation programme.
