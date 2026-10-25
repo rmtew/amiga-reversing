@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 57853 bytes remain unclassified and substantial
+byte equality is preserved; 57850 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1049,3 +1049,28 @@ bytes with zero range/source-quality diagnostics. Accepted code gains
 1264; 57853 bytes remain unclassified. See
 `runtime/observations/starglider2-alternate-disk.json`. This is static source
 restoration; no new emulator campaign or interim archive accompanies it.
+
+
+## View message selectors and text boundaries
+
+The direction and mode selectors now expose named relative WORD-offset tables
+and 17 separately named NUL-text spans. Previously the native heuristic printed
+those ASCII bytes as an extended WORD lookup. The actual selected messages make
+the source's front/rear/side directions and cockpit/outside X/Z-lock modes clear.
+No rendered assembly was hand-edited.
+
+The direction path at `$2DA4` uses wrapped WORD addition, shifts and AND7. Its
+nine stored offsets include one extra View Below string outside that normal
+0..7 selection; this does not prove the string unused. The original compare is
+against the view-angle field, even though the path writes a separate announced
+index at `$2F6C`. That behavior is preserved, not silently replaced by a cache.
+The mode path compares/updates `$2F6A`, imposes an 800-unit minimum view-offset
+distance and resets the message count/countdown before enqueueing. Its input
+index and queue retain original preconditions.
+
+Forty-three canonical actions retain exact full C/vasm reconstruction with
+zero range/source-quality diagnostics. Accepted-range accounting changes by
+3 bytes; 57850 remain unclassified. The payoff is correct text/table
+representation and selector contracts, not a manufactured completion percentage.
+See `runtime/observations/starglider2-view-messages.json`. No new runtime campaign
+or interim archive accompanies this batch.

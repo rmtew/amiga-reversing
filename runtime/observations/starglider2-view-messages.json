@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "kind": "view_message_selection_and_text_boundaries",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 43,
+  "families": [
+    {
+      "family": "direction",
+      "base": 11764,
+      "stored_offset_count": 9,
+      "offsets": [
+        18,
+        29,
+        45,
+        55,
+        70,
+        80,
+        96,
+        107,
+        124
+      ],
+      "strings": [
+        {
+          "start": 11782,
+          "end": 11793
+        },
+        {
+          "start": 11793,
+          "end": 11809
+        },
+        {
+          "start": 11809,
+          "end": 11819
+        },
+        {
+          "start": 11819,
+          "end": 11834
+        },
+        {
+          "start": 11834,
+          "end": 11844
+        },
+        {
+          "start": 11844,
+          "end": 11860
+        },
+        {
+          "start": 11860,
+          "end": 11871
+        },
+        {
+          "start": 11871,
+          "end": 11888
+        },
+        {
+          "start": 11888,
+          "end": 11899
+        }
+      ]
+    },
+    {
+      "family": "mode",
+      "base": 11956,
+      "stored_offset_count": 8,
+      "offsets": [
+        16,
+        29,
+        51,
+        73,
+        99,
+        112,
+        134,
+        156
+      ],
+      "strings": [
+        {
+          "start": 11972,
+          "end": 11985
+        },
+        {
+          "start": 11985,
+          "end": 12007
+        },
+        {
+          "start": 12007,
+          "end": 12029
+        },
+        {
+          "start": 12029,
+          "end": 12055
+        },
+        {
+          "start": 12055,
+          "end": 12068
+        },
+        {
+          "start": 12068,
+          "end": 12090
+        },
+        {
+          "start": 12090,
+          "end": 12112
+        },
+        {
+          "start": 12112,
+          "end": 12138
+        }
+      ]
+    }
+  ],
+  "direction": {
+    "entry": 11684,
+    "selector": "((angleWORD+256) modulo65536)>>9, AND7",
+    "normal_selector_max": 7,
+    "stored_extra_string_index": 8,
+    "stored_extra_role": "View Below; no proof unused",
+    "written_index_word": 12140,
+    "original_compare": "derived index versus view_rotation_offset_1, not stored2F6C; preserve unusual original behavior"
+  },
+  "mode": {
+    "entry": 11900,
+    "compare_update_word": 12138,
+    "local_index_guard": false,
+    "stored_strings": 8,
+    "roles": "Cockpit/Outside, original Z/X lock combinations",
+    "minimum_view_offset_distance": 800,
+    "queue_effects": "reset pending count, countdown=1, then original enqueue helper with retained preconditions"
+  },
+  "first_raw_byte_verification_receipt": "ef92acb67f7cc2552a210c7e8384ff839bbc369eaebb10469b25eecd18c0f0ff",
+  "source_readability": "Explicit ASCII string roles and separate named relative WORD-offset tables and17namedNUL-text spans, rather than one extended lookup table containing ASCII WORD values",
+  "verification": {
+    "receipt_id": "c3d0372bae3f7dc01cd2ea1ff406ead93b1305cedeeeda2dc0fe7541b0a4757a",
+    "exact": true,
+    "source_sha256": "ca41be11e95b15f22d3fb03c906260b2574e340786d9aa50a56a226e857f019a",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 354883,
+    "after_range_union_bytes": 354886,
+    "before_unclassified_bytes": 57853,
+    "after_unclassified_bytes": 57850,
+    "new_classified_bytes": 3,
+    "accepted_code_bytes": 100856,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original static selector/text/queue evidence only; no new runtime notification or view behavior qualification",
+    "Do not infer unused from extra stored text or repair original direction compare",
+    "Mode selector retains valid original-index and message-queue assumptions",
+    "Raw byte after final direction text retained without a padding-purpose claim",
+    "No archive/upload; source readability is distinct from classification or overall semantic completion"
+  ]
+}
