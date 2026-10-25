@@ -3,7 +3,7 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 76235 bytes remain unclassified and substantial
+byte equality is preserved; 76197 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -671,3 +671,34 @@ before publication; final step names describe counter advance/retreat. See
 `runtime/observations/starglider2-disk-audio.json` and the hash-bound audit tool.
 These are static source contracts, not new runtime disk, music, DMA or PCM
 qualification. No new archive or upload was produced.
+
+
+## Main frame, view selection and rotation matrices
+
+The main frame path at `$1288` and world-view renderer at `$3DE8` now have
+semantic names, together with the view selector, matrix-store/copy helpers and
+vector transforms. The separately constructed player reference at app `$700`
+feeds view selection; view origins `$710/$714/$718`, view rotation WORDs
+`$7B6/$7B8/$7BA`, and per-model rotation/origin inputs are named from their
+producers and consumers. Saved references can temporarily be relative to A6.
+
+The matrix backing at app `$F4..$106` and `$106..$118` is represented as two
+disjoint instances of the same nine-WORD row layout. The original helper copies
+four LONGs plus one WORD. Dot products retain the original MULS, ASL.L #2 and
+SWAP extraction; no floating-point replacement, axis-order guess, universal
+input-safety or exclusive-lifetime claim is made. Original built/player matrix
+backing is typed without regenerating coefficients.
+
+View selection admits only modes 0..7 to its relative-offset lookup. All 13
+stored WORD entries remain visible; the extra default offsets are not declared
+unused. Exception reporting reads a combined WORD at `$E102`, while normal paths
+write its stage and step BYTEs separately. Those byte/word aliases now carry
+explicit names rather than an invented single-width interpretation.
+
+Thirty-six canonical actions produce these changes. Full original C/vasm
+rebuilding is exact, with zero range violations or source-quality diagnostics.
+Only 38 additional bytes gain range classification; the substantive payoff is
+readable frame/view data flow. There are 76197 unclassified bytes, separately
+from the remaining semantic work. See
+`runtime/observations/starglider2-frame-view.json`. No new runtime qualification,
+archive or upload accompanies this batch.

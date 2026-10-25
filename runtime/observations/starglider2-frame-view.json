@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "kind": "frame_view_and_matrix_restoration",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 36,
+  "functions": {
+    "frame_loop": 4744,
+    "view_selector": 15424,
+    "world_view": 15848,
+    "view_vector_transform": 10210,
+    "built_vector_transform": 11176,
+    "player_orientation_builder": 11098,
+    "matrix_copy": 11164
+  },
+  "workspace": {
+    "player_reference": 1792,
+    "view_origins": [
+      1808,
+      1812,
+      1816
+    ],
+    "view_rotation_words": [
+      1974,
+      1976,
+      1978
+    ],
+    "model_rotation_words": [
+      280,
+      282,
+      284
+    ],
+    "model_origin_delta_words": [
+      306,
+      308,
+      310
+    ],
+    "model_view_matrix": [
+      244,
+      262
+    ],
+    "view_matrix": [
+      262,
+      280
+    ]
+  },
+  "matrix_backing": {
+    "built": [
+      11260,
+      11278
+    ],
+    "player_orientation": [
+      11278,
+      11296
+    ],
+    "word_count": 9,
+    "copy": "four LONGs plus one WORD; original row dot-products retain MULS/ASL.L #2/SWAP"
+  },
+  "view_dispatch": {
+    "stored_span": [
+      15450,
+      15476
+    ],
+    "stored_entries": 13,
+    "guarded_mode_min": 0,
+    "guarded_mode_max": 7,
+    "out_of_guard": "default before lookup",
+    "extra_stored_entries": "retained; no unused claim"
+  },
+  "diagnostics": {
+    "stage_byte": 57602,
+    "step_byte": 57603,
+    "combined_word": 57602,
+    "bus_error_handler": 50716,
+    "address_error_handler": 50778
+  },
+  "verification": {
+    "receipt_id": "740084d204c289cd6ef16ea83ab2f33ccf725006e97c50d5e69ffc35b7a0562d",
+    "exact": true,
+    "source_sha256": "a38ab0510a00c9dd3d76c148cef06618f1dbe8196c6c45ecb4732305456e14e2",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 336501,
+    "after_range_union_bytes": 336539,
+    "before_unclassified_bytes": 76235,
+    "after_unclassified_bytes": 76197,
+    "new_classified_bytes": 38,
+    "accepted_code_bytes": 92300,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static consumer-derived contracts; no new runtime qualification",
+    "Rotation component order remains numbered; no invented axis convention",
+    "Original Q14 truncation/wrap behavior retained; arbitrary input safety not proved",
+    "Player reference may be temporarily serialized relative to A6",
+    "Canonical matrix instances use existing struct and RSSET rendering; not every cursor access is recovered as a named member",
+    "Byte purpose/ownership accounting is separate from semantic completeness; restoration incomplete; no interim archive"
+  ]
+}
