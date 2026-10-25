@@ -131,6 +131,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_runtime_data_range_action(),
         _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
+        _target_data_seed_action(),
         _target_seed_remove_action(),
         _target_code_label_action(),
         _target_code_label_remove_action(),
@@ -216,6 +217,8 @@ def target_catalog_manual_payload(
     if action.get("action") == "remove_manual_runtime_data_range":
         return "remove_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_identity_payload(params)}
     if action.get("action") == "create_manual_seed":
+        if action_id == "target.data.seed":
+            return "create_manual_seed", {"seed": _target_data_seed_payload(params)}
         return "create_manual_seed", {"seed": _target_code_seed_payload(params)}
     if action.get("action") == "remove_manual_seed":
         return "remove_manual_seed", {"seed_id": str(params["seed_id"])}
@@ -5995,6 +5998,39 @@ def _target_code_seed_action() -> dict[str, object]:
             "required": ["hunk", "addr", "name"],
         },
     )
+
+
+def _target_data_seed_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data.seed", "Seed data at source range", "create_manual_seed",
+        {"type": "object", "properties": {
+            "hunk": {"type": "integer", "minimum": 0},
+            "addr": {"type": "integer", "minimum": 0},
+            "end": {"type": "integer", "minimum": 1},
+            "name": {"type": "string"},
+            "unit": {"type": "string", "enum": ["byte", "word", "long"]},
+            "role": {"type": "string"}},
+         "required": ["hunk", "addr", "end", "name", "unit"]})
+
+
+def _target_data_seed_payload(params: Mapping[str, object]) -> dict[str, object]:
+    hunk, addr, end = (params.get(key) for key in ("hunk", "addr", "end"))
+    name, unit = params.get("name"), params.get("unit")
+    if (any(type(v) is not int for v in (hunk, addr, end)) or hunk < 0
+            or addr < 0 or end <= addr or not isinstance(name, str)
+            or not name.strip() or not isinstance(unit, str)
+            or unit not in {"byte", "word", "long"}):
+        raise ValueError("target.data.seed requires a nonempty source range, name and unit")
+    width = {"byte": 1, "word": 2, "long": 4}[unit]
+    if (end - addr) % width:
+        raise ValueError("target.data.seed extent must contain complete units")
+    seed = {"seed_id": f"catalog-data-seed-h{hunk}-{addr:08X}-{end:08X}",
+            "kind": "data", "mode": "required", "hunk": hunk,
+            "addr": addr, "end": end, "name": name.strip(),
+            "unit": unit, "data_role": "raw"}
+    if isinstance(params.get("role"), str) and params["role"].strip():
+        seed["role"] = params["role"].strip()
+    return seed
 
 
 def _target_seed_remove_action() -> dict[str, object]:

@@ -1,5 +1,13 @@
 # Restoration interfaces
 
+`target.data.seed` classifies an evidenced source range before a listing can be
+rendered (for example, inline dispatch tables incorrectly reached as code).
+It takes `hunk`, `addr`, exclusive `end`, `name`, and `unit` (`byte`, `word`,
+`long`), plus optional `role`. The normal revision-checked target command appends
+the existing required data-seed fact; ordinary `target.seed.remove`/undo apply.
+It does not establish pointer targets or semantic truth, and partial units refuse.
+Use a data-block layout separately for structure and interpreted references.
+
 ## Retained bootstrap layout contracts
 
 `target.bootstrap.add` appends a versioned `retained_prefix_copy` contract through
