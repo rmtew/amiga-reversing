@@ -3,8 +3,9 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 163275 bytes remain unclassified and substantial
-function/field meaning remains unresolved. Next is the panel image family.
+byte equality is preserved; 143975 bytes remain unclassified and substantial
+function/field meaning remains unresolved. Panel-animation images now export as
+identified assets; projection scales and remaining static image resources are next.
 No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -399,3 +400,33 @@ Together with the 28-byte pointer table and ten-byte control record, this adds
 unclassified complement is 163275. This describes static storage/consumers, not
 observed runtime access coverage. Next: the bounded panel animation records,
 frame-pointer aliases and 18848-byte image bank identified by their copy loop.
+
+## Animated panel images
+
+[Panel receipt](../../runtime/observations/starglider2-panel-animations.json):
+66 new interpretations restore the eight 24-byte records following the count at
+`$4E8B8`, their 12 frame-list families and 54 distinct images. The original 64
+pointers preserve ten aliases. Five slot-six constructor stores now render with
+symbolic frame-list addresses and the `SG2AnimatedPanelRecord_frames` field;
+these values were inferred through canonical types, not patched source strings.
+The record's WORD +20 remains opaque. The WORD countdown is pre-decremented and
+expiry uses BMI; its reload value is not a frames-per-second declaration.
+
+The copy loop consumes `width_words*height_rows` groups of four plane WORDs:
+eight bytes per 16-pixel group, interleaved by group within a row. All eight Amiga
+rectangles fit 320x200 with 40-byte plane rows. Shared pointers have consistent
+dimensions. The 54 image extents have no overlap or gaps and cover exactly
+`$4EA7A..$5341A` (18848 bytes); colors and individual widget identities have not
+been guessed. The surrounding two-byte gaps remain outside these owners.
+
+Normal native asset export at threshold 256 emits 24 bitmap INCBIN files, keeping
+30 small images (2144 bytes) inline. Together with the three sample assets this
+is 27 files / 44008 bytes. Every extracted asset matches its original slice;
+assembling the unchanged native package source with vasm reproduces all 412736
+bytes. Inline C and vasm builds independently remain exact. The private build
+folder is only an assembly check: no archive or upload was created.
+
+This batch adds 19300 classified bytes: ownership is 268761, code remains 89702
+and the unclassified complement is 143975. Current next candidates are the
+source-backed projection-scale table and the remaining static panel/background
+resources, not another runtime or packaging programme.
