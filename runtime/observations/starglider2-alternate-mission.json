@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "kind": "alternate_sample_interrupt_and_station_mission_cycle",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 37,
+  "alternate_audio": {
+    "registered_entry": 71292,
+    "vector_address": 308,
+    "self_modified_operand": 71300,
+    "conversion_table": [
+      71366,
+      73414
+    ],
+    "rows": 256,
+    "stride": 8,
+    "consumed_bytes_per_row": 6,
+    "fields": "Three register selectors8/9/10 paired with volume bytes0..15; final WORD unconsumed by this reader",
+    "counter": [
+      73414,
+      73418
+    ],
+    "ring_continuation": 73418,
+    "scope": "Original alternate-platform CPU IRQ path and original saved exception frame; not Paula DMA or observed playback"
+  },
+  "station_cycle": {
+    "main_entry": 208496,
+    "app_fields": {
+      "enabled": 2684,
+      "construction": 2152,
+      "charging": 2500,
+      "firing": 2502,
+      "sequence": 2674,
+      "cadence_mask": 2094,
+      "event_tick": 2130,
+      "space_half_rate": 2132,
+      "primary_report": 2154,
+      "secondary_report": 2158,
+      "bomb_spawn_countdown": 2498
+    },
+    "initial_step_counts": [
+      52,
+      4,
+      2
+    ],
+    "construction_effect": "52-minus-remainder written into model99 face_count WORD2",
+    "mask_table": [
+      233710,
+      233728
+    ],
+    "nonnegative_mask_entries": 8,
+    "negative_terminator": -1,
+    "retirement_fallback_mask": 63,
+    "bomb_spawn_countdown_prefix": [
+      233728,
+      233744
+    ],
+    "final_report": "Original scout text: Novenia destroyed by massive beam weapon; not an ending/playthrough claim",
+    "missing_projector": "Only charge exactly-1 resets to0; other original phase values retained"
+  },
+  "verification": {
+    "receipt_id": "bc450a5753f0801e4a64c4c59d73914cea8b58725afab59f281b4b7a1b10c1f2",
+    "exact": true,
+    "source_sha256": "6cc2f932d56e7343bc58be51b0071a526311db19139c70e512f1f928d22a7607",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "range_resolution_measurement": {
+    "kind": "read_only_real_sample_range_resolution",
+    "ranges": 7,
+    "rows": 1180,
+    "elapsed_seconds": 65.7286213490006,
+    "suppression_metadata_reads": 7,
+    "whole_listing_materializations": 0,
+    "profiled": true,
+    "scope": "Read-only real seven-range sample-role locator resolution, not native rebuild or end-to-end restoration timing"
+  },
+  "accounting": {
+    "before_range_union_bytes": 384915,
+    "after_range_union_bytes": 387151,
+    "before_unclassified_bytes": 27821,
+    "after_unclassified_bytes": 25585,
+    "new_classified_bytes": 2236,
+    "before_code_bytes": 105806,
+    "accepted_code_bytes": 105956,
+    "new_code_bytes": 150,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original source contracts only; no new alternate-platform/gameplay/audio/timing qualification",
+    "Original self-modifying sample cursor and exception frame preserved",
+    "Unread LUT suffix and adjacent countdown WORD are not declared unused/padding",
+    "WORD counter names do not erase original overlapping LONG initialization writes",
+    "Exact bytes do not prove semantic completeness or every original index/caller bound",
+    "No interim archive, relocation or Pandora resumption"
+  ]
+}

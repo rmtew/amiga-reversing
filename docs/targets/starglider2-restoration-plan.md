@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 27821 bytes remain unclassified and substantial
+byte equality is preserved; 25585 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1346,3 +1346,36 @@ written unchanged to a fresh private directory and rebuilt byte-exactly, with
 original source slice. See `runtime/observations/starglider2-paula-descriptors.json`.
 This is build validation for the new asset family, not an interim archive or
 download deliverable; semantic restoration remains open.
+
+
+## Alternate sample interrupt and station mission cycle
+
+Original setup installs the alternate CPU sample interrupt and patches its
+absolute source operand before timer activation. The recovered interrupt
+indexes 256 eight-byte conversion rows, sends three register/data pairs to
+the alternate sound interface and advances the original ring on byte-count
+expiry. The final WORD in each row is unread by this consumer. The mutable
+counter is separate data; the self-modified operand remains code storage.
+This is static original IRQ recovery, not Paula DMA or new observed playback.
+
+The connected station cycle now names its enable, construction/charge/firing
+steps, event cadence, sequence, report pointers and neutron-bomb countdown.
+Construction advances after a complete projector scan and writes the station
+model's face count, not its vertex bound. Charging and firing follow the
+original negative-sentinel state tests. Missing projectors reset only the
+exact recorded charge state. Eight sequence masks plus a negative terminator
+retain the retirement fallback; eight associated bomb countdown seeds retain
+the original gated creation conditions. Adjacent unconsumed words are not
+classified by proximity. WORD counters preserve overlapping LONG initialization.
+The final text reports Novenia's destruction; this does not establish an ending
+or a successful playthrough.
+
+The 37 canonical actions preserve full C/vasm equality across all
+412736 bytes, with zero range/source-quality diagnostics. Classification gains
+2236 bytes (150 code bytes),
+leaving 25585 unclassified. See
+`runtime/observations/starglider2-alternate-mission.json`. A profiled read-only
+resolution of seven real sample ranges (1180 rows) took
+65.729 seconds, made seven suppression-metadata reads and
+materialized no whole listing. This measures that operation only, not a claimed
+end-to-end speedup. Semantic restoration remains active; no interim archive.
