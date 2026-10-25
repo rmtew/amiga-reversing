@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 56789 bytes remain unclassified and substantial
+byte equality is preserved; 54298 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1147,3 +1147,43 @@ range/source-quality diagnostics. Accepted-range accounting grows by
 `runtime/observations/starglider2-object-defaults.json`. Function/field meaning
 has improved; no overall semantic completion percentage, new runtime campaign
 or interim archive is claimed.
+
+
+## Object/type parameters, combat tags and world selection
+
+Fourteen connected parameter tables now have consumer-backed names and original
+widths. They cover type-specific visibility distances, retirement phases,
+non-model radii, world-reference Y coordinates, HUD altitude divisors, horizontal
+wrap masks, collision damage, two BCD score-award families, projectile Y offsets,
+mutable target-selection defaults, two selected AI height thresholds and default
+motion WORDs. Four scalar LONG arrays use canonical literal-array owners so
+address-like numbers do not become invented pointers. The default motion WORD
+is used to form projectile velocity but retains other type-specific consumers;
+no universal object-field interpretation is imposed.
+
+The two score tables each have 103 physically stored WORDs; original model index
+103 aliases the following table's first zero WORD. The source preserves that
+relationship rather than creating overlapping 104-entry owners. Every logical
+award entry has packed-BCD digits, but callers use ordinary ADD.W accumulation.
+The pending score WORD is named without claiming that all aggregates remain
+valid BCD or assigning purpose to the neighboring WORD covered by its LONG clear.
+
+A separate 103-byte initializer feeds mutable per-type target-selection tags.
+Selected firing paths require nonzero tags; target search matches the complemented
+caller tag, skips self and falls back to the player. Contact updates can produce
+values other than the original 0/FF. These are not labelled ammunition or a
+universal faction model. Three following source zeros are not copied.
+
+The celestial-body selector stores type minus128 for original types128..144,
+so its index can be16. Surface entry excludes specific types before consuming
+the 16-entry world tables. The source now names the selected index/reference,
+retains saved-state pointer serialization and states this conditional domain
+instead of inventing a universal 0..15 bound. Retirement equality/wrap, signed
+projectile offset addition and branch-specific AI thresholds remain unchanged.
+
+The 42 canonical actions verify exact full C/vasm reconstruction of all
+412736 bytes, with zero range/source-quality diagnostics. Accepted-range
+accounting gains 2491 bytes, leaving 54298
+unclassified. See `runtime/observations/starglider2-object-parameters.json`.
+These are source-understanding gains, not an overall completion percentage.
+No new runtime campaign, relocation or interim archive accompanies the batch.

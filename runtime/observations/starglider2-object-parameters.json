@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "kind": "connected_object_type_parameters_and_world_selection",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 42,
+  "tables": [
+    {
+      "base": 95032,
+      "entries": 148,
+      "unit_bytes": 4,
+      "name": "object_type_distance_limits"
+    },
+    {
+      "base": 95624,
+      "entries": 104,
+      "unit_bytes": 1,
+      "name": "object_retirement_phase_limits"
+    },
+    {
+      "base": 95730,
+      "entries": 20,
+      "unit_bytes": 4,
+      "name": "nonmodel_object_base_radii"
+    },
+    {
+      "base": 95810,
+      "entries": 16,
+      "unit_bytes": 4,
+      "name": "world_reference_y_coordinates"
+    },
+    {
+      "base": 95874,
+      "entries": 16,
+      "unit_bytes": 2,
+      "name": "world_altitude_meter_divisors"
+    },
+    {
+      "base": 95906,
+      "entries": 16,
+      "unit_bytes": 4,
+      "name": "world_horizontal_wrap_masks"
+    },
+    {
+      "base": 95970,
+      "entries": 104,
+      "unit_bytes": 2,
+      "name": "object_collision_damage_values"
+    },
+    {
+      "base": 96180,
+      "entries": 103,
+      "unit_bytes": 2,
+      "name": "object_destruction_bcd_awards"
+    },
+    {
+      "base": 96386,
+      "entries": 103,
+      "unit_bytes": 2,
+      "name": "object_contact_bcd_awards"
+    },
+    {
+      "base": 96592,
+      "entries": 104,
+      "unit_bytes": 2,
+      "name": "object_projectile_spawn_y_offsets"
+    },
+    {
+      "base": 96802,
+      "entries": 103,
+      "unit_bytes": 1,
+      "name": "model_default_target_selection_tags"
+    },
+    {
+      "base": 96908,
+      "entries": 104,
+      "unit_bytes": 2,
+      "name": "object_ai_y_increase_thresholds"
+    },
+    {
+      "base": 97118,
+      "entries": 104,
+      "unit_bytes": 2,
+      "name": "object_ai_y_decrease_thresholds"
+    },
+    {
+      "base": 97328,
+      "entries": 104,
+      "unit_bytes": 2,
+      "name": "object_default_motion_words"
+    }
+  ],
+  "literal_LONG_arrays": "Four canonical array owners prevent numeric scalar coincidences being rendered as source pointers",
+  "award_aliases": [
+    {
+      "logical_base": 96180,
+      "logical_entries": 104,
+      "physical_entries": 103,
+      "last_entry_address": 96386,
+      "last_entry_original_value": 0
+    },
+    {
+      "logical_base": 96386,
+      "logical_entries": 104,
+      "physical_entries": 103,
+      "last_entry_address": 96592,
+      "last_entry_original_value": 0
+    }
+  ],
+  "arithmetic": [
+    "All104 logical award WORDs in each table have valid packed-BCD nibbles; ADD.W caller accumulation does not imply valid aggregate BCD",
+    "Pending score WORD atapp5C consumed via ABCD digit helper then cleared as LONG with neighboring storage; following WORD not named",
+    "Retirement tests equality before BYTE increment, not greater-or-equal",
+    "Projectile signed Y offset is arithmetic-right-shifted then added to shooter worldY",
+    "AI Y thresholds are branch-specific and not universally ordered min/max"
+  ],
+  "target_tags": {
+    "initializer": 97658,
+    "source_prefix": [
+      96802,
+      96905
+    ],
+    "copied_bytes": 103,
+    "destination_workspace_offset": 3494,
+    "stored_values": [
+      0,
+      255
+    ],
+    "mutation": "Contact increments selected type tag and skipszero on wrap; non-binary values are possible",
+    "consumer": 42234,
+    "selection": "First visible non-self record matching desiredtag; original callers complement own tag; fallback to player",
+    "limits": "Nonzero also gates selected firing; not ammunition/faction semantics; following3sourcezeros not copied; no complete arbitrary-type bounds proof"
+  },
+  "body_selector": {
+    "workspace_index": 2096,
+    "workspace_reference": 2098,
+    "selection_loop": 211232,
+    "original_type_domain": [
+      128,
+      144
+    ],
+    "stored_index_domain": [
+      0,
+      16
+    ],
+    "surface_gate": 211308,
+    "limits": "16-entry world arrays require narrower surface-entry domain; original pointer becomes relative during save serialization"
+  },
+  "default_motion_word": "104-model prefix copied to type-dependent object20. Selected projectile consumers form X/Z velocity; universal speed/counter field not imposed. Following12zero bytes unassigned",
+  "verification": {
+    "receipt_id": "d78caf4ceaff30358a04c9da7b2ede816acd21f21e1f81baf74cc6a385c91c10",
+    "exact": true,
+    "source_sha256": "f16bf6166b380280aaa30a1fe3e190f9acca602e857f1a29f539bd84d970de50",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 355947,
+    "after_range_union_bytes": 358438,
+    "before_unclassified_bytes": 56789,
+    "after_unclassified_bytes": 54298,
+    "new_classified_bytes": 2491,
+    "accepted_code_bytes": 100856,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original static producer/consumer contracts, no new runtime observation",
+    "Physical prefixes preserve neighboring unassigned bytes and logical aliases",
+    "Type-dependent object22/36 or20 not imposed as universal struct fields",
+    "No semantic completion percentage, interimarchive or relocation work"
+  ]
+}
