@@ -4,7 +4,7 @@ Status: normal-media loader entries/bytes verified. Published source batches cov
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs and HUD sprites. Complete C/vasm
-byte equality is preserved; 61500 bytes remain unclassified and substantial
+byte equality is preserved; 60876 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -914,3 +914,35 @@ code grows by 3558 bytes; accepted-range coverage grows by 4078, leaving
 61500 bytes unclassified. These counts do not measure semantic completion.
 No new runtime output/ABI qualification or archive accompanies this static
 restoration. See `runtime/observations/starglider2-text-services.json`.
+
+
+## Visible/contact lists and model extents
+
+`prepare_visible_and_contact_objects` (`$4320`) transforms nearby-object relative
+coordinates and builds separate backwards pointer lists. Contact eligibility
+is collected before visibility culling. Their app cursors `$6CC/$6D0` and counts
+`$760/$762` now carry the corresponding names through rendering, selection,
+contact processing and save-pointer serialization. Sharing object pointers does
+not make the lists exclusive owners.
+
+`process_object_contact_pairs` (`$B55C`) uses scaled horizontal extents to bound
+absolute wrapped X/Z cache differences. Signed world-Y separation chooses the
+positive extent of the lower object and negative extent of the upper object.
+The three tables at `$17058/$1712A/$171FC` expose the 104 stored model-domain
+WORD entries; each following WORD stays unassigned. Some original readers do
+not locally reject positive indices104..127, so this is source interpretation,
+not arbitrary-object index safety. Original shift widths and overflow remain.
+
+The low-type path caches wrapped view-origin deltas in WORDs `$32/$34/$36`
+before rotation. They are documented at their producer, not imposed as universal
+record fields: high types reuse overlapping LONG `$36` differently. Similarly,
+A6 becomes the positive-Y extent table inside the pair service; it is not an
+app base throughout. The 320-WORD screen-X lookup now identifies framebuffer
+byte offsets, original `(x//16)*2`, and its two alternate startup rewrites.
+
+Seventeen canonical actions preserve full original C/vasm equality and zero
+range/source-quality diagnostics. Accepted-range accounting gains
+624 bytes, leaving 60876 unclassified. This does not
+measure overall semantic completion. See
+`runtime/observations/starglider2-contact-bounds.json`. No new runtime test or
+archive accompanies the static restoration.

@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "kind": "visible_contact_lists_and_model_extent_consumers",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 17,
+  "functions": {
+    "prepare_lists": 17184,
+    "process_pairs": 46428
+  },
+  "workspace": {
+    "visible_cursor": 1740,
+    "contact_cursor": 1744,
+    "visible_count": 1888,
+    "contact_count": 1890
+  },
+  "list_contract": "Original nearby list source; backwards writes from app1E4C/2238; contact eligibility precedes visibility culling; shared pointers do not imply exclusive object lifetime",
+  "extent_tables": [
+    {
+      "start": 94296,
+      "end": 94504,
+      "name": "horizontal",
+      "count": 104,
+      "width": 2,
+      "following_unassigned_bytes": 2
+    },
+    {
+      "start": 94506,
+      "end": 94714,
+      "name": "negative_y",
+      "count": 104,
+      "width": 2,
+      "following_unassigned_bytes": 2
+    },
+    {
+      "start": 94716,
+      "end": 94924,
+      "name": "positive_y",
+      "count": 104,
+      "width": 2,
+      "following_unassigned_bytes": 2
+    }
+  ],
+  "extent_consumers": {
+    "pair_service": 46428,
+    "horizontal": "sum scaled horizontal extents; compare absolute wrapped-X/Z cached WORD differences",
+    "vertical": "signed world-Y LONG separation; positive extent of lower object plus negative extent of upper object",
+    "shift_source": "record BYTE1D; original WORD/LONG shift and sign-extension behavior retained",
+    "additional_selection_readers": [
+      29686,
+      226040
+    ],
+    "unchecked_domain": "104 stored model-domain prefix; positive104..127 not locally rejected at every consumer; no arbitrary-object safety claim"
+  },
+  "relative_cache": {
+    "writer_path": 16836,
+    "word_offsets": [
+      50,
+      52,
+      54
+    ],
+    "meaning": "Low-type wrapped world-axis deltas to view origin before rotation",
+    "restriction": "Not universal struct fields: high-type records use overlapping LONG36 for different meaning"
+  },
+  "screen_x_offsets": {
+    "span": [
+      92000,
+      92640
+    ],
+    "count": 320,
+    "width": 2,
+    "original_identity": "(x//16)*2",
+    "alternate_mode0_identity": "(x//16)*8",
+    "alternate_mode1_identity": "(x//8)*2",
+    "role": "framebuffer BYTE offsets, not pixel masks"
+  },
+  "verification": {
+    "receipt_id": "7660119fca5380ac31fa411543e1c60e6bff232f2a0b03d3ac8c2a98ba150b84",
+    "exact": true,
+    "source_sha256": "0cf1e6419aba27afe15b5834ade19ff9699a6441db64639f760e42456465afea",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 351236,
+    "after_range_union_bytes": 351860,
+    "before_unclassified_bytes": 61500,
+    "after_unclassified_bytes": 60876,
+    "new_classified_bytes": 624,
+    "accepted_code_bytes": 99720,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original static producer/consumer evidence, no new runtime/contact behavior validation",
+    "104 table entries reflect stored model family, not proof every original type reaches only those entries",
+    "Unassigned following WORDs retained, not invented table entries or certified padding",
+    "A6 borrowed as positive-Y table within pair routine; no blanket app-base context assumption",
+    "Original arithmetic, shared state, mutable tables and pointer-list aliases preserved",
+    "No archive/upload; semantic restoration remains incomplete"
+  ]
+}
