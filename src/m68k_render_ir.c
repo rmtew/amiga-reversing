@@ -4104,6 +4104,9 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       render_asm_dc_w_values(preview, data, offset + cursor, 2U, NULL);
       if (io_logical_pc != NULL) *io_logical_pc += 2U;
       cursor += 2U;
+      /* A value-word label splits one command, not the remaining list.
+       * Resume semantic rendering once that command's two WORDs are emitted. */
+      raw_word_mode = (cursor % 4U) != 0U;
       continue;
     }
     if (cursor + 2U < size &&
