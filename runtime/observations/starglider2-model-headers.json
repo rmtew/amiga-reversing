@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "model_headers_source_restored_C_vasm_full_image_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "8323821693c75f3a9137559531a5e21db5ad82c45c0952bd52f5a5e791cfbff5",
+  "manual_actions_sha256": "c5749656175bd9b44c933b4de66afb253744fdd5c3b9f7a670f0187284a42234",
+  "manual_actions": 99,
+  "accepted_interpretations": 63,
+  "decision_journal_sha256": "593fa49fa700c6ece834bea1291a5da6041b4cae5d672bde4519a09563a93430",
+  "verification": {
+    "receipt_id": "fbd07e44c578d875ad8acb0246e243db5bf77b0168d1cdea6442905d352e50ee",
+    "subject_revision": "b07f54628d60bf06ec58f973bee02a772e2010adff4927be5dfa9d055af12a17",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "catalogue": {
+    "runtime_table": 100724,
+    "pointer_count": 104,
+    "unique_headers": 103,
+    "short_headers": 58,
+    "extended_headers": 45,
+    "header_start": 101140,
+    "header_end": 103792,
+    "header_bytes": 2652,
+    "pointer_bytes": 416,
+    "alias_table_indices": [
+      0,
+      1
+    ],
+    "type_names": [
+      "SG2ModelHeader",
+      "SG2ModelHeaderAux"
+    ],
+    "typed_header_runs": 33
+  },
+  "accounting": {
+    "before_range_union_bytes": 132252,
+    "after_range_union_bytes": 135320,
+    "before_unclassified_bytes": 280484,
+    "after_unclassified_bytes": 277416,
+    "code_bytes": 88142,
+    "new_classified_bytes": 3068,
+    "body_component_audited_bytes": 33044,
+    "body_component_new_classification_claimed": false
+  },
+  "checks": {
+    "original_model_structure": "103 distinct models pass coordinate, face, header extent and nonoverlap checks",
+    "wrong_payload": "refused before interpretation",
+    "source_quality": "symbolic duplicate pointers and conditional header records inspected",
+    "full_C": "exact",
+    "full_vasm": "exact",
+    "new_framework_code": false
+  },
+  "limits": [
+    "Variant pointer table lengths and selector domains remain unresolved",
+    "Face flags, visual model identities and arbitrary input safety unproved",
+    "Audited model body extents not yet promoted into canonical data owners",
+    "Static source batch; no new runtime, graphics or audio validation",
+    "Restoration incomplete; no interim archive generated"
+  ]
+}

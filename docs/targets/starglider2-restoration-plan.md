@@ -188,3 +188,63 @@ counted face records and coordinate-reference streams, with all 103 records
 agreeing with the consumer-derived boundaries. Do not assume uniform header
 size, flatten the alias, or treat the coordinate dictionary as vertex indices.
 Canonical adoption and detailed field interpretation remain to be done.
+
+## Model catalogue and encoded vertices
+
+The constructor at runtime `$4A2A` selects from 104 LONG pointers at `$18974`.
+Entries 0 and 1 intentionally point to the same header: there are 103 distinct
+headers at `$18B14..$19570`. Their shared 24-byte prefix contains a last vertex
+index, face count, coordinate-pool WORD count, four pointers, and auxiliary face
+count. Only a nonzero auxiliary count causes the constructor to consume the
+additional LONG at +24. The original catalogue has 58 short and 45 extended
+headers. Canonical structures preserve that distinction and the pointer alias;
+the shared-prefix pointer type does not assert a uniform 28-byte pointee.
+
+The four prefix pointers identify normal face commands, eight-byte vertex
+reference records, a coordinate WORD pool, and an optional vertex-variant pointer
+table. The routine at `$56BC` masks each vertex coordinate reference with `$7FFF`
+and uses it as a byte offset into the coordinate pool; the sign bit selects a
+negated transformed result. These encoded references are not literal XYZ values.
+The vertex resolver at `$583C` reads three such references and a fourth WORD:
+a negative fourth WORD uses the base record, while a nonnegative value may
+select an alternate triple from the chosen variant data. The instance's variant
+selector at +3 is not bounded by these consumers alone; variant-table lengths
+and variant data extents remain unresolved.
+
+For every original model, the coordinate pool ends at its vertex records.
+All three coordinate references in every base vertex are even and in that pool.
+Every normal/auxiliary face vertex reference is a multiple of eight within its
+model's vertex records. Normal face commands encode their vertex count in bits
+10..8; auxiliary commands use bits 11..8. Parsing the declared face counts ends
+exactly at the next component. Other face flags/material meanings and the visual
+identities of the models have not been inferred. Components of distinct original
+models do not overlap. This is original-record validation, not a guarantee for
+arbitrary replacement data or all runtime selectors.
+
+Reproduce the finite structural audit with:
+
+```
+python -m amiga_reversing.tools.starglider2_models PRIVATE_GAME_COPY.bin --output PRIVATE_MODEL_INVENTORY.json
+```
+
+The checker binds the reviewed payload hash and records addresses/counts without
+publishing coordinate or asset bytes. The known component extents total 13510
+normal-face bytes, 928 auxiliary-face bytes, 6046 coordinate bytes and 12560
+vertex-reference bytes. These extents do not include the unresolved variant
+families in the intervening gaps. Header/pointer-table restoration and body
+classification are tracked separately; an audited extent is not automatically a
+newly classified byte.
+
+The [model-header receipt](../../runtime/observations/starglider2-model-headers.json)
+records 43 new evidence-bearing catalogue actions, all accepted through the
+Decision Journal after complete C and vasm equality. The generated source has
+symbolic model pointers (including the duplicate), named prefix/tail fields and
+consumer labels. Range ownership increases by 3068 bytes: the 416-byte pointer
+table and 2652-byte header catalogue. The unclassified complement is now 277416
+bytes; code remains 88142 bytes. No model body bytes are counted as newly
+classified by this header batch. Next: canonical body components and the remaining
+variant producer/selector contracts, retaining unresolved gaps explicitly.
+
+No further interim archives are to be created or uploaded. Tested incremental
+restoration belongs on master; the private source/build archive is a final
+restoration deliverable, not a substitute for readable source completion.
