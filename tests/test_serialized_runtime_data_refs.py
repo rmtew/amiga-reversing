@@ -235,3 +235,63 @@ def test_real_dll_resolver_refuses_inactive_and_ambiguous_native_views(tmp_path:
         assert "source_offset" not in result
     finally:
         artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize("target,label,load", [
+    (6, "dialogue_resume", 0x4000),
+    (8, "message_bytes", 0x4000),
+    (6, None, 0x4000),
+    (6, "dialogue_resume", 0x8000),
+])
+def test_named_fixed_runtime_pointer_uses_only_matching_original_view(
+        tmp_path: Path, target: int, label: str | None, load: int) -> None:
+    """A meaningful source name cannot silently rebind an explicit runtime value."""
+    import subprocess
+    from tests.test_c_backend import _requires_c_backend_dlls
+    _requires_c_backend_dlls()
+    encoded = 0x4000 + target
+    original = bytes.fromhex("6004") + encoded.to_bytes(4, "big") + bytes.fromhex("4e75")
+    if target == 8:
+        original += b"OK\0\0"
+    binary = tmp_path / "named.bin"
+    binary.write_bytes(original)
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE, load_address=load,
+        entrypoint=load, code_start_offset=0, display_path=str(binary),
+        analysis_cache_path=tmp_path / "named.analysis")
+    write_target_metadata(tmp_path, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _write_actions(tmp_path, _ref(encoded, target))
+    if label:
+        record = {"record": "manual_action", "action_id": "named", "sequence": 4,
+            "created_at": "2026-10-25T00:00:00+00:00", "kind": "create_manual_label",
+            "label": {"label_id": "target", "hunk": 0, "addr": target,
+                "name": label, "scope": "global", "address_domain": "source"}}
+        with (tmp_path / MANUAL_ACTION_LOG_FILE_NAME).open("a") as stream:
+            stream.write(json.dumps(record) + "\n")
+    with effective_metadata_file(tmp_path) as metadata:
+        artifact = c_backend.build_listing_artifact_profile_from_binary_source(
+            source, metadata_path=metadata, project_root=PROJECT_ROOT)[2]
+        try:
+            rendered = artifact.source_projection_with_profile()[0]
+            incoming = artifact.query_payload("references", section_index=0,
+                source_offset=target, direction="incoming")["items"]
+            assert any(r.get("source_offset") == 2 and r.get("target_offset") == target
+                       for r in incoming)
+        finally:
+            artifact.close()
+    directive = next(line.strip() for line in rendered.splitlines() if "dc.l " in line)
+    if label and load == 0x4000:
+        assert directive.split(";")[0].strip() == "dc.l " + label
+    else:
+        assert "dblk_ref_h0_" in directive
+        if label:
+            assert directive.split(";")[0].strip() != "dc.l " + label
+    rebuilt, _ = c_backend.assemble_platform_source_text_with_c_backend(
+        "amiga-raw", rendered, project_root=PROJECT_ROOT)
+    assert rebuilt == original
+    asm, output = tmp_path / "rendered.s", tmp_path / "vasm.bin"
+    asm.write_text(rendered)
+    subprocess.run([str(PROJECT_ROOT / "ext/vasm/vasmm68k_mot"), "-quiet", "-Fbin",
+        "-m68000", "-no-opt", "-o", str(output), str(asm)], capture_output=True, check=True)
+    assert output.read_bytes() == original
