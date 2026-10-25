@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 15865 bytes remain unclassified and substantial
+byte equality is preserved; 15404 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -20,8 +20,8 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Current remaining-work inventory
 
-After the encoded-storage source correction, native ownership leaves
-253 intervals / 15865 bytes unclassified. This is classification accounting,
+After the planetfall/shared-message batch, native ownership leaves
+251 intervals / 15404 bytes unclassified. This is classification accounting,
 not semantic completion; function/field completeness has no measured denominator.
 The largest interval is now `$61C2C..$62492` (2150 bytes). Original encoded
 storage is explicitly data, and its separate decoded view is not added again
@@ -35,8 +35,9 @@ sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
 `$61C2C..$62492`. Boundaries and meanings require actual consumers; adjacency or
 absent direct xrefs alone cannot establish a role or deadness. World/body and
 object-record views retain explicit conditional index/alias assumptions, rather
-than arbitrary input-safety proofs. The world-message pointer prefix at
-`$38504..$38544` and later message bodies also have concrete consumer leads.
+than arbitrary input-safety proofs. The planetfall pointer prefix at `$38504..$38544`, its text and the
+16 departure-message flags now have explicit source contracts. Conditional
+higher-selector aliases remain qualified; these are not universal domain proofs.
 
 Conditional external continuations remain distinct: the decoded protection
 entry/provider at `$380`, reset through vector4, intro low-memory patches, and
@@ -1588,3 +1589,35 @@ the original-layout analyzer does not model the transformation at that edge. Ori
 incidental ciphertext interpretation is corrected. The unclassified complement
 is 15865 bytes. See `runtime/observations/starglider2-encoded-storage-source.json`.
 No new execution claim or interim archive.
+
+
+## Planetfall text and departure-message selection
+
+The stored 16-LONG directory at `$38504..$38544` now emits named source-text
+references, alongside all 87 entries in the existing shared event directory.
+Both use the same canonical thin text-reference type; variable string sizes
+are not aggregate pointee extents. Entry zero points to an actual empty NUL
+string at `$386A0`. The other strings end at `$38838`. The adjacent Taymar
+owner and the Apogee depot string remain distinct and retain their names.
+
+At `$33BEA`, the selected-body index chooses planetfall text. At `$33E86`,
+the 16 stored BYTE flags at `$38838..$38848` select shared message 54
+(leaving planet) for zero or 75 (leaving moon) for nonzero. These flags establish
+that specific message-selection purpose, not a universal astronomical
+classification. Physical table lengths do not prove every caller's selector
+bounds; original higher-index aliases and queue conditions remain explicit.
+
+All 26 canonical actions are reviewed against the generated source. Full C/vasm
+rebuilding preserves all 412736 original bytes. Classification gains
+461 bytes, leaving 15404 in 251 intervals; existing
+shared-directory bytes are not counted as new. There are zero source-quality
+diagnostics, and the one known transformed-entry code/data conflict remains.
+See `runtime/observations/starglider2-planetfall-source.json`.
+
+Remaining substantive families are unchanged protection-context bridges and
+text-helper entry, sound/scratch backing extents and conditional alternate
+backend consumers, and unresolved object/world fields and dispatch semantics.
+The largest opaque spans still need producer/consumer evidence rather than
+pattern classification. Completion remains a connected source-quality and
+residual-interval disposition review followed by one clean standalone exact
+source/asset build; classification alone is not that gate.

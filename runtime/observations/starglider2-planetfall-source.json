@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "kind": "planetfall_departure_and_shared_message_source_contracts",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 26,
+  "planetfall": {
+    "pointer_span": [
+      230660,
+      230724
+    ],
+    "stored_entries": 16,
+    "text_span": [
+      231072,
+      231480
+    ],
+    "empty_entry": "entry0 is nonnull pointer386A0 to oneNUL byte",
+    "consumer": 211946,
+    "index_source": "selected_celestial_body_index multiplied by4",
+    "following_owner": "taymar_offer_dialogue_pointers unchanged; higher selectors may alias it"
+  },
+  "departure": {
+    "flag_span": [
+      231480,
+      231496
+    ],
+    "values": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "consumer": 212614,
+    "zero_event_index": 54,
+    "nonzero_event_index": 75,
+    "purpose": "message selection only; not universal body taxonomy",
+    "next_owner": "depot_text_welcome_to_apogee at38848 unchanged"
+  },
+  "shared_directory": {
+    "span": [
+      228200,
+      228548
+    ],
+    "stored_entries": 87,
+    "typed_named_source_references_after": 103,
+    "new_original_classification_from_existing_directory": 0,
+    "pointer_model": "SG2SourceTextReference: one thin mapped-source APTR, no inferred pointee capacity"
+  },
+  "verification": {
+    "receipt_id": "05812e3271db2a905ae041149f30d97d28ee295653174f5a76e41e4a000b93bc",
+    "exact": true,
+    "source_sha256": "4af30c507e9990f3aa4a6e111f49219b09585cdf9a9a9f75930c0da76bea7f2b",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 396871,
+    "after_range_union_bytes": 397332,
+    "before_unclassified_bytes": 15865,
+    "after_unclassified_bytes": 15404,
+    "new_classified_original_bytes": 461,
+    "accepted_code_bytes": 105956,
+    "range_violations": 1,
+    "known_diagnostic": {
+      "offset": 76796,
+      "kind": 3,
+      "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+    },
+    "source_quality_diagnostics": 0,
+    "unclassified_intervals": 251
+  },
+  "review_history_correction": "Append-only review corrects the earlier encoded-storage zero-range-diagnostic claim; actual kind3 conflict retained",
+  "limits": [
+    "Physical prefixes are not universal runtime bounds; original dynamic selectors/queue assumptions unchanged",
+    "Pointer readability does not prove relocation or arbitrary input safety",
+    "No new gameplay execution, no semantic completion percentage, no interim archive",
+    "Known original encoded-storage control-flow conflict remains explicit; separate decoded view retained"
+  ],
+  "largest_remaining_intervals": [
+    [
+      400428,
+      402578,
+      2150
+    ],
+    [
+      308446,
+      309662,
+      1216
+    ],
+    [
+      12144,
+      13172,
+      1028
+    ],
+    [
+      25918,
+      26612,
+      694
+    ],
+    [
+      237752,
+      238292,
+      540
+    ],
+    [
+      235926,
+      236412,
+      486
+    ],
+    [
+      51640,
+      52096,
+      456
+    ],
+    [
+      204198,
+      204632,
+      434
+    ],
+    [
+      24298,
+      24710,
+      412
+    ],
+    [
+      193828,
+      194116,
+      288
+    ],
+    [
+      307784,
+      308062,
+      278
+    ],
+    [
+      23016,
+      23282,
+      266
+    ]
+  ]
+}
