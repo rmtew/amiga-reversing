@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "kind": "options_control_settings_text_and_decimal_source_contracts",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 66,
+  "menu_text": {
+    "spans": [
+      [
+        59149,
+        59203,
+        "options_no_interrupted_game_message"
+      ],
+      [
+        59203,
+        59238,
+        "options_menu_heading"
+      ],
+      [
+        59238,
+        59266,
+        "options_joystick_line_prefix"
+      ],
+      [
+        59267,
+        59270,
+        "options_joystick_status_text"
+      ],
+      [
+        59270,
+        59275,
+        "options_joystick_line_suffix"
+      ],
+      [
+        59275,
+        59303,
+        "options_one_hand_line_prefix"
+      ],
+      [
+        59304,
+        59307,
+        "options_one_hand_status_text"
+      ],
+      [
+        59307,
+        59312,
+        "options_one_hand_line_suffix"
+      ],
+      [
+        59312,
+        59340,
+        "options_fixed_sight_line_prefix"
+      ],
+      [
+        59341,
+        59344,
+        "options_fixed_sight_status_text"
+      ],
+      [
+        59344,
+        59349,
+        "options_fixed_sight_line_suffix"
+      ],
+      [
+        59349,
+        59377,
+        "options_autocentre_line_prefix"
+      ],
+      [
+        59378,
+        59381,
+        "options_autocentre_status_text"
+      ],
+      [
+        59381,
+        59387,
+        "options_autocentre_line_suffix"
+      ],
+      [
+        59387,
+        59416,
+        "options_mouse_scale_choice"
+      ],
+      [
+        59416,
+        59441,
+        "options_load_game_choice"
+      ],
+      [
+        59441,
+        59471,
+        "options_load_ratings_choice"
+      ],
+      [
+        59471,
+        59503,
+        "options_show_ratings_choice"
+      ],
+      [
+        59503,
+        59529,
+        "options_painting_choice"
+      ],
+      [
+        59529,
+        59565,
+        "options_resume_game_choice"
+      ],
+      [
+        59565,
+        59593,
+        "options_start_game_choice"
+      ],
+      [
+        59593,
+        59636,
+        "mouse_scaling_prompt_prefix"
+      ],
+      [
+        59636,
+        59642,
+        "mouse_scaling_decimal_text"
+      ],
+      [
+        59642,
+        59783,
+        "mouse_scaling_input_prompt"
+      ]
+    ],
+    "menu_span": [
+      59203,
+      59593
+    ],
+    "normal_controls": "High-bit bytes set plane mask;01 inverse on,02 inverse off, CR/LF/TAB retain existing original interpreter. Mutable three-byte status fields and option controls are not immutable string promises.",
+    "dispatch": "ASCII0..9 choices, space or original fire flags leave menu; unknown inputs loop.",
+    "joystick_disable": "Falls through shared one-hand disable continuation; original coupling retained",
+    "restart": "Nonlocal original continuation pops a LONG return frame if interrupted-game flag permits; not arbitrary standalone ABI",
+    "load_game": "Preserves conditional first-cockpit-palette-WORD protection gate, rotations and call13BFC; decoded source separate, external provider unresolved"
+  },
+  "saved_settings": {
+    "span": [
+      77486,
+      77490
+    ],
+    "bytes": 4,
+    "fields": [
+      "autocentre_mode",
+      "fixed_sight_flag",
+      "one_hand_flag",
+      "joystick_flag"
+    ],
+    "app_offsets": [
+      2032,
+      2022,
+      2033,
+      2031
+    ],
+    "load": 57644,
+    "store": 59062,
+    "remaining_opaque_tail": [
+      77490,
+      77670
+    ],
+    "remaining_opaque_bytes": 180,
+    "accounting": "These4bytes were already classified by512-byte transfer membership; newly established field purpose is not4new classification bytes.",
+    "domains": "Original nonzero tests,FF/00 and NOT.B behavior preserved. Autocentre displays0/1/2/other asOFF/X/Y/X,Y; menu cycles0..3 but loaded other bytes retain original else branch.",
+    "literal_zero_run_note": "Inline rendering coalesces180opaque copied bytes plus2following original zero bytes into a182-byte literal run. This does not extend copied record end12F66 or classify following2bytes as part of record."
+  },
+  "mouse_scaling": {
+    "WORD": 1856,
+    "validated_menu_values": [
+      0,
+      7
+    ],
+    "input_prefix": [
+      59783,
+      59785
+    ],
+    "input_limit": 1,
+    "following9bytes": "Unassigned, not inferred total buffer capacity",
+    "decimal_backing": [
+      59636,
+      59642
+    ],
+    "decimal_contract": "Original signed-WORD formatter suppresses leading zeroes and NUL-terminates; normal0..7 uses one digit+NUL. Initial00000 bytes are not padded-output proof or general signed-input capacity."
+  },
+  "decimal_place_values": {
+    "span": [
+      9520,
+      9556
+    ],
+    "LONGs": 9,
+    "values": "10^0..10^8, literal scalarULONG fields, not pointers",
+    "consumers": "Signed-WORD five-position and signed-LONG nine-position repeated-subtraction entry paths; original sign prefix, leading suppression, truncation/overflow behavior unchanged",
+    "not_universal_int32_formatter": true,
+    "following_stored_1e9": "Not classified by adjacency; outside proved predecrement reads"
+  },
+  "palette": {
+    "span": [
+      59794,
+      59826
+    ],
+    "WORDs": 16,
+    "consumer": "Original16-step16-colour fade",
+    "followingWORD": "Unassigned"
+  },
+  "verification": {
+    "receipt_id": "95728953253f8933f03226c2995abb2abb763737d7331900b961235aeefda0c8",
+    "exact": true,
+    "source_sha256": "17cc4d33b62e6e60cdbf05024ca09548d426acd9e501f692f278d86434b43e60",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 392693,
+    "after_range_union_bytes": 393397,
+    "before_unclassified_bytes": 20043,
+    "after_unclassified_bytes": 19339,
+    "new_classified_bytes": 704,
+    "accepted_code_bytes": 105966,
+    "new_code_bytes": 0,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0,
+    "unclassified_intervals": 254
+  },
+  "limits": [
+    "Static producer/consumer/source contracts, no new menu/disk/input/runtime qualification",
+    "Preserve original loaded-invalid-setting and control/index behavior",
+    "No physical sensitivity units, universal formatter bounds or all-callers buffer/lifetime claim",
+    "Palette/backing prefixes do not assign adjacent bytes",
+    "No archive, relocation, C conversion or Pandora resumption"
+  ]
+}

@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 20043 bytes remain unclassified and substantial
+byte equality is preserved; 19339 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -20,16 +20,17 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Current remaining-work inventory
 
-After the weapon/HUD and Copper batch, the native ownership complement is
-251 intervals / 20043 bytes. This is classification accounting, not a semantic
+After the settings/UI batch, the native ownership complement is
+254 intervals / 19339 bytes. This is classification accounting, not a semantic
 completion percentage. Function/field completeness has no measured denominator.
 The largest interval, `$12F80..$13BFC` (3196 bytes), is encoded protection storage
 with an existing separately reconstructed decoded view; do not count it as both
 newly classified original bytes and decoded bytes.
 
 The weapon/HUD family at `$719C..$7F1E` and the three rotating Copper lists
-now have producer/consumer-backed source contracts, with their exact limits
-recorded below. Next is the settings/UI stream at `$E706..$E9B4`, followed by
+now have producer/consumer-backed source contracts, as does the settings/UI
+stream at `$E706..$E9B4` (bounded backing exceptions remain explicit below).
+Remaining work includes the encoded-storage source presentation and
 sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
 `$61C2C..$62492`. Boundaries and meanings require actual consumers; adjacency or
 absent direct xrefs alone cannot establish a role or deadness. World/body and
@@ -1523,3 +1524,39 @@ pointers, register values and command order remain unchanged. The typed pointer
 table names the actual three list targets using only a thin command-prefix
 contract, without an aggregate DMA-size claim. The original palette copy covers
 16 WORDs; the following 48 bytes remain outside that demonstrated extent.
+
+
+## Settings menu, saved controls and decimal formatting
+
+The options stream now renders readable text and actual mutable control/status
+fields. High-bit colour masks and inverse-on/off controls remain literal and
+follow the original text interpreter. ON/OFF fields are three bytes. Joystick
+disable also reaches the shared one-hand disable path; fixed-sight and
+autocentre retain their original nonzero, NOT.B and loaded-byte behavior.
+
+The first four bytes of the previously opaque ratings transfer tail store
+autocentre, fixed sight, one hand and joystick settings. Both directions of the
+original copy now use named app fields and a four-byte source structure. The
+remaining 180 transferred bytes stay opaque. These four bytes already had copy
+membership classification; their newly established meaning is not four new
+classification bytes.
+
+Mouse input accepts one digit from 0 to 7. Only its one-character-plus-NUL
+prefix is assigned here, leaving nine following stored bytes unassigned. The
+decimal backing starts with five zero characters but the actual formatter
+suppresses leading zeroes and NUL-terminates. Its general signed-input capacity
+is not proved by this normal menu use. Nine shared LONG place values are
+explicit scalars, and the nine-position LONG formatter keeps its original
+behavior outside the intended decimal width. The following stored billion
+constant is outside the demonstrated predecrement reads.
+
+Menu handlers now name actual choices and qualify the nonlocal restart and
+conditional protection continuation. The original 16-word palette is explicit;
+its following WORD remains unassigned. No new gameplay/input/disk qualification
+is claimed.
+
+The 66 canonical actions preserve all 412736 bytes with C/vasm equality
+and zero range/source-quality diagnostics. Classification gains
+704 bytes, leaving 19339 unclassified; code bytes
+remain 105966. See `runtime/observations/starglider2-options-source.json`.
+No interim archive.
