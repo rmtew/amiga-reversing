@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 52320 bytes remain unclassified and substantial
+byte equality is preserved; 51151 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1253,3 +1253,41 @@ with zero range/source-quality diagnostics. Accepted code grows by
 by 1112, leaving 52320 unclassified. See
 `runtime/observations/starglider2-projector-network.json`. No interim archive or
 new runtime campaign accompanies the batch; remaining source semantics stay open.
+
+
+## Celestial motion and world-transition state
+
+Eight original nearby/distant body entries now expose their actual code and
+planet/moon groups. The shared orbit helper uses LONG deltas at record `$2E`
+and `$32`, where model objects use WORD velocity fields. A separate
+`SG2CelestialObject` view prevents those different layouts being conflated.
+The original initializer table maps types 128..144 to the radius/Y initializer,
+whose actual LONG radius writes now use this view. No universal object layout
+or arbitrary-entry contract is inferred. Q-Beta's wrappers are pass-through
+continuations, so its identity alone does not imply an orbital-helper use.
+
+The supported orbital-parameter prefixes cover indices 0..14, including their
+base anchor. Counter/angle steps, masks, delta shifts, precision shifts and radii
+retain the original integer arithmetic. Scalar LONG arrays are explicit literal
+values, not guessed pointers. Adjacent extra entries remain separate, without
+an unused/padding claim. The initial body-state copy is independently exact:
+17 records of XYZ plus sign-extended object WORD20, followed by 17 angle WORDs.
+The later high-type transition loops exclude type147 only; indices17/18 can
+alias following workspace. That remaining original-use/lifetime question is
+recorded instead of claiming the seed extent proves all accesses safe.
+
+Nearby-object transfer captures at most 20 records of type and truncated
+relative XYZ WORDs, with a dynamic negative marker. A typed 162-byte prefix
+covers those records and the maximum marker slot; larger backing is unassigned.
+Recreation stops at the marker, type98 or insufficient free records. Its three
+computed coordinate values all write the X destination successively in the
+original bytes. This behavior is preserved and documented, not silently changed
+to an invented XYZ round trip. No runtime bug cause or gameplay effect is claimed.
+
+The 52 canonical actions retain exact C/vasm reconstruction of all 412736 bytes
+with zero range/source-quality diagnostics. Accepted code gains
+444 bytes and total classification gains
+1169, leaving 51151 unclassified. See
+`runtime/observations/starglider2-body-state.json`. Other handlers and mission
+contracts remain open; no interim archive or new runtime campaign accompanies
+this source-restoration batch.

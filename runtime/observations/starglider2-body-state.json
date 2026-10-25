@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "kind": "celestial_orbits_and_transition_state_records",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 52,
+  "orbital_dispatch": {
+    "nearby_entries": [
+      221262,
+      221270,
+      221278,
+      221286
+    ],
+    "distant_entries": [
+      221294,
+      221302,
+      221310,
+      221318
+    ],
+    "planet_types": [
+      129,
+      133
+    ],
+    "apogee_moon_types": [
+      134,
+      135
+    ],
+    "millway_moon_types": [
+      136,
+      142
+    ],
+    "q_beta_type": 143,
+    "helper": 221330,
+    "parent_offset_helper": 221664,
+    "q_beta_limit": "Its wrappers branch directly to existing update continuations, not orbital helper; parameter consumption is not inferred from its identity"
+  },
+  "celestial_record_view": {
+    "type": "SG2CelestialObject",
+    "size": 68,
+    "LONG_delta_offsets": [
+      46,
+      50
+    ],
+    "model_overlay_conflict": "These are not the model record WORD velocities at the same offsets",
+    "constructor": 100326,
+    "original_initializer_table": 98026,
+    "constructor_type_domain": [
+      128,
+      144
+    ],
+    "radius_LONG_offsets": [
+      34,
+      54
+    ]
+  },
+  "orbital_parameters": {
+    "supported_prefix_indices": [
+      0,
+      14
+    ],
+    "counter_WORDs": [
+      227482,
+      227512
+    ],
+    "angle_increment_WORDs": [
+      227518,
+      227548
+    ],
+    "counter_step_WORDs": [
+      227554,
+      227584
+    ],
+    "recompute_mask_WORDs": [
+      227590,
+      227620
+    ],
+    "delta_shift_BYTEs": [
+      227626,
+      227641
+    ],
+    "radius_precision_LONGs": [
+      227644,
+      227704
+    ],
+    "radius_LONGs": [
+      228018,
+      228078
+    ],
+    "following_unassigned_radii": [
+      300000,
+      100000
+    ],
+    "limits": "Known helper type domain 129..142; prefix includes anchor index0, not proof every entry is observed or adjacent values unused. Original signed multiplication, shifts and truncation retained"
+  },
+  "body_cache": {
+    "initial_source": [
+      227712,
+      227984
+    ],
+    "workspace_prefix": [
+      2172,
+      2444
+    ],
+    "records": 17,
+    "stride": 16,
+    "fields": [
+      "LONG world_x",
+      "LONG world_y",
+      "LONG world_z",
+      "LONG sign-extended object WORD20"
+    ],
+    "angle_seed": [
+      227984,
+      228018
+    ],
+    "angle_workspace": [
+      2444,
+      2478
+    ],
+    "angle_WORDs": 17,
+    "capture_loop": 211718,
+    "restore_loop": 212760,
+    "alias_limit": "High-type loops exclude147 only. Types145/146 can address indices17/18 beyond initialized17-record prefix; original reachability/lifetime and alias obligations retained, not repaired or assumed safe"
+  },
+  "nearby_capture": {
+    "entry": 225662,
+    "restore_entry": 225758,
+    "countdown_WORD": 236416,
+    "initial_countdown": 19,
+    "maximum_records": 20,
+    "record_stride": 8,
+    "record_fields": [
+      "UWORD object_type",
+      "WORD relative_x",
+      "WORD relative_y",
+      "WORD relative_z"
+    ],
+    "typed_seed_prefix": [
+      236418,
+      236580
+    ],
+    "maximum_terminator_slot": 236578,
+    "terminator_value_runtime": 65535,
+    "terminator_placement": "At current used-record boundary; not necessarily maximum slot",
+    "restore_stops": [
+      "negative type marker",
+      "type98",
+      "free object count <=1"
+    ],
+    "original_coordinate_store_quirk": "Three computed coordinate LONGs write object+4 in sequence, not +4/+8/+C; preserved exactly, no round-trip equivalence claim",
+    "larger_backing": "Adjacent remaining bytes unassigned, not unused"
+  },
+  "verification": {
+    "receipt_id": "107c4ce07353b4eda46345e80540cbeb96b40917e019dae66b1ccba8af7022e9",
+    "exact": true,
+    "source_sha256": "98cb9f9327013ab53d63cef0540e6146a2781c7d073cc7f2fc7d87cbc5bc8588",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 360416,
+    "after_range_union_bytes": 361585,
+    "before_unclassified_bytes": 52320,
+    "after_unclassified_bytes": 51151,
+    "new_classified_bytes": 1169,
+    "before_code_bytes": 102078,
+    "accepted_code_bytes": 102522,
+    "new_code_bytes": 444,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static encoded-entry and producer/consumer contracts, no new runtime qualification",
+    "Separate record view avoids universalizing low/high-type overlaps",
+    "Original cache aliases, coordinate-store behavior, integer wrap and short coordinate truncation preserved",
+    "No interim archive, relocation or new generic validation machinery"
+  ]
+}
