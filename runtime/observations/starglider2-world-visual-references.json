@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "kind": "world_visual_parameters_and_symbolic_reference_bindings",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 123,
+  "canonical_reference_projection": {
+    "references": 97,
+    "dialogue_text_fields": 81,
+    "dialogue_code_fields": 4,
+    "world_curve_fields": 12,
+    "width": 4,
+    "pointer_domain": "Original explicit runtime value mapped into original source view",
+    "source_value_checked": true,
+    "native_targets": "97 explicit runtime-reference projections with exact source/target coordinates and values; targets lie in accepted native ownership and xref mode is bidirectional",
+    "nulls_and_negative_terminators": "Retained literal, not promoted to pointers",
+    "reference_inventory_sha256": "e3d29eedc9f2e6982d89f466a79196c35a8cee8813efc0aef25881b8c00d9299"
+  },
+  "world_visual_parameters": {
+    "radius_LONGs": {
+      "span": [
+        235206,
+        235270
+      ],
+      "count": 16,
+      "meaning": "Type145 display radius, not astronomical units"
+    },
+    "curve_pointer_span": [
+      235270,
+      235334
+    ],
+    "stored_curve_pointers": 16,
+    "null_entries": 4,
+    "unique_curves": [
+      [
+        235336,
+        235464
+      ],
+      [
+        235464,
+        235592
+      ],
+      [
+        235592,
+        235720
+      ]
+    ],
+    "WORDs_per_curve": 64,
+    "curve_index": "Original phase fold, mask2047, shift4, clear low bit => even byte offsets0..126",
+    "RGB_state": 235334,
+    "material_index_state": 193826,
+    "material_profiles": {
+      "spans": [
+        [
+          235720,
+          235754
+        ],
+        [
+          235754,
+          235788
+        ],
+        [
+          235788,
+          235822
+        ]
+      ],
+      "WORDs_each": 17,
+      "selection": "Negated player Y below2000,2000..3999,4000..7999; no physical-unit claim; >=8000 retains prior value"
+    },
+    "atmosphere_RGB_WORDs": [
+      235854,
+      235886
+    ],
+    "atmosphere_shift_BYTEs": [
+      235886,
+      235902
+    ],
+    "world_prefix_count": 16,
+    "scope": "Stored16-entry prefixes do not prove every broader selected-body index safe; original aliases/conditional domains retained"
+  },
+  "collection_exclusion_mask": {
+    "span": [
+      234806,
+      234954
+    ],
+    "BYTEs": 148,
+    "test": "Negative flag skips original collection path; valid original type domain assumed"
+  },
+  "verification": {
+    "receipt_id": "ba0288657802cabf922b57eeef7ba042a9fb45e9f2fcb2f4306f18df575339d8",
+    "exact": true,
+    "source_sha256": "6d51a52e8827f91f372e23d3648486079b779cfd178811ede530b59404fe17c9",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 390291,
+    "after_range_union_bytes": 391105,
+    "before_unclassified_bytes": 22445,
+    "after_unclassified_bytes": 21631,
+    "new_classified_bytes": 814,
+    "accepted_code_bytes": 105966,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original source/data contracts; no new display, gameplay, timing or PCM qualification",
+    "Material indices are distinct from packed RGB words",
+    "Only original consumer/field-proved pointers admitted, no address-looking-word scan",
+    "Physical conversation adjacency does not force shared placement/relocation",
+    "Original masks, arithmetic, nulls, negative terminators and aliases preserved",
+    "No interim archive or Pandora work"
+  ],
+  "named_reference_rendering": {
+    "implementation_commit": "9e93d319bd6a5948b90acfd45c43eca4eaad5ff9",
+    "focused_tests": 47,
+    "suites": [
+      "tests/test_serialized_runtime_data_refs.py",
+      "tests/test_canonical_source_symbol.py"
+    ],
+    "contract": "Use canonical nongenerated label only when exact stored LONG equals current unplaced runtime view; preserve explicit runtime-only encoding/domain and bidirectional source identity. Different views, selected placement profiles and unnamed targets retain fixed EQU fallback.",
+    "fixture_rebuilds": "C and vasm exact for named code/data, unnamed and changed-view cases"
+  },
+  "remaining_inventory": {
+    "unclassified_intervals": 248,
+    "unclassified_bytes": 21631,
+    "largest_intervals": [
+      {
+        "runtime_start": 77696,
+        "runtime_end": 80892,
+        "bytes": 3196
+      },
+      {
+        "runtime_start": 400428,
+        "runtime_end": 402578,
+        "bytes": 2150
+      },
+      {
+        "runtime_start": 308446,
+        "runtime_end": 309662,
+        "bytes": 1216
+      },
+      {
+        "runtime_start": 12144,
+        "runtime_end": 13172,
+        "bytes": 1028
+      },
+      {
+        "runtime_start": 31552,
+        "runtime_end": 32522,
+        "bytes": 970
+      },
+      {
+        "runtime_start": 25918,
+        "runtime_end": 26612,
+        "bytes": 694
+      },
+      {
+        "runtime_start": 59142,
+        "runtime_end": 59828,
+        "bytes": 686
+      },
+      {
+        "runtime_start": 52940,
+        "runtime_end": 53616,
+        "bytes": 676
+      },
+      {
+        "runtime_start": 237752,
+        "runtime_end": 238292,
+        "bytes": 540
+      },
+      {
+        "runtime_start": 235926,
+        "runtime_end": 236412,
+        "bytes": 486
+      },
+      {
+        "runtime_start": 51640,
+        "runtime_end": 52096,
+        "bytes": 456
+      },
+      {
+        "runtime_start": 204198,
+        "runtime_end": 204632,
+        "bytes": 434
+      }
+    ],
+    "encoded_protection_original_span": [
+      77696,
+      80892
+    ],
+    "encoded_protection_bytes": 3196,
+    "encoded_protection_note": "Already has separately reconstructed reversible decoded view; not 3196 bytes of wholly unexplored code. Conditional entry and external provider remain unresolved. No double-counting.",
+    "semantic_function_and_field_denominators": "Not measured; byte accounting is not semantic completion.",
+    "next_connected_source_scope": {
+      "runtime_span": [
+        29084,
+        32542
+      ],
+      "question": "Projectile profile fields, weapon dispatch/status byte, HUD count/background save/restore and firing consumers"
+    }
+  }
+}

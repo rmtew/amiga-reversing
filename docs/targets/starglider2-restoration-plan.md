@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 22445 bytes remain unclassified and substantial
+byte equality is preserved; 21631 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -17,6 +17,41 @@ No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
+
+## Current remaining-work inventory
+
+After the world-reference batch, the current native ownership complement is
+248 intervals / 21631 bytes. This is classification accounting, not a semantic
+completion percentage. Function/field completeness has no measured denominator.
+The largest interval, `$12F80..$13BFC` (3196 bytes), is encoded protection storage
+with an existing separately reconstructed decoded view; do not count it as both
+newly classified original bytes and decoded bytes.
+
+The next substantial connected source review is the weapon/HUD family at
+`$719C..$7F1E`: projectile profile fields, dispatch/status byte, icon counts and
+background save/restore. Existing producer/consumer instructions give a concrete
+basis for this work. Following that are remaining display/control streams
+(including `$CECC..$D170` and `$E706..$E9B4`) and sound/scratch backing extents
+(including `$4B4DE..$4B99E`, `$4DD7C..$4DED4`, `$61C2C..$62492`). Their boundaries
+and meanings require actual consumers; adjacency or absent direct xrefs alone
+cannot establish a role or deadness. World/body and object-record views still
+retain explicitly conditional index/alias assumptions, rather than arbitrary
+input-safety proofs. The LONG-entry world-message prefix table and later message
+bodies also have concrete consumer leads to review.
+
+Conditional external continuations remain distinct: the decoded protection
+entry/provider at `$380`, reset through vector4, intro low-memory patches, and
+the 448-byte second-read suffix. Existing normal-media entry evidence establishes
+extraction but does not resolve these later contracts or prove gameplay paths.
+
+Useful original-source completion requires a final connected review of the
+remaining meaningful function/field/table leads, a bounded disposition for every
+residual opaque interval, and a source-quality audit of generated symbols,
+structures and asset consumers. Unsettled meanings must remain explicitly
+qualified, not receive invented names. Then regenerate the canonical assembly
+and INCBIN export once and verify a clean standalone C/vasm rebuild of every
+original byte before private final packaging. A byte-exact raw dump or an
+ownership percentage alone does not meet that gate; no interim archive.
 
 ## Reproducible extraction
 
@@ -1422,3 +1457,29 @@ with zero range/source-quality diagnostics. Classification gains
 leaving 22445 unclassified. See
 `runtime/observations/starglider2-ui-mission-sound.json`. This is source restoration,
 not new disk/gameplay qualification; no interim archive is being produced.
+
+
+## World visual parameters and stored reference bindings
+
+Solice's display uses sixteen stored radius/pointer entries. Three actual
+64-WORD curves supply RGB values through a folded phase index; null curve
+entries explicitly select zero. Separate per-world RGB/altitude-shift prefixes
+feed the original palette consumers. Three seventeen-WORD altitude profiles
+write a special-mesh material index, which is a polygon parameter rather than
+a packed RGB colour. All original integer masks, thresholds, shifts and palette
+paths remain unchanged. Sixteen-entry prefixes retain the broader selector's
+conditional-domain and alias limits; they are not blanket index-safety proofs.
+
+The dialogue/handler fields and world-curve fields now carry explicit native
+absolute-reference facts. Each is checked against its exact original source
+LONG and original consumer, mapped through the existing source view and
+projected bidirectionally. Nulls/negative terminators remain literal. Existing
+subarray labels stay intact; a physical data container does not imply mandatory
+shared relocation. The original collection-exclusion mask is also explicit.
+This is source restoration, not relocation or new output/playthrough validation.
+
+The 123 canonical actions yield 97 source-bound, bidirectional runtime-reference
+projections and full C/vasm equality across all 412736 bytes. Classification gains
+814 bytes, leaving 21631 unclassified; code
+coverage is unchanged. Range/source-quality diagnostics remain zero. See
+`runtime/observations/starglider2-world-visual-references.json`. No interim archive.
