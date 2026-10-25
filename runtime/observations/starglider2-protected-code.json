@@ -30,17 +30,17 @@
     "analysis_view_size": 3548,
     "analysis_view_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
     "unchanged_context_sha256": "82bdd995e2c077d607997aa2af7f84bbec6b12479ea85b25bf1dda404239f154",
-    "derived_verification_id": "f1b9a5eabf26abba506068fa28329ad51cd7154e53dcf1ff642964ece129d57b",
-    "derived_source_sha256": "54655a855ee664a0e90e3c915f09ad68f179098889bc603070e85ebe9612244a",
+    "derived_verification_id": "7badf0b34047b5fcab794e67434097a31264b14a2ccfe7ca100d5aa68f021d28",
+    "derived_source_sha256": "abcce583e06d12f652728009d35376ef3a8469e74bcaba1e3e773171f5e2d89a",
     "rebuilt_then_inverse_exact": true
   },
   "native_target": "amiga_raw_starglider2_protection_view",
   "derived_verification": {
-    "receipt_id": "f1b9a5eabf26abba506068fa28329ad51cd7154e53dcf1ff642964ece129d57b",
+    "receipt_id": "7badf0b34047b5fcab794e67434097a31264b14a2ccfe7ca100d5aa68f021d28",
     "exact": true,
     "original_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
     "original_size": 3548,
-    "source_sha256": "54655a855ee664a0e90e3c915f09ad68f179098889bc603070e85ebe9612244a",
+    "source_sha256": "abcce583e06d12f652728009d35376ef3a8469e74bcaba1e3e773171f5e2d89a",
     "output_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
   },
   "normal_media_observation": {
@@ -176,5 +176,16 @@
     "original_size": 412736,
     "source_sha256": "cbfce8a0d63b6583af5aa5db52d7ed5a2988419c416c49368ce3fb616db8029e",
     "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
-  }
+  },
+  "previous_derived_verifications": [
+    {
+      "receipt_id": "f1b9a5eabf26abba506068fa28329ad51cd7154e53dcf1ff642964ece129d57b",
+      "exact": true,
+      "original_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+      "original_size": 3548,
+      "source_sha256": "54655a855ee664a0e90e3c915f09ad68f179098889bc603070e85ebe9612244a",
+      "output_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+    }
+  ],
+  "context_refinement": "LONG at $13D50 is input-limit pointer to original external $D904. Following 8 bytes retained raw; JMP-shaped pattern is not promoted to executable code."
 }

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "trigonometry": {
+    "start": 81760,
+    "end": 92000,
+    "stored_words": 5120,
+    "sine_view": [
+      81760,
+      89952
+    ],
+    "cosine_view": [
+      83808,
+      92000
+    ],
+    "overlapping_bytes": 6144,
+    "index_mask": 4095,
+    "index_width": 2,
+    "min_value": -16383,
+    "max_value": 16383,
+    "tail_minus_first_quarter_counts": {
+      "0": 958,
+      "-1": 66
+    },
+    "sha256": "1605cabac83f6c38f96a63a0d8ab32ae3013b31591476672c5b442caa6de72d9",
+    "pointer_initializer": 7950,
+    "matrix_builder": 10316
+  },
+  "arctangent": {
+    "start": 81244,
+    "end": 81756,
+    "words": 256,
+    "index_mask": 255,
+    "index_width": 2,
+    "consumers": [
+      45110,
+      45198
+    ],
+    "following_four_bytes_unclaimed": [
+      81756,
+      81760
+    ],
+    "sha256": "5b36b1410677173e79aa152611a50217b2c62a11eca201ed97e9b6c29cb90b92"
+  },
+  "limits": [
+    "Stored coefficients preserved; no floating-point resampling or rounding correction",
+    "The two overlapping windows are not byte-identical periodic aliases",
+    "Masked lookup bounds do not prove all arithmetic inputs or all callers safe",
+    "No new runtime or all-path numerical equivalence qualification"
+  ],
+  "kind": "rotation_and_heading_lookup_restoration",
+  "canonical_actions": 12,
+  "verification": {
+    "receipt_id": "114ba86a430cf065a19c79707e504579526807d9be9b47145525efcc4a260285",
+    "exact": true,
+    "source_sha256": "a3071bab10a5151fbb9b703db18806c87ed9303b648c9be06be3df72cd876342",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 311494,
+    "after_range_union_bytes": 322246,
+    "before_unclassified_bytes": 101242,
+    "after_unclassified_bytes": 90490,
+    "new_classified_bytes": 10752,
+    "source_quality_diagnostics": 0,
+    "range_violations": 0
+  },
+  "native_incbins": "Asset bytes unchanged; standalone source+INCBIN receipt remains explicitly the preceding world-object batch"
+}

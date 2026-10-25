@@ -3,7 +3,7 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 101242 bytes remain unclassified and substantial
+byte equality is preserved; 90490 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -574,3 +574,34 @@ are separate readability/classification measures, not an overall completion
 percentage. See `runtime/observations/starglider2-world-objects.json` and the
 hash-bound `starglider2_objects` audit tool. No new runtime or all-path proof,
 archive, or upload is claimed.
+
+
+## Rotation and heading lookup views
+
+`install_sine_cosine_pointers` at `$1F0E` installs `$13F60` and `$14760` in
+named app pointer slots `$44/$48`. Three-angle matrix construction masks angles
+with 4095 and uses WORD indices. The sine window is `$13F60..$15F60`, the cosine
+window `$14760..$16760`; their union is one 5120-WORD stored range, overlapping
+by 6144 bytes. This models actual shared backing, not two duplicate arrays.
+
+The coefficients reach +/-16383 and feed the original fixed-point rotation
+arithmetic. The final 1024 WORDs differ from the first quarter at 66 positions
+by -1. They are preserved exactly, without floating-point regeneration, tail
+copying or rounding fixes. The named matrix builder and heading helper remain
+original 68000 instructions with their existing truncation/overflow behavior.
+The heading consumers mask integer ratios with 255 and double WORD indices into
+`$13D5C..$13F5C`. The following four bytes remain unclaimed; masked lookup bounds
+do not establish every DIVS or absolute-value input safe.
+
+Twelve canonical actions restore these tables, pointer slots and consumers.
+The hash-bound `starglider2_math` audit and
+`runtime/observations/starglider2-math.json` preserve the measured identities.
+C/vasm full-image equality remains exact. Accepted range coverage grows by
+10752 bytes, leaving 90490 unclassified, separately from semantic completeness.
+The preceding world-object batch remains the dated standalone INCBIN receipt;
+its asset bytes are unchanged. No new runtime/output qualification is claimed.
+
+A small protection-view refinement also distinguishes the external input-limit
+pointer at `$13D50` from the following eight unchanged context bytes. A JMP-like
+pattern alone is not promoted to executed code; the suffix stays raw. The
+refined view still reassembles and inverse-encodes exactly. No new archive or upload was produced; restoration remains incomplete.
