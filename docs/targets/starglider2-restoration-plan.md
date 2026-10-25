@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 25585 bytes remain unclassified and substantial
+byte equality is preserved; 22445 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1379,3 +1379,46 @@ resolution of seven real sample ranges (1180 rows) took
 65.729 seconds, made seven suppression-metadata reads and
 materialized no whole listing. This measures that operation only, not a claimed
 end-to-end speedup. Semantic restoration remains active; no interim archive.
+
+
+## Disk UI, pilot ratings, Taymar mission and object-sound state
+
+Explicit original prompt/title pointers now select readable text with preserved
+colour/cursor control bytes. The ADLS identifier is a separate fixed-length
+86-byte copy/compare span, not NUL text merged into the following error prompt.
+Formatting text is a nonterminated prefix followed by mutable digits. The actual
+text gateway target also admits its missing ten-byte register-save/pointer-load
+prefix as code; the already decoded continuation is unchanged.
+
+The ratings display visits fifteen entries. Insertion copies the old last
+score/name into a sixteenth scratch slot, so canonical storage preserves sixteen
+LONG scores and sixteen sixteen-byte names while retaining the visible count
+of fifteen. Score values are explicit literal data, not guessed pointers. The
+formatter skips the high score byte and converts the next six nibbles; original
+ABCD producers and malformed-loaded-input behavior are preserved. The RICK disk
+signature precedes a proved 512-byte transfer including an opaque internal gap
+and tail. Copy membership does not establish padding or dead storage, and two
+bytes beyond that backing remain outside this contract.
+
+The related object-sound pass names candidate masks/state and smoothed/target
+volume. Its transition counter is set to eleven and decremented before indexing,
+so the volume-shift table has eleven proven WORD entries, not just the two
+phases singled out by DMA programming. Original type3 modulo-period modulation
+and type5 volume ramp remain explicit; adjacent frequency words and arbitrary
+selector domains are not inferred. No new playback equivalence is claimed.
+
+The Taymar contract connects aboard/delivered state, an explicit bomb order,
+eight model-specific ingredient counts, readiness and collection enable.
+Original dialogue arrays, negative terminators and trade templates now select
+readable text. The computed four-state dispatch is explicit. Readiness is set
+even if location gates skip bomb creation; collection clears the original
+order/material/ready flags while retaining Taymar delivery. The dialogue sign
+toggle alternates FF and01 under NEG.B, not a zero/nonzero boolean. These are
+conditional source contracts, not proof of a completed mission/playthrough.
+
+The 172 canonical actions preserve all 412736 bytes in C/vasm verification
+with zero range/source-quality diagnostics. Classification gains
+3140 bytes (10 code bytes),
+leaving 22445 unclassified. See
+`runtime/observations/starglider2-ui-mission-sound.json`. This is source restoration,
+not new disk/gameplay qualification; no interim archive is being produced.

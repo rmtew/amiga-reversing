@@ -1,0 +1,704 @@
+{
+  "schema_version": 1,
+  "kind": "ui_ratings_taymar_mission_and_object_sound_state",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 172,
+  "strings": [
+    {
+      "start": 75476,
+      "end": 75596,
+      "name": "disk_format_error_retry_prompt"
+    },
+    {
+      "start": 75596,
+      "end": 75618,
+      "name": "disk_save_game_title"
+    },
+    {
+      "start": 75618,
+      "end": 75640,
+      "name": "disk_load_game_title"
+    },
+    {
+      "start": 75640,
+      "end": 75666,
+      "name": "disk_save_ratings_title"
+    },
+    {
+      "start": 75666,
+      "end": 75692,
+      "name": "disk_load_ratings_title"
+    },
+    {
+      "start": 75692,
+      "end": 75714,
+      "name": "disk_load_music_title"
+    },
+    {
+      "start": 75714,
+      "end": 75848,
+      "name": "disk_write_protected_retry_prompt"
+    },
+    {
+      "start": 75848,
+      "end": 75979,
+      "name": "disk_format_offer_prompt"
+    },
+    {
+      "start": 75979,
+      "end": 76116,
+      "name": "disk_insert_adls_retry_prompt"
+    },
+    {
+      "start": 76116,
+      "end": 76261,
+      "name": "disk_missing_ratings_retry_prompt"
+    },
+    {
+      "start": 76261,
+      "end": 76372,
+      "name": "disk_error_retry_prompt"
+    },
+    {
+      "start": 76372,
+      "end": 76476,
+      "name": "disk_filename_not_found_retry_prompt"
+    },
+    {
+      "start": 76476,
+      "end": 76589,
+      "name": "disk_no_files_retry_prompt"
+    },
+    {
+      "start": 76589,
+      "end": 76688,
+      "name": "disk_full_retry_prompt"
+    },
+    {
+      "start": 76688,
+      "end": 76807,
+      "name": "disk_master_media_retry_prompt"
+    },
+    {
+      "start": 76807,
+      "end": 76840,
+      "name": "disk_filename_entry_prompt"
+    },
+    {
+      "start": 76840,
+      "end": 76936,
+      "name": "disk_missing_media_retry_prompt"
+    },
+    {
+      "start": 76972,
+      "end": 77005,
+      "name": "pilot_ratings_heading_text"
+    },
+    {
+      "start": 77005,
+      "end": 77013,
+      "name": "pilot_ratings_score_line_prefix"
+    },
+    {
+      "start": 77013,
+      "end": 77017,
+      "name": "pilot_ratings_name_colour_prefix"
+    },
+    {
+      "start": 77024,
+      "end": 77150,
+      "name": "pilot_rating_name_entry_prompt"
+    },
+    {
+      "start": 77230,
+      "end": 77246,
+      "name": "pilot_rating_name_slots"
+    },
+    {
+      "start": 77246,
+      "end": 77262,
+      "name": "pilot_rating_name_01"
+    },
+    {
+      "start": 77262,
+      "end": 77278,
+      "name": "pilot_rating_name_02"
+    },
+    {
+      "start": 77278,
+      "end": 77294,
+      "name": "pilot_rating_name_03"
+    },
+    {
+      "start": 77294,
+      "end": 77310,
+      "name": "pilot_rating_name_04"
+    },
+    {
+      "start": 77310,
+      "end": 77326,
+      "name": "pilot_rating_name_05"
+    },
+    {
+      "start": 77326,
+      "end": 77342,
+      "name": "pilot_rating_name_06"
+    },
+    {
+      "start": 77342,
+      "end": 77358,
+      "name": "pilot_rating_name_07"
+    },
+    {
+      "start": 77358,
+      "end": 77374,
+      "name": "pilot_rating_name_08"
+    },
+    {
+      "start": 77374,
+      "end": 77390,
+      "name": "pilot_rating_name_09"
+    },
+    {
+      "start": 77390,
+      "end": 77406,
+      "name": "pilot_rating_name_10"
+    },
+    {
+      "start": 77406,
+      "end": 77422,
+      "name": "pilot_rating_name_11"
+    },
+    {
+      "start": 77422,
+      "end": 77438,
+      "name": "pilot_rating_name_12"
+    },
+    {
+      "start": 77438,
+      "end": 77454,
+      "name": "pilot_rating_name_13"
+    },
+    {
+      "start": 77454,
+      "end": 77470,
+      "name": "pilot_rating_name_14"
+    },
+    {
+      "start": 77470,
+      "end": 77486,
+      "name": "pilot_rating_name_insertion_scratch"
+    }
+  ],
+  "text_controls": {
+    "source_gateway": 50404,
+    "actual_entry": 56424,
+    "recovered_entry_bytes": 10,
+    "contract": "Original high-bit bytes select colour-plane mask; 09/0A/0D tab/newline/return. Numeric controls preserved alongside quoted printable text"
+  },
+  "adls_disk_identification": {
+    "span": [
+      75390,
+      75476
+    ],
+    "bytes": 86,
+    "termination": "Fixed-length copy/compare, no NUL required"
+  },
+  "rating_storage": {
+    "displayed_entries": 15,
+    "score_slots": 16,
+    "score_span": [
+      77162,
+      77226
+    ],
+    "score_width": 4,
+    "name_slots": 16,
+    "name_span": [
+      77230,
+      77486
+    ],
+    "name_width": 16,
+    "extra_slot": "Original insertion shifts old final visible score/name into scratch; not a sixteenth displayed rank",
+    "input_limit": 15,
+    "disk_record": [
+      77158,
+      77670
+    ],
+    "disk_record_bytes": 512,
+    "signature_hex": "5249434b",
+    "opaque_score_name_gap": [
+      77226,
+      77230
+    ],
+    "opaque_transfer_tail": [
+      77486,
+      77670
+    ],
+    "score_contract": "Original ABCD producers update three low bytes; formatter skips high byte and adds ASCII0 to six nibbles. Retain signed LONG ordering and malformed-loaded-data behavior"
+  },
+  "object_sound_state": {
+    "excluded_type_mask": [
+      315840,
+      315988
+    ],
+    "stored_types": 148,
+    "transition_volume_shifts": [
+      316192,
+      316214
+    ],
+    "shift_WORDs": 11,
+    "restart_phase": 11,
+    "read_indices": "10..0 after decrement; static original control-flow assumptions",
+    "state": "Named selected reference/found flag, special-distance flag, smoothed/target volume and type3/type5 effect state",
+    "scope": "No arbitrary selector bounds or PCM claim"
+  },
+  "taymar_mission": {
+    "canonical_actions": 98,
+    "dialogue_tables": [
+      {
+        "start": 230724,
+        "end": 230788,
+        "name": "taymar_offer_dialogue_pointers",
+        "pointers": 16,
+        "terminator": false
+      },
+      {
+        "start": 230788,
+        "end": 230916,
+        "name": "taymar_order_dialogue_pointers",
+        "pointers": 32,
+        "terminator": false
+      },
+      {
+        "start": 231016,
+        "end": 231048,
+        "name": "neutron_bomb_ingredient_name_pointers",
+        "pointers": 8,
+        "terminator": false
+      },
+      {
+        "start": 231048,
+        "end": 231060,
+        "name": "depot_trade_offer_template",
+        "pointers": 3,
+        "terminator": false
+      },
+      {
+        "start": 231060,
+        "end": 231072,
+        "name": "depot_trade_completion_template",
+        "pointers": 3,
+        "terminator": false
+      },
+      {
+        "start": 230916,
+        "end": 230932,
+        "name": "taymar_partial_ingredients_dialogue",
+        "pointers": 3,
+        "terminator": true
+      },
+      {
+        "start": 230932,
+        "end": 230944,
+        "name": "taymar_complete_ingredients_dialogue",
+        "pointers": 2,
+        "terminator": true
+      },
+      {
+        "start": 230944,
+        "end": 230964,
+        "name": "taymar_delivered_partial_ingredients_dialogue",
+        "pointers": 4,
+        "terminator": true
+      },
+      {
+        "start": 230964,
+        "end": 230980,
+        "name": "taymar_delivered_complete_ingredients_dialogue",
+        "pointers": 3,
+        "terminator": true
+      },
+      {
+        "start": 230980,
+        "end": 230996,
+        "name": "taymar_bomb_ready_dialogue",
+        "pointers": 3,
+        "terminator": true
+      },
+      {
+        "start": 230996,
+        "end": 231016,
+        "name": "taymar_bomb_ready_missing_ingredients_dialogue",
+        "pointers": 4,
+        "terminator": true
+      }
+    ],
+    "strings": [
+      {
+        "start": 231496,
+        "end": 231520,
+        "name": "depot_text_welcome_to_apogee"
+      },
+      {
+        "start": 231520,
+        "end": 231546,
+        "name": "depot_text_jaysan_katra_and_agro"
+      },
+      {
+        "start": 231546,
+        "end": 231569,
+        "name": "depot_text_my_name_is_trem"
+      },
+      {
+        "start": 231569,
+        "end": 231596,
+        "name": "depot_text_i_am_the_depot_supervisor"
+      },
+      {
+        "start": 231596,
+        "end": 231622,
+        "name": "depot_text_we_ve_been_expecting_you"
+      },
+      {
+        "start": 231622,
+        "end": 231646,
+        "name": "depot_text_if_you_can_help_us"
+      },
+      {
+        "start": 231646,
+        "end": 231671,
+        "name": "depot_text_then_we_can_help_you"
+      },
+      {
+        "start": 231671,
+        "end": 231699,
+        "name": "depot_text_we_are_short_of_supplies"
+      },
+      {
+        "start": 231699,
+        "end": 231728,
+        "name": "depot_text_due_to_the_egron_presence"
+      },
+      {
+        "start": 231728,
+        "end": 231754,
+        "name": "depot_text_do_you_want_us_to_build"
+      },
+      {
+        "start": 231754,
+        "end": 231780,
+        "name": "depot_text_a_neutron_bomb_for_you"
+      },
+      {
+        "start": 231780,
+        "end": 231806,
+        "name": "depot_text_if_your_answer_is_yes"
+      },
+      {
+        "start": 231806,
+        "end": 231830,
+        "name": "depot_text_press_the_y_key"
+      },
+      {
+        "start": 231830,
+        "end": 231855,
+        "name": "depot_text_if_your_answer_is_no"
+      },
+      {
+        "start": 231855,
+        "end": 231879,
+        "name": "depot_text_press_the_n_key"
+      },
+      {
+        "start": 231879,
+        "end": 231906,
+        "name": "depot_text_this_message_will_repeat"
+      },
+      {
+        "start": 231906,
+        "end": 231931,
+        "name": "depot_text_you_ask_us_for_the_bomb"
+      },
+      {
+        "start": 231931,
+        "end": 231957,
+        "name": "depot_text_so_that_we_might_do_this"
+      },
+      {
+        "start": 231957,
+        "end": 231981,
+        "name": "depot_text_you_must_get_for_us"
+      },
+      {
+        "start": 231981,
+        "end": 232007,
+        "name": "depot_text_supplies_and_materials"
+      },
+      {
+        "start": 232007,
+        "end": 232033,
+        "name": "depot_text_these_are_the_following"
+      },
+      {
+        "start": 232033,
+        "end": 232058,
+        "name": "depot_text_a_case_of_nuclear_fuel"
+      },
+      {
+        "start": 232058,
+        "end": 232083,
+        "name": "depot_text_a_lump_of_mineral_rock"
+      },
+      {
+        "start": 232083,
+        "end": 232107,
+        "name": "depot_text_a_crate_of_castrobars"
+      },
+      {
+        "start": 232107,
+        "end": 232131,
+        "name": "depot_text_a_cask_of_vistan_wine"
+      },
+      {
+        "start": 232131,
+        "end": 232154,
+        "name": "depot_text_an_egron_mini_rocket"
+      },
+      {
+        "start": 232154,
+        "end": 232168,
+        "name": "depot_text_an_asteroid"
+      },
+      {
+        "start": 232168,
+        "end": 232185,
+        "name": "depot_text_a_flat_diamond"
+      },
+      {
+        "start": 232185,
+        "end": 232208,
+        "name": "depot_text_a_cluster_of_nodules"
+      },
+      {
+        "start": 232208,
+        "end": 232233,
+        "name": "depot_text_and_finally_you_must"
+      },
+      {
+        "start": 232233,
+        "end": 232257,
+        "name": "depot_text_find_and_bring_back"
+      },
+      {
+        "start": 232257,
+        "end": 232285,
+        "name": "depot_text_professor_halsen_taymar"
+      },
+      {
+        "start": 232285,
+        "end": 232313,
+        "name": "depot_text_without_whose_expertise"
+      },
+      {
+        "start": 232313,
+        "end": 232340,
+        "name": "depot_text_we_could_not_construct"
+      },
+      {
+        "start": 232340,
+        "end": 232358,
+        "name": "depot_text_a_neutron_bomb"
+      },
+      {
+        "start": 232358,
+        "end": 232387,
+        "name": "depot_text_our_reports_indicate_that"
+      },
+      {
+        "start": 232387,
+        "end": 232416,
+        "name": "depot_text_the_professor_is_currently"
+      },
+      {
+        "start": 232416,
+        "end": 232445,
+        "name": "depot_text_heading_a_research_team"
+      },
+      {
+        "start": 232445,
+        "end": 232474,
+        "name": "depot_text_on_broadway_that_being"
+      },
+      {
+        "start": 232474,
+        "end": 232502,
+        "name": "depot_text_the_first_moon_of_the"
+      },
+      {
+        "start": 232502,
+        "end": 232525,
+        "name": "depot_text_gas_giant_millway"
+      },
+      {
+        "start": 232525,
+        "end": 232553,
+        "name": "depot_text_we_advise_you_not_to_go"
+      },
+      {
+        "start": 232553,
+        "end": 232582,
+        "name": "depot_text_too_near_the_atmosphere_of"
+      },
+      {
+        "start": 232582,
+        "end": 232611,
+        "name": "depot_text_millway_since_the_pressure"
+      },
+      {
+        "start": 232611,
+        "end": 232640,
+        "name": "depot_text_will_surely_destroy_icarus"
+      },
+      {
+        "start": 232640,
+        "end": 232665,
+        "name": "depot_text_we_of_apogee_depot_1"
+      },
+      {
+        "start": 232665,
+        "end": 232691,
+        "name": "depot_text_wish_all_three_of_you"
+      },
+      {
+        "start": 232691,
+        "end": 232711,
+        "name": "depot_text_the_best_of_luck"
+      },
+      {
+        "start": 232711,
+        "end": 232737,
+        "name": "depot_text_we_have_professor_taymar"
+      },
+      {
+        "start": 232737,
+        "end": 232763,
+        "name": "depot_text_we_need_professor_taymar"
+      },
+      {
+        "start": 232763,
+        "end": 232789,
+        "name": "depot_text_and_require_from_you"
+      },
+      {
+        "start": 232789,
+        "end": 232817,
+        "name": "depot_text_a_number_of_other_things"
+      },
+      {
+        "start": 232817,
+        "end": 232843,
+        "name": "depot_text_we_have_all_else_we_need"
+      },
+      {
+        "start": 232843,
+        "end": 232868,
+        "name": "depot_text_bomb_under_construction"
+      },
+      {
+        "start": 232868,
+        "end": 232892,
+        "name": "depot_text_we_still_require_these"
+      },
+      {
+        "start": 232892,
+        "end": 232910,
+        "name": "depot_text_bomb_constructed"
+      },
+      {
+        "start": 232910,
+        "end": 232935,
+        "name": "depot_text_welcome_to_this_depot"
+      },
+      {
+        "start": 232935,
+        "end": 232956,
+        "name": "depot_text_in_exchange_for_a"
+      },
+      {
+        "start": 232956,
+        "end": 232978,
+        "name": "depot_text_we_will_give_you_a"
+      },
+      {
+        "start": 232978,
+        "end": 232998,
+        "name": "depot_text_thankyou_for_the"
+      },
+      {
+        "start": 232998,
+        "end": 233016,
+        "name": "depot_text_you_now_have_a"
+      }
+    ],
+    "app_flags": {
+      "bomb_order_requested": 2687,
+      "Taymar_aboard": 2688,
+      "Taymar_delivered": 2689,
+      "ingredients_complete": 2690,
+      "bomb_ready": 2691,
+      "collection_enabled": 2692
+    },
+    "ingredient_model_types": [
+      102,
+      101,
+      100,
+      83,
+      29,
+      73,
+      38,
+      87
+    ],
+    "delivered_model_counts_prefix": [
+      2893,
+      2997
+    ],
+    "missing_ingredient_list_prefix": [
+      2510,
+      2550
+    ],
+    "four_state_dispatch": [
+      214106,
+      214122
+    ],
+    "ready_caveat": "Timer expiry sets ready even if location gates skip type98 object creation",
+    "collection": "Interior type98 collection clears order/ingredient/ready/collection flags and104 delivered counts, retains Taymar-delivered",
+    "sign_selection": "NEG.B flips FF to01 and back; negative test preserved, not boolean nonzero",
+    "scope": "Static conditional original mission paths, not newly executed gameplay or ending"
+  },
+  "verification": {
+    "receipt_id": "c0c1aae72fadd09e6cff2fd312d20faf446ff56dd72fcd3cb02cefd2b7690ad9",
+    "exact": true,
+    "source_sha256": "11962fd581985f2035f9ca5ffc7c78625c0b29e720b1d051b54e8cb72a5b125c",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 387151,
+    "after_range_union_bytes": 390291,
+    "before_unclassified_bytes": 25585,
+    "after_unclassified_bytes": 22445,
+    "new_classified_bytes": 3140,
+    "before_code_bytes": 105956,
+    "accepted_code_bytes": 105966,
+    "new_code_bytes": 10,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original prompts, callbacks and storage consumers; no new disk/UI runtime qualification",
+    "Opaque transferred fields have copy-membership purpose, not padding/deadness semantics",
+    "Six score digits assume intended BCD input; no arbitrary saved-file validation claim",
+    "Remaining nearby bytes outside observed backing extents unclassified, not unused",
+    "No interim archive, relocation or Pandora resumption"
+  ]
+}
